@@ -1,6 +1,6 @@
 // src/features/core/messaging/channels/line/createLineChannel.ts
 //
-// LINE の経路の項目を部品から作る(本物の部品は index.ts、テストは偽物を渡す)。
+// LINE の送信チャンネルの項目を部品から作る(本物の部品は index.ts、テストは偽物を渡す)。
 // - 入切: enabled(messaging の config channels.line.enabled、既定 切)。切の時は送る口が channel_off にする
 // - 宛先: user_line_profiles.line_user_id(LINE の連携の機能 userLineProfile が閉じていれば宛先なし)
 // - connectHref: LINE の連携の入口(好みの表が宛先の無い利用者に出す。門で閉じていれば表は出さない)
@@ -36,7 +36,7 @@ export function createLineChannel(deps: LineChannelDeps): MessageChannel {
     enabled: deps.enabled,
     ...(deps.connectHref ? { connectHref: deps.connectHref } : {}),
     resolveAddresses: (userIds) => deps.findLineUserIds(userIds),
-    // ひな形の描き方(D124): LINE は要約の短い本文(無ければ本文)の文、行き先があれば次の行に URL
+    // レイアウトの描き方(D124): LINE は要約の短い本文(無ければ本文)の文、行き先があれば次の行に URL
     summaryRenderable: true,
     renderFromSummary: (summary) => ({ text: [summary.shortBody ?? summary.body, summary.link?.url].filter(Boolean).join("\n") }),
     async send(targets) {

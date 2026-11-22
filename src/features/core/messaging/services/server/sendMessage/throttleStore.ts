@@ -2,7 +2,7 @@
 //
 // 会話の間引きの DB(drizzle)。鍵ごとに 1 取引: pg_advisory_xact_lock(hashtextextended(鍵, 0)) で排他し、
 // 要求の中の送りと cron の送りが同じ鍵で重ならないようにする(取引の終わりで lock は外れる)。
-// お知らせの画像は同じ取引の中で回に結ぶ(回の行を FOR UPDATE、inApp の経路の bindImages と同じ結び方)。
+// お知らせの画像は同じ取引の中で送信に結ぶ(送信の行を FOR UPDATE、inApp の送信チャンネルの bindImages と同じ結び方)。
 
 import { and, desc, eq, gt, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
 
@@ -17,7 +17,7 @@ import { storageInboxImageLedger } from "../inbox/imageBindingLedger";
 import { inboxReadSql } from "../inbox/readState";
 import type { MessageThrottleStore, MessageThrottleTx } from "./types";
 
-/** 行の画像(image と欄の中身の中の参照)を回に結んだ参照に替える(storage:// でない値はそのまま) */
+/** 行の画像(image と欄の中身の中の参照)を送信に結んだ参照に替える(storage:// でない値はそのまま) */
 async function bindImages<T extends { image?: string | null; values?: Record<string, unknown> | null }>(
   tx: TransactionClient,
   dispatchId: string,

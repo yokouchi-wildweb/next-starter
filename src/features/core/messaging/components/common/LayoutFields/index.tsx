@@ -1,8 +1,8 @@
 // src/features/core/messaging/components/common/LayoutFields/index.tsx
-// 部品(props だけ): ひな形の欄の宣言(D123)から入力を並べる。react-hook-form の control と欄の場所(name)に結ぶ
+// 部品(props だけ): レイアウトの欄の宣言(D123)から入力を並べる。react-hook-form の control と欄の場所(name)に結ぶ
 // (フォームと検査は hook useLayoutFieldsForm、この部品は描くだけ)。宣言の順 = 画面の順。
-// - activeChannel を渡すと、その経路で使う欄だけ(共通 + その経路だけ、D117)。共通の欄は「全経路で共通」の印。描かない欄の値はフォームに残る
-// - 見出し・必須の印・仮の文(宣言の placeholder)。経路だけの欄は「<経路>だけ」の印、channels(送る経路)に無い経路だけの欄は「使われない」の印で薄く
+// - activeChannel を渡すと、その送信チャンネルで使う欄だけ(共通 + その送信チャンネルだけ、D117)。共通の欄は「全経路で共通」の印。描かない欄の値はフォームに残る
+// - 見出し・必須の印・仮の文(宣言の placeholder)。送信チャンネルだけの欄は「<経路>だけ」の印、channels(送信チャンネル)に無い送信チャンネルだけの欄は「使われない」の印で薄く
 // - 欄の型ごとの入力は LayoutFieldInput(ブロックの並びは LayoutBlocksInput)。readOnly = 読むだけ(システムのテンプレート・固定の文)
 // - 欄に入ると onFocusField("<欄>[.<部分>]")(プレビューがその場所を示す)
 
@@ -54,12 +54,12 @@ export type LayoutFieldsProps<T extends FieldValues> = {
   control: Control<T>;
   /** 欄の中身の置き場所(フォームの値の中の道。無い = 根に欄の鍵を並べる) */
   name?: string;
-  /** ひな形の欄の宣言 */
+  /** レイアウトの欄の宣言 */
   fields: MessageLayoutFields;
-  /** 送る経路の鍵(渡すと、どれにも使われない経路だけの欄に「使われない」の印) */
+  /** 送信チャンネルの鍵(渡すと、どれにも使われない送信チャンネルだけの欄に「使われない」の印) */
   channels?: readonly string[];
   /**
-   * 今の経路(プレビューのタブ、D117)。渡すと、その経路で使う欄(全経路で共通 + その経路だけ)だけを描き、共通の欄に「全経路で共通」の印。
+   * 今の送信チャンネル(プレビューのタブ、D117)。渡すと、その送信チャンネルで使う欄(全送信チャンネルで共通 + その送信チャンネルだけ)だけを描き、共通の欄に「全経路で共通」の印。
    * 描かない欄の値はフォームに残る(タブを替えても消えない)
    */
   activeChannel?: string | null;

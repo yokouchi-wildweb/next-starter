@@ -1,8 +1,8 @@
 // src/features/core/messaging/services/server/sweep/retention.ts
 //
 // 保持の掃除(cron messaging-retention)。messaging の config の日数を過ぎた行を予算の中で消す(D33):
-// events(購読がある時は一番遅い印より新しい事件を残す、D47)→ deliveries → dispatches(お知らせが参照する回・processing / scheduled の回は残す。消す前に冪等の鍵を
-// message_idempotency_keys へ移し、回に結んだお知らせの画像を保存の台帳から外す)→ 移した鍵(idempotencyKeyDays が null なら消さない)
+// events(購読がある時は一番遅い印より新しい事件を残す、D47)→ deliveries → dispatches(お知らせが参照する送信・processing / scheduled の送信は残す。消す前に冪等の鍵を
+// message_idempotency_keys へ移し、送信に結んだお知らせの画像を保存の台帳から外す)→ 移した鍵(idempotencyKeyDays が null なら消さない)
 
 import type { MessagingConfig } from "../../../config";
 import type { MessageRetentionStore } from "./types";
@@ -12,7 +12,7 @@ export type RetentionResult = {
   deliveries: number;
   dispatches: number;
   movedKeys: number;
-  /** 消した回から外したお知らせの画像(台帳の行)の数 */
+  /** 消した送信から外したお知らせの画像(台帳の行)の数 */
   detachedImages: number;
   idempotencyKeys: number;
   truncated: boolean;

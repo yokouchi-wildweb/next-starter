@@ -1,5 +1,5 @@
 // src/features/core/messaging/categories/emailChange.ts
-// 上流の種類: メールアドレスの変更(種別 functional)。auth.emailChange
+// 上流のカテゴリー: メールアドレスの変更(種別 functional)。auth.emailChange
 
 import type { MessageCategory } from "@/lib/messaging";
 

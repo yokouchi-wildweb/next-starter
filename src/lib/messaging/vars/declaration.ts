@@ -112,14 +112,14 @@ export function varValuesSchema(declarations: readonly MessageVarDeclaration[]) 
   return z
     .object({
       ...Object.fromEntries(declarations.map((declaration) => [declaration.key, varValueSchema(declaration)])),
-      // 日付・日時は型の印も出す(回に値と一緒に残り、差し込む時に人が読む字にする: displayVarValues)
+      // 日付・日時は型の印も出す(送信に値と一緒に残り、差し込む時に人が読む字にする: displayVarValues)
       ...varTypeShape(declarations),
     })
     .strict();
 }
 
 /**
- * 型の印の鍵の後ろ(回に残す専用の値の隣に `<鍵>@type` = 型 を置く、D128: 組み直しは回だけから描く)。
+ * 型の印の鍵の後ろ(送信に残す専用の値の隣に `<鍵>@type` = 型 を置く、D128: 組み直しは送信だけから描く)。
  * `@` は差し込みの書式 {{名前}} に拾われないので、印が文面に出ることは無い
  */
 export const VAR_TYPE_SUFFIX = "@type";
@@ -158,7 +158,7 @@ export function varDisplayText(type: string, text: string): string {
 
 /**
  * 差し込みの表の専用の値を人が読む字にする(隣の `<鍵>@type` の型で。印の行は表から外す)。
- * 送る時(版の宣言の vars が印を足す)も組み直し(回の embedded_values が印を持つ)も同じこの 1 か所
+ * 送る時(版の宣言の vars が印を足す)も組み直し(送信の embedded_values が印を持つ)も同じこの 1 か所
  */
 export function displayVarValues(map: Readonly<Record<string, string>>): Record<string, string> {
   const out: Record<string, string> = {};

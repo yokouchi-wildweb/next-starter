@@ -1,4 +1,4 @@
-// ひな形(layout)の型・欄の語彙・ブロック・中身の検査・改版の対応・描き方の 3 段(D122〜D124)
+// レイアウト(layout)の型・欄の語彙・ブロック・中身の検査・改版の対応・描き方の 3 段(D122〜D124)
 // 実行: pnpm test src/lib/messaging/layout/layout.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -78,9 +78,9 @@ const layout = defineMessageLayout({
   revisions: { 1: { title: "subject", footer: null }, 2: {} },
 });
 
-test("中身の検査: 必須を守り、送らない経路だけの欄は求めず、知らない鍵は通らない", () => {
+test("中身の検査: 必須を守り、送らない送信チャンネルだけの欄は求めず、知らない鍵は通らない", () => {
   const values = { subject: "件名", body: [{ type: "paragraph", text: "本文" }] };
-  assert.equal(ok(layoutValuesSchema(layout), values), false, "経路を言わなければ push だけの必須も要る");
+  assert.equal(ok(layoutValuesSchema(layout), values), false, "送信チャンネルを言わなければ push だけの必須も要る");
   assert.equal(ok(layoutValuesSchema(layout, { channels: ["email", "inApp"] }), values), true);
   assert.equal(ok(layoutValuesSchema(layout, { channels: ["push"] }), values), false, "push を送るなら push の欄が要る");
   assert.equal(ok(layoutValuesSchema(layout, { channels: ["email"] }), { ...values, subject: "  " }), false, "空の必須");
@@ -107,7 +107,7 @@ test("版の読み替え(D128): 送った版から今の版まで段ごとに当
     const result = upgradeLayoutValues(layout, {}, version);
     assert.ok("cannotRender" in result, String(version));
   }
-  // 版の無いひな形 = 1
+  // 版の無いレイアウト = 1
   assert.deepEqual(upgradeLayoutValues({ ...layout, version: undefined, revisions: undefined }, { a: 1 }, 1), { values: { a: 1 } });
 });
 
@@ -115,12 +115,12 @@ const values = { subject: "件名", body: [{ type: "paragraph" as const, text: "
 const render = (channel: MessageChannelRendering, hasLayoutRenderer = false, channelKey = "inApp") =>
   resolveRendering({ layout, channelKey, hasLayoutRenderer, channel, values });
 
-test("描き方の 3 段: ひな形 > 経路の汎用 > 要約", () => {
+test("描き方の 3 段: レイアウト > 送信チャンネルの汎用 > 要約", () => {
   const full: MessageChannelRendering = { renderGeneric: () => "g", summaryRenderable: true, renderFromSummary: () => "s" };
   assert.deepEqual(render(full, true), { from: "layout" });
   const generic = render(full);
   assert.equal("from" in generic && generic.from, "channel");
-  assert.deepEqual("fields" in generic && Object.keys(generic.fields), ["subject", "body"], "経路の欄だけ");
+  assert.deepEqual("fields" in generic && Object.keys(generic.fields), ["subject", "body"], "送信チャンネルの欄だけ");
   assert.deepEqual(render({ summaryRenderable: true, renderFromSummary: () => "s" }), {
     from: "summary",
     summary: { title: "件名", body: "本文" },

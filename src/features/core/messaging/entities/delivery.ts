@@ -1,7 +1,7 @@
 // src/features/core/messaging/entities/delivery.ts
 //
-// 配達（受信者 × 経路）と、provider から届いた事件（追記だけ）。
-// - message_deliveries: 1 行 = 1 受信者 × 1 経路。複数の宛先は targets に持つ。
+// 配達（受信者 × 送信チャンネル）と、provider から届いた事件（追記だけ）。
+// - message_deliveries: 1 行 = 1 受信者 × 1 送信チャンネル。複数の宛先は targets に持つ。
 //   行の更新は排他（lease: locked_until + lock_token）。cron は next_attempt_at <= now で拾う
 // - throttle_key: 会話の間引きの鍵(services/server/sendMessage/throttle.ts)
 // - message_events: 事件(webhook の事件と内部の事件 dispatch.completed / delivery.*、追記だけ)。UNIQUE(provider, provider_event_id) で重複を捨てる。
@@ -42,7 +42,7 @@ export const MessageDeliveryTable = pgTable(
     user_id: uuid("user_id").references(() => UserTable.id, {
       onDelete: "set null",
     }),
-    /** 送った宛先（宛先が複数の経路は targets 側） */
+    /** 送った宛先（宛先が複数の送信チャンネルは targets 側） */
     address: text("address"),
     channel: text("channel").notNull(),
     status: text("status")
@@ -61,7 +61,7 @@ export const MessageDeliveryTable = pgTable(
     last_error: text("last_error"),
     provider: text("provider"),
     provider_message_id: text("provider_message_id"),
-    /** 宛先ごとの状態（複数の宛先を持つ経路） */
+    /** 宛先ごとの状態（複数の宛先を持つ送信チャンネル） */
     targets: jsonb("targets").$type<MessageDeliveryTarget[]>(),
     /** 受信者ごとの変数の写し（record が vars / full のとき。secret の印の鍵は落とす） */
     vars: jsonb("vars").$type<Record<string, unknown>>(),
@@ -120,11 +120,11 @@ export const MessageEventTable = pgTable(
     }),
     /** 入った順の番号(購読の印。insert の時に決まり commit の順とは限らないので、cron は数分前までの行だけ読む) */
     seq: bigint("seq", { mode: "number" }).generatedAlwaysAsIdentity(),
-    /** 事件の回(照合できなかった webhook の事件は null)。回を消すと一緒に消える */
+    /** 事件の送信(照合できなかった webhook の事件は null)。送信を消すと一緒に消える */
     dispatch_id: uuid("dispatch_id"),
-    /** 回の連絡の鍵(購読の絞り) */
+    /** 送信の連絡の鍵(購読の絞り) */
     message_key: text("message_key"),
-    /** 経路(回の事件は null) */
+    /** 送信チャンネル(送信の事件は null) */
     channel: text("channel"),
     provider: text("provider").notNull(),
     /** 事件の種類（delivered / bounced / opened / clicked / complained など） */

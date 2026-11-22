@@ -1,10 +1,10 @@
 // src/lib/messaging/definition/adminFields.ts
 //
-// 管理画面で直した欄の値(文言の上書き、D21・D24・D28・D132)の検査と重ね方。保存する口・送る口・プレビューが同じ関数を使う(どれも純粋な関数)。
-// - 欄の道(fieldPath)= ひな形の欄の鍵。組・並び・ブロックの並びの欄は欄ごと丸ごと差し替える(中の 1 つだけは持たない)
-// - 直せる欄 = ひな形の欄のうち種類の経路(上書きの後)で使う物の全部(経路だけの欄は、その経路が種類にある時だけ)。
+// 管理画面で直した欄の値(テキストの編集、D21・D24・D28・D132)の検査と重ね方。保存する口・送る口・プレビューが同じ関数を使う(どれも純粋な関数)。
+// - 欄の道(fieldPath)= レイアウトの欄の鍵。組・並び・ブロックの並びの欄は欄ごと丸ごと差し替える(中の 1 つだけは持たない)
+// - 直せる欄 = レイアウトの欄のうちカテゴリーの送信チャンネル(上書きの後)で使う物の全部(送信チャンネルだけの欄は、その送信チャンネルがカテゴリーにある時だけ)。
 //   定義の adminEditableOnly(欄の鍵の並び)があればその中だけ。種別の性質 adminTextOverride が false・required の連絡は無い
-// - 行はひな形の版(layoutVersion)を持ち、読む時に改版の対応(revisions)で今の版の欄へ移す。移せない行(欄が消えた・段の対応が無い・
+// - 行はレイアウトの版(layoutVersion)を持ち、読む時に改版の対応(revisions)で今の版の欄へ移す。移せない行(欄が消えた・段の対応が無い・
 //   版の無い古い形の行)は当てない = unusable(行は消さない)
 // 欄の値が通る条件:
 // - 今の版へ移した欄が直せる欄にある
@@ -23,7 +23,7 @@ import type { ResolvedMessageDefinition } from "./types";
 import { MESSAGE_COMMON_VARS } from "../vars/common";
 import { COMMON_CONTEXT_KEYS, THROTTLE_CONTEXT_KEYS } from "./validate";
 
-/** 管理画面の欄の値 1 つ(fieldPath = ひな形の欄の鍵、layoutVersion = 保存した時のひな形の版。null = 版の無い古い形の行) */
+/** 管理画面の欄の値 1 つ(fieldPath = レイアウトの欄の鍵、layoutVersion = 保存した時のレイアウトの版。null = 版の無い古い形の行) */
 export type AdminFieldValue = { fieldPath: string; value: unknown; layoutVersion: number | null };
 
 export type AdminFieldProblemCode = "not_editable" | "invalid_value" | "unknown_variable" | "unusable";
@@ -38,7 +38,7 @@ export type AdminFieldCheckOptions = {
 type AnyResolved = ResolvedMessageDefinition<z.AnyZodObject>;
 
 /**
- * 管理画面で直せる欄(ひな形の欄の鍵、宣言の順)。ひな形の欄のうち種類の経路で使う物の全部、adminEditableOnly があればその中だけ。
+ * 管理画面で直せる欄(レイアウトの欄の鍵、宣言の順)。レイアウトの欄のうちカテゴリーの送信チャンネルで使う物の全部、adminEditableOnly があればその中だけ。
  * 種別の性質 adminTextOverride が false・required の連絡は空
  */
 export function adminEditableFields(resolved: AnyResolved, layout: MessageLayout): string[] {

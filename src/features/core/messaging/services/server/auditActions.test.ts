@@ -1,7 +1,7 @@
 // src/features/core/messaging/services/server/auditActions.test.ts
 // 見張り: messaging の(テストでない)コードの監査の action の文字列リテラル(messaging.<entity>.<verb> の 3 段)が、
 // 監査ログの規則(AuditLogCreateSchema の action = 英小文字・数字・_ の段、camelCase 不可)を通ること。
-// 規則に合わない名前は送った後の auditLogger.record で投げ、送れた回が 500 になる(画面の確かめ ng-1・ng-2)。同じ誤りを出荷させない
+// 規則に合わない名前は送った後の auditLogger.record で投げ、成功した送信が 500 になる(画面の確かめ ng-1・ng-2)。同じ誤りを出荷させない
 // 実行: pnpm test src/features/core/messaging/services/server/auditActions.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";

@@ -1,8 +1,8 @@
-# link（上流のひな形「認証のリンク」）
+# link（上流のレイアウト「認証のリンク」）
 
 ## Overview
 
-リンクを押してもらう認証のメール（確認・事前登録・パスワードの再設定・メールアドレスの変更）のひな形（D122・D123）。コードの連絡だけが使い、管理者はテンプレートで選べない（`adminSelectable: false`）。受け口の仕組みは `../README.md`、型と語彙は `src/lib/messaging/README.md`「ひな形」。auth の連絡 4 本(`verification`・`earlyRegistration`・`passwordReset`・`emailChange`)が使う。
+リンクを押してもらう認証のメール（確認・事前登録・パスワードの再設定・メールアドレスの変更）のレイアウト（D122・D123）。定義連絡だけが使い、管理者はテンプレートで選べない（`adminSelectable: false`）。受け口の仕組みは `../README.md`、型と語彙は `src/lib/messaging/README.md`「レイアウト」。auth の連絡 4 本(`verification`・`earlyRegistration`・`passwordReset`・`emailChange`)が使う。
 
 ## Usage
 

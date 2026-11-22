@@ -1,19 +1,19 @@
 // src/features/core/messaging/services/server/inbox/imageBinding.ts
 //
-// お知らせ(受け取り箱の行)の画像を保存の台帳に結ぶ。持ち主の業務行は「回」(record messaging.dispatch / <回の id> / inApp.image)。
+// お知らせ(受け取り箱の行)の画像を保存の台帳に結ぶ。持ち主の業務行は「送信」(record messaging.dispatch / <送信の id> / inApp.image)。
 // 受け取り箱の行ではない理由: 台帳の 1 つのファイルは 1 つの業務行にしか結べない。宛先ごとの行が同じ画像を持つので、行ごとに
 // 持たせると宛先の数だけ複製(strip の描き直し)が要る。宛先ごとの行は利用者の削除の CASCADE でも消え、messaging は serviceRegistry に
-// 無いので storage の照合はその種類を飛ばす(unregistered)= 外す道が無い。受け取り箱の行は回より長生きしない(FK cascade、保持の掃除は
-// お知らせの行の無い回だけを消す)ので、回を消す時に外せば全部の道を覆う。
+// 無いので storage の照合はその種類を飛ばす(unregistered)= 外す道が無い。受け取り箱の行は送信より長生きしない(FK cascade、保持の掃除は
+// お知らせの行の無い送信だけを消す)ので、送信を消す時に外せば全部の道を覆う。
 //
-// 結び方(1 つの元の参照 ref について。回の行を排他で持った取引の中で呼ぶ):
+// 結び方(1 つの元の参照 ref について。送信の行を排他で持った取引の中で呼ぶ):
 // - storage:// の参照でない値(固定の URL など)はそのまま。台帳に結ばない
-// - 回の metadata.inboxImages に ref がある → その値(結んだ参照)を使う(束・送り直しで同じ物を使い回す)
-// - 台帳の行が ready で、既にこの回に結ばれている → そのまま
-// - ready・未紐付け・用途 notification.image・持ち主 = 回の actor_id → この回に attach
-// - それ以外(別の人が上げた・他の業務行に結ばれている・用途が違う)→ 回ごとに 1 回だけ複製(持ち主なし)して複製を attach
+// - 送信の metadata.inboxImages に ref がある → その値(結んだ参照)を使う(束・送り直しで同じ物を使い回す)
+// - 台帳の行が ready で、既にこの送信に結ばれている → そのまま
+// - ready・未紐付け・用途 notification.image・持ち主 = 送信の actor_id → この送信に attach
+// - それ以外(別の人が上げた・他の業務行に結ばれている・用途が違う)→ 送信ごとに 1 回だけ複製(持ち主なし)して複製を attach
 //   (coupon の issueCodeForOwner と同じ。元の行と ref を共有しない)。複製の失敗は投げる(黙って画像なしにしない)
-// 結んだ参照は metadata.inboxImages { <元の参照>: <結んだ参照> } に残す。保持の掃除はこの値を detach してから回を消す。
+// 結んだ参照は metadata.inboxImages { <元の参照>: <結んだ参照> } に残す。保持の掃除はこの値を detach してから送信を消す。
 // 行の画像 = 要約の列 image と、欄の中身 values の中の storage:// の参照(画像のブロックなど、指令 60)。どちらも同じ対応で書き換える
 
 import { isStorageRef, parseStorageRef } from "@/lib/storage";
@@ -24,7 +24,7 @@ export const INBOX_IMAGE_RECORD_TYPE = "messaging.dispatch";
 export const INBOX_IMAGE_RECORD_FIELD = "inApp.image";
 /** 受け取り箱の画像の用途(前のお知らせの名前のまま。改名しない) */
 export const INBOX_IMAGE_PURPOSE = "notification.image";
-/** 回の metadata の鍵 { <元の参照>: <結んだ参照> } */
+/** 送信の metadata の鍵 { <元の参照>: <結んだ参照> } */
 export const INBOX_IMAGES_METADATA_KEY = "inboxImages";
 
 /** 台帳の 1 行のうち、結び方の判断に要る値 */
@@ -36,7 +36,7 @@ export type InboxImageObject = {
   recordId: string | null;
 };
 
-/** 台帳の読み書き(本物は storageObjectService、テストは偽物)。tx = 回の行を排他で持った取引 */
+/** 台帳の読み書き(本物は storageObjectService、テストは偽物)。tx = 送信の行を排他で持った取引 */
 export type InboxImageLedger<Tx> = {
   find: (ref: string) => Promise<InboxImageObject | null>;
   attach: (tx: Tx, input: { ref: string; actorUserId: string | null; dispatchId: string }) => Promise<void>;
@@ -44,24 +44,24 @@ export type InboxImageLedger<Tx> = {
   copy: (ref: string) => Promise<string>;
 };
 
-/** 回の行のうち、結ぶのに要る値(排他で読んだ行) */
+/** 送信の行のうち、結ぶのに要る値(排他で読んだ行) */
 export type InboxImageDispatch = { id: string; actor_id: string | null; metadata: Record<string, unknown> | null };
 
-/** 回の metadata から結んだ参照の対応を読む */
+/** 送信の metadata から結んだ参照の対応を読む */
 export function inboxImageMapping(metadata: Record<string, unknown> | null | undefined): Record<string, string> {
   const value = metadata?.[INBOX_IMAGES_METADATA_KEY];
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
 }
 
-/** 回に結んだ参照の一覧(保持の掃除が回を消す前に detach する) */
+/** 送信に結んだ参照の一覧(保持の掃除が送信を消す前に detach する) */
 export function boundInboxImageRefs(metadata: Record<string, unknown> | null | undefined): string[] {
   return [...new Set(Object.values(inboxImageMapping(metadata)))].filter(isStorageRef);
 }
 
 /**
- * 画像の参照を回に結び、元の参照 → 書く参照 の対応を返す。
- * metadata = 対応を足した回の metadata(変わらなければ null。呼び手が同じ取引で回の行に書く)
+ * 画像の参照を送信に結び、元の参照 → 書く参照 の対応を返す。
+ * metadata = 対応を足した送信の metadata(変わらなければ null。呼び手が同じ取引で送信の行に書く)
  */
 export async function bindInboxImages<Tx>(
   ledger: InboxImageLedger<Tx>,

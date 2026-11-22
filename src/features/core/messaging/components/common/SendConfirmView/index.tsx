@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/common/SendConfirmView/index.tsx
-// 部品(props だけ): 送るモーダルの確認の段(宛先数の見込み・上限を超えた理由・送る時刻・テンプレートの版)と、結果の段(状態・回へのリンク・一括の後処理)
+// 部品(props だけ): 送るモーダルの確認の段(宛先数の見込み・上限を超えた理由・送る時刻・テンプレートの版)と、結果の段(状態・送信へのリンク・一括の後処理)
 
 "use client";
 
@@ -60,7 +60,7 @@ export function SendConfirmView({ estimate, bulk, scheduledAt, templateVersion, 
 export type SendResultViewProps = {
   status: string;
   queuedCount: number;
-  /** 回の画面の住所(無ければ出さない) */
+  /** 送信の画面の住所(無ければ出さない) */
   dispatchHref: string | null;
   /** 一括の後処理の結果(一括以外・項目に無ければ null) */
   afterSend?: { ok: true } | { ok: false; error: string } | null;

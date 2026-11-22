@@ -2,7 +2,7 @@
 //
 // ワンクリックの配信停止の署名つきトークン(D35、ログイン不要の URL)。
 // token = base64url(JSON {v:1, r: recipient_key, c: category, ch: channel, a?: address_hash, mk?: message_key, d?: dispatch_id}) + "." + base64url(HMAC-SHA256(鍵, 前半))
-// mk / d = 停止を連絡・回に結ぶ値(集計の軸)。後から足したので無いトークン(前に送ったメール)も同じ版で通る(無い = null)
+// mk / d = 停止を連絡・送信に結ぶ値(集計の軸)。後から足したので無いトークン(前に送ったメール)も同じ版で通る(無い = null)
 // 鍵 = env MESSAGING_UNSUBSCRIBE_SECRET(pnpm ops setup env が乱数で作る)。鍵が無い時は作れない(送る口が promotion・activity の
 // メールを明示の失敗にする)し、届いたトークンも通さない。
 // URL(事業の素性の url(@/business)は使わない。どちらも getAppBaseUrl() + 住所 + ?token=<token>):
@@ -26,15 +26,15 @@ const TOKEN_VERSION = 1;
 export type UnsubscribeTokenPayload = {
   /** 受信者の鍵(user:<id> | addr:<正規化した宛先の sha256>) */
   recipientKey: string;
-  /** 止める種類の鍵 */
+  /** 止めるカテゴリーの鍵 */
   category: string;
-  /** 止める経路の鍵 */
+  /** 止める送信チャンネルの鍵 */
   channel: string;
   /** 宛先の hash(宛先だけの受信者の停止に使う) */
   addressHash?: string;
   /** 送った連絡の鍵(前に作ったトークンには無い) */
   messageKey?: string;
-  /** 送った回の id(前に作ったトークンには無い) */
+  /** 送信の id(前に作ったトークンには無い) */
   dispatchId?: string;
 };
 

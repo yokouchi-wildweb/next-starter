@@ -1,10 +1,10 @@
 // src/features/core/messaging/channels/email/createEmailChannel.tsx
 //
-// メールの経路の項目を部品から作る(本物の部品は index.tsx、テストは偽物を渡す)。
+// メールの送信チャンネルの項目を部品から作る(本物の部品は index.tsx、テストは偽物を渡す)。
 // - 宛先: users.email(自前の帳簿。端末の帳簿は使わない)
-// - 描き方(D124): 送る口が組んだ中身(MessageLayoutContent: 題・ひな形・段・欄の中身・要約)を、段に従って宛先ごとに描く(rendersAtSend:
-//   宛先ごとの停止のリンクを本文に入れるため)。layout = ひな形のメールの描き方(layouts の受け口 layoutEmails)/ channel = 汎用(genericView.tsx、
-//   ひな形の email の欄を宣言の順に)/ summary = 要約から。中身の形が違う・ひな形や描き方が無い・描けない = コードの誤り → 送らず permanent(reason render_failed)
+// - 描き方(D124): 送る口が組んだ中身(MessageLayoutContent: 題・レイアウト・段・欄の中身・要約)を、段に従って宛先ごとに描く(rendersAtSend:
+//   宛先ごとの停止のリンクを本文に入れるため)。layout = レイアウトのメールの描き方(layouts の受け口 layoutEmails)/ channel = 汎用(genericView.tsx、
+//   レイアウトの email の欄を宣言の順に)/ summary = 要約から。中身の形が違う・レイアウトや描き方が無い・描けない = コードの誤り → 送らず permanent(reason render_failed)
 // - 送信: 宛先ごとに描き(件名 = 中身の題)、React のフォールバックの印があれば送らず permanent(L2.1)、
 //   無ければ描いた html を lib/mail send() に渡す(描くのは 1 回。冪等の鍵 = 配達の id、宛先が複数なら <id>:<番号>)
 // - MailSendError の分類(transient / permanent / unknown)をそのまま結果に写す。それ以外の例外は unknown
@@ -53,9 +53,9 @@ import { GenericEmailView, SummaryEmailView } from "./genericView";
 import { hasRenderFallbackMarker } from "./fallback";
 
 export type EmailChannelDeps = {
-  /** ひな形の受け口(server の一覧 layouts。汎用の描き方がひな形の email の欄を引く) */
+  /** レイアウトの受け口(server の一覧 layouts。汎用の描き方がレイアウトの email の欄を引く) */
   layouts: Readonly<Record<string, MessageLayout>>;
-  /** ひな形のメールの描き方(server の一覧 layoutEmails、鍵 = ひな形の鍵) */
+  /** レイアウトのメールの描き方(server の一覧 layoutEmails、鍵 = レイアウトの鍵) */
   layoutEmails: Readonly<Record<string, MessageLayoutEmailRenderer>>;
   render: (element: ReactElement) => Promise<string>;
   send: (options: SendMailOptions) => Promise<SendMailResult>;
@@ -74,7 +74,7 @@ export const PREVIEW_UNSUBSCRIBE_URL = "#unsubscribe";
 export const DELIVERY_ID_TAG = "delivery_id";
 
 /**
- * lib/mail の正規化した事件 → 経路の事件。種類の語彙(メールの経路):
+ * lib/mail の正規化した事件 → 送信チャンネルの事件。種類の語彙(メールの送信チャンネル):
  * sent / delivered / deferred / bounced_hard / bounced_soft / complained / opened / clicked / dropped / unsubscribed / other
  */
 export function toChannelWebhookEvent(event: MailWebhookEvent): ChannelWebhookEvent {
@@ -117,13 +117,13 @@ function emailWebhooks(deps: EmailChannelDeps): Record<string, ChannelWebhook> {
 function emailElement(deps: EmailChannelDeps, content: MessageLayoutContent, unsubscribeUrl: string | undefined): ReactElement {
   if (content.from === "layout") {
     const renderer = deps.layoutEmails[content.layout];
-    if (!renderer) throw new Error(`ひな形 ${content.layout} のメールの描き方がありません`);
+    if (!renderer) throw new Error(`レイアウト ${content.layout} のメールの描き方がありません`);
     const Component = renderer.Component as unknown as (props: Record<string, unknown>) => ReactElement;
     return <Component values={content.values} summary={content.summary} theme={deps.theme} unsubscribeUrl={unsubscribeUrl} />;
   }
   if (content.from === "channel") {
     const layout = deps.layouts[content.layout];
-    if (!layout) throw new Error(`ひな形 ${content.layout} がありません`);
+    if (!layout) throw new Error(`レイアウト ${content.layout} がありません`);
     const fields = fieldsForChannel(layout, "email") as MessageLayoutFields;
     return <GenericEmailView fields={fields} values={content.values} theme={deps.theme} unsubscribeUrl={unsubscribeUrl} />;
   }
@@ -131,7 +131,7 @@ function emailElement(deps: EmailChannelDeps, content: MessageLayoutContent, uns
 }
 
 function layoutContentOf(content: unknown): MessageLayoutContent {
-  if (!isMessageLayoutContent(content)) throw new Error("メールの中身がひな形の中身の形ではありません");
+  if (!isMessageLayoutContent(content)) throw new Error("メールの中身がレイアウトの中身の形ではありません");
   return content;
 }
 
@@ -142,7 +142,7 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
     addressing: "user",
     resolveAddresses: (userIds) => deps.findEmails(userIds),
     webhooks: emailWebhooks(deps),
-    // ひな形の描き方(D124): 汎用 = 欄の型とブロックを宣言の順に描く(全部の型を描ける)/ 要約 = 題・本文・画像・行き先
+    // レイアウトの描き方(D124): 汎用 = 欄の型とブロックを宣言の順に描く(全部の型を描ける)/ 要約 = 題・本文・画像・行き先
     async renderGeneric({ fields, values }) {
       return { html: await deps.render(<GenericEmailView fields={fields} values={values} theme={deps.theme} />) };
     },

@@ -1,10 +1,10 @@
 // テンプレートの作る・直すモーダルの入れ物と、一覧からの開き方の検査(jsdom の上で描く。hook・Modal・Popover・Dialog・部品は偽物)。
-// - confirmOnClose に form の closeConfirm、form に onCreated・onChanged を渡す / 鍵の欄は無い / 書く欄に経路とプレビューの経路を渡す
+// - confirmOnClose に form の closeConfirm、form に onCreated・onChanged を渡す / 鍵の欄は無い / 書く欄に送信チャンネルとプレビューの送信チャンネルを渡す
 // - 下の帯: 作る = 「保存」だけ / 直す = 「削除」(destructive の確かめ。消せたら閉じる、消せなければ閉じない)+「保存」
 //   削除は書きかけの間は押せない・保存は書きかけの間だけ押せる / 保存の確かめで form.save
 // - システムテンプレート = 帯なし・読むだけの一言・説明と中身の欄なし・バージョン履歴なし(D117)
 // - 中身の入力と埋め込み情報はそろってから(D139): fieldsReady でない間は fieldsHint の 1 行、LayoutFields と埋め込み情報の吹き出しは出さない
-// - バージョン履歴はボタンから重ねた Modal / ひな形を替える確かめの Dialog は pendingLayout の間だけ
+// - バージョン履歴はボタンから重ねた Modal / レイアウトを替える確かめの Dialog は pendingLayout の間だけ
 // - 読み込み中・取れない時は普通の Modal(書く欄なし)
 // - 一覧: 「新規作成」と行でモーダルの開き先を変える / 種別の絞り / システムテンプレートは既定で隠す
 // 実行: pnpm test src/features/core/messaging/components/AdminMessageTemplateModal/AdminMessageTemplateModal.test.tsx
@@ -310,7 +310,7 @@ test("作る: 帯は「保存」だけ、confirmOnClose・onCreated・onChanged 
   assert.equal(kindCategory.categories, (formState.fields as Props).categoryChoices);
   assert.equal(kindCategory.category, "notice");
   assert.equal(kindCategory.disabled, false);
-  // 中身の欄は書く欄の経路とプレビューの経路で描く
+  // 中身の欄は書く欄の送信チャンネルとプレビューの送信チャンネルで描く
   const layoutFields = parts.get("layoutFields")!;
   assert.equal(layoutFields.fields, LAYOUT_FIELDS);
   assert.deepEqual(layoutFields.channels, ["email"]);
@@ -424,7 +424,7 @@ test("D139: そろうまで中身の欄は fieldsHint の 1 行、LayoutFields �
   await fallback.unmount();
 });
 
-test("ひな形を替える確かめ: pendingLayout の間だけ Dialog、確かめで confirmLayoutChange・閉じると cancelLayoutChange", async () => {
+test("レイアウトを替える確かめ: pendingLayout の間だけ Dialog、確かめで confirmLayoutChange・閉じると cancelLayoutChange", async () => {
   const closed = await render(createElement(AdminMessageTemplateModal, open));
   assert.equal(dialog!.open, false);
   await closed.unmount();

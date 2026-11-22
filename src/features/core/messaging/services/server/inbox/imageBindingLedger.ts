@@ -49,7 +49,7 @@ export const storageInboxImageLedger: InboxImageLedger<TransactionClient> = {
   },
 };
 
-/** 回から外す(保持の掃除が回を消す前、同じ取引で)。外した台帳の行の id を返す(実物は commit の後に消す) */
+/** 送信から外す(保持の掃除が送信を消す前、同じ取引で)。外した台帳の行の id を返す(実物は commit の後に消す) */
 export async function detachInboxImages(tx: TransactionClient, dispatchId: string, refs: readonly string[]): Promise<string[]> {
   if (refs.length === 0) return [];
   const rows = await storageObjectService.detach(

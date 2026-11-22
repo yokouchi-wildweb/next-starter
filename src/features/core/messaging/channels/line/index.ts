@@ -1,6 +1,6 @@
 // src/features/core/messaging/channels/line/index.ts
 //
-// 上流の経路 line(LINE push)。既定は切(messaging の config channels.line.enabled、fork は src/config の上書きで開ける)。
+// 上流の送信チャンネル line(LINE push)。既定は切(messaging の config channels.line.enabled、fork は src/config の上書きで開ける)。
 // 宛先は LINE の連携の機能 userLineProfile の表から引く(機能が閉じていれば宛先なし)。中身: ./createLineChannel.ts
 
 import { inArray } from "drizzle-orm";

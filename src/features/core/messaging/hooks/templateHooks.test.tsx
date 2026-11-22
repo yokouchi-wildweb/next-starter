@@ -1,10 +1,10 @@
 // 保存されたテンプレートの hook の検査(jsdom の上で描く。client service・toast・離れる前の確認は偽物)。
 // - compactLayoutValues / canonicalJson / emptyVarDraft(純粋な関数)
 // - useMessageTemplates: 種別を渡し、先頭は cursor なし → 続きは nextCursor
-// - useMessageTemplateForm(作る): 種別を先に選ばない(D110)→ 種別でカテゴリーを自動(D118)・ひな形が 1 つなら自動 → 中身(ひな形の欄)/
+// - useMessageTemplateForm(作る): 種別を先に選ばない(D110)→ 種別でカテゴリーを自動(D118)・レイアウトが 1 つなら自動 → 中身(レイアウトの欄)/
 //   書きかけの印と離れる前の確認 / 知らない {{名前}} = 共通 + 専用の外 / 専用の埋め込み情報のモーダル / 保存 = 1 回の POST(鍵なし、D134)・作った id
 // - useMessageTemplateForm(直す): 開いた時は書きかけでない(jsonb の鍵の順でも、J142)/ 保存 = 1 回の PATCH(新しい版 or 変更はありません)・
-//   1 件のキャッシュと版を取り直す / ひな形を替えると確かめて中身を消す(D113)/ 削除(D137)
+//   1 件のキャッシュと版を取り直す / レイアウトを替えると確かめて中身を消す(D113)/ 削除(D137)
 // - システムテンプレートは読むだけ(保存・削除しない、D117)
 // 実行: pnpm test src/features/core/messaging/hooks/templateHooks.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
@@ -190,7 +190,7 @@ test("useMessageTemplates: 種別を渡し、cursor で続きを取る", async (
   await view.unmount();
 });
 
-test("useMessageTemplateForm(作る): 種別 → カテゴリー(自動)→ ひな形 → 中身、知らない名前、専用の埋め込み情報、1 回の POST で作った id", async () => {
+test("useMessageTemplateForm(作る): 種別 → カテゴリー(自動)→ レイアウト → 中身、知らない名前、専用の埋め込み情報、1 回の POST で作った id", async () => {
   const created: string[] = [];
   const changed: [string, string][] = [];
   const view = await mount(() =>
@@ -203,7 +203,7 @@ test("useMessageTemplateForm(作る): 種別 → カテゴリー(自動)→ ひ�
   );
   const form = () => view.value();
   assert.equal(form().mode, "create");
-  // 種別は先に選ばない(D110)。ひな形は 1 つなら自動
+  // 種別は先に選ばない(D110)。レイアウトは 1 つなら自動
   assert.equal(form().fields.kind, "");
   assert.equal(form().fields.category, "");
   assert.deepEqual(form().fields.categoryChoices, []);
@@ -213,7 +213,7 @@ test("useMessageTemplateForm(作る): 種別 → カテゴリー(自動)→ ひ�
   assert.equal(form().fieldsHint, "種別・カテゴリーを選ぶと入力欄が出ます");
   assert.equal(form().dirty, false);
 
-  // 種別を選ぶとその種別の最初のカテゴリー(D118)。経路はカテゴリーの物
+  // 種別を選ぶとその種別の最初のカテゴリー(D118)。送信チャンネルはカテゴリーの物
   await act(async () => form().fields.setKind("promotion"));
   assert.equal(form().fields.category, "marketing");
   assert.deepEqual(form().fields.categoryChoices.map((choice) => choice.value), ["marketing", "marketingSale"]);
@@ -236,7 +236,7 @@ test("useMessageTemplateForm(作る): 種別 → カテゴリー(自動)→ ひ�
   assert.equal(guarded.at(-1), true);
   assert.equal(form().closeConfirm.enabled, true);
 
-  // 中身はひな形の欄。共通(鍵・別名)は使え、一覧に無い名前は知らない名前
+  // 中身はレイアウトの欄。共通(鍵・別名)は使え、一覧に無い名前は知らない名前
   await act(async () => form().valuesForm.form.setValue("subject", "{{coupon}} {{表示名}} {{displayName}}"));
   assert.deepEqual(form().values, { subject: "{{coupon}} {{表示名}} {{displayName}}" });
   assert.deepEqual(form().unknownNames, ["coupon"]);
@@ -359,7 +359,7 @@ test("useMessageTemplateForm(直す): 開いた時は書きかけでない・1 �
   await view.unmount();
 });
 
-test("useMessageTemplateForm: ひな形を替えると中身があれば確かめて消す(D113)、中身が無ければすぐ替える", async () => {
+test("useMessageTemplateForm: レイアウトを替えると中身があれば確かめて消す(D113)、中身が無ければすぐ替える", async () => {
   const view = await mount(() => hooks.useMessageTemplateForm({ template: EDITING as never, options: OPTIONS_TWO_LAYOUTS as never }));
   const form = () => view.value();
   assert.deepEqual(form().fields.layoutOptions.map((option) => option.value), ["notice", "alert"]);

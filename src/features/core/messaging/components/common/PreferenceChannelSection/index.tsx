@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/common/PreferenceChannelSection/index.tsx
-// 部品(props だけ): 1 つの経路の枠(第 1 階層)。題・経路まるごとの切り替え(入 = この経路で受け取る)・宛先の無い時の連携の案内。
-// 全部の停止の間(stoppedByAll)は経路の行の値によらず切・押せない・理由を出す(状態は全部に従う。全部を戻すと経路の行の値に戻る)
+// 部品(props だけ): 1 つの送信チャンネルの枠(第 1 階層)。題・送信チャンネルまるごとの切り替え(入 = この送信チャンネルで受け取る)・宛先の無い時の連携の案内。
+// 全部の停止の間(stoppedByAll)は送信チャンネルの行の値によらず切・押せない・理由を出す(状態は全部に従う。全部を戻すと送信チャンネルの行の値に戻る)
 // 中身(種別の枠)は children
 
 "use client";
@@ -20,11 +20,11 @@ import type { MessagePreferenceChannelDto } from "@/features/core/messaging/serv
 
 export type PreferenceChannelSectionProps = {
   channel: Pick<MessagePreferenceChannelDto, "key" | "label" | "hasAddress" | "connectHref" | "optedOut">;
-  /** 経路まるごとの切り替えを押せなくする(変えている最中・全部を止めている間) */
+  /** 送信チャンネルまるごとの切り替えを押せなくする(変えている最中・全部を止めている間) */
   disabled?: boolean;
   /** すべての連絡を止めている(応答の allOptedOut)。切で見せて押せなくする */
   stoppedByAll?: boolean;
-  /** stop = true で経路まるごとを止める */
+  /** stop = true で送信チャンネルまるごとを止める */
   onChannelWideChange: (stop: boolean) => void;
   /** 連携の案内の文言(既定「連携する」) */
   connectLabel?: string;

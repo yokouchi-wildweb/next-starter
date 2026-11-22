@@ -1,4 +1,4 @@
-// 文言の編集の hook の検査(jsdom の上で描く。client service・toast・離れる前の確認は偽物)。
+// テキストの編集の hook の検査(jsdom の上で描く。client service・toast・離れる前の確認は偽物)。
 // - useMessageOverrides: 一覧を取る
 // - useMessageOverrideEditor: 初めは送る時の値 / 下書き(元に戻せば消える)/ 知らない {{鍵}} / プレビュー(下書きを重ね、待ってから取る。
 //   入力中の欄の枠)/ 1 回の保存(D132): 下書きと「元の文言に戻す」の印をまとめて PUT { fields } で送り、下書き・印を捨て、1 連絡と一覧を取り直す /
@@ -43,7 +43,7 @@ const detail = () => ({
   category: "account",
   categoryLabel: null,
   allowedKeys: ["displayName", "serviceName"],
-  // J126(D132): 経路の一覧と欄(ひな形の欄の鍵・宣言・使う経路)
+  // J126(D132): 送信チャンネルの一覧と欄(レイアウトの欄の鍵・宣言・使う送信チャンネル)
   channels: [{ key: "email", label: "メール" }],
   fields: [
     field("subject", "ようこそ {{serviceName}}"),
@@ -157,9 +157,9 @@ const waitPreview = () => act(async () => new Promise((r) => setTimeout(r, 450))
 test("unknownKeysOf / toEditable / withFocusStyle", () => {
   assert.deepEqual(hooks.unknownKeysOf("{{a}} {{b}} {{a}}", ["a"]), ["b"]);
   assert.deepEqual(hooks.unknownKeysOf(["{{x}}", "{{y}}"], ["y"]), ["x"]);
-  // ひな形の欄の中身の中(組・ブロックの並び)の文字も見る
+  // レイアウトの欄の中身の中(組・ブロックの並び)の文字も見る
   assert.deepEqual(hooks.unknownKeysOf([{ type: "paragraph", text: "{{z}}" }, { label: "{{a}}" }], ["a"]), ["z"]);
-  // 値はひな形の欄の中身の形のまま(文字に変えない)。無い値は空の文字
+  // 値はレイアウトの欄の中身の形のまま(文字に変えない)。無い値は空の文字
   assert.deepEqual(hooks.toEditable(["a", 1]), ["a", 1]);
   assert.equal(hooks.toEditable(null), "");
   assert.equal(hooks.toEditable(undefined), "");
@@ -184,7 +184,7 @@ test("useMessageOverrideEditor: 下書き・知らない鍵・プレビュー・
   assert.equal(editor().valueOf(subject), "ようこそ {{serviceName}}");
   assert.equal(editor().hasDrafts, false);
   assert.equal(guarded.at(-1), false);
-  // 2 つの欄の編集(D80 / D86): 初めは最初の経路、少し待ってプレビューを取る
+  // 2 つの欄の編集(D80 / D86): 初めは最初の送信チャンネル、少し待ってプレビューを取る
   assert.equal(editor().activeChannel, "email");
   assert.deepEqual(editor().activeFields.map((f) => f.path), ["subject", "paragraphs"]);
   await waitPreview();

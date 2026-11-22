@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/common/PreferenceCategoryWideToggle/index.tsx
-// 部品(props だけ): 種類まるごと(すべての経路)の止め方の切り替え(入 = 止めている)。既定の画面は種類が最初に出る経路の行に 1 回だけ置く
+// 部品(props だけ): カテゴリーまるごと(すべての送信チャンネル)の止め方の切り替え(入 = 止めている)。既定の画面はカテゴリーが最初に出る送信チャンネルの行に 1 回だけ置く
 // 全部の停止の間(stoppedByAll)は止まっている(入)で見せて押せない(状態は全部に従う)
 
 "use client";
@@ -7,14 +7,14 @@
 import { SwitchInput } from "@/components/Input/SwitchInput";
 
 export type PreferenceCategoryWideToggleProps = {
-  /** 種類の表示名(切り替えの読み上げ) */
+  /** カテゴリーの表示名(切り替えの読み上げ) */
   categoryLabel: string;
-  /** 種類まるごとの行がある(応答の categories[].optedOut) */
+  /** カテゴリーまるごとの行がある(応答の categories[].optedOut) */
   stopped: boolean;
   disabled?: boolean;
   /** すべての連絡を止めている(応答の allOptedOut)。入で見せて押せなくする */
   stoppedByAll?: boolean;
-  /** stop = true で種類まるごとを止める */
+  /** stop = true でカテゴリーまるごとを止める */
   onChange: (stop: boolean) => void;
   /** 文言(既定「このカテゴリーをすべての経路で止める」) */
   label?: string;

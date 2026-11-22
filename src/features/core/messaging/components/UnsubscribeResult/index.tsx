@@ -9,7 +9,7 @@ import { MESSAGE_PREFERENCES_PAGE_PATH } from "@/features/core/messaging/constan
 
 export type UnsubscribeResultProps = {
   status: "done" | "invalid";
-  /** 止めた種類の表示名(done の時) */
+  /** 止めたカテゴリーの表示名(done の時) */
   categoryLabel?: string;
 };
 

@@ -4,7 +4,7 @@
 // - 状態は前にだけ進み、時刻は最初の 1 回だけ。suppressed の行は変えない
 // - bounced_hard・complained は宛先の停止(scope '*')、bounced_soft は停止しない
 // - 計測の機能が閉なら opened / clicked は記録も反映もしない
-// - 受け口: 知らない経路・provider 404、鍵なし 503、署名の誤り 401、当てる誤りは投げる(route が 500)
+// - 受け口: 知らない送信チャンネル・provider 404、鍵なし 503、署名の誤り 401、当てる誤りは投げる(route が 500)
 // 実行: pnpm test src/features/core/messaging/services/server/webhooks
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -171,7 +171,7 @@ test("計測の機能が閉なら開封・クリックは記録も反映もし�
   assert.equal(open.d("d1").status, "sent");
 });
 
-test("受け口: 知らない経路・provider 404、鍵なし 503、署名の誤り 401、当てる誤りは投げる", async () => {
+test("受け口: 知らない送信チャンネル・provider 404、鍵なし 503、署名の誤り 401、当てる誤りは投げる", async () => {
   const channel = (verify: () => unknown): MessageChannel => ({
     key: "email",
     label: "メール",

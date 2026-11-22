@@ -3,9 +3,9 @@
 /** 管理画面の文言の 1 行(直した欄だけある) */
 export type MessageOverrideRecord = {
   messageKey: string;
-  /** ひな形の欄の鍵(保存した時の版の鍵) */
+  /** レイアウトの欄の鍵(保存した時の版の鍵) */
   fieldPath: string;
-  /** 保存した時のひな形の版(null = 版の無い古い形の行) */
+  /** 保存した時のレイアウトの版(null = 版の無い古い形の行) */
   layoutVersion: number | null;
   value: unknown;
   codeValue: unknown;

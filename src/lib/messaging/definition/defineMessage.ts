@@ -5,8 +5,8 @@ import type { z } from "zod";
 import type { MessageDefinition } from "./types";
 
 /**
- * 連絡の定義を書く。型で鍵の形・throttle.by を絞るだけで、値はそのまま返す。
- * 中身はひな形 + 欄の中身(D122)。経路は属する種類(category)から引く(D86)。
+ * 連絡定義を書く。型で鍵の形・throttle.by を絞るだけで、値はそのまま返す。
+ * 中身はレイアウト + 欄の中身(D122)。送信チャンネルは属するカテゴリー(category)から引く(D86)。
  *
  * @example
  * ```ts
@@ -14,7 +14,7 @@ import type { MessageDefinition } from "./types";
  * export const message = defineMessage({
  *   key: "auth.verification",
  *   label: "メールアドレスの確認",
- *   category: "emailVerification", // 種別と経路は種類(categories/<名前>.ts)から引く
+ *   category: "emailVerification", // 種別と送信チャンネルはカテゴリー(categories/<名前>.ts)から引く
  *   vars: z.object({ verificationUrl: secretVar(z.string().url()) }),
  *   // vars の鍵ごとの日本語の別名と説明(全部の鍵に必須、D133)。{{確認のURL}} でも {{verificationUrl}} と同じ値で埋まる
  *   varNames: { verificationUrl: { alias: "確認のURL", description: "メールアドレスを確かめるリンク" } },

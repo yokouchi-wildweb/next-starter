@@ -1,9 +1,9 @@
 // src/lib/messaging/definition/validate.ts
 //
-// 連絡の定義の読み手の検査。定義(と上書きを重ねた結果)の誤りを問題の一覧で返す。
+// 連絡定義の読み手の検査。定義(と上書きを重ねた結果)の誤りを問題の一覧で返す。
 // 送る口が実行時に、registry の生成が生成時に呼ぶ(呼ぶ側は S2 / S6)。
-// 種別と経路は定義に無く、属する種類(category)から引く(D81・D86)。種別の性質(MESSAGE_KIND_TRAITS)で管理画面の文言の上書き・間引きを止める。
-// 中身はひな形 + 欄の中身(D122): ひな形が受け口にあり、欄の中身が種類の経路で使う欄の zod(layoutValuesSchema)を通り、{{鍵}} が宣言済み。
+// 種別と送信チャンネルは定義に無く、属するカテゴリー(category)から引く(D81・D86)。種別の性質(MESSAGE_KIND_TRAITS)で管理画面のテキストの編集・間引きを止める。
+// 中身はレイアウト + 欄の中身(D122): レイアウトが受け口にあり、欄の中身がカテゴリーの送信チャンネルで使う欄の zod(layoutValuesSchema)を通り、{{鍵}} が宣言済み。
 
 import { listVariables } from "@/lib/templateVariables";
 import type { z } from "zod";
@@ -60,18 +60,18 @@ export type MessageDefinitionProblem = {
   message: string;
 };
 
-/** 経路の受け口を渡さない時の既定(上流の 3 経路) */
+/** 送信チャンネルの受け口を渡さない時の既定(上流の 3 送信チャンネル) */
 const UPSTREAM_CHANNEL_KEYS: readonly string[] = ["email", "inApp", "line"];
 
 const KEY_PATTERN = /^[a-z][A-Za-z0-9]*\.[a-z][A-Za-z0-9]*$/;
 
-/** 上書きを重ねた定義(種類から引く種別・経路はまだ付けない) */
+/** 上書きを重ねた定義(カテゴリーから引く種別・送信チャンネルはまだ付けない) */
 export type OverriddenMessageDefinition<Vars extends z.AnyZodObject> = MessageDefinition<Vars> & {
   enabled: boolean;
 };
 
 /**
- * 定義に上書きを重ねる。values はひな形の欄ごとに差し替え、throttle: null は外す。種別と経路は resolveMessageDefinition が種類から付ける
+ * 定義に上書きを重ねる。values はレイアウトの欄ごとに差し替え、throttle: null は外す。種別と送信チャンネルは resolveMessageDefinition がカテゴリーから付ける
  */
 export function applyMessageOverride<Vars extends z.AnyZodObject>(
   definition: MessageDefinition<Vars>,
@@ -94,7 +94,7 @@ export function applyMessageOverride<Vars extends z.AnyZodObject>(
   return resolved;
 }
 
-/** 上書きを重ね、属する種類(category)から種別と経路を付ける(D81・D86) */
+/** 上書きを重ね、属するカテゴリー(category)から種別と送信チャンネルを付ける(D81・D86) */
 export function resolveMessageDefinition<Vars extends z.AnyZodObject>(
   definition: MessageDefinition<Vars>,
   override: MessageOverride | undefined,
@@ -121,9 +121,9 @@ function collectStrings(value: unknown, out: string[]): string[] {
 
 /**
  * 定義(と上書き)を検査し、問題の一覧を返す(空 = 通る)。
- * - categories: categories の受け口(鍵 → 項目、fork の種類の override を重ねた後)。定義の category を照らし、種別と経路を引く
- * - layouts: ひな形の受け口(鍵 → ひな形)。定義の layout を照らし、欄の中身を検査する
- * - channels: 登録された経路の鍵(既定 = 上流の 3 経路 email・inApp・line。送る口は経路の受け口の鍵を渡す)。経路の有無だけに使う
+ * - categories: categories の受け口(鍵 → 項目、fork のカテゴリーの override を重ねた後)。定義の category を照らし、種別と送信チャンネルを引く
+ * - layouts: レイアウトの受け口(鍵 → レイアウト)。定義の layout を照らし、欄の中身を検査する
+ * - channels: 登録された送信チャンネルの鍵(既定 = 上流の 3 送信チャンネル email・inApp・line。送る口は送信チャンネルの受け口の鍵を渡す)。送信チャンネルの有無だけに使う
  * - variableKeys: vars と共通の文脈(鍵・別名)の他に {{名前}} で許す名前(送る口が当たる enrichers の provides の鍵と別名を渡す)
  * - sharedVarNames: 共通の他にこの連絡で見える埋め込み情報の鍵と別名の組(当たる enrichers と、enricher と同じ鍵の vars)。vars の別名の重なりを照らす
  */
@@ -166,7 +166,7 @@ export function validateMessageDefinition<
     }
   }
 
-  // 種類(全部の連絡に必須、D81): 受け口に無い鍵は誤り。種別と経路は種類から引く
+  // カテゴリー(全部の連絡に必須、D81): 受け口に無い鍵は誤り。種別と送信チャンネルはカテゴリーから引く
   const category = typeof definition.category === "string" ? options.categories[definition.category] : undefined;
   if (!category) {
     const keys = Object.keys(options.categories);
@@ -182,7 +182,7 @@ export function validateMessageDefinition<
 
   if (definition.required) {
     if (!resolved.channels.includes("email")) {
-      add("required_without_email", `${label}: required の連絡の種類の経路に email が要る`);
+      add("required_without_email", `${label}: required の連絡のカテゴリーの送信チャンネルに email が要る`);
     }
     if (resolved.adminEditableOnly && resolved.adminEditableOnly.length > 0) {
       add("required_admin_editable", `${label}: required の連絡に adminEditableOnly は付けられない`);
@@ -192,7 +192,7 @@ export function validateMessageDefinition<
     }
   }
   if (!traits.adminTextOverride && resolved.adminEditableOnly && resolved.adminEditableOnly.length > 0) {
-    add("kind_admin_editable", `${label}: 種別 ${resolved.kind} の連絡は管理画面で文言を直せない(adminEditableOnly を付けない)`);
+    add("kind_admin_editable", `${label}: 種別 ${resolved.kind} の連絡は管理画面でテキストの編集ができない(adminEditableOnly を付けない)`);
   }
   if (!traits.throttle && resolved.throttle) {
     add("kind_throttle", `${label}: 種別 ${resolved.kind} の連絡は間引けない(throttle を付けない)`);
@@ -200,10 +200,10 @@ export function validateMessageDefinition<
 
   for (const channel of resolved.channels) {
     if (!channels.has(channel)) {
-      add("unknown_channel", `${label}: 種類 ${definition.category} の経路 ${channel} は登録されていない`);
+      add("unknown_channel", `${label}: カテゴリー ${definition.category} の送信チャンネル ${channel} は登録されていない`);
     }
   }
-  // ひな形と欄の中身(D122・D125): 種類の経路で使う欄だけを検査する
+  // レイアウトと欄の中身(D122・D125): カテゴリーの送信チャンネルで使う欄だけを検査する
   const values = (resolved.values ?? {}) as Record<string, unknown>;
   const layout = typeof definition.layout === "string" ? options.layouts[definition.layout] : undefined;
   if (!layout) {
@@ -215,15 +215,15 @@ export function validateMessageDefinition<
       const detail = parsed.error.issues
         .map((issue) => `${issue.path.join(".") || "(全体)"}: ${issue.message}`)
         .join(" / ");
-      add("invalid_values", `${label}: ひな形「${layout.label}」の欄の中身が正しくない(${detail})`);
+      add("invalid_values", `${label}: レイアウト「${layout.label}」の欄の中身が正しくない(${detail})`);
     }
   }
 
-  // adminEditableOnly = ひな形の欄の鍵(D132)。ひな形に無い欄は誤り(ひな形が無い時は上の unknown_layout が言う)
+  // adminEditableOnly = レイアウトの欄の鍵(D132)。レイアウトに無い欄は誤り(レイアウトが無い時は上の unknown_layout が言う)
   if (layout) {
     for (const key of resolved.adminEditableOnly ?? []) {
       if (!(String(key) in layout.fields)) {
-        add("unknown_admin_editable", `${label}: adminEditableOnly の ${String(key)} はひな形「${layout.label}」の欄に無い`);
+        add("unknown_admin_editable", `${label}: adminEditableOnly の ${String(key)} はレイアウト「${layout.label}」の欄に無い`);
       }
     }
   }
@@ -334,9 +334,9 @@ export type MessageCategoryProblem = {
 };
 
 /**
- * 種類の受け口の検査(種類の override を重ねた後): 種別は 7 つのどれか・経路が 1 つ以上・defaultChannels は経路の中の 1 つ以上・
+ * カテゴリーの受け口の検査(カテゴリーの override を重ねた後): 種別は 7 つのどれか・送信チャンネルが 1 つ以上・defaultChannels は送信チャンネルの中の 1 つ以上・
  * group はグループの受け口の鍵で、
- * 1 つのグループの種類は同じ種別(D82)
+ * 1 つのグループのカテゴリーは同じ種別(D82)
  */
 export function validateMessageCategories(
   categories: Readonly<Record<string, MessageCategory>>,
@@ -345,22 +345,22 @@ export function validateMessageCategories(
   const problems: MessageCategoryProblem[] = [];
   const kindOfGroup = new Map<string, { kind: string; category: string }>();
   for (const [key, category] of Object.entries(categories)) {
-    if (!isMessageKind(category.kind)) problems.push({ code: "unknown_kind", message: `種類 ${key}: 種別 ${String(category.kind)} は無い` });
+    if (!isMessageKind(category.kind)) problems.push({ code: "unknown_kind", message: `カテゴリー ${key}: 種別 ${String(category.kind)} は無い` });
     if (!Array.isArray(category.channels) || category.channels.length === 0) {
-      problems.push({ code: "empty_channels", message: `種類 ${key}: 経路が無い(channels に 1 つ以上)` });
+      problems.push({ code: "empty_channels", message: `カテゴリー ${key}: 送信チャンネルが無い(channels に 1 つ以上)` });
     }
     if (category.defaultChannels !== undefined) {
       const outside = category.defaultChannels.filter((channel) => !category.channels.includes(channel));
       if (category.defaultChannels.length === 0 || outside.length > 0) {
         problems.push({
           code: "invalid_default_channels",
-          message: `種類 ${key}: defaultChannels は channels(${category.channels.join(" / ")})の中の 1 つ以上(${outside.join(", ") || "空"})`,
+          message: `カテゴリー ${key}: defaultChannels は channels(${category.channels.join(" / ")})の中の 1 つ以上(${outside.join(", ") || "空"})`,
         });
       }
     }
     if (category.group === undefined) continue;
     if (!groups[category.group]) {
-      problems.push({ code: "unknown_group", message: `種類 ${key}: group ${category.group} は categoryGroups の受け口に無い` });
+      problems.push({ code: "unknown_group", message: `カテゴリー ${key}: group ${category.group} は categoryGroups の受け口に無い` });
       continue;
     }
     const seen = kindOfGroup.get(category.group);
@@ -368,7 +368,7 @@ export function validateMessageCategories(
     else if (seen.kind !== category.kind) {
       problems.push({
         code: "group_kind_mismatch",
-        message: `種類 ${key}: グループ ${category.group} には種別 ${seen.kind} の種類(${seen.category})があり、種別 ${category.kind} は入れられない`,
+        message: `カテゴリー ${key}: グループ ${category.group} には種別 ${seen.kind} のカテゴリー(${seen.category})があり、種別 ${category.kind} は入れられない`,
       });
     }
   }

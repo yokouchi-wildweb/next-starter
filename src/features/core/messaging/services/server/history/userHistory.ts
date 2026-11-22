@@ -1,9 +1,9 @@
 // src/features/core/messaging/services/server/history/userHistory.ts
 //
 // 利用者ごとの履歴の読む口(D37。fork の利用者の管理画面が audit_logs と message_dispatches を直に読んでいた代わり)。
-// - その利用者の配達(message_deliveries.user_id)を回と結んで、新しい順(配達の created_at, id の降順)に keyset で返す
+// - その利用者の配達(message_deliveries.user_id)を送信と結んで、新しい順(配達の created_at, id の降順)に keyset で返す
 // - server だけ。route は持たない: 誰が読めるかは呼び手の route / service が決める(この関数は管理者を確かめない)
-// - 出ない物: 配達の行を持たない送信(全員・ロール宛ての受け取り箱の共有の 1 行)、配達を持たない前の送る口の回、消した利用者の配達(user_id が null になる)
+// - 出ない物: 配達の行を持たない送信(全員・ロール宛ての受け取り箱の共有の 1 行)、配達を持たない前の送る口の送信、消した利用者の配達(user_id が null になる)
 
 import { z } from "zod";
 

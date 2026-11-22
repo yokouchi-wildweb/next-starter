@@ -1,5 +1,5 @@
 // src/features/core/messaging/categories/walletExpiring.ts
-// 上流の種類: 残高の失効が近い(種別 activity)。wallet.expiringNotice(失効の予告。利用者が止められる D67)
+// 上流のカテゴリー: 残高の失効が近い(種別 activity)。wallet.expiringNotice(失効の予告。利用者が止められる D67)
 
 import type { MessageCategory } from "@/lib/messaging";
 

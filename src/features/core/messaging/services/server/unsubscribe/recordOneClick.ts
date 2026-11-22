@@ -13,7 +13,7 @@ export type OneClickStore = {
   addSuppression: (values: { channel: string; addressHash: string; scope: string; source: string } & OneClickOrigin) => Promise<void>;
 };
 
-/** 停止を結ぶ連絡・回(無い = null) */
+/** 停止を結ぶ連絡・送信(無い = null) */
 export type OneClickOrigin = { sourceMessageKey: string | null; sourceDispatchId: string | null };
 
 export type OneClickResult = { recorded: "preference" | "suppression" | "none" };

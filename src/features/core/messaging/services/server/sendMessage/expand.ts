@@ -1,10 +1,10 @@
 // src/features/core/messaging/services/server/sendMessage/expand.ts
 //
-// 宛先の展開: 受信者 × 経路 → 配達の行の計画(宛先の解決は経路の resolveAddresses、無ければ端末の帳簿)。
+// 宛先の展開: 受信者 × 送信チャンネル → 配達の行の計画(宛先の解決は送信チャンネルの resolveAddresses、無ければ端末の帳簿)。
 // - 選んだ宛先(explicit): 宛先の無い受信者も suppressed + reason no_address の行にして呼び手へ返す(D46)
-// - 全員・ロール・グループ(broadcast): 宛先の無い利用者は行を作らず、経路ごとの数 skipped_no_address に数える(D46)
+// - 全員・ロール・グループ(broadcast): 宛先の無い利用者は行を作らず、送信チャンネルごとの数 skipped_no_address に数える(D46)
 //   束ごとの展開(expandBroadcastChunk / resolveTargetChunk)は cron が呼ぶ
-// - 経路の項目が無い・enabled: false の経路は channel_off(explicit は行、broadcast は suppressed に数える)
+// - 送信チャンネルの項目が無い・enabled: false の送信チャンネルは channel_off(explicit は行、broadcast は suppressed に数える)
 
 import type { MessageChannel } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
@@ -23,10 +23,10 @@ export type PlannedDelivery = {
   reason: MessageDeliveryReason | null;
 };
 
-/** 経路ごとの数の素(送る前) */
+/** 送信チャンネルごとの数の素(送る前) */
 export type ExpansionCounts = Record<string, { targeted: number; skippedNoAddress: number; suppressed: number }>;
 
-/** 送れる経路の項目(無い・enabled: false は undefined = channel_off) */
+/** 送れる送信チャンネルの項目(無い・enabled: false は undefined = channel_off) */
 export function activeChannel(
   channels: Readonly<Record<string, MessageChannel>>,
   key: string,
@@ -47,7 +47,7 @@ export function recipientKeyOf(recipient: MessageRecipient): string {
   return "userId" in recipient ? userRecipientKey(recipient.userId) : addressRecipientKey(recipient.address);
 }
 
-/** 利用者 → 経路の宛先の一覧 */
+/** 利用者 → 送信チャンネルの宛先の一覧 */
 async function resolveUserAddresses(
   deps: MessageSendDeps,
   channelKey: string,
@@ -74,7 +74,7 @@ function emptyCounts(channels: readonly string[]): ExpansionCounts {
 
 /**
  * 選んだ宛先の展開(小さな送信、要求の中)。
- * - 宛先を直に渡す受信者は、その経路が送る経路に入っていること
+ * - 宛先を直に渡す受信者は、その送信チャンネルが使う送信チャンネルに入っていること
  * @returns 計画・利用者・見つからなかった利用者 id
  */
 export async function expandExplicit(
@@ -85,7 +85,7 @@ export async function expandExplicit(
   users: Map<string, MessageUserRow>;
   unknownUserIds: string[];
   counts: ExpansionCounts;
-  /** どの経路でも好み・宛先の停止で外れた受信者の数(recipient_count から引く、D31) */
+  /** どの送信チャンネルでも好み・宛先の停止で外れた受信者の数(recipient_count から引く、D31) */
   stoppedRecipients: number;
 }> {
   const { channels } = params;
@@ -145,7 +145,7 @@ export async function expandExplicit(
 
 const STOP_REASONS = new Set(["preference", "suppression"]);
 
-/** どの経路でも停止で外れた受信者の数 */
+/** どの送信チャンネルでも停止で外れた受信者の数 */
 function countFullyStopped(planned: readonly PlannedDelivery[]): number {
   const byRecipient = new Map<string, boolean>();
   for (const plan of planned) {
@@ -157,7 +157,7 @@ function countFullyStopped(planned: readonly PlannedDelivery[]): number {
 
 /**
  * queued の計画に配信停止を当てる。mode row = 理由つきの suppressed の行にする(選んだ宛先)/
- * drop = 計画から外す(全員・ロール・グループ、D46)。どちらも経路ごとの suppressed に数える
+ * drop = 計画から外す(全員・ロール・グループ、D46)。どちらも送信チャンネルごとの suppressed に数える
  */
 async function applyStops(
   deps: MessageSendDeps,
@@ -227,7 +227,7 @@ export async function expandBroadcastChunk(
       });
     }
   }
-  // どの経路でも停止で外れた利用者(宛先の無い経路がある利用者は停止で外れたことにしない)
+  // どの送信チャンネルでも停止で外れた利用者(宛先の無い送信チャンネルがある利用者は停止で外れたことにしない)
   const stopped = await applyStops(deps, params.stops, planned, counts, "drop");
   const stoppedCount = new Map<string, number>();
   for (const plan of stopped) {
@@ -241,7 +241,7 @@ export async function expandBroadcastChunk(
 
 /**
  * 全員・ロールの次の束の利用者 id(keyset)。束の人数は config.expandChunkSize。createdBefore(送り始めの線)以前の登録だけ。
- * グループは回の受信者の一覧から引く(sweep/expandStep.ts。ここへは来ない)
+ * グループは送信の受信者の一覧から引く(sweep/expandStep.ts。ここへは来ない)
  */
 export async function resolveTargetChunk(
   deps: MessageSendDeps,

@@ -1,7 +1,7 @@
 // src/features/core/messaging/components/AdminDispatchDetailModal/index.tsx
-// セクションコンテナ(管理: 送った回 1 件のモーダル、D130)。送信一覧の上に重ねる(詳細の別の画面は無い)。
+// セクションコンテナ(管理: 送信 1 件のモーダル、D130)。送信一覧の上に重ねる(詳細の別の画面は無い)。
 // 開き先は呼び手(一覧)が持つ: dispatchId があれば開き、閉じると onClose(一覧は URL の ?dispatch を外す = hook useDispatchDetailParam)。
-// タブ = 基本情報 / 送信状況 / プレビュー、下の帯 = 回の操作(削除・失敗分を再送・送信を再開)と「同じ内容で送る」。
+// タブ = 基本情報 / 送信状況 / プレビュー、下の帯 = 送信の操作(削除・失敗分を再送・送信を再開)と「同じ内容で送る」。
 // 中身の塊は AdminDispatchDetail の入口の物(DispatchSummaryBlock・DispatchDeliveriesBlock・DispatchBodyBlock・DispatchActions)。
 // 流れは hook useAdminDispatchDetail。削除が通ったら onDeleted(一覧は行を消す)
 
@@ -26,7 +26,7 @@ import { useAdminDispatchCategories } from "@/features/core/messaging/hooks/useA
 import { useAdminDispatchDetail } from "@/features/core/messaging/hooks/useAdminDispatchDetail";
 
 export type AdminDispatchDetailModalProps = {
-  /** 開く回(null = 閉じている) */
+  /** 開く送信(null = 閉じている) */
   dispatchId: string | null;
   onClose: () => void;
   /** 削除が通った後(一覧は取り直す。モーダルは onClose で閉じる) */
@@ -38,7 +38,7 @@ const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 
 
 export function AdminDispatchDetailModal({ dispatchId, onClose, onDeleted }: AdminDispatchDetailModalProps) {
   if (!dispatchId) return null;
-  // 回ごとに作り直す(前の回のタブ・絞りを持ち越さない)
+  // 送信ごとに作り直す(前の送信のタブ・絞りを持ち越さない)
   return <DispatchDetailModalBody key={dispatchId} dispatchId={dispatchId} onClose={onClose} onDeleted={onDeleted} />;
 }
 

@@ -2,20 +2,20 @@
 //
 // 新しい送る口の本体。部品(deps)を受けて sendMessage / sendMessageToMany を作る(テストは偽物の部品を渡す)。
 //
-// 流れ: 定義に上書きを重ねて検査 → vars の検査 → 冪等の鍵(両表)→ 回の行 →
-//   小さな送信: 展開 → 配達の行 → 最初の束を経路の send へ → 行と回の数を記録
-//   大きな送信・全員・ロール・グループ宛て: 回の行だけ(status processing)。展開と送信は cron(次の指令)
+// 流れ: 定義に上書きを重ねて検査 → vars の検査 → 冪等の鍵(両表)→ 送信の行 →
+//   小さな送信: 展開 → 配達の行 → 最初の束を送信チャンネルの send へ → 行と送信の数を記録
+//   大きな送信・全員・ロール・グループ宛て: 送信の行だけ(status processing)。展開と送信は cron(次の指令)
 // required と秘密を差し込む連絡(noBody)はキューに置けないので、要求の中で全部を送り切る(小さな選んだ宛先だけ)
-// 予約(scheduledAt): 回の行だけ(status scheduled、宛先の一覧は回の target に置く)。cron の activateScheduled が時刻に processing にして展開する
-// 会話の間引き(定義の throttle): 経路の send の前に受信者ごとに当てる(throttle.ts。cron の送りも同じ)
+// 予約(scheduledAt): 送信の行だけ(status scheduled、宛先の一覧は送信の target に置く)。cron の activateScheduled が時刻に processing にして展開する
+// 会話の間引き(定義の throttle): 送信チャンネルの send の前に受信者ごとに当てる(throttle.ts。cron の送りも同じ)
 // テンプレート + 欄の中身(sendTemplateMessage、D117・D125): 管理の送信(白紙のシステムテンプレートか DB のテンプレート)は同じ組み方。
-//   回の message_key は null で、出どころは system_template か template_id + template_version と直した印(D128)
-// 回の記録(D128): 出どころ・直した印・カテゴリー・ひな形の鍵と版・欄の中身(values、差し込む前)。予約・cron・失敗の再送はこの回の物と
+//   送信の message_key は null で、出どころは system_template か template_id + template_version と直した印(D128)
+// 送信の記録(D128): 出どころ・直した印・カテゴリー・レイアウトの鍵と版・欄の中身(values、差し込む前)。予約・cron・失敗の再送はこの送信の物と
 //   vars だけで描き直す(dispatchResolved.ts。定義・テンプレートを引き直さない)。values の残し方は vars と同じ(noBody は残さない)
-// 経路(D86): 種類の経路。input.channels はその回だけの絞り(種類の外・空は 400)。自動の送り手は渡さない
+// 送信チャンネル(D86): カテゴリーの送信チャンネル。input.channels はその送信だけの絞り(カテゴリーの外・空は 400)。自動の送り手は渡さない
 // 口の中ですぐ送る種別(性質 sendInEntry = security、D72・D80): 予約と全員・ロール・グループ宛ては 400、宛先が多くても後回しにせず展開して最初の束を口の中で送る
-// グループ宛て(D58): 送り始めに門・しまった・壊れた・人数の上限を確かめ(DomainError、回を作らない)、定期計算は今の版を回に固定する。
-//   一員は cron が送り始めの後に 1 文で回の受信者の一覧へ書く(sweep/expandStep.ts)
+// グループ宛て(D58): 送り始めに門・しまった・壊れた・人数の上限を確かめ(DomainError、送信を作らない)、定期計算は今の版を送信に固定する。
+//   一員は cron が送り始めの後に 1 文で送信の受信者の一覧へ書く(sweep/expandStep.ts)
 
 import { kindTraits, layoutVersionOf } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
@@ -97,8 +97,8 @@ function toChannelCounts(
 }
 
 /**
- * 回の件名・題(経路ごとの要約の題。回の vars と受信者に依らない文脈だけで差し込む。秘密の鍵は差し込まない = 見出しに秘密が入らない)。
- * 組み立てを通るので、描けない経路はここで止まる(回を書く前)
+ * 送信の件名・題(送信チャンネルごとの要約の題。送信の vars と受信者に依らない文脈だけで差し込む。秘密の鍵は差し込まない = 見出しに秘密が入らない)。
+ * 組み立てを通るので、描けない送信チャンネルはここで止まる(送信を書く前)
  */
 async function buildHeadings(
   deps: MessageSendDeps,
@@ -111,7 +111,7 @@ async function buildHeadings(
   return Object.fromEntries(Object.entries(built).map(([key, { heading }]) => [key, heading]));
 }
 
-/** 全員同文の描画結果(経路ごとの中身。受信者に依る鍵は {{鍵}} のまま) */
+/** 全員同文の描画結果(送信チャンネルごとの中身。受信者に依る鍵は {{鍵}} のまま) */
 async function buildRendered(
   deps: MessageSendDeps,
   resolved: AnyResolvedMessageDefinition,
@@ -133,7 +133,7 @@ type ManyOptions = {
   single?: boolean;
   /** 組み済みの定義(テンプレート + 中身。生成の一覧の上書きを重ねない) */
   resolved?: AnyResolvedMessageDefinition;
-  /** 回に残すテンプレートの出どころ(ある回は message_key が null) */
+  /** 送信に残すテンプレートの出どころ(ある送信は message_key が null) */
   source?: MessageDispatchTemplateSource;
 };
 
@@ -168,7 +168,7 @@ async function checkGroupTarget(deps: MessageSendDeps, groupId: string): Promise
 export type MessagePreview = {
   messageKey: string;
   kind: string;
-  /** 種類(取引の連絡は無い = null) */
+  /** カテゴリー(取引の連絡は無い = null) */
   category: string | null;
   /** テンプレートなら今の公開版(送る時に固定する版) */
   template: { id: string; version: number } | null;
@@ -200,7 +200,7 @@ export function createMessageSender(deps: MessageSendDeps) {
       options.resolved ??
       (await resolveDefinition(definition, deps));
     if (!resolved.enabled) return null;
-    // 連絡のドメインが門で閉じていれば送らない(回も配達も作らない、呼び手の業務は止めない。D77)
+    // 連絡のドメインが門で閉じていれば送らない(送信も配達も作らない、呼び手の業務は止めない。D77)
     if (deps.domainOpen && !deps.domainOpen(resolved.key)) {
       console.warn(`[messaging] 連絡 ${resolved.key} はドメインが閉じているので送りません(disabled)`);
       return null;
@@ -237,10 +237,10 @@ export function createMessageSender(deps: MessageSendDeps) {
     const deletedTemplate = source && "deletedTemplate" in source ? source.deletedTemplate : null;
     const actor = deps.actor();
     const scheduled = input.scheduledAt !== undefined;
-    // 見出しと全員同文の描画は回を書く前に組む(描けない経路はここで止まり、回を作らない)
+    // 見出しと全員同文の描画は送信を書く前に組む(描けない送信チャンネルはここで止まり、送信を作らない)
     const headings = await buildHeadings(deps, resolved, channels, vars, policy);
     const rendered = policy.keepRendered ? await buildRendered(deps, resolved, channels, vars) : null;
-    // cron が展開する回(大きな送信・予約)は宛先の一覧を回に置く
+    // cron が展開する送信(大きな送信・予約)は宛先の一覧を送信に置く
     const target = input.target
       ? input.target.type === "group"
         ? { ...input.target, version: values.groupVersion ?? null }
@@ -268,7 +268,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         actor_type: actor.actorType,
         reason: input.reason ?? null,
         metadata: input.metadata ?? null,
-        // テンプレートから送った回はコードの連絡の鍵を持たない(出どころは system_template / template_id、D128)
+        // テンプレートからの送信は定義連絡の鍵を持たない(出どころは system_template / template_id、D128)
         message_key: source ? null : resolved.key,
         kind: resolved.kind,
         category: resolved.category,
@@ -276,8 +276,8 @@ export function createMessageSender(deps: MessageSendDeps) {
         tags: input.tags ? [...input.tags] : null,
         channel_counts: emptyChannelCounts(channels),
         headings,
-        // 回の vars: 残す時は秘密の鍵を落とした写し。cron が送る残り(queueVars)にも要る(record meta なら cron が終わりに消す)。
-        // テンプレートから送った回: 専用の埋め込み情報の値は embedded_values にだけ残し、vars は {}(残し方・消し方は vars と同じ、指令 58)
+        // 送信の vars: 残す時は秘密の鍵を落とした写し。cron が送る残り(queueVars)にも要る(record meta なら cron が終わりに消す)。
+        // テンプレートからの送信: 専用の埋め込み情報の値は embedded_values にだけ残し、vars は {}(残し方・消し方は vars と同じ、指令 58)
         vars: policy.keepVars || queueVars ? (source ? {} : omitKeys(vars, policy.secretKeys)) : null,
         embedded_values: source && (policy.keepVars || queueVars) ? embeddedValuesOf(omitKeys(vars, policy.secretKeys)) : null,
         rendered,
@@ -303,7 +303,7 @@ export function createMessageSender(deps: MessageSendDeps) {
       return { dispatchId: null, status: "disabled", deliveries: [], queuedCount: 0, channelCounts: {} };
     }
     const { resolved, channels, vars, policy } = prepared;
-    /** 回と事件に残す連絡の鍵(テンプレートから送った回は null) */
+    /** 送信と事件に残す連絡の鍵(テンプレートからの送信は null) */
     const recordKey = options.source ? null : resolved.key;
     const recipients: readonly MessageRecipient[] = input.recipients ?? [];
     const uniqueCount = new Set(recipients.map(recipientKeyOf)).size;
@@ -331,7 +331,7 @@ export function createMessageSender(deps: MessageSendDeps) {
     const group = input.target?.type === "group" ? await checkGroupTarget(deps, input.target.groupId) : null;
 
     if (large || scheduled) {
-      // 回の行だけ。展開は cron(予約は時刻に processing になってから)。宛先の数は展開の時に数え直す
+      // 送信の行だけ。展開は cron(予約は時刻に processing になってから)。宛先の数は展開の時に数え直す
       const dispatchId = await insertDispatch(resolved, input, {
         channels,
         vars,
@@ -351,13 +351,13 @@ export function createMessageSender(deps: MessageSendDeps) {
       };
     }
 
-    // 小さな送信: 展開してから回を書く(見つからない利用者を先に知る)
+    // 小さな送信: 展開してから送信を書く(見つからない利用者を先に知る)
     const stops = stopContextOf(resolved);
     const expansion = await expandExplicit(deps, { channels, recipients, stops });
     if (options.single && expansion.unknownUserIds.length > 0) {
       throw new DomainError("送信先のユーザーが見つかりません", { status: 404 });
     }
-    // 送った時の対象 − その時点の停止(どの経路でも止められた受信者、D31)
+    // 送った時の対象 − その時点の停止(どの送信チャンネルでも止められた受信者、D31)
     const targetCount = uniqueCount - expansion.unknownUserIds.length - expansion.stoppedRecipients;
     const queueRest = !policy.noBody;
     const dispatchId = await insertDispatch(resolved, input, {
@@ -403,7 +403,7 @@ export function createMessageSender(deps: MessageSendDeps) {
               : null,
         };
       }),
-      // 止めた行(宛先なし・経路が切・好み・宛先の停止)は delivery.suppressed
+      // 止めた行(宛先なし・送信チャンネルが切・好み・宛先の停止)は delivery.suppressed
       types.size > 0 ? (created) => deliveryEvents(types, created, recordKey, deps.now()) : undefined,
     );
     const planByKey = new Map<string, PlannedDelivery>(
@@ -489,7 +489,7 @@ export function createMessageSender(deps: MessageSendDeps) {
     const statuses = finalRows.map((row) => row.status);
     const channelCounts = toChannelCounts(channels, expansion.counts, finalRows);
     const status = finalDispatchStatus(statuses, queuedCount);
-    // 要求の中で閉じた回は dispatch.completed(processing のままなら cron が閉じる時に書く)
+    // 要求の中で閉じた送信は dispatch.completed(processing のままなら cron が閉じる時に書く)
     const completed =
       status === "processing"
         ? null
@@ -561,7 +561,7 @@ export function createMessageSender(deps: MessageSendDeps) {
     sendMessageToMany: (definition: AnyMessageDefinition, input: SendMessageToManyInput) =>
       sendToMany(definition, input),
     /**
-     * 組み済みの定義で送る(管理の再送が新しい回として送る時。回から組んだ定義で、上書きを重ね直さない。テンプレートの回は同じ出どころを残す)
+     * 組み済みの定義で送る(管理の再送が新しい送信として送る時。送信から組んだ定義で、上書きを重ね直さない。テンプレートの送信は同じ出どころを残す)
      */
     sendResolved: (
       resolved: AnyResolvedMessageDefinition,
@@ -570,9 +570,9 @@ export function createMessageSender(deps: MessageSendDeps) {
     ) => sendToMany(resolved as AnyMessageDefinition, input, { resolved, source }),
 
     /**
-     * 描いたプレビュー(管理の送信の確認)。見本の受信者 userId の値で差し込み、経路ごとに欄と(経路が描けるなら)HTML を返す。
+     * 描いたプレビュー(管理の送信の確認)。見本の受信者 userId の値で差し込み、送信チャンネルごとに欄と(送信チャンネルが描けるなら)HTML を返す。
      * テンプレート + 中身は送る時と同じ組み方(DB のテンプレートは今の公開版の変数の宣言)
-     * @throws DomainError 送る時と同じ検査(vars・経路・欄・テンプレートの状態)
+     * @throws DomainError 送る時と同じ検査(vars・送信チャンネル・欄・テンプレートの状態)
      */
     async previewMessage(
       source:
@@ -590,7 +590,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         resolved = resolveTemplateDefinition(deps, { category, values, channels: input.channels, source: from });
         if ("version" in from) template = { id: from.version.templateId, version: from.version.version };
       }
-      // 経路 = 種類の経路、input.channels はその中の絞り
+      // 送信チャンネル = カテゴリーの送信チャンネル、input.channels はその中の絞り
       const channels = resolveChannels(resolved, input.channels);
       const vars = parseVars(resolved, input.vars);
       const [user] = input.userId ? await deps.store.findUsers([input.userId]) : [];
@@ -600,7 +600,7 @@ export function createMessageSender(deps: MessageSendDeps) {
       const items: MessagePreview["channels"] = [];
       for (const key of channels) {
         const channel = deps.channels[key];
-        // 送る時と同じ組み立て(fields = 経路へ渡す中身)
+        // 送る時と同じ組み立て(fields = 送信チャンネルへ渡す中身)
         const { content: fields } = await buildContent(deps, resolved, key, map);
         const drawn = channel?.preview ? await channel.preview({ messageKey: resolved.key, content: fields, category }) : {};
         items.push({ key, label: channel?.label ?? key, fields, ...drawn });
@@ -632,9 +632,9 @@ export function createMessageSender(deps: MessageSendDeps) {
 
     /**
      * テンプレート + 欄の中身で送る(D117・D125)。白紙のシステムテンプレートも DB のテンプレートも同じ組み方。
-     * 経路 = 種類の経路 ∩ 絞り。回に欄の中身を残し、DB のテンプレートは今の公開版を固定して直した印(入力の edited か中身の違い)を残す
-     * (cron は回の欄の中身で組み直す)
-     * @throws DomainError(404) テンプレートが無い / (409) 版が無い・今の版でない版 / (400) 白紙・カテゴリー・値・経路・中身・受信者ごとの変数の既定値
+     * 送信チャンネル = カテゴリーの送信チャンネル ∩ 絞り。送信に欄の中身を残し、DB のテンプレートは今の公開版を固定して直した印(入力の edited か中身の違い)を残す
+     * (cron は送信の欄の中身で組み直す)
+     * @throws DomainError(404) テンプレートが無い / (409) 版が無い・今の版でない版 / (400) 白紙・カテゴリー・値・送信チャンネル・中身・受信者ごとの変数の既定値
      */
     async sendTemplateMessage(input: SendTemplateMessageInput): Promise<SendMessageResult> {
       const { template: ref, values, edited, category, vars, ...rest } = input;
@@ -653,7 +653,7 @@ export function createMessageSender(deps: MessageSendDeps) {
             };
       const result = await sendToMany(
         resolved as AnyMessageDefinition,
-        // 専用の値は定義の vars(版の宣言の zod)で検査して差し込む。回には embedded_values に残す
+        // 専用の値は定義の vars(版の宣言の zod)で検査して差し込む。送信には embedded_values に残す
         { ...rest, vars: vars ?? {} } as SendMessageToManyInput,
         { resolved, source },
       );

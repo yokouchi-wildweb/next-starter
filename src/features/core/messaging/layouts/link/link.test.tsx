@@ -1,4 +1,4 @@
-// 上流のひな形「認証のリンク」: 宣言・要約・メール(前の LinkMailView と同じ部品の並び)・お知らせ・生成の一覧に載る
+// 上流のレイアウト「認証のリンク」: 宣言・要約・メール(前の LinkMailView と同じ部品の並び)・お知らせ・生成の一覧に載る
 // 実行: pnpm test src/features/core/messaging/layouts/link/link.test.tsx
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -38,7 +38,7 @@ function assertOrder(html: string, texts: string[]) {
   }
 }
 
-test("宣言: 認証のリンク、コードの連絡だけ、件名・見出し・受付の文・ボタンが必須", () => {
+test("宣言: 認証のリンク、定義連絡だけ、件名・見出し・受付の文・ボタンが必須", () => {
   assert.equal(layout.key, "link");
   assert.equal(layout.adminSelectable, false);
   assert.equal(layoutValuesSchema(layout).safeParse(values).success, true);

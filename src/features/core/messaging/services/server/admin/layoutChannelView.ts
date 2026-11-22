@@ -1,15 +1,15 @@
 // src/features/core/messaging/services/server/admin/layoutChannelView.ts
 //
-// 管理画面のプレビューの経路 1 つの「ひな形の描き方で描く材料」: その経路が使う欄の中身と要約(lib buildChannelContent と同じ絞り)。
-// お知らせ(inApp)は client のひな形の描き方(layoutInApps)がこの values と summary で描く。メールの HTML は呼び手が経路の preview で描く。
-// 呼び手: 文言の編集のプレビュー(overrides)・送った回のプレビュー(dispatchPreview)
+// 管理画面のプレビューの送信チャンネル 1 つの「レイアウトの描き方で描く材料」: その送信チャンネルが使う欄の中身と要約(lib buildChannelContent と同じ絞り)。
+// お知らせ(inApp)は client のレイアウトの描き方(layoutInApps)がこの values と summary で描く。メールの HTML は呼び手が送信チャンネルの preview で描く。
+// 呼び手: テキストの編集のプレビュー(overrides)・送信のプレビュー(dispatchPreview)
 
 import { fieldsForChannel, type MessageLayout, type MessageLayoutSummary } from "@/lib/messaging";
 
 export type LayoutChannelView = {
-  /** ひな形の鍵 */
+  /** レイアウトの鍵 */
   layout: string;
-  /** その経路が使う欄だけの中身 */
+  /** その送信チャンネルが使う欄だけの中身 */
   values: Record<string, unknown>;
   /** 要約(作れなければ null) */
   summary: MessageLayoutSummary | null;

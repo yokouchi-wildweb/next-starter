@@ -1,4 +1,4 @@
-// 上流のひな形「汎用のお知らせ」: 宣言・要約・メールとお知らせの描き方(ブロックの種類ごと)・生成の一覧に載る
+// 上流のレイアウト「汎用のお知らせ」: 宣言・要約・メールとお知らせの描き方(ブロックの種類ごと)・生成の一覧に載る
 // 実行: pnpm test src/features/core/messaging/layouts/notice/notice.test.tsx
 import { test } from "node:test";
 import assert from "node:assert/strict";

@@ -8,8 +8,8 @@
 // - ready・未紐付け・用途 notification.image・持ち主 = 操作した管理者 → このテンプレートに attach
 // - それ以外(他の業務行に結ばれている・別の人が上げた・用途が違う)→ 1 回だけ複製して複製を attach し、参照を書き換える
 // 直して画像を外しても台帳からは外さない(前の版がまだ使うことがある)。テンプレートの行が消えれば照合が外す
-// (消す時に、欄の中身を残している回が使う画像はその回へ結び直す: templateService.deleteTemplate、D137)。
-// 送る時の回ごとの複製(回が自分の写しを持つ)は送る口の仕事
+// (消す時に、欄の中身を残している送信が使う画像はその送信へ結び直す: templateService.deleteTemplate、D137)。
+// 送る時の送信ごとの複製(送信が自分の写しを持つ)は送る口の仕事
 
 import { isStorageRef } from "@/lib/storage";
 
@@ -29,7 +29,7 @@ export type TemplateImageLedger<Tx> = {
   copy: (ref: string) => Promise<string>;
 };
 
-/** 中身の文字列を置き換えた写しを返す(入れ子の object・配列も。文言の上書きの画像も使う) */
+/** 中身の文字列を置き換えた写しを返す(入れ子の object・配列も。テキストの編集の画像も使う) */
 export function mapStrings(value: unknown, map: (text: string) => string): unknown {
   if (typeof value === "string") return map(value);
   if (Array.isArray(value)) return value.map((item) => mapStrings(item, map));
@@ -39,7 +39,7 @@ export function mapStrings(value: unknown, map: (text: string) => string): unkno
   return value;
 }
 
-/** 中身の storage:// の参照を集める(文言の上書きの画像も使う) */
+/** 中身の storage:// の参照を集める(テキストの編集の画像も使う) */
 export function collectRefs(value: unknown, out: Set<string>): Set<string> {
   if (typeof value === "string") {
     if (isStorageRef(value)) out.add(value);

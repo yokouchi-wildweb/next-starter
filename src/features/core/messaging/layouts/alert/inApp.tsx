@@ -1,5 +1,5 @@
 // src/features/core/messaging/layouts/alert/inApp.tsx
-// ひな形「セキュリティの警告」のお知らせの描き方(client の一覧 layoutInApps)。見た目は ./AlertInApp(1 行スイッチ)
+// レイアウト「セキュリティの警告」のお知らせの描き方(client の一覧 layoutInApps)。見た目は ./AlertInApp(1 行スイッチ)
 
 import type { MessageLayoutInAppRenderer } from "@/lib/messaging";
 

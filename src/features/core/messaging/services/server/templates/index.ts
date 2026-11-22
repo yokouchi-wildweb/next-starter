@@ -27,7 +27,7 @@ import { createTemplateService } from "./templateService";
 
 /**
  * テンプレートに当たる enrichers = 管理者が送れる種別(announcement・direct・promotion)のどれで送っても当たる物。
- * 種類は送る時に選ぶので、種別の当て先と全部だけで決まる(種類だけを当て先にした enricher はテンプレートの保存では使えない)
+ * カテゴリーは送る時に選ぶので、種別の当て先と全部だけで決まる(カテゴリーだけを当て先にした enricher はテンプレートの保存では使えない)
  */
 function templateEnrichers() {
   const [first, ...rest] = adminSendableKinds().map((kind) => enrichersFor({ key: TEMPLATE_MESSAGE_KEY, category: "", kind }, enrichers));

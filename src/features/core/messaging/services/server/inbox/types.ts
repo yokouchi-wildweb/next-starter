@@ -14,7 +14,7 @@ export type InboxRow = {
   read: boolean;
 };
 
-/** 詳細の 1 行(要約の列 + ひな形・書いた時の版・欄の中身。前の行・記録の段が meta の行は null) */
+/** 詳細の 1 行(要約の列 + レイアウト・書いた時の版・欄の中身。前の行・記録の段が meta の行は null) */
 export type InboxDetailRow = InboxRow & {
   layout: string | null;
   layoutVersion: number | null;

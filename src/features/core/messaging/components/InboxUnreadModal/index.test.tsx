@@ -1,5 +1,5 @@
 // InboxUnreadModal の検査(jsdom の上で描く。流れの hook useInboxUnreadModal と Modal は偽物)。
-// - current が無ければ何も描かない / 中身(詳しい表示のひな形と欄の中身、D120)・n/N を描く / 次へ・スキップ・確認完了が hook の next / skip / close を呼ぶ
+// - current が無ければ何も描かない / 中身(詳しい表示のレイアウトと欄の中身、D120)・n/N を描く / 次へ・スキップ・確認完了が hook の next / skip / close を呼ぶ
 // 実行: pnpm test src/features/core/messaging/components/InboxUnreadModal/index.test.tsx
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, beforeEach, mock, test } from "node:test";
@@ -20,7 +20,7 @@ g.Node = dom.window.Node;
 g.MouseEvent = dom.window.MouseEvent;
 g.IS_REACT_ACT_ENVIRONMENT = true;
 
-/** 詳しい表示(GET /api/me/messaging/inbox/[id] と同じ形: 行 + ひな形 notice の鍵・版・欄の中身・お知らせの経路の欄の宣言、D120) */
+/** 詳しい表示(GET /api/me/messaging/inbox/[id] と同じ形: 行 + レイアウト notice の鍵・版・欄の中身・お知らせの送信チャンネルの欄の宣言、D120) */
 const detailOf = <T extends { id: string; title: string | null; body: string }>(row: T) => ({
   ...row,
   layout: "notice",

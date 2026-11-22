@@ -1,11 +1,11 @@
 // src/features/core/messaging/components/common/MessagePreview/index.tsx
-// 部品(props だけ): 連絡の経路ごとのプレビュー(送る口が描いた物を見せる)。
+// 部品(props だけ): 連絡の送信チャンネルごとのプレビュー(送る口が描いた物を見せる)。
 // - email: 描いた HTML を sandbox の iframe に出す。HTML が無ければ文(text)、それも無ければ「プレビューはありません」
 // - inApp: 受け取り箱の詳細と同じ部品 InboxLayoutView(D120: お知らせの見せ方は 1 つ)。fields が送る口の中身
-//   (MessageLayoutContent = ひな形の鍵・差し込み済みの欄の中身・要約)ならひな形の描き方で、それ以前の行(題・本文・画像・行き先)は要約で
-// - それ以外の経路: text があればそれ、無ければ欄の値の一覧(欄の名前は見せない、D46)
-// 経路の見出しは label(呼び手が経路の表示名を渡す。無ければ経路の鍵)。showLabels false で見出しを出さない(タブで分ける呼び手)
-// 使い手: 送る画面の「あなた宛ての表示例」(SampleForYouModal)・回の詳細・ひな形のプレビュー(メールの iframe)
+//   (MessageLayoutContent = レイアウトの鍵・差し込み済みの欄の中身・要約)ならレイアウトの描き方で、それ以前の行(題・本文・画像・行き先)は要約で
+// - それ以外の送信チャンネル: text があればそれ、無ければ欄の値の一覧(欄の名前は見せない、D46)
+// 送信チャンネルの見出しは label(呼び手が送信チャンネルの表示名を渡す。無ければ送信チャンネルの鍵)。showLabels false で見出しを出さない(タブで分ける呼び手)
+// 使い手: 送る画面の「あなた宛ての表示例」(SampleForYouModal)・送信の詳細・レイアウトのプレビュー(メールの iframe)
 
 "use client";
 
@@ -19,14 +19,14 @@ import { messageChannelLabel } from "@/features/core/messaging/constants/channel
 
 import { InboxLayoutView, inboxSummaryOf } from "../InboxLayoutView";
 
-/** プレビューの経路 1 つ(POST /send/preview の channels の要素と同じ形) */
+/** プレビューの送信チャンネル 1 つ(POST /send/preview の channels の要素と同じ形) */
 export type MessagePreviewChannel = {
   key: string;
   label?: string;
   fields: unknown;
   html?: string;
   text?: string;
-  /** お知らせの汎用の描き方に使うひな形の欄の宣言(無ければその段を飛ばす) */
+  /** お知らせの汎用の描き方に使うレイアウトの欄の宣言(無ければその段を飛ばす) */
   layoutFields?: MessageLayoutFields | null;
 };
 
@@ -34,7 +34,7 @@ export type MessagePreviewProps = {
   channels: MessagePreviewChannel[];
   /** メールの iframe の高さ(px、既定 480) */
   emailHeight?: number;
-  /** 経路の見出しを出すか(既定 true) */
+  /** 送信チャンネルの見出しを出すか(既定 true) */
   showLabels?: boolean;
 };
 
@@ -42,7 +42,7 @@ const str = (value: unknown) => (typeof value === "string" ? value : "");
 const record = (value: unknown): Record<string, unknown> =>
   value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 
-/** お知らせ: 受け取り箱と同じ部品で(送る口の中身ならひな形で、前の行の形なら要約で) */
+/** お知らせ: 受け取り箱と同じ部品で(送る口の中身ならレイアウトで、前の行の形なら要約で) */
 function InAppView({ channel }: { channel: MessagePreviewChannel }) {
   const fields = channel.fields;
   if (isMessageLayoutContent(fields)) {
@@ -71,7 +71,7 @@ function OtherFields({ channel }: { channel: MessagePreviewChannel }) {
       </Para>
     );
   }
-  // fork の経路の欄: 欄の名前(鍵)は見せず、値だけを「そのほかの欄」として並べる(D46)
+  // fork の送信チャンネルの欄: 欄の名前(鍵)は見せず、値だけを「そのほかの欄」として並べる(D46)
   const fields = record(channel.fields);
   return (
     <Stack gap="2xs" className="rounded-md border border-border p-3">

@@ -17,7 +17,7 @@ const BASE = "/api/me/messaging/inbox";
 export type { InboxItemDto, InboxPage };
 
 /**
- * 1 件の詳しい表示(GET /api/me/messaging/inbox/[id]): 一覧の要約の欄 + ひな形の鍵・版・欄の中身・お知らせの欄の宣言(fields、汎用の描き方に使う)。
+ * 1 件の詳しい表示(GET /api/me/messaging/inbox/[id]): 一覧の要約の欄 + レイアウトの鍵・版・欄の中身・お知らせの欄の宣言(fields、汎用の描き方に使う)。
  * 記録の段が meta・前の行は layout / values が無い(要約だけで描く)
  */
 export type InboxItemDetailDto = InboxItemDto & {

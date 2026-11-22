@@ -1,5 +1,5 @@
 // src/features/core/messaging/categories/promotion.ts
-// 上流の種類: 管理画面「一般的なプロモーション」/ 利用者「キャンペーン情報」(種別 promotion、D124)。管理者がその場で書く宣伝(白紙のシステムテンプレート templates/promotion.ts)の既定のカテゴリー
+// 上流のカテゴリー: 管理画面「一般的なプロモーション」/ 利用者「キャンペーン情報」(種別 promotion、D124)。自由連絡の宣伝(白紙のシステムテンプレート templates/promotion.ts)の既定のカテゴリー
 
 import type { MessageCategory } from "@/lib/messaging";
 

@@ -22,7 +22,7 @@ export function runSendSweep(): Promise<SendSweepResult> {
   return sweepMessages(deps, { deadline: createDeadline(messagingConfig.sweep.budgetMs) });
 }
 
-/** 1 つの回を 1 束だけ進める(管理の「続きを送る」が呼ぶ) */
+/** 1 つの送信を 1 束だけ進める(管理の「続きを送る」が呼ぶ) */
 export function continueSending(dispatchId: string): Promise<ContinueSendingResult> {
   return continueDispatch(deps, dispatchId);
 }

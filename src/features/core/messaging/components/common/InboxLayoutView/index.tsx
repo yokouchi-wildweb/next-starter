@@ -1,8 +1,8 @@
 // src/features/core/messaging/components/common/InboxLayoutView/index.tsx
-// 部品(props だけ): お知らせ 1 件の中身をひな形で描く(受け取り箱の詳細のモーダルと、管理画面のお知らせのプレビューが同じ部品)。
-// 描き方は 1 つ(D120): 1. ひな形のお知らせの描き方(client の一覧 layoutInApps、ひな形の鍵で引く)> 2. 汎用の描き方(欄の宣言 fields
-// があれば GenericInAppView)。どちらでも描けない(ひな形・中身が無い = fork がひな形を外した等)時は「このお知らせは表示できません」。
-// 要約は描かない(ひな形の描き方に渡すだけ)。
+// 部品(props だけ): お知らせ 1 件の中身をレイアウトで描く(受け取り箱の詳細のモーダルと、管理画面のお知らせのプレビューが同じ部品)。
+// 描き方は 1 つ(D120): 1. レイアウトのお知らせの描き方(client の一覧 layoutInApps、レイアウトの鍵で引く)> 2. 汎用の描き方(欄の宣言 fields
+// があれば GenericInAppView)。どちらでも描けない(レイアウト・中身が無い = fork がレイアウトを外した等)時は「このお知らせは表示できません」。
+// 要約は描かない(レイアウトの描き方に渡すだけ)。
 // 題(要約の題 = メールの件名)は既定で描かない(受け取り箱は包む Modal が持つ)。showTitle = 中身の上に見出しで描く(管理画面のお知らせのプレビュー)
 
 import type { ReactNode } from "react";
@@ -19,13 +19,13 @@ import { GenericInAppView } from "./GenericInAppView";
 export { GenericInAppView, InboxBlock, type GenericInAppViewProps } from "./GenericInAppView";
 
 export type InboxLayoutViewProps = {
-  /** ひな形の鍵(無い = 要約だけ) */
+  /** レイアウトの鍵(無い = 要約だけ) */
   layout?: string | null;
-  /** ひな形の欄の中身(無い = 記録の段が meta・前の行 = 要約だけ) */
+  /** レイアウトの欄の中身(無い = 記録の段が meta・前の行 = 要約だけ) */
   values?: Readonly<Record<string, unknown>> | null;
-  /** ひな形のお知らせの欄の宣言(汎用の描き方に要る。無ければ 2 段目を飛ばす) */
+  /** レイアウトのお知らせの欄の宣言(汎用の描き方に要る。無ければ 2 段目を飛ばす) */
   fields?: MessageLayoutFields | null;
-  /** 要約(ひな形のお知らせの描き方に渡す。題は showTitle の見出し) */
+  /** 要約(レイアウトのお知らせの描き方に渡す。題は showTitle の見出し) */
   summary: MessageLayoutSummary;
   /** 描けない時の文(既定「このお知らせは表示できません」) */
   unavailableText?: string;

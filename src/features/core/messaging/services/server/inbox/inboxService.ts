@@ -25,7 +25,7 @@ function toDto(row: InboxRow): InboxItemDto {
   };
 }
 
-/** 詳細のひな形の部分(今の版へ読み替えた欄の中身とお知らせの欄の宣言。描けなければ無し = 要約のカード) */
+/** 詳細のレイアウトの部分(今の版へ読み替えた欄の中身とお知らせの欄の宣言。描けなければ無し = 要約のカード) */
 function layoutPartOf(
   layouts: Readonly<Record<string, MessageLayout>>,
   row: InboxDetailRow,
@@ -61,7 +61,7 @@ export function createInboxService(store: InboxStore, options: { layouts?: () =>
     },
 
     /**
-     * 1 件の詳細(見える行だけ。ひな形と欄の中身つき)。
+     * 1 件の詳細(見える行だけ。レイアウトと欄の中身つき)。
      * @throws DomainError(404) 見えない行(他人の行・まだ公開していない行・無い行)
      */
     async getInboxItem(viewer: InboxViewer, itemId: string): Promise<InboxItemDetailDto> {

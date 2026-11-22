@@ -1,8 +1,8 @@
-# statement（上流のひな形「お知らせの明細」）
+# statement（上流のレイアウト「お知らせの明細」）
 
 ## Overview
 
-札・宛名・本文の知らせ（財布の失効の予告・本通知など）のひな形（D122・D123）。コードの連絡だけが使い、管理者はテンプレートで選べない（`adminSelectable: false`）。受け口の仕組みは `../README.md`、型と語彙は `src/lib/messaging/README.md`「ひな形」。wallet の失効の知らせ 2 本(`expiringNotice`・`expiredNotice`)が使う。
+札・宛名・本文の知らせ（財布の失効の予告・本通知など）のレイアウト（D122・D123）。定義連絡だけが使い、管理者はテンプレートで選べない（`adminSelectable: false`）。受け口の仕組みは `../README.md`、型と語彙は `src/lib/messaging/README.md`「レイアウト」。wallet の失効の知らせ 2 本(`expiringNotice`・`expiredNotice`)が使う。
 
 ## Usage
 

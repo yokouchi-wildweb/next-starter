@@ -1,5 +1,5 @@
 // 利用者ごとの履歴の検査(DB は偽物)
-// - DTO: 決めた項目だけ(本文・宛先・provider の値・誤りの文は出ない)、前の送る口の回(message_key null)
+// - DTO: 決めた項目だけ(本文・宛先・provider の値・誤りの文は出ない)、前の送る口の送信(message_key null)
 // - 新しい順の keyset: 印で続きを読み、最後は nextCursor null
 // - 不正な利用者 id・cursor・limit は 400
 // 実行: pnpm test src/features/core/messaging/services/server/history
@@ -72,7 +72,7 @@ test("DTO: 決めた項目だけを返す(本文・宛先・provider の値は�
   assert.equal(store.calls[0].limit, 51);
 });
 
-test("DTO: 前の送る口の回は message_key null、件名・題は写しが移した headings", async () => {
+test("DTO: 前の送る口の送信は message_key null、件名・題は写しが移した headings", async () => {
   const page = await listUserMessageHistory({ store: fakeStore([row(1, { oldSend: true })]) }, USER);
   assert.equal(page.items[0].messageKey, null);
   assert.deepEqual(page.items[0].headings, { email: "写した件名" });

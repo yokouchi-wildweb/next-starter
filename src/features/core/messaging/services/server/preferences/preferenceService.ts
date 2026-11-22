@@ -1,17 +1,17 @@
 // src/features/core/messaging/services/server/preferences/preferenceService.ts
 //
 // 利用者の好み(配信停止、D35・D45・D71)の読み書き。/api/me/messaging/preferences と、サーバーの呼び手(会員登録など)が呼ぶ。
-// - 止め方は 6 つ: 1 マス(種類 × 経路)・種類まるごと(経路 '*')・グループまるごと(category 'group:<鍵>' × 経路か '*'、D123)・
-//   種別まるごと(kind X、'*' '*')・経路まるごと(種類 '*')・全部('*' '*')。グループの行は読む時の種類の group で当たる(後から入った種類も止まる、groupRows.ts)
-// - 表に出す種類 = 利用者が止められる種別(性質 userStoppable)の種類だけ。形は経路 > 種別の枠 > グループ > 種類(dto.ts)
+// - 止め方は 6 つ: 1 マス(カテゴリー × 送信チャンネル)・カテゴリーまるごと(送信チャンネル '*')・グループまるごと(category 'group:<鍵>' × 送信チャンネルか '*'、D123)・
+//   種別まるごと(kind X、'*' '*')・送信チャンネルまるごと(カテゴリー '*')・全部('*' '*')。グループの行は読む時のカテゴリーの group で当たる(後から入ったカテゴリーも止まる、groupRows.ts)
+// - 表に出すカテゴリー = 利用者が止められる種別(性質 userStoppable)のカテゴリーだけ。形は送信チャンネル > 種別の枠 > グループ > カテゴリー(dto.ts)
 // - マスの止まり方は送る側(stops.ts checkStops = store.findOptOuts)と同じ: 当たる行が 1 つでもあれば止まる(和、許可の行は無い)。
-//   kind null の行(表の '*'。store が読み替える、'*' のままでも同じに読む)は今までどおり、kind のある行は種類の種別が同じ時だけ当たる。via はどの行で止まっているか
+//   kind null の行(表の '*'。store が読み替える、'*' のままでも同じに読む)は今までどおり、kind のある行はカテゴリーの種別が同じ時だけ当たる。via はどの行で止まっているか
 //   (広い行で止まっているマスは、そのマスを再開しても止まったまま。種別まるごとだけは下の書き分けで再開できる)
-// - 宛先の有無: 経路の自前の引き方(resolveAddresses)か、無ければ端末の帳簿の有効な行(送る側の展開と同じ)
-// - 変える: 行を足す(source = 呼び手の値、既定 "user")/ 消す(その行だけ)。知らない種類・有効でない経路・止められない種別は 400
-// - 広い行(種別まるごと・種類まるごと・グループまるごと・経路まるごと)の下でマスを 1 つ再開する → 1 つの transaction で覆う行を消し、
+// - 宛先の有無: 送信チャンネルの自前の引き方(resolveAddresses)か、無ければ端末の帳簿の有効な行(送る側の展開と同じ)
+// - 変える: 行を足す(source = 呼び手の値、既定 "user")/ 消す(その行だけ)。知らないカテゴリー・有効でない送信チャンネル・止められない種別は 400
+// - 広い行(種別まるごと・カテゴリーまるごと・グループまるごと・送信チャンネルまるごと)の下でマスを 1 つ再開する → 1 つの transaction で覆う行を消し、
 //   ほかは止まったままにする行に書き分ける(D71、指令 37 の AMENDMENT 1)。全部の行は書き分けない
-// - 種類とグループの受け口は初めて使う時に validateMessageCategories で確かめる(誤りは投げる = 生成と同じ検査を実行時にも)
+// - カテゴリーとグループの受け口は初めて使う時に validateMessageCategories で確かめる(誤りは投げる = 生成と同じ検査を実行時にも)
 
 import {
   kindTraits,
@@ -48,7 +48,7 @@ export type PreferenceServiceDeps = {
   /** 見出しのグループの受け口(categoryGroups。省略 = 無し) */
   groups?: Readonly<Record<string, MessageCategoryGroup>>;
   channels: Readonly<Record<string, MessageChannel>>;
-  /** 端末の帳簿の有効な宛先(resolveAddresses を持たない経路) */
+  /** 端末の帳簿の有効な宛先(resolveAddresses を持たない送信チャンネル) */
   findLedgerEndpoints: (channel: string, userIds: readonly string[]) => Promise<ChannelAddress[]>;
   /** 案内先が開いているか(門で閉じた住所の connectHref は出さない) */
   isHrefOpen: (href: string) => boolean;
@@ -56,7 +56,7 @@ export type PreferenceServiceDeps = {
 
 /**
  * 行の集まりからマスの止まり方を決める(送る側の findOptOuts + checkStops と同じ判定)。
- * kind = 種類の種別(kind のある行はこれと同じ時だけ当たる)。group = 種類が入っている見出しのグループの鍵(無ければ null)。
+ * kind = カテゴリーの種別(kind のある行はこれと同じ時だけ当たる)。group = カテゴリーが入っている見出しのグループの鍵(無ければ null)。
  * 順は cell > category > group > kind > channel > all
  */
 export function preferenceVia(
@@ -95,12 +95,12 @@ const isKindRow = (row: MessagePreferenceRow, kind: string) =>
 export function createPreferenceService(deps: PreferenceServiceDeps) {
   const groups = deps.groups ?? {};
   let checked = false;
-  /** 種類とグループの受け口の検査(初めの 1 回) */
+  /** カテゴリーとグループの受け口の検査(初めの 1 回) */
   function assertCategories(): void {
     if (checked) return;
     const problems = validateMessageCategories(deps.categories, groups);
     if (problems.length > 0) {
-      throw new Error(`連絡の種類の受け口に誤りがあります: ${problems.map((problem) => problem.message).join(" / ")}`);
+      throw new Error(`連絡のカテゴリーの受け口に誤りがあります: ${problems.map((problem) => problem.message).join(" / ")}`);
     }
     checked = true;
   }
@@ -110,18 +110,18 @@ export function createPreferenceService(deps: PreferenceServiceDeps) {
       const channel = activeChannel(deps.channels, key);
       return channel ? [channel] : [];
     });
-  // 表に出す種類 = 利用者が止められる種別(性質 userStoppable: activity・promotion)の種類だけ
+  // 表に出すカテゴリー = 利用者が止められる種別(性質 userStoppable: activity・promotion)のカテゴリーだけ
   const listedCategories = () => Object.values(deps.categories).filter((category) => kindTraits(category.kind)?.userStoppable);
-  /** 種類のある利用者が止められる種別(MESSAGE_KINDS の順) */
+  /** カテゴリーのある利用者が止められる種別(MESSAGE_KINDS の順) */
   const listedKinds = (): MessageKind[] => {
     const present = new Set(listedCategories().map((category) => category.kind));
     return MESSAGE_KINDS.filter((kind) => present.has(kind));
   };
 
-  /** 種類が入っている見出しのグループの鍵(受け口に無いグループは null) */
+  /** カテゴリーが入っている見出しのグループの鍵(受け口に無いグループは null) */
   const groupOf = (category: MessageCategory): string | null =>
     category.group !== undefined && groups[category.group] ? category.group : null;
-  /** 利用者が止められる種類を持つ見出しのグループ(order・鍵の順)と、その種類の種別(D82: グループは同じ種別の種類だけ) */
+  /** 利用者が止められるカテゴリーを持つ見出しのグループ(order・鍵の順)と、そのカテゴリーの種別(D82: グループは同じ種別のカテゴリーだけ) */
   const listedGroups = (): { key: string; group: MessageCategoryGroup; kind: MessageKind }[] => {
     const kindOf = new Map<string, MessageKind>();
     for (const category of listedCategories()) {
@@ -140,7 +140,7 @@ export function createPreferenceService(deps: PreferenceServiceDeps) {
     return found.some((entry) => entry.userId === userId && Boolean(entry.address));
   }
 
-  /** 種別の枠の中のグループ(グループの無い種類が先、見出しのグループは order・鍵の順) */
+  /** 種別の枠の中のグループ(グループの無いカテゴリーが先、見出しのグループは order・鍵の順) */
   function groupsOf(categories: readonly MessageCategory[], rows: readonly MessagePreferenceRow[], channel: string): MessagePreferenceGroupDto[] {
     const buckets = new Map<string | null, MessageCategory[]>();
     for (const category of categories) {
@@ -172,7 +172,7 @@ export function createPreferenceService(deps: PreferenceServiceDeps) {
     const channelDtos: MessagePreferenceChannelDto[] = [];
     for (const channel of channels) {
       const href = channel.connectHref ?? null;
-      // 列は開いている経路 ∩ 種類の経路(D86 の D59 の直し)
+      // 列は開いている送信チャンネル ∩ カテゴリーの送信チャンネル(D86 の D59 の直し)
       const onChannel = categories.filter((category) => category.channels.includes(channel.key));
       channelDtos.push({
         key: channel.key,
@@ -188,13 +188,13 @@ export function createPreferenceService(deps: PreferenceServiceDeps) {
     }
     return {
       allOptedOut: rows.some((row) => noKind(row) && row.category === MESSAGE_ALL && row.channel === MESSAGE_ALL),
-      // 種類まるごと(種類, '*')の状態は種類ごとに 1 つ(経路ごとに繰り返さない)
+      // カテゴリーまるごと(カテゴリー, '*')の状態はカテゴリーごとに 1 つ(送信チャンネルごとに繰り返さない)
       categories: categories.map((category) => ({
         key: category.key,
         optedOut: rows.some((row) => noKind(row) && row.category === category.key && row.channel === MESSAGE_ALL),
       })),
       kinds: kinds.map((kind) => ({ kind, optedOut: rows.some((row) => isKindRow(row, kind)) })),
-      // グループまるごと(グループ, '*')の状態はグループごとに 1 つ(経路ごとの状態は channels[].kinds[].groups[].optedOut)
+      // グループまるごと(グループ, '*')の状態はグループごとに 1 つ(送信チャンネルごとの状態は channels[].kinds[].groups[].optedOut)
       groups: listedGroups().map(
         ({ key, group, kind }): MessagePreferenceGroupStopDto => ({
           key,
@@ -208,10 +208,10 @@ export function createPreferenceService(deps: PreferenceServiceDeps) {
   }
 
   /**
-   * 1 マス・種類まるごと(channel '*')・経路まるごと(category '*')・全体・種別まるごと・グループまるごとを止める / 再開する。変えた後の表を返す。
+   * 1 マス・カテゴリーまるごと(channel '*')・送信チャンネルまるごと(category '*')・全体・種別まるごと・グループまるごとを止める / 再開する。変えた後の表を返す。
    * 広い行の下の 1 マスの再開は splitForCell で書き分ける
    * options.source = 書いた入口(既定 user。HTTP の本文からは受けない)
-   * @throws DomainError(400) 入力の誤り・知らない種類・知らないグループ・有効でない経路・利用者が止められない種別
+   * @throws DomainError(400) 入力の誤り・知らないカテゴリー・知らないグループ・有効でない送信チャンネル・利用者が止められない種別
    */
   async function setPreference(
     userId: string,
@@ -237,7 +237,7 @@ export function createPreferenceService(deps: PreferenceServiceDeps) {
     }
 
     if ("group" in value) {
-      // 利用者が止められる種類を持つ見出しのグループだけ(止められない種別の種類だけのグループは表に出ない)
+      // 利用者が止められるカテゴリーを持つ見出しのグループだけ(止められない種別のカテゴリーだけのグループは表に出ない)
       if (!listedGroups().some((item) => item.key === value.group)) {
         throw new DomainError("選んだ通知のグループが見つかりません", { status: 400 });
       }
@@ -245,7 +245,7 @@ export function createPreferenceService(deps: PreferenceServiceDeps) {
       if (channel !== MESSAGE_ALL && !activeChannel(deps.channels, channel)) {
         throw new DomainError("選んだ通知方法が見つかりません", { status: 400 });
       }
-      // 再開はその行だけを消す(広い行の再開と同じ。グループの中の種類の行は残る)
+      // 再開はその行だけを消す(広い行の再開と同じ。グループの中のカテゴリーの行は残る)
       const row = { category: groupRowCategory(value.group), channel };
       await deps.store.write(userId, value.optedOut ? { add: [{ ...row, source }] } : { remove: [row] });
       return getPreferences(userId);
@@ -263,7 +263,7 @@ export function createPreferenceService(deps: PreferenceServiceDeps) {
       await deps.store.write(userId, { add: [{ category, channel, source }] });
       return getPreferences(userId);
     }
-    // 広い行(カテゴリーまるごと・経路まるごと・全部)の再開はその行だけを消す
+    // 広い行(カテゴリーまるごと・送信チャンネルまるごと・全部)の再開はその行だけを消す
     if (!target || channel === MESSAGE_ALL) {
       await deps.store.write(userId, { remove: [{ category, channel }] });
       return getPreferences(userId);
@@ -275,12 +275,12 @@ export function createPreferenceService(deps: PreferenceServiceDeps) {
   /**
    * 1 マス(target × channel)を再開する書き込み(1 つの transaction)。和の判定で許可の行は無いので、そのマスを覆う広い行を消し、
    * そのマスのほかは止まったままにする行を足す(D71 と同じ書き分け)。全部('*' '*')は書き分けない(via all で止まったまま)
-   * - 種別まるごと → 同じ種別のほかの種類の種類まるごと + この種類のほかの経路のマス
-   * - 種類まるごと(target, '*')→ この種類のほかの経路のマス
-   * - グループまるごと(グループ, '*')→ 同じグループのほかの種類の種類まるごと + この種類のほかの経路のマス
-   * - グループ × 経路(グループ, channel)→ 同じグループのほかの種類でこの経路を持つ物のマス
-   *   (書き分けた後はグループの行が無いので、後からグループに入った種類は止まらない。種別まるごとの書き分けと同じ)
-   * - 経路まるごと('*', channel)→ この経路を持つほかの種類のマス
+   * - 種別まるごと → 同じ種別のほかのカテゴリーまるごと + このカテゴリーのほかの送信チャンネルのマス
+   * - カテゴリーまるごと(target, '*')→ このカテゴリーのほかの送信チャンネルのマス
+   * - グループまるごと(グループ, '*')→ 同じグループのほかのカテゴリーまるごと + このカテゴリーのほかの送信チャンネルのマス
+   * - グループ × 送信チャンネル(グループ, channel)→ 同じグループのほかのカテゴリーでこの送信チャンネルを持つ物のマス
+   *   (書き分けた後はグループの行が無いので、後からグループに入ったカテゴリーは止まらない。種別まるごとの書き分けと同じ)
+   * - 送信チャンネルまるごと('*', channel)→ この送信チャンネルを持つほかのカテゴリーのマス
    */
   function splitForCell(
     rows: readonly MessagePreferenceRow[],

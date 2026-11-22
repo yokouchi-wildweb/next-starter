@@ -3,13 +3,13 @@
 // 受け取り箱の「見える行」の規則(D32・D35)。利用者の API の読み手は全部これを通る(規則を変える時はここだけ)。
 // - 公開の時刻 ≤ 今
 // - 自分宛ての行(user_id = 見る人)か、共有の行(user_id null で target_roles が null = 全員 か 見る人のロールを含む)
-// - 共有の行: 回の show_to_later_signups が false なら、見る人の登録(users.created_at)より前に公開された行は見せない
+// - 共有の行: 送信の show_to_later_signups が false なら、見る人の登録(users.created_at)より前に公開された行は見せない
 //   (利用者の行が無い時は見せない = fail-closed)
-// - 共有の行: 好みに従う回(種別の性質 userStoppable、kind の無い前の回も)で、見る人が inApp か '*' の経路で回の種類か '*' を止めていれば見せない
-//   (共有の行は書く時に好みを当てないので、読む時に当てる)。種別まるごとの行(kind = 回の種別、'*' '*')も当たる(和、D71)。
-//   kind '*' の行 = 種別まるごとではない(isVisible の写しは null も同じ)。kind のある行は kind の無い前の回には当たらない。
-//   回の種類が入っているグループの行('group:<鍵>'、D123)も当たる。種類 → グループは読む時の種類の受け口で決める(後から入った種類も止まる)
-// 取り下げた回の行は消えているので、ここで外す物は無い
+// - 共有の行: 好みに従う送信(種別の性質 userStoppable、kind の無い前の送信も)で、見る人が inApp か '*' の送信チャンネルで送信のカテゴリーか '*' を止めていれば見せない
+//   (共有の行は書く時に好みを当てないので、読む時に当てる)。種別まるごとの行(kind = 送信の種別、'*' '*')も当たる(和、D71)。
+//   kind '*' の行 = 種別まるごとではない(isVisible の写しは null も同じ)。kind のある行は kind の無い前の送信には当たらない。
+//   送信のカテゴリーが入っているグループの行('group:<鍵>'、D123)も当たる。カテゴリー → グループは読む時のカテゴリーの受け口で決める(後から入ったカテゴリーも止まる)
+// 取り下げた送信の行は消えているので、ここで外す物は無い
 
 import { sql, type SQL } from "drizzle-orm";
 
@@ -28,10 +28,10 @@ import { groupRowOfCategory } from "../preferences/groupRows";
 export type InboxViewer = { userId: string; role: string };
 
 const IN_APP = "inApp";
-/** 共有の行で利用者の好み(お知らせの停止)に従う種別 = 性質 userStoppable。kind の無い前の回も従う(今までどおり) */
+/** 共有の行で利用者の好み(お知らせの停止)に従う種別 = 性質 userStoppable。kind の無い前の送信も従う(今までどおり) */
 const STOPPABLE_KINDS = kindsWhere((traits) => traits.userStoppable);
 
-/** 回の種類 → その種類が入っているグループの行の category(種類の受け口から。グループに入った種類が無ければ null) */
+/** 送信のカテゴリー → そのカテゴリーが入っているグループの行の category(カテゴリーの受け口から。グループに入ったカテゴリーが無ければ null) */
 function groupRowSql(category: SQL | typeof MessageDispatchTable.category): SQL | null {
   const pairs = Object.keys(categories).flatMap((key) => {
     const row = groupRowOfCategory(categories, key);
@@ -76,7 +76,7 @@ export function inboxVisibilitySql(viewer: InboxViewer): SQL {
 export type VisibilityFacts = {
   viewer: InboxViewer & { createdAt: Date | null; optOuts: readonly { category: string; channel: string; kind?: string | null }[] };
   item: { userId: string | null; targetRoles: readonly string[] | null; publishedAt: Date };
-  /** groupRow = 回の種類が入っているグループの行の category(省略 = 種類の受け口から引く) */
+  /** groupRow = 送信のカテゴリーが入っているグループの行の category(省略 = カテゴリーの受け口から引く) */
   dispatch: { showToLaterSignups: boolean; kind: string | null; category: string | null; groupRow?: string | null };
   now: Date;
 };

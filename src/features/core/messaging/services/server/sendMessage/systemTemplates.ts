@@ -1,7 +1,7 @@
 // src/features/core/messaging/services/server/sendMessage/systemTemplates.ts
 //
 // システムテンプレート(受け口 messaging/templates、D117・D125)の読み口と検査。
-// - 管理者がその場で送れる種別(種別の性質 adminFreeText がある物)だけ、ひな形は受け口にある物。1 つの種別に何本でも置け、
+// - 自由連絡で送れる種別(種別の性質 adminFreeText がある物)だけ、レイアウトは受け口にある物。1 つの種別に何本でも置け、
 //   受け口の順で使う物の最初がその種別の既定の白紙(D119)
 // - enabled: false(fork の override、D122)の物はどこにも出さない(一覧・送る画面の選択肢・既定の白紙)、その鍵では送れない(無い鍵と同じ)。
 //   送れる種別ごとに使う物が 1 本は要る(無ければ検査で止める)
@@ -21,12 +21,12 @@ import {
 } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
-/** 管理者がその場で送れる種別(種別の性質 adminFreeText がある物) */
+/** 自由連絡で送れる種別(種別の性質 adminFreeText がある物) */
 export function adminSendableKinds(): MessageKind[] {
   return kindsWhere((traits) => traits.adminFreeText.length > 0);
 }
 
-/** 管理者がその場で送れる種別か */
+/** 自由連絡で送れる種別か */
 export function isAdminSendableKind(kind: string | null | undefined): kind is MessageKind {
   return (kindTraits(kind)?.adminFreeText.length ?? 0) > 0;
 }
@@ -53,7 +53,7 @@ export function checkSystemTemplates(
     if (typeof template.label !== "string" || template.label.trim() === "") problems.push(`${label}: label(管理画面に出す名前)を書く`);
     if (template.enabled !== undefined && typeof template.enabled !== "boolean") problems.push(`${label}: enabled は true / false で書く`);
     if (!isAdminSendableKind(template.kind)) {
-      problems.push(`${label}: 種別 ${template.kind} は管理者がその場で送れない(${adminSendableKinds().join(" / ")} のどれか)`);
+      problems.push(`${label}: 種別 ${template.kind} は自由連絡で送れない(${adminSendableKinds().join(" / ")} のどれか)`);
     }
     const declarations: MessageVarDeclaration[] = [];
     for (const item of template.vars ?? []) {
@@ -62,7 +62,7 @@ export function checkSystemTemplates(
       else problems.push(`${label}: 専用の埋め込み情報 ${String((item as { key?: unknown }).key)} の宣言が正しくない`);
     }
     for (const problem of checkVarCatalog(varCatalog({ own: declarations }))) problems.push(`${label}: ${problem.message}`);
-    if (!layouts[template.layout]) problems.push(`${label}: ひな形 ${template.layout} は layouts の受け口に無い`);
+    if (!layouts[template.layout]) problems.push(`${label}: レイアウト ${template.layout} は layouts の受け口に無い`);
     if (!template.values || typeof template.values !== "object" || Array.isArray(template.values)) {
       problems.push(`${label}: values(白紙の欄の中身)は object で書く`);
     }

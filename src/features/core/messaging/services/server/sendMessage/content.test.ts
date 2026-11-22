@@ -1,7 +1,7 @@
 // 送る口の中身の組み立て(sendMessage/content.ts、D124)
-// - 3 段: ひな形の描き方がある経路 / 経路の汎用の描き方 / 要約から。送る時に描く経路(rendersAtSend)は MessageLayoutContent
-// - どの段でも描けない経路は回を書く前に止める(DomainError、経路と理由)
-// - 上流の秘密の連絡(認証のリンク): 経路には秘密のリンクが渡り、回・配達の行・見出し・要約の記録には残らない
+// - 3 段: レイアウトの描き方がある送信チャンネル / 送信チャンネルの汎用の描き方 / 要約から。送る時に描く送信チャンネル(rendersAtSend)は MessageLayoutContent
+// - どの段でも描けない送信チャンネルは送信を書く前に止める(DomainError、送信チャンネルと理由)
+// - 上流の秘密の連絡(認証のリンク): 送信チャンネルには秘密のリンクが渡り、送信・配達の行・見出し・要約の記録には残らない
 // 実行: pnpm test src/features/core/messaging/services/server/sendMessage/content.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -38,7 +38,7 @@ async function resolved(channelsOf: Record<string, MessageChannel>) {
   });
 }
 
-test("3 段: ひな形の描き方 > 経路の汎用 > 要約。見出しは要約の題", async () => {
+test("3 段: レイアウトの描き方 > 送信チャンネルの汎用 > 要約。見出しは要約の題", async () => {
   const summaryChannel = createTestChannel("test");
   const genericChannel = { ...createTestChannel("test"), summaryRenderable: false, renderGeneric: () => ({ text: "汎用で描いた" }) };
   const map = { item: "靴", recipientName: "山田" };
@@ -57,12 +57,12 @@ test("3 段: ひな形の描き方 > 経路の汎用 > 要約。見出しは要�
   const fromSummary = await buildContent(deps, definition, "test", map);
   assert.deepEqual(fromSummary, { content: { title: "靴 の題", body: "山田 様" }, heading: "靴 の題" });
 
-  // 送る時に描く経路(email)は要約の段でも MessageLayoutContent(宛先ごとに停止のリンクを入れて描く)
+  // 送る時に描く送信チャンネル(email)は要約の段でも MessageLayoutContent(宛先ごとに停止のリンクを入れて描く)
   const atSend = await buildContent({ ...deps, channels: { test: { ...summaryChannel, rendersAtSend: true } } }, definition, "test", map);
   assert.ok(isMessageLayoutContent(atSend.content) && atSend.content.from === "summary");
 });
 
-test("描けない経路は回を書く前に止める(経路と理由の DomainError、回も配達も作らない)", async () => {
+test("描けない送信チャンネルは送信を書く前に止める(送信チャンネルと理由の DomainError、送信も配達も作らない)", async () => {
   const { summaryRenderable: _s, renderFromSummary: _r, ...mute } = createTestChannel("test");
   const store = createMemoryStore();
   store.users.push({ id: "u1", name: "山田", email: null });
@@ -77,7 +77,7 @@ test("描けない経路は回を書く前に止める(経路と理由の Domain
   assert.equal(store.deliveries.length, 0);
 });
 
-test("上流の秘密の連絡(認証のリンク): 経路に秘密のリンクが渡り、回・配達の行・見出しには残らない", async () => {
+test("上流の秘密の連絡(認証のリンク): 送信チャンネルに秘密のリンクが渡り、送信・配達の行・見出しには残らない", async () => {
   const email = { ...createTestChannel("email"), rendersAtSend: true };
   const store = createMemoryStore();
   store.users.push({ id: "u1", name: "山田", email: "a@x.test" });

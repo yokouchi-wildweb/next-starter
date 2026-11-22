@@ -55,7 +55,7 @@ export async function listMessageTemplates(
   }
 }
 
-/** 画面の選択肢(使える経路・種類・変数の前から使える {{鍵}}) */
+/** 画面の選択肢(使える送信チャンネル・カテゴリー・変数の前から使える {{鍵}}) */
 export async function getMessageTemplateOptions(): Promise<AdminTemplateOptions> {
   try {
     const res = await axios.get<AdminTemplateOptions>(`${BASE}/options`);
@@ -95,7 +95,7 @@ export async function updateMessageTemplate(id: string, input: UpdateMessageTemp
   }
 }
 
-/** 消す(版も消え、送った回は残る。D137) */
+/** 消す(版も消え、送信は残る。D137) */
 export async function deleteMessageTemplate(id: string): Promise<{ id: string; deleted: true }> {
   try {
     const res = await axios.delete<{ id: string; deleted: true }>(one(id));
@@ -125,7 +125,7 @@ export async function getMessageTemplateVersion(id: string, version: number): Pr
   }
 }
 
-/** ひな形のプレビュー(保存しない中身を経路 1 つで描く。テンプレートと送る画面が使う、D114) */
+/** レイアウトのプレビュー(保存しない中身を送信チャンネル 1 つで描く。テンプレートと送る画面が使う、D114) */
 export async function previewMessageLayout(input: PreviewMessageLayoutInput): Promise<AdminLayoutPreview> {
   try {
     const res = await axios.post<AdminLayoutPreview>("/api/admin/messaging/layouts/preview", input);

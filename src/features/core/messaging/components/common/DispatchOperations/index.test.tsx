@@ -120,7 +120,7 @@ test("できない操作は出さず理由も出さない。状態の 1 行は�
   await view.render({ operations: flags({ canDelete: { allowed: false, reason: "deleted" }, canResend: { allowed: false, reason: "deleted", mode: null, failed: 0, unknown: 0 } }) });
   assert.equal(view.container.querySelectorAll("button").length, 0);
   assert.match(text(), /この送信は削除済みです/);
-  // 送信中の回は「送信を再開」を同じ行に出す
+  // 状態が送信中の送信は「送信を再開」を同じ行に出す
   await view.render({ operations: flags({ canContinue: { allowed: true, reason: null } }), canContinue: true });
   assert.ok(button(view.container, "送信を再開"));
   assert.ok(button(view.container, "削除"));

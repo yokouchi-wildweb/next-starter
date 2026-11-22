@@ -2,11 +2,11 @@
 
 // src/features/core/messaging/hooks/useAdminDispatchDetail.ts
 //
-// 管理: 送った回 1 件の画面の流れ(AdminDispatchDetail はこれを呼んで部品を並べるだけ。CLAUDE.md core_ui)。
-// - 回 1 件(useAdminDispatch)と配達の一覧(状態・経路で絞る、useAdminDispatchDeliveries)
-// - 回のプレビュー(回の中身 content がある回だけ。GET dispatches/[id]/preview: 回のひな形と欄の中身を回の値で差し込み、
-//   メールは送った描き方の HTML、お知らせはひな形の描き方の材料)。経路のタブの値と選んだ経路の描く物を部品 LayoutPreview の形で返す
-// - 回の操作: 削除(D88)・失敗分を再送(includeUnknown = 届いたか分からない分も)・続きを送る
+// 管理: 送信 1 件の画面の流れ(AdminDispatchDetail はこれを呼んで部品を並べるだけ。CLAUDE.md core_ui)。
+// - 送信 1 件(useAdminDispatch)と配達の一覧(状態・送信チャンネルで絞る、useAdminDispatchDeliveries)
+// - 送信のプレビュー(送信の中身 content がある送信だけ。GET dispatches/[id]/preview: 送信のレイアウトと欄の中身を送信の値で差し込み、
+//   メールは送った描き方の HTML、お知らせはレイアウトの描き方の材料)。送信チャンネルのタブの値と選んだ送信チャンネルの描く物を部品 LayoutPreview の形で返す
+// - 送信の操作: 削除(D88)・失敗分を再送(includeUnknown = 届いたか分からない分も)・続きを送る
 //   どれも成功したら配達を取り直して知らせ(toast)を出し、失敗は知らせだけ(Promise は ConfirmPopover の loading 用に返す)
 
 import { useCallback, useMemo, useState } from "react";
@@ -31,7 +31,7 @@ export type UseAdminDispatchDetailOptions = {
   /** 配達の 1 回の件数(既定 50、最大 100) */
   limit?: number;
   observerOptions?: IntersectionObserverInit;
-  /** 削除が通った後(回の詳細のモーダルは閉じて一覧を取り直す) */
+  /** 削除が通った後(送信の詳細のモーダルは閉じて一覧を取り直す) */
   onDeleted?: () => void;
 };
 
@@ -39,7 +39,7 @@ export function useAdminDispatchDetail(dispatchId: string, options: UseAdminDisp
   const { onDeleted } = options;
   const { showToast } = useToast();
   const { dispatch, error, isLoading } = useAdminDispatch(dispatchId);
-  // 回の中身(ひな形と欄の中身)を残した回だけプレビューを取る
+  // 送信の中身(レイアウトと欄の中身)を残した送信だけプレビューを取る
   const hasContent = Boolean(dispatch?.content);
   const previewQuery = useSWR<AdminDispatchPreview>(hasContent ? `${adminDispatchKey(dispatchId)}/preview` : null, () =>
     getAdminDispatchPreview(dispatchId),
@@ -49,7 +49,7 @@ export function useAdminDispatchDetail(dispatchId: string, options: UseAdminDisp
   const previewChannels = useMemo(() => (previewData?.channels ?? []).map((channel) => channel.key), [previewData]);
   const previewChannel =
     previewChannelState && previewChannels.includes(previewChannelState) ? previewChannelState : (previewChannels[0] ?? null);
-  /** 選んだ経路の描く物(部品 LayoutPreview の content) */
+  /** 選んだ送信チャンネルの描く物(部品 LayoutPreview の content) */
   const previewContent = useMemo<LayoutPreviewContent | null>(() => {
     const found = previewData?.channels.find((channel) => channel.key === previewChannel);
     if (!found) return null;
@@ -108,7 +108,7 @@ export function useAdminDispatchDetail(dispatchId: string, options: UseAdminDisp
     }
   }, [resendTrigger, includeUnknown, revalidateDeliveries, showToast]);
 
-  /** 続きを送る(送信中の回を 1 束だけ進める) */
+  /** 続きを送る(送信中のものを 1 束だけ進める) */
   const continueDispatch = useCallback(async () => {
     try {
       const res = await continueSending();
@@ -123,16 +123,16 @@ export function useAdminDispatchDetail(dispatchId: string, options: UseAdminDisp
     dispatch,
     error,
     isLoading,
-    /** 回のプレビュー(回の中身がある回だけ。中身の無い回は null = 前の本文の見せ方) */
+    /** 送信のプレビュー(送信の中身がある送信だけ。中身の無い送信は null = 前の本文の見せ方) */
     preview: hasContent
       ? {
-          /** ひな形の鍵(回ごと描けなければ null) */
+          /** レイアウトの鍵(送信ごと描けなければ null) */
           layout: previewData?.layout ?? null,
           channels: previewChannels,
           channel: previewChannel,
           setChannel: setPreviewChannel,
           content: previewContent,
-          /** 回ごと描けない理由(中身を残していない回など) */
+          /** 送信ごと描けない理由(中身を残していない送信など) */
           cannotRender: previewData?.cannotRender ?? null,
           error: previewQuery.error ?? null,
           isLoading: previewQuery.isLoading,

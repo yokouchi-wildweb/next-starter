@@ -1,12 +1,12 @@
 // テンプレート + 欄の中身で送る(sendTemplateMessage、D117・D125・D128)の検査(メモリの store・掃き出し・テンプレートの読み口は偽物)
-// - 白紙のシステムテンプレート: 回の message_key は null・system_template = 白紙の鍵・template_id null・直した印 false、ひな形と欄の中身(values)。
-//   予約・cron は回の欄の中身で組み直す。{{displayName}} は差し込み、知らない {{鍵}}・白紙での vars・知らない白紙・種別の違うカテゴリーは 400
-// - DB のテンプレート: 今の版を回の template_id・template_version に固定(違えば 409)。専用の埋め込み情報の値(vars)が無い・型が合わない 400、
+// - 白紙のシステムテンプレート: 送信の message_key は null・system_template = 白紙の鍵・template_id null・直した印 false、レイアウトと欄の中身(values)。
+//   予約・cron は送信の欄の中身で組み直す。{{displayName}} は差し込み、知らない {{鍵}}・白紙での vars・知らない白紙・種別の違うカテゴリーは 400
+// - DB のテンプレート: 今の版を送信の template_id・template_version に固定(違えば 409)。専用の埋め込み情報の値(vars)が無い・型が合わない 400、
 //   必須で値が無ければ既定値、既定値も無ければ 400。無いテンプレート 404・版の無いテンプレート 409(下書き・取り下げは無い D134・D137)。
-//   値は回の embedded_values に残り、vars は {}。直した印 = 入力の edited か版の中身との違い
-// - 経路 = 種類の経路 ∩ 絞り(外は 400)。種別が管理者の送れる物でないカテゴリーは 400
-// - 画像: 中身に自由に入れられる(版に無い画像も)。テンプレートの画像(台帳の持ち主 = テンプレート)は回が複製を持つ
-// - 欄の中身の無い回は cron が送らずに止める(values_missing)
+//   値は送信の embedded_values に残り、vars は {}。直した印 = 入力の edited か版の中身との違い
+// - 送信チャンネル = カテゴリーの送信チャンネル ∩ 絞り(外は 400)。種別が自由連絡で送れる物でないカテゴリーは 400
+// - 画像: 中身に自由に入れられる(版に無い画像も)。テンプレートの画像(台帳の持ち主 = テンプレート)は送信が複製を持つ
+// - 欄の中身の無い送信は cron が送らずに止める(values_missing)
 // - 受け口の検査 checkSystemTemplates(上流の白紙 6 つは通る、種別ごとに何本でも D119)。受け口が空の送る口は白紙から送れない(500)
 // 実行: pnpm test src/features/core/messaging/services/server/sendMessage/templateSend.test.ts
 import { test } from "node:test";
@@ -102,7 +102,7 @@ const BLANK = { system: "promotion" };
 const V1_VALUES = { subject: "v1 {{discount}}% 引き", blocks: [{ type: "paragraph", text: "{{displayName}}" }] };
 const values = (subject: string, ...paragraphs: string[]) => ({ subject, blocks: paragraphs.map((text) => ({ type: "paragraph", text })) });
 
-test("白紙: 回は message_key null・system_template、ひな形と欄の中身、予約の後も cron は回の中身で送る(宛名は差し込む)", async () => {
+test("白紙: 送信は message_key null・system_template、レイアウトと欄の中身、予約の後も cron は送信の中身で送る(宛名は差し込む)", async () => {
   const { world, deps, channel, sender } = setup();
   const result = await sender.sendTemplateMessage({
     template: BLANK,
@@ -138,7 +138,7 @@ test("白紙の検査: 知らない {{鍵}}・宣言の無い白紙への専用�
   await rejectsWith(sender.sendTemplateMessage({ ...base, template: { system: "none" }, values: values("t") }), 400, /none/);
   await rejectsWith(sender.sendTemplateMessage({ ...base, template: { system: "announcement" }, values: values("t") }), 400, /同じ種別/);
   await rejectsWith(sender.sendTemplateMessage({ ...base, category: "account", values: values("t") }), 400, /announcement・direct・promotion/);
-  // 欄の中身はひな形の欄の zod で検査する(notice の件名は必須)
+  // 欄の中身はレイアウトの欄の zod で検査する(notice の件名は必須)
   await rejectsWith(sender.sendTemplateMessage({ ...base, values: { blocks: [] } }), 400, /欄の中身/);
   // 白紙の送りは直した印を持たない(入力に edited があっても false)
   const ok = await sender.sendTemplateMessage({ ...base, values: values("t"), edited: true });
@@ -155,7 +155,7 @@ test("白紙の受け口が無い送る口は白紙から送れない(受け口�
   );
 });
 
-test("DB のテンプレート: 版を回に固定し(message_key null)、予約の後で版を直しても cron は回の欄の中身で送る", async () => {
+test("DB のテンプレート: 版を送信に固定し(message_key null)、予約の後で版を直しても cron は送信の欄の中身で送る", async () => {
   const { world, deps, channel, versions, state, sender } = setup();
   const result = await sender.sendTemplateMessage({
     template: TPL,
@@ -225,7 +225,7 @@ test("DB のテンプレートの検査: 値が無い・型が違う 400、無�
   assert.deepEqual(world.store.dispatches.at(-1)?.embedded_values, { discount: "1", code: "WELCOME" });
 });
 
-test("cron は版を引き直さず回の物だけで描く: テンプレートが消えても送り、欄の中身の無い回は止める(values_missing)", async () => {
+test("cron は版を引き直さず送信の物だけで描く: テンプレートが消えても送り、欄の中身の無い送信は止める(values_missing)", async () => {
   const { world, deps, channel, versions, sender } = setup();
   await sender.sendTemplateMessage({ template: TPL, values: V1_VALUES, category: "news", recipients: [{ userId: "u1" }], vars: { discount: 10 }, scheduledAt: later(60) });
   await sender.sendTemplateMessage({ template: TPL, values: V1_VALUES, category: "news", recipients: [{ userId: "u2" }], vars: { discount: 10 }, scheduledAt: later(60) });
@@ -238,7 +238,7 @@ test("cron は版を引き直さず回の物だけで描く: テンプレート�
   assert.ok(stopped.length > 0 && stopped.every((row) => row.status === "failed" && row.last_error === "values_missing"));
 });
 
-test("画像: テンプレートの画像(台帳の持ち主 = テンプレート)は回が複製を持つ", async () => {
+test("画像: テンプレートの画像(台帳の持ち主 = テンプレート)は送信が複製を持つ", async () => {
   const copied: string[] = [];
   const attached: string[] = [];
   const ledger = {
@@ -258,7 +258,7 @@ test("画像: テンプレートの画像(台帳の持ち主 = テンプレー�
   assert.equal(map.get(ref), `${ref}#copy`);
 });
 
-test("画像: 管理者が自分で上げた未紐付けの画像は回へ attach(複製しない)", async () => {
+test("画像: 管理者が自分で上げた未紐付けの画像は送信へ attach(複製しない)", async () => {
   const copied: string[] = [];
   const attached: string[] = [];
   const ledger = {
@@ -318,7 +318,7 @@ test("プレビューも同じ組み方(DB のテンプレートは版の専用�
   assert.equal(blank.template, null);
 });
 
-test("受け口の検査: 上流の白紙 6 つは通る(種別ごとに何本でも、D119)。送れない種別・無いひな形・正しくない専用の宣言・種別の白紙が無いのは止める", () => {
+test("受け口の検査: 上流の白紙 6 つは通る(種別ごとに何本でも、D119)。送れない種別・無いレイアウト・正しくない専用の宣言・種別の白紙が無いのは止める", () => {
   assert.deepEqual(checkSystemTemplates(upstreamSystemTemplates, upstreamLayouts), []);
   assert.deepEqual(Object.values(upstreamSystemTemplates).map((t) => t.kind).sort(), [
     "announcement",

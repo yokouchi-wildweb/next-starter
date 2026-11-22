@@ -1,10 +1,10 @@
-// メールの経路の項目の検査(描画・送信は偽物、フォールバックの印は本物の描画でも確かめる)
+// メールの送信チャンネルの項目の検査(描画・送信は偽物、フォールバックの印は本物の描画でも確かめる)
 // - 冪等の鍵・件名・宛先を lib/mail の send に渡し、provider の id を返す
 // - 描くのは宛先ごとに 1 回。描いた html をそのまま send に渡す(react は渡さない)
 // - MailSendError の 3 分類をそのまま写す。それ以外の例外は unknown
 // - 描画結果に React のフォールバックの印があれば送らず permanent(L2.1)
 // - 本文の停止のリンク: 好みのページが開(preferencesPageUrl が値)ならそこ、閉ならワンクリックの URL。ヘッダは同じ
-// - 送る口が組んだ中身(MessageLayoutContent)を段に従って描く: ひな形のメールの描き方 > 汎用 > 要約。件名 = 題。形が違う・描き方が無い = permanent render_failed
+// - 送る口が組んだ中身(MessageLayoutContent)を段に従って描く: レイアウトのメールの描き方 > 汎用 > 要約。件名 = 題。形が違う・描き方が無い = permanent render_failed
 // 実行: pnpm test src/features/core/messaging/channels/email
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -23,7 +23,7 @@ import { layouts } from "../../extensions/layouts";
 import { WebhookNotConfiguredError } from "../../services/server/webhooks/errors";
 import { createEmailChannel, toChannelWebhookEvent } from "./createEmailChannel";
 import { hasRenderFallbackMarker } from "./fallback";
-/** 送る口が組む中身(ひな形 notice、ひな形のメールの描き方の段) */
+/** 送る口が組む中身(レイアウト notice、レイアウトのメールの描き方の段) */
 const values = {
   subject: "件名",
   blocks: [
@@ -102,7 +102,7 @@ test("描くのは宛先ごとに 1 回で、描いた html をそのまま send
   assert.ok(sent.every((mail) => mail.react === undefined));
 });
 
-test("ひな形のメールの描き方で欄を描く(見出し・本文・ボタン)", async () => {
+test("レイアウトのメールの描き方で欄を描く(見出し・本文・ボタン)", async () => {
   const { channel } = setup();
   let html = "";
   const spy = createEmailChannel({
@@ -250,7 +250,7 @@ test("送る時に配達の id を provider のタグで渡す(D36)", async () =
   assert.deepEqual(sent[0].tags, { delivery_id: "d-123" });
 });
 
-test("webhook: Resend の署名を確かめ、経路の事件(bounced_hard / bounced_soft、タグの配達の id)に正規化する", async () => {
+test("webhook: Resend の署名を確かめ、送信チャンネルの事件(bounced_hard / bounced_soft、タグの配達の id)に正規化する", async () => {
   const secretBytes = randomBytes(24);
   const channel = createEmailChannel({
     render: async () => "<html></html>",
@@ -288,7 +288,7 @@ test("webhook: 鍵(env)が無ければ WebhookNotConfiguredError(受け口は 50
   assert.throws(() => channel.webhooks!.sendgrid.verify({ rawBody: "[]", headers: new Headers() }), WebhookNotConfiguredError);
 });
 
-test("描き方の 3 段: ひな形の描き方・汎用(ひな形の email の欄を宣言の順に)・要約から。件名は題", async () => {
+test("描き方の 3 段: レイアウトの描き方・汎用(レイアウトの email の欄を宣言の順に)・要約から。件名は題", async () => {
   const htmls: string[] = [];
   const sent: SendMailOptions[] = [];
   const channel = createEmailChannel({
@@ -317,7 +317,7 @@ test("描き方の 3 段: ひな形の描き方・汎用(ひな形の email の�
   assert.deepEqual(sent.map((mail) => mail.subject), ["件名", "件名", "要約の題"]);
 });
 
-test("中身の形が違う・ひな形の描き方が無い → 送らず permanent render_failed", async () => {
+test("中身の形が違う・レイアウトの描き方が無い → 送らず permanent render_failed", async () => {
   const { channel, sent } = setup();
   const results = await channel.send([
     { ...target("a@x", "d1"), content: { subject: "前の経路の欄" } },
@@ -330,7 +330,7 @@ test("中身の形が違う・ひな形の描き方が無い → 送らず perma
   assert.equal(sent.length, 0);
 });
 
-test("プレビュー: 送る時と同じ描き方で HTML を返し、種類があれば停止のリンクの見本を出す", async () => {
+test("プレビュー: 送る時と同じ描き方で HTML を返し、カテゴリーがあれば停止のリンクの見本を出す", async () => {
   const { channel } = setup();
   const plain = await channel.preview!({ messageKey: "shop.notice", content });
   assert.ok(plain.html?.includes("見出し") && plain.html.includes("https://x.test"));

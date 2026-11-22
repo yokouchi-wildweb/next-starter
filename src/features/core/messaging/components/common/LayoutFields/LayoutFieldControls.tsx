@@ -15,7 +15,7 @@ import { Span } from "@/components/TextBlocks/Span";
 
 import { asArray, asRecord, asText, moveItem, oneLine, removeItem, replaceItem } from "./fieldValues";
 
-/** 画像の用途(storage の purpose。お知らせ・テンプレート・文言の編集の画像は同じ) */
+/** 画像の用途(storage の purpose。お知らせ・テンプレート・テキストの編集の画像は同じ) */
 export const LAYOUT_IMAGE_PURPOSE = "notification.image";
 
 export type ButtonLinkInputProps = {

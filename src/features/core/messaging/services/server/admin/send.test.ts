@@ -1,7 +1,7 @@
 // 管理の送信の service の検査(送る口・監査は偽物)
 // - 中身は 1 つの形 { template(白紙 { system } か DB の { id, version }), values, edited?, vars? }(D117・D125、専用の値は vars 指令 58)を送る口 sendTemplateMessage へ、
 //   宛先(全員・ロール・グループ・選んだ利用者)、予約、監査(sent / scheduled / test_sent)
-// - カテゴリー(必須): 種別 announcement・direct・promotion だけ、宛先の種類は性質 adminFreeText。経路の制限は無い(LINE・fork の経路も)。
+// - カテゴリー(必須): 種別 announcement・direct・promotion だけ、宛先の種類は性質 adminFreeText。送信チャンネルの制限は無い(LINE・fork の送信チャンネルも)。
 //   白紙の種別とカテゴリーの種別の照合は送る口(templateSend.test.ts)
 // - プレビュー・テスト送信の宛先は操作した管理者、見込みは送る時に数え直す印つき、選択肢
 // - グループ宛て(announcement・promotion・direct、D109 の漏れの直しで direct も。見込みは送る口のまま)、選択肢のグループ
@@ -91,10 +91,10 @@ const TEXT = { subject: "春 {{discount}}", blocks: [{ type: "paragraph", text: 
 const TPL = { id: TEMPLATE, version: 3 };
 const BLANK = { system: "announcement" };
 const VALUES = { subject: "件名", blocks: [{ type: "paragraph", text: "{{displayName}} 様" }] };
-/** その場で書く中身(白紙 + 欄の中身) */
+/** 自由連絡の中身(白紙 + 欄の中身) */
 const ADHOC = { template: BLANK, values: VALUES };
 
-test("その場で書いた中身(白紙)を全員へ今送る: 送る口に白紙・欄の中身・カテゴリー、監査 sent", async () => {
+test("自由連絡(白紙)を全員へ今送る: 送る口に白紙・欄の中身・カテゴリー、監査 sent", async () => {
   const { deps, calls, audits } = setup();
   const sent = await adminSend(deps, { ...ADHOC, category: "announcement", channels: ["email", "inApp"], target: { type: "all" } });
   assert.equal(sent.dispatchId, "d1");
@@ -111,7 +111,7 @@ test("その場で書いた中身(白紙)を全員へ今送る: 送る口に白�
   assert.equal(input.scheduledAt, undefined);
   assert.equal(audits[0].action, "messaging.dispatch.sent");
   assert.deepEqual([audits[0].metadata?.source, audits[0].metadata?.category, audits[0].metadata?.kind], ["system", "announcement", "announcement"]);
-  // 経路を省略 = カテゴリーの経路の全部
+  // 送信チャンネルを省略 = カテゴリーの送信チャンネルの全部
   await adminSend(deps, { ...ADHOC, category: "promotion", target: { type: "role", roles: ["user"] } });
   assert.equal("channels" in (calls[1].args[0] as Record<string, unknown>), false);
 });
@@ -140,7 +140,7 @@ test("DB のテンプレートをロール宛てに予約: 送る口に template
   assert.deepEqual([audits[0].metadata?.source, audits[0].metadata?.templateId, audits[0].metadata?.templateVersion], ["template", TEMPLATE, 3]);
 });
 
-test("カテゴリー: 無い・3 つの種別でない・宛先の種類が送れない は 400。経路の制限は無い", async () => {
+test("カテゴリー: 無い・3 つの種別でない・宛先の種類が送れない は 400。送信チャンネルの制限は無い", async () => {
   const { deps, calls } = setup();
   // direct は選んだ利用者・グループ宛てだけ(全員・ロールは 400)
   for (const target of [{ type: "all" }, { type: "role", roles: ["user"] }]) {
@@ -150,7 +150,7 @@ test("カテゴリー: 無い・3 つの種別でない・宛先の種類が送�
   await rejectsWith(adminSend(deps, { ...ADHOC, category: "nope", target: { type: "all" } }), 400, /見つかりません/);
   await rejectsWith(adminSend(deps, { ...ADHOC, channels: ["email"], target: { type: "all" } }), 400);
   assert.equal(calls.length, 0);
-  // email・inApp の外の経路(push)を持つカテゴリーも白紙の中身で送る口へ(中身の検査は送る口)
+  // email・inApp の外の送信チャンネル(push)を持つカテゴリーも白紙の中身で送る口へ(中身の検査は送る口)
   await adminSend(deps, { ...ADHOC, category: "promoPush", target: { type: "all" } });
   await adminSend(deps, { ...ADHOC, category: "operatorDirect", channels: ["email"], target: { type: "users", userIds: ["u1", "u1", "u2"] } });
   assert.equal((calls[0].args[0] as Record<string, unknown>).category, "promoPush");
@@ -165,7 +165,7 @@ test("入力の誤りは 400(形・知らない鍵・白紙での直した印・
     { ...c, template: BLANK },
     { ...c, template: BLANK, values: "文" },
     { ...c, values: VALUES },
-    // 前の形(経路ごとの content)は黙って捨てない
+    // 前の形(送信チャンネルごとの content)は黙って捨てない
     { ...c, ...ADHOC, content: { email: { subject: "s" } } },
     { ...c, ...ADHOC, edited: true },
     { ...c, ...ADHOC, template: { id: "not-uuid", version: 3 } },
@@ -206,7 +206,7 @@ test("プレビューとテスト送信は操作した管理者、テストは i
   await rejectsWith(adminSendTest(system.deps, { ...ADHOC, category: "promotion", channels: ["email"] }), 400);
 });
 
-test("見込みは送る口の数(送る時に数え直す印)、選択肢は有効な経路・ロール・テンプレート", async () => {
+test("見込みは送る口の数(送る時に数え直す印)、選択肢は有効な送信チャンネル・ロール・テンプレート", async () => {
   const { deps, calls } = setup();
   assert.deepEqual(await adminSendEstimate(deps, { target: { type: "users", userIds: ["u1", "u2"] } }), {
     count: 7,

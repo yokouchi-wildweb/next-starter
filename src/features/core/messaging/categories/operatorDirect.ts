@@ -1,5 +1,5 @@
 // src/features/core/messaging/categories/operatorDirect.ts
-// 上流の種類: 管理画面「一般的な個別連絡」/ 利用者「個別のご連絡」(種別 direct、D124)。管理者がその場で書く個別の連絡(白紙のシステムテンプレート templates/direct.ts)の既定のカテゴリー(一覧の一括操作の既定、D81)
+// 上流のカテゴリー: 管理画面「一般的な個別連絡」/ 利用者「個別のご連絡」(種別 direct、D124)。個別の自由連絡(白紙のシステムテンプレート templates/direct.ts)の既定のカテゴリー(一覧の一括操作の既定、D81)
 
 import type { MessageCategory } from "@/lib/messaging";
 

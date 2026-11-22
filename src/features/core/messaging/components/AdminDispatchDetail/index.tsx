@@ -1,11 +1,11 @@
 // src/features/core/messaging/components/AdminDispatchDetail/index.tsx
-// セクションコンテナ(管理: 送った回 1 件)と、その中の塊(回の詳細のモーダル AdminDispatchDetailModal も同じ塊で組む、D130)。
+// セクションコンテナ(管理: 送信 1 件)と、その中の塊(送信の詳細のモーダル AdminDispatchDetailModal も同じ塊で組む、D130)。
 // - DispatchSummaryBlock = 基本情報(状態・件名 / 題・種別とカテゴリーの表示名・送り元の表示名(ある時だけ)・宛先・数・送った人・時刻。
 //   定義の鍵・送り元の鍵は見せない、D46)
-// - DispatchBodyBlock = プレビュー(回の中身 = ひな形と欄の中身を残した回: 回の値で差し込んだひな形の描き方を経路のタブで、部品 LayoutPreview。
-//   メールは送った HTML、お知らせは受け取り箱と同じ見せ方。中身の無い前の形の回は残した本文)
-// - DispatchDeliveriesBlock = 送信状況(配達の一覧、状態・経路で絞る、無限スクロール = カーソル)
-// - DispatchActions = 回の操作(状態の 1 行と今できる操作だけ: 削除・失敗分を再送・送信を再開。部品 DispatchOperations)と
+// - DispatchBodyBlock = プレビュー(送信の中身 = レイアウトと欄の中身を残した送信: 送信の値で差し込んだレイアウトの描き方を送信チャンネルのタブで、部品 LayoutPreview。
+//   メールは送った HTML、お知らせは受け取り箱と同じ見せ方。中身の無い前の形の送信は残した本文)
+// - DispatchDeliveriesBlock = 送信状況(配達の一覧、状態・送信チャンネルで絞る、無限スクロール = カーソル)
+// - DispatchActions = 送信の操作(状態の 1 行と今できる操作だけ: 削除・失敗分を再送・送信を再開。部品 DispatchOperations)と
 //   「同じ内容で送る」(送るモーダル。門 messagingBroadcast が閉なら出さない)
 // AdminDispatchDetail(dispatchId)= 塊をタブ(基本情報 / 送信状況 / プレビュー)と操作で並べた入れ物(fork が自分の画面に置ける)。
 // 流れ(配達の絞り・includeUnknown・操作と知らせ)は hook useAdminDispatchDetail。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
@@ -53,7 +53,7 @@ import { useAdminDispatchDetail } from "@/features/core/messaging/hooks/useAdmin
 import type { AdminDispatchDetail as AdminDispatchDetailDto } from "@/features/core/messaging/services/client/adminMessagingClient";
 
 export type AdminDispatchDetailProps = {
-  /** 回の id */
+  /** 送信の id */
   dispatchId: string;
 };
 
@@ -61,7 +61,7 @@ const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 
 
 const DELIVERY_STATUS_OPTIONS = Object.entries(DELIVERY_STATUS_DISPLAY).map(([value, { label }]) => ({ value, label }));
 
-/** 回 1 件の状態(hook useAdminDispatchDetail の戻り値)。塊はこれを受けて描く */
+/** 送信 1 件の状態(hook useAdminDispatchDetail の戻り値)。塊はこれを受けて描く */
 export type AdminDispatchDetailState = ReturnType<typeof useAdminDispatchDetail>;
 
 /** 詳細のタブ */
@@ -115,7 +115,7 @@ export function DispatchDetailMissing({ error }: { error: unknown }) {
   );
 }
 
-/** 回の操作(削除・失敗分を再送・送信を再開)と「同じ内容で送る」 */
+/** 送信の操作(削除・失敗分を再送・送信を再開)と「同じ内容で送る」 */
 export function DispatchActions({ detail }: { detail: AdminDispatchDetailState }) {
   const canSend = useGate().enabled("messagingBroadcast");
   const { dispatch, includeUnknown, setIncludeUnknown, remove, resend, continueDispatch } = detail;
@@ -141,7 +141,7 @@ export function DispatchActions({ detail }: { detail: AdminDispatchDetailState }
   );
 }
 
-/** 送信状況(配達の一覧、状態・経路で絞る、無限スクロール) */
+/** 送信状況(配達の一覧、状態・送信チャンネルで絞る、無限スクロール) */
 export function DispatchDeliveriesBlock({ detail }: { detail: AdminDispatchDetailState }) {
   const { deliveries, deliveryFilters } = detail;
   return (
@@ -199,10 +199,10 @@ export function DispatchDeliveriesBlock({ detail }: { detail: AdminDispatchDetai
   );
 }
 
-/** 回の中身(数・時刻・本文) */
+/** 送信の中身(数・時刻・本文) */
 type DispatchPreviewState = ReturnType<typeof useAdminDispatchDetail>["preview"];
 
-/** 回の本文のプレビュー(回の中身を残した回) */
+/** 送信の本文のプレビュー(送信の中身を残した送信) */
 function DispatchContentPreview({ preview }: { preview: NonNullable<DispatchPreviewState> }) {
   return (
     <Stack gap="xs" data-slot="dispatch-content-preview">
@@ -235,7 +235,7 @@ function DispatchContentPreview({ preview }: { preview: NonNullable<DispatchPrev
 
 /** 基本情報 */
 /**
- * 回のテンプレートの表示(テンプレートから送っていない回は null)。消したテンプレートの回は「削除されたテンプレート」(D137)。
+ * 送信のテンプレートの表示(テンプレートから送っていない送信は null)。消したテンプレートの送信は「削除されたテンプレート」(D137)。
  * DTO にテンプレートの名前は無いので版の番号で見せる
  */
 export function dispatchTemplateLabel(
@@ -306,7 +306,7 @@ function storedBodyText(value: unknown): string {
   return value === null || value === undefined ? "" : String(value);
 }
 
-/** プレビュー(回の中身を残した回はひな形の描き方、前の形の回は残した本文) */
+/** プレビュー(送信の中身を残した送信はレイアウトの描き方、前の形の送信は残した本文) */
 export function DispatchBodyBlock({ dispatch, preview }: { dispatch: AdminDispatchDetailDto; preview: DispatchPreviewState }) {
   const body = dispatch.body ? Object.entries(dispatch.body) : [];
   return (
@@ -318,8 +318,8 @@ export function DispatchBodyBlock({ dispatch, preview }: { dispatch: AdminDispat
           <Span size="sm" tone="muted">
             本文
           </Span>
-          {/* 経路ごとの欄で見せる(生の JSON・欄の鍵は出さない、D46)。前の送る口の回の本文(文、または題・段落などの欄)は残した文をそのまま並べる。
-              送る口の中身(ひな形の鍵 + 欄の中身)の回だけをプレビューの部品で描く(前の形の欄はひな形の描き方では描けないため) */}
+          {/* 送信チャンネルごとの欄で見せる(生の JSON・欄の鍵は出さない、D46)。前の送る口の送信の本文(文、または題・段落などの欄)は残した文をそのまま並べる。
+              送る口の中身(レイアウトの鍵 + 欄の中身)の送信だけをプレビューの部品で描く(前の形の欄はレイアウトの描き方では描けないため) */}
           {body
             .filter(([, value]) => !isMessageLayoutContent(value))
             .map(([channel, value]) => (

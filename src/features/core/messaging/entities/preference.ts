@@ -1,10 +1,10 @@
 // src/features/core/messaging/entities/preference.ts
 //
 // 配信停止の表 2 つ（users に列を足さない）。
-// - message_preferences: 利用者が止めた 種類 × 経路（止めた時だけ行。全体は MESSAGE_ALL '*'）。
-//   kind が '*' でない行 = 種別まるごとの停止(kind X、category '*'、channel '*'。D71)。kind '*' の行は種類 × 経路の行(今までどおり)。
-//   category が 'group:<鍵>' の行 = グループまるごとの停止(channel = 経路か '*'、kind '*'。D123、列は足さない。
-//   当たる種類は読む時の種類の受け口の group で決める: services/server/preferences/groupRows.ts)
+// - message_preferences: 利用者が止めた カテゴリー × 送信チャンネル（止めた時だけ行。全体は MESSAGE_ALL '*'）。
+//   kind が '*' でない行 = 種別まるごとの停止(kind X、category '*'、channel '*'。D71)。kind '*' の行はカテゴリー × 送信チャンネルの行(今までどおり)。
+//   category が 'group:<鍵>' の行 = グループまるごとの停止(channel = 送信チャンネルか '*'、kind '*'。D123、列は足さない。
+//   当たるカテゴリーは読む時のカテゴリーの受け口の group で決める: services/server/preferences/groupRows.ts)
 //   一意は (user_id, category, channel, kind) の素の列の uniqueIndex(kind は NOT NULL の '*' の印。NULL と NULLS NOT DISTINCT は
 //   drizzle-kit の push が往復しないので使わない)
 // - message_suppressions: 宛先の停止（hard_bounce / complaint / one_click / manual）
@@ -28,11 +28,11 @@ export const MessagePreferenceTable = pgTable(
     user_id: uuid("user_id")
       .notNull()
       .references(() => UserTable.id, { onDelete: "cascade" }),
-    /** 種類の鍵。'*' = すべての種類 */
+    /** カテゴリーの鍵。'*' = すべてのカテゴリー */
     category: text("category").notNull(),
-    /** 経路の鍵。'*' = すべての経路 */
+    /** 送信チャンネルの鍵。'*' = すべての送信チャンネル */
     channel: text("channel").notNull(),
-    /** 種別まるごとの停止の種別(利用者が止められる種別だけ)。'*' = 種別まるごとではない(種類 × 経路の行) */
+    /** 種別まるごとの停止の種別(利用者が止められる種別だけ)。'*' = 種別まるごとではない(カテゴリー × 送信チャンネルの行) */
     kind: text("kind").notNull().default("*"),
     opted_out_at: timestamp("opted_out_at", { withTimezone: true })
       .notNull()
@@ -41,7 +41,7 @@ export const MessagePreferenceTable = pgTable(
     source: text("source").notNull(),
     /** 停止を結ぶ連絡の鍵(ワンクリックだけ。好みのページ・前に作ったトークンは null) */
     source_message_key: text("source_message_key"),
-    /** 停止を結ぶ回(ワンクリックだけ)。FK なし: 回は保持の掃除で消えるが、停止の行は残す */
+    /** 停止を結ぶ送信(ワンクリックだけ)。FK なし: 送信は保持の掃除で消えるが、停止の行は残す */
     source_dispatch_id: uuid("source_dispatch_id"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -67,13 +67,13 @@ export const MessageSuppressionTable = pgTable(
     reason: text("reason")
       .$type<(typeof MESSAGE_SUPPRESSION_REASONS)[number]>()
       .notNull(),
-    /** 範囲。'*' = すべての種類、one_click は種類の鍵 */
+    /** 範囲。'*' = すべてのカテゴリー、one_click はカテゴリーの鍵 */
     scope: text("scope").notNull().default("*"),
     source: text("source"),
     provider_event_id: text("provider_event_id"),
     /** 停止を結ぶ連絡の鍵(ワンクリックだけ。好みのページ・前に作ったトークンは null) */
     source_message_key: text("source_message_key"),
-    /** 停止を結ぶ回(ワンクリックだけ)。FK なし: 回は保持の掃除で消えるが、停止の行は残す */
+    /** 停止を結ぶ送信(ワンクリックだけ)。FK なし: 送信は保持の掃除で消えるが、停止の行は残す */
     source_dispatch_id: uuid("source_dispatch_id"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

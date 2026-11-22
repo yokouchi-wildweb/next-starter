@@ -1,6 +1,6 @@
 // src/features/core/messaging/services/server/admin/continueSending.ts
 //
-// 管理の「続きを送る」(D42): 1 つの回を 1 束だけ進める(sweep の continueSending)。管理者を service でも確かめ、監査ログに 1 行
+// 管理の「続きを送る」(D42): 1 つの送信を 1 束だけ進める(sweep の continueSending)。管理者を service でも確かめ、監査ログに 1 行
 
 import type { AuditRecordInput } from "@/lib/audit";
 
@@ -12,7 +12,7 @@ export type AdminContinueDeps = AdminCheckDeps & {
   recordAudit: (input: AuditRecordInput) => Promise<unknown>;
 };
 
-/** @throws DomainError(403) 管理者でない / (404) 回が無い / (409) 進められない状態 */
+/** @throws DomainError(403) 管理者でない / (404) 送信が無い / (409) 進められない状態 */
 export async function adminContinueSending(deps: AdminContinueDeps, dispatchId: string): Promise<ContinueSendingResult> {
   await assertAdminActor(deps);
   const result = await deps.continueSending(dispatchId);

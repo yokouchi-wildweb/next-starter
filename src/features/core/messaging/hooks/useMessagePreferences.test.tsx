@@ -1,5 +1,5 @@
 // useMessagePreferences の検査(jsdom の上で描く。client service は偽物)。
-// - 表を読む(応答の入れ子のまま)/ 止め方 5 つ(1 マス・種類まるごと・経路まるごと・全部・種別まるごと)は client に決まった入力を送り、応答の表を SWR のキャッシュに書く(取り直さない)/ 変えている間の pendingKey
+// - 表を読む(応答の入れ子のまま)/ 止め方 5 つ(1 マス・カテゴリーまるごと・送信チャンネルまるごと・全部・種別まるごと)は client に決まった入力を送り、応答の表を SWR のキャッシュに書く(取り直さない)/ 変えている間の pendingKey
 // 実行: pnpm test src/features/core/messaging/hooks/useMessagePreferences.test.tsx
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, beforeEach, mock, test } from "node:test";

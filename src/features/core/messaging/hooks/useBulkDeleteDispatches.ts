@@ -2,7 +2,7 @@
 
 // src/features/core/messaging/hooks/useBulkDeleteDispatches.ts
 //
-// 管理: 回のまとめての削除(D88、POST /dispatches/bulk-delete、1 回 100 件まで)。結果は知らせ(削除 N 件・できなかった M 件)。
+// 管理: 送信のまとめての削除(D88、POST /dispatches/bulk-delete、1 回 100 件まで)。結果は知らせ(削除 N 件・できなかった M 件)。
 // 一括操作の項目 adminBulkActions/delete.tsx が使う(一覧の取り直しは項目の onDone = 入れ物)
 
 import { useCallback } from "react";
@@ -15,7 +15,7 @@ import { bulkDeleteAdminDispatches, type AdminBulkDeleteResult } from "../servic
 
 import { ADMIN_DISPATCHES_KEY } from "./adminMessagingKeys";
 
-/** 1 回に削除できる回の数(サーバーの ADMIN_DELETE_MAX_IDS と同じ) */
+/** 1 回に削除できる送信の数(サーバーの ADMIN_DELETE_MAX_IDS と同じ) */
 export const DISPATCH_DELETE_MAX = 100;
 
 export function useBulkDeleteDispatches() {
@@ -25,7 +25,7 @@ export function useBulkDeleteDispatches() {
     (ids) => bulkDeleteAdminDispatches(ids),
     [ADMIN_DISPATCHES_KEY],
   );
-  /** 削除する(成功した回の id を返す。失敗は知らせて空) */
+  /** 削除する(成功した送信の id を返す。失敗は知らせて空) */
   const remove = useCallback(
     async (ids: readonly string[]): Promise<string[]> => {
       try {

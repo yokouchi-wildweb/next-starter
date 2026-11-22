@@ -1,9 +1,9 @@
 // MessagePreferences の検査(jsdom の上で描く。hook と toast と棚の Link は偽物)。
-// - 並び: 経路 > 種別の枠(見出しだけ、スイッチなし)> グループ(グループの無い種類が先・見出しなし)> 種類の行
-// - 止め方 4 つ: 1 マス(setCell)・種類まるごと(最初の経路の行に 1 回だけ、setCategoryWide)・経路まるごと(setChannelWide)・全部(setAll)
-// - 種別まるごとに止められた種類は切で、押すと setCell(サーバーが書き分ける)。全部の停止の下は押せない
-// - 全部の停止の間は経路まるごと(切)・種類まるごと(入)も全部に従って見せる。全部を戻すと各行の値に戻る(C17)
-// - 宛先の無い経路は連携の案内
+// - 並び: 送信チャンネル > 種別の枠(見出しだけ、スイッチなし)> グループ(グループの無いカテゴリーが先・見出しなし)> カテゴリーの行
+// - 止め方 4 つ: 1 マス(setCell)・カテゴリーまるごと(最初の送信チャンネルの行に 1 回だけ、setCategoryWide)・送信チャンネルまるごと(setChannelWide)・全部(setAll)
+// - 種別まるごとに止められたカテゴリーは切で、押すと setCell(サーバーが書き分ける)。全部の停止の下は押せない
+// - 全部の停止の間は送信チャンネルまるごと(切)・カテゴリーまるごと(入)も全部に従って見せる。全部を戻すと各行の値に戻る(C17)
+// - 宛先の無い送信チャンネルは連携の案内
 // 実行: pnpm test src/features/core/messaging/components/MessagePreferences/index.test.tsx
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, beforeEach, mock, test } from "node:test";
@@ -99,14 +99,14 @@ const order = (c: HTMLElement, parts: string[]) => {
   assert.deepEqual([...at].sort((a, b) => a - b), at, `並びが違う: ${parts.join(" > ")}`);
 };
 
-test("並び: 経路 > 種別の枠 > グループ(無い方が先)> 種類。種別の枠にスイッチは無い", async () => {
+test("並び: 送信チャンネル > 種別の枠 > グループ(無い方が先)> カテゴリー。種別の枠にスイッチは無い", async () => {
   const view = await mount();
   order(view.container, ["すべての通知を受け取らない", "メール", "アクティビティ", "いいね", "つながり", "フォロー", "プロモーション", "キャンペーン", "LINE"]);
   assert.equal(byLabel(view.container, "プロモーション"), null, "種別のスイッチは無い");
   await view.unmount();
 });
 
-test("1 マス: 押すと setCell。種別まるごとで止まった種類は切で理由が出て、押すと setCell(再開)", async () => {
+test("1 マス: 押すと setCell。種別まるごとで止まったカテゴリーは切で理由が出て、押すと setCell(再開)", async () => {
   const view = await mount();
   await act(async () => byLabel(view.container, "いいねをメールで受け取る")!.click());
   const campaign = byLabel(view.container, "キャンペーンをメールで受け取る")!;
@@ -120,7 +120,7 @@ test("1 マス: 押すと setCell。種別まるごとで止まった種類は�
   await view.unmount();
 });
 
-test("種類まるごとは種類が最初に出る経路の行に 1 回だけ。押すと setCategoryWide", async () => {
+test("カテゴリーまるごとはカテゴリーが最初に出る送信チャンネルの行に 1 回だけ。押すと setCategoryWide", async () => {
   const view = await mount();
   const toggles = view.container.querySelectorAll('[aria-label$="をすべての通知方法で受け取らない"]');
   assert.equal(toggles.length, 2, "campaign と likes に 1 つずつ(LINE の campaign・categories に無い follows には出ない)");
@@ -130,7 +130,7 @@ test("種類まるごとは種類が最初に出る経路の行に 1 回だけ�
   await view.unmount();
 });
 
-test("経路まるごと: 経路の枠の切り替え → setChannelWide。宛先の無い経路は連携の案内", async () => {
+test("送信チャンネルまるごと: 送信チャンネルの枠の切り替え → setChannelWide。宛先の無い送信チャンネルは連携の案内", async () => {
   const view = await mount();
   await act(async () => byLabel(view.container, "メールで受け取る")!.click());
   assert.deepEqual(calls, [["channel", "email", true]]);
@@ -139,7 +139,7 @@ test("経路まるごと: 経路の枠の切り替え → setChannelWide。宛�
   await view.unmount();
 });
 
-test("全部: setAll。全部の停止の間は経路・種類まるごと・全部の下のマスは押せない", async () => {
+test("全部: setAll。全部の停止の間は送信チャンネル・カテゴリーまるごと・全部の下のマスは押せない", async () => {
   const view = await mount();
   await act(async () => byLabel(view.container, "すべての通知を受け取らない")!.click());
   assert.deepEqual(calls, [["all", true]]);
@@ -152,14 +152,14 @@ test("全部: setAll。全部の停止の間は経路・種類まるごと・全
   assert.ok(byLabel(locked.container, "メールで受け取る")!.disabled);
   assert.ok(byLabel(locked.container, "いいねをメールで受け取る")!.disabled);
   assert.match(text(locked.container), /すべての通知を受け取らない設定になっています/);
-  // C17: 経路の行は止めていないが、全部に従って切で見せる。種類まるごとは入(止まっている)
+  // C17: 送信チャンネルの行は止めていないが、全部に従って切で見せる。カテゴリーまるごとは入(止まっている)
   assert.equal(byLabel(locked.container, "メールで受け取る")!.checked, false);
   assert.equal(byLabel(locked.container, "LINEで受け取る")!.checked, false);
   assert.equal(byLabel(locked.container, "いいねをすべての通知方法で受け取らない")!.checked, true);
   assert.ok(byLabel(locked.container, "いいねをすべての通知方法で受け取らない")!.disabled);
   await locked.unmount();
 
-  // 全部を戻すと経路の行の値に戻る
+  // 全部を戻すと送信チャンネルの行の値に戻る
   p.allOptedOut = false;
   for (const ch of p.channels) for (const f of ch.kinds) for (const gr of f.groups) for (const c of gr.categories) Object.assign(c, { optedOut: false, via: null });
   const back = await mount();
@@ -169,7 +169,7 @@ test("全部: setAll。全部の停止の間は経路・種類まるごと・全
   await back.unmount();
 });
 
-test("経路が無ければ文言", async () => {
+test("送信チャンネルが無ければ文言", async () => {
   preferences = { allOptedOut: false, categories: [], kinds: [], channels: [] };
   const view = await mount();
   assert.match(text(view.container), /設定できる通知はありません/);

@@ -1,5 +1,5 @@
 // src/features/core/messaging/layouts/statement/StatementInApp.default.tsx
-// ひな形「お知らせの明細」のお知らせ(受け取り箱の詳しい表示)の既定の見た目。props だけの部品(hook なし)。
+// レイアウト「お知らせの明細」のお知らせ(受け取り箱の詳しい表示)の既定の見た目。props だけの部品(hook なし)。
 // 件名は呼び手(受け取り箱の画面)が見出しに出すので、ここは宛名と本文(改行はそのまま)
 
 import { Stack } from "@/components/Layout/Stack";

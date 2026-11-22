@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/UnsubscribeConfirm/index.tsx
-// 部品(props だけ): 配信停止の確認(止める種類と経路・「配信を停止する」ボタン・失敗の文)。押すと onConfirm
+// 部品(props だけ): 配信停止の確認(止めるカテゴリーと送信チャンネル・「配信を停止する」ボタン・失敗の文)。押すと onConfirm
 
 "use client";
 
@@ -9,9 +9,9 @@ import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 
 export type UnsubscribeConfirmProps = {
-  /** 止める種類の表示名 */
+  /** 止めるカテゴリーの表示名 */
   categoryLabel: string;
-  /** 止める経路の表示名 */
+  /** 止める送信チャンネルの表示名 */
   channelLabel: string;
   onConfirm: () => void;
   /** 送っている最中(押せない、ボタンに spinner) */

@@ -17,7 +17,7 @@ export type MemoryWorld = {
   movedKeyRows: { idempotency_key: string; dispatch_id: string; createdAt: Date }[];
   events: { id: string; createdAt: Date; seq?: number }[];
   inboxItems: MessageInboxItemInsert[];
-  /** 保持の掃除が回から外した画像の参照(本物は storageObjectService.detach) */
+  /** 保持の掃除が送信から外した画像の参照(本物は storageObjectService.detach) */
   detachedImageRefs: string[];
   /** グループの一員(固定の 1 文の代わり: freeze.groupId の一員のうち店の利用者で線以前の登録を一覧へ書く) */
   groupMembers: Map<string, string[]>;
@@ -176,7 +176,7 @@ export function createMemoryWorld(): MemoryWorld {
       }
       const ids = new Set(gone.map((d) => d.id));
       store.dispatches = store.dispatches.filter((d) => !ids.has(d.id));
-      // 回を消すと配達の行も消える(FK CASCADE)
+      // 送信を消すと配達の行も消える(FK CASCADE)
       store.deliveries = store.deliveries.filter((row) => !ids.has(row.dispatch_id));
       return { deleted: gone.length, movedKeys, detachedImages };
     },

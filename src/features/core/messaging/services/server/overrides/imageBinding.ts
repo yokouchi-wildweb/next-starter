@@ -1,19 +1,19 @@
 // src/features/core/messaging/services/server/overrides/imageBinding.ts
 //
-// 文言の上書きの画像(値の中の storage:// の参照。画像の欄・ブロックの並びの画像など)を保存の台帳で上書きの行に結ぶ(D83)。
-// 持ち主 = 上書きの行(record messaging.override / <行の id> / <欄の道 = ひな形の欄の鍵>)。storage の照合は行の有無で残す・外す。
+// テキストの編集の画像(値の中の storage:// の参照。画像の欄・ブロックの並びの画像など)を保存の台帳でテキストの編集の行に結ぶ(D83)。
+// 持ち主 = テキストの編集の行(record messaging.override / <行の id> / <欄の道 = レイアウトの欄の鍵>)。storage の照合は行の有無で残す・外す。
 // 結び方(保存の取引の中。テンプレートの templates/imageBinding.ts と同じ):
 // - storage:// の参照でない値(固定の URL など)はそのまま
 // - 既にこの行に結ばれている → そのまま
 // - ready・未紐付け・用途 notification.image・持ち主 = 操作した管理者 → この行に attach
 // - それ以外(他の業務行に結ばれている・別の人が上げた・用途が違う)→ 1 回だけ複製して複製を attach し、参照を書き換える
 // 外し方: 差し替えで前の値にだけあった参照は replaced、既定に戻す(行を消す)時は値の参照を record_removed で外す。
-// 外した物の実物は取引の commit の後に消す(cleanup)。送る時の回ごとの複製は送る口の仕事(inbox/imageBinding.ts)
+// 外した物の実物は取引の commit の後に消す(cleanup)。送る時の送信ごとの複製は送る口の仕事(inbox/imageBinding.ts)
 
 import type { InboxImageObject } from "../inbox/imageBinding";
 import { collectRefs, mapStrings } from "../templates/imageBinding";
 
-/** 上書きの画像の持ち主の種類(台帳の record_type) */
+/** テキストの編集の画像の持ち主の種類(台帳の record_type) */
 export const OVERRIDE_IMAGE_RECORD_TYPE = "messaging.override";
 /** 画像の用途(お知らせの画像と同じ) */
 export const OVERRIDE_IMAGE_PURPOSE = "notification.image";

@@ -8,7 +8,7 @@ import { defineConfig, type OverrideOf } from "@/lib/defineConfig";
 export type MessagingConfig = {
   /**
    * 小さな送信の上限(選んだ利用者の人数)。これ以下は要求の中で展開して最初の束を送る。
-   * これを超える送信と全員・ロール・グループ宛ては回の行だけを書き、展開と送信は cron に任せる
+   * これを超える送信と全員・ロール・グループ宛ては送信の行だけを書き、展開と送信は cron に任せる
    */
   smallSendMaxRecipients: number;
   /** 要求の中で送る最初の束の配達の行の数(残りは queued のまま cron が送る) */
@@ -18,7 +18,7 @@ export type MessagingConfig = {
   /** 非 required の一時の失敗の再送(cron が next_attempt_at で拾う)。maxAttempts = 初回を含む回数 */
   transientRetry: { maxAttempts: number; baseDelaySeconds: number; factor: number };
   /**
-   * 上流の経路の項目の入切(経路の項目の enabled が読む。門の機能ではない)
+   * 上流の送信チャンネルの項目の入切(送信チャンネルの項目の enabled が読む。門の機能ではない)
    * - line: LINE push(既定 切。開ける時は LINE の Messaging API の env と userLineProfile の機能も要る)
    */
   channels: { line: { enabled: boolean } };
@@ -34,7 +34,7 @@ export type MessagingConfig = {
   sweep: { budgetMs: number; deliveryChunkSize: number; expandChunksPerRun: number; leaseSeconds: number };
   /**
    * 保持(cron messaging-retention)。日数を過ぎた行を消す
-   * - dispatchesDays: お知らせ(message_inbox_items)が参照する回は残す。消す時に冪等の鍵を message_idempotency_keys へ移す
+   * - dispatchesDays: お知らせ(message_inbox_items)が参照する送信は残す。消す時に冪等の鍵を message_idempotency_keys へ移す
    * - idempotencyKeyDays: 移した鍵の期限(null = 無期限)
    * - chunkSize: 1 文で消す行の数
    */

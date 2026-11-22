@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/common/PreferenceKindFrame/index.tsx
-// 部品(props だけ): 経路の中の種別の枠(見出しだけ。種別のスイッチは出さない、D62)。中身(グループと種類の行)は children
+// 部品(props だけ): 送信チャンネルの中の種別の枠(見出しだけ。種別のスイッチは出さない、D62)。中身(グループとカテゴリーの行)は children
 
 import type { ReactNode } from "react";
 

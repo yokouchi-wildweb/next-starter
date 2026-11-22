@@ -2,7 +2,7 @@
 
 // src/features/core/messaging/hooks/useAdminDispatchDeliveries.ts
 //
-// 管理: 回の配達(無限スクロール、カーソルのモード)。絞り込み(状態・経路)が変われば先頭から取り直す
+// 管理: 送信の配達(無限スクロール、カーソルのモード)。絞り込み(状態・送信チャンネル)が変われば先頭から取り直す
 
 import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
 

@@ -18,7 +18,7 @@ import type {
 } from "./index";
 import { categoryAdminLabel, enricherTargets } from "./index";
 
-test("経路: 宛先ごとの結果を返す(経路は自分の欄を持たない。中身はひな形、D122)", async () => {
+test("送信チャンネル: 宛先ごとの結果を返す(送信チャンネルは自分の欄を持たない。中身はレイアウト、D122)", async () => {
   const channel: MessageChannel = {
     key: "push",
     label: "プッシュ通知",
@@ -46,7 +46,7 @@ test("経路: 宛先ごとの結果を返す(経路は自分の欄を持たな�
   const wrongAddressing: MessageChannel = { ...channel, addressing: "device" };
   // @ts-expect-error 失敗の分類は sent / transient / permanent / unknown だけ
   const wrongKind: ChannelSendResult = { address: "a", kind: "retry", reason: "x" };
-  // 宛先には配信停止の種類とヘッダを任意で渡せる
+  // 宛先には配信停止のカテゴリーとヘッダを任意で渡せる
   const withStop: ChannelSendTarget = {
     userId: "u1",
     address: "a",
@@ -68,13 +68,13 @@ test("経路: 宛先ごとの結果を返す(経路は自分の欄を持たな�
   assert.ok(off && wrongEnabled);
   // @ts-expect-error send は必須
   const noSend: MessageChannel = { key: "x", label: "x", addressing: "user" };
-  // @ts-expect-error 経路は自分の欄を持たない(fields は無い)
+  // @ts-expect-error 送信チャンネルは自分の欄を持たない(fields は無い)
   const withFields: MessageChannel = { ...channel, fields: z.object({}) };
   assert.ok(withFields);
   assert.ok(wrongAddressing && wrongKind && noSend);
 });
 
-test("値・種類・送り元・購読", async () => {
+test("値・カテゴリー・送り元・購読", async () => {
   const enricher: MessageEnricher = {
     key: "rank",
     target: { messages: ["auth.verification"], kinds: ["promotion"] },
@@ -87,7 +87,7 @@ test("値・種類・送り元・購読", async () => {
     { rankName: "ゴールド" },
   );
 
-  // 当て先: 鍵・種類・種別のどれか(OR)、all = 全部(D127)
+  // 当て先: 鍵・カテゴリー・種別のどれか(OR)、all = 全部(D127)
   assert.equal(enricherTargets(enricher.target, { key: "auth.verification", category: "a", kind: "functional" }), true);
   assert.equal(enricherTargets(enricher.target, { key: "x.y", category: "a", kind: "promotion" }), true);
   assert.equal(enricherTargets(enricher.target, { key: "x.y", category: "a", kind: "activity" }), false);
@@ -100,9 +100,9 @@ test("値・種類・送り元・購読", async () => {
   const withAdminLabel: MessageCategory = { ...category, adminLabel: "一般的なキャンペーン" };
   assert.equal(categoryAdminLabel(withAdminLabel), "一般的なキャンペーン");
   assert.equal(categoryAdminLabel(category), "キャンペーン");
-  // 種類は 7 つの種別のどれでも持てる(取引の種類もある、D81)。経路は必須
+  // カテゴリーは 7 つの種別のどれでも持てる(取引のカテゴリーもある、D81)。送信チャンネルは必須
   const transactional: MessageCategory = { key: "x", label: "x", kind: "transactional", channels: ["email"] };
-  // @ts-expect-error 経路の無い種類は書けない
+  // @ts-expect-error 送信チャンネルの無いカテゴリーは書けない
   const noChannels: MessageCategory = { key: "y", label: "y", kind: "activity" };
   void noChannels;
 

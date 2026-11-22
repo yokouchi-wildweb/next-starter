@@ -1,8 +1,8 @@
-// 管理の送信と回の hook の検査(jsdom の上で描く。client service は偽物)。
+// 管理の送信の hook の検査(jsdom の上で描く。client service は偽物)。
 // - useAdminDispatches: 絞り込みを毎回渡し、先頭は cursor なし、続きは前の nextCursor、null で終端
-// - useAdminDispatchDeliveries: 回の id と絞り込みを渡す
-// - useContinueDispatch: client を呼び、回 1 件(useAdminDispatch)を取り直す
-// - useDeleteDispatch / useResendDispatch: client を呼び、回 1 件を取り直す(D88: 取り消し・取り下げは削除に替わった)
+// - useAdminDispatchDeliveries: 送信の id と絞り込みを渡す
+// - useContinueDispatch: client を呼び、送信 1 件(useAdminDispatch)を取り直す
+// - useDeleteDispatch / useResendDispatch: client を呼び、送信 1 件を取り直す(D88: 取り消し・取り下げは削除に替わった)
 // - useDispatchDeleteSummary: 確認を開いている間(enabled かつ ids あり)だけ見込みを取る
 // - useBulkDeleteDispatches: client を呼び、消せた id を返して知らせる(できなかった分も数える)、失敗は知らせて空
 // - 一括送信の流れは送るモーダルの hook(sendModalHooks.test.tsx)
@@ -146,7 +146,7 @@ test("useAdminDispatches: 絞り込みを渡し、先頭は cursor なし → �
   await view.unmount();
 });
 
-test("useAdminDispatchDeliveries: 回の id と絞り込みを渡す", async () => {
+test("useAdminDispatchDeliveries: 送信の id と絞り込みを渡す", async () => {
   const view = await mount(() => hooks.useAdminDispatchDeliveries("disp-9", { filters: { channel: "email" } }));
   assert.deepEqual(view.value().items.map((i) => i.id), ["d1"]);
   assert.equal(deliveryCalls[0].id, "disp-9");
@@ -154,7 +154,7 @@ test("useAdminDispatchDeliveries: 回の id と絞り込みを渡す", async () 
   await view.unmount();
 });
 
-test("useContinueDispatch: client を呼び、回 1 件を取り直す", async () => {
+test("useContinueDispatch: client を呼び、送信 1 件を取り直す", async () => {
   const view = await mount(() => ({ one: hooks.useAdminDispatch("disp-1"), cont: hooks.useContinueDispatch("disp-1") }));
   assert.equal(view.value().one.dispatch?.id, "disp-1");
   const beforeCalls = detailCalls;
@@ -162,11 +162,11 @@ test("useContinueDispatch: client を呼び、回 1 件を取り直す", async (
     await view.value().cont.continueSending();
   });
   assert.equal(continues, 1);
-  assert.ok(detailCalls > beforeCalls, "続きを送った後に回を取り直す");
+  assert.ok(detailCalls > beforeCalls, "続きを送った後に送信を取り直す");
   await view.unmount();
 });
 
-test("削除・再送の hook: client を呼び、回 1 件を取り直す", async () => {
+test("削除・再送の hook: client を呼び、送信 1 件を取り直す", async () => {
   const view = await mount(() => ({
     one: hooks.useAdminDispatch("disp-1"),
     remove: hooks.useDeleteDispatch("disp-1"),
@@ -179,7 +179,7 @@ test("削除・再送の hook: client を呼び、回 1 件を取り直す", asy
     assert.equal(res.canceledDeliveries, 2);
   });
   const afterDelete = detailCalls;
-  assert.ok(afterDelete > before, "削除の後に回を取り直す");
+  assert.ok(afterDelete > before, "削除の後に送信を取り直す");
   await act(async () => {
     const res = await view.value().resend.trigger({ includeUnknown: true });
     assert.equal(res.mode, "requeue");
@@ -188,7 +188,7 @@ test("削除・再送の hook: client を呼び、回 1 件を取り直す", asy
     ["delete", "disp-1"],
     ["resend", "disp-1", { includeUnknown: true }],
   ]);
-  assert.ok(detailCalls > afterDelete, "再送の後も回を取り直す");
+  assert.ok(detailCalls > afterDelete, "再送の後も送信を取り直す");
   await view.unmount();
 });
 

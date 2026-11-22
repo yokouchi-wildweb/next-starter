@@ -36,7 +36,7 @@ function isUniqueViolation(error: unknown): boolean {
 /**
  * 渡した冪等の鍵のうち、既に使われたもの(message_dispatches か message_idempotency_keys にある)を返す。
  * 一括の送り手(財布の失効の知らせなど)がページごとに送信済みを除くためのもの。2 回の問い合わせ(表ごとに 1 回)。
- * 存在だけを見る(鍵の行は送る前に入るので、送れなかった回も「ある」側に入る)
+ * 存在だけを見る(鍵の行は送る前に入るので、送れなかった送信も「ある」側に入る)
  */
 export async function existingIdempotencyKeys(keys: readonly string[]): Promise<Set<string>> {
   const unique = [...new Set(keys)];
@@ -175,7 +175,7 @@ export const drizzleMessageSendStore: MessageSendStore = {
 
   async findOptOuts(userIds, category, kind, channels, groupRow) {
     if (userIds.length === 0) return [];
-    // 当たる category = その種類・全部 '*'・入っているグループの行(D123)
+    // 当たる category = そのカテゴリー・全部 '*'・入っているグループの行(D123)
     const categories = groupRow ? [category, MESSAGE_ALL, groupRow] : [category, MESSAGE_ALL];
     const rows = await db
       .select({ userId: MessagePreferenceTable.user_id, channel: MessagePreferenceTable.channel })

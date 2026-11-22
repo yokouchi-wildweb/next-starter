@@ -1,5 +1,5 @@
 // src/features/core/messaging/categories/announcement.ts
-// 上流の種類: 管理画面「一般的なお知らせ」/ 利用者「運営からのお知らせ」(種別 announcement、D124)。管理者がその場で書く告知(白紙のシステムテンプレート templates/announcement.ts)の既定のカテゴリー
+// 上流のカテゴリー: 管理画面「一般的なお知らせ」/ 利用者「運営からのお知らせ」(種別 announcement、D124)。自由連絡の告知(白紙のシステムテンプレート templates/announcement.ts)の既定のカテゴリー
 
 import type { MessageCategory } from "@/lib/messaging";
 

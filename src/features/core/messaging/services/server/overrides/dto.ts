@@ -1,15 +1,15 @@
 // src/features/core/messaging/services/server/overrides/dto.ts
 //
-// 管理画面の文言の上書きの返す形と入力(型だけ。client の service も型で読む)。
-// 経路 = 連絡の種類の経路(fork の種類の上書きの後)。欄 = 連絡のひな形の欄のうち種類の経路で使う物の全部(既定で全部直せる、D132)を
-// ひな形の宣言の順に平たく並べ、欄ごとに使う経路を持つ(経路のタブは欄の channels で絞る)
+// テキストの編集の返す形と入力(型だけ。client の service も型で読む)。
+// 送信チャンネル = 連絡のカテゴリーの送信チャンネル(fork のカテゴリーの上書きの後)。欄 = 連絡のレイアウトの欄のうちカテゴリーの送信チャンネルで使う物の全部(既定で全部直せる、D132)を
+// レイアウトの宣言の順に平たく並べ、欄ごとに使う送信チャンネルを持つ(送信チャンネルのタブは欄の channels で絞る)
 
 import type { MessageVarEntry, MessageFieldSpec, MessageLayoutSummary } from "@/lib/messaging";
 
-/** 連絡の経路 1 つ(種類の経路の順) */
+/** 連絡の送信チャンネル 1 つ(カテゴリーの送信チャンネルの順) */
 export type AdminOverrideChannel = {
   key: string;
-  /** 経路の表示名(経路の受け口の label) */
+  /** 送信チャンネルの表示名(送信チャンネルの受け口の label) */
   label: string;
 };
 
@@ -19,11 +19,11 @@ export type AdminOverrideMessageSummary = {
   /** 連絡の名前(定義の label、fork の上書きの後。画面は鍵でなくこれを出す、D46) */
   label: string;
   kind: string;
-  /** 種類(取引の連絡は無い = null) */
+  /** カテゴリー(取引の連絡は無い = null) */
   category: string | null;
-  /** 種類の表示名(受け口の label。受け口に無ければ null) */
+  /** カテゴリーの表示名(受け口の label。受け口に無ければ null) */
   categoryLabel: string | null;
-  /** 種類の経路(届ける経路) */
+  /** カテゴリーの送信チャンネル(届ける送信チャンネル) */
   channels: AdminOverrideChannel[];
   /** 直せる欄の数 */
   editableCount: number;
@@ -35,16 +35,16 @@ export type AdminOverrideMessageSummary = {
   codeChangedCount: number;
 };
 
-/** 欄の宣言(ひな形の欄の宣言から経路の印を除いた物: 型・見出し・仮の文・必須と型ごとの約束) */
+/** 欄の宣言(レイアウトの欄の宣言から送信チャンネルの印を除いた物: 型・見出し・仮の文・必須と型ごとの約束) */
 export type AdminOverrideFieldSpec = Omit<MessageFieldSpec, "channels">;
 
-/** 欄 1 つ(直せる欄 = ひな形の欄のうち種類の経路で使う物の全部(adminEditableOnly があればその中)、または使えない・直せなくなった行) */
+/** 欄 1 つ(直せる欄 = レイアウトの欄のうちカテゴリーの送信チャンネルで使う物の全部(adminEditableOnly があればその中)、または使えない・直せなくなった行) */
 export type AdminOverrideField = {
-  /** 欄の道(ひな形の欄の鍵。使えない行は保存した時の鍵のまま) */
+  /** 欄の道(レイアウトの欄の鍵。使えない行は保存した時の鍵のまま) */
   path: string;
-  /** 欄の宣言(ひな形に無い欄の行は null) */
+  /** 欄の宣言(レイアウトに無い欄の行は null) */
   spec: AdminOverrideFieldSpec | null;
-  /** この欄を使う経路(種類の経路の中、種類の経路の順。使えない行は空) */
+  /** この欄を使う送信チャンネル(カテゴリーの送信チャンネルの中、カテゴリーの送信チャンネルの順。使えない行は空) */
   channels: string[];
   /** 今も直せる欄か(false = 直せなくなった・使えない行。既定に戻すだけできる) */
   editable: boolean;
@@ -58,7 +58,7 @@ export type AdminOverrideField = {
   edited: boolean;
   /** 直した時のコードの値と今のコードの値が違う */
   codeChanged: boolean;
-  /** 行を当てられない(ひな形の版を移せない・今の検査を通らない。送る時はコードの値) */
+  /** 行を当てられない(レイアウトの版を移せない・今の検査を通らない。送る時はコードの値) */
   unusable: boolean;
   /** 使えない理由 */
   problem: string | null;
@@ -70,9 +70,9 @@ export type AdminOverrideMessageDetail = {
   /** 連絡の名前(定義の label、fork の上書きの後。画面は鍵でなくこれを出す、D46) */
   label: string;
   kind: string;
-  /** 種類(取引の連絡は無い = null) */
+  /** カテゴリー(取引の連絡は無い = null) */
   category: string | null;
-  /** 種類の表示名(受け口の label。受け口に無ければ null) */
+  /** カテゴリーの表示名(受け口の label。受け口に無ければ null) */
   categoryLabel: string | null;
   /** 使ってよい {{鍵}}(vars は秘密を除く・共通の文脈・provides) */
   allowedKeys: string[];
@@ -81,7 +81,7 @@ export type AdminOverrideMessageDetail = {
    * source "own"、別名なし = 鍵で書く)
    */
   vars: MessageVarEntry[];
-  /** 種類の経路(届ける経路、欄はこの順) */
+  /** カテゴリーの送信チャンネル(届ける送信チャンネル、欄はこの順) */
   channels: AdminOverrideChannel[];
   fields: AdminOverrideField[];
 };
@@ -96,9 +96,9 @@ export type SaveMessageOverrideInput = { fields: SaveMessageOverrideFieldChange[
 export type SaveMessageOverrideErrorDetails = { fields: Record<string, string> };
 
 /**
- * プレビューの結果(D86)。html = 連絡の描き方で描いた HTML(文字の欄に data-field="<欄の鍵>")、経路にプレビューが無ければ null。
- * layout / values / summary = ひな形の鍵・その経路が使う欄の中身(保存した値と下書きを重ねた物、印なし、{{鍵}} のまま)・要約
- * (お知らせは client のひな形の描き方 layoutInApps で描く)。要約を作れなければ summary null と cannotRender に理由
+ * プレビューの結果(D86)。html = 連絡の描き方で描いた HTML(文字の欄に data-field="<欄の鍵>")、送信チャンネルにプレビューが無ければ null。
+ * layout / values / summary = レイアウトの鍵・その送信チャンネルが使う欄の中身(保存した値と下書きを重ねた物、印なし、{{鍵}} のまま)・要約
+ * (お知らせは client のレイアウトの描き方 layoutInApps で描く)。要約を作れなければ summary null と cannotRender に理由
  */
 export type MessageOverridePreview = {
   channel: string;

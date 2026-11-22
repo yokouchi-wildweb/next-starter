@@ -1,4 +1,4 @@
-// 上流のひな形「お知らせの明細」: 宣言・要約・メール(前の wallet の NoticeMailView と同じ部品の並び)・お知らせ・生成の一覧に載る
+// 上流のレイアウト「お知らせの明細」: 宣言・要約・メール(前の wallet の NoticeMailView と同じ部品の並び)・お知らせ・生成の一覧に載る
 // 実行: pnpm test src/features/core/messaging/layouts/statement/statement.test.tsx
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -36,7 +36,7 @@ function assertOrder(html: string, texts: string[]) {
   }
 }
 
-test("宣言: お知らせの明細、コードの連絡だけ、件名と本文が必須", () => {
+test("宣言: お知らせの明細、定義連絡だけ、件名と本文が必須", () => {
   assert.equal(layout.key, "statement");
   assert.equal(layout.adminSelectable, false);
   assert.equal(layoutValuesSchema(layout).safeParse(values).success, true);

@@ -1,13 +1,13 @@
-// 管理画面の文言の上書きの service の検査(DB・監査は偽物)
-// - 欄の道 = ひな形の欄の鍵(D132)。直せる欄 = ひな形の欄のうち種類の経路で使う物の全部、adminEditableOnly で絞る
+// テキストの編集の service の検査(DB・監査は偽物)
+// - 欄の道 = レイアウトの欄の鍵(D132)。直せる欄 = レイアウトの欄のうちカテゴリーの送信チャンネルで使う物の全部、adminEditableOnly で絞る
 // - 一覧: 直せる欄のある連絡(と行の残る連絡)、数(使えない行 unusableCount)。直せない連絡(required)は一覧に出ず 1 件は 404
-// - 1 件: 欄ごとの宣言・使う経路・コードの値(定義の values)・管理画面の値・送る時の値・印、使ってよい {{鍵}} / {{別名}}(秘密を除く)、
+// - 1 件: 欄ごとの宣言・使う送信チャンネル・コードの値(定義の values)・管理画面の値・送る時の値・印、使ってよい {{鍵}} / {{別名}}(秘密を除く)、
 //   埋め込み情報の一覧(vars は定義の varNames の別名と説明、秘密は出さない D133)。
-//   版を移せない行・古い形の行(経路.欄、版なし)・検査を通らない行は使えない(unusable、行は残る)
+//   版を移せない行・古い形の行(送信チャンネル.欄、版なし)・検査を通らない行は使えない(unusable、行は残る)
 // - 行は保存した版から今の版の欄へ移して読む。保存は今の版で書き、同じ欄へ移る前の版の行を消す
 // - プレビュー: 保存した値と未保存の値を重ね、文字に印を付けて送る口と同じ組み立てで描く(印は data-field に)
 // - 保存(saveFields、D132): 欄をまとめて 1 回で書く(1 つでも誤りがあれば何も書かず 400、欄ごとの理由)。送る口と同じ検査、
-//   ひな形の版・直した時のコードの値と操作者を残し、監査に残す。reset の欄は行を消す / 戻す(resetField)= 行を消す(無ければ 404)
+//   レイアウトの版・直した時のコードの値と操作者を残し、監査に残す。reset の欄は行を消す / 戻す(resetField)= 行を消す(無ければ 404)
 // - 管理者でなければ 403
 // 実行: pnpm test src/features/core/messaging/services/server/overrides
 import { test } from "node:test";
@@ -174,7 +174,7 @@ test("一覧: 直せる欄のある連絡だけ、数(使えない行を含む)�
   ]);
 });
 
-test("1 件: 欄ごとの宣言・経路・コードの値・印、前の版の行は今の欄へ移す、古い形・捨てた欄の行は使えない", async () => {
+test("1 件: 欄ごとの宣言・送信チャンネル・コードの値・印、前の版の行は今の欄へ移す、古い形・捨てた欄の行は使えない", async () => {
   const { service } = setup({
     rows: [
       row("heading", "前の版の件名 {{name}}", "{{name}} 様へ", 1),
@@ -320,7 +320,7 @@ test("プレビュー: 保存した値と未保存の値(検査を通る物)を�
   const { service, previews } = setup({ rows: [row("subject", "保存した件名", null)] });
   const saved = await service.previewMessage("shop.notice", { channel: "email", values: {} });
   assert.deepEqual([saved.channel, saved.html, saved.text], ["email", '<p><span data-field="subject">保存した件名</span></p>', "保存した件名"]);
-  // お知らせを client のひな形の描き方で描く材料(印なしの値・要約)
+  // お知らせを client のレイアウトの描き方で描く材料(印なしの値・要約)
   assert.equal(saved.layout, "notice");
   assert.equal((saved.values as { subject?: unknown }).subject, "保存した件名");
   const draft = await service.previewMessage("shop.notice", { channel: "email", values: { subject: "未保存", blocks: [{ type: "nope" }] } });

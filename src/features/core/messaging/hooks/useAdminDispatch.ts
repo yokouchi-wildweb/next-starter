@@ -2,7 +2,7 @@
 
 // src/features/core/messaging/hooks/useAdminDispatch.ts
 //
-// 管理: 回 1 件(SWR)。「続きを送る」(useContinueDispatch)が再検証する
+// 管理: 送信 1 件(SWR)。「続きを送る」(useContinueDispatch)が再検証する
 
 import useSWR from "swr";
 

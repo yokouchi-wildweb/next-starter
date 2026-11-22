@@ -73,33 +73,33 @@ export const MessageDispatchTable = pgTable(
     // ---- 新しい連絡の基盤の列（S2 で追加。既存行のため null 可か既定値つき）----
 
     /**
-     * 出どころ（D128。どれか 1 つ）: コードの連絡の鍵（messaging/messages/<名前>.ts の key）/ システムテンプレートの鍵（system_template）/
-     * DB のテンプレート（template_id + template_version）。テンプレートから送った回（管理の送信）は message_key が null
+     * 出どころ（D128。どれか 1 つ）: 定義連絡の鍵（messaging/messages/<名前>.ts の key）/ システムテンプレートの鍵（system_template）/
+     * DB のテンプレート（template_id + template_version）。テンプレートからの送信（管理の送信）は message_key が null
      */
     message_key: text("message_key"),
-    /** システムテンプレートの鍵（messaging/templates の受け口、管理の送信の白紙）。それ以外の回は null */
+    /** システムテンプレートの鍵（messaging/templates の受け口、管理の送信の白紙）。それ以外の送信は null */
     system_template: text("system_template"),
-    /** 保存されたテンプレートから送った回のテンプレート（消されても回は残す） */
+    /** 保存されたテンプレートからの送信のテンプレート（消されても送信は残す） */
     template_id: uuid("template_id").references(() => MessageTemplateTable.id, {
       onDelete: "set null",
     }),
     /** 予約時に固定したテンプレートの版（送る直前に最新版を引き直さない） */
     template_version: integer("template_version"),
-    /** テンプレートを呼び出して送った回で、版の文面から直したか（D85。テンプレートを呼び出していない回は false） */
+    /** テンプレートを呼び出した送信で、版の文面から直したか（D85。テンプレートを呼び出していない送信は false） */
     template_edited: boolean("template_edited").notNull().default(false),
-    /** ひな形の鍵（messaging/layouts の受け口、D122）。送った時の定義・テンプレートのひな形 */
+    /** レイアウトの鍵（messaging/layouts の受け口、D122）。送った時の定義・テンプレートのレイアウト */
     layout: text("layout"),
-    /** 送った時のひな形の版（D128）。組み直しはひな形の改版の対応で今の版へ読み替え、読めなければ止める */
+    /** 送った時のレイアウトの版（D128）。組み直しはレイアウトの改版の対応で今の版へ読み替え、読めなければ止める */
     layout_version: integer("layout_version"),
     /**
-     * ひな形の欄の中身（差し込む前の字、{{鍵}} のまま）。予約・cron の組み直し・失敗の再送・同じ内容で送るは
-     * この中身と回の vars だけで描く（定義・テンプレートを引き直さない、D128）。残し方は vars と同じ: record vars / full は残す、
-     * meta は送り残しの間だけ残して回を閉じる時に消す、required と秘密を差し込む連絡は残さない
+     * レイアウトの欄の中身（差し込む前の字、{{鍵}} のまま）。予約・cron の組み直し・失敗の再送・同じ内容で送るは
+     * この中身と送信の vars だけで描く（定義・テンプレートを引き直さない、D128）。残し方は vars と同じ: record vars / full は残す、
+     * meta は送り残しの間だけ残して送信を閉じる時に消す、required と秘密を差し込む連絡は残さない
      */
     values: jsonb("values").$type<Record<string, unknown>>(),
     /** 種別（transactional / promotion / activity） */
     kind: text("kind").$type<MessageKind>(),
-    /** 種類の鍵（配信停止の単位。messaging/categories の鍵） */
+    /** カテゴリーの鍵（配信停止の単位。messaging/categories の鍵） */
     category: text("category"),
     /**
      * 宛先の指定（全員 / ロール / 選んだ利用者 / グループ { type: "group", groupId, version }）。
@@ -110,18 +110,18 @@ export const MessageDispatchTable = pgTable(
     tags: text("tags").array(),
     /** 予約送信の時刻（null = 即時） */
     scheduled_at: timestamp("scheduled_at", { withTimezone: true }),
-    /** 経路ごとの数 { <channel>: { targeted, sent, failed, skipped_no_address, skipped_throttled, suppressed } } */
+    /** 送信チャンネルごとの数 { <channel>: { targeted, sent, failed, skipped_no_address, skipped_throttled, suppressed } } */
     channel_counts: jsonb("channel_counts").$type<MessageChannelCounts>(),
-    /** 経路ごとの件名・題 { <channel>: string }（record に依らず常に残す） */
+    /** 送信チャンネルごとの件名・題 { <channel>: string }（record に依らず常に残す） */
     headings: jsonb("headings").$type<MessageChannelTextMap>(),
-    /** 回に 1 組の共通の変数の写し（record が vars / full のとき。secret の印の鍵は落とす） */
+    /** 送信に 1 組の共通の変数の写し（record が vars / full のとき。secret の印の鍵は落とす） */
     vars: jsonb("vars").$type<Record<string, unknown>>(),
     /**
      * DB のテンプレートの専用の埋め込み情報の値 { 鍵: 差し込む字 }（送る人が入れた値、指令 58）。残し方・消し方は vars と同じ。
-     * テンプレートから送った回の vars は {}。組み直しの差し込みの表 = vars ∪ embedded_values
+     * テンプレートからの送信の vars は {}。組み直しの差し込みの表 = vars ∪ embedded_values
      */
     embedded_values: jsonb("embedded_values").$type<Record<string, string>>(),
-    /** 全員同文の描画結果 { <channel>: 経路ごとの欄 }（record が vars / full のとき） */
+    /** 全員同文の描画結果 { <channel>: 送信チャンネルごとの欄 }（record が vars / full のとき） */
     rendered: jsonb("rendered").$type<Record<string, unknown>>(),
     /** 本文の記録の段（meta / vars / full） */
     record: text("record").$type<MessageRecord>(),
@@ -130,8 +130,8 @@ export const MessageDispatchTable = pgTable(
       .notNull()
       .default(false),
     /**
-     * 管理者が削除した時刻（D88。どの状態でも削除できる。status は削除した時のまま。削除した回は展開・送信・予約の拾いから外れ、
-     * 管理の一覧は既定で出さない。消せる経路の届けた物は経路の remove が消す）
+     * 管理者が削除した時刻（D88。どの状態でも削除できる。status は削除した時のまま。削除した送信は展開・送信・予約の拾いから外れ、
+     * 管理の一覧は既定で出さない。消せる送信チャンネルの届けた物は送信チャンネルの remove が消す）
      */
     deleted_at: timestamp("deleted_at", { withTimezone: true }),
     /**
@@ -142,7 +142,7 @@ export const MessageDispatchTable = pgTable(
      * 一覧から配達の行を作る途中
      */
     expand_cursor: text("expand_cursor"),
-    /** テスト送信の回か */
+    /** テスト送信か */
     is_test: boolean("is_test").notNull().default(false),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },

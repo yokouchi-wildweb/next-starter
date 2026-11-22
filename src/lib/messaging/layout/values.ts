@@ -1,18 +1,18 @@
 // src/lib/messaging/layout/values.ts
 //
-// ひな形の欄の中身の検査・経路ごとの欄・改版の対応。
+// レイアウトの欄の中身の検査・送信チャンネルごとの欄・改版の対応。
 
 import { z } from "zod";
 
 import { layoutVersionOf, type MessageLayout, type MessageLayoutFields } from "./types";
 import { fieldValueSchema, normalizeFieldValue, requiredValue, type MessageFieldSpec } from "./vocabulary";
 
-/** 欄がその経路のものか(channels が無い = 全部の経路) */
+/** 欄がその送信チャンネルのものか(channels が無い = 全部の送信チャンネル) */
 export function fieldBelongsTo(spec: MessageFieldSpec, channel: string): boolean {
   return !spec.channels || spec.channels.includes(channel);
 }
 
-/** その経路が使う欄だけ(宣言の順のまま) */
+/** その送信チャンネルが使う欄だけ(宣言の順のまま) */
 export function fieldsForChannel<F extends MessageLayoutFields>(layout: MessageLayout<F>, channel: string): Partial<F> {
   return Object.fromEntries(Object.entries(layout.fields).filter(([, spec]) => fieldBelongsTo(spec, channel))) as Partial<F>;
 }
@@ -34,7 +34,7 @@ export function normalizeLayoutValues(fields: MessageLayoutFields, values: unkno
 
 /**
  * 欄の中身の zod(知らない鍵は通らない)。検査の前に空を「無い」にする(normalizeLayoutValues。parsed.data は整えた値)。
- * - channels を渡すと、その経路のどれにも使われない経路だけの欄は必須でなくなる(送らない経路の欄を求めない)
+ * - channels を渡すと、その送信チャンネルのどれにも使われない送信チャンネルだけの欄は必須でなくなる(送らない送信チャンネルの欄を求めない)
  * - 渡さなければ宣言の required のまま
  */
 export function layoutValuesSchema(layout: MessageLayout, options: { channels?: readonly string[] } = {}) {

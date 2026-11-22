@@ -1,5 +1,5 @@
 // src/features/core/messaging/categories/walletAdjusted.ts
-// 上流の種類: 残高の調整(種別 transactional)。wallet.adjustmentNotice
+// 上流のカテゴリー: 残高の調整(種別 transactional)。wallet.adjustmentNotice
 
 import type { MessageCategory } from "@/lib/messaging";
 

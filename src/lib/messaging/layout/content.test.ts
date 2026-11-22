@@ -1,6 +1,6 @@
-// 経路 1 つの中身の組み立て(buildChannelContent、D124・D125)
-// - ひな形の描き方がある・送る時に描く経路 = MessageLayoutContent(題・ひな形・段・その経路の欄だけ・要約)
-// - 汎用の描き方 / 要約から = 経路が描いた物(content が無ければ html・text)
+// 送信チャンネル 1 つの中身の組み立て(buildChannelContent、D124・D125)
+// - レイアウトの描き方がある・送る時に描く送信チャンネル = MessageLayoutContent(題・レイアウト・段・その送信チャンネルの欄だけ・要約)
+// - 汎用の描き方 / 要約から = 送信チャンネルが描いた物(content が無ければ html・text)
 // - どの段でも描けない・要約を作れない = cannotRender
 // 実行: pnpm test src/lib/messaging/layout/content.test.ts
 import { test } from "node:test";
@@ -20,7 +20,7 @@ const layout = defineMessageLayout({
 }) as MessageLayout;
 const values = { title: "題", body: "本文", mailOnly: "メールの欄" };
 
-test("ひな形の描き方がある経路・送る時に描く経路は MessageLayoutContent(その経路の欄だけ)", async () => {
+test("レイアウトの描き方がある送信チャンネル・送る時に描く送信チャンネルは MessageLayoutContent(その送信チャンネルの欄だけ)", async () => {
   const fromLayout = await buildChannelContent({ layout, channelKey: "email", channel: {}, hasLayoutRenderer: true, values });
   assert.ok("content" in fromLayout);
   assert.equal(fromLayout.title, "題");
@@ -32,7 +32,7 @@ test("ひな形の描き方がある経路・送る時に描く経路は Message
     values: { title: "題", body: "本文", mailOnly: "メールの欄" },
     summary: { title: "題", body: "本文", shortBody: "短い" },
   });
-  // 送る時に描く経路(email): 要約の段でも描かずに渡す
+  // 送る時に描く送信チャンネル(email): 要約の段でも描かずに渡す
   const atSend = await buildChannelContent({
     layout,
     channelKey: "email",
@@ -43,7 +43,7 @@ test("ひな形の描き方がある経路・送る時に描く経路は Message
   assert.ok("content" in atSend && isMessageLayoutContent(atSend.content) && atSend.content.from === "summary");
 });
 
-test("汎用の描き方・要約から = 経路が描いた物。経路だけの欄は他の経路に出さない", async () => {
+test("汎用の描き方・要約から = 送信チャンネルが描いた物。送信チャンネルだけの欄は他の送信チャンネルに出さない", async () => {
   const seen: unknown[] = [];
   const generic = await buildChannelContent({
     layout,
@@ -64,7 +64,7 @@ test("汎用の描き方・要約から = 経路が描いた物。経路だけ�
   assert.deepEqual(summary, { content: { title: "題", body: "本文" }, title: "題" });
 });
 
-test("描けない: 宣言の無い経路・要約が投げる", async () => {
+test("描けない: 宣言の無い送信チャンネル・要約が投げる", async () => {
   const none = await buildChannelContent({ layout, channelKey: "push", channel: {}, hasLayoutRenderer: false, values });
   assert.ok("cannotRender" in none && none.cannotRender.includes("経路 push"));
   const broken = { ...layout, summary: () => { throw new Error("壊れた"); } } as MessageLayout;

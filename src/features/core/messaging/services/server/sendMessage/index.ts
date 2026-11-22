@@ -36,7 +36,7 @@ export const sendMessageDeps: MessageSendDeps = {
   domainOpen: messageDomainOpen,
   channels,
   enrichers,
-  // ひな形(D122)と、経路ごとのひな形の描き方の表(email = layoutEmails。inApp の描き方は client の一覧なので S6 まで渡さない)
+  // レイアウト(D122)と、送信チャンネルごとのレイアウトの描き方の表(email = layoutEmails。inApp の描き方は client の一覧なので S6 まで渡さない)
   layouts,
   systemTemplates,
   layoutRenderers: { email: layoutEmails },
@@ -58,13 +58,13 @@ export const sendMessageDeps: MessageSendDeps = {
   unsubscribe: { configured: isUnsubscribeConfigured, url: buildUnsubscribeUrl },
   // 保存されたテンプレート(DB のテンプレートで送る時の版の固定)
   templates: drizzleMessageTemplateSource,
-  // 種類(fork の override を重ねた後): 定義の category を照らし、種別と経路を引く
+  // カテゴリー(fork の override を重ねた後): 定義の category を照らし、種別と送信チャンネルを引く
   categories,
   // 会話の間引き(throttle のある連絡だけ、鍵ごとの advisory lock)
   throttle: drizzleMessageThrottleStore,
   // 内部の事件は登録した購読が聞いている種類だけ書く
   eventTypes: subscribedEventTypes(Object.values(subscribers)),
-  // 管理画面の文言の上書き(門 messagingOverrides が開の時だけ、定義ごとに 1 回読む。欄の道 = ひな形の欄の鍵、版つき)
+  // 管理画面のテキストの編集(門 messagingOverrides が開の時だけ、定義ごとに 1 回読む。欄の道 = レイアウトの欄の鍵、版つき)
   adminOverrides: {
     enabled: () => gate.enabled("messagingOverrides"),
     async load(messageKey) {

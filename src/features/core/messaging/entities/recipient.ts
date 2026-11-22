@@ -1,8 +1,8 @@
 // src/features/core/messaging/entities/recipient.ts
 //
-// 回の受信者の一覧(D58): グループ宛ての回は送り始めの後、cron が 1 文の INSERT … SELECT で 1 つの時点の一員をここへ書き、
+// 送信の受信者の一覧(D58): グループ宛ての送信は送り始めの後、cron が 1 文の INSERT … SELECT で 1 つの時点の一員をここへ書き、
 // 書き終えてからこの一覧だけから配達の行を作る(送る途中でグループが変わっても宛先は変わらない)。
-// 全員・ロール宛ては書かない(送り始めの時刻の線で固定する)。回を消すと一緒に消える。
+// 全員・ロール宛ては書かない(送り始めの時刻の線で固定する)。送信を消すと一緒に消える。
 
 import { foreignKey, index, pgTable, primaryKey, uuid } from "drizzle-orm/pg-core";
 

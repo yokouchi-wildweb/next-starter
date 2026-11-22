@@ -7,12 +7,12 @@ import { z } from "zod";
 /**
  * message_dispatches.status の取り得る値（scheduled → processing → completed /
  * completed_with_failures / cancelled）。
- * - scheduled: 予約された回（まだ送っていない）
+ * - scheduled: 予約された送信（まだ送っていない）
  * - processing: 送信前に作成された行。処理中、または処理が異常終了した痕跡
  *   （processing のまま残っている行は「送信が走ったかもしれない」ことを示す）
  * - completed: 送信処理が最後まで走り、成功/失敗件数が確定した行
  * - completed_with_failures: 最後まで走ったが失敗した配達がある行
- * - cancelled: 1 通も送る前に止めた回（宛先のグループを固められなかった回など）。
+ * - cancelled: 1 通も送る前に止めた送信（宛先のグループを固められなかった送信など）。
  *   管理者の削除は status を変えず deleted_at を残す（D88）
  */
 export const MESSAGE_DISPATCH_STATUSES = [
@@ -62,7 +62,7 @@ export const MESSAGE_SUPPRESSION_REASONS = [
   "manual",
 ] as const;
 
-/** 経路 1 本の数（message_dispatches.channel_counts の値） */
+/** 送信チャンネル 1 本の数（message_dispatches.channel_counts の値） */
 export const MessageChannelCountSchema = z.object({
   targeted: z.number().int().nonnegative(),
   sent: z.number().int().nonnegative(),
@@ -72,16 +72,16 @@ export const MessageChannelCountSchema = z.object({
   suppressed: z.number().int().nonnegative(),
 });
 
-/** 経路ごとの数 { <channel>: MessageChannelCount }（経路は受け口なので鍵は固定しない） */
+/** 送信チャンネルごとの数 { <channel>: MessageChannelCount }（送信チャンネルは受け口なので鍵は固定しない） */
 export const MessageChannelCountsSchema = z.record(
   z.string(),
   MessageChannelCountSchema,
 );
 
-/** 経路ごとの文字列 { <channel>: string }（message_dispatches.headings） */
+/** 送信チャンネルごとの文字列 { <channel>: string }（message_dispatches.headings） */
 export const MessageChannelTextMapSchema = z.record(z.string(), z.string());
 
-/** 配達の宛先ごとの状態（message_deliveries.targets の要素。複数の宛先を持つ経路） */
+/** 配達の宛先ごとの状態（message_deliveries.targets の要素。複数の宛先を持つ送信チャンネル） */
 export const MessageDeliveryTargetSchema = z.object({
   address: z.string(),
   status: z.enum(MESSAGE_DELIVERY_STATUSES),

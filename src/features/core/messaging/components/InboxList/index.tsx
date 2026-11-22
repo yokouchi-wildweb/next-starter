@@ -1,7 +1,7 @@
 // src/features/core/messaging/components/InboxList/index.tsx
 // セクションコンテナ(本人の受け取り箱の一覧)。流れは hook useInboxList(取得・開いたら既読・一覧の印・全部既読と知らせ)、
 // ここは部品(InfiniteScrollList + InboxItemRow、詳細は InboxDetailModal = 未読のモーダルと同じ表示、D120)を並べるだけ。
-// 行は題と本文の頭、詳細はひな形の描き方(詳しい表示 useInboxItemDetail が取れるまでは読み込み中)。
+// 行は題と本文の頭、詳細はレイアウトの描き方(詳しい表示 useInboxItemDetail が取れるまでは読み込み中)。
 // 下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";

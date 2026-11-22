@@ -2,7 +2,7 @@
 
 // src/features/core/messaging/services/client/overrideClient.ts
 //
-// 管理画面の文言の上書きの API(/api/admin/messaging/overrides)。門 messagingOverrides が閉なら 404。
+// 管理画面のテキストの編集の API(/api/admin/messaging/overrides)。門 messagingOverrides が閉なら 404。
 // 型は server の DTO(services/server/overrides/dto.ts)を型だけ読む
 
 import axios from "axios";
@@ -63,7 +63,7 @@ export async function resetMessageOverride(key: string, fieldPath: string): Prom
   }
 }
 
-/** 経路 1 つのプレビュー(未保存の値 values = { "<経路.欄>": 値 } を重ねる。html の文字の欄に data-field の印、D86) */
+/** 送信チャンネル 1 つのプレビュー(未保存の値 values = { "<送信チャンネル.欄>": 値 } を重ねる。html の文字の欄に data-field の印、D86) */
 export async function previewMessageOverride(
   key: string,
   input: { channel: string; values: Record<string, unknown> },

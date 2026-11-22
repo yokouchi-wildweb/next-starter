@@ -1,5 +1,5 @@
 // src/features/core/messaging/layouts/simple/SimpleEmail.default.tsx
-// ひな形「シンプルなお知らせ」のメールの既定の見た目: 全メールの枠(MailFrame)の中に 件名の見出し → サムネイル → 本文 → リンクのボタン。
+// レイアウト「シンプルなお知らせ」のメールの既定の見た目: 全メールの枠(MailFrame)の中に 件名の見出し → サムネイル → 本文 → リンクのボタン。
 // 値の無い欄は描かない。画像の値(storage:// の参照)は表示できる URL にしてから描く
 
 import { MailButton, MailFrame, MailHeading, MailImage, MailNote, MailParagraph, MailUrl, type MailTheme } from "@/lib/mail";

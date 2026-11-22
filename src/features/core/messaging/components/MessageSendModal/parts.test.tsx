@@ -4,10 +4,10 @@
 // - SendVarInputs: 読み込んだテンプレートの専用の埋め込み情報の入力(別名・必須の印・{{別名}}・型ごとの入力・既定値は仮の文・未入力の印・値の受け渡し)
 // - SendTargetPicker: bulk は選んだ記録の数だけ / select は種類の選び、グループは名前(種類)で選び id は出さない、
 //   グループが無く門 userGroups も閉なら選択肢に出さない(門が開なら 0 件でも出す)
-// - SendCategoryChannels: カテゴリーが無い文言・経路の切り替え・未入力の印(オンの経路だけ)
+// - SendCategoryChannels: カテゴリーが無い文言・送信チャンネルの切り替え・未入力の印(オンの送信チャンネルだけ)
 // - SendSchedule: 予約の時だけ時刻・注記・誤り
 // - SendLegalNotice: 法の義務の告知の注意(D83)をいつも出し、メールがオフなら警告の色
-// - SendConfirmView / SendResultView: 見込み・上限超え・一括の数・予約・版 / 状態・後処理・回へのリンク(一覧の上の詳細 ?dispatch=<id>)
+// - SendConfirmView / SendResultView: 見込み・上限超え・一括の数・予約・版 / 状態・後処理・送信へのリンク(一覧の上の詳細 ?dispatch=<id>)
 // 実行: pnpm test src/features/core/messaging/components/MessageSendModal/parts.test.tsx
 import { after, before, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -275,7 +275,7 @@ test("SendTargetPicker: bulk は記録の数、select は種類の選び、グ�
   await withGroups.unmount();
 });
 
-test("SendCategoryChannels: カテゴリーが無い文言・経路の切り替え・未入力の印", async () => {
+test("SendCategoryChannels: カテゴリーが無い文言・送信チャンネルの切り替え・未入力の印", async () => {
   const toggles: [string, boolean][] = [];
   const view = await render(
     createElement(parts.SendCategoryChannels, {
@@ -289,7 +289,7 @@ test("SendCategoryChannels: カテゴリーが無い文言・経路の切り替�
       onToggleChannel: (key: string, on: boolean) => void toggles.push([key, on]),
     }),
   );
-  assert.equal(view.container.textContent?.match(/未入力/g)?.length, 1, "オンの経路だけ印");
+  assert.equal(view.container.textContent?.match(/未入力/g)?.length, 1, "オンの送信チャンネルだけ印");
   assert.equal(button(view.container, "メール")!.getAttribute("aria-pressed"), "true");
   const inApp = button(view.container, "お知らせ")!;
   assert.equal(inApp.getAttribute("aria-pressed"), "false");

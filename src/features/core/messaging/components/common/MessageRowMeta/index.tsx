@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/common/MessageRowMeta/index.tsx
-// 部品(props だけ): 管理の一覧の行(送信一覧・テンプレート・文言の編集)の共通の小さな表示。どの一覧も同じ情報は同じ形で出す:
+// 部品(props だけ): 管理の一覧の行(送信一覧・テンプレート・テキストの編集)の共通の小さな表示。どの一覧も同じ情報は同じ形で出す:
 // - 行の形 = 1 段目: 状態の札・名前・印の札 … 右に日時(RowDateMeta)/ 2 段目: 印つきの組(RowMetaItem)を並べる
 // - RowMetaItem: 印(lucide)+ 中身。印の意味は aria-label で読み上げる
 // - KindCategoryMeta: Tag の印 + 「種別 › カテゴリー」(片方だけでも出す)

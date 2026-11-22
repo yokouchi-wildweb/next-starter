@@ -1,7 +1,7 @@
 // src/features/core/messaging/services/server/admin/readDispatches.ts
 //
-// 回の読む口(D37。汎用 CRUD の search に乗せない): 回の一覧(期間・定義・種類・経路・状態、keyset)/ 回 1 件 / 回の配達(keyset)。
-// 管理者を service でも確かめる。返す形は dispatchDto.ts。並び: 回は新しい順(created_at, id の降順)、配達は古い順(created_at, id の昇順)
+// 送信の読む口(D37。汎用 CRUD の search に乗せない): 送信の一覧(期間・定義・カテゴリー・送信チャンネル・状態、keyset)/ 送信 1 件 / 送信の配達(keyset)。
+// 管理者を service でも確かめる。返す形は dispatchDto.ts。並び: 送信は新しい順(created_at, id の降順)、配達は古い順(created_at, id の昇順)
 
 import { z } from "zod";
 
@@ -41,7 +41,7 @@ export const ListDispatchesQuerySchema = z.object({
   category: z.string().trim().min(1).max(100).optional(),
   channel: z.string().trim().min(1).optional(),
   status: z.enum(MESSAGE_DISPATCH_STATUSES).optional(),
-  /** 削除した回(D88): exclude = 出さない(既定)/ only = 削除した回だけ / include = 両方 */
+  /** 削除した送信(D88): exclude = 出さない(既定)/ only = 削除した送信だけ / include = 両方 */
   deleted: z.enum(["exclude", "only", "include"]).default("exclude"),
   cursor: z.string().min(1).optional(),
   limit: limitSchema,
@@ -64,7 +64,7 @@ export type AdminDispatchStore = {
     limit: number,
   ) => Promise<MessageDispatch[]>;
   findDispatch: (id: string) => Promise<MessageDispatch | null>;
-  /** 回の配達の利用者 id(重なりなし、limit まで) */
+  /** 送信の配達の利用者 id(重なりなし、limit まで) */
   listDispatchUserIds: (dispatchId: string, limit: number) => Promise<string[]>;
   /** 利用者の名前(users.name。id → 名前、名前の無い・消えた利用者は入らない) */
   userNames: (userIds: readonly string[]) => Promise<Map<string, string>>;
@@ -78,15 +78,15 @@ export type AdminDispatchStore = {
 
 export type AdminReadDeps = AdminCheckDeps & {
   dispatchStore: AdminDispatchStore;
-  /** 送り元の表示名(受け口 sources → 同じ鍵の連絡の名前 → 一括の対象の「…の一括送信」、無ければ null。回の詳細は鍵を見せない、D46) */
+  /** 送り元の表示名(受け口 sources → 同じ鍵の連絡の名前 → 一括の対象の「…の一括送信」、無ければ null。送信の詳細は鍵を見せない、D46) */
   sourceLabel: (source: string) => Promise<string | null>;
-  /** 回の操作の判定に要る値(連絡の性質と失敗の数) */
+  /** 送信の操作の判定に要る値(連絡の性質と失敗の数) */
   operationInputs: (row: MessageDispatch) => Promise<{ policy: DispatchPolicy; counts: { failed: number; unknown: number } }>;
   /** ユーザーグループの名前(id → 名前、しまったグループも。門 userGroups が閉なら空。無い = 名前を出さない) */
   groupNames?: (groupIds: readonly string[]) => Promise<Map<string, string>>;
 };
 
-/** 回の宛先のグループの名前(1 頁に 1 回) */
+/** 送信の宛先のグループの名前(1 頁に 1 回) */
 async function groupNamesOf(deps: AdminReadDeps, rows: readonly MessageDispatch[]): Promise<Map<string, string>> {
   const ids = [...new Set(rows.map(targetGroupIdOf).filter((id): id is string => id !== null))];
   if (ids.length === 0 || !deps.groupNames) return new Map();
@@ -106,7 +106,7 @@ function page<R extends { createdAt: Date; id: string }, T>(rows: R[], limit: nu
   return { items: items.map(map), nextCursor: rows.length > limit ? encodeCursor(items[items.length - 1]) : null };
 }
 
-/** 回の一覧(新しい順) */
+/** 送信の一覧(新しい順) */
 export async function listDispatches(deps: AdminReadDeps, query: ListDispatchesQuery = {}): Promise<AdminPage<AdminDispatchSummary>> {
   await assertAdminActor(deps);
   const { cursor, limit, ...filter } = parseQuery(ListDispatchesQuerySchema, query);
@@ -135,7 +135,7 @@ export async function findDispatch(deps: AdminReadDeps, id: string): Promise<Adm
   });
 }
 
-/** 回の画面の絞りの選択肢: カテゴリー(受け口の全部、fork の物も)の鍵・表示名・種別。画面は種別ごとに並べる */
+/** 送信の画面の絞りの選択肢: カテゴリー(受け口の全部、fork の物も)の鍵・表示名・種別。画面は種別ごとに並べる */
 export type AdminDispatchCategoryOption = { key: string; label: string; kind: MessageKind };
 
 export async function dispatchCategoryOptions(
@@ -146,9 +146,9 @@ export async function dispatchCategoryOptions(
 }
 
 /**
- * 選んだ利用者に送った回(target.type = "recipients")の利用者 id(「同じ内容で送る」が同じ利用者を選んだ形で開くため)。
- * 回が宛先の一覧を持つ(予約・大きな送信)ならそこから、数だけの回(小さな送信)は配達の行から。
- * ADMIN_SEND_MAX_USERS を超える回・ほかの宛先の形は null(選び直し)
+ * 選んだ利用者への送信(target.type = "recipients")の利用者 id(「同じ内容で送る」が同じ利用者を選んだ形で開くため)。
+ * 送信が宛先の一覧を持つ(予約・大きな送信)ならそこから、数だけの送信(小さな送信)は配達の行から。
+ * ADMIN_SEND_MAX_USERS を超える送信・ほかの宛先の形は null(選び直し)
  */
 export async function targetUserIdsOf(deps: Pick<AdminReadDeps, "dispatchStore">, row: MessageDispatch): Promise<string[] | null> {
   const target = (row.target ?? null) as { type?: unknown; recipients?: unknown } | null;
@@ -168,7 +168,7 @@ export async function targetUserIdsOf(deps: Pick<AdminReadDeps, "dispatchStore">
   return ids.length > 0 && ids.length <= ADMIN_SEND_MAX_USERS ? ids : null;
 }
 
-/** 回の配達(古い順)。@throws DomainError(404) 回が無い */
+/** 送信の配達(古い順)。@throws DomainError(404) 送信が無い */
 export async function listDeliveries(
   deps: AdminReadDeps,
   dispatchId: string,

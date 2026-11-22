@@ -1,9 +1,9 @@
-// 管理の回の操作の検査(DB・定義・送る口・監査は偽物。store の規則は operationsStore.ts と同じ)
-// - d1 削除(D88、取り消し・取り下げの置き換え): どの状態の回も deleted_at、未送信を canceled、展開を止め、status はそのまま、
-//   消せる経路の remove を commit の後に呼ぶ(失敗は failedChannels)、削除済みは remove だけを呼び直し監査は書かない、監査 deleted
-// - d2 まとめて削除(回ごとの結果、無い id は reason not_found)と削除の見込み(書かない)
+// 管理の送信の操作の検査(DB・定義・送る口・監査は偽物。store の規則は operationsStore.ts と同じ)
+// - d1 削除(D88、取り消し・取り下げの置き換え): どの状態の送信も deleted_at、未送信を canceled、展開を止め、status はそのまま、
+//   消せる送信チャンネルの remove を commit の後に呼ぶ(失敗は failedChannels)、削除済みは remove だけを呼び直し監査は書かない、監査 deleted
+// - d2 まとめて削除(送信ごとの結果、無い id は reason not_found)と削除の見込み(書かない)
 // - d3 再送: 本文を残す連絡は failed を queued に戻す(lease 中の行は触らない、unknown は明示の時だけ・二重の可能性を残す)、
-//   record meta は回の vars で新しい回として送る(写しが無ければ 409。テンプレートの出どころは残し、消したテンプレートは deletedTemplate、D137)、
+//   record meta は送信の vars で新しい送信として送る(写しが無ければ 409。テンプレートの出どころは残し、消したテンプレートは deletedTemplate、D137)、
 //   秘密・required・削除・予約は 409、監査 resent
 // - 判定の印(画面のボタン)と service は同じ operationFlags
 // 実行: pnpm test src/features/core/messaging/services/server/admin
@@ -165,7 +165,7 @@ async function rejectsWith(run: Promise<unknown>, status: number, code?: string)
   });
 }
 
-test("d1 削除: どの状態でも deleted_at、未送信を止め、展開を止め、status はそのまま、消せる経路を消し、監査 deleted", async () => {
+test("d1 削除: どの状態でも deleted_at、未送信を止め、展開を止め、status はそのまま、消せる送信チャンネルを消し、監査 deleted", async () => {
   for (const status of ["scheduled", "processing", "completed", "cancelled"] as const) {
     const world = setup({ status, expand_cursor: status === "scheduled" ? null : "i:4" });
     const result = await adminDeleteDispatch(world.deps, "d1");
@@ -187,14 +187,14 @@ test("d1 削除: どの状態でも deleted_at、未送信を止め、展開を�
   }
 });
 
-test("d1 削除済みをもう一度: 同じ結果の形で remove だけを呼び直し、監査は書かない。無い回は 404、管理者でなければ 403", async () => {
+test("d1 削除済みをもう一度: 同じ結果の形で remove だけを呼び直し、監査は書かない。無い送信は 404、管理者でなければ 403", async () => {
   const world = setup({ deleted_at: NOW });
   const result = await adminDeleteDispatch(world.deps, "d1");
   assert.equal(result.alreadyDeleted, true);
   assert.equal(result.canceledDeliveries, 0);
   assert.deepEqual(world.removeCalls, ["d1"]);
   assert.equal(world.audits.length, 0);
-  assert.equal(world.rows.find((r) => r.id === "r3")?.status, "queued", "削除済みの回の行は触らない");
+  assert.equal(world.rows.find((r) => r.id === "r3")?.status, "queued", "削除済みの送信の行は触らない");
   await rejectsWith(adminResendFailed(world.deps, "d1"), 409, "deleted");
 
   await rejectsWith(adminDeleteDispatch(setup().deps, "none"), 404, "not_found");
@@ -210,7 +210,7 @@ test("d1 削除: remove の失敗は failedChannels に残し、削除そのも�
   assert.deepEqual(world.audits[0].metadata, { canceledDeliveries: 1, removed: {}, failedChannels: ["inApp"] });
 });
 
-test("d2 まとめて削除: 回ごとの結果(無い回は reason not_found)、入力の誤りは 400", async () => {
+test("d2 まとめて削除: 送信ごとの結果(無い送信は reason not_found)、入力の誤りは 400", async () => {
   const world = setup({ id: D1 });
   const result = await adminBulkDeleteDispatches(world.deps, { ids: [D1, D9, D1] });
   assert.equal(result.results.length, 2, "同じ id は 1 回");
@@ -222,7 +222,7 @@ test("d2 まとめて削除: 回ごとの結果(無い回は reason not_found)�
   await rejectsWith(adminBulkDeleteDispatches(world.deps, { ids: ["not-uuid"] }), 400);
 });
 
-test("d2 削除の見込み: 見つかった数・予約・未送信・経路ごとの送れた数と消せるか・共有のお知らせ。書かない", async () => {
+test("d2 削除の見込み: 見つかった数・予約・未送信・送信チャンネルごとの送れた数と消せるか・共有のお知らせ。書かない", async () => {
   const world = setup({ id: D1, status: "scheduled" });
   const summary = await adminDispatchDeleteSummary(world.deps, { ids: [D1, D9] });
   assert.deepEqual(summary, {
@@ -260,7 +260,7 @@ test("d3 再送(本文を残す連絡): failed だけ queued に戻し、lease �
   assert.deepEqual(world.audits[0].metadata, { mode: "requeue", failed: 1, unknown: 0, includeUnknown: false, newDispatchId: null });
 });
 
-test("d3 再送: unknown は明示の時だけ含め、二重の可能性を回に残す", async () => {
+test("d3 再送: unknown は明示の時だけ含め、二重の可能性を送信に残す", async () => {
   const world = setup();
   const result = await adminResendFailed(world.deps, "d1", { includeUnknown: true });
   assert.equal(result.unknown, 1);
@@ -271,7 +271,7 @@ test("d3 再送: unknown は明示の時だけ含め、二重の可能性を回�
   await rejectsWith(adminResendFailed(world.deps, "d1", { includeUnknown: "yes" }), 400);
 });
 
-test("d3 再送(record meta): 回の vars で新しい回として送り、同じ宛先を二度送らない。写しが無ければ 409", async () => {
+test("d3 再送(record meta): 送信の vars で新しい送信として送り、同じ宛先を二度送らない。写しが無ければ 409", async () => {
   const world = setup({ record: "meta" }, { definition: definitionOf({ record: "meta" }) });
   const result = await adminResendFailed(world.deps, "d1");
   assert.deepEqual(result, { dispatchId: "d1", mode: "new_dispatch", failed: 1, unknown: 0, newDispatchId: "d2" });
@@ -282,12 +282,12 @@ test("d3 再送(record meta): 回の vars で新しい回として送り、同�
   assert.deepEqual(world.continued, []);
   await rejectsWith(adminResendFailed(world.deps, "d1"), 409, "no_failed");
 
-  // 閉じた meta の回は vars も欄の中身も消えている
+  // 閉じた meta の送信は vars も欄の中身も消えている
   const noCopy = setup({ record: "meta", vars: null, values: null }, { definition: definitionOf({ record: "meta" }) });
   await rejectsWith(adminResendFailed(noCopy.deps, "d1"), 409, "no_input_copy");
 });
 
-test("d3 再送(新しい回): テンプレートの回は同じ出どころを残し、テンプレートを消した回は消したテンプレートの出どころのまま(D137)", async () => {
+test("d3 再送(新しい送信): テンプレートの送信は同じ出どころを残し、テンプレートを消した送信は消したテンプレートの出どころのまま(D137)", async () => {
   const kept = setup(
     { record: "meta", message_key: null, template_id: "tpl-1", template_version: 2, template_edited: true },
     { definition: definitionOf({ record: "meta" }) },
@@ -295,7 +295,7 @@ test("d3 再送(新しい回): テンプレートの回は同じ出どころを�
   await adminResendFailed(kept.deps, "d1");
   assert.deepEqual(kept.sentNew[0].template, { template: { id: "tpl-1", version: 2, edited: true } });
 
-  // 消したテンプレート: template_id は null、版の番号と直した印は回のまま
+  // 消したテンプレート: template_id は null、版の番号と直した印は送信のまま
   const deleted = setup(
     { record: "meta", message_key: null, template_id: null, template_version: 2, template_edited: false },
     { definition: definitionOf({ record: "meta" }) },
@@ -303,7 +303,7 @@ test("d3 再送(新しい回): テンプレートの回は同じ出どころを�
   await adminResendFailed(deleted.deps, "d1");
   assert.deepEqual(deleted.sentNew[0].template, { deletedTemplate: { version: 2, edited: false } });
 
-  // 白紙の回は白紙の鍵、コードの連絡は出どころなし
+  // 白紙の送信は白紙の鍵、定義連絡は出どころなし
   const blank = setup({ record: "meta", message_key: null, system_template: "promotion" }, { definition: definitionOf({ record: "meta" }) });
   await adminResendFailed(blank.deps, "d1");
   assert.deepEqual(blank.sentNew[0].template, { system: "promotion" });
@@ -333,7 +333,7 @@ test("判定の印: 画面のボタンと service は同じ判定", () => {
   assert.deepEqual(operationFlags({ ...base, status: "processing" }, policy, { failed: 0, unknown: 0 }).canContinue, { allowed: true, reason: null });
   assert.equal(operationFlags(base, policy, { failed: 0, unknown: 0 }).canResend.reason, "no_failed");
   assert.equal(operationFlags({ ...base, record: "meta", vars: null, values: null }, { ...policy, record: "meta" }, { failed: 1, unknown: 0 }).canResend.reason, "no_input_copy");
-  // vars だけ残って欄の中身の無い回も新しい回を描けない
+  // vars だけ残って欄の中身の無い送信も新しい送信を描けない
   assert.equal(operationFlags({ ...base, record: "meta", values: null }, { ...policy, record: "meta" }, { failed: 1, unknown: 0 }).canResend.reason, "no_input_copy");
   const deleted = operationFlags({ ...base, deleted_at: NOW }, policy, { failed: 1, unknown: 0 });
   assert.deepEqual([deleted.canDelete.reason, deleted.canResend.reason, deleted.canContinue.reason], ["deleted", "deleted", "deleted"]);

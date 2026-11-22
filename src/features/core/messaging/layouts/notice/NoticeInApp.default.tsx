@@ -1,5 +1,5 @@
 // src/features/core/messaging/layouts/notice/NoticeInApp.default.tsx
-// ひな形「汎用のお知らせ」のお知らせ(受け取り箱の詳しい表示)の既定の見た目。props だけの部品(hook なし)。
+// レイアウト「汎用のお知らせ」のお知らせ(受け取り箱の詳しい表示)の既定の見た目。props だけの部品(hook なし)。
 // ブロックを 1 種類ずつ components の部品で描く(生の HTML は使わない。区切り = 線の Block、表 = Grid、箇条書き = Stack)。
 // 件名は呼び手(受け取り箱の画面)が見出しに出すので、ここは本文のブロックだけ
 

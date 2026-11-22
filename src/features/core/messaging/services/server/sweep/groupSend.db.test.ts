@@ -1,11 +1,11 @@
 // src/features/core/messaging/services/server/sweep/groupSend.db.test.ts
 // グループ宛ての送信の固定(D58)の実 DB テスト。本物の送る口・掃き出しの store・userGroup の評価の口(門は開に差し替え)で、
-// 回は「続きを送る」(continueDispatch = その回だけ)で進める(開発 DB の他の回には触れない)。
-// 掃き出しの store は取引を受けないので戻せない: 書いた行(利用者・グループ・回)は after で消す(回を消すと配達・一覧も消える)。
+// 送信は「続きを送る」(continueDispatch = その送信だけ)で進める(開発 DB の他の送信には触れない)。
+// 掃き出しの store は取引を受けないので戻せない: 書いた行(利用者・グループ・送信)は after で消す(送信を消すと配達・一覧も消える)。
 // DATABASE_URL が無ければ skip。表が無ければ失敗する(先に pnpm db:push: message_dispatch_recipients)。
 // - 最初の 1 回で一員を 1 文で一覧へ書く(配達なし)。利用できない利用者・送り始めより後の登録は入らない
 // - 書いた後でグループが変わっても宛先は変わらない(一覧の段は束ごとに再開)
-// - 送り始め: 人数の上限は 409 で回を作らない。固定の時に門が閉・人数の上限なら回を cancelled + cancelReason
+// - 送り始め: 人数の上限は 409 で送信を作らない。固定の時に門が閉・人数の上限なら送信を cancelled + cancelReason
 // - 全員・ロールの送り始めの線: その時刻より後に登録した利用者を引かない
 // 実行: pnpm test --db src/features/core/messaging/services/server/sweep/groupSend.db.test.ts
 
@@ -77,7 +77,7 @@ describe("グループ宛ての送信の固定(実 DB、書いた行は消す)",
     cleanup.push(() => db.delete(G.UserGroupTable).where(eq(G.UserGroupTable.id, group!.id)));
     await db.insert(G.UserGroupMemberTable).values([a, b, inactive, later].map((user_id) => ({ group_id: group!.id, user_id })));
 
-    // 連絡の部品: 本物の store、テストの経路(宛先 = 利用者 id)、門は開に差し替えた評価の口
+    // 連絡の部品: 本物の store、テストの送信チャンネル(宛先 = 利用者 id)、門は開に差し替えた評価の口
     const notice = defineMessage({
       key: `test.groupSend`,
       label: "グループ宛てのテスト",
@@ -102,7 +102,7 @@ describe("グループ宛ての送信の固定(実 DB、書いた行は消す)",
       ...sendMessageDeps,
       channels: { test: channel },
       categories: TEST_CATEGORIES,
-      // テストのひな形(card)も並べる(本物の受け口に重ねる)
+      // テストのレイアウト(card)も並べる(本物の受け口に重ねる)
       layouts: { ...sendMessageDeps.layouts, ...TEST_LAYOUTS },
       registry: { [notice.key]: { key: notice.key, definition: async () => ({ message: notice }) } },
       adminOverrides: undefined,
@@ -154,7 +154,7 @@ describe("グループ宛ての送信の固定(実 DB、書いた行は消す)",
     assert.equal(done.recipient_count, 2);
     assert.equal(done.status, "completed");
 
-    // 送り始めの人数の上限は 409(回を作らない)
+    // 送り始めの人数の上限は 409(送信を作らない)
     memberLimit = 1;
     await assert.rejects(send(), (error) => code(error, 409));
     // 固定の時に上限を超えた・門が閉 → cancelled + cancelReason(配達・一覧なし)

@@ -1,17 +1,17 @@
 // src/features/core/messaging/services/server/sweep/expandStep.ts
 //
-// 大きな送信・全員・ロール・グループ宛ての回を 1 束だけ展開する(cron と「続きを送る」が呼ぶ)。
+// 大きな送信・全員・ロール・グループ宛ての送信を 1 束だけ展開する(cron と「続きを送る」が呼ぶ)。
 // 再開の位置は message_dispatches.expand_cursor(null = まだ / keyset の印か "i:<番号>" = 途中 / MESSAGE_EXPAND_DONE = 終えた)。
 // - 全員・ロール・グループ: 宛先の無い利用者は行を作らず skipped_no_address に数える。recipient_count に束の人数を足す
 // - 選んだ宛先の一覧(target.type = "recipients"): 宛先の無い受信者は suppressed + no_address の行。見つからない利用者は recipient_count から引く
 // - 配信停止(好み・宛先の停止)を当てる: 選んだ宛先は理由つきの suppressed の行、全員・ロール・グループは行を作らず suppressed に数える
-// - 全員・ロール宛てのお知らせ(inApp)は、中身が受信者に依らなければ受信者ごとの行を作らず、最初の束で回に 1 行の共有の
+// - 全員・ロール宛てのお知らせ(inApp)は、中身が受信者に依らなければ受信者ごとの行を作らず、最初の束で送信に 1 行の共有の
 //   message_inbox_items(user_id null、target_roles = ロールか null)を書き、数は束ごとに targeted・sent へ足す(D32)。
-//   共有の行は利用者ごとの inApp の好みを書く時には当てない(受け取り箱の利用者の API が回の category で見る人の好みを当てる)
-// - 送り始めの線(D58): 全員・ロールは回の scheduled_at ?? createdAt 以前に登録した利用者だけ(それより後の登録は入らない)
+//   共有の行は利用者ごとの inApp の好みを書く時には当てない(受け取り箱の利用者の API が送信の category で見る人の好みを当てる)
+// - 送り始めの線(D58): 全員・ロールは送信の scheduled_at ?? createdAt 以前に登録した利用者だけ(それより後の登録は入らない)
 // - グループ宛て(D58): 最初の 1 回で 1 文の INSERT … SELECT により 1 つの時点の一員(利用できる利用者・線以前の登録)を
-//   回の受信者の一覧へ書く(配達の行は作らない)。その後は一覧だけから束ごとに配達の行を作る(お知らせは受信者ごと、共有の行は作らない)。
-//   固定の時にグループが使えない(門が閉・しまった・壊れた・版が無い・人数の上限・時間の上限)→ 回を cancelled にし metadata.cancelReason に理由
+//   送信の受信者の一覧へ書く(配達の行は作らない)。その後は一覧だけから束ごとに配達の行を作る(お知らせは受信者ごと、共有の行は作らない)。
+//   固定の時にグループが使えない(門が閉・しまった・壊れた・版が無い・人数の上限・時間の上限)→ 送信を cancelled にし metadata.cancelReason に理由
 
 import { DomainError } from "@/lib/errors";
 import { listVariables } from "@/lib/templateVariables";
@@ -51,12 +51,12 @@ const LIST_PREFIX = "l:";
 const GROUPS_CLOSED = "ユーザーグループの機能が閉じています";
 const FREEZE_TIMEOUT = "グループの一員の書き出しが時間内に終わりませんでした(条件を絞るか定期計算にしてください)";
 
-/** 送り始めの線(予約は予約の時刻、他は回を作った時刻) */
+/** 送り始めの線(予約は予約の時刻、他は送信を作った時刻) */
 function sendStartOf(dispatch: MessageDispatch): Date {
   return dispatch.scheduled_at ?? dispatch.createdAt;
 }
 
-/** 配達の行を 1 つも作る前に回を止める(グループの固定ができない時) */
+/** 配達の行を 1 つも作る前に送信を止める(グループの固定ができない時) */
 function cancelPatch(dispatch: MessageDispatch, reason: string, now: Date): Partial<MessageDispatchInsert> {
   return {
     status: "cancelled",
@@ -67,7 +67,7 @@ function cancelPatch(dispatch: MessageDispatch, reason: string, now: Date): Part
   };
 }
 
-/** グループ宛ての最初の 1 回: 一員を回の受信者の一覧へ 1 文で書く書き込み(書けなければ回を止める) */
+/** グループ宛ての最初の 1 回: 一員を送信の受信者の一覧へ 1 文で書く書き込み(書けなければ送信を止める) */
 async function freezeGroup(
   deps: MessageSendDeps,
   dispatch: MessageDispatch,
@@ -94,7 +94,7 @@ async function freezeGroup(
   }
 }
 const IN_APP = "inApp";
-/** 受信者に依らない差し込みの鍵(回の vars の鍵とこれだけなら共有の行にできる) */
+/** 受信者に依らない差し込みの鍵(送信の vars の鍵とこれだけなら共有の行にできる) */
 const RECIPIENT_INDEPENDENT_CONTEXT = ["serviceName", "appBaseUrl"];
 
 function collectStrings(value: unknown, out: string[] = []): string[] {
@@ -106,19 +106,19 @@ function collectStrings(value: unknown, out: string[] = []): string[] {
 
 /**
  * 全員・ロール宛てのお知らせの共有の行の中身(共有にできない時は null)。
- * 定義が読めない・ひな形の欄の中身が受信者に依る鍵を使う・組めない → null(受信者ごとの行にする)
+ * 定義が読めない・レイアウトの欄の中身が受信者に依る鍵を使う・組めない → null(受信者ごとの行にする)
  */
 async function sharedInAppContent(
   deps: MessageSendDeps,
   dispatch: MessageDispatch,
 ): Promise<Record<string, unknown> | null> {
   try {
-    // 回に残した物だけで描く(欄の中身が無い・読めなければ受信者ごとの行にする。送る時に止まる)
+    // 送信に残した物だけで描く(欄の中身が無い・読めなければ受信者ごとの行にする。送る時に止まる)
     if (!dispatch.values) return null;
     const loaded = await resolvedOfDispatch(deps, dispatch);
     if ("error" in loaded) return null;
     const { resolved } = loaded;
-    // 差し込みの表 = vars ∪ 専用の埋め込み情報の値(テンプレートから送った回、指令 58)
+    // 差し込みの表 = vars ∪ 専用の埋め込み情報の値(テンプレートからの送信、指令 58)
     const vars = { ...(dispatch.vars ?? {}), ...(dispatch.embedded_values ?? {}) } as Record<string, unknown>;
     // throttle のある連絡の {{collapsedCount}} は共有の行では 1(全員・ロール宛ては間引かない)
     const throttleValues = resolved.throttle ? { collapsedCount: 1 } : {};
@@ -159,7 +159,7 @@ function mergeCounts(
   return counts;
 }
 
-/** 回の展開の 1 束(書き込みの中身を返す。書くのは store の expandOne) */
+/** 送信の展開の 1 束(書き込みの中身を返す。書くのは store の expandOne) */
 export async function expandDispatchChunk(deps: MessageSendDeps, dispatch: MessageDispatch): Promise<ExpansionWrite> {
   const now = deps.now();
   const target = dispatch.target as StoredTarget | null;
@@ -189,12 +189,12 @@ export async function expandDispatchChunk(deps: MessageSendDeps, dispatch: Messa
     const result = await expandExplicit(deps, { channels, recipients: slice, stops });
     planned = result.planned;
     counts = result.counts;
-    // 見つからない利用者と、どの経路でも止められた受信者を引く(D31)
+    // 見つからない利用者と、どの送信チャンネルでも止められた受信者を引く(D31)
     recipientCount -= result.unknownUserIds.length + result.stoppedRecipients;
     const end = start + slice.length;
     nextCursor = end >= list.length ? MESSAGE_EXPAND_DONE : `${INDEX_PREFIX}${end}`;
   } else {
-    // グループは回の受信者の一覧から、全員・ロールは送り始めの線以前の登録から
+    // グループは送信の受信者の一覧から、全員・ロールは送り始めの線以前の登録から
     const chunk =
       target.type === "group"
         ? await deps.store.listRecipientIds(dispatch.id, dispatch.expand_cursor?.slice(LIST_PREFIX.length) || null, deps.config.expandChunkSize)
@@ -215,14 +215,14 @@ export async function expandDispatchChunk(deps: MessageSendDeps, dispatch: Messa
       counts[IN_APP] = { targeted: userCount, skippedNoAddress: 0, suppressed: 0 };
       sharedSent = userCount;
       if (dispatch.expand_cursor === null) {
-        // 共有の行も要約の列 + ひな形・欄の中身(記録の段に依らず残す、D120。秘密の鍵は回の vars に無いので差し込まれない)
+        // 共有の行も要約の列 + レイアウト・欄の中身(記録の段に依らず残す、D120。秘密の鍵は送信の vars に無いので差し込まれない)
         inboxItem = {
           ...inAppItemRow(shared, { dispatchId: dispatch.id, userId: null, now }),
           target_roles: target.type === "role" ? [...target.roles] : null,
         };
       }
     }
-    // どの経路でも止められた利用者は数えない(共有のお知らせが届く送信では全員に届くので引かない、D31)
+    // どの送信チャンネルでも止められた利用者は数えない(共有のお知らせが届く送信では全員に届くので引かない、D31)
     recipientCount += userCount - (shared ? 0 : result.stoppedUserIds.size);
     nextCursor = chunk.nextCursor === null ? MESSAGE_EXPAND_DONE : target.type === "group" ? `${LIST_PREFIX}${chunk.nextCursor}` : chunk.nextCursor;
   }

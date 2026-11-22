@@ -2,9 +2,9 @@
 //
 // 保存されたテンプレート（管理者が画面で書く連絡の中身）と、その版の履歴。
 // - message_templates: 今の中身（= 最新の版。状態は持たない: 保存 = 公開 D134、要らなくなれば消す D137）
-// - message_template_versions: 追記だけ。版は不変。回は template_id + template_version で版を固定する（テンプレートを消すと版も消え、回の template_id は null、版の番号は残る）
-// 中身 = カテゴリー + ひな形 + 欄の中身 + 専用の埋め込み情報の宣言(指令 58、D113・D126)。経路は持たない: 送る経路は送る時のカテゴリーの経路の中の絞り。
-// 版は保存の時の ひな形・ひな形の版・欄の中身・宣言 を持つ(ひな形を替えると中身は新しいひな形の物だけ、D113)
+// - message_template_versions: 追記だけ。版は不変。送信は template_id + template_version で版を固定する（テンプレートを消すと版も消え、送信の template_id は null、版の番号は残る）
+// 中身 = カテゴリー + レイアウト + 欄の中身 + 専用の埋め込み情報の宣言(指令 58、D113・D126)。送信チャンネルは持たない: 送る送信チャンネルは送る時のカテゴリーの送信チャンネルの中の絞り。
+// 版は保存の時の レイアウト・レイアウトの版・欄の中身・宣言 を持つ(レイアウトを替えると中身は新しいレイアウトの物だけ、D113)
 
 import {
   integer,
@@ -26,13 +26,13 @@ export const MessageTemplateTable = pgTable(
     key: text("key").notNull(),
     name: text("name").notNull(),
     description: text("description"),
-    /** 種類の鍵（配信停止の単位） */
+    /** カテゴリーの鍵（配信停止の単位） */
     category: text("category").notNull().default("promotion"),
-    /** ひな形の鍵（messaging/layouts の受け口の管理者が選べる物） */
+    /** レイアウトの鍵（messaging/layouts の受け口の管理者が選べる物） */
     layout: text("layout").notNull(),
-    /** 保存した時のひな形の版（読む時に改版の対応で今の版へ読み替える） */
+    /** 保存した時のレイアウトの版（読む時に改版の対応で今の版へ読み替える） */
     layout_version: integer("layout_version").notNull().default(1),
-    /** ひな形の欄の中身（{{鍵}} / {{別名}} のまま） */
+    /** レイアウトの欄の中身（{{鍵}} / {{別名}} のまま） */
     values: jsonb("values").$type<Record<string, unknown>>().notNull(),
     /** 専用の埋め込み情報の宣言（送る人が送る時に値を入れる） */
     vars: jsonb("vars")

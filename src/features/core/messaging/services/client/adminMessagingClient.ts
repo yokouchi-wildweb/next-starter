@@ -2,7 +2,7 @@
 
 // src/features/core/messaging/services/client/adminMessagingClient.ts
 //
-// 管理の送信と回の読む口の API(/api/admin/messaging/**)。一覧と配達はカーソル(続きの位置)で取る。
+// 管理の送信を送る口と読む口の API(/api/admin/messaging/**)。一覧と配達はカーソル(続きの位置)で取る。
 // 応答の形は @/hooks/cursorPage の CursorPage と同じ(useInfiniteScrollQuery のカーソルのモードにそのまま渡せる)。
 // 型は server の DTO(D37)を型だけ読む
 
@@ -62,7 +62,7 @@ export type {
 /** カーソルで取る 1 回分(CursorPage と同じ形) */
 export type AdminCursorPage<T> = { items: T[]; nextCursor: string | null };
 
-/** 回の一覧の絞り込み(どれも省略可) */
+/** 送信の一覧の絞り込み(どれも省略可) */
 export type AdminDispatchFilters = {
   /** 作った時刻の下限(ISO か YYYY-MM-DD、以上) */
   from?: string;
@@ -74,7 +74,7 @@ export type AdminDispatchFilters = {
   category?: string;
   channel?: string;
   status?: string;
-  /** 削除した回: exclude = 出さない(既定)/ only = 削除した回だけ / include = 両方(D88) */
+  /** 削除した送信: exclude = 出さない(既定)/ only = 削除した送信だけ / include = 両方(D88) */
   deleted?: "exclude" | "only" | "include";
 };
 
@@ -136,7 +136,7 @@ export async function adminBulkSend(input: AdminBulkSendInput): Promise<AdminBul
   }
 }
 
-/** 回の一覧(新しい順) */
+/** 送信の一覧(新しい順) */
 export async function listAdminDispatches(
   params: AdminDispatchFilters & CursorParams = {},
 ): Promise<AdminCursorPage<AdminDispatchSummary>> {
@@ -150,7 +150,7 @@ export async function listAdminDispatches(
   }
 }
 
-/** 回の画面の絞りの選択肢(カテゴリーの鍵・表示名・種別) */
+/** 送信の画面の絞りの選択肢(カテゴリーの鍵・表示名・種別) */
 export async function getAdminDispatchCategories(): Promise<AdminDispatchCategoryOption[]> {
   try {
     const res = await axios.get<{ items: AdminDispatchCategoryOption[] }>(`${BASE}/dispatches/categories`);
@@ -160,7 +160,7 @@ export async function getAdminDispatchCategories(): Promise<AdminDispatchCategor
   }
 }
 
-/** 回 1 件 */
+/** 送信 1 件 */
 export async function getAdminDispatch(id: string): Promise<AdminDispatchDetail> {
   try {
     const res = await axios.get<AdminDispatchDetail>(`${BASE}/dispatches/${encodeURIComponent(id)}`);
@@ -170,7 +170,7 @@ export async function getAdminDispatch(id: string): Promise<AdminDispatchDetail>
   }
 }
 
-/** 送った回のプレビュー(回のひな形と欄の中身を回の値で描く。メールの HTML・お知らせの描き方の材料) */
+/** 送信のプレビュー(送信のレイアウトと欄の中身を送信の値で描く。メールの HTML・お知らせの描き方の材料) */
 export async function getAdminDispatchPreview(id: string): Promise<AdminDispatchPreview> {
   try {
     const res = await axios.get<AdminDispatchPreview>(`${BASE}/dispatches/${encodeURIComponent(id)}/preview`);
@@ -180,7 +180,7 @@ export async function getAdminDispatchPreview(id: string): Promise<AdminDispatch
   }
 }
 
-/** 回の配達(作った順、keyset) */
+/** 送信の配達(作った順、keyset) */
 export async function listAdminDispatchDeliveries(
   id: string,
   params: AdminDeliveryFilters & CursorParams = {},
@@ -196,7 +196,7 @@ export async function listAdminDispatchDeliveries(
   }
 }
 
-/** 回を 1 束だけ進める(続きを送る。processing の回だけ) */
+/** 送信を 1 束だけ進める(続きを送る。processing の送信だけ) */
 export async function continueAdminDispatch(id: string): Promise<ContinueSendingResult> {
   try {
     const res = await axios.post<ContinueSendingResult>(`${BASE}/dispatches/${encodeURIComponent(id)}/continue`);
@@ -206,7 +206,7 @@ export async function continueAdminDispatch(id: string): Promise<ContinueSending
   }
 }
 
-/** 回の削除(D88、どの状態でも。未送信・予約は送られず、お知らせは消える。送ったメール・LINE は残る。戻せない) */
+/** 送信の削除(D88、どの状態でも。未送信・予約は送られず、お知らせは消える。送ったメール・LINE は残る。戻せない) */
 export async function deleteAdminDispatch(id: string): Promise<AdminDeleteResult> {
   try {
     const res = await axios.delete<AdminDeleteResult>(`${BASE}/dispatches/${encodeURIComponent(id)}`);
@@ -216,7 +216,7 @@ export async function deleteAdminDispatch(id: string): Promise<AdminDeleteResult
   }
 }
 
-/** 回のまとめての削除(1〜100 件、回ごとの結果) */
+/** 送信のまとめての削除(1〜100 件、送信ごとの結果) */
 export async function bulkDeleteAdminDispatches(ids: readonly string[]): Promise<AdminBulkDeleteResult> {
   try {
     const res = await axios.post<AdminBulkDeleteResult>(`${BASE}/dispatches/bulk-delete`, { ids });
@@ -226,7 +226,7 @@ export async function bulkDeleteAdminDispatches(ids: readonly string[]): Promise
   }
 }
 
-/** 削除の見込み(確認の画面。経路ごとの送れた数・消せるか・未送信・予約の数) */
+/** 削除の見込み(確認の画面。送信チャンネルごとの送れた数・消せるか・未送信・予約の数) */
 export async function adminDispatchDeleteSummary(ids: readonly string[]): Promise<AdminDeleteSummary> {
   try {
     const res = await axios.post<AdminDeleteSummary>(`${BASE}/dispatches/delete-summary`, { ids });
@@ -236,7 +236,7 @@ export async function adminDispatchDeleteSummary(ids: readonly string[]): Promis
   }
 }
 
-/** 失敗の再送(includeUnknown = 送れたか分からない宛先も含める。二重の可能性を回に残す) */
+/** 失敗の再送(includeUnknown = 送れたか分からない宛先も含める。二重の可能性を送信に残す) */
 export async function resendAdminDispatch(id: string, input: { includeUnknown?: boolean } = {}): Promise<AdminResendResult> {
   try {
     const res = await axios.post<AdminResendResult>(`${BASE}/dispatches/${encodeURIComponent(id)}/resend`, input);

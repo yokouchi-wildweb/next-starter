@@ -1,4 +1,4 @@
-// LINE の経路の項目の検査(push は偽物)
+// LINE の送信チャンネルの項目の検査(push は偽物)
 // - 既定は切(messaging の config の値 = enabled false)
 // - 宛先は LINE の連携の line_user_id、本文はテキスト
 // - lib/line の LineApiError の retryable → transient(429・5xx・応答なし)/ 他 → permanent / LineApiError でない例外 → unknown

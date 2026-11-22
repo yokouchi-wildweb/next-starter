@@ -1,8 +1,8 @@
 // src/features/core/messaging/services/server/sweep/sweep.ts
 //
 // 送信の掃き出し(cron messaging-send-sweep)と「続きを送る」の本体(部品 deps を受ける。結びは index.ts)。
-// 1 回の実行: sending のまま lease が切れた行 → unknown / 予約の時刻が来た回 → processing /
-//   展開の続き(expandChunksPerRun 束まで)/ 送る時刻が来た配達(lease + FOR UPDATE SKIP LOCKED、予算の中)/ 終えた回を閉じる
+// 1 回の実行: sending のまま lease が切れた行 → unknown / 予約の時刻が来た送信 → processing /
+//   展開の続き(expandChunksPerRun 束まで)/ 送る時刻が来た配達(lease + FOR UPDATE SKIP LOCKED、予算の中)/ 終えた送信を閉じる
 // cron が 1 日 1 回の環境(Vercel Hobby)では遅れるだけで壊れない(要求の中で最初の束を送り、続きは管理の「続きを送る」)
 
 import { DomainError } from "@/lib/errors";
@@ -77,9 +77,9 @@ export async function sweepMessages(deps: MessageSweepDeps, params: { deadline: 
 export type ContinueSendingResult = { expanded: boolean; claimed: number; sent: number; failed: number; completed: boolean };
 
 /**
- * 1 つの回を 1 束だけ進める(展開の続き 1 束 + 送る時刻が来た配達 1 束 + 閉じられるなら閉じる)。
+ * 1 つの送信を 1 束だけ進める(展開の続き 1 束 + 送る時刻が来た配達 1 束 + 閉じられるなら閉じる)。
  * 管理の「続きを送る」(API・画面は管理の指令)と cron の遅い環境のため。
- * @throws DomainError(404) 回が無い / DomainError(409) 進められない状態(processing 以外)
+ * @throws DomainError(404) 送信が無い / DomainError(409) 進められない状態(processing 以外)
  */
 export async function continueDispatch(deps: MessageSweepDeps, dispatchId: string): Promise<ContinueSendingResult> {
   const [dispatch] = await deps.sweepStore.findDispatches([dispatchId]);

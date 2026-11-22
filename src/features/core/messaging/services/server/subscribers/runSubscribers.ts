@@ -3,7 +3,7 @@
 // 購読の cron(messaging-subscribers、D47)。購読ごとに印(message_subscriber_cursors)から seq 順に事件を読み、handle へ渡す。
 // - 読むのは created_at が now − lagSeconds より前の事件だけ(seq は insert の順で commit の順ではない。遅れて commit した取引を
 //   飛ばさない余白。lag より長く commit が遅れた取引の事件は飛ぶことがある)
-// - on(種類)と filter(連絡の鍵・経路)に合う事件だけを batchSize ずつ。成功で印を進める(少なくとも 1 回 = 同じ事件が 2 回渡ることがある。
+// - on(種類)と filter(連絡の鍵・送信チャンネル)に合う事件だけを batchSize ずつ。成功で印を進める(少なくとも 1 回 = 同じ事件が 2 回渡ることがある。
 //   handle は事件の id で冪等にする)
 // - 束が失敗したら 1 件ずつ渡し直して失敗した事件を見つける: それより前は済み、失敗した事件は attempts++ して印を進めず次の実行へ。
 //   同じ事件が maxAttempts 回失敗したら隔離して(quarantined_at)印を進める。隔離した事件は reprocessQuarantined で渡し直せる

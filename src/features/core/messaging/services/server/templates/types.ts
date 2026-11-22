@@ -7,7 +7,7 @@ import type {
   MessageTemplateVersionInsert,
 } from "../../../entities/model";
 
-/** テンプレートを消す時に画像を結び直す回(欄の中身を残している回) */
+/** テンプレートを消す時に画像を結び直す送信(欄の中身を残している送信) */
 export type TemplateKeptDispatch = {
   id: string;
   actor_id: string | null;
@@ -30,13 +30,13 @@ export type MessageTemplateStore<Tx> = {
   /** 行を排他で読む(更新・削除の取引の中) */
   lockForUpdate: (tx: Tx, id: string) => Promise<MessageTemplate | null>;
   insert: (tx: Tx, values: MessageTemplateInsert) => Promise<MessageTemplate>;
-  /** 行を消す(版は FK の cascade で消え、回の template_id は FK の set null で null になる) */
+  /** 行を消す(版は FK の cascade で消え、送信の template_id は FK の set null で null になる) */
   remove: (tx: Tx, id: string) => Promise<void>;
   /**
-   * このテンプレートから送り、欄の中身を残している回(消していない回)を排他で読む(削除の前に画像を回へ結び直す、D137)
+   * このテンプレートから送り、欄の中身を残している送信(消していない送信)を排他で読む(削除の前に画像を送信へ結び直す、D137)
    */
   lockKeptDispatches: (tx: Tx, templateId: string) => Promise<TemplateKeptDispatch[]>;
-  /** 回の欄の中身と metadata(結んだ画像の対応)を書き換える */
+  /** 送信の欄の中身と metadata(結んだ画像の対応)を書き換える */
   updateDispatchImages: (tx: Tx, dispatchId: string, patch: { values: Record<string, unknown>; metadata: Record<string, unknown> }) => Promise<void>;
   update: (tx: Tx, id: string, patch: Partial<MessageTemplateInsert>) => Promise<MessageTemplate>;
   /** 最新の版(無ければ null) */

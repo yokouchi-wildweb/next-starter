@@ -1,7 +1,7 @@
-// 会話の間引き(D48)の検査。DB はメモリの store(鍵ごとの mutex)、経路はテスト用の inApp とメール役の mail。
-// - untilRead: 最初の 1 通はふつう(鍵つきのお知らせ・回数 1)、未読の間は置き換え(回数 + 1・前の回を残す・上に出す)+ 他の経路は throttled
+// 会話の間引き(D48)の検査。DB はメモリの store(鍵ごとの mutex)、送信チャンネルはテスト用の inApp とメール役の mail。
+// - untilRead: 最初の 1 通はふつう(鍵つきのお知らせ・回数 1)、未読の間は置き換え(回数 + 1・前の送信を残す・上に出す)+ 他の送信チャンネルは throttled
 // - 既読の後・別の by の値はふつう。window(と inApp の無い untilRead)は前の送りから seconds 以内だけ間引く
-// - {{collapsedCount}} が埋まる。全員・ロール宛ての回は間引かない。同時の 2 つの送りでもお知らせ 1 つ・メール 1 通。cron の送りも同じ
+// - {{collapsedCount}} が埋まる。全員・ロール宛ての送信は間引かない。同時の 2 つの送りでもお知らせ 1 つ・メール 1 通。cron の送りも同じ
 // 実行: pnpm test src/features/core/messaging/services/server/sendMessage
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -22,7 +22,7 @@ const chat = defineTestMessage({
   category: "chat",
   vars: z.object({ roomId: z.string(), text: z.string() }),
   throttle: { by: ["roomId"], mode: "untilRead", seconds: 600 },
-  // 両方の経路が同じひな形の要約から描く(まとめた回数は題に出す)
+  // 両方の送信チャンネルが同じレイアウトの要約から描く(まとめた回数は題に出す)
   layout: "card",
   values: { title: "新着 {{collapsedCount}} 件", body: "{{text}}" },
 });
@@ -64,7 +64,7 @@ test("untilRead: 最初の 1 通はふつうに送り、鍵つきのお知らせ
   assert.equal(item.collapsed_count, 1);
   assert.equal(item.title, "新着 1 件");
   assert.equal(item.dispatch_id, result.dispatchId);
-  // お知らせは間引きが書く(inApp の経路の send は通らない)。メールの {{collapsedCount}} は 1
+  // お知らせは間引きが書く(inApp の送信チャンネルの send は通らない)。メールの {{collapsedCount}} は 1
   assert.equal(ctx.inApp.calls.length, 0);
   assert.equal(mailSent(ctx), 1);
   assert.equal(ctx.mail.calls[0][0].content.body, "こんにちは");
@@ -76,7 +76,7 @@ test("untilRead: 最初の 1 通はふつうに送り、鍵つきのお知らせ
   assert.equal(result.channelCounts.mail.sent, 1);
 });
 
-test("untilRead: 未読の間は置き換え(中身・回数・前の回・上に出す)、他の経路は throttled", async () => {
+test("untilRead: 未読の間は置き換え(中身・回数・前の送信・上に出す)、他の送信チャンネルは throttled", async () => {
   const ctx = setup();
   const first = await send(ctx, "1 通目");
   ctx.deps.setNow(later(30));
@@ -164,7 +164,7 @@ test("同時の 2 つの送り: 鍵の lock でお知らせ 1 つ・メール 1 
   assert.deepEqual(statuses, ["sent", "suppressed"]);
 });
 
-test("全員・ロール宛ての回は間引かない(共有の 1 行、メールも全部送る)", async () => {
+test("全員・ロール宛ての送信は間引かない(共有の 1 行、メールも全部送る)", async () => {
   const ctx = setup();
   await ctx.sender.sendMessageToMany(chat, { target: { type: "all" }, vars: { roomId: "r1", text: "全員" } });
   await ctx.sender.sendMessageToMany(chat, { target: { type: "all" }, vars: { roomId: "r1", text: "全員 2" } });
@@ -176,10 +176,10 @@ test("全員・ロール宛ての回は間引かない(共有の 1 行、メー�
   assert.ok(ctx.world.store.deliveries.every((row) => row.throttle_key === null));
 });
 
-test("cron の送り: 束をまたいでも受信者ごとに 1 度だけ決め、次の回は置き換え + throttled", async () => {
+test("cron の送り: 束をまたいでも受信者ごとに 1 度だけ決め、次の送信は置き換え + throttled", async () => {
   const ctx = setup(3);
   const recipients = ["u1", "u2", "u3"].map((userId) => ({ userId }));
-  // 3 人 × 2 経路 = 6 行。要求の中は最初の 2 行、残りは cron
+  // 3 人 × 2 送信チャンネル = 6 行。要求の中は最初の 2 行、残りは cron
   await ctx.sender.sendMessageToMany(chat, { recipients, vars: { roomId: "r1", text: "1" } });
   await sweepMessages(ctx.deps, { deadline: new Date(Date.now() + 60_000) });
   assert.equal(ctx.throttle.items.length, 3);

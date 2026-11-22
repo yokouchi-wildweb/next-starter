@@ -1,6 +1,6 @@
 // src/features/core/messaging/services/server/overrides/index.ts
 //
-// 管理画面の文言の上書きの service の結び(本物の部品)。管理 API /api/admin/messaging/overrides が呼ぶ。
+// テキストの編集の service の結び(本物の部品)。管理 API /api/admin/messaging/overrides が呼ぶ。
 // 送る口は sendMessage/definition.ts の resolveDefinition が同じ行を重ねる(門 messagingOverrides が開の時)
 
 import { eq } from "drizzle-orm";

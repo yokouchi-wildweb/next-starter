@@ -1,9 +1,9 @@
 // src/features/core/messaging/services/server/endpoints/endpointService.ts
 //
-// 端末の帳簿(message_endpoints: 利用者 × 経路 × 宛先)の本人の登録・削除・一覧と、退会の後片付け(D43・D45)。
-// - 受け付ける経路: 経路の受け口に項目があり、enabled で、自前の宛先の引き方(resolveAddresses)を持たない経路
-//   (= 帳簿を読む経路。上流の email・inApp・line は自前の帳簿なので受け付けない。push・SMS などは fork が足す)
-// - 宛先の形: 経路の項目の宣言(MessageChannel.endpoint.address の zod)があればそれで検査し、無ければ汎用の形だけ
+// 端末の帳簿(message_endpoints: 利用者 × 送信チャンネル × 宛先)の本人の登録・削除・一覧と、退会の後片付け(D43・D45)。
+// - 受け付ける送信チャンネル: 送信チャンネルの受け口に項目があり、enabled で、自前の宛先の引き方(resolveAddresses)を持たない送信チャンネル
+//   (= 帳簿を読む送信チャンネル。上流の email・inApp・line は自前の帳簿なので受け付けない。push・SMS などは fork が足す)
+// - 宛先の形: 送信チャンネルの項目の宣言(MessageChannel.endpoint.address の zod)があればそれで検査し、無ければ汎用の形だけ
 // - 登録: 本人の (channel, address) があれば更新して有効に戻す。他人の (channel, address) は付け替えない(409)
 // - 返すのは安全な DTO(宛先は末尾 6 文字、metadata は返さない)
 
@@ -37,14 +37,14 @@ export function toEndpointDto(row: MessageEndpoint): MessageEndpointDto {
   };
 }
 
-/** 帳簿を読む経路か(項目があり enabled で、自前の宛先の引き方を持たない) */
+/** 帳簿を読む送信チャンネルか(項目があり enabled で、自前の宛先の引き方を持たない) */
 export function isLedgerChannel(channels: Readonly<Record<string, MessageChannel>>, key: string): boolean {
   const channel = channels[key];
   return Boolean(channel && channel.enabled !== false && !channel.resolveAddresses);
 }
 
 /**
- * 経路の項目が宣言した宛先の形(MessageChannel.endpoint)で検査する。宣言が無ければ汎用の形を通った値のまま。
+ * 送信チャンネルの項目が宣言した宛先の形(MessageChannel.endpoint)で検査する。宣言が無ければ汎用の形を通った値のまま。
  * @throws DomainError(400) 宣言の形に合わない
  */
 function parseAddress(channel: MessageChannel, address: string): string {
@@ -61,7 +61,7 @@ export function createEndpointService(deps: EndpointServiceDeps) {
   return {
     /**
      * 本人の宛先を登録する(同じ宛先の本人の行は更新して有効に戻す)。
-     * @throws DomainError(400) 入力の誤り・帳簿を読まない経路 / DomainError(409) 他人が登録した宛先
+     * @throws DomainError(400) 入力の誤り・帳簿を読まない送信チャンネル / DomainError(409) 他人が登録した宛先
      */
     async registerEndpoint(userId: string, input: unknown): Promise<MessageEndpointDto> {
       const parsed = RegisterMessageEndpointInputSchema.safeParse(input);

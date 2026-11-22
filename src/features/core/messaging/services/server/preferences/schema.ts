@@ -1,10 +1,10 @@
 // src/features/core/messaging/services/server/preferences/schema.ts
 //
 // 好みを変える入力の zod。
-// - { category, channel, optedOut }: 1 マス / 種類まるごと(channel '*')/ 経路まるごと(category '*')/ 全体(どちらも '*')。
-//   種類が利用者の止められる種類か・経路が開いているかは service が見る
+// - { category, channel, optedOut }: 1 マス / カテゴリーまるごと(channel '*')/ 送信チャンネルまるごと(category '*')/ 全体(どちらも '*')。
+//   カテゴリーが利用者の止められるカテゴリーか・送信チャンネルが開いているかは service が見る
 // - 種別まるごと: { kind, optedOut }(種別が利用者の止められる種別かは service が見る)
-// - グループまるごと: { group, channel?, optedOut }(channel 省略 = '*' = 全経路。グループに利用者の止められる種類があるかは service が見る、D123)
+// - グループまるごと: { group, channel?, optedOut }(channel 省略 = '*' = 全送信チャンネル。グループに利用者の止められるカテゴリーがあるかは service が見る、D123)
 
 import { z } from "zod";
 

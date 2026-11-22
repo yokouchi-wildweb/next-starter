@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/common/SampleForYouModal/index.tsx
 // 部品(props だけ): 「あなた宛ての表示例」のモーダル(D129)。送る画面の上に重ねて開く。
-// 送る口が自分宛てに描いた物(埋め込み情報を差し込み済み)を経路のタブで見せる: メール = 送る HTML、お知らせ = 受け取り箱と同じ見せ方(MessagePreview)。
+// 送る口が自分宛てに描いた物(埋め込み情報を差し込み済み)を送信チャンネルのタブで見せる: メール = 送る HTML、お知らせ = 受け取り箱と同じ見せ方(MessagePreview)。
 // 取得と開閉は呼び手(hook useMessageSendModal: runPreview で開き、closePreview で閉じる)
 
 "use client";
@@ -19,7 +19,7 @@ import { MessagePreview, type MessagePreviewChannel } from "../MessagePreview";
 export type SampleForYouModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** 送る口が描いた経路ごとの物(POST /send/preview の channels) */
+  /** 送る口が描いた送信チャンネルごとの物(POST /send/preview の channels) */
   channels: readonly MessagePreviewChannel[];
   /** メールの iframe の高さ(px、既定 560) */
   emailHeight?: number;

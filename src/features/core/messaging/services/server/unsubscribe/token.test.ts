@@ -1,5 +1,5 @@
 // ワンクリックの配信停止のトークンの検査
-// - 作って確かめると中身が戻る(宛先の hash・連絡の鍵・回の id つきも。mk / d の無い前のトークンも通る)
+// - 作って確かめると中身が戻る(宛先の hash・連絡の鍵・送信の id つきも。mk / d の無い前のトークンも通る)
 // - 中身・署名の改ざん、版の違い、形の誤り、鍵の違い、鍵が無い → null
 // - URL は getAppBaseUrl() の起点 + /api/messaging/unsubscribe?token=(One-Click)/ /unsubscribe?token=(人が開くページ)
 // - unsubscribePageUrlForToken: 受け取ったトークンの字のままページの URL(無ければ /unsubscribe だけ)
@@ -47,7 +47,7 @@ test("作って確かめると中身が戻る", () => {
   assert.deepEqual(verifyUnsubscribeToken(signUnsubscribeToken(address)), address);
 });
 
-test("連絡の鍵と回の id を載せられ、前に作った(載っていない)トークンも通る", () => {
+test("連絡の鍵と送信の id を載せられ、前に作った(載っていない)トークンも通る", () => {
   const linked = { recipientKey: USER, category: "marketing", channel: "email", messageKey: "shop.notice", dispatchId: DISPATCH };
   assert.deepEqual(verifyUnsubscribeToken(signUnsubscribeToken(linked)), linked);
   // 前の形(mk / d なし)= 同じ版のまま通り、結び付きは無い

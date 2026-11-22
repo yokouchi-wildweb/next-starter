@@ -1,8 +1,8 @@
-# alert（上流のひな形「セキュリティの警告」）
+# alert（上流のレイアウト「セキュリティの警告」）
 
 ## Overview
 
-アカウントのロックなどの警告のひな形（D122・D123）。コードの連絡だけが使い、管理者はテンプレートで選べない（`adminSelectable: false`）。受け口の仕組みは `../README.md`、型と語彙は `src/lib/messaging/README.md`「ひな形」。auth の `accountLocked` が使う。
+アカウントのロックなどの警告のレイアウト（D122・D123）。定義連絡だけが使い、管理者はテンプレートで選べない（`adminSelectable: false`）。受け口の仕組みは `../README.md`、型と語彙は `src/lib/messaging/README.md`「レイアウト」。auth の `accountLocked` が使う。
 
 ## Usage
 

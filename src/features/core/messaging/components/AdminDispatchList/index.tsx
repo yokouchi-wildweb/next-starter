@@ -1,9 +1,9 @@
 // src/features/core/messaging/components/AdminDispatchList/index.tsx
-// セクションコンテナ(管理: 送った回の一覧)。絞り込み(期間・種別 → カテゴリー・経路・状態)+ 無限スクロール(カーソル)。
+// セクションコンテナ(管理: 送信の一覧)。絞り込み(期間・種別 → カテゴリー・送信チャンネル・状態)+ 無限スクロール(カーソル)。
 // カテゴリーは種別を選んだ後にその種別の物を表示名で(useAdminDispatchCategories)。定義の鍵は打たせず見せない(D46)。
-// 行を押すと同じ一覧の上に回の詳細のモーダル(URL の ?dispatch=<id>、「戻る」で閉じる。AdminDispatchDetailModal、D130)。上に「新しく送る」(送るモーダル、門 messagingBroadcast が閉なら出さない)。
+// 行を押すと同じ一覧の上に送信の詳細のモーダル(URL の ?dispatch=<id>、「戻る」で閉じる。AdminDispatchDetailModal、D130)。上に「新しく送る」(送るモーダル、門 messagingBroadcast が閉なら出さない)。
 // 行の選択と一括操作は lib/tableSuite の RecordSelectionList(D95、選択の出し方 toggle = 「選択モード」の切り替え、D98)。
-// 操作は受け口 adminBulkActions の項目(上流の既定 = 削除)。削除した回は選べない。
+// 操作は受け口 adminBulkActions の項目(上流の既定 = 削除)。削除した送信は選べない。
 // 絞り込みの入力と確定は hook useAdminDispatchFilters(状態の欄に「削除済み」)。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
@@ -73,7 +73,7 @@ export function AdminDispatchList({ initialFilters = {}, limit, showSendButton =
   const { filters, apply, clear, fields } = useAdminDispatchFilters(initialFilters);
   const categories = useAdminDispatchCategories();
   const query = useAdminDispatches({ filters, limit, observerOptions: OBSERVER_OPTIONS });
-  // 回の詳細のモーダルの開き先(URL の ?dispatch)
+  // 送信の詳細のモーダルの開き先(URL の ?dispatch)
   const detailParam = useDispatchDetailParam();
 
   return (

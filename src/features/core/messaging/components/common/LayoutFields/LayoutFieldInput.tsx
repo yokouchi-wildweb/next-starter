@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/common/LayoutFields/LayoutFieldInput.tsx
-// 部品(props だけ): ひな形の欄 1 つの入力(値と onChange で動く。見出しは呼び手)。欄の型(D123)ごと:
+// 部品(props だけ): レイアウトの欄 1 つの入力(値と onChange で動く。見出しは呼び手)。欄の型(D123)ごと:
 // line = 1 行(改行は空白)/ paragraph・longText = 複数行 / number / date(YYYY-MM-DD)/ select / image = 用途 notification.image のアップロード /
 // button {label, url} / link {label?, url} / keyValue = ラベルと値の行 / list = 1 つの型の並び / group = 名前つきの欄 / blocks = ブロックの並び。
 // 並び・組は宣言のとおり入れ子に描く(深さの上限は宣言が決める)。readOnly = 値を読むだけ(システムのテンプレート・固定の文)

@@ -1,7 +1,7 @@
 // src/features/core/messaging/services/server/admin/store.ts
 //
-// 回の読む口の DB(drizzle)。keyset: 回は (created_at, id) の降順、配達は昇順。
-// 回の宛先の利用者 = 配達の user_id の重なりを除いた並び(「同じ内容で送る」の写し。経路ごとの行を 1 人にまとめる)
+// 送信の読む口の DB(drizzle)。keyset: 送信は (created_at, id) の降順、配達は昇順。
+// 送信の宛先の利用者 = 配達の user_id の重なりを除いた並び(「同じ内容で送る」の写し。送信チャンネルごとの行を 1 人にまとめる)
 
 import { and, arrayContains, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, or, type SQL } from "drizzle-orm";
 
@@ -24,7 +24,7 @@ export const drizzleAdminDispatchStore: AdminDispatchStore = {
     if (filter.kind) conditions.push(eq(t.kind, filter.kind));
     if (filter.channel) conditions.push(arrayContains(t.channels, [filter.channel]));
     if (filter.status) conditions.push(eq(t.status, filter.status));
-    // 削除した回(D88): 既定は出さない / only = 削除した回だけ / include = 両方
+    // 削除した送信(D88): 既定は出さない / only = 削除した送信だけ / include = 両方
     if (filter.deleted === "only") conditions.push(isNotNull(t.deleted_at));
     else if (filter.deleted !== "include") conditions.push(isNull(t.deleted_at));
     if (after) {

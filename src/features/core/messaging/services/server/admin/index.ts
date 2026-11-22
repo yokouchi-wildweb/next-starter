@@ -119,7 +119,7 @@ export function adminBulkSendOptions() {
   return adminBulkSendOptionsWith(bulkDeps());
 }
 
-/** 回から描く定義(回に残した物だけ。ひな形が無い・版を読めない・誤りなら null) */
+/** 送信から描く定義(送信に残した物だけ。レイアウトが無い・版を読めない・誤りなら null) */
 async function definitionOf(row: Parameters<typeof resolvedOfDispatch>[1]) {
   try {
     const loaded = await resolvedOfDispatch(sendMessageDeps, row);
@@ -129,7 +129,7 @@ async function definitionOf(row: Parameters<typeof resolvedOfDispatch>[1]) {
   }
 }
 
-/** 回の操作(削除・削除の見込み・再送)の部品 */
+/** 送信の操作(削除・削除の見込み・再送)の部品 */
 const operationsDeps: AdminOperationsDeps<Parameters<Parameters<typeof drizzleMessageOperationsStore.withLockedDispatch>[1]>[0]> = {
   ...adminCheck,
   store: drizzleMessageOperationsStore,
@@ -141,16 +141,16 @@ const operationsDeps: AdminOperationsDeps<Parameters<Parameters<typeof drizzleMe
   recordAudit,
 };
 
-/** 回の削除(D88、どの状態でも。削除済みは消せる経路の remove だけを呼び直す) */
+/** 送信の削除(D88、どの状態でも。削除済みは消せる送信チャンネルの remove だけを呼び直す) */
 export const adminDeleteDispatch = (dispatchId: string) => adminDeleteDispatchWith(operationsDeps, dispatchId);
-/** 回のまとめての削除({ ids } 100 件まで) */
+/** 送信のまとめての削除({ ids } 100 件まで) */
 export const adminBulkDeleteDispatches = (input: unknown) => adminBulkDeleteDispatchesWith(operationsDeps, input);
 /** 削除の見込み({ ids } 100 件まで、確認の画面) */
 export const adminDispatchDeleteSummary = (input: unknown) => adminDispatchDeleteSummaryWith(operationsDeps, input);
 /** 失敗の再送({ includeUnknown? }) */
 export const adminResendFailed = (dispatchId: string, input?: unknown) => adminResendFailedWith(operationsDeps, dispatchId, input);
 
-/** 回の読む口の部品(1 件は操作ができるかも返す) */
+/** 送信の読む口の部品(1 件は操作ができるかも返す) */
 /** 連絡の名前(定義の label、上書きの後)。鍵ごとに 1 度だけ読む */
 const messageLabels = new Map<string, Promise<string | null>>();
 function messageLabel(messageKey: string): Promise<string | null> {
@@ -182,7 +182,7 @@ async function groupOptions(): Promise<AdminSendGroupOption[]> {
   return rows.map((row) => ({ id: row.id, label: row.name, kindLabel: USER_GROUP_KIND_LABELS[row.kind] ?? row.kind }));
 }
 
-/** 回の宛先のグループの名前(しまったグループも)。門 userGroups が閉なら空(表が閉じていることがある) */
+/** 送信の宛先のグループの名前(しまったグループも)。門 userGroups が閉なら空(表が閉じていることがある) */
 async function groupNames(groupIds: readonly string[]): Promise<Map<string, string>> {
   if (!gate.enabled("userGroups") || groupIds.length === 0) return new Map();
   const rows = await db
@@ -246,7 +246,7 @@ const sendDeps: AdminSendDeps = {
   maxScheduleDays: () => messagingConfig.schedule.maxDaysAhead,
 };
 
-/** 管理の送信(テンプレートかその場で書く連絡、今か予約) */
+/** 管理の送信(テンプレートか自由連絡、今か予約) */
 export const adminSend = (input: unknown) => adminSendWith(sendDeps, input);
 /** 描いたプレビュー(見本 = 操作した管理者) */
 export const adminSendPreview = (input: unknown) => adminSendPreviewWith(sendDeps, input);
@@ -257,17 +257,17 @@ export const adminSendTest = (input: unknown) => adminSendTestWith(sendDeps, inp
 /** 送る画面の選択肢 */
 export const adminSendOptions = () => adminSendOptionsWith(sendDeps);
 
-/** 回の一覧 */
+/** 送信の一覧 */
 export function listDispatches(query?: ListDispatchesQuery) {
   return listDispatchesWith(readDeps, query);
 }
 
-/** 回 1 件 */
+/** 送信 1 件 */
 export function findDispatch(id: string) {
   return findDispatchWith(readDeps, id);
 }
 
-/** 送った回のプレビューの部品(回だけから描く。送る口と同じ組み立て) */
+/** 送信のプレビューの部品(送信だけから描く。送る口と同じ組み立て) */
 const previewDeps: AdminDispatchPreviewDeps = {
   ...adminCheck,
   findDispatch: (id) => drizzleAdminDispatchStore.findDispatch(id),
@@ -286,17 +286,17 @@ const previewDeps: AdminDispatchPreviewDeps = {
   },
 };
 
-/** 送った回のプレビュー(GET /api/admin/messaging/dispatches/[id]/preview) */
+/** 送信のプレビュー(GET /api/admin/messaging/dispatches/[id]/preview) */
 export function adminDispatchPreview(id: string) {
   return adminDispatchPreviewWith(previewDeps, id);
 }
 
-/** 回の画面の絞りの選択肢(カテゴリーの鍵・表示名・種別) */
+/** 送信の画面の絞りの選択肢(カテゴリーの鍵・表示名・種別) */
 export function dispatchCategoryOptions() {
   return dispatchCategoryOptionsWith({ ...adminCheck, categories });
 }
 
-/** 回の配達 */
+/** 送信の配達 */
 export function listDeliveries(dispatchId: string, query?: ListDeliveriesQuery) {
   return listDeliveriesWith(readDeps, dispatchId, query);
 }

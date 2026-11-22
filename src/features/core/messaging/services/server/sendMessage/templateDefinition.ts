@@ -2,15 +2,15 @@
 //
 // 管理の送信(テンプレート + 欄の中身、D117・D125、指令 58)→ 送る口の定義。システムテンプレート(白紙)も DB のテンプレートも同じ組み方:
 // - 出どころ: { system: 鍵 }(受け口 messaging/templates の白紙)か { id, version }(DB のテンプレートの今の公開版)
-// - 鍵は TEMPLATE_MESSAGE_KEY(コードの連絡の鍵ではない。回の message_key は null で、出どころは system_template か template_id + 版)
-// - 種別と経路は送るカテゴリーから(D86)。カテゴリーの種別は管理者がその場で送れる種別(性質 adminFreeText)だけ、白紙は種別が同じカテゴリーだけ(400)
-// - ひな形 = 白紙のひな形か DB のテンプレートの版のひな形。欄の中身(values)はそのひな形の欄の zod で検査する
+// - 鍵は TEMPLATE_MESSAGE_KEY(定義連絡の鍵ではない。送信の message_key は null で、出どころは system_template か template_id + 版)
+// - 種別と送信チャンネルは送るカテゴリーから(D86)。カテゴリーの種別は自由連絡で送れる種別(性質 adminFreeText)だけ、白紙は種別が同じカテゴリーだけ(400)
+// - レイアウト = 白紙のレイアウトか DB のテンプレートの版のレイアウト。欄の中身(values)はそのレイアウトの欄の zod で検査する
 // - 埋め込み情報: 一覧 = 共通 + 当たる enrichers + 出どころの専用の宣言(DB のテンプレートの版・システムテンプレートが宣言した物)。文面の {{鍵}} / {{別名}} が一覧に無ければ 400。
-//   専用の値は版の宣言の型で検査する(必須・既定値、varValuesSchema)。値は定義の vars として差し込み、回には embedded_values に残す(sender.ts)
-// - 専用の別名 {{開始日時}} は {{鍵}} に書き換えてから定義にする(回に残す中身は鍵だけ: cron の組み直しは宣言を引き直さない)。
+//   専用の値は版の宣言の型で検査する(必須・既定値、varValuesSchema)。値は定義の vars として差し込み、送信には embedded_values に残す(sender.ts)
+// - 専用の別名 {{開始日時}} は {{鍵}} に書き換えてから定義にする(送信に残す中身は鍵だけ: cron の組み直しは宣言を引き直さない)。
 //   共通・enrichers の別名は差し込みの表が埋める(content.ts)
-// - 直した印 = 送る中身(書き換えの前)が版の中身(今のひな形の版へ読み替えた物)と違う
-// - 画像(storage://)は欄の中身に自由に入れられる(送る口がお知らせの行を書く時に回へ結ぶ)
+// - 直した印 = 送る中身(書き換えの前)が版の中身(今のレイアウトの版へ読み替えた物)と違う
+// - 画像(storage://)は欄の中身に自由に入れられる(送る口がお知らせの行を書く時に送信へ結ぶ)
 // - 生成の一覧の上書きは重ねない
 
 import { isDeepStrictEqual } from "node:util";
@@ -42,12 +42,12 @@ import { enricherKeysFor, enrichersFor, type AnyMessageDefinition, type AnyResol
 import { adminSendableKinds, isAdminSendableKind } from "./systemTemplates";
 import type { MessageTemplateVersionSource } from "./types";
 
-/** テンプレートから送る回の定義の鍵(コードの連絡の鍵ではない。回の message_key には書かない) */
+/** テンプレートからの送信の定義の鍵(定義連絡の鍵ではない。送信の message_key には書かない) */
 export const TEMPLATE_MESSAGE_KEY = "messaging.template" as MessageKey;
 
 /**
- * DB のテンプレートの版の欄の中身(今のひな形の版へ読み替えた物)。
- * @throws DomainError(409) ひな形が無い・版が読めない
+ * DB のテンプレートの版の欄の中身(今のレイアウトの版へ読み替えた物)。
+ * @throws DomainError(409) レイアウトが無い・版が読めない
  */
 export function templateVersionValues(
   layouts: Readonly<Record<string, MessageLayout>>,
@@ -60,7 +60,7 @@ export function templateVersionValues(
   return upgraded.values;
 }
 
-/** 欄の中身の空を「無い」にする(D128、ひな形が無ければそのまま。送る口の入口とくらべる前に通す) */
+/** 欄の中身の空を「無い」にする(D128、レイアウトが無ければそのまま。送る口の入口とくらべる前に通す) */
 function normalizedValues(layouts: Readonly<Record<string, MessageLayout>>, layoutKey: string, values: Record<string, unknown>): Record<string, unknown> {
   const layout = layouts[layoutKey];
   return layout ? (normalizeLayoutValues(layout.fields, values) as Record<string, unknown>) : values;
@@ -119,7 +119,7 @@ export function templateDefinitionOf(
 
 /**
  * テンプレート + 中身を送れる定義にする(検査を通す。上書きは重ねない)。
- * @throws DomainError(400) カテゴリーの種別・白紙の種別・絞り・欄・埋め込みの名前 / (500) 種類が無い
+ * @throws DomainError(400) カテゴリーの種別・白紙の種別・絞り・欄・埋め込みの名前 / (500) カテゴリーが無い
  */
 export function resolveTemplateDefinition(
   deps: {

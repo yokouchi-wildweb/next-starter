@@ -1,11 +1,11 @@
-// お知らせの経路の項目の検査(DB は偽物)
-// - 受信者ごとに message_inbox_items の行を書く(回の id は配達の行から引く)。中身は送る口の MessageLayoutContent(指令 60):
-//   行 = 要約の列(題・短い本文 ?? 本文・画像・行き先)+ ひな形の鍵・版・欄の中身
+// お知らせの送信チャンネルの項目の検査(DB は偽物)
+// - 受信者ごとに message_inbox_items の行を書く(送信の id は配達の行から引く)。中身は送る口の MessageLayoutContent(指令 60):
+//   行 = 要約の列(題・短い本文 ?? 本文・画像・行き先)+ レイアウトの鍵・版・欄の中身
 // - 前の形の中身({ title, body, image?, link? })は要約の列だけ(layout・values は null)
-// - 同じ回 × 利用者の行が既にあれば書かない(送り直しで重ねない)
+// - 同じ送信 × 利用者の行が既にあれば書かない(送り直しで重ねない)
 // - 配達の行が見つからない宛先は permanent
-// - 画像は要約の画像と欄の中身の中の参照を回ごとに 1 回 bindImages で結び、結んだ参照を書く
-// - remove は回の行を消した数を返す
+// - 画像は要約の画像と欄の中身の中の参照を送信ごとに 1 回 bindImages で結び、結んだ参照を書く
+// - remove は送信の行を消した数を返す
 // 実行: pnpm test src/features/core/messaging/channels/inApp
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -42,7 +42,7 @@ function setup(existing: string[] = []) {
   return { channel, inserted, now, bindCalls, removed };
 }
 
-/** 送る口が渡す中身(ひな形・段・欄の中身・要約。版は送る口が足す) */
+/** 送る口が渡す中身(レイアウト・段・欄の中身・要約。版は送る口が足す) */
 const content = {
   title: "題",
   layout: "notice",
@@ -52,7 +52,7 @@ const content = {
   layoutVersion: 2,
 } satisfies MessageLayoutContent & { layoutVersion: number };
 
-test("受信者ごとにお知らせの行(要約の列 + ひな形・版・欄の中身)を書き、sent を返す", async () => {
+test("受信者ごとにお知らせの行(要約の列 + レイアウト・版・欄の中身)を書き、sent を返す", async () => {
   const { channel, inserted, now, bindCalls } = setup();
   const results = await channel.send([
     { userId: "u1", address: "u1", messageKey: "shop.notice", idempotencyKey: "d1", content },
@@ -87,7 +87,7 @@ test("前の形の中身は要約の列だけ(layout・version・values は null
   );
 });
 
-test("同じ回 × 利用者の行が既にあれば書かずに sent", async () => {
+test("同じ送信 × 利用者の行が既にあれば書かずに sent", async () => {
   const { channel, inserted } = setup(["dispatch-1|u1"]);
   const results = await channel.send([{ userId: "u1", address: "u1", messageKey: "shop.notice", idempotencyKey: "d1", content }]);
   assert.equal(results[0].kind, "sent");
@@ -108,7 +108,7 @@ test("画像の無い行は結ばない", async () => {
   assert.equal(bindCalls.length, 0);
 });
 
-test("remove は回の行を消した数を返す(管理の削除)", async () => {
+test("remove は送信の行を消した数を返す(管理の削除)", async () => {
   const { channel, removed } = setup();
   assert.deepEqual(await channel.remove!({ dispatchId: "dispatch-1" }), { removed: 3 });
   assert.deepEqual(removed, ["dispatch-1"]);

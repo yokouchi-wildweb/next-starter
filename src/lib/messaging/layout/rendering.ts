@@ -1,13 +1,13 @@
 // src/lib/messaging/layout/rendering.ts
 //
-// 描き方の 3 段(D124): ひな形のその経路の描き方 > 経路の汎用の描き方 > 要約。どれでも描けなければ「描けない(理由)」。
-// テンプレートの保存・プレビュー・送る前の検査がこの解決を呼んで止める。経路の項目への宣言の追加は別の作業(ここは型と解決だけ)。
+// 描き方の 3 段(D124): レイアウトのその送信チャンネルの描き方 > 送信チャンネルの汎用の描き方 > 要約。どれでも描けなければ「描けない(理由)」。
+// テンプレートの保存・プレビュー・送る前の検査がこの解決を呼んで止める。送信チャンネルの項目への宣言の追加は別の作業(ここは型と解決だけ)。
 
 import type { MessageLayout, MessageLayoutFields, MessageLayoutSummary, MessageLayoutValues } from "./types";
 import { fieldsForChannel } from "./values";
 import type { MessageFieldShape, MessageFieldType } from "./vocabulary";
 
-/** 経路が持てる描き方の宣言(R = 経路が描いた物。email = HTML など) */
+/** 送信チャンネルが持てる描き方の宣言(R = 送信チャンネルが描いた物。email = HTML など) */
 export type MessageChannelRendering<R = unknown> = {
   /** 欄の型とブロックの語彙を宣言の順に描く汎用の描き方 */
   renderGeneric?: (input: { fields: MessageLayoutFields; values: MessageLayoutValues }) => R | Promise<R>;
@@ -18,7 +18,7 @@ export type MessageChannelRendering<R = unknown> = {
   renderFromSummary?: (summary: MessageLayoutSummary) => R | Promise<R>;
   /**
    * 送る時に宛先ごとに描く(例 email = 宛先ごとの停止のリンクを本文に入れる)。true なら送る口は描かずに MessageLayoutContent
-   * (題・ひな形・段・欄の中身・要約)を中身として渡し、経路が段に従って描く(./content.ts)
+   * (題・レイアウト・段・欄の中身・要約)を中身として渡し、送信チャンネルが段に従って描く(./content.ts)
    */
   rendersAtSend?: boolean;
 };
@@ -39,9 +39,9 @@ function typesOf(shape: MessageFieldShape, out: Set<MessageFieldType>): Set<Mess
 
 /**
  * 描き方を決める(D124 の順)。
- * - hasLayoutRenderer: ひな形のフォルダがこの経路の描き方を持つか(受け口の生成の一覧が知っている)
- * - 汎用は経路の欄の型を全部描ける時だけ
- * - 要約は経路が summaryRenderable を宣言し renderFromSummary を持つ時だけ(要約の関数が投げれば描けない)
+ * - hasLayoutRenderer: レイアウトのフォルダがこの送信チャンネルの描き方を持つか(受け口の生成の一覧が知っている)
+ * - 汎用は送信チャンネルの欄の型を全部描ける時だけ
+ * - 要約は送信チャンネルが summaryRenderable を宣言し renderFromSummary を持つ時だけ(要約の関数が投げれば描けない)
  */
 export function resolveRendering(input: {
   layout: MessageLayout;

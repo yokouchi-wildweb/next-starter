@@ -6,10 +6,10 @@
 // - 出どころ: 種別の白紙(システムテンプレート { system })か、読み込んだ DB のテンプレートの版({ id, version })
 // - 白紙はいつも全文を書ける。テンプレートを読み込んだ直後は文を固定し(locked)、プレビューと専用の埋め込み情報の入力だけを出す
 // - 『文面を直す』(unlock)で全文を直せる。つながりは残り、版の中身と違えば直した印(edited)が付く(送る口も中身の違いで付ける)
-// - 『テンプレートの読み込みを解除』は呼び手が白紙で reset する(今の文は、ひな形が同じなら白紙の文として残す = toBlank)
+// - 『テンプレートの読み込みを解除』は呼び手が白紙で reset する(今の文は、レイアウトが同じなら白紙の文として残す = toBlank)
 // - 『テンプレートを更新』(updateTemplate)= 今の文をそのテンプレートの新しい版にする(1 回の保存で公開、送るとは別。テンプレートの保存と同じ、D134)。
 //   成功したら新しい版へつなぎ直し、直した印は消える。変更が無ければ unchanged →「変更はありません」
-// 欄のフォーム = useLayoutFieldsForm(検査は lib の layoutValuesSchema、送る経路だけの欄は送る経路で必須を決める)
+// 欄のフォーム = useLayoutFieldsForm(検査は lib の layoutValuesSchema、使う送信チャンネルだけの欄は使う送信チャンネルで必須を決める)
 
 import { useCallback, useMemo, useState } from "react";
 import { useWatch } from "react-hook-form";
@@ -34,9 +34,9 @@ export type SendTextSource =
 /** 文面の状態(呼び手が reset で入れ替える) */
 export type SendTextState = {
   source: SendTextSource;
-  /** ひな形の鍵 */
+  /** レイアウトの鍵 */
   layout: string;
-  /** フォームの初めの中身(読み込んだ版・白紙・同じ内容で送る回の values) */
+  /** フォームの初めの中身(読み込んだ版・白紙・同じ内容で送る元の送信の values) */
   start: Record<string, unknown>;
   /** 直した印の比べ先(テンプレートの版の中身。白紙は null) */
   versionValues: Record<string, unknown> | null;
@@ -49,11 +49,11 @@ export type SendTextState = {
 };
 
 export type UseSendTemplateTextOptions = {
-  /** 選択肢のひな形(欄の宣言) */
+  /** 選択肢のレイアウト(欄の宣言) */
   layouts: readonly AdminSendLayoutOption[];
   /** 初めの状態(mode と選択肢から呼び手が導く。null = まだ決まらない) */
   initial: SendTextState | null;
-  /** 送る経路(経路だけの欄の必須と印) */
+  /** 使う送信チャンネル(送信チャンネルだけの欄の必須と印) */
   channels: readonly string[];
   /** 門 messagingTemplates が開か(閉なら『テンプレートを更新』を出さない) */
   templatesOpen: boolean;
@@ -199,7 +199,7 @@ export function useSendTemplateText({ layouts, initial, channels, templatesOpen,
     [change],
   );
 
-  /** 白紙へ移る時の状態(ひな形が同じなら今の文を白紙の文として残す。違えば白紙のまま) */
+  /** 白紙へ移る時の状態(レイアウトが同じなら今の文を白紙の文として残す。違えば白紙のまま) */
   const toBlank = useCallback(
     (blank: { key: string; label: string; layout: string; values: Record<string, unknown>; vars?: readonly MessageVarDeclaration[] }): SendTextState => {
       const next = blankTextState(blank);
