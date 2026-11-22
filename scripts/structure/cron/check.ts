@@ -4,7 +4,7 @@
 //
 // 使い方:
 //   pnpm check cron                 # 手元で検査（pnpm live 系もデプロイ前に実行する）
-//   pnpm check cron --vercel-build  # build の門(pnpm check --phase=build)から。Vercel 上のビルド（VERCEL=1）のときだけ検査し、それ以外は何もしない
+//   pnpm check cron --vercel-build  # build の段階(pnpm check --phase=build)から。Vercel 上のビルド（VERCEL=1）のときだけ検査し、それ以外は何もしない
 //
 // 失敗する条件:
 // - vercel.json が無い（cron タスクがあるのに本番で 1 本も動かない）

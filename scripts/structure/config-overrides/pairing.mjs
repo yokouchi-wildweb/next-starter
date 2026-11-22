@@ -129,7 +129,7 @@ export function checkOverridePairs(root) {
   return { ok: problems.length === 0, problems, pairs, mapProblems };
 }
 
-/** 門の出力の行 */
+/** 段階の出力の行 */
 export function reportLines(result) {
   if (result.mapProblems.length > 0) return ["地区の地図に問題があるので上書きを照らせない(pnpm check district-map):", ...result.mapProblems.map((p) => `  - ${p}`)];
   if (result.ok) return [`config-overrides: 上書きと持ち主の対 ${result.pairs} 組、余り 0・欠落 0`];

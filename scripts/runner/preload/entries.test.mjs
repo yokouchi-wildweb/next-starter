@@ -54,7 +54,7 @@ test("package.json の入口: server-only に届くものは stub を読む", as
   );
 });
 
-test("門と道具の入口: ランナーが .ts の入口に必ず stub を付ける(pnpm check / generate・pnpm ops / workflow)", async () => {
+test("段階と道具の入口: ランナーが .ts の入口に必ず stub を付ける(pnpm check / generate・pnpm ops / workflow)", async () => {
   const { command } = await import("../phases/run.mjs");
   const [cmd, args] = command(process.cwd(), "scripts/structure/routes/check.ts", false);
   assert.equal(cmd, "npx");

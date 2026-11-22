@@ -1,4 +1,4 @@
-// scripts/workflow/rules/staleRefs.mjs — pnpm workflow rules staleRefs: fork の物の中の古い名指しを挙げる(読むだけ、書き換えない、門に載せない)
+// scripts/workflow/rules/staleRefs.mjs — pnpm workflow rules staleRefs: fork の物の中の古い名指しを挙げる(読むだけ、書き換えない、段階に載せない)
 // 対象 = fork が足したファイル(直接の親との分岐点から、src/lib/forkOwnership の forkAddedFiles)と、.claude/rules の core/・items/ の外の自分の決まりのファイル。
 // 名の対応は renames.json(区切り v2-switch の notice の対応表)。出す形: <file>:<line> <古い> → <新しい> (<種類>)
 import { existsSync, readFileSync } from "node:fs";

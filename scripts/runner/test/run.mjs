@@ -2,9 +2,9 @@
 // 実行: pnpm test [<パス | glob>...] [--group=unit|fork|db] [--db] [--changed] [--list] [--file-timeout=<秒>] [--test-timeout=<秒>]
 //   走査: git の追跡 + 未追跡のテストのファイル(scan.mjs、tests/e2e/・*.types.test.* は除く。servers/ は名指しの時だけ)を毎回。
 //   群: 既定 = unit + fork、--db で db も、--group=<群>[,<群>] でその群だけ。引数のパス・glob(リポジトリ直下から)で絞る。
-//   --changed: 範囲(門の watch と同じ比べ方)の変更から選ぶ(changed.mjs)。辿れなかったテストは名前を出す。
+//   --changed: 範囲(段階の watch と同じ比べ方)の変更から選ぶ(changed.mjs)。辿れなかったテストは名前を出す。
 //   servers/ の下のテストは名指しの時と、--changed の範囲に servers/ の下の変更がある時だけ候補にする。
-//   門が回すテスト(phase.json の check がテスト・tests の欄)は名指しでない時は回さない(門 1 回、D389。除いた本数を出す)。
+//   段階が回すテスト(phase.json の check がテスト・tests の欄)は名指しでない時は回さない(段階 1 回、D389。除いた本数を出す)。
 //   --list: 選んだファイルを出すだけ(起動しない)。
 //   終わり方: ファイルのプロセスは node に任せて自然に終える。接続・タイマーが残って終わらないファイルは 1 ファイルの上限で名前付きで落ちる。
 //   --test-force-exit は付けない: 子の報告の終わりが親へ届く前にプロセスを終え、ファイルの後ろのテストが pass にも fail にも数えられず
@@ -85,14 +85,14 @@ export async function select(opts, { repo, files, changed = changedFiles, tree =
   const notes = [];
   if (opts.patterns.length) picked = picked.filter((f) => opts.patterns.some((p) => matches(f, p)));
   else {
-    // 門の入口のテスト(phase.json の check がテスト・tests の欄)は門 1 回: 名指しでない時は回さない(D389)
+    // 段階の入口のテスト(phase.json の check がテスト・tests の欄)は段階 1 回: 名指しでない時は回さない(D389)
     const gated = gateTests(repo);
     const dropped = picked.filter((f) => gated.has(f));
     if (dropped.length) {
       picked = picked.filter((f) => !gated.has(f));
       const by = [...new Set(dropped.map((f) => gated.get(f)))].join("・");
-      notes.push(`門が回すテスト ${dropped.length} 本を除いた(${by}。pnpm check が回す。名指しすれば回す)`);
-      if (opts.list) for (const f of dropped) notes.push(`除いた: ${f}(門 ${gated.get(f)})`);
+      notes.push(`段階が回すテスト ${dropped.length} 本を除いた(${by}。pnpm check が回す。名指しすれば回す)`);
+      if (opts.list) for (const f of dropped) notes.push(`除いた: ${f}(段階 ${gated.get(f)})`);
     }
   }
   if (opts.changed) {

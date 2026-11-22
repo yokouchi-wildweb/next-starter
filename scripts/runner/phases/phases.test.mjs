@@ -1,4 +1,4 @@
-// scripts/runner/phases/phases.test.mjs — 門の仕組み(scan.mjs・run.mjs・netGuard.mjs)を一時のフォルダの fixture で通す。実行: pnpm test scripts/runner/phases/phases.test.mjs
+// scripts/runner/phases/phases.test.mjs — 段階の仕組み(scan.mjs・run.mjs・netGuard.mjs)を一時のフォルダの fixture で通す。実行: pnpm test scripts/runner/phases/phases.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -33,18 +33,18 @@ function fixture(t) {
 
 const names = (f) => scanTargets(f.scriptsDir, loadGates(f.scriptsDir)).map((t) => t.name);
 
-test("門の一覧: 6 つの門、build と build:post が offline、上流の対象フォルダの名簿", () => {
+test("段階の一覧: 6 つの段階、build と build:post が offline、上流の対象フォルダの名簿", () => {
   const g = loadGates(join(HERE, "../.."));
-  assert.deepEqual(Object.keys(g.gates), ["build", "build:post", "ship", "forge:pre", "forge:post", "deploy"]);
-  assert.deepEqual(Object.entries(g.gates).filter(([, v]) => v.offline).map(([k]) => k), ["build", "build:post"]);
+  assert.deepEqual(Object.keys(g.phases), ["build", "build:post", "ship", "forge:pre", "forge:post", "deploy"]);
+  assert.deepEqual(Object.entries(g.phases).filter(([, v]) => v.offline).map(([k]) => k), ["build", "build:post"]);
   assert.ok(g.upstreamFolders.structure.includes("domain") && g.upstreamFolders.workflow.includes("notices"));
 });
 
-test("phase.json の誤り: 知らない欄・知らない門・無い入口・check も generate も無い・after の先が無い → 止める(全部まとめて)", (t) => {
+test("phase.json の誤り: 知らない欄・知らない段階・無い入口・check も generate も無い・after の先が無い → 止める(全部まとめて)", (t) => {
   const f = fixture(t);
-  f.add("structure", "domain", { check: "check.mjs", gates: ["build", "nightly"], color: 1 });
+  f.add("structure", "domain", { check: "check.mjs", phases: ["build", "nightly"], color: 1 });
   f.add("structure", "role", { check: "missing.mjs" });
-  f.add("structure", "routes", { gates: ["ship"] });
+  f.add("structure", "routes", { phases: ["ship"] });
   f.add("workflow", "rules", { check: "check.mjs", after: ["nowhere"] });
   f.add("structure", "cron", "{ not json");
   assert.throws(() => names(f), (e) => {
@@ -95,8 +95,8 @@ test("順序: after を満たし、同じ段は上流が先で名前順、名簿
 
 test("入口: 全部・対象 1 つ・--phase で選ぶ、落ちたら exit 1、対象なしは exit 0、引数は -- の後を入口へ", (t) => {
   const f = fixture(t);
-  f.add("structure", "domain", { check: "check.mjs", generate: "gen.mjs", gates: ["ship", "forge:post"] }, { "check.mjs": "process.exit(0)\n", "gen.mjs": "process.exit(process.argv.includes('--ok') ? 0 : 3)\n" });
-  f.add("structure", "routes", { check: "check.mjs", gates: ["ship"] }, { "check.mjs": "process.exit(1)\n" });
+  f.add("structure", "domain", { check: "check.mjs", generate: "gen.mjs", phases: ["ship", "forge:post"] }, { "check.mjs": "process.exit(0)\n", "gen.mjs": "process.exit(process.argv.includes('--ok') ? 0 : 3)\n" });
+  f.add("structure", "routes", { check: "check.mjs", phases: ["ship"] }, { "check.mjs": "process.exit(1)\n" });
   assert.equal(f.exec(["check", "domain"]).code, 0);
   const all = f.exec(["check"]);
   assert.equal(all.code, 1);
@@ -127,10 +127,10 @@ test("features: 機能が閉じていれば飛ばし、飛ばしたことを必�
 
 test("build の守り: build に乗る check が fetch・net・dns に届こうとしたら落とし宣言を拒む(例外を握りつぶしても)/ 届かない物は通る / DB の env は空", (t) => {
   const f = fixture(t);
-  f.add("structure", "bundle", { check: "check.mjs", gates: ["build"] }, { "check.mjs": "try { await fetch('http://127.0.0.1:9') } catch {}\nprocess.exit(0)\n" });
-  f.add("structure", "cycles", { check: "check.mjs", gates: ["build"] }, { "check.mjs": "import net from 'node:net'; net.connect(9, '127.0.0.1')\n" });
-  f.add("structure", "config", { check: "check.mjs", gates: ["build"] }, { "check.mjs": "process.exit(process.env.DATABASE_URL ? 1 : 0)\n" });
-  f.add("structure", "domain", { check: "check.mjs", gates: ["ship"] }, { "check.mjs": "try { await fetch('http://127.0.0.1:9') } catch {}\nprocess.exit(0)\n" });
+  f.add("structure", "bundle", { check: "check.mjs", phases: ["build"] }, { "check.mjs": "try { await fetch('http://127.0.0.1:9') } catch {}\nprocess.exit(0)\n" });
+  f.add("structure", "cycles", { check: "check.mjs", phases: ["build"] }, { "check.mjs": "import net from 'node:net'; net.connect(9, '127.0.0.1')\n" });
+  f.add("structure", "config", { check: "check.mjs", phases: ["build"] }, { "check.mjs": "process.exit(process.env.DATABASE_URL ? 1 : 0)\n" });
+  f.add("structure", "domain", { check: "check.mjs", phases: ["ship"] }, { "check.mjs": "try { await fetch('http://127.0.0.1:9') } catch {}\nprocess.exit(0)\n" });
   const prev = process.env.DATABASE_URL;
   process.env.DATABASE_URL = "postgres://x";
   t.after(() => (prev === undefined ? delete process.env.DATABASE_URL : (process.env.DATABASE_URL = prev)));
@@ -143,10 +143,10 @@ test("build の守り: build に乗る check が fetch・net・dns に届こう�
   assert.match(f.exec(["check", "domain"]).out, /structure\/domain: check 通る/);
 });
 
-test("explicit の門(build:post)だけに乗る対象は、全部を回す時は飛ばして出し、門か名前で呼べば回す", (t) => {
+test("explicit の段階(build:post)だけに乗る対象は、全部を回す時は飛ばして出し、段階か名前で呼べば回す", (t) => {
   const f = fixture(t);
-  f.add("structure", "bundle", { check: "check.mjs", gates: ["build:post"] }, { "check.mjs": "process.exit(1)\n" });
-  f.add("structure", "cycles", { check: "check.mjs", gates: ["build"] });
+  f.add("structure", "bundle", { check: "check.mjs", phases: ["build:post"] }, { "check.mjs": "process.exit(1)\n" });
+  f.add("structure", "cycles", { check: "check.mjs", phases: ["build"] });
   const all = f.exec(["check"]);
   assert.equal(all.code, 0);
   assert.match(all.out, /structure\/bundle: build:post だけの対象なので飛ばした/);
@@ -154,13 +154,13 @@ test("explicit の門(build:post)だけに乗る対象は、全部を回す時�
   assert.equal(f.exec(["check", "bundle"]).code, 1);
 });
 
-test("--phase に複数の門: どれかに乗る対象を after の順に 1 回ずつ、GATE はその対象が乗る最初の門", (t) => {
+test("--phase に複数の段階: どれかに乗る対象を after の順に 1 回ずつ、PHASE はその対象が乗る最初の段階", (t) => {
   const f = fixture(t);
-  const echo = 'console.log("GATE=" + process.env.PHASE)\n';
-  f.add("structure", "role", { check: "check.mjs", gates: ["forge:pre"] }, { "check.mjs": echo });
-  f.add("structure", "domain", { check: "check.mjs", gates: ["forge:pre", "forge:post"], after: ["role"] }, { "check.mjs": echo });
-  f.add("structure", "routes", { check: "check.mjs", gates: ["forge:post"], after: ["domain"] }, { "check.mjs": echo });
-  f.add("structure", "cron", { check: "check.mjs", gates: ["deploy"] }, { "check.mjs": echo });
+  const echo = 'console.log("PHASE=" + process.env.PHASE)\n';
+  f.add("structure", "role", { check: "check.mjs", phases: ["forge:pre"] }, { "check.mjs": echo });
+  f.add("structure", "domain", { check: "check.mjs", phases: ["forge:pre", "forge:post"], after: ["role"] }, { "check.mjs": echo });
+  f.add("structure", "routes", { check: "check.mjs", phases: ["forge:post"], after: ["domain"] }, { "check.mjs": echo });
+  f.add("structure", "cron", { check: "check.mjs", phases: ["deploy"] }, { "check.mjs": echo });
   const r = f.exec(["check", "--phase=forge:pre,forge:post"]);
   assert.equal(r.code, 0);
   assert.deepEqual(r.out.match(/structure\/\w+: check 通る/g), ["structure/role: check 通る", "structure/domain: check 通る", "structure/routes: check 通る"]);
@@ -183,9 +183,9 @@ test("watch の glob: ** は何段でも(0 段も)、* は 1 段の中、? は 1
 
 test("watch: 段階 ship で選んだ watch つきの対象は、範囲の変更が当たらなければ飛ばして 1 行出す / 当たれば回す / watch の無い対象・名前で呼んだ時・--all・範囲が決まらない時は回す", (t) => {
   const f = fixture(t);
-  f.add("workflow", "rules", { check: "check.mjs", gates: ["ship"], watch: ["CLAUDE.md", ".claude/rules/**"] });
-  f.add("workflow", "notices", { check: "check.mjs", gates: ["ship", "forge:post"], watch: [".notices/**"] });
-  f.add("structure", "routes", { check: "check.mjs", gates: ["ship"] });
+  f.add("workflow", "rules", { check: "check.mjs", phases: ["ship"], watch: ["CLAUDE.md", ".claude/rules/**"] });
+  f.add("workflow", "notices", { check: "check.mjs", phases: ["ship", "forge:post"], watch: [".notices/**"] });
+  f.add("structure", "routes", { check: "check.mjs", phases: ["ship"] });
   const changed = (files) => ({ changed: () => ({ files, base: "origin/main" }) });
   const none = f.exec(["check", "--phase=ship"], changed([]));
   assert.equal(none.code, 0);
@@ -204,15 +204,15 @@ test("watch: 段階 ship で選んだ watch つきの対象は、範囲の変更
   assert.match(unknown.out, /workflow\/rules: check 通る/);
   let calls = 0;
   f.exec(["check", "--phase=forge:post"], { changed: () => (calls++, { files: [] }) });
-  assert.equal(calls, 0, "watch の門でなければ範囲を読まない");
+  assert.equal(calls, 0, "watch の段階でなければ範囲を読まない");
 });
 
-test("tests の欄: リポ相対の *.test.* の配列で実在する物だけ。check がテストの対象と tests が gateTestFiles に門の名で並ぶ(D389)", (t) => {
+test("tests の欄: リポ相対の *.test.* の配列で実在する物だけ。check がテストの対象と tests が gateTestFiles に段階の名で並ぶ(D389)", (t) => {
   const { repo, scriptsDir, add } = fixture(t);
   mkdirSync(join(repo, "lib"), { recursive: true });
   writeFileSync(join(repo, "lib/a.test.mjs"), "");
-  add("structure", "cyc", { check: "cyc.test.mjs", gates: ["ship"] }, { "cyc.test.mjs": "" });
-  add("workflow", "ntc", { check: "check.mjs", gates: ["ship"], tests: ["lib/a.test.mjs"] });
+  add("structure", "cyc", { check: "cyc.test.mjs", phases: ["ship"] }, { "cyc.test.mjs": "" });
+  add("workflow", "ntc", { check: "check.mjs", phases: ["ship"], tests: ["lib/a.test.mjs"] });
   assert.deepEqual([...gateTestFiles(repo)], [["scripts/structure/cyc/cyc.test.mjs", "cyc"], ["lib/a.test.mjs", "ntc"]]);
   assert.deepEqual(gateTestsOf(join(scriptsDir, "workflow/ntc")), ["lib/a.test.mjs"]);
   add("workflow", "bad", { check: "check.mjs", tests: ["lib/a.mjs", "lib/none.test.mjs"] });

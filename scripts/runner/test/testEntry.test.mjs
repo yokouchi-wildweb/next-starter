@@ -50,14 +50,14 @@ test("選ぶ: 既定 = unit + fork、--db で全部、--group でその群、パ
   assert.deepEqual(await pick(["**/*.mjs", "scripts/**"]), ["src/c/c.test.mjs", "scripts/x/x.test.mts"]);
 });
 
-test("門が回すテスト(phase.json の check がテスト・tests の欄)は名指しでない時は除き、除いた本数と門の名を出す。名指しなら回す(D389)", async () => {
+test("段階が回すテスト(phase.json の check がテスト・tests の欄)は名指しでない時は除き、除いた本数と段階の名を出す。名指しなら回す(D389)", async () => {
   const gateTests = () => new Map([["src/c/c.test.mjs", "cycles"], ["scripts/x/x.test.mts", "notices"]]);
   const sel = (argv) => select(parseArgs(argv), { repo: "/r", files: FILES, changed: noRange, gateTests });
   const all = await sel([]);
   assert.deepEqual(all.files, ["src/a/a.test.ts", "tests/mine/m.test.ts"]);
-  assert.ok(all.notes.some((n) => /門が回すテスト 2 本を除いた\(cycles・notices/.test(n)));
+  assert.ok(all.notes.some((n) => /段階が回すテスト 2 本を除いた\(cycles・notices/.test(n)));
   assert.ok(!all.notes.some((n) => n.startsWith("除いた:")));
-  assert.ok((await sel(["--list"])).notes.includes("除いた: src/c/c.test.mjs(門 cycles)"));
+  assert.ok((await sel(["--list"])).notes.includes("除いた: src/c/c.test.mjs(段階 cycles)"));
   assert.deepEqual((await sel(["src/c/c.test.mjs"])).files, ["src/c/c.test.mjs"]);
   assert.deepEqual((await sel(["--group=unit"])).files, ["src/a/a.test.ts"]);
 });

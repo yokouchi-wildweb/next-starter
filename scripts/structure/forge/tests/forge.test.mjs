@@ -15,7 +15,7 @@ const names = (steps) => steps.map((step) => step.name);
 const tmpDirs = [];
 after(() => tmpDirs.forEach((dir) => fs.rmSync(dir, { recursive: true, force: true })));
 
-test("段の並び: 門の forge:pre → 門の生成(forge:pre・forge:post)→ 門の forge:post → テスト → typecheck(・lint)→ 門の deploy。cron は生成しない", () => {
+test("段の並び: 段階の forge:pre → 段階の生成(forge:pre・forge:post)→ 段階の forge:post → テスト → typecheck(・lint)→ 段階の deploy。cron は生成しない", () => {
   const steps = buildSteps();
   const order = names(steps);
   const at = (name) => order.indexOf(name);

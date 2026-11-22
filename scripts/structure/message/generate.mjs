@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// scripts/structure/message/generate.mjs — 門の入口(pnpm generate message [-- <domain> <name> [<旗>]])
+// scripts/structure/message/generate.mjs — 段階の入口(pnpm generate message [-- <domain> <name> [<旗>]])
 // 引数なし = 何もしない(exit 0)。書いた時だけ src/registry(messageRegistry)と拡張点の一覧(描き方の 1 行スイッチ = 受け口の一覧の行)を作り直す。
 // 中身: ./scaffold.mjs、使い方: ./README.md
 

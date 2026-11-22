@@ -1,4 +1,4 @@
-// scripts/structure/domain/check.mjs — 門の入口(pnpm check domain [-- <引数>]): ドメインの宣言の検査(何も書かない)
+// scripts/structure/domain/check.mjs — 段階の入口(pnpm check domain [-- <引数>]): ドメインの宣言の検査(何も書かない)
 //   引数なし: 全ドメインの生成の --dry-run(domain.json の検査。段階 forge:pre・ship・名前で呼んだ時)。
 //             ドメインの一覧は地区の地図 src/registry/district-map.jsonl(pnpm check district-map が照らす)
 //   --compare [<引数>]   = fork が generate を決めるための比較(compare.mjs、読むだけ)

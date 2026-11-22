@@ -1,4 +1,4 @@
-// scripts/structure/role/check.mjs — 門の入口(pnpm check role [-- --list]): ロール・プロフィールの宣言の検査(何も書かない)
+// scripts/structure/role/check.mjs — 段階の入口(pnpm check role [-- --list]): ロール・プロフィールの宣言の検査(何も書かない)
 //   引数なし = forge の事前検査と同じ checkAllRoles を回し、問題を出して exit 1
 //   --list   = ロールの一覧を出す(listRoles.mjs)
 import { spawnSync } from "node:child_process";

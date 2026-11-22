@@ -49,12 +49,12 @@ pnpm test --file-timeout=300    # 1 ファイルの時間の上限(テストの�
 
 ## Internals
 
-- 走査: 毎回、git の追跡 + 未追跡(無視されない物)の `*.test.{ts,tsx,mts,mjs,js,cjs}`。一覧ファイルは無い。除く物: `tests/e2e/`(動いているアプリを外から見る物、playwright = `pnpm e2e`)・`*.types.test.*`(型のテスト = `pnpm typecheck` が見る)。門が回すテスト(phase.json の `check` がテストのファイル・`tests` の欄、`scripts/runner/phases/scan.mjs` の `gateTestFiles`)は名指しでない時(全体・`--changed`・`--group`)に除き、除いた本数と門の名を出す(`--list` は 1 本ずつ。門の入口のテストはテストの段で繰り返さない、D389)。`servers/`(別のプログラム)は引数のパス・glob がそこを名指しした時(`pnpm test servers/room`)と、`--changed` の範囲に `servers/` の下の変更がある時だけ(/ship が変えた時に回す)
+- 走査: 毎回、git の追跡 + 未追跡(無視されない物)の `*.test.{ts,tsx,mts,mjs,js,cjs}`。一覧ファイルは無い。除く物: `tests/e2e/`(動いているアプリを外から見る物、playwright = `pnpm e2e`)・`*.types.test.*`(型のテスト = `pnpm typecheck` が見る)。段階が回すテスト(phase.json の `check` がテストのファイル・`tests` の欄、`scripts/runner/phases/scan.mjs` の `gateTestFiles`)は名指しでない時(全体・`--changed`・`--group`)に除き、除いた本数と段階の名を出す(`--list` は 1 本ずつ。段階の入口のテストはテストの段で繰り返さない、D389)。`servers/`(別のプログラム)は引数のパス・glob がそこを名指しした時(`pnpm test servers/room`)と、`--changed` の範囲に `servers/` の下の変更がある時だけ(/ship が変えた時に回す)
 - 群(ファイル名で決まる): `db` = `*.db.test.*` / `fork` = `tests/` の下(fork が足すテスト)/ `unit` = それ以外
 - 起動: `node <tsx の cli> --import ./scripts/runner/preload/serverOnly.mjs --import ./scripts/runner/preload/fileTimeout.mjs --experimental-test-module-mocks --test-timeout=<ms> --test <files>`(1 ファイル 1 プロセス)
   - `--test` の後のファイルを node は glob として読む → 入口はパスの `[ ] { } * ?` を `[x]` の形にして渡す(`[id]/` の下は `[[]id[]]/`)。そのまま渡すと `src/app/**/[id]/` の下のテストが 0 本になり、黙って通る
   - `npx` は通さない: コマンドを shell に渡すので、shell の glob が `[[]id[]]` を `[id]` に戻してしまう(tsx の cli を node で直に起動する)
-- `--changed`: 範囲(門 = `scripts/runner/phases` の検査の束、の watch と同じ: 比べる枝との分岐点..HEAD + 作業ツリー + 未追跡、`scripts/runner/phases/changed.mjs`)の変更したファイルについて、テストのファイルから import を辿って(dpdm、`@/` は tsconfig)届くテストと、変更したファイルと同じフォルダのテストを選ぶ。辿れなかったテストは同じフォルダの規則だけで選び「依存を辿れなかった」と出す。範囲が決まらなければ全部回す
+- `--changed`: 範囲(段階 = `scripts/runner/phases` の検査の束、の watch と同じ: 比べる枝との分岐点..HEAD + 作業ツリー + 未追跡、`scripts/runner/phases/changed.mjs`)の変更したファイルについて、テストのファイルから import を辿って(dpdm、`@/` は tsconfig)届くテストと、変更したファイルと同じフォルダのテストを選ぶ。辿れなかったテストは同じフォルダの規則だけで選び「依存を辿れなかった」と出す。範囲が決まらなければ全部回す
 - 1 ファイルの時間の上限の仕組み: `scripts/runner/preload/fileTimeout.mjs` が node --test の子(env `NODE_TEST_CONTEXT` の付いたプロセス)の中で unref したタイマーを置き、過ぎたら exit 1。node の `--test-timeout` は `test()` 1 つごとで、テストの後に接続・タイマーが残って終わらないファイルを止められない。同期の無限ループには効かない(タイマーが動けない)
 - 役目: `run.mjs` 入口(引数・選ぶ・束ねて起動)・`scan.mjs` 走査・群・`// test-flags:`・`changed.mjs` `--changed` の選び方(dpdm の木と同じフォルダ)
 

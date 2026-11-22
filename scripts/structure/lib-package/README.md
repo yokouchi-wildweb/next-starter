@@ -2,7 +2,7 @@
 
 ## Overview
 
-- lib ごとの「閉じたか」を確かめます。`package.json` を持つ lib(= 宣言した lib)は下の 1〜6 の不備で落ち、宣言の無い lib(package.json の無い `src/lib/<名前>`)は不備 `undeclared` 1 つで落ちます(閉じた lib の検査は掛けない。上流の lib は「lib を閉じる手順」、fork の自前の lib は宣言の道具で package.json を置く)。package.json の形そのもの(exports・libs・peers・sideEffects の書き方。入口の名前 = exports の鍵が `.`・`./server`・`./client`・`./node` の 4 つだけ、ほかは `entryName`)は `src/lib/libPackage`(読み手と形の検査)が見ます。形に問題がある宣言の lib は 1〜6 を飛ばし、閉じていない不備 1 つ(`shape`。理由に形の問題の名前と文を並べる)で落とします(state skipped)。上流の lib にも fork が足した自前の lib にも同じに効きます。今の repo の lib を型検査するのはこの門だけで、テストは作り物のリポで仕組みを試します(1 回の `/ship --safe` で同じ型検査を重ねない)。
+- lib ごとの「閉じたか」を確かめます。`package.json` を持つ lib(= 宣言した lib)は下の 1〜6 の不備で落ち、宣言の無い lib(package.json の無い `src/lib/<名前>`)は不備 `undeclared` 1 つで落ちます(閉じた lib の検査は掛けない。上流の lib は「lib を閉じる手順」、fork の自前の lib は宣言の道具で package.json を置く)。package.json の形そのもの(exports・libs・peers・sideEffects の書き方。入口の名前 = exports の鍵が `.`・`./server`・`./client`・`./node` の 4 つだけ、ほかは `entryName`)は `src/lib/libPackage`(読み手と形の検査)が見ます。形に問題がある宣言の lib は 1〜6 を飛ばし、閉じていない不備 1 つ(`shape`。理由に形の問題の名前と文を並べる)で落とします(state skipped)。上流の lib にも fork が足した自前の lib にも同じに効きます。今の repo の lib を型検査するのはこの段階だけで、テストは作り物のリポで仕組みを試します(1 回の `/ship --safe` で同じ型検査を重ねない)。
 
 ## Usage
 
@@ -19,7 +19,7 @@ pnpm test scripts/structure/lib-package
 ```
 
 - exit 0 = 宣言した lib に不備 0(package.json を持つ lib が 0 の時も)/ 1 = 不備あり(直す所を 1 行ずつ出す)/ 2 = 引数の誤り
-- `--` の後の最初の語が動き(action)。語が無ければ門の検査(scripts/structure/routes の `-- show` と同じ形)。動きの exit はその動きの物
+- `--` の後の最初の語が動き(action)。語が無ければ段階の検査(scripts/structure/routes の `-- show` と同じ形)。動きの exit はその動きの物
 
 ### 動き(action)
 
@@ -77,7 +77,7 @@ pnpm check lib-package -- jsdoc [--lib <名前>]... [--apply] [--json]
 - 推せずに any を含む型を書いた所(欄の any・複数行の型の続きの行も)は `any <ファイル>:<行>` で一覧に出す。人が本当の型に直す(any を残さない)
 - 空の配列から推した `never[]` を含む直しは書かず、`never[] <ファイル>:<行> 書かなかった: <JSDoc>` で一覧に出す(行 = 直しを当てる行。人が本当の型を書く)
 - 書式(字下げ = 空白 2)を codefix に渡す: 入れ子の関数の複数行の JSDoc も字下げを保つ
-- 暗黙の any 以外の型の誤り(TS2339 など)は直さない。それは閉じたかの検査(門の検査)が名指しする。返り値が `object` になっている所は、typedef を 1 つ書くと読み手の誤りがまとめて消えることが多い
+- 暗黙の any 以外の型の誤り(TS2339 など)は直さない。それは閉じたかの検査(段階の検査)が名指しする。返り値が `object` になっている所は、typedef を 1 つ書くと読み手の誤りがまとめて消えることが多い
 - 単体用 tsconfig は緩めない(下の「lib の tsconfig.json」の形のまま。閉じた .mjs の lib は JSDoc で strict の型検査を通す)
 - 本体と引数: `jsdoc.mjs`
 
@@ -87,12 +87,12 @@ pnpm check lib-package -- jsdoc [--lib <名前>]... [--apply] [--json]
 pnpm check lib-package -- declare [<名前>]... [--apply] [--json]
 ```
 
-- 対象 = `src/lib/CATALOG.md` の自分の節(repo.json の repo_id)にある、package.json の無い lib(名前を書かなければ全部)。宣言の無い lib は門の検査が `undeclared` で落とすので、fork が自前の lib を閉じる入り口
+- 対象 = `src/lib/CATALOG.md` の自分の節(repo.json の repo_id)にある、package.json の無い lib(名前を書かなければ全部)。宣言の無い lib は段階の検査が `undeclared` で落とすので、fork が自前の lib を閉じる入り口
 - 拒む(書かない): 祖先の lib(自分の節に無い。宣言は持ち主が行う → /order <直の親>)・宣言済みの lib・自分の節に行の無い lib
 - 推して書く物:
   - `exports`: lib の中のファイルの名前から。`index.*` → `.`、`server.*` / `server/index.*` → `./server`、`client…` → `./client`、`node…` → `./node`(入口の名前は 4 つだけ)
   - `libs` / `peers`: lib のファイル(テストも)の import の先から。`src/lib/<他>` → libs、`src/components` → peers `components`
-  - tsconfig.json: その宣言の閉包で、門の検査が期待する形(下の API「lib の tsconfig.json」)
+  - tsconfig.json: その宣言の閉包で、段階の検査が期待する形(下の API「lib の tsconfig.json」)
 - 決めきれない所は一覧に出す(書く物は変えない。1 つでもあれば exit 1):
   - `inner`: 外から入口でない中のファイルを読む import。読み手の場所から入口の候補を添える(scripts・eslint-rules・servers → `./node`、services/server・app/api・server の名 → `./server`、ほか → `.`)。読む名前をその入口から出し、codemod で直す
   - `outside`: lib が読めない所(features・app・hooks・utils・`@/config` など)を読む import。引数・注入で受けるか、値なら設定(src/lib/README.md 手順 1・6)
@@ -108,7 +108,7 @@ pnpm check lib-package -- declare [<名前>]... [--apply] [--json]
 - `state`: `closed`(宣言・不備 0)| `gaps`(宣言・不備あり)| `skipped`(package.json の形に問題)| `undeclared`(package.json 無し。不備 `undeclared` 1 つ)
 - `declared`: `none` | `ok` | `problems:<数>`
 - `inner`: 外から lib の中を読む import の数。宣言した lib = exports の入口に当たらない import、宣言の無い lib = lib の根(index)以外に当たる import。lint の entry/only-entries と同じ部品(eslint-rules/resolve-import.mjs の resolveImport、src/lib/libPackage の libOfPath・findEntry)で判定する。走査 = lint と同じ所(git の追跡 + 未追跡、node_modules・.next・src/_stash 等を除く)、`@lib-config/…` は数えない
-  - ここでは数えて見せるだけ。宣言した lib の中を外から読む import を落とすのは pnpm lint の entry/only-entries(1 つの規則)。だから門の watch にも repo 全体は入れない
+  - ここでは数えて見せるだけ。宣言した lib の中を外から読む import を落とすのは pnpm lint の entry/only-entries(1 つの規則)。だから段階の watch にも repo 全体は入れない
 - `problems`: 下の 1〜6 の不備の数(宣言の無い lib は `undeclared` の 1)
 - `config`: `none`(config.ts も config.ui.ts も無し)| `ok`(持つ口の上書き src/config/lib/<名前>.config.ts / <名前>.ui.config.ts が全部あり)| `overrideMissing`
 - `merge`: 残っている自前の合成の名前(下の 6)

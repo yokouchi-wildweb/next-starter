@@ -1,5 +1,5 @@
 // scripts/structure/cache-components/lib.test.mjs
-// cacheComponents の検査の判定。実行: pnpm test scripts/structure/cache-components/lib.test.mjs(門 cache-components の check も回す)
+// cacheComponents の検査の判定。実行: pnpm test scripts/structure/cache-components/lib.test.mjs(段階 cache-components の check も回す)
 
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";

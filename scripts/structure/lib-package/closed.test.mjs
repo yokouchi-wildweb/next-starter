@@ -1,7 +1,7 @@
 // scripts/structure/lib-package/closed.test.mjs
 // 閉じたかの検査(指令 26 d1): lib ごとの状態、閉じた lib の不備は落とし、宣言の無い lib は数えるだけ。
 // 実行: pnpm test scripts/structure/lib-package/closed.test.mjs
-// fixture = 一時フォルダの小さな repo(git なし → 全部を歩いて走査)。今の repo の lib を型検査するのは門
+// fixture = 一時フォルダの小さな repo(git なし → 全部を歩いて走査)。今の repo の lib を型検査するのは段階
 // pnpm check lib-package だけ(テストで回すと 1 回の --safe で同じ型検査が重なる)。
 
 import assert from "node:assert/strict";

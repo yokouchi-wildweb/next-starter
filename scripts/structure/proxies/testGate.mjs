@@ -1,8 +1,8 @@
-// scripts/structure/proxies/testGate.mjs — 門番のテストを門で回す段(当議会 D133、check.ts が呼ぶ)
+// scripts/structure/proxies/testGate.mjs — 門番のテストを段階で回す段(当議会 D133、check.ts が呼ぶ)
 //
 // FEATURE_GATE_CHECK=all で src/featureGate と scripts/structure/proxies のテストを pnpm test の runner で回し、
 // 落ちたテストを「違反」と「環境の依存の不足」(DB・Firebase の未設定、モジュールが見つからない)に分けて返す。
-// どちらも門を止める(exit 1、黙って飛ばさない)。分けるのは直す所が違うから: 違反 = 門番の規則・住所・コード、
+// どちらも段階を止める(exit 1、黙って飛ばさない)。分けるのは直す所が違うから: 違反 = 門番の規則・住所・コード、
 // 環境 = テストが外の物に頼っている(門番のテストは env なしで通る前提。依存を外すのが直し方)。
 
 import { spawnSync } from "node:child_process";

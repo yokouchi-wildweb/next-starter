@@ -3,7 +3,7 @@
 ## Overview
 
 - `pnpm workflow`(開発の進め方の道具、`scripts/workflow/`)と `pnpm ops`(手で使う操作・閲覧の道具、`scripts/operations/`)の入口
-- 門に乗る検査(phase.json)は `pnpm check`(`scripts/runner/phases/README.md`)。この入口は検査を回す場所ではない
+- 段階に乗る検査(phase.json)は `pnpm check`(`scripts/runner/phases/README.md`)。この入口は検査を回す場所ではない
 
 ## Usage
 
@@ -21,7 +21,7 @@ pnpm ops <対象> <動作> [<引数>...]                # 手で使う操作・�
 
 - 対象 = `scripts/workflow/<対象>/` / `scripts/operations/<対象>/`(fork が直下に足したフォルダも同じ規則で拾う)
 - 動作 = そのフォルダの直下の `<動作>.mjs` / `.js` / `.ts`(`.ts` は tsx + server-only の下駄、ほかは node で起動)
-- 動作にならない物 = `*.test.*`・`lib.*`・そのフォルダの `phase.json` が名指す門の入口(`check` / `generate`。`pnpm check` / `pnpm generate` で呼ぶ)・下のフォルダの中。動作の間で共有する部品はここに置く(例 `operations/db/clear/plan.ts`・`operations/storage/iam/`)
+- 動作にならない物 = `*.test.*`・`lib.*`・そのフォルダの `phase.json` が名指す段階の入口(`check` / `generate`。`pnpm check` / `pnpm generate` で呼ぶ)・下のフォルダの中。動作の間で共有する部品はここに置く(例 `operations/db/clear/plan.ts`・`operations/storage/iam/`)
 
 ## Verification
 
@@ -30,4 +30,4 @@ pnpm ops <対象> <動作> [<引数>...]                # 手で使う操作・�
 ## Related
 
 - 置き場の決まり: `.claude/rules/core/scripts.md` placement
-- 門と検査: `scripts/runner/phases/README.md`
+- 段階と検査: `scripts/runner/phases/README.md`

@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { gateTestsOf } from "../../runner/phases/scan.mjs";
 
 const repo = join(import.meta.dirname, "../../..");
-// 回すテストの一覧は phase.json の tests(pnpm test はそれを回さない: 門 1 回、D389)
+// 回すテストの一覧は phase.json の tests(pnpm test はそれを回さない: 段階 1 回、D389)
 const r = spawnSync(process.execPath, ["--test", ...gateTestsOf(import.meta.dirname).map((f) => join(repo, f))], { stdio: "inherit" });
 const size = spawnSync(process.execPath, [join(import.meta.dirname, "size.mjs")], { stdio: "inherit" });
 const format = spawnSync(process.execPath, [join(import.meta.dirname, "format.mjs")], { stdio: "inherit" });

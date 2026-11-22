@@ -70,7 +70,7 @@ export function noticeAddCommits(repo, id) {
 }
 
 // 表は repo と HEAD ごとに 1 つ(HEAD が進めば作り直す)。id ごとに git log を起こすと、1 回が履歴全体を歩くので
-// fixes: の数 × 履歴の長さになった(88-base 11-21: 合流 1221 の履歴で 1 回 0.63 s × 130 回 = notices の門 73.7 s)
+// fixes: の数 × 履歴の長さになった(88-base 11-21: 合流 1221 の履歴で 1 回 0.63 s × 130 回 = notices の段階 73.7 s)
 const addTables = new Map();
 
 /** id → notice を足した commit(新しい順)。.notices/ と done/ を 1 回の git log で読む */

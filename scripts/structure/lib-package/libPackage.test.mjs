@@ -1,5 +1,5 @@
 // scripts/structure/lib-package/libPackage.test.mjs
-// 単体用 tsconfig の照合と型検査(指令 23 d3)・sideEffects の検査(d4)。今の repo の lib の検査は門
+// 単体用 tsconfig の照合と型検査(指令 23 d3)・sideEffects の検査(d4)。今の repo の lib の検査は段階
 // pnpm check lib-package だけ(テストで回すと 1 回の --safe で 45 個の型検査が重なる)。
 // 実行: pnpm test scripts/structure/lib-package/libPackage.test.mjs
 // fixture = 一時フォルダの小さな repo(ルートの tsconfig.json・src/lib/<名前>/・偽の node_modules)。実物の lib には置かない。

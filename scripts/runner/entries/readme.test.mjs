@@ -66,7 +66,7 @@ test("pnpm の入口・pnpm ops / workflow の対象と動作・pnpm check / gen
         }
       }
     }
-    if ((entry === "check" || entry === "generate") && rest[0] && !isPlaceholder(rest[0]) && !gateTargets.has(rest[0])) problems.push(`門の対象 ${rest[0]}: ${line}`);
+    if ((entry === "check" || entry === "generate") && rest[0] && !isPlaceholder(rest[0]) && !gateTargets.has(rest[0])) problems.push(`段階の対象 ${rest[0]}: ${line}`);
   }
   assert.deepEqual(problems, []);
 });

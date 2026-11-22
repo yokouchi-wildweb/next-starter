@@ -1,4 +1,4 @@
-// scripts/structure/domain/generateAll.mjs — 門の入口(pnpm generate domain [-- <引数>]): 引数で動作を選ぶ
+// scripts/structure/domain/generateAll.mjs — 段階の入口(pnpm generate domain [-- <引数>]): 引数で動作を選ぶ
 //   引数なし / 旗だけ   = 全ドメインを生成(index.mjs --generate --all <旗>。例: -- --dry-run、-- --only registry)
 //   <Domain> [<旗>]     = そのドメインを生成(index.mjs --generate <Domain> <旗>。例: -- Sample --dry-run、-- Sample -i)
 //   --delete <Domain> --confirm <snake_name> = 生成物を消す(index.mjs --delete)

@@ -1,4 +1,4 @@
-// scripts/structure/role/generateAll.mjs — 門の入口(pnpm generate role [-- <引数>]): 引数で動作を選ぶ
+// scripts/structure/role/generateAll.mjs — 段階の入口(pnpm generate role [-- <引数>]): 引数で動作を選ぶ
 //   引数なし / --all             = 全ロール・プロフィールの生成物を作り直す(generate.mjs --all)
 //   <roleId>                     = そのロールを生成(generate.mjs <roleId>)
 //   --delete <roleId> [<旗>]     = ロールを消す(deleteRole.mjs。--confirm <id>・--keep-generated・--remove-json・-i)

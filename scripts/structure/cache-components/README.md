@@ -2,8 +2,8 @@
 
 ## Overview
 
-- Next の cacheComponents が有効のまま組み上がっているかを見る門の対象です。上流も fork も同じ道具が回ります(fork ごとの入切は無い)。
-- 2 つの判定を持ちます。門 `ship`(/ship・/flux の区間の検査)は `next.config.ts` の値を、門 `build:post`(`pnpm build` の next build の後)は build の成果物を見ます。
+- Next の cacheComponents が有効のまま組み上がっているかを見る段階の対象です。上流も fork も同じ道具が回ります(fork ごとの入切は無い)。
+- 2 つの判定を持ちます。段階 `ship`(/ship・/flux の区間の検査)は `next.config.ts` の値を、段階 `build:post`(`pnpm build` の next build の後)は build の成果物を見ます。
 
 ## Usage
 
@@ -22,8 +22,8 @@ pnpm check cache-components --phase=build:post   # .next の成果物を見る(�
 ## Internals
 
 - 静的に焼き付いた API: request を読む前に返す GET は cacheComponents の build で ○ になり、応答が build の時の値に固まる。route.ts は wiring の Factory(`createApiRoute` 等、cron は `createCronTaskRoute`)で書けば、Factory の芯が最初に `connection()` を待つので焼き付かない(src/lib/routeFactory/README.md)
-- fork の取り込み(/flux)の区間の検査は build をしないので、/flux で効くのは `ship` の門の設定の判定。成果物の判定は fork の `pnpm build`(Vercel の build も)と /ship --safe の全部の検査で効く
-- build:post は offline の門(DB・外部の env を空にして回る)。この判定は .next のファイルを読むだけ
+- fork の取り込み(/flux)の区間の検査は build をしないので、/flux で効くのは `ship` の段階の設定の判定。成果物の判定は fork の `pnpm build`(Vercel の build も)と /ship --safe の全部の検査で効く
+- build:post は offline の段階(DB・外部の env を空にして回る)。この判定は .next のファイルを読むだけ
 
 ## Verification
 

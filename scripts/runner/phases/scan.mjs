@@ -1,4 +1,4 @@
-// scripts/runner/phases/scan.mjs — 門の一覧(phases.json)と各対象フォルダの phase.json を読み、検証して回す順に並べる
+// scripts/runner/phases/scan.mjs — 段階の一覧(phases.json)と各対象フォルダの phase.json を読み、検証して回す順に並べる
 // 走査は毎回(一覧は生成しない)。対象 = scripts/structure/*/phase.json と scripts/workflow/*/phase.json。
 // 順序: after を満たす順。同じ段では上流の名簿(phases.json の upstreamFolders)の物が先で名前順、名簿に無い(fork の)フォルダは
 // 上流の全部の後に名前順(fork の物は上流の後: fork の after に上流の名を書いてもよい)。欄の規則: README.md
@@ -8,16 +8,16 @@ import { join } from "node:path";
 import { normalizeGateOutputs } from "../../../src/lib/districtMap/node.mjs";
 
 export const KINDS = ["structure", "workflow"];
-export const KEYS = ["check", "generate", "gates", "after", "watch", "features", "outputs", "regions", "tests"];
+export const KEYS = ["check", "generate", "phases", "after", "watch", "features", "outputs", "regions", "tests"];
 /** テストのファイルの形(pnpm test の入口と同じ: scripts/runner/test/scan.mjs の TEST_FILE) */
 const TEST_FILE = /\.test\.(ts|tsx|mts|mjs|js|cjs)$/;
 
 export class GateError extends Error {}
 
-/** 門の一覧: { gates: { <名前>: { runs, offline } }, upstreamFolders: { structure: [], workflow: [] } } */
+/** 段階の一覧: { phases: { <名前>: { runs, offline } }, upstreamFolders: { structure: [], workflow: [] } } */
 export function loadGates(scriptsDir) {
   const p = join(scriptsDir, "runner/phases/phases.json");
-  if (!existsSync(p)) throw new GateError(`門の一覧 ${p} が無い`);
+  if (!existsSync(p)) throw new GateError(`段階の一覧 ${p} が無い`);
   return JSON.parse(readFileSync(p, "utf8"));
 }
 
@@ -34,8 +34,8 @@ export function validate(decl, dir, gateNames) {
     if (typeof decl[k] !== "string" || /[/\\]/.test(decl[k])) errs.push(`${k} はこのフォルダの中のファイル名(${JSON.stringify(decl[k])})`);
     else if (!existsSync(join(dir, decl[k]))) errs.push(`${k} のファイル ${decl[k]} が無い`);
   }
-  for (const k of ["gates", "after", "watch", "features", "regions", "tests"]) if (decl[k] !== undefined && !strings(decl[k])) errs.push(`${k} は文字列の配列`);
-  // tests: check が node --test に渡すテストのファイル(リポ相対)。pnpm test はこれと、テストのファイルそのものの check を回さない(門 1 回、D389)
+  for (const k of ["phases", "after", "watch", "features", "regions", "tests"]) if (decl[k] !== undefined && !strings(decl[k])) errs.push(`${k} は文字列の配列`);
+  // tests: check が node --test に渡すテストのファイル(リポ相対)。pnpm test はこれと、テストのファイルそのものの check を回さない(段階 1 回、D389)
   if (strings(decl.tests)) {
     for (const f of decl.tests) {
       if (!TEST_FILE.test(f)) errs.push(`tests の ${f} はテストのファイル(*.test.*)でない`);
@@ -44,13 +44,13 @@ export function validate(decl, dir, gateNames) {
   }
   // outputs: 1 行 = glob の文字列(= every-run)か { glob, kind?, source? }(生成器が出力を宣言する唯一の場所。読み方は src/lib/districtMap/domainOutputs.mjs)
   errs.push(...normalizeGateOutputs(decl.outputs).problems);
-  for (const g of decl.gates ?? []) if (!gateNames.includes(g)) errs.push(`知らない門 ${g}(門は ${gateNames.join(", ")})`);
+  for (const g of decl.phases ?? []) if (!gateNames.includes(g)) errs.push(`知らない段階 ${g}(段階は ${gateNames.join(", ")})`);
   return errs;
 }
 
 /** 対象を走査して検証する: [{ kind, name, dir, decl, upstream }]。誤りは GateError(全部まとめて) */
 export function scanTargets(scriptsDir, gates) {
-  const gateNames = Object.keys(gates.gates);
+  const gateNames = Object.keys(gates.phases);
   const targets = [];
   const errs = [];
   for (const kind of KINDS) {
@@ -106,16 +106,16 @@ export function order(targets) {
   return out;
 }
 
-/** phase.json の tests を読む(その門の check.mjs が node --test に渡す一覧の唯一の場所): リポ相対のパスの配列 */
+/** phase.json の tests を読む(その段階の check.mjs が node --test に渡す一覧の唯一の場所): リポ相対のパスの配列 */
 export function gateTestsOf(dir) {
   const decl = JSON.parse(readFileSync(join(dir, "phase.json"), "utf8"));
   return decl.tests ?? [];
 }
 
 /**
- * 門が回すテストのファイル: Map<リポ相対のパス, 門の対象名>。check そのものがテストのファイルの対象(cycles・config)と、
- * tests の欄(notices・rules)。pnpm test は名指しでない時にこれを除く(門の入口のテストはテストの段で繰り返さない、D389)。
- * 門の宣言が読めない時は空(テストを減らさない: 誤りは pnpm check が出す)
+ * 段階が回すテストのファイル: Map<リポ相対のパス, 段階の対象名>。check そのものがテストのファイルの対象(cycles・config)と、
+ * tests の欄(notices・rules)。pnpm test は名指しでない時にこれを除く(段階の入口のテストはテストの段で繰り返さない、D389)。
+ * 段階の宣言が読めない時は空(テストを減らさない: 誤りは pnpm check が出す)
  */
 export function gateTestFiles(repo) {
   const out = new Map();

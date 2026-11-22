@@ -35,7 +35,7 @@ pnpm generate message -- <domain> <name> --category <key> --label <名前> [--va
 
 ## Internals
 
-- 役目: `scaffold.mjs`(引数・検査・書き出し)、`templates.mjs`(雛形)、`generate.mjs`(門の入口)
+- 役目: `scaffold.mjs`(引数・検査・書き出し)、`templates.mjs`(雛形)、`generate.mjs`(段階の入口)
 
 ## Verification
 

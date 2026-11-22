@@ -9,7 +9,7 @@
 //   6. 自前の合成(defineXxxConfig)が残っていないか
 // package.json の形の問題(src/lib/libPackage の checkLibPackage。入口の名前 = exports の鍵が . ./server ./client ./node だけ、も
 // ここ: entryName)がある lib は 1〜6 を飛ばし、閉じていない不備 1 つ(shape、形の問題を並べる)で落とす
-// (宣言した lib が全部閉じているかの確かめはこの門だけ: テストは今の repo を見ない)。
+// (宣言した lib が全部閉じているかの確かめはこの段階だけ: テストは今の repo を見ない)。
 // 宣言の無い lib(package.json の無い src/lib/<名前>)は不備 undeclared で落とす(K6)。外から中を読む import は --list / --json で数えて見せるだけ(落とすのは pnpm lint の entry/only-entries)。
 //
 //   pnpm check lib-package                 不備の行 + 1 行のまとめ

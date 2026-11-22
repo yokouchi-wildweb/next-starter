@@ -12,7 +12,7 @@
 ```bash
 pnpm dev | build | start | lint | typecheck        # typecheck = next typegen(next-env.d.ts と .next/types を作る)→ tsc
 pnpm test [<パス>|--changed|--db|--group=<群>]   # テスト(runner/test/README.md)
-pnpm check [<対象>|--phase=<門>] [--all]           # 検査器(門ごと、runner/phases/README.md)
+pnpm check [<対象>|--phase=<段階>] [--all]           # 検査器(段階ごと、runner/phases/README.md)
 pnpm generate [<対象>]                           # 生成器
 pnpm task <ドメイン>:<名前> | <定期タスク> | --list | --due | --resolve <runId> succeeded|failed
 pnpm ops <対象> <動作> [<引数>...]               # 手で行う操作と閲覧
@@ -24,7 +24,7 @@ pnpm live | live:app | live:room | live:all      # デプロイ(本番は確認�
 ```
 
 - package.json の行はこれだけ。新しい道具は分類の下のフォルダに置けば入口が拾う(package.json に足さない)
-- 門(`build`・`build:post`・`ship`・`forge:pre`・`forge:post`・`deploy`)と phase.json: [runner/phases/README.md](./runner/phases/README.md)
+- 段階(`build`・`build:post`・`ship`・`forge:pre`・`forge:post`・`deploy`)と phase.json: [runner/phases/README.md](./runner/phases/README.md)
 
 ### よく使う操作
 
@@ -70,9 +70,9 @@ pnpm generate cron -- --plan hobby|pro              # vercel.json の crons を�
 
 | 分類 | 置く物 | 呼び方 | 今の対象 |
 |---|---|---|---|
-| `structure/` | 生成器と検査器。全部どこかの門(phase.json)に乗る | `pnpm generate <対象>` / `pnpm check <対象>` | admin-menu・bundle・business・cache-components・config・config-overrides・cron・cycles・district-map・domain・eslint・extensions・forge・legal・lib-package・message・proxies・registry・role・routes・styles |
-| `workflow/` | 開発の進め方の道具(ワークツリー・規則と notice とスキルの書式の検査・所有の検査・開発サーバーのタブ・tmux・確認用の管理者・開発中の確かめの入口・普通のセッション同士の連絡・手元の Claude Code の設定・auto-memory と文脈の行の事実) | `pnpm workflow <対象> <動作>`(門に乗る物は `pnpm check <対象>` も) | agent-terminal・context・dev-admin・dev-tab・devcheck・local-migrations・local-settings・memory・notices・ownership・peer・repo-json・rules・skills・tmux-launch・worktree |
-| `runner/` | 入口と、テスト・運用コマンド・シードを動かすランナー、書く入口の守り | `pnpm test` / `pnpm task` / `pnpm check` / `pnpm ops db seed` の中身 | entries・gates・guard・preload・seed・task・test |
+| `structure/` | 生成器と検査器。全部どこかの段階(phase.json)に乗る | `pnpm generate <対象>` / `pnpm check <対象>` | admin-menu・bundle・business・cache-components・config・config-overrides・cron・cycles・district-map・domain・eslint・extensions・forge・legal・lib-package・message・proxies・registry・role・routes・styles |
+| `workflow/` | 開発の進め方の道具(ワークツリー・規則と notice とスキルの書式の検査・所有の検査・開発サーバーのタブ・tmux・確認用の管理者・開発中の確かめの入口・普通のセッション同士の連絡・手元の Claude Code の設定・auto-memory と文脈の行の事実) | `pnpm workflow <対象> <動作>`(段階に乗る物は `pnpm check <対象>` も) | agent-terminal・context・dev-admin・dev-tab・devcheck・local-migrations・local-settings・memory・notices・ownership・peer・repo-json・rules・skills・tmux-launch・worktree |
+| `runner/` | 入口と、テスト・運用コマンド・シードを動かすランナー、書く入口の守り | `pnpm test` / `pnpm task` / `pnpm check` / `pnpm ops db seed` の中身 | entries・phases・guard・preload・seed・task・test |
 | `operations/` | 手で行う操作と閲覧(DB・Firestore・データ・デプロイ・初期化・storage・ルーム・メール・機能の入切・Claude API・Vercel) | `pnpm ops <対象> <動作>` | business・claude・data・db・deploy・features・firestore・legal・mail・room・setup・storage・vercel |
 
 - 対象 = 分類の下のフォルダ 1 つ。動作 = そのフォルダの直下の `<動作>.ts` / `.mjs`(`*.test.*`・`lib.*`・下のフォルダの中は動作にならない)。`pnpm ops` / `pnpm workflow` を引数なしで打つと一覧
@@ -82,7 +82,7 @@ pnpm generate cron -- --plan hobby|pro              # vercel.json の crons を�
 
 ### fork が足せる物
 
-- 新しい対象のフォルダ 1 つ: 門に乗せる生成器・検査器は `structure/<名前>/`(phase.json を置く)、開発の道具は `workflow/<名前>/`、手で行う操作は `operations/<名前>/`。入口と門が拾う
+- 新しい対象のフォルダ 1 つ: 段階に乗せる生成器・検査器は `structure/<名前>/`(phase.json を置く)、開発の道具は `workflow/<名前>/`、手で行う操作は `operations/<名前>/`。入口と段階が拾う
 - 上流のフォルダの中にファイルを足さない(`pnpm workflow ownership check` が止める)。特定のドメインの道具はそのドメインの `scripts/` へ
 - 動いているアプリを外から見るテスト(E2E・アクセシビリティ)は fork の `tests/` へ(scripts/ に置かない)
 

@@ -1,4 +1,4 @@
-// scripts/runner/phases/changed.mjs — 範囲の変更したファイルと glob(門の watch と pnpm test --changed が共有する)
+// scripts/runner/phases/changed.mjs — 範囲の変更したファイルと glob(段階の watch と pnpm test --changed が共有する)
 import { spawnSync } from "node:child_process";
 
 /** watch の glob(** = 何段でも、* = 1 段の中、? = 1 文字)を正規表現に。リポジトリ直下からの相対パスに丸ごと当てる */

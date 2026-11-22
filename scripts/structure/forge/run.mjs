@@ -6,7 +6,7 @@
 //   pnpm forge          # 全部（generate: true のドメインは丸ごと作り直し、false は何もしない）
 //   pnpm forge --lint   # 事後検査の最後に lint（eslint . 全体、30 秒ほど）も回す
 // db:push も pnpm generate cron も呼ばない。表の定義が変われば最後に [user-run] の案内を出す。
-// 生成と検査は門(pnpm check / generate --phase=forge:*、scripts/runner/phases)で回す。最後のデプロイ先の検査(--phase=deploy)は
+// 生成と検査は段階(pnpm check / generate --phase=forge:*、scripts/runner/phases)で回す。最後のデプロイ先の検査(--phase=deploy)は
 // vercel.json が無ければ cron が飛ばして出す
 
 import { spawnSync } from "node:child_process";

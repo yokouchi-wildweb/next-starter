@@ -94,7 +94,7 @@ function readScreens(repoRoot) {
 }
 
 /**
- * phase.json の outputs・regions(門の一覧の無い fixture は空)。並びは門の順(after を満たす順)。
+ * phase.json の outputs・regions(段階の一覧の無い fixture は空)。並びは段階の順(after を満たす順)。
  * outputs は generated の行になる物だけ(every-run で、ドメインの置き換えを持たない glob。src/lib/districtMap/domainOutputs.mjs intakeOutputGlobs)
  */
 function readGenerators(repoRoot) {

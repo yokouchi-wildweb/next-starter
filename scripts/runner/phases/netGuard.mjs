@@ -1,6 +1,6 @@
-// scripts/runner/phases/netGuard.mjs — build の門の検査に付ける preload(node --import)。外への接続を拒む
+// scripts/runner/phases/netGuard.mjs — build の段階の検査に付ける preload(node --import)。外への接続を拒む
 // fetch・http(s).request/get・net/tls の接続・dns の引きを、呼んだ時点で印 MARK を標準エラーに書いて throw する。
-// 門のランナーは印を見て「build に宣言した検査が外に届いた」で落とす(検査が例外を握りつぶしても印で分かる)。
+// 段階のランナーは印を見て「build に宣言した検査が外に届いた」で落とす(検査が例外を握りつぶしても印で分かる)。
 import dns from "node:dns";
 import http from "node:http";
 import https from "node:https";
@@ -12,7 +12,7 @@ export const MARK = "__GATE_NET_BLOCKED__";
 function block(what) {
   return () => {
     process.stderr.write(`${MARK} ${what}\n`);
-    throw new Error(`門の守り: build の検査は外に届いてはいけない(${what})`);
+    throw new Error(`段階の守り: build の検査は外に届いてはいけない(${what})`);
   };
 }
 

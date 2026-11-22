@@ -19,11 +19,11 @@ pnpm forge --lint   # 事後検査の最後に lint（eslint . 全体、30 秒�
 
 ### 段（順に回し、落ちた段で止まる。終了コード 1）
 
-生成器・検査器は門で回す(`pnpm check` / `pnpm generate --phase=…`、`scripts/runner/phases/README.md`)。どの道具がどの段に乗るか・順序は各道具の `phase.json`(gates・after)が持つ。
+生成器・検査器は段階で回す(`pnpm check` / `pnpm generate --phase=…`、`scripts/runner/phases/README.md`)。どの道具がどの段に乗るか・順序は各道具の `phase.json`(phases・after)が持つ。
 
 1. 事前検査（何も書かない）: `pnpm check --phase=forge:pre` = ロール・プロフィールの検査(role)→ domain.json の検査(domain、`pnpm generate domain -- --dry-run`)→ 受け口の検査(extensions、`--no-stale`: 一覧のずれは次の生成で直るので見ない)。ここで落ちたら何も書いていない
 2. 生成: `pnpm generate --phase=forge:pre,forge:post` = after の順に role(`pnpm generate role -- --all`)→ domain(`pnpm generate domain`。`generate: true` のドメインは丸ごと作り直し、`generate: false` は何もしない。地区の地図 `src/registry/district-map.jsonl` も書き直す)→ registry(src/registry の一覧を走査で丸ごと)→ district-map(地区の地図)→ extensions → routes(ルート地図)
-3. 事後検査: `pnpm check --phase=forge:post`(registry・地区の地図 district-map・config-overrides・extensions・routes の地図)→ 門に乗らないテスト → `typecheck`（→ `lint`）。門に乗らないテストは次の順:
+3. 事後検査: `pnpm check --phase=forge:post`(registry・地区の地図 district-map・config-overrides・extensions・routes の地図)→ 段階に乗らないテスト → `typecheck`（→ `lint`）。段階に乗らないテストは次の順:
    - `pnpm test scripts/structure/registry/tableScan.test.mjs scripts/structure/registry/alpha/alpha.test.mjs`
    - `pnpm test scripts/structure/registry/check-storage-purposes.test.mjs`
    - `pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs`
@@ -37,4 +37,4 @@ pnpm forge --lint   # 事後検査の最後に lint（eslint . 全体、30 秒�
 
 ## Verification
 
-- `pnpm test scripts/structure/forge/tests/forge.test.mjs`（段の並び・止まり方・デプロイ先の検査・hash の比較・引数）。門の選び方と順序は `pnpm test scripts/runner/phases/phases.test.mjs`。
+- `pnpm test scripts/structure/forge/tests/forge.test.mjs`（段の並び・止まり方・デプロイ先の検査・hash の比較・引数）。段階の選び方と順序は `pnpm test scripts/runner/phases/phases.test.mjs`。

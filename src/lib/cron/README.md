@@ -220,7 +220,7 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
 - **最初の文は connection()**: route の作り手（`createCronRoute`）は認証・門・enabled より前に `await connection()`（next/server）を待つ。
   cacheComponents の build は request を読む前に返す 200（closed / disabled）を静的な応答に焼き付けるため（cacheComponents off では何も変えない）。route.ts の側には書かない
 - **配線漏れの防止**: `vercel.json` は人が書かない。タスクの増減で生成結果とずれると、Vercel 上のビルド
-  （`pnpm build` の冒頭の門 `pnpm check --phase=build` が cron の検査を `--vercel-build` で回す）と `pnpm live` 系(`pnpm live`・`pnpm live:room`・`pnpm live:all`)が止まる。漏れたまま本番が動き続けることはない
+  （`pnpm build` の冒頭の段階 `pnpm check --phase=build` が cron の検査を `--vercel-build` で回す）と `pnpm live` 系(`pnpm live`・`pnpm live:room`・`pnpm live:all`)が止まる。漏れたまま本番が動き続けることはない
 
 ### 運用上の注意
 

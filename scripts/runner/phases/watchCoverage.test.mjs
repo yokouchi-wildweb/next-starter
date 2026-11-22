@@ -26,7 +26,7 @@ const READS = {
   // moduleLoad.test は fork に残る src/config/ui だけを読む(上流には無い)。上流の置き場 = 持ち主の上書き src/config/lib
   config: { entries: ["scripts/structure/config/moduleLoad.test.mjs"], data: ["src/config/lib/*.config.ts"] },
   cron: {
-    entries: ["scripts/structure/cron/gate-check.ts", "scripts/structure/cron/check.ts", "src/app/api/cron/*/task*.ts"],
+    entries: ["scripts/structure/cron/phase-check.ts", "scripts/structure/cron/check.ts", "src/app/api/cron/*/task*.ts"],
     data: ["vercel.json", "src/app/api/cron/**", "src/featureGate/rules/*.ts"],
   },
   // 値の輪の走査は src 全体のソースを読む
@@ -43,7 +43,7 @@ const READS = {
   },
   // 拡張点の宣言・項目・スイッチ・枠は src 全体に散る
   extensions: {
-    entries: ["scripts/structure/extensions/gate-check.mjs", "scripts/structure/extensions/check.mjs"],
+    entries: ["scripts/structure/extensions/phase-check.mjs", "scripts/structure/extensions/check.mjs"],
     data: ["src/**/extensionPoints.ts", "src/**/*.default.{ts,tsx}", "src/**/*.override.ts", "src/lib/forkOwnership/intake.txt", "src/app/**/_layout/**", "src/domains/**/messages/*.ts"],
   },
   // 登録表の走査(domainEntry・pgTable・用途)と storageBindingFor の呼び出し(src 全体)
@@ -77,7 +77,7 @@ const READS = {
 const gates = JSON.parse(readFileSync(join(repo, "scripts/runner/phases/phases.json"), "utf8"));
 const upstream = gates.upstreamFolders.structure;
 const declOf = (name) => JSON.parse(readFileSync(join(repo, "scripts/structure", name, "phase.json"), "utf8"));
-const shipTargets = upstream.filter((name) => existsSync(join(repo, "scripts/structure", name, "phase.json")) && (declOf(name).gates ?? []).includes("ship"));
+const shipTargets = upstream.filter((name) => existsSync(join(repo, "scripts/structure", name, "phase.json")) && (declOf(name).phases ?? []).includes("ship"));
 
 const files = (patterns) => [...new Set(patterns.flatMap((p) => globSync(p, { cwd: repo })))].filter((f) => !f.includes("node_modules") && statSync(join(repo, f)).isFile());
 const covered = (watch) => {
@@ -141,6 +141,6 @@ test("段階 ship: md だけの変更なら全部の対象が飛び、飛ばし�
   assert.equal(code, 0);
   const skipped = lines.filter((l) => l.includes("変更が watch に当たらないので飛ばした"));
   const ship = [...shipTargets.map((n) => `structure/${n}`), "workflow/notices", "workflow/rules"];
-  for (const label of ship) assert.ok(skipped.some((l) => l.includes(`gates: ${label}:`)), `${label} が飛ばされていない: ${lines.join(" / ")}`);
+  for (const label of ship) assert.ok(skipped.some((l) => l.includes(`phases: ${label}:`)), `${label} が飛ばされていない: ${lines.join(" / ")}`);
   assert.ok(!lines.some((l) => l.endsWith("通る")), `起動した対象がある: ${lines.join(" / ")}`);
 });
