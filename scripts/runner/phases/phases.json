@@ -59,7 +59,8 @@
       "tmux-launch",
       "agent-terminal",
       "local-migrations",
-      "skills"
+      "skills",
+      "terms"
     ]
   }
 }
