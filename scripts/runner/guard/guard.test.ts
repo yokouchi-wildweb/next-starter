@@ -92,7 +92,7 @@ test("本番に書く: 非対話は門(方針と許可)で決まる、TTY は pr
   assert.throws(() => resolveTarget(["--env", "production", "--confirm=production"], W, io(files, { agentGate: none.agentGate })), /1 回分の許可\(\/allow dep\)/);
   const ok = gate("manual", true);
   assert.equal(resolveTarget(["--env", "production"], W, io(files, { agentGate: ok.agentGate })).stage, "production");
-  assert.deepEqual([ok.seen.kinds, ok.seen.consumed], [["deploy"], 1]);
+  assert.deepEqual([ok.seen.kinds, ok.seen.consumed], [["deploy"], 0], "DB・外部の書き込みの入口は許可を読むだけ(消すのは guardDeploy)");
   const tty = io(files, { isTTY: true, prompt: () => "production" });
   assert.equal(resolveTarget(["--env", "production"], W, tty).stage, "production");
   assert.throws(() => resolveTarget(["--env", "production"], W, io(files, { isTTY: true, prompt: () => "yes" })), /確認が取れなかった/);
@@ -154,7 +154,7 @@ test("ホストの env: ファイルが無く環境変数の APP_ENV が向き�
   // ホストの env の DATABASE_URL は継いだ値そのもの(比べる相手のファイルが無い)= 継いだ DATABASE_URL の検査は掛けない
 });
 
-test("非対話の本番の門(confirmProduction、D420): --confirm=production だけでは通さない、off は拒否、manual は許可で 1 回通して使う", () => {
+test("非対話の本番の門(confirmProduction、D420): --confirm=production だけでは通さない、off は拒否、manual は許可で通して門を返す(消さない)", () => {
   const off = gate("off", true);
   assert.throws(() => confirmProduction({ confirm: "production" }, io({}, { agentGate: off.agentGate }), "pnpm live:all"), /agent\.deploy が off/);
   const none = gate("manual", false);
@@ -162,8 +162,8 @@ test("非対話の本番の門(confirmProduction、D420): --confirm=production �
   assert.equal(none.seen.consumed, 0);
   const ok = gate("manual", true);
   const io1 = io({}, { agentGate: ok.agentGate });
-  assert.doesNotThrow(() => confirmProduction({ confirm: null }, io1, "pnpm live:all"));
-  assert.deepEqual([ok.seen.consumed, io1.said.length], [1, 1]);
+  assert.equal(confirmProduction({ confirm: null }, io1, "pnpm live:all") !== null, true);
+  assert.deepEqual([ok.seen.consumed, io1.said.length], [0, 1]);
   const evp = gate("manual", false);
   assert.throws(() => confirmProduction({ confirm: null }, io({}, { agentGate: evp.agentGate }), "pnpm ops vercel env-add", "env_production"), /\/allow evp/);
   assert.deepEqual(evp.seen.kinds, ["env_production"]);

@@ -48,7 +48,8 @@
 - 非対話(TTY なし・CI・エージェント): `--confirm=production` の有無にかかわらず、repo.json の方針と人の 1 回分の許可で決める
   - 種類: DB・外部への本番の書き込みとデプロイ = `agent.deploy`(許可 `dep`。本番の DB の反映を含む)/ `pnpm ops vercel env-*` = `agent.env_production`(許可 `evp`)
   - 方針が `off` → 拒否(人が端末で打つ。任せるなら /repo-policy)
-  - `manual`(既定)→ 呼んだ所の git の直下の `.agent/devcheck-allow.json` にその許可がある時だけ 1 回通し、許可を消して 1 行出す。無ければ拒否(`/allow dep` / `/allow evp` の案内)
+  - `manual`(既定)→ 呼んだ所の git の直下の `.agent/devcheck-allow.json` にその許可がある時だけ通して 1 行出す。無ければ拒否(`/allow dep` / `/allow evp` の案内)
+  - 許可を消すのはデプロイの入口(`guardDeploy`: `pnpm live`・`pnpm ops vercel env-*` ほか)だけ。DB・外部の書き込みの入口(`guardEntry`、本番の DB の反映 `pnpm db:push -- --env production` を含む)は読むだけなので、反映の後の `pnpm live` も同じ許可で通る
   - 方針と許可の読み手は devcheck の物(`scripts/workflow/devcheck/lib.kinds.mjs` の `agentPolicyFromFile`・`lib.allow.mjs`)。許可を書くのは人の `/allow`(`pnpm workflow devcheck allow`)だけ
 
 ### デプロイ

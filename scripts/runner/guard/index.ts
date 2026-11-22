@@ -12,7 +12,7 @@
 //   (本番は --env production の明示と確認が要る。例 Vercel 以外のスケジューラ = pnpm task --due --env production)。
 // 本番に書く: 手で打つ(TTY)なら「production」と打たせる(--confirm=production は人の省略)。非対話(TTY なし・CI・エージェント)は
 //   --confirm=production だけでは通さない(D420): repo.json の agent.<危険な種類> が off → 拒否、manual → 作業場所(呼んだ所の git の直下)の
-//   .agent/devcheck-allow.json に人の 1 回分の許可(scripts/workflow/devcheck/lib.allow.mjs)がある時だけ 1 回通し、その許可を消す。
+//   .agent/devcheck-allow.json に人の 1 回分の許可(scripts/workflow/devcheck/lib.allow.mjs)がある時だけ通す。許可を消すのはデプロイの入口(guardDeploy)だけ。
 //   種類: DB・外部への本番の書き込みとデプロイ = deploy(dep、本番の DB の反映を含む)/ Vercel の env = env_production(evp)。
 //   方針と許可の読み手は devcheck の物(lib.kinds.mjs・lib.allow.mjs)をそのまま使う(読み方は 1 つ)。
 // デプロイ(env ファイルを読まない)は confirmProduction だけを通す。
@@ -125,15 +125,16 @@ const readValues = (io: GuardIO, file: string): Record<string, string> | null =>
 
 /**
  * 本番に書く前の確認。TTY: --confirm=production か production と打つ。非対話: --confirm にかかわらず、kind の方針が manual で
- * 人の 1 回分の許可がある時だけ通して許可を消す(off・許可なしは拒否、D420)。通らなければ GuardError
+ * 人の 1 回分の許可がある時だけ通す(off・許可なしは拒否、D420)。許可は読むだけ: 消すのは guardDeploy(本番の DB の反映 → pnpm live と
+ * 続く時に、先の反映が許可を使い切らない)。非対話で通した時はその門を返す。通らなければ GuardError
  */
-export function confirmProduction(flags: Pick<GuardFlags, "confirm">, io: GuardIO, what: string, kind: DangerKind = "deploy"): void {
+export function confirmProduction(flags: Pick<GuardFlags, "confirm">, io: GuardIO, what: string, kind: DangerKind = "deploy"): AgentGate | null {
   if (flags.confirm !== null && flags.confirm !== "production") throw new GuardError(`--confirm=${flags.confirm} は向き先(production)と違います`);
   if (io.isTTY) {
-    if (flags.confirm === "production") return;
+    if (flags.confirm === "production") return null;
     const answer = io.prompt(`⚠ ${what}: 本番(production)に向いています。続けるなら production と打ってください: `).trim();
     if (answer !== "production") throw new GuardError(`${what}: 確認が取れなかったので止めました(何もしていません)`);
-    return;
+    return null;
   }
   const key = policyKeyOf(kind);
   const sw = switchOf(kind) ?? kind;
@@ -151,8 +152,8 @@ export function confirmProduction(flags: Pick<GuardFlags, "confirm">, io: GuardI
       `${what}: 本番(production)に向いています。非対話の本番は人の 1 回分の許可(/allow ${sw})がある時だけ通します(--confirm=production だけでは通しません)。何もしていません`,
     );
   }
-  gate.consume();
-  io.say(`${what}: 人の 1 回分の許可 ${sw} で本番に通しました(許可は使って消えました)`);
+  io.say(`${what}: 人の 1 回分の許可 ${sw} で本番に通しました`);
+  return gate;
 }
 
 /** 向き先を決めて確かめる(ファイルは読むが process.env には入れない)。通らなければ GuardError */
@@ -286,7 +287,7 @@ export function guardEntry(options: ResolveOptions): WriteTarget {
 export function guardDeploy(what: string, production: boolean, kind: DangerKind = "deploy"): void {
   try {
     const flags = parseGuardFlags(process.argv.slice(2));
-    if (production) confirmProduction(flags, realIO(), what, kind);
+    if (production) confirmProduction(flags, realIO(), what, kind)?.consume();   // 許可を消すのはここだけ
     stripGuardFlags();
   } catch (error) {
     fail(error);

@@ -76,7 +76,7 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 4. 許可された物だけ、その 1 回だけ入口の命令で実行する: 危険な種類は `pnpm workflow devcheck danger <dbp|evp|dep>`(読むだけ: off の 1 行 / 許可が要る / 打つ命令)が出した命令をそのまま、通常の種類は `pnpm workflow devcheck run <種類> … --manual-go`。結果を 1 行で報告する(成功 / 失敗: <理由>。失敗したら別の形で試さない)
 - 記録の寿命: 使ったスイッチはそれを読む所が消す(危険な 3 つは入口、通常の種類は許可のフック)/ 次の人の入力で全部消える(UserPromptSubmit の `hook.mjs prompt`)= 同じ番の中だけ。直接の Edit / Write は `.claude/settings.json` の `permissions.deny`(D420)
 - 方針を manual にしても、人の言葉かはフックからは見えない(`devcheck allow` を誰が打ったかは分からない)。人の言葉が要る決まりは `/allow` スキルの文が守る。`devcheck allow` はフックが通さない(印があっても普段どおり聞かれる)
-- 危険な 3 つの入口: `agent.db_push.entry`(既定 `pnpm db:push`、開発の DB だけ。止めない、D420 (3))/ `agent.deploy.db_entry`(本番の DB の反映)→ `agent.deploy.entry`(既定 `pnpm live`)/ `agent.env_production.entry`(既定 `-`、Vercel の env は `pnpm ops vercel env-*`)。本番は入口の守り(`scripts/runner/guard`)が方針とこの許可を読んで 1 回通し、許可を消す(`--confirm=production` は付けない。端末の人だけの省略)。フックは危険な 3 つの命令を照らさない
+- 危険な 3 つの入口: `agent.db_push.entry`(既定 `pnpm db:push`、開発の DB だけ。止めない、D420 (3))/ `agent.deploy.db_entry`(本番の DB の反映)→ `agent.deploy.entry`(既定 `pnpm live`)/ `agent.env_production.entry`(既定 `-`、Vercel の env は `pnpm ops vercel env-*`)。本番は入口の守り(`scripts/runner/guard`)が方針とこの許可を読んで通し、許可はデプロイの入口(`pnpm live` ほか)が消す(本番の DB の反映は読むだけ。`--confirm=production` は付けない。端末の人だけの省略)。フックは危険な 3 つの命令を照らさない
 - 結果は 1 行だけ返す(チームの道具への「DB 済み」の印は無い)
 - `agent.enabled: false` = 全部の種類(peer・危険な 3 つも)を `off` とみなす(種類ごとの値より強い)。計画は全部「手で」、run は断り、許可のフックは印の道で何も通さない(入口の守りは off として拒む)
 - 宣言に無い `agent.*` の鍵・通常の種類の値の誤り・真偽値でない `agent.enabled`・空の入口は止める(exit 2、フックは壊れた方針として何も返さない)。`repo.json` が無い = 全部既定
