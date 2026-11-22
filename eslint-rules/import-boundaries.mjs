@@ -28,7 +28,7 @@
 // src/wiring/** と src/lib/pageGuard 自身だけ。
 // 型だけの import は誰でも可(auth の束 pageGuardUserDeps は型だけ)。guard.ts は root を @/wiring/pageGuard から、子を親の extend で作る。
 //
-// ── features-index-no-server-reexport(D73 K5) ──
+// ── domains-index-no-server-reexport(D73 K5) ──
 // src/domains/**/index.ts(services/server の外の barrel)は services/server を値で再 export しない(export … from / export * from)。
 // 型だけの再 export は可。理由: UI が barrel 経由でサーバーのサービスを値 import すると、UI の場所の検査(page-authz M4)を
 // 迂回できる(barrel のパスに services/server が出ない)。サーバーの値は services/server のパスから直接 import する。
@@ -997,7 +997,7 @@ const plugin = {
     "route-factory-via-wiring": routeFactoryViaWiring,
     "page-guard-via-wiring": pageGuardViaWiring,
     "cron-route-via-wiring": cronRouteViaWiring,
-    "features-index-no-server-reexport": featuresIndexNoServerReexport,
+    "domains-index-no-server-reexport": featuresIndexNoServerReexport,
     "lib-no-registry": libNoRegistry,
     "lib-no-domains": libNoFeatures,
     "hooks-utils-no-domains": hooksUtilsNoFeatures,

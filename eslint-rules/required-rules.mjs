@@ -20,7 +20,7 @@ export const REQUIRED_ESLINT_RULES = [
   { rule: "import-boundaries/cron-route-via-wiring", files: ["src/app/api/cron/audit-log-prune/route.ts"] },
   { rule: "import-boundaries/feature-gate-entries", files: ["src/domains/core/auth/services/server/registration.ts"] },
   { rule: "import-boundaries/client-no-domain-json", files: ["src/domains/core/auth/hooks/useOAuthSignupFlow.ts"] },
-  { rule: "import-boundaries/features-index-no-server-reexport", files: ["src/domains/core/auditLog/index.ts"] },
+  { rule: "import-boundaries/domains-index-no-server-reexport", files: ["src/domains/core/auditLog/index.ts"] },
   { rule: "import-boundaries/lib-no-registry", files: ["src/lib/drizzle/index.ts"] },
   { rule: "import-boundaries/lib-no-domains", files: ["src/lib/drizzle/index.ts"] },
   { rule: "import-boundaries/src-no-scripts", files: ["src/lib/cron/discover.ts", "src/featureGate/checks/dependencies.test.mjs"] },

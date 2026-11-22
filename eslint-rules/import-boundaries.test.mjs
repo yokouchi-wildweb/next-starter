@@ -1,5 +1,5 @@
 // eslint-rules/import-boundaries.test.mjs
-// 層の境目の import の検査(route-factory-via-wiring・page-guard-via-wiring・cron-route-via-wiring・features-index-no-server-reexport・lib-no-registry・feature-gate-entries・radix-unified・ui-libs-in-primitives ほか)の契約テスト。実行: pnpm test eslint-rules/import-boundaries.test.mjs (node:test)
+// 層の境目の import の検査(route-factory-via-wiring・page-guard-via-wiring・cron-route-via-wiring・domains-index-no-server-reexport・lib-no-registry・feature-gate-entries・radix-unified・ui-libs-in-primitives ほか)の契約テスト。実行: pnpm test eslint-rules/import-boundaries.test.mjs (node:test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -233,7 +233,7 @@ test("rule cron-route-via-wiring: cron の route は @/wiring/cronRoute、@/lib/
   });
 });
 
-test("rule page-guard-via-wiring / features-index-no-server-reexport: 値は止め、型と許可の場所は通す", () => {
+test("rule page-guard-via-wiring / domains-index-no-server-reexport: 値は止め、型と許可の場所は通す", () => {
   const guard = at("src/app/x/guard.ts");
   ruleTester.run("page-guard-via-wiring", plugin.rules["page-guard-via-wiring"], {
     valid: [
@@ -247,7 +247,7 @@ test("rule page-guard-via-wiring / features-index-no-server-reexport: 値は止�
     ],
   });
   const index = at("src/domains/core/user/index.ts");
-  ruleTester.run("features-index-no-server-reexport", plugin.rules["features-index-no-server-reexport"], {
+  ruleTester.run("domains-index-no-server-reexport", plugin.rules["domains-index-no-server-reexport"], {
     valid: [
       { code: `export type { User } from "./services/server/userService";`, filename: index },
       { code: `export { type UserSignupSummary } from "./services/server/finders/findSignupSummariesByIds";`, filename: index },
@@ -265,7 +265,7 @@ test("config: pageGuard の値 import は wiring の外で error、features の 
   assert.deepEqual(await lintAt("src/app/x/guard.ts", PG), ["import-boundaries/page-guard-via-wiring:2"]);
   assert.deepEqual(await lintAt("src/wiring/pageGuard.acme.ts", PG), []);
   const RE = `export { userService } from "@/domains/core/user/services/server/userService";\n`;
-  assert.deepEqual(await lintAt("src/domains/core/user/index.ts", RE), ["import-boundaries/features-index-no-server-reexport:2"]);
+  assert.deepEqual(await lintAt("src/domains/core/user/index.ts", RE), ["import-boundaries/domains-index-no-server-reexport:2"]);
   assert.deepEqual(await lintAt("src/domains/core/user/services/server/index.ts", RE), []);
 });
 

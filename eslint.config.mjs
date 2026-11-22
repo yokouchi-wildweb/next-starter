@@ -126,7 +126,7 @@ const config = [
   // - route-factory-via-wiring: @/lib/routeFactory の値 import は src/wiring/** だけ(D5 K1。型だけは可)
   // - page-guard-via-wiring: @/lib/pageGuard の値 import は src/wiring/** だけ(L1.18。型だけは可)
   // - cron-route-via-wiring: @/lib/cron の作り手 createCronTaskRoute / createCronRoute の値 import は src/wiring/** だけ(D19。cron の route は @/wiring/cronRoute)
-  // - features-index-no-server-reexport: features の index.ts は services/server を値で再 export しない(D73 K5)
+  // - domains-index-no-server-reexport: features の index.ts は services/server を値で再 export しない(D73 K5)
   // - lib-no-registry: src/lib/** → src/registry/** は値も型も禁止(D23 K3、例外の一覧なし)
   // - lib-no-domains: src/lib/** → src/domains/** は値も型も禁止(親 D8、例外の一覧なし)
   // - feature-gate-entries: 門番 src/featureGate の外からは入口 3 つだけ、lib は読まない、node.ts は scripts だけ(D7。テストは対象外 L1.3)
@@ -230,7 +230,7 @@ const config = [
     files: ["src/domains/**/index.{ts,tsx}"],
     plugins: { "import-boundaries": importBoundariesPlugin },
     rules: {
-      "import-boundaries/features-index-no-server-reexport": "error",
+      "import-boundaries/domains-index-no-server-reexport": "error",
     },
   },
   {

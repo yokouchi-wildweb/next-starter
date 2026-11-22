@@ -21,7 +21,7 @@
 // 対象のファイル: git の木なら git ls-files -co --exclude-standard、でなければ SKIP_DIRS を除いた全部。文字のファイルだけ
 //
 // 見ない物: 出荷済みの notice の本文と道具(.notices/<YYYYMMDD-HHMMSS>-…)・台帳(.notices/applied/)・この道具とテスト・
-//   docs/journal(当時の記録、D47)・pnpm-lock.yaml・バイナリ
+//   docs/journal(当時の記録、D47)・語の表 scripts/workflow/terms/(誤りの字面を持つ)・pnpm-lock.yaml・バイナリ
 //
 // 止める物(書き換えず候補つきで出す。手で決めてから --apply をもう一度):
 // - ja:       段の文脈のファイル(gate.json・--gate・runner/gates・gates.json・phase の語を書くファイル)の中の、上の形でない「門」
@@ -45,7 +45,7 @@ const GATEKEEPER = /^(番|の規則|の入口|の外|の機能|の開|の設定|
 const SKIP_DIRS = new Set(["node_modules", ".next", ".git", ".turbo", "dist", "coverage", ".vercel"]);
 const BINARY = /\.(png|jpe?g|gif|webp|avif|ico|bmp|svgz|woff2?|ttf|otf|eot|pdf|zip|gz|tgz|mp4|webm|mov|mp3|wav|ogg|wasm|sqlite|db)$/i;
 const NOTICE_ID = /^\.notices\/\d{8}-\d{6}-/;
-const SELF = /^\.notices\/district-stage1\.phase-rename\./;
+const SELF = /^\.notices\/district-stage1\./; // この道具と同じ区切りの道具(改名の後は .notices/<id>. の形で shipped-notice に入る)
 const SELF_ID = basename(fileURLToPath(import.meta.url)).replace(/\.phase-rename\.mjs$/, "");
 
 /** 見ない物か(理由か null) */
@@ -54,6 +54,7 @@ export function skipReason(path) {
   if (path.startsWith(".notices/applied/")) return "ledger";
   if (NOTICE_ID.test(path)) return "shipped-notice";
   if (path.startsWith("docs/journal/")) return "journal";
+  if (path.startsWith("scripts/workflow/terms/")) return "terms"; // 語の表(誤りの字面を持つ)
   if (path === "pnpm-lock.yaml" || path.endsWith("/pnpm-lock.yaml")) return "lockfile";
   if (BINARY.test(path)) return "binary";
   return null;

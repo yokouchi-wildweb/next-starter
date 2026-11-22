@@ -73,6 +73,7 @@ test("計画と当て: 宣言・ランナーのフォルダ・一覧とテスト
     ".notices/20261101-000000-old.md": "pnpm check --gate=ship\n",
     ".notices/applied/acme.md": "--gate\n",
     "docs/journal/2026-01-01--acme--x.md": "gate.json\n",
+    "scripts/workflow/terms/terms.json": "src/features --gate gate.json\n",
   });
   const plan = planRename(root);
   assert.deepEqual(plan.moves.map((m) => [m.from, m.to]).sort(), [
@@ -95,6 +96,7 @@ test("計画と当て: 宣言・ランナーのフォルダ・一覧とテスト
   assert.equal(read(root, ".notices/20261101-000000-old.md"), "pnpm check --gate=ship\n");
   assert.equal(read(root, ".notices/applied/acme.md"), "--gate\n");
   assert.equal(read(root, "docs/journal/2026-01-01--acme--x.md"), "gate.json\n");
+  assert.equal(read(root, "scripts/workflow/terms/terms.json"), "src/features --gate gate.json\n");
 
   const again = planRename(root);
   assert.deepEqual(again.moves, []);

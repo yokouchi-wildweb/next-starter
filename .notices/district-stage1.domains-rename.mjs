@@ -19,14 +19,15 @@
 //             の物 → domains/(文書とコメントの features/<domain>/… の書き方)。後ろが知らない名前の features/ は止める
 // - relative: 相対の指定子 ../features/・./features/ は、ファイルの置き場から解いて src/features か src/config/features に当たる物だけ
 //             → domains。解いた先が違う(テストの作り物の中の指定子など)なら止める
-// - lintName: lint のルール名 lib-no-features → lib-no-domains・hooks-utils-no-features → hooks-utils-no-domains(eslint-disable の行も)
+// - lintName: lint のルール名 lib-no-features → lib-no-domains・hooks-utils-no-features → hooks-utils-no-domains・
+//             features-index-no-server-reexport → domains-index-no-server-reexport(D50)(eslint-disable の行も)
 // 対象のファイル: git の木なら git ls-files -co --exclude-standard(追跡中と無視されていない新規)、でなければ下の SKIP_DIRS を除いた全部。
 //   文字のファイルだけ(画像・フォントなどの拡張子と NUL を含む物は見ない)。fork の .fork-ownership/*.permits.txt・intake.txt・
 //   tsconfig.json・.claude/rules(core・カード・自前の規則)・README・docs も同じ形で書き換える
 //
 // 見ない物(書き換えない):
 // - 出荷済みの notice の本文と道具(.notices/<YYYYMMDD-HHMMSS>-…)・取り込みの台帳(.notices/applied/)・この道具自身とそのテスト
-// - 日付つきの記録 docs/journal/(当時の事実、D47)・pnpm-lock.yaml
+// - 日付つきの記録 docs/journal/(当時の事実、D47)・語の表 scripts/workflow/terms/(誤りの字面を持つ)・pnpm-lock.yaml
 // - カードの置き場 .claude/rules/items/features/ の名前(動かすかは指示書の議会の判断、D43)。中のファイルの文字列のパスは書き換える
 //
 // 止める物(書き換えず、候補つきで一覧に出す。手で決めてから --apply をもう一度):
@@ -51,12 +52,13 @@ export const MOVES = [
 export const LINT_RENAMES = [
   ["hooks-utils-no-features", "hooks-utils-no-domains"],
   ["lib-no-features", "lib-no-domains"],
+  ["features-index-no-server-reexport", "domains-index-no-server-reexport"],
 ];
 
 const SKIP_DIRS = new Set(["node_modules", ".next", ".git", ".turbo", "dist", "coverage", ".vercel"]);
 const BINARY = /\.(png|jpe?g|gif|webp|avif|ico|bmp|svgz|woff2?|ttf|otf|eot|pdf|zip|gz|tgz|mp4|webm|mov|mp3|wav|ogg|wasm|sqlite|db)$/i;
 const NOTICE_ID = /^\.notices\/\d{8}-\d{6}-/;
-const SELF = /^\.notices\/district-stage1\.domains-rename\./;
+const SELF = /^\.notices\/district-stage1\./; // この道具と同じ区切りの道具(改名の後は .notices/<id>. の形で shipped-notice に入る)
 const SELF_ID = basename(fileURLToPath(import.meta.url)).replace(/\.domains-rename\.mjs$/, "");
 
 /** 見ない物か(理由か null) */
@@ -65,6 +67,7 @@ export function skipReason(path) {
   if (path.startsWith(".notices/applied/")) return "ledger";
   if (NOTICE_ID.test(path)) return "shipped-notice";
   if (path.startsWith("docs/journal/")) return "journal";
+  if (path.startsWith("scripts/workflow/terms/")) return "terms"; // 語の表(誤りの字面を持つ)
   if (path === "pnpm-lock.yaml" || path.endsWith("/pnpm-lock.yaml")) return "lockfile";
   if (BINARY.test(path)) return "binary";
   return null;

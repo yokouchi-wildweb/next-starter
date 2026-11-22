@@ -183,7 +183,7 @@ URL ルール              ロール + ステータス + 行き先(親子 AND)  
   - 名前付き例外は `AuthSessionProvider`(root layout の Provider。Cookie の解析とセッション解決の promise を作る)
 - セッション・ガード API をページ層・UI・API で import しない(`page-authz/session-api-callsite`): `getSessionUser`・`getTokenOnlySession`・`resolveSessionUser(FromTokenOnly)`・`parseSessionCookie`・削除済みの `authGuard`・`requireCurrentUser`・`requireAuthenticated`・`requireAdmin`(fork の古い import を止めるため名前は残す)・pairedDevice の `getSessionDevice`・`deviceGuard`・`requireCurrentDevice`・`principalGuard`・`requireCurrentPrincipal`
   - 対象: `src/app` 全体(page・Screen・layout・`_layout/`・loader・guard.ts・`_components/`・API の route と補助ファイル)と UI 側。許可の場所は無い(ページの主体は createLoader の `ctx.user`、API の主体は Factory の `ctx.user`)。`AuthSessionProvider` は名前付き例外
-- データに届く wiring の import の場所(`pnpm test src/wiring/wiring.test.mjs`)・`@/lib/pageGuard` の値 import は wiring だけ(lint `import-boundaries/page-guard-via-wiring`)・features の index.ts は services/server を値で再 export しない(`import-boundaries/features-index-no-server-reexport`)
+- データに届く wiring の import の場所(`pnpm test src/wiring/wiring.test.mjs`)・`@/lib/pageGuard` の値 import は wiring だけ(lint `import-boundaries/page-guard-via-wiring`)・features の index.ts は services/server を値で再 export しない(`import-boundaries/domains-index-no-server-reexport`)
 - 限界: 直接の import だけを見る。判定は `eslint-rules/page-authz.mjs`
 
 ### クライアントのセッション

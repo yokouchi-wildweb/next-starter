@@ -28,7 +28,7 @@ test("書き換えの形: src/features・@/features・config/features・正規�
     'const dir = "src/features/core/wallet";',
     "const re = /^src\\/features\\/(core\\/)?[^/]+\\//;",
     "// 置き場は features/<domain>/hooks、core は features/core/、表は `features/`",
-    "/* eslint-disable import-boundaries/lib-no-features, import-boundaries/hooks-utils-no-features */",
+    "/* eslint-disable import-boundaries/lib-no-features, import-boundaries/hooks-utils-no-features, import-boundaries/features-index-no-server-reexport */",
     'const gate = "pnpm ops features list"; // src/featureGate・scripts/operations/features/set.ts・items/features/wallet.md',
   ].join("\n");
   const { text: out, counts, stops } = rewriteText("src/lib/x/a.ts", text, NAMES);
@@ -37,9 +37,9 @@ test("書き換えの形: src/features・@/features・config/features・正規�
   assert.match(out, /"src\/domains\/core\/wallet"/);
   assert.match(out, /\^src\\\/domains\\\//);
   assert.match(out, /domains\/<domain>\/hooks、core は domains\/core\/、表は `domains\/`/);
-  assert.match(out, /lib-no-domains, import-boundaries\/hooks-utils-no-domains/);
+  assert.match(out, /lib-no-domains, import-boundaries\/hooks-utils-no-domains, import-boundaries\/domains-index-no-server-reexport/);
   assert.match(out, /pnpm ops features list"; \/\/ src\/featureGate・scripts\/operations\/features\/set\.ts・items\/features\/wallet\.md/);
-  assert.deepEqual(counts, { srcPath: 2, alias: 1, config: 1, bare: 3, lintName: 2 });
+  assert.deepEqual(counts, { srcPath: 2, alias: 1, config: 1, bare: 3, lintName: 3 });
   assert.deepEqual(stops, []);
 });
 
@@ -79,6 +79,7 @@ test("計画と当て: 2 つのフォルダを動かし、見ない物は触ら�
     ".notices/applied/acme.md": "src/features\n",
     ".notices/README.md": "移行は src/features/<domain>/scripts/migrations/\n",
     "docs/journal/2026-01-01--acme--x.md": "src/features/core/auth\n",
+    "scripts/workflow/terms/terms.json": "src/features --gate gate.json\n",
     "public/logo.png": "src/features\0binary",
   });
   const plan = planRename(root);
@@ -90,6 +91,7 @@ test("計画と当て: 2 つのフォルダを動かし、見ない物は触ら�
   assert.equal(plan.skipped["shipped-notice"], 2);
   assert.equal(plan.skipped.ledger, 1);
   assert.equal(plan.skipped.journal, 1);
+  assert.equal(plan.skipped.terms, 1);
   assert.equal(plan.skipped.binary, 1);
 
   applyRename(root, plan);
@@ -109,6 +111,7 @@ test("計画と当て: 2 つのフォルダを動かし、見ない物は触ら�
   assert.equal(read(root, ".notices/20261101-000000-old.tool.mjs"), 'const P = "src/features";\n');
   assert.equal(read(root, ".notices/applied/acme.md"), "src/features\n");
   assert.equal(read(root, "docs/journal/2026-01-01--acme--x.md"), "src/features/core/auth\n");
+  assert.equal(read(root, "scripts/workflow/terms/terms.json"), "src/features --gate gate.json\n");
 
   const again = planRename(root);
   assert.deepEqual(again.moves, []);
