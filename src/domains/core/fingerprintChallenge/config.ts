@@ -2,7 +2,7 @@
 // 不正疑いユーザーへの回答チャレンジ(fingerprintChallenge)の設定(既定 + 上書き)。上書きは src/config/domains/fingerprintChallenge.config.ts
 // (このファイルだけが読む)。置き方: src/config/README.md。合成: @/lib/defineConfig。
 // 使うかどうか(opt-in、既定は閉)は門番の規則 src/featureGate/rules/fingerprintChallenge.ts の入切だけで決める(この設定に入切の鍵は無い)。
-// 規則は収集の規則 deviceFingerprint に依存する(照合は集めた指紋が要る)。開けるのは fork の src/config/featureGate/switches.config.ts
+// 規則は指紋の規則 deviceFingerprint に依存する(照合は集めた指紋が要る)。全ページ設置型の収集の口(deviceFingerprintPageIngest)には依らない。開けるのは fork の src/config/featureGate/switches.config.ts
 
 import override from "@/config/domains/fingerprintChallenge.config";
 import type { UserStatus } from "@/domains/user/types";

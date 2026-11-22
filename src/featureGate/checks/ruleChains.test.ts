@@ -5,6 +5,7 @@
 //   ウォレット → 決済 → 銀行振込レビュー、お知らせ → 全体配信、チャット → チャットの管理画面、デモのログイン → デモ利用者の管理
 // - 小さな機能(親 × 子、enabled 省略): 親と子のどちらを閉じても閉じ、両方が開なら開
 // - 紹介の報酬: ウォレットを閉じれば閉、クーポンを閉じても開(依存はウォレットだけ)
+// - 指紋の収集の口: 確認だけ開く組み合わせ(収集の口の機能だけ閉)で POST /api/me/fingerprint は閉、確認の住所は開
 // 閉じた状態は生成一覧の規則の enabled を一時的に差し替えて作る(config の値に依らない)。実行: pnpm test src/featureGate/checks/ruleChains.test.ts
 
 import assert from "node:assert/strict";
@@ -57,7 +58,7 @@ const CHAINS: { parent: FeatureName; children: FeatureName[]; path: string }[] =
 
 /** 小さな機能(親 × 子): 住所と、閉じる元の 2 つ */
 const SMALL: { name: FeatureName; parents: [FeatureName, FeatureName]; path: string }[] = [
-  { name: "demoDeviceFingerprint", parents: ["demoPages", "deviceFingerprint"], path: "/demo/fingerprint" },
+  { name: "demoDeviceFingerprint", parents: ["demoPages", "deviceFingerprintPageIngest"], path: "/demo/fingerprint" },
   { name: "demoPayment", parents: ["demoPages", "payment"], path: "/demo/dummy-payment" },
   { name: "demoSampleDomain", parents: ["demoPages", "sampleDomain"], path: "/demo/tables" },
   { name: "paymentAnalytics", parents: ["analytics", "payment"], path: "/api/admin/analytics/purchase" },
@@ -101,6 +102,26 @@ test("紹介の報酬: クーポンを閉じても開(表・汎用 API・本人�
     assert.equal(gate.enabled("couponAttributionReward"), false);
     assert.equal(gate.path("/api/couponAttributionReward").open, false);
   });
+});
+
+test("指紋: 収集の口の機能だけ閉じれば確認は動き口は閉じる、指紋を閉じれば口も確認も閉、既定の開き方は親に従う", () => {
+  withClosed(["deviceFingerprintPageIngest"], () => {
+    assert.deepEqual(closedOf(["deviceFingerprint", "fingerprintChallenge"]), [], "確認と指紋の機能は開");
+    assert.equal(gate.path("/api/me/fingerprint").open, false, "収集の口は閉");
+    assert.equal(gate.path("/api/me/fingerprint-challenges").open, true, "確認の住所は開");
+    assert.equal(gate.path("/api/admin/fingerprint-challenges").open, true);
+    assert.equal(gate.path("/api/admin/device-fingerprint").open, true, "指紋の管理の照合は開");
+  });
+  withClosed(["deviceFingerprint"], () => {
+    assert.deepEqual(closedOf(["deviceFingerprintPageIngest", "fingerprintChallenge"]), ["deviceFingerprintPageIngest", "fingerprintChallenge"]);
+    assert.equal(gate.path("/api/me/fingerprint").open, false);
+  });
+  withClosed([], () => {
+    assert.equal(gate.path("/api/me/fingerprint").open, true, "親が開なら口も開(分ける前と同じ)");
+  });
+  const ingest = generatedRules.find((rule) => rule.name === "deviceFingerprintPageIngest");
+  assert.ok(ingest && ingest.defaultEnabled === true, "収集の口の既定は開(親に従う)");
+  assert.deepEqual(ingest.dependsOn, ["deviceFingerprint"]);
 });
 
 test("連鎖: 親を閉じると子(孫)も閉じ、子の住所も閉じる。親が開なら子は自分の値", () => {

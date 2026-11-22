@@ -15,6 +15,7 @@ import { rule as rules_demoPages } from "@/featureGate/rules/demoPages";
 import { rule as rules_demoPayment } from "@/featureGate/rules/demoPayment";
 import { rule as rules_demoSampleDomain } from "@/featureGate/rules/demoSampleDomain";
 import { rule as rules_deviceFingerprint } from "@/featureGate/rules/deviceFingerprint";
+import { rule as rules_deviceFingerprintPageIngest } from "@/featureGate/rules/deviceFingerprintPageIngest";
 import { rule as rules_fingerprintChallenge } from "@/featureGate/rules/fingerprintChallenge";
 import { rule as rules_interactionTracking } from "@/featureGate/rules/interactionTracking";
 import { rule as rules_messagingAnalytics } from "@/featureGate/rules/messagingAnalytics";
@@ -53,7 +54,7 @@ import { rule as rules_wallet } from "@/featureGate/rules/wallet";
 import { rule as rules_walletAnalytics } from "@/featureGate/rules/walletAnalytics";
 import { rule as rules_withdraw } from "@/featureGate/rules/withdraw";
 
-export type FeatureName = "adminDemoUsers" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "couponAttributionReward" | "demoDeviceFingerprint" | "demoLogin" | "demoPages" | "demoPayment" | "demoSampleDomain" | "deviceFingerprint" | "fingerprintChallenge" | "interactionTracking" | "messagingAnalytics" | "messagingBroadcast" | "messagingDispatches" | "messagingInbox" | "messagingOverrides" | "messagingPreferences" | "messagingTemplates" | "messagingTracking" | "milestone" | "mypageInvite" | "mypageOther" | "mypagePause" | "mypageWithdraw" | "pageEntry" | "pageMypage" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "paymentAnalytics" | "phoneVerification" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userGroups" | "userLineProfile" | "userXProfile" | "wallet" | "walletAnalytics" | "withdraw";
+export type FeatureName = "adminDemoUsers" | "analytics" | "bankTransferReview" | "chatRoom" | "coupon" | "couponAttributionReward" | "demoDeviceFingerprint" | "demoLogin" | "demoPages" | "demoPayment" | "demoSampleDomain" | "deviceFingerprint" | "deviceFingerprintPageIngest" | "fingerprintChallenge" | "interactionTracking" | "messagingAnalytics" | "messagingBroadcast" | "messagingDispatches" | "messagingInbox" | "messagingOverrides" | "messagingPreferences" | "messagingTemplates" | "messagingTracking" | "milestone" | "mypageInvite" | "mypageOther" | "mypagePause" | "mypageWithdraw" | "pageEntry" | "pageMypage" | "pagePrivacyPolicy" | "pageServices" | "pageTerms" | "pageTradelaw" | "pairedDevice" | "pause" | "payment" | "paymentAnalytics" | "phoneVerification" | "referral" | "sampleDomain" | "signup" | "userAcquisition" | "userCounter" | "userGroups" | "userLineProfile" | "userXProfile" | "wallet" | "walletAnalytics" | "withdraw";
 
 // name = 規則のファイル名、tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)
 export const rules: GeneratedFeatureRule[] = [
@@ -63,12 +64,13 @@ export const rules: GeneratedFeatureRule[] = [
   { ...rules_chatRoom, name: "chatRoom", tables: [], domainApiPaths: ["/api/chatRoom"], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
   { ...rules_coupon, name: "coupon", tables: ["coupons", "coupon_histories", "coupon_issuer_grants"], domainApiPaths: ["/api/coupon", "/api/couponHistory", "/api/couponIssuerGrant"], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
   { ...rules_couponAttributionReward, name: "couponAttributionReward", tables: ["coupon_attribution_rewards"], domainApiPaths: ["/api/couponAttributionReward"], settingPaths: [], cronPaths: [], dependsOn: ["wallet"], anyOf: [], when: [] },
-  { ...rules_demoDeviceFingerprint, name: "demoDeviceFingerprint", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["demoPages", "deviceFingerprint"], anyOf: [], when: [] },
+  { ...rules_demoDeviceFingerprint, name: "demoDeviceFingerprint", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["demoPages", "deviceFingerprintPageIngest"], anyOf: [], when: [] },
   { ...rules_demoLogin, name: "demoLogin", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
   { ...rules_demoPages, name: "demoPages", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
   { ...rules_demoPayment, name: "demoPayment", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["demoPages", "payment"], anyOf: [], when: [] },
   { ...rules_demoSampleDomain, name: "demoSampleDomain", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["demoPages", "sampleDomain"], anyOf: [], when: [] },
   { ...rules_deviceFingerprint, name: "deviceFingerprint", tables: ["device_fingerprints"], domainApiPaths: ["/api/deviceFingerprint"], settingPaths: [], cronPaths: ["/api/cron/device-fingerprint-prune"], dependsOn: [], anyOf: [], when: [] },
+  { ...rules_deviceFingerprintPageIngest, name: "deviceFingerprintPageIngest", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["deviceFingerprint"], anyOf: [], when: [] },
   { ...rules_fingerprintChallenge, name: "fingerprintChallenge", tables: ["fingerprint_challenges", "fingerprint_challenge_access_events"], domainApiPaths: ["/api/fingerprintChallenge"], settingPaths: [], cronPaths: ["/api/cron/fingerprint-challenge-access-prune"], dependsOn: ["deviceFingerprint"], anyOf: [], when: [] },
   { ...rules_interactionTracking, name: "interactionTracking", tables: ["interaction_events", "interaction_counters", "interaction_daily_counters"], domainApiPaths: ["/api/interactionEvent"], settingPaths: [], cronPaths: ["/api/cron/interaction-event-prune"], dependsOn: [], anyOf: [], when: [] },
   { ...rules_messagingAnalytics, name: "messagingAnalytics", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["analytics"], anyOf: [], when: [] },

@@ -5,6 +5,7 @@
 import { useEffect, useRef } from "react";
 
 import type { SessionUser } from "@/domains/core/auth/entities/session";
+import { useGate } from "@/featureGate/client";
 import { collectFingerprintPayload } from "@/lib/fingerprint";
 import { reportFingerprint } from "@/domains/core/deviceFingerprint/services/client/fingerprintClient";
 
@@ -18,16 +19,17 @@ const STORAGE_KEY = "fp_last_report";
  *   useFingerprintReport(user);
  *
  * - fire-and-forget: 収集・送信の失敗はユーザー体験に影響しない
- * - 規則 deviceFingerprint が閉じていれば(既定)proxy が 404 を返すだけなので、
- *   フック設置自体は機能の入切と独立して常置できる
+ * - 収集の口の機能 deviceFingerprintPageIngest(親 deviceFingerprint、既定は閉)が閉じていれば何も送らない
+ *   (門番の useGate で判定。閉じた口へ毎日送って 404 を捨てる形にしない)。フック設置自体は機能の入切と独立して常置できる
  * - DB 側は (user_id, composite_hash) upsert で冪等なため、localStorage が
  *   消えて再送されても行は増えない
  */
 export function useFingerprintReport(user: SessionUser | null): void {
   const hasReportedRef = useRef(false);
+  const ingestOpen = useGate().enabled("deviceFingerprintPageIngest");
 
   useEffect(() => {
-    if (!user || user.isDemo || hasReportedRef.current) return;
+    if (!ingestOpen || !user || user.isDemo || hasReportedRef.current) return;
 
     const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
 
@@ -49,8 +51,8 @@ export function useFingerprintReport(user: SessionUser | null): void {
         }
       })
       .catch(() => {
-        // 収集・送信失敗は静かに無視 (config 無効環境の 404 もここに落ちる)
+        // 収集・送信失敗は静かに無視 (fire-and-forget)
         hasReportedRef.current = false;
       });
-  }, [user]);
+  }, [ingestOpen, user]);
 }

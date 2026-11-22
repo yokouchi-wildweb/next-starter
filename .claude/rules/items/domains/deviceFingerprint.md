@@ -5,12 +5,12 @@ paths:
 ---
 # domains/deviceFingerprint
 what: stores browser fingerprints (device_fingerprints) and matches users by device (@/domains/core/deviceFingerprint/services/server: findUsersBySimilarFingerprint, findUsersByExactFingerprint, compareUsersFingerprints) | collection lives in @/lib/fingerprint
-use: deviceFingerprint (opt-in, default off) | fingerprintChallenge depends on it
+use: deviceFingerprint (opt-in, default off) | its child deviceFingerprintPageIngest carries POST /api/me/fingerprint (open with its parent) | fingerprintChallenge depends on deviceFingerprint, not on the ingest
 change: counterpart = src/config/domains/deviceFingerprint.config.ts (collection values) | on / off = the gate switch only
 rules:
 using:
 - reference_evidence: signals are spoofable → a match is reference evidence, never proof | action = a human, with IP, behavior and audit evidence (CLAUDE.md fingerprint)
-- reporter_mount: useFingerprintReport may stay mounted whatever the switch (a closed feature answers 404)
+- reporter_mount: useFingerprintReport may stay mounted whatever the switch (it sends nothing while deviceFingerprintPageIngest is closed, useGate)
 - privacy_policy: opening it → list the collected signals in the privacy policy
 - no_ip_in_dto: user-facing DTOs never expose IP or view counters (CLAUDE.md fingerprint)
 editing:

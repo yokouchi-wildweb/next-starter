@@ -7,6 +7,7 @@
 - 収集のロジック本体はドメインに依らない `src/lib/fingerprint/`(`collect.ts`・`hash.ts`・`useBehavioralCapture.ts`・`types.ts`)。本ドメインはその蓄積(`device_fingerprints`)と照合(成分別のスコアリング)を担う
 - 脅威モデル: フィンガープリントはクライアントの申告値で偽装できる。Canvas 等に意図的なノイズを入れるブラウザ(Safari / Brave / Firefox RFP)や、ハードが均質でユーザー間のエントロピーが低い端末(iPhone)では、一致・不一致ともノイズが乗る
 - 閉じられる機能: 門番の規則 `src/featureGate/rules/deviceFingerprint.ts`(既定は閉 = opt-in)。閉じると `/api/admin/device-fingerprint`・`/api/me/fingerprint`・掃除の cron・`/demo/fingerprint`・導出の `/api/deviceFingerprint` が 404 で、表も push から外れる
+- 全ページ設置型の収集の口 `POST /api/me/fingerprint` は子の機能 `src/featureGate/rules/deviceFingerprintPageIngest.ts`(既定は開 = 親が開けば開)。指紋の確認(fingerprintChallenge)だけを使うなら、この子だけを閉じる(`pnpm ops features set deviceFingerprintPageIngest off`)。確認は口を使わず、提出が指紋を記録する。デモ画面 `/demo/fingerprint` は口に送るので口の機能に依る
 - 開けた時点以降のアクセスから蓄積する(遡れない)
 - チャレンジは別の機能 `fingerprintChallenge`(この機能に依存する)
 
@@ -38,6 +39,7 @@ export default { deviceFingerprint: true } satisfies FeatureSwitches;
 ```
 
 - `pnpm ops features set deviceFingerprint on` でも書ける
+- 全ページの収集を使わない(確認だけ): `export default { deviceFingerprint: true, fingerprintChallenge: true, deviceFingerprintPageIngest: false }`
 
 ### 記録の経路 A: 全ページに置く(薄く広く)
 
@@ -48,7 +50,7 @@ export default { deviceFingerprint: true } satisfies FeatureSwitches;
 import { useFingerprintReport } from "@/domains/core/deviceFingerprint/hooks/useFingerprintReport";
 
 export function FingerprintReporter({ user }: { user: SessionUser | null }) {
-  useFingerprintReport(user); // 機能が閉のときは 404 が返り静かに無視
+  useFingerprintReport(user); // 収集の口の機能が閉のときは何も送らない(門番の useGate で判定)
   return null;
 }
 ```
@@ -102,7 +104,7 @@ const rows = await findUsersBySimilarFingerprint(suspectUserId, { minScore: 6, l
 
 - `findUsersByExactFingerprint(compositeHash, options?)`: 合成ハッシュの完全一致(最も強い一致。ノイズを入れるブラウザでは出にくい)
 - `compareUsersFingerprints(userIdA, userIdB, options?)`: 2 ユーザー間を総当たりで比べ、上位のペアの成分別の一致の内訳を返す(ドリルダウン)
-- 収集の口: `POST /api/me/fingerprint`(`services/client/fingerprintClient.ts`)
+- 収集の口: `POST /api/me/fingerprint`(`services/client/fingerprintClient.ts`。機能 `deviceFingerprintPageIngest`)
 
 ### 表
 
