@@ -5,11 +5,13 @@ export { DomainError, isDomainError, toDomainErrorBody } from "./domainError";
 export type { DomainErrorOptions } from "./domainError";
 export {
   HttpError,
+  MAINTENANCE_CODE,
   createHttpError,
   err,
   getErrorCode,
   getErrorDetails,
   isHttpError,
+  isMaintenanceError,
   normalizeHttpError,
   resolveErrorMessage,
 } from "./httpError";

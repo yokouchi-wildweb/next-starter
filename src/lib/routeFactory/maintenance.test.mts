@@ -10,7 +10,7 @@ import nextServer, { NextRequest } from "next/server";
 mock.module("next/server", { namedExports: { ...nextServer, connection: async () => {} } });
 
 const { createRouteFactories } = await import("./createRouteFactories.ts");
-const { MAINTENANCE_CODE } = await import("./maintenance.ts");
+const { MAINTENANCE_CODE } = await import("@/lib/errors");
 
 type User = { userId: string; role: string; status: string; isDemo: boolean };
 

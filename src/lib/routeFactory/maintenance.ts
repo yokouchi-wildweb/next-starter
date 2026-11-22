@@ -7,11 +7,10 @@
 
 import { NextResponse } from "next/server";
 
+import { MAINTENANCE_CODE } from "@/lib/errors";
+
 import type { RouteMaintenanceDeps, RouteUserBase, RouteUserDeps } from "./deps";
 import { resolveRouteUser } from "./routeUser";
-
-/** 止めた応答の code（クライアントはこの code でメンテナンスと分かる） */
-export const MAINTENANCE_CODE = "maintenance";
 
 /** 止めた応答の message */
 const MAINTENANCE_MESSAGE = "メンテナンス中のため、この操作は現在できません。";

@@ -198,6 +198,20 @@ export function getErrorCode(error: unknown): string | null {
 }
 
 /**
+ * メンテナンス中に止められた応答の `code`（routeFactory が書き込みのメソッドを 503 で止めた時に載せる）。
+ * サーバー（src/lib/routeFactory/maintenance.ts）とクライアントがこの 1 つを読む
+ */
+export const MAINTENANCE_CODE = "maintenance";
+
+/**
+ * メンテナンス中に止められたエラーか。`code` で見分ける（503 は利用者を確かめられない障害
+ * `route_user_unavailable` も使うので `status` では分けない）。表示文言は `err(error, fallback)` でサーバーの文言が出る
+ */
+export function isMaintenanceError(error: unknown): boolean {
+  return getErrorCode(error) === MAINTENANCE_CODE;
+}
+
+/**
  * `HttpError` の `responseData` からサーバー側 DomainError の `details` を取り出します。
  * 中身の型は保証しないので、呼び出し側で検証してください。
  *

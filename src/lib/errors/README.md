@@ -43,6 +43,7 @@ try {
 ```
 
 - `status` で分岐したいときは `normalizeHttpError(error).status === 409` のように確認する
+- メンテナンス中に止められた書き込み(503)は `isMaintenanceError(error)` で見分ける。文言は `err(error, fallback)` でサーバーの「メンテナンス中」が出るので、入力は残したまま知らせるだけでよい(画面の移動は `@/lib/appStatus` の `useAppStatus` が受け持つ)
 
 ## API
 
@@ -65,6 +66,8 @@ try {
 | `err(error, fallback)` | UI で表示文言を得る。`resolveErrorMessage` の短縮形。内部で `normalizeHttpError` を通すので、想定外の値が来ても必ず文字列を返す |
 | `isHttpError(error)` | 型ガード。通常は `normalizeHttpError` / `err` が代わりに担う |
 | `getErrorCode(error)` | `responseData` の `code`（文字列）を返す。`HttpError` でない、または無ければ `null`。`status` だけでは区別できないエラーの分岐に使う |
+| `isMaintenanceError(error)` | メンテナンス中に止められたエラーか(`code` が `MAINTENANCE_CODE`)。503 は `route_user_unavailable` も使うので `status` では分けない |
+| `MAINTENANCE_CODE` | メンテナンスで止めた応答の `code`(`"maintenance"`)。サーバー(routeFactory)とクライアントが読む 1 つ |
 | `getErrorDetails(error)` | `responseData` の `details`（オブジェクト）を返す。`HttpError` でない、または無ければ `null` |
 
 - 既定のフォールバック文言は `リクエストに失敗しました`
@@ -75,6 +78,7 @@ try {
 
 - routeFactory のファクトリーが `DomainError` を catch して `{ message, code?, details? }` + `status` の JSON に変換する（`src/lib/routeFactory/createApiRoute.ts`）
 - `DomainError` 以外の例外は `{ message: "サーバーでエラーが発生しました" }` + 500 に置き換わり、元の `message` はサーバーログ（`console.error`）にだけ残る
+- メンテナンス中の書き込みの停止は Factory が直接 `{ message, code: MAINTENANCE_CODE }` + 503 を返す（`DomainError` ではないので、500 以上の失敗の記録には渡らない。`src/lib/routeFactory/maintenance.ts`）
 
 ### 時間切れ
 
