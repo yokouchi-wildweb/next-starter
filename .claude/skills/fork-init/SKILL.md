@@ -6,11 +6,11 @@ disable-model-invocation: true
 ---
 
 role: the conversation and the entry of the fork setup | the processing is the command `pnpm workflow fork-init plan|apply` (what it writes, the answers file, idempotence: scripts/workflow/fork-init/README.md) | steps outside the repo (GitHub, Vercel, external services): `docs/setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md`
-rules: one approval only, at the plan (it includes the commit and push instruction) | never fill an answer by guessing: ask all of them in one question | keep upstream's history (shallow → propose `git fetch --unshallow` first) | rerunning is safe: the command skips the steps already done
+rules: one approval only, at the plan (it includes the commit and push instruction) | never fill an answer by guessing: ask all of them in one question | keep upstream's history (shallow → run `git fetch --unshallow` first) | rerunning is safe: the command skips the steps already done
 
 ## 1. PRE-CHECK
 1. `git remote -v`: origin = the fork source and no `upstream` remote yet → a fresh clone | an `upstream` remote exists → a rerun: go on, the plan will show which steps are done | no origin → ask for the fork source URL; STOP: wait
-2. `git rev-parse --is-shallow-repository` true → propose `git fetch --unshallow`; STOP: wait
+2. `git rev-parse --is-shallow-repository` true → run `git fetch --unshallow` and go on (it only adds history)
 3. `<name>` and `[github-owner]` from `$ARGUMENTS` | owner omitted → `gh api user --jq .login`
 4. `gh auth status` | not logged in → ask for `! gh auth login`; STOP: wait
 5. `gh repo view <owner>/<name>` | exists and not empty (`isEmpty` false) → STOP: confirm it is safe as the push target

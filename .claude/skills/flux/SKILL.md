@@ -224,7 +224,7 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
 2. **none** (the fork has committed nothing yet) → every live notice in the tree is inherited
 3. fork founding point = that commit's first parent (`<first_own>^`) when it has a parent, else (a root commit = born from a GitHub template, etc.) the commit itself
 4. inherited set = the notices added in the founding point's history ∪ the notice ids present in `git ls-tree -r --name-only <fork成立点> .notices/` (`incoming.mjs` computes it)
-5. **shallow clone** (`git rev-parse --is-shallow-repository` is true): history cannot be walked, no judgment possible | say so, propose `git fetch --unshallow <upstream>`, or confirm the inherited range with the user; STOP (never treat everything as inherited on your own)
+5. **shallow clone** (`git rev-parse --is-shallow-repository` is true): history cannot be walked, no judgment possible | run `git fetch --unshallow <upstream>` and go on (it only adds history); it fails → say so, or confirm the inherited range with the user; STOP (never treat everything as inherited on your own)
 - never delete inherited notice files (cleaning bodies is the shipping repo's job; deleting downstream may conflict with upstream's cleanup at merge; exclusion by the judgment formula is right)
 
 ## MODES ($ARGUMENTS)
