@@ -17,7 +17,7 @@ const ROOT_DIR = path.resolve(__dirname, "../../../..");
 function cleanupGeneratedFolder(roleId) {
   const folderPath = path.join(
     ROOT_DIR,
-    "src/features/core/userProfile/entities/profiles",
+    "src/domains/core/userProfile/entities/profiles",
     roleId
   );
 

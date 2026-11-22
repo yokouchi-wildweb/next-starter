@@ -49,9 +49,9 @@ docs/!must-read/設計思想とアーキテクチャ.md
 
 承認された方針に基づいて実装を行う。
 
-**ビジネスドメイン（features/ 配下）の場合:**
+**ビジネスドメイン（domains/ 配下）の場合:**
 
-1. まず `domain.json` のみを手で書く（スキーマと例: src/features/README.md、src/features/sample/domain.json）
+1. まず `domain.json` のみを手で書く（スキーマと例: src/domains/README.md、src/domains/sample/domain.json）
 2. `pnpm forge` を実行する（検査 → 生成 → 事後検査。検査で止まったら文のとおりに domain.json を直してもう一度）
 3. 表が変わったら、ユーザーに `pnpm db:push` を依頼する（forge が最後に案内する。エージェントは実行しない）
 4. 自動生成完了後、必要に応じてカスタマイズを行う。手で書くのは `wrappers/` に足すファイル、`formEntities.ts`、自分で足したファイルだけ。`presenters.ts`・`constants/field.ts` などの生成物は再生成で上書きされるので、生成物に手を入れるならそのドメインを `"generate": false` にする（CLAUDE.md DIRECTORY_STRUCTURE code_generation）
@@ -68,8 +68,8 @@ docs/!must-read/設計思想とアーキテクチャ.md
 ### 型・定数の配置
 
 グローバルな src/types/ や src/constants/ は設置しない:
-- ビジネスドメイン固有 → features/<domain>/types/, constants/
-- アプリ基盤に関わる → features/core/<domain>/
+- ビジネスドメイン固有 → domains/<domain>/types/, constants/
+- アプリ基盤に関わる → domains/core/<domain>/
 - 汎用的・再利用可能 → lib/<category>/types.ts, constants.ts
 
 ### ページ固有コンポーネント

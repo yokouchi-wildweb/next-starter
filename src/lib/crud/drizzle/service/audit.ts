@@ -14,7 +14,7 @@ export function createAuditHooks<TTable extends PgTable & { id: AnyPgColumn }, T
 ) {
   // ===== 監査ログ（audit）統合 =====
   // serviceOptions.audit が指定された場合、CRUD 操作を audit_logs に自動記録する。
-  // recorder は features/core/auditLog 側から DI される（lib→features 違反回避）。
+  // recorder は domains/core/auditLog 側から DI される（lib→features 違反回避）。
   const audit: AuditConfig | undefined =
     serviceOptions.audit?.enabled ? serviceOptions.audit : undefined;
   const auditBulkMode: BulkAuditMode = audit?.bulkMode ?? "aggregate";

@@ -20,13 +20,13 @@ import { withGeneratedMark } from "../domain/render/output.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
-const { allStoragePurposes, mergeStoragePurposes } = await import("../../../src/features/core/storageObject/services/server/purposeSource.ts");
+const { allStoragePurposes, mergeStoragePurposes } = await import("../../../src/domains/core/storageObject/services/server/purposeSource.ts");
 const storagePurposeRegistry = allStoragePurposes();
 const { listStoragePurposeProblems } = await import("../../../src/lib/storage/server/index.ts");
 const { isValidStoragePurposeId } = await import("../../../src/lib/storage/index.ts");
-const { FIXED_STRIP_PURPOSES } = await import("../../../src/features/core/storageObject/services/server/purposeSource.ts");
+const { FIXED_STRIP_PURPOSES } = await import("../../../src/domains/core/storageObject/services/server/purposeSource.ts");
 
-/** src/features/<domain>/domain.json と src/features/core/<domain>/domain.json（ドメイン名 = フォルダ名） */
+/** src/domains/<domain>/domain.json と src/domains/core/<domain>/domain.json（ドメイン名 = フォルダ名） */
 function listDomainConfigs() {
   const result = [];
   for (const base of [path.join(rootDir, "src", "features"), path.join(rootDir, "src", "features", "core")]) {
@@ -268,13 +268,13 @@ describe("ドメインの storagePurposes.ts", () => {
   ];
 
   test("storageObjectConfig を使うときだけ import する", () => {
-    assert.match(renderStoragePurposesContent("src/features/item", ENTRIES), /^import \{ storageObjectConfig \} from "@\/features\/storageObject\/config";$/m);
-    assert.doesNotMatch(renderStoragePurposesContent("src/features/item", ENTRIES.slice(1)), /storageObjectConfig/);
+    assert.match(renderStoragePurposesContent("src/domains/item", ENTRIES), /^import \{ storageObjectConfig \} from "@\/domains\/storageObject\/config";$/m);
+    assert.doesNotMatch(renderStoragePurposesContent("src/domains/item", ENTRIES.slice(1)), /storageObjectConfig/);
   });
 
   test("上流の生成物は domain.json から作り直しても変わらず、値は移す前の 3 用途のまま", () => {
     for (const domain of ["sample", "sampleImage"]) {
-      const rel = `src/features/${domain}`;
+      const rel = `src/domains/${domain}`;
       const config = JSON.parse(fs.readFileSync(path.join(rootDir, rel, "domain.json"), "utf8"));
       const { entries, errors } = buildStoragePurposeEntries({ camel: domain, config, roleCategories: ROLE_CATEGORIES });
       assert.deepEqual(errors, []);

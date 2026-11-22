@@ -3,14 +3,14 @@
 Firebase Authentication の Twitter プロバイダで「X アカウントでログイン」を有効にする手順。
 
 > **このドキュメントの対象**: ログイン手段としての X（Firebase の `TwitterAuthProvider`）。
-> ログイン済みユーザーに X アカウントを紐付ける連携機能（`/api/auth/x/*`、`X_OAUTH2_CLIENT_ID` など）は別物で、こちらは OAuth 2.0 を使う。詳細は `src/features/core/auth/README.md`。
+> ログイン済みユーザーに X アカウントを紐付ける連携機能（`/api/auth/x/*`、`X_OAUTH2_CLIENT_ID` など）は別物で、こちらは OAuth 2.0 を使う。詳細は `src/domains/core/auth/README.md`。
 
 ---
 
 ## 1. アプリ側で有効化する
 
-- `src/config/features/auth.config.ts`（auth の上書き）の `thirdPartyProviders.twitter` を `true` にする（既定 `false`、`src/features/core/auth/config.ts`）。
-- プロバイダの生成は `src/features/core/auth/utils/createOAuthProvider.ts`（`TwitterAuthProvider`）。
+- `src/config/domains/auth.config.ts`（auth の上書き）の `thirdPartyProviders.twitter` を `true` にする（既定 `false`、`src/domains/core/auth/config.ts`）。
+- プロバイダの生成は `src/domains/core/auth/utils/createOAuthProvider.ts`（`TwitterAuthProvider`）。
 
 ## 2. X Developer Console 側
 

@@ -4,12 +4,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { resolveAdminAdjustReason } from "@/features/core/wallet/services/server/wrappers/reasonKey";
-import { walletConfig, type WalletType } from "@/features/wallet/config";
-import { REASON_CATEGORY_VALUES } from "@/features/walletHistory/config";
-import { walletService } from "@/features/core/wallet/services/server/walletService";
-import type { WalletHistoryMetaInput } from "@/features/core/walletHistory/types/meta";
-import { WalletHistoryMetaSchema } from "@/features/core/walletHistory/entities/schema";
+import { resolveAdminAdjustReason } from "@/domains/core/wallet/services/server/wrappers/reasonKey";
+import { walletConfig, type WalletType } from "@/domains/wallet/config";
+import { REASON_CATEGORY_VALUES } from "@/domains/walletHistory/config";
+import { walletService } from "@/domains/core/wallet/services/server/walletService";
+import type { WalletHistoryMetaInput } from "@/domains/core/walletHistory/types/meta";
+import { WalletHistoryMetaSchema } from "@/domains/core/walletHistory/entities/schema";
 
 const walletTypeValues = Object.keys(walletConfig.currency) as [WalletType, ...WalletType[]];
 

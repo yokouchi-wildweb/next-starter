@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { LINE_OAUTH_NONCE_COOKIE, processCallback, verifyOAuthState } from "@/lib/line";
-import { userLineProfileService } from "@/features/core/userLineProfile/services/server/userLineProfileService";
+import { userLineProfileService } from "@/domains/core/userLineProfile/services/server/userLineProfileService";
 
 /**
  * エラー時のリダイレクトレスポンスを生成するヘルパー。

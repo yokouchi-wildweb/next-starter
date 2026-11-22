@@ -1,9 +1,9 @@
 // src/featureGate/checks/routeImports.mjs
 // 無効な機能のドメインを読むルートの閉じ漏れの判定(featureGate.test.mjs の契約 2・3)。字面で読むだけの純関数(Node 組み込みも使わない)。
 //
-// 規則が閉じるドメイン = 規則の features のフォルダ(src/features/core/<名前> か src/features/<名前>)。表の数は問わない
+// 規則が閉じるドメイン = 規則の features のフォルダ(src/domains/core/<名前> か src/domains/<名前>)。表の数は問わない
 // (表 0 のドメイン、例 Firestore 版の core/chatRoom も同じに見る)。features を持たない規則(住所の手書きだけ)は対象外。
-// - ルート: そのドメインを `@/features/(core/)?<名前>/` で参照するファイル(route.ts / page.tsx と _screen/ _components/ 配下)は、
+// - ルート: そのドメインを `@/domains/(core/)?<名前>/` で参照するファイル(route.ts / page.tsx と _screen/ _components/ 配下)は、
 //   規則の pathPatterns のどれかに覆われる。意図して閉じないルートは例外表に理由付きで書く
 // - 汎用 CRUD: ドメイン名(フォルダ名の末尾)が汎用 API の登録にあり、閉じていない(INTERNAL_ONLY でない)なら /api/<名前> が覆われる
 // 使い手: scripts/structure/proxies/featureGate.test.mjs(実リポと fixture)
@@ -31,7 +31,7 @@ export function findOpenRouteImports(rules, routeFiles, exceptions = {}) {
     const domains = domainsOfRule(rule);
     for (const file of routeFiles) {
       if (file.rel in exceptions) continue;
-      const imported = domains.filter((domain) => new RegExp(`["']@/features/(core/)?${escape(domain)}/`).test(file.text));
+      const imported = domains.filter((domain) => new RegExp(`["']@/domains/(core/)?${escape(domain)}/`).test(file.text));
       if (imported.length === 0) continue;
       if (!rule.pathPatterns.some((pattern) => patternCoversRoute(pattern, file.segments))) {
         problems.push(`${file.rel}（${imported.join(", ")} を import）が規則「${rule.name}」(domains: ${rule.domains.join(", ")})で閉じていない`);

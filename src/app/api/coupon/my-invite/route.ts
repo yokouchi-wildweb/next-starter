@@ -1,7 +1,7 @@
 // src/app/api/coupon/my-invite/route.ts
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { couponService } from "@/features/core/coupon/services/server/couponService";
+import { couponService } from "@/domains/core/coupon/services/server/couponService";
 
 /**
  * GET /api/coupon/my-invite

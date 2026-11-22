@@ -2,9 +2,9 @@
 
 import { NextResponse } from "next/server";
 
-import { settingConfig } from "@/features/setting/config";
-import { settingService } from "@/features/core/setting/services/server/settingService";
-import { canBypassMaintenance } from "@/features/core/setting/utils/maintenanceBypass";
+import { settingConfig } from "@/domains/setting/config";
+import { settingService } from "@/domains/core/setting/services/server/settingService";
+import { canBypassMaintenance } from "@/domains/core/setting/utils/maintenanceBypass";
 
 import type { ProxyHandler } from "./types";
 

@@ -104,7 +104,7 @@ function LineStatusMessage() {
 
 ```ts
 // クライアント（UI からは fork のフックで包む。例: useDomainMutation）
-import { unlinkLine } from "@/features/core/userLineProfile/services/client/userLineProfileClient";
+import { unlinkLine } from "@/domains/core/userLineProfile/services/client/userLineProfileClient";
 
 await unlinkLine(); // 連携が無ければ 400（normalizeHttpError 済みのエラー）
 ```
@@ -115,7 +115,7 @@ await unlinkLine(); // 連携が無ければ 400（normalizeHttpError 済みの�
 
 ```ts
 import { pushMessage, textMessage } from "@/lib/line";
-import { userLineProfileService } from "@/features/core/userLineProfile/services/server/userLineProfileService";
+import { userLineProfileService } from "@/domains/core/userLineProfile/services/server/userLineProfileService";
 
 // LINE連携プロフィールを取得
 const lineProfile = await userLineProfileService.findByUserId(user.id);
@@ -166,11 +166,11 @@ await broadcast([textMessage("キャンペーン開催中！")]);
 
 ### Webhook イベント処理
 
-イベントごとの処理は `src/features/core/userLineProfile/webhookHandlers/<名前>.ts` に置き、`pnpm generate extensions` する(上流の項目は 0)。route は署名検証・振り分け・応答だけを持つ。同じ `eventType` の項目は一覧の順に全部呼ばれ、1 つ失敗してもログに残して続行する(LINE へは 200)。
+イベントごとの処理は `src/domains/core/userLineProfile/webhookHandlers/<名前>.ts` に置き、`pnpm generate extensions` する(上流の項目は 0)。route は署名検証・振り分け・応答だけを持つ。同じ `eventType` の項目は一覧の順に全部呼ばれ、1 つ失敗してもログに残して続行する(LINE へは 200)。
 
 ```ts
-// src/features/core/userLineProfile/webhookHandlers/follow.ts
-import type { LineWebhookEventHandler } from "@/features/core/userLineProfile/types/webhook";
+// src/domains/core/userLineProfile/webhookHandlers/follow.ts
+import type { LineWebhookEventHandler } from "@/domains/core/userLineProfile/types/webhook";
 import { replyMessage, textMessage } from "@/lib/line";
 
 export const handler: LineWebhookEventHandler = {
@@ -245,7 +245,7 @@ LINE Platform からの Webhook 受信。`x-line-signature` ヘッダーで HMAC
 
 ### userLineProfileService
 
-`@/features/core/userLineProfile/services/server/userLineProfileService` からインポート。
+`@/domains/core/userLineProfile/services/server/userLineProfileService` からインポート。
 
 | メソッド | 説明 |
 |---------|------|

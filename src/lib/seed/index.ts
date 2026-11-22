@@ -1,4 +1,4 @@
-// src/lib/seed/index.ts — ドメインのシード(src/features/<ドメイン>/seed.ts)の書き方と、入れる順の計画(公開の入口はこの 1 つ)
+// src/lib/seed/index.ts — ドメインのシード(src/domains/<ドメイン>/seed.ts)の書き方と、入れる順の計画(公開の入口はこの 1 つ)
 // seed.ts = export const seed = defineSeed({ after?, tables: { <表>: [{ $key, $unique?, ...列の値 }] } })、関係先は ref(<ドメイン>, <$key>)。
 // 入れるのは scripts/runner/seed(各ドメインのサービスの create)。この lib は形・検査・順・値の置き換えだけ(DB にも features にも触らない)。
 // 依存なし(features・棚・@/wiring を読まない)。README.md
@@ -46,7 +46,7 @@ export function defineSeed(definition: SeedDefinition): SeedDefinition {
 
 export type SeedEntry = {
   domain: string;
-  /** src/features からの相対のフォルダ(例 sample・core/user)。閉じた機能の判定に使う */
+  /** src/domains からの相対のフォルダ(例 sample・core/user)。閉じた機能の判定に使う */
   folder: string;
   file: string;
   seed: SeedDefinition;

@@ -45,7 +45,7 @@ const LAYOUTS: Record<string, MessageLayout> = {
     summary: (values) => ({ title: values.subject ?? "", body: "" }),
   }) as MessageLayout,
 };
-const LAYOUT_FILE = "src/features/core/messaging/layouts/notice/layout.ts";
+const LAYOUT_FILE = "src/domains/core/messaging/layouts/notice/layout.ts";
 
 function tree() {
   const root = mkdtempSync(join(tmpdir(), "message-scaffold-"));
@@ -55,15 +55,15 @@ function tree() {
     mkdirSync(dirname(join(root, path)), { recursive: true });
     writeFileSync(join(root, path), text);
   };
-  // features の地区 = src/features の下のフォルダ(業務 shop と core の wallet)
-  put("src/features/shop/README.md", "# shop\n");
-  put("src/features/core/wallet/README.md", "# wallet\n");
+  // features の地区 = src/domains の下のフォルダ(業務 shop と core の wallet)
+  put("src/domains/shop/README.md", "# shop\n");
+  put("src/domains/core/wallet/README.md", "# wallet\n");
   for (const item of Object.values(CATEGORIES)) {
-    put(`src/features/core/messaging/categories/${item.key}.ts`, `export const category = ${JSON.stringify(item)};\n`);
+    put(`src/domains/core/messaging/categories/${item.key}.ts`, `export const category = ${JSON.stringify(item)};\n`);
   }
   put(LAYOUT_FILE, 'export const layout = { key: "notice" };\n');
   for (const channel of ["email/index.tsx", "inApp/index.ts", "line/index.ts", "push.ts"]) {
-    put(`src/features/core/messaging/channels/${channel}`, "export const channel = {};\n");
+    put(`src/domains/core/messaging/channels/${channel}`, "export const channel = {};\n");
   }
   return root;
 }
@@ -81,7 +81,7 @@ async function problemsOf(root: string, path: string, channels: readonly string[
 function guardsOf(root: string, files: string[]) {
   type Point = Parameters<typeof checkMessageGuards>[1][number];
   const points = (planExtensions(repoRoot) as { points: Point[] }).points;
-  const categoryFiles = Object.keys(CATEGORIES).map((key) => `src/features/core/messaging/categories/${key}.ts`);
+  const categoryFiles = Object.keys(CATEGORIES).map((key) => `src/domains/core/messaging/categories/${key}.ts`);
   return checkMessageGuards(root, points, [...files, ...categoryFiles, LAYOUT_FILE]);
 }
 
@@ -97,7 +97,7 @@ test("定義 1 本(レイアウト notice)を書き、2 回目は触らない", 
   const root = tree();
   const result = run(root, "shop", "orderShipped", "--category", "orderShipped");
   assert.equal(result.code, 0, result.lines.join("\n"));
-  assert.deepEqual(result.written, ["src/features/shop/messages/orderShipped.ts"]);
+  assert.deepEqual(result.written, ["src/domains/shop/messages/orderShipped.ts"]);
   const definition = readFileSync(join(root, result.written[0]), "utf8");
   assert.match(definition, /key: "shop\.orderShipped"/);
   assert.match(definition, /category: "orderShipped"/);
@@ -111,7 +111,7 @@ test("定義 1 本(レイアウト notice)を書き、2 回目は触らない", 
   assert.match(definition, /varNames: \{\}/);
   assert.doesNotMatch(definition, /^\s*(adminEditable|throttle):/m);
   assert.match(definition, /layout: "notice"/);
-  assert.ok(!existsSync(join(root, "src/features/shop/messages/views")));
+  assert.ok(!existsSync(join(root, "src/domains/shop/messages/views")));
   assert.deepEqual(await problemsOf(root, result.written[0]), []);
   assert.deepEqual(guardsOf(root, result.written), []);
 
@@ -127,7 +127,7 @@ test("メールの無いカテゴリー・fork の送信チャンネルのカテ
   const root = tree();
   const promo = run(root, "shop", "weeklyPromo", "--category", "weeklyPromo");
   assert.equal(promo.code, 0, promo.lines.join("\n"));
-  assert.deepEqual(promo.written, ["src/features/shop/messages/weeklyPromo.ts"]);
+  assert.deepEqual(promo.written, ["src/domains/shop/messages/weeklyPromo.ts"]);
   assert.match(readFileSync(join(root, promo.written[0]), "utf8"), /category: "weeklyPromo"/);
   assert.deepEqual(await problemsOf(root, promo.written[0]), []);
   assert.deepEqual(guardsOf(root, promo.written), []);
@@ -145,10 +145,10 @@ test("core のドメインは --core の時だけ書く", () => {
   const refused = run(root, "wallet", "bonusNotice", "--category", "orderShipped");
   assert.equal(refused.code, 2);
   assert.match(refused.lines[0], /core のドメイン/);
-  assert.equal(existsSync(join(root, "src/features/core/wallet/messages/bonusNotice.ts")), false);
+  assert.equal(existsSync(join(root, "src/domains/core/wallet/messages/bonusNotice.ts")), false);
   const allowed = run(root, "wallet", "bonusNotice", "--category", "orderShipped", "--core");
   assert.equal(allowed.code, 0);
-  assert.ok(existsSync(join(root, "src/features/core/wallet/messages/bonusNotice.ts")));
+  assert.ok(existsSync(join(root, "src/domains/core/wallet/messages/bonusNotice.ts")));
 });
 
 test("exit 2: --label が無い・値が無い(管理画面の連絡の名前は必須)", () => {
@@ -182,5 +182,5 @@ test("exit 2 と理由(何も書かない)", () => {
     assert.match(result.lines[0], pattern, args.join(" "));
     assert.deepEqual(result.written, []);
   }
-  assert.equal(existsSync(join(root, "src/features/shop/messages")), false);
+  assert.equal(existsSync(join(root, "src/domains/shop/messages")), false);
 });

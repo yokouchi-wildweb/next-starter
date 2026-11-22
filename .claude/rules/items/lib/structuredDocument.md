@@ -9,7 +9,7 @@ change: none → /order <direct parent>
 rules:
 using:
 - sd_one_substitution: `{{key}}` substitution uses @/lib/templateVariables only, never another replacer
-- sd_legal_content: legal texts and their values live in src/features/core/legal | a screen passes getLegalDocument(kind) output (already substituted), without `variables`
+- sd_legal_content: legal texts and their values live in src/domains/core/legal | a screen passes getLegalDocument(kind) output (already substituted), without `variables`
 editing:
 - sd_types_render_only: the lib holds structure types and rendering only, never document content
 - sd_type_shape: a document type = a subfolder with definition.ts, Renderer/, index.ts and README.md (legal/ is the model), its names re-exported from the root index.ts (the only entry)

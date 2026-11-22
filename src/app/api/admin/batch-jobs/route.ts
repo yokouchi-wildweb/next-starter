@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { batchJobService } from "@/features/batchJob/services/server";
+import { batchJobService } from "@/domains/batchJob/services/server";
 
 const CreateBatchJobPayloadSchema = z.object({
   jobType: z.string().min(1),

@@ -22,6 +22,6 @@ test("@lib-config の * は 1 か所で、残りをそのまま差し込む", ()
 
 test("@/ の別名は今のまま(@lib-config/ の行は @/ に当たらない)", () => {
   assert.equal(resolveImport("@/lib/cn", inToast, repo), "src/lib/cn");
-  assert.equal(resolveImport("@/features/user/x", inToast, repo), "src/features/core/user/x");
+  assert.equal(resolveImport("@/domains/user/x", inToast, repo), "src/domains/core/user/x");
   assert.equal(resolveImport("@/config/lib/toast.config", inToast, repo), "src/config/lib/toast.config");
 });

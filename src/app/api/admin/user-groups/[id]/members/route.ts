@@ -9,7 +9,7 @@
 
 import { gate } from "@/featureGate";
 import { createApiRoute } from "@/wiring/apiRoute";
-import { userGroupAdmin } from "@/features/core/userGroup/services/server/admin";
+import { userGroupAdmin } from "@/domains/core/userGroup/services/server/admin";
 
 type Params = { id: string };
 

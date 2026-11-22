@@ -96,9 +96,9 @@ test("(b) 常時実行の拡張点: wallet / payment のフォルダを読む項
     .filter((item) => gatedImports(readFileSync(join(ROOT, item.file), "utf8"), patterns).length > 0);
   const files = items.map((item) => item.file);
   for (const expected of [
-    "src/features/core/batchJob/jobHandlers/walletBulkAdjust.ts",
-    "src/features/core/user/cleanupHandlers/wallet.ts",
-    "src/features/core/user/cleanupHandlers/purchaseRequest.ts",
+    "src/domains/core/batchJob/jobHandlers/walletBulkAdjust.ts",
+    "src/domains/core/user/cleanupHandlers/wallet.ts",
+    "src/domains/core/user/cleanupHandlers/purchaseRequest.ts",
   ]) assert.ok(files.includes(expected), `${expected} が常時の項目の走査に入らない(走査を確認)`);
   // 規則の enabled と同じ config の式を直に読む項目(gate を通らない。L1.10: 設定の議会の指令 03 が gate に直す)。
   // 本物の config では規則と同じ値で閉じるので、式が同じことだけ確かめて既知として出す
@@ -158,9 +158,9 @@ test("(e) 閉じる住所: 画面・汎用 API・自前の API・webhook・cron"
 
 test("coupon の購入割引のカテゴリ: payment を閉じると登録されない", async () => {
   await withWalletOff(async () => {
-    await import("@/features/core/coupon/handlers/init");
-    const { getRegisteredCategories } = await import("@/features/core/coupon/handlers");
-    const { PURCHASE_DISCOUNT_CATEGORY } = await import("@/features/core/purchaseRequest/types/couponEffect");
+    await import("@/domains/core/coupon/handlers/init");
+    const { getRegisteredCategories } = await import("@/domains/core/coupon/handlers");
+    const { PURCHASE_DISCOUNT_CATEGORY } = await import("@/domains/core/purchaseRequest/types/couponEffect");
     assert.ok(!getRegisteredCategories().includes(PURCHASE_DISCOUNT_CATEGORY));
   });
 });

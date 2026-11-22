@@ -23,12 +23,12 @@ function fixture(files) {
 }
 
 const def = (key) => `import { defineMessage } from "@/lib/messaging";\nexport const message = defineMessage({ key: ${key}, kind: "transactional" });\n`;
-const AUTH = "src/features/core/auth/messages/";
-const SHOP = "src/features/shop/messages/";
+const AUTH = "src/domains/core/auth/messages/";
+const SHOP = "src/domains/shop/messages/";
 // 地区として見つかるよう、ドメインのフォルダに何か 1 つ置く
 const DOMAINS = {
-  "src/features/core/auth/README.md": "# auth\n",
-  "src/features/shop/README.md": "# shop\n",
+  "src/domains/core/auth/README.md": "# auth\n",
+  "src/domains/shop/README.md": "# shop\n",
 };
 
 test("0 本: 型つきの空の一覧", () => {
@@ -57,8 +57,8 @@ test("定義・上書きを鍵の順に並べ、遅延 import にする", () => 
     { key: "shop.orderShipped", definition: `${SHOP}orderShipped.ts`, override: null },
   ]);
   const { text } = renderMessageRegistry(root);
-  assert.ok(text.includes('  "auth.verification": {\n    key: "auth.verification",\n    definition: () => import("@/features/core/auth/messages/verification"),\n    override: () => import("@/features/core/auth/messages/verification.override"),\n  },'));
-  assert.ok(text.includes('  "shop.orderShipped": {\n    key: "shop.orderShipped",\n    definition: () => import("@/features/shop/messages/orderShipped"),\n  },'));
+  assert.ok(text.includes('  "auth.verification": {\n    key: "auth.verification",\n    definition: () => import("@/domains/core/auth/messages/verification"),\n    override: () => import("@/domains/core/auth/messages/verification.override"),\n  },'));
+  assert.ok(text.includes('  "shop.orderShipped": {\n    key: "shop.orderShipped",\n    definition: () => import("@/domains/shop/messages/orderShipped"),\n  },'));
   assert.ok(text.indexOf('"auth.accountLocked"') < text.indexOf('"auth.verification"'));
 });
 
@@ -74,10 +74,10 @@ test("止める: 鍵のずれ・リテラルでない key・定義の形・点�
 test("止める: core と業務の同じフォルダ名で鍵が重なる", () => {
   const problems = scanMessages(
     fixture({
-      "src/features/core/shop/README.md": "# shop\n",
-      "src/features/shop/README.md": "# shop\n",
-      "src/features/core/shop/messages/orderShipped.ts": def('"shop.orderShipped"'),
-      "src/features/shop/messages/orderShipped.ts": def('"shop.orderShipped"'),
+      "src/domains/core/shop/README.md": "# shop\n",
+      "src/domains/shop/README.md": "# shop\n",
+      "src/domains/core/shop/messages/orderShipped.ts": def('"shop.orderShipped"'),
+      "src/domains/shop/messages/orderShipped.ts": def('"shop.orderShipped"'),
     }),
   ).problems;
   assert.ok(problems.some((p) => /鍵 shop\.orderShipped が .* と重なる/.test(p)), problems.join(" / "));

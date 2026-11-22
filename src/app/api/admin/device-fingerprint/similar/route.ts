@@ -3,7 +3,7 @@
 // 管理者向け: デバイスフィンガープリント類似ユーザー照会。
 // userId 指定 = 成分一致スコアによる類似検索 / compositeHash 指定 = 完全一致検索。
 // 結果は「参考証拠」であり単独での断定材料にしないこと
-// (詳細: src/features/core/deviceFingerprint/README.md の脅威モデル)。
+// (詳細: src/domains/core/deviceFingerprint/README.md の脅威モデル)。
 // ダッシュボード画面は downstream 所有 (同 README のレシピ参照)。
 
 import { z } from "zod";
@@ -13,7 +13,7 @@ import { DomainError } from "@/lib/errors";
 import {
   findUsersByExactFingerprint,
   findUsersBySimilarFingerprint,
-} from "@/features/core/deviceFingerprint/services/server";
+} from "@/domains/core/deviceFingerprint/services/server";
 
 const BodySchema = z.union([
   z.object({

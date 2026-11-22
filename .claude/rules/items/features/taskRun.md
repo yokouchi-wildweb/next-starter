@@ -1,9 +1,9 @@
 ---
 paths:
-  - "src/features/core/taskRun/**"
+  - "src/domains/core/taskRun/**"
 ---
-# features/taskRun
-what: the record of each named `pnpm task` run (table task_runs, one row per run) with its stop keys and unknown-result states, and the functions that read and write it | entry @/features/taskRun/services/server (startRun, finishRun, findKeyHolders, findDryRunOf, findRun, resolveRun)
+# domains/taskRun
+what: the record of each named `pnpm task` run (table task_runs, one row per run) with its stop keys and unknown-result states, and the functions that read and write it | entry @/domains/taskRun/services/server (startRun, finishRun, findKeyHolders, findDryRunOf, findRun, resolveRun)
 use: always
 change: none → /order <direct parent>
 rules:

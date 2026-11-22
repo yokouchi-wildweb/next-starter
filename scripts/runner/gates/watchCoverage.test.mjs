@@ -34,7 +34,7 @@ const READS = {
   // 生成の --dry-run(書く先の有無を見る)
   domain: {
     entries: ["scripts/structure/domain/check.mjs", "scripts/structure/domain/index.mjs"],
-    data: ["src/features/**/domain.json", "src/app/admin/_template/**", "src/app/admin/(protected)/**/page.tsx", "src/registry/*.ts", "src/wiring/formInputs/inputs/*.ts", "src/features/core/user/roles/*.json"],
+    data: ["src/domains/**/domain.json", "src/app/admin/_template/**", "src/app/admin/(protected)/**/page.tsx", "src/registry/*.ts", "src/wiring/formInputs/inputs/*.ts", "src/domains/core/user/roles/*.json"],
   },
   // 規則の強さは設定とパスで決まる(代表のファイルは有無だけが効く)
   eslint: {
@@ -44,33 +44,33 @@ const READS = {
   // 拡張点の宣言・項目・スイッチ・枠は src 全体に散る
   extensions: {
     entries: ["scripts/structure/extensions/gate-check.mjs", "scripts/structure/extensions/check.mjs"],
-    data: ["src/**/extensionPoints.ts", "src/**/*.default.{ts,tsx}", "src/**/*.override.ts", "src/lib/forkOwnership/intake.txt", "src/app/**/_layout/**", "src/features/**/messages/*.ts"],
+    data: ["src/**/extensionPoints.ts", "src/**/*.default.{ts,tsx}", "src/**/*.override.ts", "src/lib/forkOwnership/intake.txt", "src/app/**/_layout/**", "src/domains/**/messages/*.ts"],
   },
   // 登録表の走査(domainEntry・pgTable・用途)と storageBindingFor の呼び出し(src 全体)
-  registry: { entries: ["scripts/structure/registry/check.mjs"], data: ["src/features/**", "src/registry/*.ts", "src/**/*.{ts,tsx,mts}"] },
+  registry: { entries: ["scripts/structure/registry/check.mjs"], data: ["src/domains/**", "src/registry/*.ts", "src/**/*.{ts,tsx,mts}"] },
   role: {
     entries: ["scripts/structure/role/check.mjs"],
-    data: ["src/features/core/user/roles/*", "src/features/core/user/coreRoles/*", "src/features/core/userProfile/profiles/*", "src/features/core/user/extensions/roles.ts", "src/wiring/formInputs/inputs/*.ts"],
+    data: ["src/domains/core/user/roles/*", "src/domains/core/user/coreRoles/*", "src/domains/core/userProfile/profiles/*", "src/domains/core/user/extensions/roles.ts", "src/wiring/formInputs/inputs/*.ts"],
   },
   // ルート地図: src/app のページ・Screen・loader・guard と地図そのもの
   routes: { entries: ["scripts/structure/routes/check.ts", "scripts/structure/routes/map.mjs"], data: ["src/app/**", "src/app/route-map.jsonl"] },
   // 地区の地図: 4 種の地区の木(features・lib・proxies・枠の _layout)・門の規則・上書きの有無と地図そのもの
   "district-map": {
     entries: ["scripts/structure/district-map/check.mjs"],
-    data: ["src/features/**", "src/lib/**", "src/proxies/**", "src/app/**/_layout/**", "src/featureGate/rules/*.ts", "src/config/**", "src/registry/district-map.jsonl"],
+    data: ["src/domains/**", "src/lib/**", "src/proxies/**", "src/app/**/_layout/**", "src/featureGate/rules/*.ts", "src/config/**", "src/registry/district-map.jsonl"],
   },
   // 門番の検査(機能を要する設定の値・開けた子の親)と門番のテスト(FEATURE_GATE_CHECK=all、子プロセスで src/featureGate・
   // scripts/structure/proxies のテストを回す = テストが読む src 全体)
   proxies: { entries: ["scripts/structure/proxies/check.ts", "scripts/structure/proxies/testGate.mjs"], data: ["src/**", "scripts/structure/proxies/**"] },
   // cacheComponents の設定(next.config.ts と、それが読む段階・fork の名の読み手)。成果物の検査(build:post)は .next を読む
   "cache-components": { entries: ["scripts/structure/cache-components/check.ts"], data: ["next.config.ts"] },
-  "admin-menu": { entries: ["scripts/structure/admin-menu/check.ts"], data: ["src/features/core/admin/menu/**", "src/app/route-map.jsonl"] },
+  "admin-menu": { entries: ["scripts/structure/admin-menu/check.ts"], data: ["src/domains/core/admin/menu/**", "src/app/route-map.jsonl"] },
   // 宣言した lib の package.json・tsconfig.json・config.ts と、型検査が辿る lib・棚・上書き(--list の repo 全体の走査は落とす道でないので含めない)
   "lib-package": { entries: ["scripts/structure/lib-package/check.mjs"], data: ["src/lib/**", "src/components/**", "src/config/lib/**"] },
   // 上書きと持ち主の対: 地区の地図が読む木(4 種の地区・門の規則)と src/config の種類のフォルダ・lib の package.json
   "config-overrides": {
     entries: ["scripts/structure/config-overrides/check.mjs"],
-    data: ["src/features/**", "src/lib/**", "src/proxies/**", "src/app/**/_layout/**", "src/featureGate/rules/*.ts", "src/config/**"],
+    data: ["src/domains/**", "src/lib/**", "src/proxies/**", "src/app/**/_layout/**", "src/featureGate/rules/*.ts", "src/config/**"],
   },
 };
 
@@ -128,7 +128,7 @@ for (const name of Object.keys(READS)) {
 test("関係ない変更では対象が飛び、対象の入力を変えると回る(実物の gate.json)", () => {
   const runs = (changedFiles) => shipTargets.filter((name) => changedFiles.some(covered(declOf(name).watch)));
   assert.deepEqual(runs(["docs/setup/x.md", "README.md", "servers/room/src/index.ts", "scripts/operations/db/inspect.ts"]), []);
-  assert.deepEqual(runs(["src/features/core/user/roles/editor.role.json"]).sort(), ["admin-menu", "config", "config-overrides", "cron", "cycles", "district-map", "domain", "extensions", "proxies", "registry", "role", "routes"].filter((n) => shipTargets.includes(n)).sort());
+  assert.deepEqual(runs(["src/domains/core/user/roles/editor.role.json"]).sort(), ["admin-menu", "config", "config-overrides", "cron", "cycles", "district-map", "domain", "extensions", "proxies", "registry", "role", "routes"].filter((n) => shipTargets.includes(n)).sort());
   assert.deepEqual(runs(["eslint-rules/page-authz.mjs"]), ["eslint"]);
   assert.deepEqual(runs(["scripts/structure/domain/render/index.mjs"]).sort(), ["domain", "eslint", "extensions", "registry", "role"].sort());
   assert.deepEqual(runs(["src/app/(user)/page.tsx"]).sort(), ["admin-menu", "config", "cron", "cycles", "extensions", "proxies", "registry", "routes"].sort());

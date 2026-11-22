@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/features/core/admin/**"
-  - "src/config/features/admin.config.ts"
+  - "src/domains/core/admin/**"
+  - "src/config/domains/admin.config.ts"
 ---
-# features/admin
-what: admin screen parts: sidebar menu (menu/), /admin dashboard (dashboard/, entry @/features/admin/dashboard), fetch bodies of admin list / edit / create / sort (services/server/screenData/)
+# domains/admin
+what: admin screen parts: sidebar menu (menu/), /admin dashboard (dashboard/, entry @/domains/admin/dashboard), fetch bodies of admin list / edit / create / sort (services/server/screenData/)
 use: always
-change: add = menu categories / items, dashboard sections in the receptacles of extensionPoints.ts | overlay = <key>.override.ts beside an upstream entry | placement = src/config/features/admin.config.ts
+change: add = menu categories / items, dashboard sections in the receptacles of extensionPoints.ts | overlay = <key>.override.ts beside an upstream entry | placement = src/config/domains/admin.config.ts
 rules:
 using:
 - entry_key_name: an entry's file name = its `key` (camelCase), an override targets it
@@ -22,4 +22,4 @@ editing:
 - order_gaps: upstream orders keep gaps (categories, sections 100, items 10; inserts: midpoint)
 - screen_data_no_cache: screenData holds no cache() or authz (the caller's createLoader owns both)
 - relation_options_single: which relations to read and their SWR key live only in relationOptions.mjs
-read: menu entry → src/features/core/admin/menu/README.md Extension | dashboard section → src/features/core/admin/dashboard/README.md Extension | admin screen loader → src/features/core/admin/services/server/screenData/README.md Usage
+read: menu entry → src/domains/core/admin/menu/README.md Extension | dashboard section → src/domains/core/admin/dashboard/README.md Extension | admin screen loader → src/domains/core/admin/services/server/screenData/README.md Usage

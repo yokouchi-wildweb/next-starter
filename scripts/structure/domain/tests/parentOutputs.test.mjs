@@ -41,7 +41,7 @@ test("drizzle: 集まりの項目は列を出さない（型名の列関数も i
   assert.match(drizzle, /^import \{ defineTableCollections \} from "@\/lib\/crud\/server";$/m);
   assert.match(
     drizzle,
-    /^defineTableCollections\(ShowcaseTable, \(\) => import\("@\/features\/showcase\/services\/server\/collections"\)\.then\(\(m\) => m\.collections\)\);$/m,
+    /^defineTableCollections\(ShowcaseTable, \(\) => import\("@\/domains\/showcase\/services\/server\/collections"\)\.then\(\(m\) => m\.collections\)\);$/m,
   );
   // 従属（集まりを持たない）には出さない
   const child = fs.readFileSync(path.join(root, "src", "features", "showcasePhoto", "entities", "drizzle.ts"), "utf8");
@@ -113,12 +113,12 @@ test("collections.ts: 集まりの項目ごとに CrudCollectionConfig（従属�
     collections.split("\n").slice(6).join("\n"), // 先頭 = パスの行・生成物の印・注釈 4 行
     [
       'import type { CrudCollectionConfig } from "@/lib/crud/server";',
-      'import { ShowcasePhotoTable } from "@/features/showcasePhoto/entities/drizzle";',
+      'import { ShowcasePhotoTable } from "@/domains/showcasePhoto/entities/drizzle";',
       "",
       "export const collections: CrudCollectionConfig[] = [",
       "  {",
       '    fieldName: "photos",',
-      '    service: () => import("@/features/showcasePhoto/services/server/showcasePhotoService").then((m) => m.showcasePhotoService),',
+      '    service: () => import("@/domains/showcasePhoto/services/server/showcasePhotoService").then((m) => m.showcasePhotoService),',
       "    parentColumn: ShowcasePhotoTable.showcase_id,",
       "    valueColumn: ShowcasePhotoTable.file,",
       "    sortColumn: ShowcasePhotoTable.sort_order,",

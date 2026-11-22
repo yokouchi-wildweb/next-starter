@@ -137,8 +137,8 @@ lib は登録表を import しない。API ルートが `src/wiring/domainRegist
 
 ## Verification
 
-- `pnpm test src/lib/dataMigration src/features/core/storageObject/dataMigrationResolver.test.ts`: 値の分類・解決、export のメディア取得、注入する resolver（DB なし）
-- `pnpm test --db src/features/core/storageObject/dataMigrationImport.db.test.ts`: 実 DB の import（旧 URL の copy・同梱・外部 URL の失敗と巻き戻し・copy 失敗・同じ値の保持・bulkUpsert にメディア列が渡らない）
+- `pnpm test src/lib/dataMigration src/domains/core/storageObject/dataMigrationResolver.test.ts`: 値の分類・解決、export のメディア取得、注入する resolver（DB なし）
+- `pnpm test --db src/domains/core/storageObject/dataMigrationImport.db.test.ts`: 実 DB の import（旧 URL の copy・同梱・外部 URL の失敗と巻き戻し・copy 失敗・同じ値の保持・bulkUpsert にメディア列が渡らない）
 - 取り込み中の守りの判定: `pnpm test src/lib/`(`ImportTab/hooks/importGuard.ts`)
 
 ## Related

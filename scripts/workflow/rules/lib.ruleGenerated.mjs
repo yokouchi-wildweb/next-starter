@@ -48,6 +48,6 @@ export function outputFiles(gates, files, domains) {
 
 /** 宣言の glob(ドメインの置き換えは代表の形)が generated の paths のどれかに当たらない物 */
 export function outputsOutsidePaths(entries, generatedPaths) {
-  const rep = (glob) => glob.replace(/\{dir\}/g, "src/features/x").replace(/\{[A-Za-z]+\}/g, "X").replace(/\*\*/g, "x").replace(/\*/g, "x");
+  const rep = (glob) => glob.replace(/\{dir\}/g, "src/domains/x").replace(/\{[A-Za-z]+\}/g, "X").replace(/\*\*/g, "x").replace(/\*/g, "x");
   return entries.filter((e) => e.glob !== "-" && !generatedPaths.some((p) => matchesLoad(rep(e.glob), p) || matchesLoad(e.glob, p)));
 }

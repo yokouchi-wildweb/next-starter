@@ -149,7 +149,7 @@ src/app/
     └── layout.tsx          ← await guard() の 1 行
 ```
 
-- layout はサーバー側でデータを取らない（services/server・DB・loader を import しない。認可は authorization の関数だけ）。取得は loader で行う。lint `page-authz`、詳細: [auth README「置き場所の検査」](../features/core/auth/README.md)
+- layout はサーバー側でデータを取らない（services/server・DB・loader を import しない。認可は authorization の関数だけ）。取得は loader で行う。lint `page-authz`、詳細: [auth README「置き場所の検査」](../domains/core/auth/README.md)
 
 ### API ルート追加
 

@@ -32,7 +32,7 @@ const entryOf = (table: object): Entry => {
 
 /**
  * 表の集まりの宣言を遅延で登録する。主の entities/drizzle.ts の表の定義の後に呼ぶ（生成器が出す）。
- * @example defineTableCollections(<Domain>Table, () => import("@/features/<domain>/services/server/collections").then((m) => m.collections));
+ * @example defineTableCollections(<Domain>Table, () => import("@/domains/<domain>/services/server/collections").then((m) => m.collections));
  */
 export function defineTableCollections(table: object, loader: CollectionsLoader): void {
   entryOf(table).loader = loader;

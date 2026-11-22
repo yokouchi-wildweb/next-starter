@@ -7,7 +7,7 @@
 
 import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
-import { MainMenu } from "@/features/core/user/components/MainMenu";
+import { MainMenu } from "@/domains/core/user/components/MainMenu";
 
 import { loadMyPageScreen } from "./loader";
 

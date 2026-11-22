@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { userConfig } from "@/features/user/config";
-import type { SessionUser } from "@/features/core/auth/entities/session";
+import { userConfig } from "@/domains/user/config";
+import type { SessionUser } from "@/domains/core/auth/entities/session";
 import { setRedirectToastCookie } from "@/lib/toast";
 
 import { redirects } from "./extensions/redirects";

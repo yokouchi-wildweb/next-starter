@@ -67,11 +67,11 @@ async function messageTemplates(): Promise<TemplateConfig[]> {
   const { messageRegistry } = await import("@/registry/messageRegistry");
   const { applyMessageOverride, COMMON_CONTEXT_KEYS, enricherTargets, fieldsForChannel } = await import("@/lib/messaging");
   const { MAIL_THEME_COLORS } = await import("@/lib/mail");
-  const { enrichers } = await import("@/features/core/messaging/extensions/enrichers");
-  const { categories } = await import("@/features/core/messaging/extensions/categories");
-  const { layouts } = await import("@/features/core/messaging/extensions/layouts");
-  const { layoutEmails } = await import("@/features/core/messaging/extensions/layoutEmails");
-  const { SummaryEmailView } = await import("@/features/core/messaging/channels/email/genericView");
+  const { enrichers } = await import("@/domains/core/messaging/extensions/enrichers");
+  const { categories } = await import("@/domains/core/messaging/extensions/categories");
+  const { layouts } = await import("@/domains/core/messaging/extensions/layouts");
+  const { layoutEmails } = await import("@/domains/core/messaging/extensions/layoutEmails");
+  const { SummaryEmailView } = await import("@/domains/core/messaging/channels/email/genericView");
 
   const templates: TemplateConfig[] = [];
   for (const entry of Object.values(messageRegistry).sort((a, b) => a.key.localeCompare(b.key))) {

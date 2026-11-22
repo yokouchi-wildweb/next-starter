@@ -9,8 +9,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { userService } from "@/features/core/user/services/server/userService";
-import { isUserStatusRegistered } from "@/features/core/user/utils/status";
+import { userService } from "@/domains/core/user/services/server/userService";
+import { isUserStatusRegistered } from "@/domains/core/user/utils/status";
 
 const RequestSchema = z.object({
   email: z.string().email("有効なメールアドレスを入力してください"),

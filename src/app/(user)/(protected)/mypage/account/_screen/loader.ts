@@ -8,8 +8,8 @@
 
 import "server-only";
 
-import type { User } from "@/features/core/user/entities";
-import { requireUserRecord } from "@/features/core/user/services/server/userService";
+import type { User } from "@/domains/core/user/entities";
+import { requireUserRecord } from "@/domains/core/user/services/server/userService";
 import { createLoader } from "@/app/(user)/(protected)/guard";
 
 export type MyPageAccountScreenData = { user: User };

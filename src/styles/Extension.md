@@ -172,7 +172,7 @@ export default {
 
 ### 生パレット色の禁止(ESLint)
 
-- 対象: upstream 所有の UI(`src/components` / `src/lib` / `src/features/core` / `src/features/_template` / `src/app/**/_layout/`。`_layout` の `*.replace.tsx` は除く)。fork が足した lib(`src/lib/CATALOG.md` の自分の節)は 2 規則とも warn。fork 固有の UI は対象外。同じ規律を敷きたい fork は `eslint.config.mjs` の `files` にパスを足す
+- 対象: upstream 所有の UI(`src/components` / `src/lib` / `src/domains/core` / `src/domains/_template` / `src/app/**/_layout/`。`_layout` の `*.replace.tsx` は除く)。fork が足した lib(`src/lib/CATALOG.md` の自分の節)は 2 規則とも warn。fork 固有の UI は対象外。同じ規律を敷きたい fork は `eslint.config.mjs` の `files` にパスを足す
 - `style-tokens/no-raw-palette`: `bg-slate-900` / `text-red-600` / `bg-white` / `text-[#fff]` のような生パレット色クラスを error にする。生パレット色はブランド色に追従せず `dark:` 併記が要り、fork が core を直す動機になるため
   - 代わり: 白黒は `bg-background` / `text-foreground` / `bg-card`、幕は `bg-overlay/50`、意味色は上の 3 変数
   - ブランドロゴ色など正当な例外は理由付き `// eslint-disable-next-line style-tokens/no-raw-palette -- 理由` で明示する

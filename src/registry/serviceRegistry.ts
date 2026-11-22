@@ -1,4 +1,4 @@
-// 生成物・編集不可: pnpm generate registry が src/features/**/services/server/domainEntry.ts から生成する
+// 生成物・編集不可: pnpm generate registry が src/domains/**/services/server/domainEntry.ts から生成する
 // src/registry/serviceRegistry.ts
 //
 // ドメイン名からサービス・表・主キーを引く正式な仕組み（登録表）。ドメインを 1 つ作ると行が増える一覧で、
@@ -11,36 +11,36 @@
 
 import type { DomainRegistry } from "@/lib/domain";
 
-import { domainEntries as auditLogEntries } from "@/features/core/auditLog/services/server/domainEntry";
-import { domainEntries as bankTransferReviewEntries } from "@/features/core/bankTransferReview/services/server/domainEntry";
-import { domainEntries as chatRoomEntries } from "@/features/core/chatRoom/services/server/domainEntry";
-import { domainEntries as couponEntries } from "@/features/core/coupon/services/server/domainEntry";
-import { domainEntries as couponAttributionRewardEntries } from "@/features/core/couponAttributionReward/services/server/domainEntry";
-import { domainEntries as couponHistoryEntries } from "@/features/core/couponHistory/services/server/domainEntry";
-import { domainEntries as couponIssuerGrantEntries } from "@/features/core/couponIssuerGrant/services/server/domainEntry";
-import { domainEntries as deviceFingerprintEntries } from "@/features/core/deviceFingerprint/services/server/domainEntry";
-import { domainEntries as fingerprintChallengeEntries } from "@/features/core/fingerprintChallenge/services/server/domainEntry";
-import { domainEntries as interactionTrackingEntries } from "@/features/core/interactionTracking/services/server/domainEntry";
-import { domainEntries as milestoneEntries } from "@/features/core/milestone/services/server/domainEntry";
-import { domainEntries as pairedDeviceEntries } from "@/features/core/pairedDevice/services/server/domainEntry";
-import { domainEntries as purchaseRequestEntries } from "@/features/core/purchaseRequest/services/server/domainEntry";
-import { domainEntries as referralEntries } from "@/features/core/referral/services/server/domainEntry";
-import { domainEntries as referralRewardEntries } from "@/features/core/referralReward/services/server/domainEntry";
-import { domainEntries as settingEntries } from "@/features/core/setting/services/server/domainEntry";
-import { domainEntries as taskRunEntries } from "@/features/core/taskRun/services/server/domainEntry";
-import { domainEntries as userEntries } from "@/features/core/user/services/server/domainEntry";
-import { domainEntries as userCounterEntries } from "@/features/core/userCounter/services/server/domainEntry";
-import { domainEntries as userGroupEntries } from "@/features/core/userGroup/services/server/domainEntry";
-import { domainEntries as userLineProfileEntries } from "@/features/core/userLineProfile/services/server/domainEntry";
-import { domainEntries as userLoginEventEntries } from "@/features/core/userLoginEvent/services/server/domainEntry";
-import { domainEntries as userTagEntries } from "@/features/core/userTag/services/server/domainEntry";
-import { domainEntries as userXProfileEntries } from "@/features/core/userXProfile/services/server/domainEntry";
-import { domainEntries as walletEntries } from "@/features/core/wallet/services/server/domainEntry";
-import { domainEntries as walletHistoryEntries } from "@/features/core/walletHistory/services/server/domainEntry";
-import { domainEntries as sampleEntries } from "@/features/sample/services/server/domainEntry";
-import { domainEntries as sampleCategoryEntries } from "@/features/sampleCategory/services/server/domainEntry";
-import { domainEntries as sampleImageEntries } from "@/features/sampleImage/services/server/domainEntry";
-import { domainEntries as sampleTagEntries } from "@/features/sampleTag/services/server/domainEntry";
+import { domainEntries as auditLogEntries } from "@/domains/core/auditLog/services/server/domainEntry";
+import { domainEntries as bankTransferReviewEntries } from "@/domains/core/bankTransferReview/services/server/domainEntry";
+import { domainEntries as chatRoomEntries } from "@/domains/core/chatRoom/services/server/domainEntry";
+import { domainEntries as couponEntries } from "@/domains/core/coupon/services/server/domainEntry";
+import { domainEntries as couponAttributionRewardEntries } from "@/domains/core/couponAttributionReward/services/server/domainEntry";
+import { domainEntries as couponHistoryEntries } from "@/domains/core/couponHistory/services/server/domainEntry";
+import { domainEntries as couponIssuerGrantEntries } from "@/domains/core/couponIssuerGrant/services/server/domainEntry";
+import { domainEntries as deviceFingerprintEntries } from "@/domains/core/deviceFingerprint/services/server/domainEntry";
+import { domainEntries as fingerprintChallengeEntries } from "@/domains/core/fingerprintChallenge/services/server/domainEntry";
+import { domainEntries as interactionTrackingEntries } from "@/domains/core/interactionTracking/services/server/domainEntry";
+import { domainEntries as milestoneEntries } from "@/domains/core/milestone/services/server/domainEntry";
+import { domainEntries as pairedDeviceEntries } from "@/domains/core/pairedDevice/services/server/domainEntry";
+import { domainEntries as purchaseRequestEntries } from "@/domains/core/purchaseRequest/services/server/domainEntry";
+import { domainEntries as referralEntries } from "@/domains/core/referral/services/server/domainEntry";
+import { domainEntries as referralRewardEntries } from "@/domains/core/referralReward/services/server/domainEntry";
+import { domainEntries as settingEntries } from "@/domains/core/setting/services/server/domainEntry";
+import { domainEntries as taskRunEntries } from "@/domains/core/taskRun/services/server/domainEntry";
+import { domainEntries as userEntries } from "@/domains/core/user/services/server/domainEntry";
+import { domainEntries as userCounterEntries } from "@/domains/core/userCounter/services/server/domainEntry";
+import { domainEntries as userGroupEntries } from "@/domains/core/userGroup/services/server/domainEntry";
+import { domainEntries as userLineProfileEntries } from "@/domains/core/userLineProfile/services/server/domainEntry";
+import { domainEntries as userLoginEventEntries } from "@/domains/core/userLoginEvent/services/server/domainEntry";
+import { domainEntries as userTagEntries } from "@/domains/core/userTag/services/server/domainEntry";
+import { domainEntries as userXProfileEntries } from "@/domains/core/userXProfile/services/server/domainEntry";
+import { domainEntries as walletEntries } from "@/domains/core/wallet/services/server/domainEntry";
+import { domainEntries as walletHistoryEntries } from "@/domains/core/walletHistory/services/server/domainEntry";
+import { domainEntries as sampleEntries } from "@/domains/sample/services/server/domainEntry";
+import { domainEntries as sampleCategoryEntries } from "@/domains/sampleCategory/services/server/domainEntry";
+import { domainEntries as sampleImageEntries } from "@/domains/sampleImage/services/server/domainEntry";
+import { domainEntries as sampleTagEntries } from "@/domains/sampleTag/services/server/domainEntry";
 
 export const serviceRegistry: DomainRegistry = {
   auditLog: auditLogEntries.auditLog,

@@ -29,10 +29,10 @@ let dbUser: FakeDbUser | null = null;
 // Factory は next/headers の cookies() から利用者を解く。テストではリクエストの Cookie をここに置いて渡す
 let requestCookie: string | null = null;
 
-mock.module("@/features/core/user/services/server/finders/findUserById", {
+mock.module("@/domains/core/user/services/server/finders/findUserById", {
   namedExports: { findUserById: async (id: string) => (dbUser && dbUser.id === id ? dbUser : null) },
 });
-mock.module("@/features/core/auth/services/server/session/getTokenOnlySession", {
+mock.module("@/domains/core/auth/services/server/session/getTokenOnlySession", {
   namedExports: { getTokenOnlySession: async () => null },
 });
 mock.module("next/headers", {
@@ -46,13 +46,13 @@ mock.module("next/headers", {
     }),
   },
 });
-mock.module("@/features/core/rateLimit/services/server/wrappers/rateLimitHelper", {
+mock.module("@/domains/core/rateLimit/services/server/wrappers/rateLimitHelper", {
   namedExports: { checkRateLimit: async () => ({ allowed: true }) },
 });
 
 const { signUserToken, verifyUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } = await import("@/lib/jwt");
-const { demoConfig } = await import("@/features/core/demo/config");
-const { AUTH_SESSION_COOKIE_NAME } = await import("@/features/core/auth/constants/session");
+const { demoConfig } = await import("@/domains/core/demo/config");
+const { AUTH_SESSION_COOKIE_NAME } = await import("@/domains/core/auth/constants/session");
 const { GET } = await import("./route.ts");
 
 const baseUser = (): FakeDbUser => ({

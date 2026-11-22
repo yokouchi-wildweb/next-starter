@@ -13,12 +13,12 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { bankTransferReviewService } from "@/features/bankTransferReview/services/server/bankTransferReviewService";
-import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
+import { bankTransferReviewService } from "@/domains/bankTransferReview/services/server/bankTransferReviewService";
+import { getSlugByWalletType, type WalletType } from "@/domains/core/wallet";
 import type {
   BankTransferReviewMode,
   BankTransferReviewStatus,
-} from "@/features/bankTransferReview/entities/model";
+} from "@/domains/bankTransferReview/entities/model";
 
 /**
  * UI 側の「現在この振込はどの段階か」表示用ステータス。

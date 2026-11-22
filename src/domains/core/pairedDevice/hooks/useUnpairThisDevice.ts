@@ -1,0 +1,17 @@
+"use client";
+
+// src/domains/core/pairedDevice/hooks/useUnpairThisDevice.ts
+
+import { unpairThisDevice } from "@/domains/pairedDevice/services/client/pairedDeviceClient";
+import { useDomainMutation } from "@/lib/crud";
+
+import { SESSION_DEVICE_KEY } from "./keys";
+
+/** この端末の登録を解除する mutation フック（DELETE /api/paired-device/session） */
+export function useUnpairThisDevice() {
+  return useDomainMutation<void, void>(
+    "pairedDevice/unpair",
+    () => unpairThisDevice(),
+    SESSION_DEVICE_KEY,
+  );
+}

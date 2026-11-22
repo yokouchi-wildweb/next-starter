@@ -7,13 +7,13 @@
 import {
   CreatePairedDeviceSchema,
   ListPairedDevicesSchema,
-} from "@/features/pairedDevice/entities/schema";
+} from "@/domains/pairedDevice/entities/schema";
 import {
   createPairedDevice,
   listPairedDevices,
   toPairedDeviceForAdmin,
   withPairedDeviceErrors,
-} from "@/features/pairedDevice/services/server";
+} from "@/domains/pairedDevice/services/server";
 import { DomainError } from "@/lib/errors";
 import { createApiRoute } from "@/wiring/apiRoute";
 

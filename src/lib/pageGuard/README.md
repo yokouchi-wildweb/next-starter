@@ -12,7 +12,7 @@
 
 ```
 lib/pageGuard(汎用版: createPageGuard)
-  ↑ 束: features/core/auth の pageGuardUserDeps(利用者の解き方・access の評価・既定の status・今のパス)
+  ↑ 束: domains/core/auth の pageGuardUserDeps(利用者の解き方・access の評価・既定の status・今のパス)
   ↑ setup 誘導の判定: auth の hasUserForAccess
 src/wiring/pageGuard.ts → defineRootGuard
 src/app/guard.ts(root)= defineRootGuard({ access: "public" }) → { guard, createLoader, extend }
@@ -49,7 +49,7 @@ src/app/<範囲>/layout.tsx = await guard() の 1 行
 
 - 範囲は方針の段の並び。`extend` は段を 1 つ足すだけで、guard() と loader は root から順に全段を評価する(親子 AND。子は狭めるだけで、親の拒否を子が覆せない)
 - 段ごとの順: setup 誘導 → access(未認証 → `redirectTo`、status だけ不可 → `statusRedirects`、それ以外の拒否 → `forbiddenRedirectTo`、行き先が無ければ notFound)
-- 利用者の解き方・access の評価・既定の status・今のパスは束(`features/core/auth` の `pageGuardUserDeps`)が持ち、setup 誘導の判定は auth の `hasUserForAccess`。lib は束を `src/wiring/pageGuard.ts` から受ける
+- 利用者の解き方・access の評価・既定の status・今のパスは束(`domains/core/auth` の `pageGuardUserDeps`)が持ち、setup 誘導の判定は auth の `hasUserForAccess`。lib は束を `src/wiring/pageGuard.ts` から受ける
 
 ## Verification
 

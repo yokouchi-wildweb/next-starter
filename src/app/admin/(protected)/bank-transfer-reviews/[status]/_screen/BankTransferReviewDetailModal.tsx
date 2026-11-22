@@ -30,15 +30,15 @@ import {
   type BankTransferReviewDto,
   type BankTransferReviewMode,
   type BankTransferReviewStatus,
-} from "@/features/core/bankTransferReview";
+} from "@/domains/core/bankTransferReview";
 import {
   CurrencyDisplay,
   walletConfig,
   type WalletType,
-} from "@/features/core/wallet";
-import { useAdminBankTransferReview } from "@/features/core/bankTransferReview/hooks/useAdminBankTransferReview";
-import { useAdminBankTransferReviewDecision } from "@/features/core/bankTransferReview/hooks/useAdminBankTransferReviewDecision";
-import { useAdminBankTransferReviewMemo } from "@/features/core/bankTransferReview/hooks/useAdminBankTransferReviewMemo";
+} from "@/domains/core/wallet";
+import { useAdminBankTransferReview } from "@/domains/core/bankTransferReview/hooks/useAdminBankTransferReview";
+import { useAdminBankTransferReviewDecision } from "@/domains/core/bankTransferReview/hooks/useAdminBankTransferReviewDecision";
+import { useAdminBankTransferReviewMemo } from "@/domains/core/bankTransferReview/hooks/useAdminBankTransferReviewMemo";
 
 import {
   approvalSourceBadgeVariant,
@@ -53,7 +53,7 @@ import {
   modeBadgeVariant,
   purchaseRequestStatusBadgeVariant,
   statusBadgeVariant,
-} from "@/features/core/bankTransferReview/presenters";
+} from "@/domains/core/bankTransferReview/presenters";
 
 
 type Props = {

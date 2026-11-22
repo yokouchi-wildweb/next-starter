@@ -3,7 +3,7 @@
 // 処理本体はドメイン側。vercel.json のエントリは pnpm generate cron がこのファイルから生成する
 
 import type { CronTaskDefinition } from "@/lib/cron";
-import { getSweepEnabledWalletTypes } from "@/features/core/wallet/utils/expiration";
+import { getSweepEnabledWalletTypes } from "@/domains/core/wallet/utils/expiration";
 
 export const cronTask: CronTaskDefinition = {
   name: "wallet-expire-lots",
@@ -14,7 +14,7 @@ export const cronTask: CronTaskDefinition = {
   enabled: () => getSweepEnabledWalletTypes().length > 0,
   run: async () => {
     const { sweepExpiredWalletLots } = await import(
-      "@/features/core/wallet/services/server/lots/sweepExpiredLots"
+      "@/domains/core/wallet/services/server/lots/sweepExpiredLots"
     );
     return await sweepExpiredWalletLots();
   },

@@ -1,5 +1,5 @@
 // scripts/structure/registry/serviceRegistry/discover.mjs
-// src/features/**/services/server/domainEntry.ts（と fork の domainEntry.override.ts）を走査し、
+// src/domains/**/services/server/domainEntry.ts（と fork の domainEntry.override.ts）を走査し、
 // src/registry/serviceRegistry.ts の生成・検査に必要な情報を集める（一覧ファイルは持たない）。
 //
 // 利用者: ./generate.mjs（pnpm generate registry）, ./check.mjs（pnpm check registry）,
@@ -37,7 +37,7 @@ export function overrideAttribute() {
   return keys[0];
 }
 /** 生成物の 1 行目（この行が無いファイル = 移行前の手書き登録表） */
-export const GENERATED_HEADER = "// 生成物・編集不可: pnpm generate registry が src/features/**/services/server/domainEntry.ts から生成する";
+export const GENERATED_HEADER = "// 生成物・編集不可: pnpm generate registry が src/domains/**/services/server/domainEntry.ts から生成する";
 
 /**
  * drizzleBase.ts / firestoreBase.ts があるのに domainEntry.ts を持たなくてよいドメイン（features 相対のディレクトリ名）。
@@ -46,13 +46,13 @@ export const GENERATED_HEADER = "// 生成物・編集不可: pnpm generate regi
 export const ENTRY_EXCEPTIONS = {};
 
 /**
- * ドメインのフォルダの一覧(`src/features` からの相対 `<dir>` か `core/<dir>`、`_` 始まりの雛形は地区でないので含まない)。
+ * ドメインのフォルダの一覧(`src/domains` からの相対 `<dir>` か `core/<dir>`、`_` 始まりの雛形は地区でないので含まない)。
  * ドメインの見つけ方は地区の地図の読み手 src/lib/districtMap が持つ(目録 D1・D3)
  */
 export function listDomainDirs(repoRoot) {
   return readDistrictMapAt(repoRoot)
     .districts.filter((district) => district.kind === "features")
-    .map((district) => district.dir.slice("src/features/".length))
+    .map((district) => district.dir.slice("src/domains/".length))
     .sort();
 }
 
@@ -419,10 +419,10 @@ export function discoverDomainEntries(repoRoot, view = diskView) {
       hasDomainJson,
       handManaged: hasDomainJson && readHandManaged(view, domainJsonFile),
     };
-    const rel = `src/features/${dir}/services/server`;
+    const rel = `src/domains/${dir}/services/server`;
     if (view.exists(entryFile)) {
       info.entryPath = `${rel}/${ENTRY_FILE}`;
-      info.importPath = `@/features/${dir}/services/server/domainEntry`;
+      info.importPath = `@/domains/${dir}/services/server/domainEntry`;
       const text = view.read(entryFile);
       const { keys, error } = readObjectKeys(text, ENTRIES_EXPORT);
       if (error) info.entryErrors.push(`${info.entryPath}: ${error}`);
@@ -437,7 +437,7 @@ export function discoverDomainEntries(repoRoot, view = diskView) {
     // 空(空白とコメントだけ)の上書きは不在と同じ(多段で下の Tier が親の上書きを空にしてよい、D34 K1)
     if (view.exists(overrideFile) && !isBlankSource(view.read(overrideFile))) {
       info.overridePath = `${rel}/${OVERRIDE_FILE}`;
-      info.overrideImportPath = `@/features/${dir}/services/server/domainEntry.override`;
+      info.overrideImportPath = `@/domains/${dir}/services/server/domainEntry.override`;
       const text = view.read(overrideFile);
       const { keys, error } = readObjectKeys(text, OVERRIDES_EXPORT);
       if (error) info.overrideErrors.push(`${info.overridePath}: ${error}`);
@@ -481,9 +481,9 @@ export function readExistingRegistry(repoRoot) {
   const text = fs.readFileSync(file, "utf8");
   const generated = text.split(/\r?\n/)[0] === GENERATED_HEADER;
   const { keys, error } = readObjectKeys(text, "serviceRegistry");
-  // 旧形式: `import { xService } from "@/features/.../services/server/xService"` からキー → ドメインを推定（移し先の案内に使う）
+  // 旧形式: `import { xService } from "@/domains/.../services/server/xService"` からキー → ドメインを推定（移し先の案内に使う）
   const serviceImports = new Map();
-  for (const match of text.matchAll(/import\s*\{\s*(\w+)\s*\}\s*from\s*["']@\/features\/((?:core\/)?[\w-]+)\/services\/server[^"']*["']/g)) {
+  for (const match of text.matchAll(/import\s*\{\s*(\w+)\s*\}\s*from\s*["']@\/domains\/((?:core\/)?[\w-]+)\/services\/server[^"']*["']/g)) {
     serviceImports.set(match[1], match[2]);
   }
   return { text, generated, keys: keys ?? [], error, serviceImports };

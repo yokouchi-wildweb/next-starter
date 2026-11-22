@@ -6,7 +6,7 @@
 
 import "server-only";
 
-import type { Sample } from "@/features/sample/entities/model";
+import type { Sample } from "@/domains/sample/entities/model";
 import { createLoader } from "@/app/admin/(protected)/guard";
 import { adminSortParts } from "@/wiring/adminScreenParts";
 

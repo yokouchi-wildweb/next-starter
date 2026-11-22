@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { createFirebaseToken } from "@/features/core/auth/services/server/createFirebaseToken";
+import { createFirebaseToken } from "@/domains/core/auth/services/server/createFirebaseToken";
 
 /**
  * セッションがある場合に Firebase カスタムトークンを発行する。

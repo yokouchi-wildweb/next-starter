@@ -8,7 +8,7 @@ import {
   revokePairedDevice,
   toPairedDeviceForAdmin,
   withPairedDeviceErrors,
-} from "@/features/pairedDevice/services/server";
+} from "@/domains/pairedDevice/services/server";
 import { DomainError } from "@/lib/errors";
 import { createApiRoute } from "@/wiring/apiRoute";
 

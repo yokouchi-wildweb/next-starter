@@ -1,8 +1,8 @@
 // eslint-rules/core-ui-guards.mjs
 //
-// core の部品(src/features/core/**/components/)と既定 Screen の部品(src/app/**/_screen/)は form の状態と
+// core の部品(src/domains/core/**/components/)と既定 Screen の部品(src/app/**/_screen/)は form の状態と
 // 守りの処理を直接持たない(CLAUDE.md COMPONENTS core_ui / FORK_EXTENSION / SCREENS)。
-// それらは持ち主ドメインの features/<domain>/hooks の公開 hook に置き、部品は hook を呼んで描くだけにする。
+// それらは持ち主ドメインの domains/<domain>/hooks の公開 hook に置き、部品は hook を呼んで描くだけにする。
 // fork が部品の見た目を写しても、守り(reCAPTCHA・ID トークン・セッション更新・遷移の守り・コンバージョン計測)を
 // 写さずに済むようにするため。
 //
@@ -12,7 +12,7 @@
 //     (型だけの import は対象外)
 //   - import: SWR の取得・送信の hook = "swr" の useSWR(default・named)/ "swr/mutation" の useSWRMutation /
 //     "swr/infinite" の useSWRInfinite(SWRConfig などの部品は当たらない)
-//   - import: client 関数の値 = services/client のパスから / ドメインのまとめ(@/features/<d>)から *Client の名前
+//   - import: client 関数の値 = services/client のパスから / ドメインのまとめ(@/domains/<d>)から *Client の名前
 //     (この 2 つの判定は client-service-boundary の classifyImport をそのまま使う)/ ドメインのまとめが
 //     services/client から再 export する名前(まとめの index.ts を読んで決める。名前の形では決めない)
 //   - 呼び出し: <x>.getIdToken()(Firebase の ID トークン)
@@ -52,7 +52,7 @@ export const GUARDED_IMPORTS = [
   { match: (source) => source === "swr/infinite", names: ["useSWRInfinite"], defaultName: "useSWRInfinite" },
 ];
 
-const DOMAIN_BARREL = /^@\/features\/(core\/)?[^/]+$/;
+const DOMAIN_BARREL = /^@\/domains\/(core\/)?[^/]+$/;
 const CLIENT_SERVICE_PATH = /(^|\/)services\/client(\/|$)/;
 const REEXPORT = /export\s*\{([^}]*)\}\s*from\s*["']([^"']+)["']/g;
 
@@ -62,7 +62,7 @@ const barrelClientNamesCache = new Map();
 /**
  * ドメインのまとめ(index.ts)を読み、services/client から再 export している値の名前を返す。
  * `type X` / `export type { … }` は型なので数えない。`a as b` は外向きの名前 b。
- * @param {string} barrelDir repo 相対のまとめのフォルダ(例: src/features/core/bankTransferReview)
+ * @param {string} barrelDir repo 相対のまとめのフォルダ(例: src/domains/core/bankTransferReview)
  * @param {string} repoRoot
  */
 export function barrelClientNames(barrelDir, repoRoot) {
@@ -109,7 +109,7 @@ const rule = {
     docs: { description: "core の部品・既定 Screen の部品で useForm と守りの処理を直接呼ばない(持ち主ドメインの公開 hook に置く)" },
     messages: {
       guarded:
-        '{{what}} は core の部品・既定 Screen の部品(_screen)で直接使えません。持ち主ドメインの features/<domain>/hooks の公開 hook に置き、部品は hook を呼んで描くだけにしてください(CLAUDE.md COMPONENTS core_ui。例: auth の useEmailRegistrationForm)',
+        '{{what}} は core の部品・既定 Screen の部品(_screen)で直接使えません。持ち主ドメインの domains/<domain>/hooks の公開 hook に置き、部品は hook を呼んで描くだけにしてください(CLAUDE.md COMPONENTS core_ui。例: auth の useEmailRegistrationForm)',
     },
     schema: [
       {

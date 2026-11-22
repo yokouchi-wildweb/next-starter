@@ -7,7 +7,7 @@
 
 import type { ScreenProps } from "@/lib/screens";
 import { loadAdminCouponCreateScreen } from "./loader";
-import AdminCouponCreate from "@/features/core/coupon/components/AdminCouponCreate";
+import AdminCouponCreate from "@/domains/core/coupon/components/AdminCouponCreate";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 
 export const metadata = {

@@ -43,7 +43,7 @@ const outcome = async (run: () => Promise<unknown>) => {
   }
 };
 
-mock.module("@/features/core/user/constants", { namedExports: { USER_STATUSES: ["active", "inactive"] } });
+mock.module("@/domains/core/user/constants", { namedExports: { USER_STATUSES: ["active", "inactive"] } });
 
 let load: typeof import("./loader").loadRestrictedScreen;
 before(async () => {

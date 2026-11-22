@@ -7,7 +7,7 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { getAudienceSummary } from "@/features/core/interactionTracking/services/server";
+import { getAudienceSummary } from "@/domains/core/interactionTracking/services/server";
 
 export const GET = createApiRoute(
   {

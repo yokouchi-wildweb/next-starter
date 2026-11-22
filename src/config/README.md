@@ -9,14 +9,14 @@
 | フォルダ | 持ち主 | 上書き | 持ち主の既定 |
 |---|---|---|---|
 | `lib/` | `src/lib/<名前>` | `lib/<名前>.config.ts` | `src/lib/<名前>/config.ts`(`@lib-config/<名前>` で読む。[src/lib/README.md](../lib/README.md)) |
-| `features/` | ドメイン(`src/features/<名前>`・`src/features/core/<名前>`) | `features/<名前>.config.ts` | `<ドメイン>/config.ts` |
+| `domains/` | ドメイン(`src/domains/<名前>`・`src/domains/core/<名前>`) | `domains/<名前>.config.ts` | `<ドメイン>/config.ts` |
 | `layout/` | 枠(`src/app/**/_layout/config.ts` の `frame: "<名前>"`) | `layout/<名前>.config.ts` | `<_layout>/config.ts` |
 | `proxies/` | `src/proxies` のテーマのフォルダ(`src/proxies/<テーマ>/config.ts`、上流は持たない、fork が足すテーマ) | `proxies/<テーマ>.config.ts` | `src/proxies/<テーマ>/config.ts` |
 | `featureGate/` | 基盤 `src/featureGate`(門番。固定) | `featureGate/<中身の名前>.config.ts`(例 `switches.config.ts` = 機能の入切の fork の値) | `src/featureGate` の中(門番の規則のファイル) |
 
 - 名前 = 地区の名前(フォルダ名、枠は `frame:` の宣言)。話題などでフォルダを分けない
 - 基盤の上書き: src 直下の基盤(今は `src/featureGate` だけ)の上書きは、その基盤の名前のフォルダに中身の名前のファイルで置く。基盤が別の上書きを持てば同じフォルダに並べる。持ち主は基盤のフォルダに固定で、読めるのはその中のファイルだけ
-- `features/` はドメインの値の上書きだけ。機能(門番の規則)の入切の fork の値は `featureGate/switches.config.ts` に書く(既定は門番の規則のファイル)
+- `domains/` はドメインの値の上書きだけ。機能(門番の規則)の入切の fork の値は `featureGate/switches.config.ts` に書く(既定は門番の規則のファイル)
 - 描画専用の値(アイコン・部品など)を持つ持ち主だけ、2 本目 `<名前>.ui.config.ts` を並べる(持ち主の側は `config.ui.ts`)
 - **受け口か config か**: fork が互いに独立した行を足していく一覧(例: 転送の規則)は受け口(`extensionPoints.ts` の点、1 ファイル = 1 項目)。鍵で合わせて値を変える表(例: 通貨・区分)は config(上書きで鍵ごとに重ねる)
 
@@ -52,12 +52,12 @@
 
 ### fork に残る古い app/・ui/
 
-上流は `app/`・`ui/` を持ちません(値は持ち主の `config.ts` と上の 5 つのフォルダの上書きへ移った。移し先の表は区切り config-close の notice)。1 対 1 の検査は fork に残る古いフォルダを見ません。事業の素性は `@/business`([src/lib/business/README.md](../lib/business/README.md))、法務の文書の値は `features/legal.config.ts`。
+上流は `app/`・`ui/` を持ちません(値は持ち主の `config.ts` と上の 5 つのフォルダの上書きへ移った。移し先の表は区切り config-close の notice)。1 対 1 の検査は fork に残る古いフォルダを見ません。事業の素性は `@/business`([src/lib/business/README.md](../lib/business/README.md))、法務の文書の値は `domains/legal.config.ts`。
 
 fork が `app/`・`ui/` に足したファイルと鍵の行き先(どれか 1 つ、値の意味で決める):
 
 - 画面・API を開け閉めする入切 → fork の門番の規則(`src/featureGate/rules/<名前>.ts` の `defaultEnabled`、住所 `pathPatterns`)と `featureGate/switches.config.ts`。env で決まる入切(資格情報の有無など)は規則の `enabled()` に書く
-- fork の業務の値 → その業務ドメインの `config.ts`(上書き `features/<ドメイン>.config.ts`)。持ち主が 1 つに決まらない値は表なしの fork のドメインを作ってそこへ
+- fork の業務の値 → その業務ドメインの `config.ts`(上書き `domains/<ドメイン>.config.ts`)。持ち主が 1 つに決まらない値は表なしの fork のドメインを作ってそこへ
 - 上流の持ち主に fork が足す鍵 → その上書きの `Extra`(上の「上書きの中身(lint `config-overrides/literal-only`、全 Tier error)」)。枠の値は `layout/<枠>.config.ts` の `Extra`、枠の部品を出さないのは slot の `null`(枠の 1 行スイッチの先)
 - 上流の機能の一部を消す・隠すだけの鍵 → 機能を閉じる(`pnpm ops features set <名前> off`)か、上流の上書きの既存の鍵
 
@@ -68,7 +68,7 @@ fork が `app/`・`ui/` に足したファイルと鍵の行き先(どれか 1 �
 リテラルで渡せない物(フォント・アイコンの部品・SDK の値)を受ける持ち主だけ、自分の `config.ts` に許す指定子を宣言します(前方一致、字面で読む)。部品(React)は値の `config.ts` に書けないので、部品の宣言は描画用の `config.ui.ts` に置き、`<名前>.ui.config.ts` でだけ効きます。
 
 ```ts
-// src/features/core/wallet/config.ui.ts(持ち主の描画用)
+// src/domains/core/wallet/config.ui.ts(持ち主の描画用)
 export const overrideImports = ["lucide-react"] as const;
 ```
 

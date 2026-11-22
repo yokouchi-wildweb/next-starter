@@ -8,7 +8,7 @@
 
 import { NextResponse } from "next/server";
 
-import { handleChannelWebhook } from "@/features/core/messaging/services/server/webhooks";
+import { handleChannelWebhook } from "@/domains/core/messaging/services/server/webhooks";
 import { createApiRoute } from "@/wiring/apiRoute";
 
 export const POST = createApiRoute<{ channel: string; provider: string }, unknown, "public">(

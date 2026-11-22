@@ -1,7 +1,7 @@
 // 検査: ロール設定（<id>.role.json）の形と、プロフィール設定（<id>.profile.json）との対応。
 // 生成器は JSON を読むだけで、ID の形・ファイル名・category・hasProfile を誰も確かめていなかった（対話の質問の中にだけあった）。
 // ファイル名がずれると user/extensions/roles.ts の import が壊れ、hasProfile とプロフィール設定がずれると黙って生成を飛ばすので止める。
-// 規則の正: src/features/core/user/README.md（ロール設定）、src/features/core/userProfile/README.md（プロフィール設定）
+// 規則の正: src/domains/core/user/README.md（ロール設定）、src/domains/core/userProfile/README.md（プロフィール設定）
 
 import { CORE_ROLE_IDS } from "../rolePaths.mjs";
 

@@ -12,8 +12,8 @@ import {
   reviewGrant,
   suspendGrant,
   updateGrantSettings,
-} from "@/features/core/couponIssuerGrant/services/server";
-import { CouponIssuerGrantAdminActionSchema } from "@/features/core/couponIssuerGrant/entities/schema";
+} from "@/domains/core/couponIssuerGrant/services/server";
+import { CouponIssuerGrantAdminActionSchema } from "@/domains/core/couponIssuerGrant/entities/schema";
 
 type Params = { id: string };
 

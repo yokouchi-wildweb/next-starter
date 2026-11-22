@@ -10,7 +10,7 @@ import AdminPage from "@/app/admin/_layout/AdminPage";
 import type { ScreenProps } from "@/lib/screens";
 import { Section } from "@/components/Layout/Section";
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
-import { sections } from "@/features/core/setting/extensions/sections";
+import { sections } from "@/domains/core/setting/extensions/sections";
 
 import EditSettingSectionForm from "./EditSettingSectionForm";
 import { loadAdminSettingSectionScreen, type AdminSettingSectionScreenParams } from "./loader";

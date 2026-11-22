@@ -1,0 +1,56 @@
+// src/domains/userTag/components/common/EditUserTagForm.tsx
+
+"use client";
+
+import { useForm, type Resolver } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { UserTagUpdateSchema } from "@/domains/core/userTag/entities/schema";
+import type { UserTagUpdateFields } from "@/domains/core/userTag/entities/form";
+import type { UserTag } from "@/domains/core/userTag/entities";
+import { useUpdateUserTag } from "@/domains/core/userTag/hooks/useUpdateUserTag";
+import { UserTagForm } from "./UserTagForm";
+import { useRouter } from "@/lib/unsavedGuard";
+import { useToast, useLoadingToast } from "@/lib/toast";
+import { err } from "@/lib/errors";
+import { buildFormDefaultValues } from "@/lib/formSuite";
+import { domainDisplay } from "@/domains/core/userTag/entities/display";
+
+type Props = {
+  userTag: UserTag;
+  redirectPath?: string;
+};
+
+export default function EditUserTagForm({ userTag, redirectPath = "/" }: Props) {
+  const methods = useForm<UserTagUpdateFields>({
+    resolver: zodResolver(UserTagUpdateSchema) as Resolver<UserTagUpdateFields>,
+    mode: "onSubmit",
+    shouldUnregister: false,
+    defaultValues: buildFormDefaultValues(domainDisplay, userTag) as UserTagUpdateFields,
+  });
+
+  const router = useRouter();
+  const { showToast } = useToast();
+  const { trigger, isMutating } = useUpdateUserTag();
+
+  useLoadingToast(isMutating, "更新中です…");
+
+  const submit = async (data: UserTagUpdateFields) => {
+    try {
+      await trigger({ id: userTag.id, data });
+      showToast("更新しました", "success");
+      router.push(redirectPath);
+    } catch (error) {
+      showToast(err(error, "更新に失敗しました"), "error");
+    }
+  };
+
+  return (
+    <UserTagForm
+      methods={methods}
+      onSubmitAction={submit}
+      isMutating={isMutating}
+      submitLabel="更新"
+      onCancel={() => router.push(redirectPath)}
+    />
+  );
+}

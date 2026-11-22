@@ -1,0 +1,43 @@
+// src/domains/core/auth/components/Registration/RateLimitWarningModal.tsx
+
+"use client";
+
+import Modal from "@/components/Overlays/Modal";
+import { Button } from "@/components/Button/Button";
+import { Block } from "@/components/Layout/Block";
+import { authConfig } from "@/domains/auth/config";
+import { RateLimitWarningContent } from "./RateLimitWarningContent";
+
+type RateLimitWarningModalProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
+
+/**
+ * レートリミット発動時の警告モーダル。
+ * 文言は src/domains/core/auth/config.ts の rateLimitWarning(上書き src/config/domains/auth.config.ts)。
+ */
+export function RateLimitWarningModal({
+  open,
+  onOpenChange,
+}: RateLimitWarningModalProps) {
+  return (
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={authConfig.rateLimitWarning.title}
+      maxWidth={480}
+    >
+      <Block className="px-6 pb-6">
+        <RateLimitWarningContent />
+        <Button
+          variant="outline"
+          className="mt-4 w-full justify-center"
+          onClick={() => onOpenChange(false)}
+        >
+          閉じる
+        </Button>
+      </Block>
+    </Modal>
+  );
+}

@@ -7,7 +7,7 @@
 import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
-import { Verification } from "@/features/core/auth/components/Verification";
+import { Verification } from "@/domains/core/auth/components/Verification";
 
 import { loadSignupVerifyScreen } from "./loader";
 

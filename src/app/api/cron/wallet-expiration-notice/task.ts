@@ -3,7 +3,7 @@
 // 処理本体はドメイン側。vercel.json のエントリは pnpm generate cron がこのファイルから生成する
 
 import type { CronTaskDefinition } from "@/lib/cron";
-import { hasAnyExpirationNoticeConfig } from "@/features/core/wallet/utils/expiration";
+import { hasAnyExpirationNoticeConfig } from "@/domains/core/wallet/utils/expiration";
 
 export const cronTask: CronTaskDefinition = {
   name: "wallet-expiration-notice",
@@ -14,7 +14,7 @@ export const cronTask: CronTaskDefinition = {
   enabled: () => hasAnyExpirationNoticeConfig(),
   run: async () => {
     const { sendWalletExpirationNotices } = await import(
-      "@/features/core/wallet/services/server/notification/sendWalletExpirationNotices"
+      "@/domains/core/wallet/services/server/notification/sendWalletExpirationNotices"
     );
     return await sendWalletExpirationNotices();
   },

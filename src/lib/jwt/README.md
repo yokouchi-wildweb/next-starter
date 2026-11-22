@@ -5,7 +5,7 @@
 - JWT の署名・検証・Cookie 抽出の薄いラッパー。入口 `@/lib/jwt`
 - ドメイン固有のスキーマを注入する汎用 API なので、クレームの正規化は呼び手が行う
 - 使う時・直す時の決まりは札 .claude/rules/items/lib/jwt.md にある。この README は使い方と仕組み
-- 呼び手は auth のセッションの層(`src/features/core/auth/services/server/session/` など)。API ルートの主体は Factory の `ctx.user`(CLAUDE.md API_ROUTES principal)
+- 呼び手は auth のセッションの層(`src/domains/core/auth/services/server/session/` など)。API ルートの主体は Factory の `ctx.user`(CLAUDE.md API_ROUTES principal)
 
 ## Usage
 
@@ -13,7 +13,7 @@
 
 ```ts
 import { signUserToken } from "@/lib/jwt";
-import { SessionUserSchema } from "@/features/auth/entities/session";
+import { SessionUserSchema } from "@/domains/auth/entities/session";
 
 const sessionUser = SessionUserSchema.parse({
   userId: "user_123",
@@ -40,7 +40,7 @@ const { token, expiresAt } = await signUserToken({
 
 ```ts
 import { verifyUserToken } from "@/lib/jwt";
-import { SessionUserSchema, TokenPayloadSchema } from "@/features/auth/entities/session";
+import { SessionUserSchema, TokenPayloadSchema } from "@/domains/auth/entities/session";
 
 const result = await verifyUserToken(token, {
   claimsParser: (claims) => {
@@ -87,4 +87,4 @@ if (result) {
 
 ## Related
 
-- セッションの読み方: `src/features/core/auth/README.md`
+- セッションの読み方: `src/domains/core/auth/README.md`

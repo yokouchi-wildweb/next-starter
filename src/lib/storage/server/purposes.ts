@@ -70,7 +70,7 @@ export function listStoragePurposeProblems(map: StoragePurposeMap): string[] {
 
 const STRIP_IMAGE_SET = new Set<string>(STRIP_IMAGE_TYPES);
 
-/** keep にできない用途（D29。実行時の固定は features/core/storageObject の FIXED_STRIP_PURPOSES） */
+/** keep にできない用途（D29。実行時の固定は domains/core/storageObject の FIXED_STRIP_PURPOSES） */
 const STRIP_ONLY_PURPOSE_IDS = ["user.avatar"];
 
 function listMetadataProblems(id: string, purpose: StoragePurpose): string[] {

@@ -5,7 +5,7 @@
 
 import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
-import { EditEmail } from "@/features/core/user/components/EditEmail";
+import { EditEmail } from "@/domains/core/user/components/EditEmail";
 
 import { loadMyPageAccountEmailScreen } from "./loader";
 

@@ -12,10 +12,10 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 
-import type { User } from "@/features/core/user/entities";
-import { isAccountItemEditable } from "@/features/core/user/utils/accountItems";
-import { requireUserRecord } from "@/features/core/user/services/server/userService";
-import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
+import type { User } from "@/domains/core/user/entities";
+import { isAccountItemEditable } from "@/domains/core/user/utils/accountItems";
+import { requireUserRecord } from "@/domains/core/user/services/server/userService";
+import { userProfileService } from "@/domains/core/userProfile/services/server/userProfileService";
 import { createLoader } from "@/app/(user)/(protected)/guard";
 
 /** 項目が変えられる一覧に無いときの行き先 */

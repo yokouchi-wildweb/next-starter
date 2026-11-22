@@ -1,0 +1,290 @@
+// src/domains/core/messaging/services/server/sendMessage/expand.ts
+//
+// 宛先の展開: 受信者 × 送信チャンネル → 配達の行の計画(宛先の解決は送信チャンネルの resolveAddresses、無ければ端末の帳簿)。
+// - 選んだ宛先(explicit): 宛先の無い受信者も suppressed + reason no_address の行にして呼び手へ返す(D46)
+// - 全員・ロール・グループ(broadcast): 宛先の無い利用者は行を作らず、送信チャンネルごとの数 skipped_no_address に数える(D46)
+//   束ごとの展開(expandBroadcastChunk / resolveTargetChunk)は cron が呼ぶ
+// - 送信チャンネルの項目が無い・enabled: false の送信チャンネルは channel_off(explicit は行、broadcast は suppressed に数える)
+
+import type { MessageChannel } from "@/lib/messaging";
+import { DomainError } from "@/lib/errors";
+
+import type { MessageDeliveryInsert, MessageDeliveryReason } from "../../../entities/model";
+import { checkStops, hashAddress, type StopContext } from "./stops";
+import type { MessageTargetSpec, MessageRecipient, MessageSendDeps, MessageUserRow } from "./types";
+
+/** 配達の行の計画 1 つ */
+export type PlannedDelivery = {
+  recipientKey: string;
+  userId: string | null;
+  channel: string;
+  addresses: string[];
+  status: "queued" | "suppressed";
+  reason: MessageDeliveryReason | null;
+};
+
+/** 送信チャンネルごとの数の素(送る前) */
+export type ExpansionCounts = Record<string, { targeted: number; skippedNoAddress: number; suppressed: number }>;
+
+/** 送れる送信チャンネルの項目(無い・enabled: false は undefined = channel_off) */
+export function activeChannel(
+  channels: Readonly<Record<string, MessageChannel>>,
+  key: string,
+): MessageChannel | undefined {
+  const channel = channels[key];
+  return channel && channel.enabled !== false ? channel : undefined;
+}
+
+export function userRecipientKey(userId: string): string {
+  return `user:${userId}`;
+}
+
+export function addressRecipientKey(address: string): string {
+  return `addr:${hashAddress(address)}`;
+}
+
+export function recipientKeyOf(recipient: MessageRecipient): string {
+  return "userId" in recipient ? userRecipientKey(recipient.userId) : addressRecipientKey(recipient.address);
+}
+
+/** 利用者 → 送信チャンネルの宛先の一覧(管理の受け取れる送信チャンネルの口も同じ引き方で答える) */
+export async function resolveUserAddresses(
+  deps: MessageSendDeps,
+  channelKey: string,
+  channel: MessageChannel,
+  userIds: readonly string[],
+): Promise<Map<string, string[]>> {
+  const map = new Map<string, string[]>();
+  if (userIds.length === 0) return map;
+  const found = channel.resolveAddresses
+    ? await channel.resolveAddresses(userIds)
+    : await deps.store.findActiveEndpoints(channelKey, userIds);
+  for (const entry of found) {
+    if (!entry.userId || !entry.address) continue;
+    const list = map.get(entry.userId) ?? [];
+    if (!list.includes(entry.address)) list.push(entry.address);
+    map.set(entry.userId, list);
+  }
+  return map;
+}
+
+function emptyCounts(channels: readonly string[]): ExpansionCounts {
+  return Object.fromEntries(channels.map((key) => [key, { targeted: 0, skippedNoAddress: 0, suppressed: 0 }]));
+}
+
+/**
+ * 選んだ宛先の展開(小さな送信、要求の中)。
+ * - 宛先を直に渡す受信者は、その送信チャンネルが使う送信チャンネルに入っていること
+ * @returns 計画・利用者・見つからなかった利用者 id
+ */
+export async function expandExplicit(
+  deps: MessageSendDeps,
+  params: { channels: readonly string[]; recipients: readonly MessageRecipient[]; stops: StopContext },
+): Promise<{
+  planned: PlannedDelivery[];
+  users: Map<string, MessageUserRow>;
+  unknownUserIds: string[];
+  counts: ExpansionCounts;
+  /** どの送信チャンネルでも好み・宛先の停止で外れた受信者の数(recipient_count から引く、D31) */
+  stoppedRecipients: number;
+}> {
+  const { channels } = params;
+  const seen = new Set<string>();
+  const recipients = params.recipients.filter((recipient) => {
+    const key = recipientKeyOf(recipient);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  const userIds = recipients.flatMap((recipient) => ("userId" in recipient ? [recipient.userId] : []));
+  const userRows = await deps.store.findUsers(userIds);
+  const users = new Map(userRows.map((user) => [user.id, user]));
+  const unknownUserIds = userIds.filter((id) => !users.has(id));
+  const knownUserIds = userIds.filter((id) => users.has(id));
+
+  for (const recipient of recipients) {
+    if (!("userId" in recipient) && !channels.includes(recipient.channel)) {
+      throw new DomainError(`宛先の送信方法 ${recipient.channel} が送る送信方法にありません`, { status: 400 });
+    }
+  }
+
+  const planned: PlannedDelivery[] = [];
+  const counts = emptyCounts(channels);
+  for (const channelKey of channels) {
+    const channel = activeChannel(deps.channels, channelKey);
+    const addresses = channel ? await resolveUserAddresses(deps, channelKey, channel, knownUserIds) : new Map<string, string[]>();
+    for (const recipient of recipients) {
+      let userId: string | null = null;
+      let list: string[];
+      if ("userId" in recipient) {
+        if (!users.has(recipient.userId)) continue;
+        userId = recipient.userId;
+        list = addresses.get(recipient.userId) ?? [];
+      } else {
+        if (recipient.channel !== channelKey) continue;
+        list = [recipient.address];
+      }
+      counts[channelKey].targeted += 1;
+      const base = { recipientKey: recipientKeyOf(recipient), userId, channel: channelKey };
+      if (!channel) {
+        counts[channelKey].suppressed += 1;
+        planned.push({ ...base, addresses: list, status: "suppressed", reason: "channel_off" });
+      } else if (list.length === 0) {
+        counts[channelKey].skippedNoAddress += 1;
+        planned.push({ ...base, addresses: [], status: "suppressed", reason: "no_address" });
+      } else {
+        planned.push({ ...base, addresses: list, status: "queued", reason: null });
+      }
+    }
+  }
+  await applyStops(deps, params.stops, planned, counts, "row");
+  const stoppedRecipients = countFullyStopped(planned);
+  return { planned, users, unknownUserIds, counts, stoppedRecipients };
+}
+
+const STOP_REASONS = new Set(["preference", "suppression"]);
+
+/** どの送信チャンネルでも停止で外れた受信者の数 */
+function countFullyStopped(planned: readonly PlannedDelivery[]): number {
+  const byRecipient = new Map<string, boolean>();
+  for (const plan of planned) {
+    const stopped = plan.status === "suppressed" && STOP_REASONS.has(plan.reason ?? "");
+    byRecipient.set(plan.recipientKey, (byRecipient.get(plan.recipientKey) ?? true) && stopped);
+  }
+  return [...byRecipient.values()].filter(Boolean).length;
+}
+
+/**
+ * queued の計画に配信停止を当てる。mode row = 理由つきの suppressed の行にする(選んだ宛先)/
+ * drop = 計画から外す(全員・ロール・グループ、D46)。どちらも送信チャンネルごとの suppressed に数える
+ */
+async function applyStops(
+  deps: MessageSendDeps,
+  context: StopContext,
+  planned: PlannedDelivery[],
+  counts: ExpansionCounts,
+  mode: "row" | "drop",
+): Promise<PlannedDelivery[]> {
+  const queued = planned.filter((plan) => plan.status === "queued");
+  const verdicts = await checkStops(deps, context, queued);
+  const dropped = new Set<PlannedDelivery>();
+  const stopped: PlannedDelivery[] = [];
+  queued.forEach((plan, index) => {
+    const verdict = verdicts[index];
+    if (!verdict.stopped) {
+      plan.addresses = verdict.addresses;
+      return;
+    }
+    stopped.push(plan);
+    counts[plan.channel].suppressed += 1;
+    if (mode === "drop") {
+      dropped.add(plan);
+    } else {
+      plan.status = "suppressed";
+      plan.reason = verdict.reason;
+    }
+  });
+  if (dropped.size > 0) {
+    const kept = planned.filter((plan) => !dropped.has(plan));
+    planned.length = 0;
+    planned.push(...kept);
+  }
+  return stopped;
+}
+
+/**
+ * 全員・ロール・グループの 1 束の展開(cron が呼ぶ)。宛先の無い利用者は行を作らず skipped_no_address に数える。
+ */
+export async function expandBroadcastChunk(
+  deps: MessageSendDeps,
+  params: { channels: readonly string[]; userIds: readonly string[]; stops: StopContext },
+): Promise<{ planned: PlannedDelivery[]; counts: ExpansionCounts; stoppedUserIds: Set<string> }> {
+  const userIds = [...new Set(params.userIds)];
+  const planned: PlannedDelivery[] = [];
+  const counts = emptyCounts(params.channels);
+  for (const channelKey of params.channels) {
+    const channel = activeChannel(deps.channels, channelKey);
+    counts[channelKey].targeted += userIds.length;
+    if (!channel) {
+      counts[channelKey].suppressed += userIds.length;
+      continue;
+    }
+    const addresses = await resolveUserAddresses(deps, channelKey, channel, userIds);
+    for (const userId of userIds) {
+      const list = addresses.get(userId) ?? [];
+      if (list.length === 0) {
+        counts[channelKey].skippedNoAddress += 1;
+        continue;
+      }
+      planned.push({
+        recipientKey: userRecipientKey(userId),
+        userId,
+        channel: channelKey,
+        addresses: list,
+        status: "queued",
+        reason: null,
+      });
+    }
+  }
+  // どの送信チャンネルでも停止で外れた利用者(宛先の無い送信チャンネルがある利用者は停止で外れたことにしない)
+  const stopped = await applyStops(deps, params.stops, planned, counts, "drop");
+  const stoppedCount = new Map<string, number>();
+  for (const plan of stopped) {
+    if (plan.userId) stoppedCount.set(plan.userId, (stoppedCount.get(plan.userId) ?? 0) + 1);
+  }
+  const stoppedUserIds = new Set(
+    [...stoppedCount].filter(([, count]) => count === params.channels.length).map(([userId]) => userId),
+  );
+  return { planned, counts, stoppedUserIds };
+}
+
+/**
+ * 全員・ロールの次の束の利用者 id(keyset)。束の人数は config.expandChunkSize。createdBefore(送り始めの線)以前の登録だけ。
+ * グループは送信の受信者の一覧から引く(sweep/expandStep.ts。ここへは来ない)
+ */
+export async function resolveTargetChunk(
+  deps: MessageSendDeps,
+  spec: MessageTargetSpec,
+  cursor: string | null,
+  options: { createdBefore?: Date } = {},
+): Promise<{ userIds: string[]; nextCursor: string | null }> {
+  const limit = deps.config.expandChunkSize;
+  const line = options.createdBefore ? { createdBefore: options.createdBefore } : {};
+  if (spec.type === "all") return deps.store.listUserIds({ ...line }, cursor, limit);
+  if (spec.type === "role") return deps.store.listUserIds({ roles: spec.roles, ...line }, cursor, limit);
+  throw new DomainError("グループ宛ては回の受信者の一覧から展開します", { status: 500 });
+}
+
+/**
+ * 計画 → 配達の行の INSERT の値。queued の行は next_attempt_at = now(cron がすぐ拾う)。
+ * 宛先が複数なら targets に宛先ごとの状態を置く
+ */
+export function toDeliveryInsert(
+  plan: PlannedDelivery,
+  params: { dispatchId: string; now: Date; vars: Record<string, unknown> | null },
+): MessageDeliveryInsert {
+  const queued = plan.status === "queued";
+  return {
+    dispatch_id: params.dispatchId,
+    recipient_key: plan.recipientKey,
+    user_id: plan.userId,
+    address: plan.addresses[0] ?? null,
+    channel: plan.channel,
+    status: plan.status,
+    reason: plan.reason,
+    vars: queued ? params.vars : null,
+    next_attempt_at: queued ? params.now : null,
+    targets:
+      plan.addresses.length > 1
+        ? plan.addresses.map((address) => ({
+            address,
+            status: "queued" as const,
+            attempts: 0,
+            next_attempt_at: null,
+            provider_message_id: null,
+            last_error: null,
+          }))
+        : null,
+  };
+}

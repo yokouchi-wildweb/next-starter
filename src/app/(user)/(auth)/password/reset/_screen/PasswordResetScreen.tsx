@@ -8,7 +8,7 @@
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Flex } from "@/components/Layout/Flex";
-import { ResetPassword } from "@/features/core/auth/components/ResetPassword";
+import { ResetPassword } from "@/domains/core/auth/components/ResetPassword";
 import type { ScreenProps } from "@/lib/screens";
 
 import { loadPasswordResetScreen, type PasswordResetScreenSearchParams } from "./loader";

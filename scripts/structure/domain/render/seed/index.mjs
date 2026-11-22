@@ -16,7 +16,7 @@ export function seedTemplate(ctx) {
     ...(config?.relations ?? []).filter((r) => r.relationType === "belongsTo" || r.relationType === "belongsToMany").map((r) => resolveFieldName(r.fieldName, dbEngine)),
   ];
   const first = columns[0] ?? "name";
-  const rel = ctx.rel ?? `src/features/${camel}`;
+  const rel = ctx.rel ?? `src/domains/${camel}`;
   return [
     `// ${rel}/seed.ts — ${camel} のシード(pnpm ops db seed、書き方: src/lib/seed/README.md)`,
     "// 中身はデータだけ(入れるのは ${camel} のサービス)。関係先は ref(<ドメイン>, <$key>)、そのドメインは after に書く。".replace("${camel}", camel),

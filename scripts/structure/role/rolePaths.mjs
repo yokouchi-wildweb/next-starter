@@ -7,8 +7,8 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "../../..");
-export const CORE_ROLES_DIR = path.join(ROOT_DIR, "src/features/core/user/coreRoles");
-export const ROLES_DIR = path.join(ROOT_DIR, "src/features/core/user/roles");
+export const CORE_ROLES_DIR = path.join(ROOT_DIR, "src/domains/core/user/coreRoles");
+export const ROLES_DIR = path.join(ROOT_DIR, "src/domains/core/user/roles");
 
 export const CORE_ROLE_IDS = ["admin", "user", "debugger"];
 const SUFFIX = ".role.json";

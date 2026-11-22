@@ -1,0 +1,117 @@
+// src/domains/user/components/admin/form/ManagerialUserCreateForm/index.tsx
+
+"use client";
+
+import { useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "@/lib/unsavedGuard";
+import { useToast } from "@/lib/toast";
+import { AppForm } from "@/lib/formSuite";
+import { Button } from "@/components/Button/Button";
+import { Flex } from "@/components/Layout/Flex";
+import { ControlledField } from "@/lib/formSuite";
+import { ControlledPasswordInput, ControlledTextInput } from "@/lib/formSuite";
+import { err } from "@/lib/errors";
+import { useCreateUser } from "@/domains/user/hooks/useCreateUser";
+import {
+  RoleSelector,
+  RoleProfileFields,
+  getProfilesByCategory,
+} from "@/domains/core/userProfile/components/common";
+
+import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
+
+type CustomSubmit = {
+  handler: (values: FormValues) => Promise<void>;
+  isMutating?: boolean;
+};
+
+type Props = {
+  redirectPath?: string;
+  customSubmit?: CustomSubmit;
+};
+
+export default function ManagerialUserCreateForm({
+  redirectPath = "/",
+  customSubmit,
+}: Props) {
+  const methods = useForm<FormValues>({
+    resolver: zodResolver(FormSchema),
+    mode: "onSubmit",
+    shouldUnregister: false,
+    defaultValues: DefaultValues,
+  });
+
+  const router = useRouter();
+  const { showToast } = useToast();
+  const { trigger, isMutating } = useCreateUser();
+
+  // ロール選択を監視してプロフィールフィールドを動的に更新
+  const selectedRole = useWatch({ control: methods.control, name: "role" });
+
+  const submit = async (values: FormValues) => {
+    if (customSubmit) {
+      await customSubmit.handler(values);
+      return;
+    }
+
+    try {
+      await trigger(values);
+      showToast("ユーザー登録が完了しました", "success");
+      router.push(redirectPath);
+    } catch (error) {
+      showToast(err(error, "ユーザー登録に失敗しました"), "error");
+    }
+  };
+
+  const {
+    control,
+    formState: { isSubmitting },
+  } = methods;
+
+  const pending = customSubmit?.isMutating ?? isMutating;
+  const loading = isSubmitting || pending;
+
+  return (
+    <AppForm
+      methods={methods}
+      onSubmit={submit}
+      pending={pending}
+      fieldSpace="lg"
+    >
+      <RoleSelector
+        control={control}
+        name="role"
+        categories={["admin"]}
+        inputType="select"
+      />
+      <ControlledField
+        control={control}
+        name="name"
+        label="表示名"
+        renderInput={(field) => <ControlledTextInput field={field} />}
+      />
+      <ControlledField
+        control={control}
+        name="email"
+        label="メールアドレス"
+        renderInput={(field) => <ControlledTextInput type="email" field={field} />}
+      />
+      <ControlledField
+        control={control}
+        name="localPassword"
+        label="パスワード"
+        renderInput={(field) => <ControlledPasswordInput field={field} autoComplete="new-password" />}
+      />
+      <RoleProfileFields methods={methods} role={selectedRole} profiles={getProfilesByCategory("admin")} />
+      <Flex justify="center" className="gap-3">
+        <Button type="submit" disabled={loading} variant="default">
+          {loading ? "登録中..." : "登録"}
+        </Button>
+        <Button type="button" variant="outline" onClick={() => router.push(redirectPath)}>
+          キャンセル
+        </Button>
+      </Flex>
+    </AppForm>
+  );
+}

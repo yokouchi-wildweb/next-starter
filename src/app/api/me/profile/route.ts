@@ -1,7 +1,7 @@
 // src/app/api/me/profile/route.ts
 
 import { createMeRoute } from "@/wiring/apiRoute";
-import { userService } from "@/features/core/user/services/server/userService";
+import { userService } from "@/domains/core/user/services/server/userService";
 
 export const PATCH = createMeRoute(
   {

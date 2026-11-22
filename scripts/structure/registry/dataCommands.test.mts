@@ -40,7 +40,7 @@ test("データ操作のコマンドの許可: 全ドメインを解き、user �
 });
 
 test("userService は条件での一括更新と物理の一括削除を公開しない(update ラッパー・softDelete を通らない抜け道)", async () => {
-  const { userService } = await import("@/features/core/user/services/server/userService");
+  const { userService } = await import("@/domains/core/user/services/server/userService");
   for (const name of ["bulkUpdateByQuery", "bulkHardDeleteByIds", "upsert", "bulkUpsert", "replaceByQuery", "duplicate", "bulkDeleteByIds", "bulkDeleteByQuery"]) {
     assert.equal(name in userService, false, name);
   }

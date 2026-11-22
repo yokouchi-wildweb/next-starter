@@ -7,7 +7,7 @@ import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
-import { Unsubscribe } from "@/features/core/messaging/components/Unsubscribe";
+import { Unsubscribe } from "@/domains/core/messaging/components/Unsubscribe";
 
 import { loadUnsubscribeScreen, type UnsubscribeScreenSearchParams } from "./loader";
 

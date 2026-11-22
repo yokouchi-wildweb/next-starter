@@ -1,0 +1,60 @@
+// src/domains/core/auth/hooks/registration/oauthFormEntities.ts
+
+import { z } from "zod";
+
+import { REGISTRATION_DEFAULT_ROLE } from "@/domains/core/auth/constants/registration";
+import { UserNameSchema } from "@/domains/core/user/entities/userName";
+import { createProfileDataValidator } from "@/domains/core/userProfile/utils";
+import { REGISTRATION_PROFILES } from "./registrationProfiles";
+
+// profileData バリデーション関数
+const validateProfileData = createProfileDataValidator(REGISTRATION_PROFILES, "registration");
+
+const emailSchema = z
+  .string({
+    required_error: "メールアドレスを入力してください",
+  })
+  .trim()
+  .min(1, { message: "メールアドレスを入力してください" })
+  .email({ message: "メールアドレスの形式が不正です" });
+
+const nameSchema = UserNameSchema;
+
+const agreeToTermsSchema = z.boolean().refine((val) => val === true, {
+  message: "利用規約への同意が必要です",
+});
+
+export const FormSchema = z
+  .object({
+    email: emailSchema,
+    name: nameSchema,
+    role: z.string(),
+    profileData: z.record(z.unknown()).optional(),
+    inviteCode: z.string().trim().optional(),
+    agreeToTerms: agreeToTermsSchema,
+    /** 宣伝の同意（上流の画面に項目は無く既定の値も無い = 送らない。チェックを足す fork の値を zod が落とさないための口、D88） */
+    marketingConsent: z.boolean().optional(),
+  })
+  .superRefine((value, ctx) => {
+    // profileData バリデーション
+    validateProfileData(value, ctx);
+  });
+
+export type FormValues = {
+  email: string;
+  name: string;
+  role: string;
+  profileData?: Record<string, unknown>;
+  inviteCode?: string;
+  agreeToTerms: boolean;
+  marketingConsent?: boolean;
+};
+
+export const DefaultValues: FormValues = {
+  email: "",
+  name: "",
+  role: REGISTRATION_DEFAULT_ROLE,
+  profileData: {},
+  inviteCode: "",
+  agreeToTerms: false,
+};

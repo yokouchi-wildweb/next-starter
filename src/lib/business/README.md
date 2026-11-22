@@ -29,7 +29,7 @@ logoPath(business.logo, "dark"); // lib や utils には値を引数で渡す
 ## API
 
 - `resolveBusiness(file, examples?)`: 印に従って値を返す。2 つ目で例の値を差し替えられる(この lib を他のプロジェクトに組み込むとき)
-- `sampleReleaseLevel({ hasSample, production, tier1 })`: sample が無いか本番でなければ ok、あれば error、Tier1 は warn。法務の文書の検査(`src/features/core/legal` の `checkLegalRelease`、`pnpm check legal`)も使う
+- `sampleReleaseLevel({ hasSample, production, tier1 })`: sample が無いか本番でなければ ok、あれば error、Tier1 は warn。法務の文書の検査(`src/domains/core/legal` の `checkLegalRelease`、`pnpm check legal`)も使う
 - 型 `BusinessFile`(`@/lib/business`)
 
 ## Extension

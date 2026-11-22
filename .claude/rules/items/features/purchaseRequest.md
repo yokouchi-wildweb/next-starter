@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/features/core/purchaseRequest/**"
-  - "src/config/features/purchaseRequest.config.ts"
+  - "src/domains/core/purchaseRequest/**"
+  - "src/config/domains/purchaseRequest.config.ts"
 ---
-# features/purchaseRequest
+# domains/purchaseRequest
 what: external-payment purchases (purchase_requests): sessions, transitions, double-purchase guards | fulfilment = a strategy per purchase_type (built-in wallet_topup)
 use: payment
-change: overlay = src/config/features/purchaseRequest.config.ts (payment, purchaseType) | add = completionStrategies, completeHooks | replace = payment/sessionEnricher.ts
+change: overlay = src/config/domains/purchaseRequest.config.ts (payment, purchaseType) | add = completionStrategies, completeHooks | replace = payment/sessionEnricher.ts
 rules:
 using:
 - new_type: purchase_type = config purchaseType + a strategy item + pnpm generate extensions + db:push
@@ -23,4 +23,4 @@ editing:
 - amounts: server-authoritative (package, ≤ 0, paidAmount checks) | validateInitiation re-runs on reuse-pending
 - user_scope: idempotency lookups always by user_id
 - provider_contract: differences stay in PaymentProvider (no name branches) | createSession idempotent | unmapped method → throw | timingSafeEqual | no secrets in client_sdk config
-read: model, transitions → Overview | screens, new type → Usage | columns, hooks → API | config, receptacles → Extension | flows, guards → Internals | providers → src/features/core/purchaseRequest/services/server/payment/README.md Usage
+read: model, transitions → Overview | screens, new type → Usage | columns, hooks → API | config, receptacles → Extension | flows, guards → Internals | providers → src/domains/core/purchaseRequest/services/server/payment/README.md Usage

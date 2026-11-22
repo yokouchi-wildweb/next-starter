@@ -1,9 +1,9 @@
 ---
 paths:
-  - "src/features/core/incrementalRefresh/**"
+  - "src/domains/core/incrementalRefresh/**"
 ---
-# features/incrementalRefresh
-what: a factory for cron tasks that bring a read-model (snapshot table derived from source tables) up to date by diff within a time budget; entry createIncrementalRefresh from @/features/incrementalRefresh/services/server
+# domains/incrementalRefresh
+what: a factory for cron tasks that bring a read-model (snapshot table derived from source tables) up to date by diff within a time budget; entry createIncrementalRefresh from @/domains/incrementalRefresh/services/server
 use: always
 change: none → /order <direct parent>
 rules:

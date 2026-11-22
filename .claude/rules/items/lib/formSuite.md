@@ -17,7 +17,7 @@ using:
 - default_values: defaults match the schema type (`""` to array / object fails) | required jsonb + formInput none → defaultValue
 - autosave_values: AutoSave onSave gets pre-Zod values → a hand-written one converts them
 editing:
-- fs_direction: the shelf (src/components) never reads this lib | this lib reads the shelf (peers components) and the libs in its package.json, never src/features (tests too: a test that needs a domain lives in that domain and reads the entry)
+- fs_direction: the shelf (src/components) never reads this lib | this lib reads the shelf (peers components) and the libs in its package.json, never src/domains (tests too: a test that needs a domain lives in that domain and reads the entry)
 - fs_no_client_entry: index.ts never starts with "use client" | the mark stays on the files that need it
 - fs_controlled_names: a Controlled input is exported as Controlled + the shelf unit's name (ControlledTextInput) | its props type ControlledXxxProps
 - helper_text: the field frame draws the description, not the input part

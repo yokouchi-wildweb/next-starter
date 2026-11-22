@@ -4,8 +4,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { createDemoUser } from "@/features/core/user/services/server/creation/console";
-import { USER_ROLES } from "@/features/core/user/constants";
+import { createDemoUser } from "@/domains/core/user/services/server/creation/console";
+import { USER_ROLES } from "@/domains/core/user/constants";
 
 const CreateDemoUserPayloadSchema = z.object({
   name: z.string(),

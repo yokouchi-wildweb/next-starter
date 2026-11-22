@@ -1,0 +1,113 @@
+// src/domains/auth/hooks/useEmailPasswordLogin.ts
+
+"use client";
+
+import { useCallback, useRef, useState } from "react";
+import { signInWithEmailAndPassword, signOut, type UserCredential } from "firebase/auth";
+
+import { useAuthSession } from "@/domains/core/auth/hooks/useAuthSession";
+import { createFirebaseSession } from "@/domains/core/auth/services/client/firebaseSession";
+import { auth } from "@/lib/firebase/client";
+import { normalizeHttpError } from "@/lib/errors";
+import { log } from "@/utils/log";
+import type { UserProviderType } from "@/domains/core/user/types";
+
+const EMAIL_PROVIDER: UserProviderType = "email";
+
+type SignInParams = {
+  email: string;
+  password: string;
+};
+
+type SignInResult = {
+  credential: UserCredential;
+  requiresReactivation: boolean;
+};
+
+export function useEmailPasswordLogin() {
+  const { refreshSession } = useAuthSession();
+  const [isLoading, setIsLoading] = useState(false);
+  const lockRef = useRef(false);
+  const signIn = useCallback(
+    async ({ email, password }: SignInParams): Promise<SignInResult> => {
+      if (lockRef.current) throw new Error("処理中です");
+      lockRef.current = true;
+      setIsLoading(true);
+      // メールアドレス認証の開始を記録
+      log(3, "[useEmailPasswordLogin] signIn: begin", {
+        email,
+      });
+
+      // Firebase サインインが成功したかどうか（失敗時の後始末の判定に使う）
+      let firebaseSignedIn = false;
+
+      try {
+        const credential = await signInWithEmailAndPassword(auth, email, password);
+        firebaseSignedIn = true;
+        // Firebase認証で資格情報を取得できたことを記録
+        log(3, "[useEmailPasswordLogin] signIn: credential acquired", {
+          email,
+          userUid: credential.user.uid,
+        });
+        const idToken = await credential.user.getIdToken();
+        // 取得したIDトークンの概要を記録
+        log(3, "[useEmailPasswordLogin] signIn: id token acquired", {
+          email,
+          idTokenPreview: `${idToken.slice(0, 10)}...`,
+        });
+
+        const { requiresReactivation } = await createFirebaseSession({
+          providerType: EMAIL_PROVIDER,
+          providerUid: credential.user.uid,
+          idToken,
+        });
+        // Firebaseセッション生成の成功を記録
+        log(3, "[useEmailPasswordLogin] signIn: firebase session created", {
+          email,
+          providerUid: credential.user.uid,
+          requiresReactivation,
+        });
+
+        await refreshSession();
+        // アプリ側セッション更新の完了を記録
+        log(3, "[useEmailPasswordLogin] signIn: session refreshed", {
+          email,
+        });
+
+        return { credential, requiresReactivation };
+      } catch (unknownError) {
+        // メールアドレス認証処理で発生した例外内容を記録
+        log(3, "[useEmailPasswordLogin] signIn: error", {
+          email,
+          error: unknownError,
+        });
+        // Firebase サインイン成功後にアプリセッション発行が失敗した場合（退会済み 403 等）、
+        // Firebase クライアントセッションだけが残ると、以後の本登録フォームが
+        // 別アカウントの資格情報で送信される事故につながるため必ずサインアウトする。
+        // Firebase サインイン自体が失敗した場合は他フローのセッションに触れない。
+        if (firebaseSignedIn) {
+          await signOut(auth).catch((signOutError) => {
+            log(3, "[useEmailPasswordLogin] signIn: signOut after failure failed", {
+              email,
+              error: signOutError,
+            });
+          });
+        }
+        throw normalizeHttpError(unknownError, "ログインに失敗しました");
+      } finally {
+        // 状態復旧処理の開始を記録
+        log(3, "[useEmailPasswordLogin] signIn: cleanup", {
+          email,
+        });
+        lockRef.current = false;
+        setIsLoading(false);
+      }
+    },
+    [refreshSession],
+  );
+
+  return {
+    signIn,
+    isLoading,
+  } as const;
+}

@@ -1,7 +1,7 @@
 import type { NextRequest, NextResponse } from 'next/server';
 
-import type { SessionUser } from '@/features/core/auth/entities/session';
-import type { UserRoleType } from '@/features/core/user/types';
+import type { SessionUser } from '@/domains/core/auth/entities/session';
+import type { UserRoleType } from '@/domains/core/user/types';
 import type { RedirectToastPayload } from '@/lib/toast';
 
 /**
@@ -9,7 +9,7 @@ import type { RedirectToastPayload } from '@/lib/toast';
  *
  * - user(): 利用者(DB 同期)。初めて呼ばれたときだけ解決し、同じリクエストでは結果を使い回す。
  *   利用可能な status の利用者だけ非 null(停止中・休会中・未ログイン・DB 未構成は null)。
- *   解決器は features/core/auth の createProxyUser(API・ページの守りと同じ resolveSessionUser)。
+ *   解決器は domains/core/auth の createProxyUser(API・ページの守りと同じ resolveSessionUser)。
  *   項目は自分でセッションを解かない(lint page-authz/session-api-callsite)。
  */
 export type ProxyContext = {

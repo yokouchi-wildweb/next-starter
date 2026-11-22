@@ -14,7 +14,7 @@ export function injectViewModalRelations(content, config) {
     const relationCamel = toCamelCase(relationNormalized) || relationNormalized;
     const relationPascal = toPascalCase(relationNormalized) || relationNormalized;
     const hookName = `use${relationPascal}List`;
-    return { hookName, importPath: `@/features/${relationCamel}/hooks/${hookName}`, camelPlural: toPlural(relationCamel) };
+    return { hookName, importPath: `@/domains/${relationCamel}/hooks/${hookName}`, camelPlural: toPlural(relationCamel) };
   });
 
   const relationImports = details.map(({ hookName, importPath }) => `import { ${hookName} } from "${importPath}";`).join("\n");

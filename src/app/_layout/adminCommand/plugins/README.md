@@ -6,5 +6,5 @@
 
 ## Related
 
-- 書き方: `src/features/core/adminCommand/README.md`「プラグイン（Provider・GlobalComponent）」
+- 書き方: `src/domains/core/adminCommand/README.md`「プラグイン（Provider・GlobalComponent）」
 - 受け口の仕組み: `scripts/structure/extensions/README.md`

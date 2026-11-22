@@ -160,7 +160,7 @@ test("受け口の読み取り: 上書きを相手に結び、相手の無い上
     mkdirSync(dirname(join(root, path)), { recursive: true });
     writeFileSync(join(root, path), text);
   };
-  const base = "src/features/core/admin/menu";
+  const base = "src/domains/core/admin/menu";
   put(`${base}/categories/users.ts`, 'export const category = { key: "users", label: "U", order: 100 };\n');
   put(`${base}/categories/users.override.ts`, 'export const override = { label: "利用者" };\n');
   put(
@@ -227,7 +227,7 @@ test("ダッシュボードの受け口の読み取り: 上書きを相手に結
     mkdirSync(dirname(join(root, path)), { recursive: true });
     writeFileSync(join(root, path), text);
   };
-  const base = "src/features/core/admin/dashboard/sections";
+  const base = "src/domains/core/admin/dashboard/sections";
   put(`${base}/metrics.ts`, 'export const section = { key: "metrics", order: 100, Section: () => null };\n');
   put(`${base}/metrics.override.ts`, "export const override = { order: 50 };\n");
   put(`${base}/ghost.override.ts`, "export const override = { hidden: true };\n");

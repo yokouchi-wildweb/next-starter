@@ -17,11 +17,11 @@ const COMMANDS = ["deleteProfile.mjs", "deleteRole.mjs", "generate.mjs", "genera
 const COPY = [
   "scripts/structure/role",
   "src/lib/forkOwnership",
-  "src/features/core/user/roles",
-  "src/features/core/user/coreRoles",
-  "src/features/core/userProfile",
-  "src/features/core/user/extensions",
-  "src/features/core/user/extensionPoints.ts",
+  "src/domains/core/user/roles",
+  "src/domains/core/user/coreRoles",
+  "src/domains/core/userProfile",
+  "src/domains/core/user/extensions",
+  "src/domains/core/user/extensionPoints.ts",
   "src/registry",
 ];
 let root;
@@ -33,8 +33,8 @@ before(async () => {
 after(() => fs.rmSync(root, { recursive: true, force: true }));
 
 const run = (script, ...args) => spawnSync("node", [path.join(root, "scripts/structure/role", script), ...args], { cwd: root, encoding: "utf8", input: "", timeout: 20000 });
-const rolePath = (file) => path.join(root, "src/features/core/user/roles", file);
-const coreRolePath = (file) => path.join(root, "src/features/core/user/coreRoles", file);
+const rolePath = (file) => path.join(root, "src/domains/core/user/roles", file);
+const coreRolePath = (file) => path.join(root, "src/domains/core/user/coreRoles", file);
 const readRole = (file) => JSON.parse(fs.readFileSync(rolePath(file), "utf8"));
 
 test("pnpm generate role -- --toggle: ID と --on|--off が必須（無い・両方 = 1）、--on / --off は何度回しても同じ結果", () => {
@@ -53,9 +53,9 @@ test("pnpm generate role -- --toggle: ID と --on|--off が必須（無い・両
 });
 
 test("上書き: pnpm generate role が重ね、JSON は変えない。不正は止まり、空は通る(隣に対象なしは pnpm check extensions)。toggle と hasProfile の書き戻しは止まり、--remove-json は一緒に消す", () => {
-  const rolesFile = path.join(root, "src/features/core/user/extensions/roles.ts");
-  const profileDir = path.join(root, "src/features/core/userProfile/profiles");
-  const extensions = path.join(root, "src/features/core/userProfile/extensions");
+  const rolesFile = path.join(root, "src/domains/core/user/extensions/roles.ts");
+  const profileDir = path.join(root, "src/domains/core/userProfile/profiles");
+  const extensions = path.join(root, "src/domains/core/userProfile/extensions");
   const list = (name) => fs.readFileSync(path.join(extensions, `${name}.ts`), "utf8");
   const typed = (type, body) => `import type { ${type} } from "../types";\nexport const override: ${type} = ${body};\n`;
   const writeCore = (file, text) => fs.writeFileSync(coreRolePath(file), text);
@@ -74,7 +74,7 @@ test("上書き: pnpm generate role が重ね、JSON は変えない。不正は
   assert.match(list("profileConfigs"), /user: \{ \.\.\.userProfile, tags: \{"selfEdit":\["nick"\]\}, searchFields: \["nick"\] \} as ProfileConfig/);
   assert.match(list("profileBases"), /user: createProfileBase\(UserProfileTable, \{ defaultSearchFields: \["nick"\] \}\)/);
   assert.doesNotMatch(list("profileBases"), /user\.profile\.json/);
-  assert.match(fs.readFileSync(path.join(root, "src/features/core/userProfile/entities/profiles/user/drizzle.ts"), "utf8"), /nick/);
+  assert.match(fs.readFileSync(path.join(root, "src/domains/core/userProfile/entities/profiles/user/drizzle.ts"), "utf8"), /nick/);
 
   // 不正な上書きは止まる
   const bad = {
@@ -82,7 +82,7 @@ test("上書き: pnpm generate role が重ね、JSON は変えない。不正は
     "型違い": [typed("RoleOverride", '{ hasProfile: "yes" }'), /hasProfile は true か false/],
     "リテラルでない": ['const x = "a";\nexport const override = { label: x };\n', /書けるのは import type/],
     "値 import": ['import { z } from "./z";\nexport const override = {};\n', /import は型だけ/],
-    "別名 import": ['import type { RoleOverride } from "@/features/core/user/types";\nexport const override: RoleOverride = {};\n', /import は相対パス/],
+    "別名 import": ['import type { RoleOverride } from "@/domains/core/user/types";\nexport const override: RoleOverride = {};\n', /import は相対パス/],
     "export が無い": ['import type { RoleOverride } from "../types";\n', /export const override = \{ … \} がありません/],
   };
   for (const [name, [text, message]] of Object.entries(bad)) {
@@ -161,7 +161,7 @@ test("上書き: pnpm generate role が重ね、JSON は変えない。不正は
   const stopped = run("deleteProfile.mjs", "user", "--confirm", "user");
   assert.equal(stopped.status, 1);
   assert.match(stopped.stderr, /user\.role\.override\.ts が決めています/);
-  assert.ok(fs.existsSync(path.join(root, "src/features/core/userProfile/entities/profiles/user")));
+  assert.ok(fs.existsSync(path.join(root, "src/domains/core/userProfile/entities/profiles/user")));
 
   // --remove-json は上書きも一緒に消す
   writeRole("auditor.role.override.ts", typed("RoleOverride", '{ label: "監査 2" }'));
@@ -191,7 +191,7 @@ test("pnpm generate role -- --delete / pnpm generate role -- --delete-profile: I
     assert.equal(run(script, "contributor", "--confirm", "editor").status, 1, script);
   }
   assert.ok(fs.existsSync(rolePath("contributor.role.json")));
-  const registry = path.join(root, "src/features/core/user/extensions/roles.ts");
+  const registry = path.join(root, "src/domains/core/user/extensions/roles.ts");
   assert.match(fs.readFileSync(registry, "utf8"), /contributorRole/);
   assert.equal(run("deleteRole.mjs", "contributor", "--confirm", "contributor").status, 0);
   assert.doesNotMatch(fs.readFileSync(registry, "utf8"), /contributorRole/);

@@ -6,7 +6,7 @@
 
 - 入口: `@/lib/task`(`src/lib/task/index.ts`)
 - 依存: なし(features・棚・`@/wiring` を読まない)
-- 使う側: タスクの定義 `src/features/<ドメイン>/scripts/{tasks,migrations}/<名前>.ts` と、ランナー `scripts/runner/task/`(走査・読み込み・下準備・実行の流れ・記録)
+- 使う側: タスクの定義 `src/domains/<ドメイン>/scripts/{tasks,migrations}/<名前>.ts` と、ランナー `scripts/runner/task/`(走査・読み込み・下準備・実行の流れ・記録)
 - 定期タスクの型は `src/lib/cron`(`CronTaskDefinition`)。定期タスクは `src/app/api/cron/<name>/task.ts` で平らな名前のまま
 - 置き場・名前・止める鍵・記録の決まり: `.claude/rules/core/scripts.md` の tasks / migrations / records
 
@@ -16,8 +16,8 @@
 
 持ち主のドメインの中に 1 ファイル置く(一覧ファイルは無い。上流も fork も同じ。fork 固有の物は fork 自身のドメインに置き、core のドメインには足さない)。
 
-- 繰り返しの運用・導入: `src/features/<ドメイン>/scripts/tasks/<名前>.ts`(core は `src/features/core/<ドメイン>/scripts/tasks/`)
-- 1 回きりの移行(notice が案内する物): `src/features/<ドメイン>/scripts/migrations/<名前>.ts`。`notice: "<案内する notice の id>"` が必須
+- 繰り返しの運用・導入: `src/domains/<ドメイン>/scripts/tasks/<名前>.ts`(core は `src/domains/core/<ドメイン>/scripts/tasks/`)
+- 1 回きりの移行(notice が案内する物): `src/domains/<ドメイン>/scripts/migrations/<名前>.ts`。`notice: "<案内する notice の id>"` が必須
 - 名前 = `<ドメイン>:<名前>`(ドメイン = フォルダ名、`<名前>` = kebab-case のファイル名)。`task.name` もこの形
 
 ```ts
@@ -26,7 +26,7 @@ import type { OneShotTask } from "@/lib/task";
 export const task: OneShotTask = {
   name: "wallet:lots-init", // <ドメイン>:<ファイル名>
   run: async () => {
-    const { doIt } = await import("@/features/core/wallet/services/server/doIt"); // 依存は動的 import
+    const { doIt } = await import("@/domains/core/wallet/services/server/doIt"); // 依存は動的 import
     return { done: await doIt() };
   },
 };
@@ -40,7 +40,7 @@ export const task: OneShotTask = {
 
 ### git に入れない移行(.local.ts)
 
-下流に流さない緊急のデータ修正(運用のミス・トラブル)は、持ち主のドメインの `src/features/<ドメイン>/scripts/migrations/<名前>.local.ts` に置く(`.gitignore` に上流が 1 行。コミットしない)。名前は同じ `<ドメイン>:<名前>`、`notice:` は持たない。型検査・lint(`tools-no-db-write` は移行として扱う = 直接の SQL・db を許す)・記録はふつうの移行と同じに効く。
+下流に流さない緊急のデータ修正(運用のミス・トラブル)は、持ち主のドメインの `src/domains/<ドメイン>/scripts/migrations/<名前>.local.ts` に置く(`.gitignore` に上流が 1 行。コミットしない)。名前は同じ `<ドメイン>:<名前>`、`notice:` は持たない。型検査・lint(`tools-no-db-write` は移行として扱う = 直接の SQL・db を許す)・記録はふつうの移行と同じに効く。
 
 - 事前のレビューの代わり: 同じ中身(ファイルの sha256)の dry-run が成功してから本実行できる(`pnpm task <名前> -- --dry-run` → `pnpm task <名前>`)。中身を変えたら dry-run からやり直し
 - 止める鍵 `migration:local:<名前>:<sha256>`: 同じ中身は二度と本実行しない
@@ -68,7 +68,7 @@ export const task: OneShotTask = {
 
 ### 実行の記録(task_runs)
 
-名指しの 1 回(`pnpm task <ドメイン>:<名前>`・人が名前を打った定期タスク)は毎回 core の taskRun ドメインの表 `task_runs` に 1 行残す(`src/features/core/taskRun/README.md`)。`pnpm task --due`(毎分の自動の回し)は記録しない。
+名指しの 1 回(`pnpm task <ドメイン>:<名前>`・人が名前を打った定期タスク)は毎回 core の taskRun ドメインの表 `task_runs` に 1 行残す(`src/domains/core/taskRun/README.md`)。`pnpm task --due`(毎分の自動の回し)は記録しない。
 
 - 記録 = 名前・種類・引数・開始と終了・結果・git の版と未コミットの印・実行者・段階・接続先(host と DB 名)・dry-run か・ファイルの中身のハッシュ
 - 走る前に `running` の行を書く。書けなければ走らせない(表が無い = `pnpm db:push` の案内)。DB が未設定なら止める
@@ -82,6 +82,6 @@ export const task: OneShotTask = {
 
 ## Related
 
-- 実行の記録の表: `src/features/core/taskRun/README.md`
+- 実行の記録の表: `src/domains/core/taskRun/README.md`
 - 定期タスク: `src/lib/cron/README.md`
 - ランナー: `scripts/runner/task/`

@@ -16,7 +16,7 @@
 //
 // 定期タスクは src/app/api/cron/<name>/task.ts を走査して読み込む（ここには書かない。API ルートと同じ定義を使う）。
 // 機能が閉じた定期タスク（住所 /api/cron/<name> を規則が閉じている。scripts/structure/cron/discover.ts の closedBy）は、--due でも名前指定でも飛ばす。
-// ワンショット・任意タスクはドメインの src/features/<ドメイン>/scripts/tasks/<名前>.ts、1 回きりの移行は scripts/migrations/<名前>.ts を走査する
+// ワンショット・任意タスクはドメインの src/domains/<ドメイン>/scripts/tasks/<名前>.ts、1 回きりの移行は scripts/migrations/<名前>.ts を走査する
 // （名前 = <ドメイン>:<名前>、src/lib/task/README.md）。
 //
 // 名指しの実行(ドメインのタスク・移行・定期タスク)は毎回 task_runs に記録し、止める鍵・結果不明・dry-run を効かせる（execute.ts、
@@ -74,11 +74,11 @@ function printList(cronTasks: LoadedCronTask[], oneShotTasks: OneShotTaskFile[])
     const overridden = task.overridden && !task.disabled ? " (task.override.ts)" : "";
     console.log(`  - ${task.name} [${task.schedule}]${overridden}${state}: ${task.description}`);
   }
-  console.log("\nDomain tasks (src/features/<domain>/scripts/tasks/<name>.ts):");
+  console.log("\nDomain tasks (src/domains/<domain>/scripts/tasks/<name>.ts):");
   for (const { name } of oneShotTasks.filter((task) => task.kind === "task")) {
     console.log(`  - ${name}`);
   }
-  console.log("\nMigrations, one-off (src/features/<domain>/scripts/migrations/<name>.ts, uncommitted <name>.local.ts):");
+  console.log("\nMigrations, one-off (src/domains/<domain>/scripts/migrations/<name>.ts, uncommitted <name>.local.ts):");
   for (const { name, local } of oneShotTasks.filter((task) => task.kind === "migration")) {
     console.log(`  - ${name} [migration${local ? ", local" : ""}]`);
   }

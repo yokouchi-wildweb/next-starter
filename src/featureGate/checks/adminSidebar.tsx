@@ -7,10 +7,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { clientGateState } from "@/featureGate";
 import { GateProvider } from "@/featureGate/client";
-import { useAdminMenu } from "@/features/core/admin/hooks/useAdminMenu";
-import type { AdminMenuBuiltCategory } from "@/features/core/admin/menu/types";
-import { AuthSessionContext } from "@/features/core/auth/components/AuthSessionContext";
-import type { SessionUser } from "@/features/core/auth/entities/session";
+import { useAdminMenu } from "@/domains/core/admin/hooks/useAdminMenu";
+import type { AdminMenuBuiltCategory } from "@/domains/core/admin/menu/types";
+import { AuthSessionContext } from "@/domains/core/auth/components/AuthSessionContext";
+import type { SessionUser } from "@/domains/core/auth/entities/session";
 
 function Probe({ onMenu }: { onMenu: (menu: AdminMenuBuiltCategory[]) => void }) {
   onMenu(useAdminMenu());

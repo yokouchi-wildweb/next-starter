@@ -1,7 +1,7 @@
 // src/app/api/auth/forgot-password/route.ts
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { sendPasswordResetLink } from "@/features/core/auth/services/server/sendPasswordResetLink";
+import { sendPasswordResetLink } from "@/domains/core/auth/services/server/sendPasswordResetLink";
 
 export const POST = createApiRoute(
   {

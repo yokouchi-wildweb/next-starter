@@ -13,7 +13,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { auditLogger } from "@/features/core/auditLog/services/server";
+import { auditLogger } from "@/domains/core/auditLog/services/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { createAgentSSEResponse } from "@/lib/ai/server";
 import { isDbAgentEnabled, runDbAgent } from "@/lib/dbAgent/server";

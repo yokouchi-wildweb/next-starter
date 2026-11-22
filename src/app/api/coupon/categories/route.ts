@@ -6,8 +6,8 @@
 import { createApiRoute } from "@/wiring/apiRoute";
 
 // 全ハンドラーの登録を保証
-import "@/features/core/coupon/handlers/init";
-import { getRegisteredCategoryInfoList } from "@/features/core/coupon/handlers";
+import "@/domains/core/coupon/handlers/init";
+import { getRegisteredCategoryInfoList } from "@/domains/core/coupon/handlers";
 
 export const GET = createApiRoute(
   {

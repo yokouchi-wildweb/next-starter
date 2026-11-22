@@ -9,36 +9,36 @@ import plugin, { matchDeprecated, normalizeImportSource } from "./deprecated-imp
 
 const paths = [
   {
-    from: "@/features/core/wallet/components/WalletBalancePage",
-    to: "@/features/core/wallet/components/WalletBalance",
+    from: "@/domains/core/wallet/components/WalletBalancePage",
+    to: "@/domains/core/wallet/components/WalletBalance",
     until: "checkpoint ui-layers-rename の次",
   },
   {
-    from: "@/features/core/user/components/UserMyPage/AccountDetails",
-    to: "@/features/core/user/components/AccountDetails",
+    from: "@/domains/core/user/components/UserMyPage/AccountDetails",
+    to: "@/domains/core/user/components/AccountDetails",
   },
 ];
 
 test("normalizeImportSource: core 省略形を core 付きに揃え、それ以外は触らない", () => {
-  assert.equal(normalizeImportSource("@/features/wallet/components/X"), "@/features/core/wallet/components/X");
-  assert.equal(normalizeImportSource("@/features/core/wallet/components/X"), "@/features/core/wallet/components/X");
-  assert.equal(normalizeImportSource("@/features/sample/components/X"), "@/features/core/sample/components/X");
+  assert.equal(normalizeImportSource("@/domains/wallet/components/X"), "@/domains/core/wallet/components/X");
+  assert.equal(normalizeImportSource("@/domains/core/wallet/components/X"), "@/domains/core/wallet/components/X");
+  assert.equal(normalizeImportSource("@/domains/sample/components/X"), "@/domains/core/sample/components/X");
   assert.equal(normalizeImportSource("@/lib/x"), "@/lib/x");
   assert.equal(normalizeImportSource("./x"), "./x");
 });
 
 test("matchDeprecated: 一致・配下・core 省略形を検出し、配下は相対部分を付け替えた候補を出す", () => {
-  assert.equal(matchDeprecated("@/features/core/wallet/components/WalletBalancePage", paths).replacement, "@/features/core/wallet/components/WalletBalance");
+  assert.equal(matchDeprecated("@/domains/core/wallet/components/WalletBalancePage", paths).replacement, "@/domains/core/wallet/components/WalletBalance");
   assert.equal(
-    matchDeprecated("@/features/core/wallet/components/WalletBalancePage/BalanceCard", paths).replacement,
-    "@/features/core/wallet/components/WalletBalance/BalanceCard",
+    matchDeprecated("@/domains/core/wallet/components/WalletBalancePage/BalanceCard", paths).replacement,
+    "@/domains/core/wallet/components/WalletBalance/BalanceCard",
   );
-  assert.equal(matchDeprecated("@/features/wallet/components/WalletBalancePage", paths).replacement, "@/features/core/wallet/components/WalletBalance");
-  assert.equal(matchDeprecated("@/features/core/user/components/UserMyPage/AccountDetails", paths).replacement, "@/features/core/user/components/AccountDetails");
+  assert.equal(matchDeprecated("@/domains/wallet/components/WalletBalancePage", paths).replacement, "@/domains/core/wallet/components/WalletBalance");
+  assert.equal(matchDeprecated("@/domains/core/user/components/UserMyPage/AccountDetails", paths).replacement, "@/domains/core/user/components/AccountDetails");
   // 前方一致だけでは誤検出: WalletBalancePageX は別物
-  assert.equal(matchDeprecated("@/features/core/wallet/components/WalletBalancePageX", paths), null);
-  assert.equal(matchDeprecated("@/features/core/wallet/components/WalletBalance", paths), null);
-  assert.equal(matchDeprecated("@/features/core/user/components/UserMyPage", paths), null);
+  assert.equal(matchDeprecated("@/domains/core/wallet/components/WalletBalancePageX", paths), null);
+  assert.equal(matchDeprecated("@/domains/core/wallet/components/WalletBalance", paths), null);
+  assert.equal(matchDeprecated("@/domains/core/user/components/UserMyPage", paths), null);
 });
 
 test("matchDeprecated: collapse は配下も検出し、候補は配下の道を付けずに to そのもの", () => {
@@ -63,34 +63,34 @@ const ruleTester = new RuleTester({
 test("rule: import / export from / dynamic import の旧パスを警告し、新パスは通す", () => {
   ruleTester.run("no-deprecated-path", plugin.rules["no-deprecated-path"], {
     valid: [
-      { code: `import { WalletBalance } from "@/features/core/wallet/components/WalletBalance";`, options: [{ paths }] },
-      { code: `import { BalanceCard } from "@/features/core/wallet/components/WalletBalance/BalanceCard";`, options: [{ paths }] },
-      { code: `import { X } from "@/features/core/wallet/components/WalletBalancePage";`, options: [{ paths: [] }] },
-      { code: `import { X } from "@/features/core/wallet/components/WalletBalancePage";` },
+      { code: `import { WalletBalance } from "@/domains/core/wallet/components/WalletBalance";`, options: [{ paths }] },
+      { code: `import { BalanceCard } from "@/domains/core/wallet/components/WalletBalance/BalanceCard";`, options: [{ paths }] },
+      { code: `import { X } from "@/domains/core/wallet/components/WalletBalancePage";`, options: [{ paths: [] }] },
+      { code: `import { X } from "@/domains/core/wallet/components/WalletBalancePage";` },
     ],
     invalid: [
       {
-        code: `import { WalletBalancePage } from "@/features/core/wallet/components/WalletBalancePage";`,
+        code: `import { WalletBalancePage } from "@/domains/core/wallet/components/WalletBalancePage";`,
         options: [{ paths }],
         errors: [{ messageId: "deprecated" }],
       },
       {
-        code: `import { BalanceCard } from "@/features/wallet/components/WalletBalancePage/BalanceCard";`,
+        code: `import { BalanceCard } from "@/domains/wallet/components/WalletBalancePage/BalanceCard";`,
         options: [{ paths }],
         errors: [{ messageId: "deprecated" }],
       },
       {
-        code: `export { BalanceCard } from "@/features/core/wallet/components/WalletBalancePage/BalanceCard";`,
+        code: `export { BalanceCard } from "@/domains/core/wallet/components/WalletBalancePage/BalanceCard";`,
         options: [{ paths }],
         errors: [{ messageId: "deprecated" }],
       },
       {
-        code: `export * from "@/features/core/wallet/components/WalletBalancePage";`,
+        code: `export * from "@/domains/core/wallet/components/WalletBalancePage";`,
         options: [{ paths }],
         errors: [{ messageId: "deprecated" }],
       },
       {
-        code: `const m = import("@/features/core/user/components/UserMyPage/AccountDetails");`,
+        code: `const m = import("@/domains/core/user/components/UserMyPage/AccountDetails");`,
         options: [{ paths }],
         errors: [{ messageId: "deprecated" }],
       },
@@ -255,7 +255,7 @@ test("config: lib の小物の移行(shelf-s3)の旧パスは置き換え先を�
     ["@/components/Functional/DarkModeSwitch", "@/lib/siteTheme"],
   ]) {
     const [result] = await eslint.lintText(`import * as X from "${from}";\nexport const y = X;\n`, {
-      filePath: path.join(repoRoot, "src/features/sample/components/X.tsx"),
+      filePath: path.join(repoRoot, "src/domains/sample/components/X.tsx"),
     });
     const hits = result.messages.filter((m) => m.ruleId === "deprecated-imports/no-deprecated-path");
     assert.equal(hits.length, 1, from);

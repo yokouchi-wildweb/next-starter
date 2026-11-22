@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { verifyPhoneOtp } from "@/features/core/phoneVerification/services/server";
+import { verifyPhoneOtp } from "@/domains/core/phoneVerification/services/server";
 
 /**
  * 電話番号OTP検証を実行し、DBを更新する

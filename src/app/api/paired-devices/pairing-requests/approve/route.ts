@@ -3,13 +3,13 @@
 // 管理側: 端末から始めたペアリングを承認し、既存の端末を割り当てる（deviceId）か、
 // その場で端末を登録する（device）。端末は次の確認で端末トークンを受け取る。
 
-import { ApproveDevicePairingSchema } from "@/features/pairedDevice/entities/schema";
+import { ApproveDevicePairingSchema } from "@/domains/pairedDevice/entities/schema";
 import {
   approveDevicePairing,
   checkPairedDeviceRateLimit,
   toPairedDeviceForAdmin,
   withPairedDeviceErrors,
-} from "@/features/pairedDevice/services/server";
+} from "@/domains/pairedDevice/services/server";
 import { DomainError } from "@/lib/errors";
 import { createApiRoute } from "@/wiring/apiRoute";
 

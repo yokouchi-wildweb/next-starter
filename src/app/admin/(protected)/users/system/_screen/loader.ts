@@ -10,10 +10,10 @@ import "server-only";
 
 import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens";
-import type { User } from "@/features/core/user/entities";
-import { settingService } from "@/features/core/setting/services/server/settingService";
-import { userService } from "@/features/core/user/services/server/userService";
-import { buildAdminUserListQuery } from "@/features/core/user/utils/adminUserListQuery";
+import type { User } from "@/domains/core/user/entities";
+import { settingService } from "@/domains/core/setting/services/server/settingService";
+import { userService } from "@/domains/core/user/services/server/userService";
+import { buildAdminUserListQuery } from "@/domains/core/user/utils/adminUserListQuery";
 import { createLoader } from "@/app/admin/(protected)/users/guard";
 
 export type AdminSystemUserListScreenData = {

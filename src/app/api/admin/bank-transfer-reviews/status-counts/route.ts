@@ -9,7 +9,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { bankTransferReviewService } from "@/features/bankTransferReview/services/server/bankTransferReviewService";
+import { bankTransferReviewService } from "@/domains/bankTransferReview/services/server/bankTransferReviewService";
 
 const QuerySchema = z.object({
   /** list 本体と同じ ILIKE 検索を適用するキーワード（任意） */

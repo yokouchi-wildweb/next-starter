@@ -37,7 +37,7 @@ const record = (name: string) => async (...args: unknown[]) => {
   if (refuse) throw new DomainError("送り直す失敗の配達がありません", { status: 409, code: "no_failed" });
   return { ok: name };
 };
-mock.module("@/features/core/messaging/services/server/messagingService", {
+mock.module("@/domains/core/messaging/services/server/messagingService", {
   namedExports: {
     messagingService: Object.fromEntries(
       ["findDispatch", "adminDeleteDispatch", "adminBulkDeleteDispatches", "adminDispatchDeleteSummary", "adminResendFailed"].map(

@@ -1,16 +1,16 @@
 // scripts/operations/legal/lib.ts — 法務の文書の初期化の道具の部品(pnpm ops legal from-example)
-// 上書き src/config/features/legal.config.ts を今の値から書き直す: 選んだ文書を例文の写しで own にし、他のキー(paymentMethods・licenses など)は残す。
+// 上書き src/config/domains/legal.config.ts を今の値から書き直す: 選んだ文書を例文の写しで own にし、他のキー(paymentMethods・licenses など)は残す。
 // 値はリテラルで書く(上書きの lint config-overrides/literal-only)。ファイルの注記は決まった頭に戻る(手で書いた注記は残らない)
 
 import type { LegalDocument } from "@/lib/structuredDocument";
-import type { LegalDocumentKind } from "@/features/legal/types";
+import type { LegalDocumentKind } from "@/domains/legal/types";
 
-export const LEGAL_OVERRIDE_FILE = "src/config/features/legal.config.ts";
+export const LEGAL_OVERRIDE_FILE = "src/config/domains/legal.config.ts";
 
-const HEADER = `// src/config/features/legal.config.ts
-// 法務の文書の設定の上書き(持ち主 src/features/core/legal/config.ts だけが読む)。値はリテラルで書く。キーと既定: 持ち主の config.ts
-// own の文書 = このプロジェクトの文面(例文は src/features/core/legal/examples/、変更履歴は examples/CHANGELOG.md)。形: src/features/core/legal/README.md
-import type { LegalOverride } from "@/features/legal/config";
+const HEADER = `// src/config/domains/legal.config.ts
+// 法務の文書の設定の上書き(持ち主 src/domains/core/legal/config.ts だけが読む)。値はリテラルで書く。キーと既定: 持ち主の config.ts
+// own の文書 = このプロジェクトの文面(例文は src/domains/core/legal/examples/、変更履歴は examples/CHANGELOG.md)。形: src/domains/core/legal/README.md
+import type { LegalOverride } from "@/domains/legal/config";
 `;
 
 type OverrideValue = Record<string, unknown> & { documents?: Partial<Record<LegalDocumentKind, { source: string }>> };

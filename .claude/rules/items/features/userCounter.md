@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/features/core/userCounter/**"
-  - "src/config/features/userCounter.config.ts"
+  - "src/domains/core/userCounter/**"
+  - "src/config/domains/userCounter.config.ts"
 ---
-# features/userCounter
-what: per-user atomic counters (user × key, lifetime + daily), the source of truth for "how many times did this user …"; entry @/features/userCounter/services/server/counterService (server only)
+# domains/userCounter
+what: per-user atomic counters (user × key, lifetime + daily), the source of truth for "how many times did this user …"; entry @/domains/userCounter/services/server/counterService (server only)
 use: userCounter
-change: placement → src/config/features/userCounter.config.ts
+change: placement → src/config/domains/userCounter.config.ts
 rules:
 using:
 - uc_gate: another domain that counts checks gate.enabled("userCounter") or declares requires (the feature-gate dependency check)

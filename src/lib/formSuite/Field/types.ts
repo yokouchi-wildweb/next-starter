@@ -46,7 +46,7 @@ export type MediaValidationRule = FileValidationRule & {
  * - fieldType は省ける(画面で手で組む設定は型を書かないことがある。domain.json では必須)
  * - 狭める物: formInput(組み込み + 登録した入力部品の名前)・options(値の型が決まった選択肢)・mediaTypePreset・validationRule(メディアの形)
  * - 足す物(画面でだけ使う値): purpose・onMetadataChange・async*
- * @see src/features/README.md - Field（フィールド定義）
+ * @see src/domains/README.md - Field（フィールド定義）
  */
 export type FieldConfig = Omit<DomainField, "fieldType" | "formInput" | "options" | "mediaTypePreset" | "validationRule"> & {
   /** データ型(表 fieldTypes.mjs の名前。手で組む設定では省ける) */

@@ -9,8 +9,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
-import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
-import { useLogout } from "@/features/core/auth/hooks/useLogout";
+import { useAuthSession } from "@/domains/core/auth/hooks/useAuthSession";
+import { useLogout } from "@/domains/core/auth/hooks/useLogout";
 
 import { userLayoutConfig } from "../config";
 import { userLayoutUiConfig } from "../config.ui";

@@ -1,7 +1,7 @@
 // scripts/runner/task/scan.mjs
 // ドメインのタスク・移行のファイルを走査する(一覧ファイルは持たない。ファイルは読み込まない)。
-// 置き場: src/features/<ドメイン>/scripts/tasks/<名前>.ts(繰り返しの運用・機能を有効にするたびの導入)と
-//         src/features/<ドメイン>/scripts/migrations/<名前>.ts(notice が名指す 1 回きり)。core のドメインは src/features/core/<ドメイン>/。
+// 置き場: src/domains/<ドメイン>/scripts/tasks/<名前>.ts(繰り返しの運用・機能を有効にするたびの導入)と
+//         src/domains/<ドメイン>/scripts/migrations/<名前>.ts(notice が名指す 1 回きり)。core のドメインは src/domains/core/<ドメイン>/。
 // 名前 = <ドメイン>:<名前>(ドメイン = フォルダ名。ドメインが違えば同じ <名前> でも衝突しない)。定期タスク(cron)は平らな名前のまま。
 // git に入れない移行 = scripts/migrations/<名前>.local.ts(local: true、名前は同じ <ドメイン>:<名前>。.gitignore の 1 行、src/lib/task/README.md)。
 // タスクでない物: *.test.*・lib.*(タスクの間で共有する部品)・下のフォルダ・scripts/tasks の .local.ts・.ts 以外。
@@ -13,8 +13,8 @@ import path from "node:path";
 
 import { classifyDottedName, oldMarkerProblem } from "../../../src/lib/districtMap/index.mjs";
 
-const FEATURES = "src/features";
-const CORE = "src/features/core";
+const FEATURES = "src/domains";
+const CORE = "src/domains/core";
 /** 種類 → ドメインの中の置き場 */
 export const TASK_PLACES = [
   { kind: "task", dir: "scripts/tasks" },
@@ -83,7 +83,7 @@ export function legacyProblems(repoRoot) {
   return files.map((e) => {
     const file = path.relative(repoRoot, path.join(e.parentPath ?? e.path, e.name)).split(path.sep).join("/");
     return (
-      `${file}: タスクの置き場 scripts/tasks は無くなりました。持ち主のドメインの src/features/<ドメイン>/scripts/tasks/<名前>.ts へ移し` +
+      `${file}: タスクの置き場 scripts/tasks は無くなりました。持ち主のドメインの src/domains/<ドメイン>/scripts/tasks/<名前>.ts へ移し` +
       `(notice が名指す 1 回きりの移行は scripts/migrations/)、task.name を "<ドメイン>:<名前>" にします(共有の部品は lib.<名前>.ts、型は @/lib/task)`
     );
   });

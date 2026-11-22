@@ -19,7 +19,7 @@
   - 3・4 はフレームごとに補正して並べ直す（全体にかけるとフレームの順番が逆になるため。ループ・コマ間隔は元の値を付け直す）
 - **アニメーション**: GIF / WebP はフレーム・ループ回数・コマ間隔・透過を保つ。APNG と動く AVIF は 1 枚目だけになる（静止画として保存）
 - **上限**: ヘッダーだけを読んで画素数を先に判定する。1 フレームの画素数（幅 × 高さ）が `maxFramePixels`、全フレームの合計が `maxTotalPixels` を超えたら `ImageStripError("too_large")`
-- 失敗: 実際の形式が申告と違う → `"type_mismatch"` / 読めない・処理できない → `"unprocessable"`。commit では行を deleted にして 422（[storageObject README](../../features/core/storageObject/README.md)）
+- 失敗: 実際の形式が申告と違う → `"type_mismatch"` / 読めない・処理できない → `"unprocessable"`。commit では行を deleted にして 422（[storageObject README](../../domains/core/storageObject/README.md)）
 - 値は `src/lib/storage/config.ts` の `imageStrip`(上書き `src/config/lib/storage.config.ts`)（fork が調整してよい）
 
 | キー | 既定 |

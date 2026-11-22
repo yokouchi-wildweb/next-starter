@@ -2,7 +2,7 @@
 // 入力部品の約束: id・aria-describedby・aria-invalid(FormControlA11yProps)を受け、フォーカスされる要素へ付ける。
 // 1) src/components/Input の入力部品(単位)を全部歩く(表に無い単位が増えると落ちる)
 // 2) 組み込みの formInput を全部、枠(ConfiguredField)に入れて歩く(Controlled 版が枠の値を渡すか)
-// (部品を包む core の picker UserAsyncCombobox / UserAsyncMultiSelect は features/core/user の userPickers.a11y.test.tsx)
+// (部品を包む core の picker UserAsyncCombobox / UserAsyncMultiSelect は domains/core/user の userPickers.a11y.test.tsx)
 // 実行: pnpm test src/lib/formSuite/a11yContract.test.tsx
 import assert from "node:assert/strict";
 import { test } from "node:test";

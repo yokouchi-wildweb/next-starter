@@ -4,8 +4,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { userService } from "@/features/core/user/services/server/userService";
-import { USER_ROLES } from "@/features/core/user/constants/role";
+import { userService } from "@/domains/core/user/services/server/userService";
+import { USER_ROLES } from "@/domains/core/user/constants/role";
 
 const ChangeRolePayloadSchema = z.object({
   role: z.enum(USER_ROLES),

@@ -30,7 +30,7 @@ Next.js アプリの**外側**にデプロイされる独立プログラムで�
 
 ### 新しいルーム (namespace) の追加手順
 
-1. **ルームロジックを書く**: `src/features/<domain>/room/definition.ts` に `RoomDefinition` を実装
+1. **ルームロジックを書く**: `src/domains/<domain>/room/definition.ts` に `RoomDefinition` を実装
    - reducer は純粋関数 (I/O・乱数・現在時刻の直接参照禁止。時刻は action payload で渡す)
    - import 制約は ESLint `realtime-room/purity` が強制 (相対 / protocol / import type のみ)
 2. **登録する**: `servers/room/src/registry.ts` (下流編集点) に namespace 名で登録
@@ -118,8 +118,8 @@ Worker 側の変更が無い回でも deploy は無害 (冪等)。「今回 serv
 - `src/registry.ts` + `wrangler.toml`: **下流編集点**
 - **wrangler.toml は有効化したフォークがコミットする** (vercel.json と同じ方式。secret は含まれず、
   Worker 名や vars のみなのでコミットして安全)。アップストリームは `.example` のみを出荷する
-- ルームロジック本体: `src/features/<domain>/room/` (ドメインに帰属、純度制約付き)
-- 境界: `servers/room → src` の import は `@/lib/realtimeRoom/node`(共有プロトコル)と `features/*/room` のみ。
+- ルームロジック本体: `src/domains/<domain>/room/` (ドメインに帰属、純度制約付き)
+- 境界: `servers/room → src` の import は `@/lib/realtimeRoom/node`(共有プロトコル)と `domains/*/room` のみ。
   `src → servers` の import は全面禁止
 - プロトコル互換性を壊す変更は `ROOM_PROTOCOL_VERSION` をインクリメントすること
 
@@ -146,7 +146,7 @@ Worker 側の変更が無い回でも deploy は無害 (冪等)。「今回 serv
   ▼
 Cloudflare Worker (servers/room)
   └─ RoomDurableObject (ns/roomId ごとに1個)
-       ・reducer (純粋関数) で状態遷移 ─── 実装は src/features/<domain>/room/
+       ・reducer (純粋関数) で状態遷移 ─── 実装は src/domains/<domain>/room/
        ・effects: event (一過性配信) / callback (アプリAPIへ署名付きPOST) / schedule (DO alarm で指定時刻に自己dispatch)
   ▲                                    │
   │ HTTP dispatch/getState             │ callback (room_callback トークン)

@@ -10,7 +10,7 @@
 import { gate } from "@/featureGate";
 import { DomainError } from "@/lib/errors";
 import { createApiRoute } from "@/wiring/apiRoute";
-import { messagingService } from "@/features/core/messaging/services/server/messagingService";
+import { messagingService } from "@/domains/core/messaging/services/server/messagingService";
 
 type Params = { key: string };
 

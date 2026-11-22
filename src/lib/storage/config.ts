@@ -5,7 +5,7 @@
 // - 公開(StoragePublicConfig): publicBaseUrl。上書きの関数の本体に env の NEXT_PUBLIC_* の字面(client ではビルド時に埋め込まれる)
 // - server だけ(StorageServerConfig): stores の bucket / prefix。./server(server/stores.ts)の中でだけ呼ぶ
 // 上書きは src/config/lib/storage.config.ts(@lib-config/storage)。置き方: src/lib/README.md「設定の届け方」。合成: @/lib/defineConfig
-// 発行期限・掃除などの台帳の値は持ち主 src/features/core/storageObject/config.ts(上書き src/config/features/storageObject.config.ts)
+// 発行期限・掃除などの台帳の値は持ち主 src/domains/core/storageObject/config.ts(上書き src/config/domains/storageObject.config.ts)
 
 import { defineConfig, type OverrideOf } from "@/lib/defineConfig";
 import override from "@lib-config/storage";

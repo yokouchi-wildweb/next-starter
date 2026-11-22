@@ -12,7 +12,7 @@ import { Button } from "@/components/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { ScreenLoader } from "@/components/Overlays/Loading";
 import { Para } from "@/components/TextBlocks/Para";
-import { useSignupComplete } from "@/features/core/auth/hooks/useSignupComplete";
+import { useSignupComplete } from "@/domains/core/auth/hooks/useSignupComplete";
 
 export function SignupCompleteSection() {
   const { isChecking } = useSignupComplete();

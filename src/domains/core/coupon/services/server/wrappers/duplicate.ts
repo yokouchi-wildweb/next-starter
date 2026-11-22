@@ -1,0 +1,37 @@
+// src/domains/core/coupon/services/server/wrappers/duplicate.ts
+
+import { base, storageBinding } from "../drizzleBase";
+import { generateCouponCode } from "../../../utils/generateCode";
+
+export async function duplicate(id: string): Promise<Record<string, unknown>> {
+  const record = await base.get(id);
+  if (!record) {
+    throw new Error(`Record not found: ${id}`);
+  }
+
+  const {
+    id: _id,
+    createdAt: _createdAt,
+    updatedAt: _updatedAt,
+    ...rest
+  } = record;
+
+  const newData: Record<string, unknown> = { ...rest };
+
+  // nameフィールドがあれば「_コピー」を追加
+  if (typeof newData.name === "string") {
+    newData.name = `${newData.name}_コピー`;
+  }
+
+  // クーポン固有: 新しいコードを生成
+  newData.code = generateCouponCode();
+
+  // クーポン固有: 使用回数をリセット
+  newData.current_total_uses = 0;
+
+  // 画像は copy で新しい ref にする（1 件でも失敗したら throw して複製全体を失敗にする）。
+  // 業務 TX の外で先に済ませ、紐付けは base.create（storage binding）が同じ TX で行う
+  const copiedValues = await storageBinding.duplicateValues(record);
+
+  return base.create({ ...newData, ...copiedValues } as Parameters<typeof base.create>[0]);
+}

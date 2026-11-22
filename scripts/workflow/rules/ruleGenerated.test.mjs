@@ -12,31 +12,31 @@ test("印: 先頭 5 行の印の語だけを見る", () => {
 });
 
 test("ドメインの雛形: 作り直しの対象のドメインの名で埋める({route} も全部の画面には広げない)", () => {
-  assert.deepEqual(expandDomainGlob("{dir}/hooks/use{Pascal}.ts", [{ dir: "src/features/fooBar" }, { dir: "src/features/core/baz" }]), [
-    "src/features/fooBar/hooks/useFooBar.ts",
-    "src/features/core/baz/hooks/useBaz.ts",
+  assert.deepEqual(expandDomainGlob("{dir}/hooks/use{Pascal}.ts", [{ dir: "src/domains/fooBar" }, { dir: "src/domains/core/baz" }]), [
+    "src/domains/fooBar/hooks/useFooBar.ts",
+    "src/domains/core/baz/hooks/useBaz.ts",
   ]);
-  const [route] = expandDomainGlob("src/app/admin/(protected)/{route}/_screen/loader.ts", [{ dir: "src/features/fooBar" }]);
+  const [route] = expandDomainGlob("src/app/admin/(protected)/{route}/_screen/loader.ts", [{ dir: "src/domains/fooBar" }]);
   assert.ok(!route.includes("*") && !route.includes("{"), route);
   assert.deepEqual(expandDomainGlob("src/registry/x.ts", []), ["src/registry/x.ts"]);
 });
 
 test("出力の宣言 → ファイル: 文字列は every-run、generate:false のドメインのファイルは入らない", () => {
   const gates = [
-    { gate: "structure/registry", outputs: ["src/registry/a.ts", { glob: "src/features/**/messages/*.ts", kind: "write-once" }] },
+    { gate: "structure/registry", outputs: ["src/registry/a.ts", { glob: "src/domains/**/messages/*.ts", kind: "write-once" }] },
     { gate: "structure/domain", outputs: [{ glob: "{dir}/entities/schema.ts", kind: "every-run" }] },
   ];
-  const files = ["src/registry/a.ts", "src/features/a/entities/schema.ts", "src/features/off/entities/schema.ts", "src/features/a/messages/m.ts"];
-  const out = outputFiles(gates, files, [{ dir: "src/features/a" }]);
+  const files = ["src/registry/a.ts", "src/domains/a/entities/schema.ts", "src/domains/off/entities/schema.ts", "src/domains/a/messages/m.ts"];
+  const out = outputFiles(gates, files, [{ dir: "src/domains/a" }]);
   assert.deepEqual(out.map((e) => [e.glob, e.kind, e.domain, e.files]), [
     ["src/registry/a.ts", "every-run", false, ["src/registry/a.ts"]],
-    ["src/features/**/messages/*.ts", "write-once", false, ["src/features/a/messages/m.ts"]],
-    ["{dir}/entities/schema.ts", "every-run", true, ["src/features/a/entities/schema.ts"]],
+    ["src/domains/**/messages/*.ts", "write-once", false, ["src/domains/a/messages/m.ts"]],
+    ["{dir}/entities/schema.ts", "every-run", true, ["src/domains/a/entities/schema.ts"]],
   ]);
   assert.equal(outputFiles([{ gate: "g", outputs: "x" }], [], [])[0].problems.length, 1);
 });
 
 test("generated の paths に当たらない宣言を挙げる", () => {
   const entries = [{ glob: "src/registry/a.ts" }, { glob: "{dir}/entities/schema.ts" }, { glob: "src/lib/x/generated/y.ts" }];
-  assert.deepEqual(outputsOutsidePaths(entries, ["src/registry/**", "src/features/**"]).map((e) => e.glob), ["src/lib/x/generated/y.ts"]);
+  assert.deepEqual(outputsOutsidePaths(entries, ["src/registry/**", "src/domains/**"]).map((e) => e.glob), ["src/lib/x/generated/y.ts"]);
 });

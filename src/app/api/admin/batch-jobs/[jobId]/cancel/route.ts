@@ -1,7 +1,7 @@
 // src/app/api/admin/batch-jobs/[jobId]/cancel/route.ts
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { batchJobService } from "@/features/batchJob/services/server";
+import { batchJobService } from "@/domains/batchJob/services/server";
 
 type RouteParams = { jobId: string };
 

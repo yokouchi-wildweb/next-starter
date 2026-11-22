@@ -1,0 +1,27 @@
+// src/domains/core/adminCommand/navigationItems/admin.ts
+
+import type { NavigationItemGroup } from "../types";
+
+export const items: NavigationItemGroup = [
+  {
+    id: "nav-admin-home",
+    label: "管理画面トップ (admin)",
+    description: "管理画面のトップページに移動",
+    href: "/admin",
+    keywords: ["dashboard", "ダッシュボード"],
+  },
+  {
+    id: "nav-admin-users-general",
+    label: "ユーザー一覧 (users)",
+    description: "一般ユーザーの管理",
+    href: "/admin/users/general",
+    keywords: ["user", "general", "一般"],
+  },
+  {
+    id: "nav-admin-settings",
+    label: "システム設定 (settings)",
+    description: "アプリケーションの設定",
+    href: "/admin/settings",
+    keywords: ["setting", "config", "設定"],
+  },
+];

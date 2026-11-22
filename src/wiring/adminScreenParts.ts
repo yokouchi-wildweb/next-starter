@@ -1,5 +1,5 @@
 // src/wiring/adminScreenParts.ts
-// 管理画面の共通部品の組。登録表（src/registry/serviceRegistry.ts）と features/core/admin の取得本体を結ぶ。
+// 管理画面の共通部品の組。登録表（src/registry/serviceRegistry.ts）と domains/core/admin の取得本体を結ぶ。
 //
 // import してよい場所: 各ルートの _screen/loader.ts（一覧と向きは src/wiring/README.md）。
 // サービスは遅延読み込みなので、このファイルを import しても各ドメインのサービス・DB 接続は読み込まれない。
@@ -12,20 +12,20 @@ import {
   type AdminEditService,
   type AdminEditScreenParams,
   type AdminEditScreenSearchParams,
-} from "@/features/core/admin/services/server/screenData/adminEdit";
+} from "@/domains/core/admin/services/server/screenData/adminEdit";
 import {
   fetchAdminList,
   type AdminListScreenData,
   type AdminListService,
   type AdminListSearchOptions,
-} from "@/features/core/admin/services/server/screenData/adminList";
+} from "@/domains/core/admin/services/server/screenData/adminList";
 import {
   fetchAdminRelationOptions,
   type AdminRelationOptionsConfig,
   type AdminRelationOptionsFallback,
   type AdminRelationTarget,
-} from "@/features/core/admin/services/server/screenData/adminRelationOptions";
-import { fetchAdminSort, type AdminSortScreenData, type AdminSortService } from "@/features/core/admin/services/server/screenData/adminSort";
+} from "@/domains/core/admin/services/server/screenData/adminRelationOptions";
+import { fetchAdminSort, type AdminSortScreenData, type AdminSortService } from "@/domains/core/admin/services/server/screenData/adminSort";
 
 import type { ListPageSearchParams } from "@/lib/crud";
 import { resolveAccessRule } from "@/lib/domain";
@@ -36,7 +36,7 @@ import { serviceRegistry } from "@/registry/serviceRegistry";
 import { toCamelCase } from "@/lib/stringCase/index.mjs";
 
 // access は汎用 API（createDomainRoute）と同じく serviceRegistry の entry から resolveAccessRule で操作ごとに解く。
-// 取得本体は features/core/admin の screenData（service は外から受ける）。loader.ts の書き方: src/features/core/admin/services/server/screenData/README.md
+// 取得本体は domains/core/admin の screenData（service は外から受ける）。loader.ts の書き方: src/domains/core/admin/services/server/screenData/README.md
 
 /** 管理画面の組の型（利用者の型は見ないので unknown。createLoader に渡すと範囲の利用者の型で評価される） */
 type AdminParts<TProps, TKey extends readonly LoaderKeyValue[], TData> = PageLoaderConfig<TProps, TKey, TData, unknown>;

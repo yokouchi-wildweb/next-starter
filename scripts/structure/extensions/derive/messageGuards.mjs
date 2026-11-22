@@ -9,7 +9,7 @@
 // - layout(全部の定義に必須、D122): リテラルで、レイアウトの受け口(messaging の点 layouts)のフォルダの名前のどれか。欄の中身(values)は
 //   レイアウトの欄の zod で実行時に検査する(lib/messaging validateMessageDefinition)
 // - required の定義: カテゴリーの送信チャンネルに "email" がある・adminEditableOnly が空・throttle が無い
-// - 上流(src/features/core)の functional のカテゴリーの連絡: 上書きで enabled: false にしない(D68)
+// - 上流(src/domains/core)の functional のカテゴリーの連絡: 上書きで enabled: false にしない(D68)
 // - カテゴリーの上書き(categories/<名前>.override.ts): functional・security のカテゴリーの channels から "email" を外さない(D86)。
 //   group は categoryGroups の受け口の鍵で、1 つのグループのカテゴリーは同じ種別(D82)
 // 種別の性質(emailFixed・upstreamDisable)は src/lib/messaging/definition/kinds.ts の MESSAGE_KIND_TRAITS を字面で読む(表は 1 か所)。
@@ -27,10 +27,10 @@ import { literalOf, isOverridePath, overrideGlobOf } from "../../../../src/lib/d
 /** 守りを当てる点(持ち主のフォルダ・点の名前) */
 export const MESSAGE_POINT = { owner: "src/lib/messaging", name: "messages" };
 /** 配信停止のカテゴリーの点(項目の鍵 = category に書ける値)とグループの点 */
-export const CATEGORY_POINT = { owner: "src/features/core/messaging", name: "categories" };
-export const CATEGORY_GROUP_POINT = { owner: "src/features/core/messaging", name: "categoryGroups" };
+export const CATEGORY_POINT = { owner: "src/domains/core/messaging", name: "categories" };
+export const CATEGORY_GROUP_POINT = { owner: "src/domains/core/messaging", name: "categoryGroups" };
 /** レイアウトの点(layouts/<名前>/layout.ts のフォルダの名前 = layout に書ける値) */
-export const LAYOUT_POINT = { owner: "src/features/core/messaging", name: "layouts" };
+export const LAYOUT_POINT = { owner: "src/domains/core/messaging", name: "layouts" };
 /** 種別の性質の表 */
 const KIND_TRAITS_FILE = "src/lib/messaging/definition/kinds.ts";
 /** 定義の export の名前(export const message = defineMessage({ … })) */
@@ -312,7 +312,7 @@ export function checkMessageGuards(repoRoot, points, files) {
     }
     // 上流の functional の連絡は止められない(fork の自分の連絡は自由、D68)。required の連絡は下の守りが言う
     const isRequired = readLiteralProperty(definition, "required").value === true;
-    if (!isRequired && hasOverride && categoryItem && traits.noUpstreamDisable.has(categoryItem.kind) && path.startsWith("src/features/core/")) {
+    if (!isRequired && hasOverride && categoryItem && traits.noUpstreamDisable.has(categoryItem.kind) && path.startsWith("src/domains/core/")) {
       const enabled = overrideObject ? readLiteralProperty(overrideObject, "enabled") : { present: false };
       if (enabled.problem) problems.push(`${ownOverride}: ${enabled.problem}(上流の ${categoryItem.kind} の連絡のため)`);
       else if (enabled.present && enabled.value !== true) {

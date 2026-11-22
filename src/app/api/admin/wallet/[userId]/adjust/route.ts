@@ -4,13 +4,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { resolveAdminAdjustReason } from "@/features/core/wallet/services/server/wrappers/reasonKey";
-import { walletConfig, type WalletType } from "@/features/wallet/config";
-import { REASON_CATEGORY_VALUES } from "@/features/walletHistory/config";
-import { walletService } from "@/features/core/wallet/services/server/walletService";
-import { sendAdjustmentNotification } from "@/features/core/wallet/services/server/notification/sendAdjustmentNotification";
-import type { WalletAdjustRequestPayload } from "@/features/core/wallet/services/types";
-import { WalletHistoryMetaSchema } from "@/features/core/walletHistory/entities/schema";
+import { resolveAdminAdjustReason } from "@/domains/core/wallet/services/server/wrappers/reasonKey";
+import { walletConfig, type WalletType } from "@/domains/wallet/config";
+import { REASON_CATEGORY_VALUES } from "@/domains/walletHistory/config";
+import { walletService } from "@/domains/core/wallet/services/server/walletService";
+import { sendAdjustmentNotification } from "@/domains/core/wallet/services/server/notification/sendAdjustmentNotification";
+import type { WalletAdjustRequestPayload } from "@/domains/core/wallet/services/types";
+import { WalletHistoryMetaSchema } from "@/domains/core/walletHistory/entities/schema";
 
 type Params = { userId: string };
 

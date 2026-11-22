@@ -6,8 +6,8 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { userService } from "@/features/core/user/services/server/userService";
-import type { SearchWithProfileParams } from "@/features/core/user/services/server/wrappers/searchWithProfile";
+import { userService } from "@/domains/core/user/services/server/userService";
+import type { SearchWithProfileParams } from "@/domains/core/user/services/server/wrappers/searchWithProfile";
 
 import {
   BadRequestError,

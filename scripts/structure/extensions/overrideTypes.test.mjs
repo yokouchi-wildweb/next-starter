@@ -36,8 +36,8 @@ function diagnose(probe, edits = {}, of = null) {
 }
 
 const HEAD = `type Eq<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
-import type { CoreRoleOverride, RoleOverride } from "@/features/core/user/types/role";
-import type { ProfileOverride } from "@/features/core/userProfile/types";
+import type { CoreRoleOverride, RoleOverride } from "@/domains/core/user/types/role";
+import type { ProfileOverride } from "@/domains/core/userProfile/types";
 import type { CronTaskOverride } from "@/lib/cron";
 import type { DomainEntryOverrides } from "@/lib/domain";
 import type { DomainApiAccessConfig } from "@/lib/domainAccess";
@@ -54,7 +54,7 @@ export const entry: Eq<DomainEntryOverrides[string], DomainApiAccessConfig> = tr
   assert.deepEqual(diagnose(probe), []);
 });
 
-const USER = "src/features/core/user/extensionPoints.ts";
+const USER = "src/domains/core/user/extensionPoints.ts";
 const CRON = "src/lib/cron/extensionPoints.ts";
 const edit = (path, from, to) => {
   const text = readFileSync(join(repoRoot, path), "utf8");

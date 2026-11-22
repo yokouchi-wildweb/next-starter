@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/features/core/analytics/**"
-  - "src/config/features/analytics.config.ts"
+  - "src/domains/core/analytics/**"
+  - "src/config/domains/analytics.config.ts"
 ---
-# features/analytics
+# domains/analytics
 what: read-only aggregation over other domains (services, admin API /api/admin/analytics/**, DAU, daily rollups); no admin page upstream, forks build screens
 use: analytics (also paymentAnalytics, walletAnalytics, messagingAnalytics)
-change: add → rollupMetrics / coinIssuanceSources / exclusionProviders (extensionPoints.ts) | placement → src/config/features/analytics.config.ts
+change: add → rollupMetrics / coinIssuanceSources / exclusionProviders (extensionPoints.ts) | placement → src/config/domains/analytics.config.ts
 rules:
 using:
 - db_side_aggregation: → core/services.md db_aggregation (aggregation.ts holds changeRate only)
@@ -24,4 +24,4 @@ editing:
 - builtin_no_cache: built-in APIs stay outside withAnalyticsCache
 - gate_assert: exported purchase / wallet aggregators start with gate.assert("payment" | "wallet")
 - no_default_buckets: no upstream default boundaries / DAU bands (callers pass them)
-read: query params, DAU, wallet axes → API | add a service → Usage | cache, user filter → Internals | rollups → src/features/core/analytics/rollupMetrics/README.md Usage | coin issuance → src/features/core/analytics/services/server/coinIssuance/README.md Usage | exclusions, messaging → Related
+read: query params, DAU, wallet axes → API | add a service → Usage | cache, user filter → Internals | rollups → src/domains/core/analytics/rollupMetrics/README.md Usage | coin issuance → src/domains/core/analytics/services/server/coinIssuance/README.md Usage | exclusions, messaging → Related

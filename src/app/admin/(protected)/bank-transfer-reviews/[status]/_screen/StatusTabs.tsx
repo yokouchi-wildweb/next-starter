@@ -9,10 +9,10 @@
 import { useMemo } from "react";
 
 import { SolidTabs, type PageTabItem } from "@/components/Navigation/PageTab";
-import type { BankTransferReviewStatus } from "@/features/core/bankTransferReview";
+import type { BankTransferReviewStatus } from "@/domains/core/bankTransferReview";
 
-import { STATUS_SLUG_BY_VALUE } from "@/features/core/bankTransferReview/constants/statusSlug";
-import { useAdminBankTransferReviewStatusCounts } from "@/features/core/bankTransferReview/hooks/useAdminBankTransferReviewStatusCounts";
+import { STATUS_SLUG_BY_VALUE } from "@/domains/core/bankTransferReview/constants/statusSlug";
+import { useAdminBankTransferReviewStatusCounts } from "@/domains/core/bankTransferReview/hooks/useAdminBankTransferReviewStatusCounts";
 
 const BASE_PATH = "/admin/bank-transfer-reviews";
 

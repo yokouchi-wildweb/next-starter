@@ -5,7 +5,7 @@ import { AUDIT_LOGGER_IMPORT, auditLiteral, isAuditActive } from "../../spec/aud
 
 export function buildStorageBindingImport(mediaFields) {
   if (mediaFields.length === 0) return "";
-  return 'import { storageBindingFor } from "@/features/core/storageObject/services/server/crudBinding";\n';
+  return 'import { storageBindingFor } from "@/domains/core/storageObject/services/server/crudBinding";\n';
 }
 
 /**

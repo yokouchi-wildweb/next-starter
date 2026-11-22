@@ -1,0 +1,235 @@
+// src/domains/user/components/admin/ManagerialUserList/Table.tsx
+
+"use client";
+
+import { useCallback, useMemo, useState } from "react";
+import { useRouter } from "@/lib/unsavedGuard";
+
+import { BulkActionItems, DataTable, RecordSelectionTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
+import { useUserAdminBulkActions } from "@/domains/core/user/hooks/useUserAdminBulkActions";
+import { EditButton } from "@/lib/crud";
+import { Button } from "@/components/Button/Button";
+import Dialog from "@/components/Overlays/Dialog";
+import type { User } from "@/domains/core/user/entities";
+import { adminConfig } from "@/domains/admin/config";
+import presenters from "@/domains/core/user/presenters";
+import AdminWalletAdjustModal from "@/domains/core/wallet/components/AdminWalletAdjustModal";
+import AdminUserManageModal from "@/domains/core/user/components/admin/AdminUserManageModal";
+import { UserAdminMemoCell } from "@/domains/core/user/components/common/UserAdminMemoCell";
+import { userConfig } from "@/domains/user/config";
+import { walletConfig } from "@/domains/wallet/config";
+import { useGate } from "@/featureGate/client";
+import { useSoftDeleteUser } from "@/domains/core/user/hooks/useSoftDeleteUser";
+import { useToast } from "@/lib/toast";
+import { err } from "@/lib/errors";
+import { domainDisplay as userDisplay } from "@/domains/core/user/entities/display";
+
+type Props = {
+  users: User[];
+  editBasePath: string;
+};
+
+const { dataTable } = adminConfig;
+const adminDataTableFallback = dataTable.emptyFieldFallback ?? "(未設定)";
+
+const createColumns = (
+  editBasePath: string,
+  onAdjust: (user: User) => void,
+  onManage: (user: User) => void,
+  onDelete: (user: User) => void,
+  enableWalletAdjust: boolean,
+  enableUserManagement: boolean,
+  enableUserMemo: boolean,
+  isMutating: boolean,
+): DataTableColumn<User>[] => {
+  const columns: DataTableColumn<User>[] = [
+  {
+    header: "状態",
+    render: (user) =>
+      presenters.status({
+        value: user.status,
+        field: "status",
+        record: user,
+      }),
+  },
+  {
+    header: "ロール",
+    render: (user) =>
+      presenters.role({
+        value: user.role,
+        field: "role",
+        record: user,
+      }),
+  },
+  {
+    header: "表示名",
+    render: (user) =>
+      presenters.name({
+        value: user.name,
+        field: "name",
+        record: user,
+      }),
+  },
+  {
+    header: "メールアドレス",
+    render: (user) =>
+      presenters.email({
+        value: user.email,
+        field: "email",
+        record: user,
+      }),
+  },
+  {
+    header: "最終ログイン",
+    render: (user) =>
+      presenters.lastAuthenticatedAt({
+        value: user.lastAuthenticatedAt,
+        field: "lastAuthenticatedAt",
+        record: user,
+      }),
+  },
+  ];
+
+  if (enableUserMemo) {
+    columns.push({
+      header: "メモ",
+      render: (user) => <UserAdminMemoCell userId={user.id} memo={user.adminMemo} />,
+    });
+  }
+
+  columns.push({
+    header: "操作",
+    render: (user) => (
+      <TableCellAction>
+        {enableWalletAdjust ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => onAdjust(user)}
+          >
+            ポイント操作
+          </Button>
+        ) : null}
+        {enableUserManagement ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="primary"
+            onClick={() => onManage(user)}
+          >
+            管理
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            variant="destructive"
+            onClick={() => onDelete(user)}
+            disabled={isMutating}
+          >
+            {isMutating ? "削除中..." : "削除"}
+          </Button>
+        )}
+        <EditButton domain={userDisplay} id={user.id} href={`${editBasePath}/${user.id}/edit`} />
+      </TableCellAction>
+    ),
+  });
+
+  return columns;
+};
+
+export default function ManagerialUserListTable({ users, editBasePath }: Props) {
+  const [adjustTarget, setAdjustTarget] = useState<User | null>(null);
+  const [manageTarget, setManageTarget] = useState<User | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+
+  const router = useRouter();
+  const { showToast } = useToast();
+  const { trigger: triggerDelete, isMutating } = useSoftDeleteUser();
+
+  const enableWalletAdjust = useGate().enabled("wallet") && walletConfig.enableAdminBalanceAdjust;
+  const enableUserManagement = userConfig.enableUserManagement;
+  const enableUserMemo = userConfig.enableUserMemo;
+  const { enableSelectionTable, selectionBehavior, selectionMode } = userConfig.userListPage;
+  const useSelectionTable = enableSelectionTable.managerial;
+  // 一括操作: 受け口 adminBulkActions の項目(上流の既定 + fork の項目。D149)
+  const bulkActionItems = useUserAdminBulkActions("managerial");
+
+  const handleOpenAdjust = useCallback((user: User) => setAdjustTarget(user), []);
+  const handleCloseAdjust = useCallback(() => setAdjustTarget(null), []);
+
+  const handleOpenManage = useCallback((user: User) => setManageTarget(user), []);
+  const handleCloseManage = useCallback(() => setManageTarget(null), []);
+
+  const handleOpenDelete = useCallback((user: User) => setDeleteTarget(user), []);
+  const handleCloseDelete = useCallback(() => setDeleteTarget(null), []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+
+    try {
+      await triggerDelete({ userId: deleteTarget.id });
+      showToast("ユーザーを削除しました", "success");
+      handleCloseDelete();
+      router.refresh();
+    } catch (error) {
+      showToast(err(error, "ユーザーの削除に失敗しました"), "error");
+    }
+  }, [deleteTarget, triggerDelete, showToast, handleCloseDelete, router]);
+
+  const columns = useMemo(
+    () => createColumns(
+      editBasePath,
+      handleOpenAdjust,
+      handleOpenManage,
+      handleOpenDelete,
+      enableWalletAdjust,
+      enableUserManagement,
+      enableUserMemo,
+      isMutating,
+    ),
+    [editBasePath, handleOpenAdjust, handleOpenManage, handleOpenDelete, enableWalletAdjust, enableUserManagement, enableUserMemo, isMutating],
+  );
+
+  return (
+    <>
+      {useSelectionTable ? (
+        <RecordSelectionTable
+          items={users}
+          columns={columns}
+          getKey={(user) => user.id}
+          emptyValueFallback={adminDataTableFallback}
+          selectionBehavior={selectionBehavior}
+          selectionMode={selectionMode}
+          bulkActions={(selection) => <BulkActionItems items={bulkActionItems} selection={selection} />}
+        />
+      ) : (
+        <DataTable
+          items={users}
+          columns={columns}
+          getKey={(user) => user.id}
+          emptyValueFallback={adminDataTableFallback}
+        />
+      )}
+      {enableWalletAdjust ? (
+        <AdminWalletAdjustModal open={Boolean(adjustTarget)} user={adjustTarget} onClose={handleCloseAdjust} />
+      ) : null}
+      {enableUserManagement ? (
+        <AdminUserManageModal open={Boolean(manageTarget)} user={manageTarget} onClose={handleCloseManage} />
+      ) : (
+        <Dialog
+          open={Boolean(deleteTarget)}
+          onOpenChange={(open) => !open && handleCloseDelete()}
+          title="ユーザー削除"
+          description={`${deleteTarget?.name ?? deleteTarget?.email ?? "このユーザー"} を削除します。削除されたユーザーはログインできなくなります。`}
+          confirmLabel="削除する"
+          cancelLabel="キャンセル"
+          onConfirm={handleConfirmDelete}
+          confirmDisabled={isMutating}
+          confirmVariant="destructive"
+        />
+      )}
+    </>
+  );
+}

@@ -89,7 +89,7 @@ export function makeParent({ withIntake = true, withLineage = false } = {}) {
   write(root, "repo.json", repoJson(PARENT_ID, "root"));
   write(root, "src/lib/crud/index.ts", "export const crud = 1;\n");
   write(root, "src/config/app.config.ts", "export const app = { name: 'base' };\n");
-  write(root, "src/features/core/user/user.ts", "export const user = 1;\n");
+  write(root, "src/domains/core/user/user.ts", "export const user = 1;\n");
   write(root, ".notices/README.md", "# notices\n");
   write(root, ".notices/20260101-000000-inherited.md", "# DOWNSTREAM NOTICE id:20260101-000000-inherited\n");
   if (withIntake) {
@@ -114,7 +114,7 @@ export function makeFork(parent) {
   git(openedTmp(), "clone", "-q", parent, root);
   git(root, "remote", "rename", "origin", "upstream");
   git(root, "remote", "add", "origin", `git@github.com:acme/child.git`);
-  write(root, "src/features/game/game.ts", "export const game = 1;\n");
+  write(root, "src/domains/game/game.ts", "export const game = 1;\n");
   write(root, "repo.json", repoJson(FORK_ID, "middle"));
   // 台帳の初めの行: 取り込んだ上流(Tier1)の版を upstream: に(D29)
   write(root, `.notices/applied/${FORK_ID}.md`, `# APPLIED LEDGER\n- id:fork-init | date:x | commit:- | upstream:${git(root, "rev-parse", "upstream/main").trim()} | notes:-\n`);

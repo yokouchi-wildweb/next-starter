@@ -185,7 +185,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
   1. A(fork が足した)→ `added`。ただし次は違反(上から順に)
      - 上流の単位のフォルダの中 → `inside-unit-add`。単位 = 部品の棚(基準の `src/components/<分類>`・`src/hooks`・`src/utils`・`src/lib`)の直下の項目(ファイルかフォルダ)で、基準でフォルダの単位(`src/components/<分類>/<単位>/`・祖先の lib `src/lib/<name>/` など)の中に足したファイルが当たる。自分の単位・自分の lib に置く(lib なら re-export)。上流の物かどうかは基準の git だけで決まるので、`folderCatalog` の目録は使わない
      - 分類の直下の新しい単位(ファイルかフォルダ)・`src/hooks`・`src/utils` の新しいファイル・新しい `src/lib/<name>/`・fork の分類・分類の外の `src/components` 直下は `added`
-     - 基準に `src/features/core/` があり、足したパスがその中で受け口(`intake.txt` の debt 以外の行)に当たらない → `core-add`(fork のドメインは `src/features/<x>/`、画面の部品は route の `_components/`)
+     - 基準に `src/domains/core/` があり、足したパスがその中で受け口(`intake.txt` の debt 以外の行)に当たらない → `core-add`(fork のドメインは `src/domains/<x>/`、画面の部品は route の `_components/`)
      - 基準に `src/featureGate/`(門番)があり、足したパスがその中で受け口に当たらない → `gate-add`(足せるのは `rules/`・`alwaysOnExceptions/`・`required/` の `<名前>.ts`)
      - 基準に `.claude/rules/core/` があり、足したパスがその中 → `rules-core-add`(自分の決まりは `.claude/rules/` の `core/` の外に印なしの名前で、自分の品目の札は `.claude/rules/items/`。受け口の行は効かない)
      - 検査する場所への追加で、単位名が基準のファイルと同じ → `unit-clash`(`x.ts` と `x.tsx`、ファイルとフォルダの組。部品の棚では直下の項目の名前で比べる。別の名前にするか、丸ごと置き換えは `<名前>.replace`)。見つけて知らせるだけで、足すのを前もって止める仕組みは無い
@@ -307,9 +307,9 @@ src/lib/cron/config.ts
 ```
 
 ```json
-{ "path": "src/features/core/user/roles/editor.role.json", "owner": { "kind": "tier1", "tier": "tier1" },
-  "type": "2", "keys": ["label", "hasProfile", "enabled"], "write": "src/features/core/user/roles/editor.role.override.ts",
-  "source": "src/features/core/user/extensionPoints.ts roleDefinitions", "allowed": [...], "blocked": [], "evidence": {...} }
+{ "path": "src/domains/core/user/roles/editor.role.json", "owner": { "kind": "tier1", "tier": "tier1" },
+  "type": "2", "keys": ["label", "hasProfile", "enabled"], "write": "src/domains/core/user/roles/editor.role.override.ts",
+  "source": "src/domains/core/user/extensionPoints.ts roleDefinitions", "allowed": [...], "blocked": [], "evidence": {...} }
 ```
 
 ### CI

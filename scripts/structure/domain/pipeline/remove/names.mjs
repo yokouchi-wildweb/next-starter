@@ -99,7 +99,7 @@ export function resolveDeleteTarget(workspace, domain) {
     featureCandidateSet.add(toPascalCase(singularCandidate));
     featureCandidateSet.add(toKebabCase(singularCandidate));
   }
-  // business（src/features/<d>）を先に、無ければ domain.json を持つ core（src/features/core/<d>）
+  // business（src/domains/<d>）を先に、無ければ domain.json を持つ core（src/domains/core/<d>）
   const coreFeatureDir = resolveDir(path.join(workspace.featuresDir, "core"), ...featureCandidateSet);
   const resolvedFeatureDir =
     resolveDir(workspace.featuresDir, ...[...featureCandidateSet].filter((name) => name !== "core")) ??

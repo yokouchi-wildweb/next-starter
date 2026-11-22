@@ -54,7 +54,7 @@ function MyForm() {
       RECAPTCHA_ACTIONS.REGISTER, // または独自のアクション名
     );
 
-    // ClientService 経由で送る(ヘッダー X-Recaptcha-Token。例: features/core/auth/services/client/registration.ts)
+    // ClientService 経由で送る(ヘッダー X-Recaptcha-Token。例: domains/core/auth/services/client/registration.ts)
     await submitClient.submit(data, { recaptchaToken });
   };
 

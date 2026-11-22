@@ -1,9 +1,9 @@
 // src/app/api/admin/analytics/dau/active-days-histogram/route.ts
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { parseDateRangeParams } from "@/features/core/analytics/services/server/utils/dateRange";
-import { parseUserFilterParams } from "@/features/core/analytics/services/server/utils/userFilter";
-import { getDauActiveDaysHistogram } from "@/features/core/analytics/services/server/dauAnalytics";
+import { parseDateRangeParams } from "@/domains/core/analytics/services/server/utils/dateRange";
+import { parseUserFilterParams } from "@/domains/core/analytics/services/server/utils/userFilter";
+import { getDauActiveDaysHistogram } from "@/domains/core/analytics/services/server/dauAnalytics";
 
 export const GET = createApiRoute(
   {

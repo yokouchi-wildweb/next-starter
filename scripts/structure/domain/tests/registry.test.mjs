@@ -16,8 +16,8 @@ import { createWorkspace } from "../domain/workspace.mjs";
 import { createDomainContext } from "../domain/context.mjs";
 import { applyOutputs } from "../pipeline/apply.mjs";
 
-const SERVICE_REGISTRY = `import { userService } from "@/features/core/user/services/server/userService";
-import { sampleService } from "@/features/sample/services/server/sampleService";
+const SERVICE_REGISTRY = `import { userService } from "@/domains/core/user/services/server/userService";
+import { sampleService } from "@/domains/sample/services/server/sampleService";
 
 export const serviceRegistry: Record<string, DomainRegistryEntry> = {
   user: { service: userService, access: ADMIN_ONLY },
@@ -147,7 +147,7 @@ test("presetAccess: プリセットの写しが accessPresets.ts と一致する
 test("registry カテゴリはドメインのフォルダの中だけを書く（core も business も）", () => {
   const config = { singular: "album", plural: "albums", dbEngine: "Neon", idType: "uuid", fields: [{ name: "cover", label: "表紙", fieldType: "mediaUploader", formInput: "mediaUploader", accept: "image/*", storage: { visibility: "public" } }] };
   const root = makeRoot({});
-  for (const dir of ["src/features/album", "src/features/core/album"]) {
+  for (const dir of ["src/domains/album", "src/domains/core/album"]) {
     const outputs = renderRegistry({ camel: "album", config, dir: path.join(root, dir), rel: dir }, createWorkspace(root));
     const paths = outputs.map((o) => o.path);
     assert.ok(paths.length >= 2);
@@ -219,17 +219,17 @@ test("domainTableName: 表の定義の生成器と同じ式（plural 優先、sn
 
 test("domainEntry: domain.json から services/server/domainEntry.ts を書き、再実行で差分なし。apiAccess 未宣言は警告", () => {
   const root = makeRoot({
-    "src/features/sample/domain.json": JSON.stringify({ apiAccess: API_ACCESS, useImportExport: true }),
-    "src/features/save/domain.json": JSON.stringify({}),
+    "src/domains/sample/domain.json": JSON.stringify({ apiAccess: API_ACCESS, useImportExport: true }),
+    "src/domains/save/domain.json": JSON.stringify({}),
   });
   assert.equal(writeDomainEntry(root, "sample"), 0);
-  const first = read(root, "src/features/sample/services/server/domainEntry.ts");
+  const first = read(root, "src/domains/sample/services/server/domainEntry.ts");
   // 書いた中身 = 雛形の中身 + 生成物の印(render/output.mjs の file())
   assert.equal(first, withGeneratedMark("domainEntry.ts", renderDomainEntry({ camel: "sample", config: { apiAccess: API_ACCESS, useImportExport: true } })));
   assert.equal(writeDomainEntry(root, "sample"), 0);
-  assert.equal(read(root, "src/features/sample/services/server/domainEntry.ts"), first);
+  assert.equal(read(root, "src/domains/sample/services/server/domainEntry.ts"), first);
   assert.equal(writeDomainEntry(root, "save"), 1);
-  assert.match(read(root, "src/features/save/services/server/domainEntry.ts"), /\.\.\.ADMIN_ONLY,/);
+  assert.match(read(root, "src/domains/save/services/server/domainEntry.ts"), /\.\.\.ADMIN_ONLY,/);
 });
 
 test("domainEntry: apiAccess.commands(データ操作のコマンドの上書き)は書いた時だけ access.commands に出る", () => {

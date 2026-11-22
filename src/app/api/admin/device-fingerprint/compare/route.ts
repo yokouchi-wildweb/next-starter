@@ -7,7 +7,7 @@ import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
-import { compareUsersFingerprints } from "@/features/core/deviceFingerprint/services/server";
+import { compareUsersFingerprints } from "@/domains/core/deviceFingerprint/services/server";
 
 const BodySchema = z.object({
   userIdA: z.string().uuid(),

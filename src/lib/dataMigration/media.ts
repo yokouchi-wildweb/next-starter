@@ -1,7 +1,7 @@
 // src/lib/dataMigration/media.ts
 //
 // dataMigration のメディア列（storage オプションの列）まわりの型と小さな共通関数。クライアント・サーバーの両方から使う。
-// ファイル台帳の操作（putFromServer / copy / 非公開ファイルの読み取り判定）は features/core/storageObject が持つので、
+// ファイル台帳の操作（putFromServer / copy / 非公開ファイルの読み取り判定）は domains/core/storageObject が持つので、
 // lib は DataMigrationMediaResolver の形だけを決め、実装は API ルートが注入する（lib → features を import しない）。
 
 /** ファイル台帳の操作。API ルートが実行者（管理者）を固定して作る（所有者 = 実行者） */

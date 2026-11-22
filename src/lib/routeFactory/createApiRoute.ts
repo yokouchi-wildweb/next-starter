@@ -94,7 +94,7 @@ export type RecaptchaConfig = {
 /** 認可を除いた共通の設定（Factory どうしで共有する） */
 /**
  * 全 Factory 共通の設定。TCategory = レート制限のカテゴリの名前(lib は名前を知らない。wiring がレート制限の持ち主
- * features/core/rateLimit の RateLimitCategory を渡す、設定の議会 L1.25。既定 string)
+ * domains/core/rateLimit の RateLimitCategory を渡す、設定の議会 L1.25。既定 string)
  */
 export type ApiRouteBaseConfig<TCategory extends string = string> = {
   /** 操作名（ログ・デバッグ用） */
@@ -111,7 +111,7 @@ export type ApiRouteBaseConfig<TCategory extends string = string> = {
   /**
    * レート制限カテゴリ
    * 指定するとIPベースのレート制限が適用される
-   * カテゴリはレート制限の持ち主 src/features/core/rateLimit/config.ts が定義する(型は wiring が TCategory で渡す)
+   * カテゴリはレート制限の持ち主 src/domains/core/rateLimit/config.ts が定義する(型は wiring が TCategory で渡す)
    */
   rateLimit?: TCategory;
   /**

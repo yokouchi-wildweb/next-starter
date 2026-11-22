@@ -169,7 +169,7 @@ export type UseRelationOptionsResult = {
  *
  * @example
  * ```tsx
- * import { domainDisplay } from "@/features/sample/entities/display";
+ * import { domainDisplay } from "@/domains/sample/entities/display";
  *
  * function SampleFields({ methods }) {
  *   const { insertBefore, isLoading } = useRelationOptions(domainDisplay);

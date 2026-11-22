@@ -9,8 +9,8 @@ change: overlay = src/app/api/cron/<name>/task.override.ts (schedule, disabled; 
 rules:
 using:
 - cron_wiring (MANDATORY): 1 task = 1 folder src/app/api/cron/<name>/ (task.ts: UTC cron `schedule` + run → domain fn; 1-line route.ts; a fork retimes or turns it off with task.override.ts), no list file | vercel.json crons = `pnpm generate cron` output only (the Vercel build fails on a mismatch) | upstream add / remove / retime → notice
-- budgeted_cron (MANDATORY): sweeps over unbounded-growth tables use runBudgetedBatches + createDeadline (@/lib/cron); read models refresh via createIncrementalRefresh (features/incrementalRefresh)
-- task_wiring_only: task.ts only wires which domain function runs when; the logic lives in features/**/services/server, long ops notes in that domain's README
+- budgeted_cron (MANDATORY): sweeps over unbounded-growth tables use runBudgetedBatches + createDeadline (@/lib/cron); read models refresh via createIncrementalRefresh (domains/incrementalRefresh)
+- task_wiring_only: task.ts only wires which domain function runs when; the logic lives in domains/**/services/server, long ops notes in that domain's README
 - run_dynamic_import: `run` imports its domain function dynamically (reading task.ts loads no DB)
 - no_gate_in_task: task.ts never reads the feature gate; importing a closable feature's folder gates the task path automatically
 - enabled_config_only: `enabled` is a sync check on config values only (never the DB), for conditions other than the feature

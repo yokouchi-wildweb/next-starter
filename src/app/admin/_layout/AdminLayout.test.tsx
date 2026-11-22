@@ -37,7 +37,7 @@ mock.module("@/app/_layout/useHeaderHeight", {
 mock.module("@/lib/siteTheme", { namedExports: { useDarkModeSwitch: () => ({ isDark: false, switchable: true, toggle: () => {} }) } });
 // 編集画面の「前後の項目へ移る」のデータ: 名前がとても長い今の項目 1 件(SP で行の幅を超える名前)
 const LONG_LABEL = "z".repeat(400);
-mock.module("@/features/core/auth/hooks/useAuthSession", { namedExports: { useAuthSession: () => ({ isAuthenticated: false }) } });
+mock.module("@/domains/core/auth/hooks/useAuthSession", { namedExports: { useAuthSession: () => ({ isAuthenticated: false }) } });
 mock.module("@/components/Button/Button", {
   namedExports: {
     Button: (p: { variant?: string; "aria-label"?: string; "aria-pressed"?: boolean; className?: string }) =>

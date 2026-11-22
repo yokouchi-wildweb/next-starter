@@ -3,16 +3,16 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { parseDateRangeParams } from "@/features/core/analytics/services/server/utils/dateRange";
-import { parseUserFilterParams } from "@/features/core/analytics/services/server/utils/userFilter";
+import { parseDateRangeParams } from "@/domains/core/analytics/services/server/utils/dateRange";
+import { parseUserFilterParams } from "@/domains/core/analytics/services/server/utils/userFilter";
 import {
   getPurchaseDistribution,
   parseMetric,
-} from "@/features/core/analytics/services/server/purchaseDistributionAnalytics";
+} from "@/domains/core/analytics/services/server/purchaseDistributionAnalytics";
 import {
   parseBoundaries,
   BOUNDARIES_ERROR_MESSAGE,
-} from "@/features/core/analytics/services/server/utils/distribution";
+} from "@/domains/core/analytics/services/server/utils/distribution";
 
 export const GET = createApiRoute(
   {

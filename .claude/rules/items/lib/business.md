@@ -11,7 +11,7 @@ using:
 - read_business_entry: code reads `import { business } from "@/business"` only | scripts read it by `await import("@/business")`
 - lib_takes_args: libs and utils never read @/business: they take the values as arguments | lib/mail, lib/metadata, lib/url get them through their own config override, which copies from @/business
 - own_before_release: a production build with `source: "sample"` fails pnpm check business → `own` (every field required) before release
-- legal_values_in_legal: values only the legal documents read (payment methods, document dates, licenses) go to src/config/features/legal.config.ts, never here
+- legal_values_in_legal: values only the legal documents read (payment methods, document dates, licenses) go to src/config/domains/legal.config.ts, never here
 - seo_from_identity: SEO site name, URL and description come from serviceNameShort, url, description (no separate keys) | viewport is the root frame's setting
 editing:
 - examples_upstream_only: a fork never edits examples/business.ts | an upstream change to it adds a line to examples/CHANGELOG.md

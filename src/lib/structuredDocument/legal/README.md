@@ -3,11 +3,11 @@
 ## Overview
 
 - 利用規約、プライバシーポリシー、特商法表記など、階層構造を持つ法的文書の型と描画。入口 `@/lib/structuredDocument`(lib の入口は 1 つ)
-- 型と描画だけを持つ。文書の中身(例文・プロジェクトの文面・差し込みの値)は法務のドメイン `src/features/core/legal` が持つ
+- 型と描画だけを持つ。文書の中身(例文・プロジェクトの文面・差し込みの値)は法務のドメイン `src/domains/core/legal` が持つ
 
 ## Usage
 
-- 画面は `getLegalDocument(kind)` の差し込み済みの文書と `enactedAtFormat={getLegalEnactedAtFormat()}` をこのレンダラーに渡す(`variables` は渡さない。形: `src/features/core/legal/README.md`)
+- 画面は `getLegalDocument(kind)` の差し込み済みの文書と `enactedAtFormat={getLegalEnactedAtFormat()}` をこのレンダラーに渡す(`variables` は渡さない。形: `src/domains/core/legal/README.md`)
 - 差し込み前の文書を直接描くとき(例):
 
 ```tsx
@@ -63,7 +63,7 @@ type LegalDocument = {
 | `mode` | `"rich" \| "plain"` | `"rich"` | 描画モード |
 | `showTitle` | `boolean` | `true` | タイトル表示 |
 | `showEnactedAt` | `boolean` | `true` | 制定日表示 |
-| `enactedAtFormat` | `LegalEnactedAtFormat` | - | 制定日・最終改定日の行の文言。`{ both?, enactedOnly?, updatedOnly? }` の各テンプレートで `{enactedAt}` / `{lastUpdatedAt}` を置換（省略したキーは既定の文言）。文字列だけなのでサーバーの Screen から渡せる。日付そのものの書式は文書側（legal の上書き `src/config/features/legal.config.ts` 等）の文字列で決める |
+| `enactedAtFormat` | `LegalEnactedAtFormat` | - | 制定日・最終改定日の行の文言。`{ both?, enactedOnly?, updatedOnly? }` の各テンプレートで `{enactedAt}` / `{lastUpdatedAt}` を置換（省略したキーは既定の文言）。文字列だけなのでサーバーの Screen から渡せる。日付そのものの書式は文書側（legal の上書き `src/config/domains/legal.config.ts` 等）の文字列で決める |
 | `maxHeight` | `string` | - | スクロール領域の最大高さ |
 | `className` | `string` | - | カスタムクラス |
 
@@ -84,5 +84,5 @@ type LegalDocument = {
 
 ## Related
 
-- 文書の中身と取得: `src/features/core/legal/README.md`
+- 文書の中身と取得: `src/domains/core/legal/README.md`
 - 差し込み: `../README.md` API「差し込み」

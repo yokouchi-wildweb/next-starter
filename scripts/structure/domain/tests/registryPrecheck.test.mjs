@@ -66,7 +66,7 @@ test("他のドメインに domainEntry.ts が無ければ、書く前に止ま�
   fs.writeFileSync(path.join(barServer, "drizzleBase.ts"), "// bar base\n");
   assert.throws(() => precheckServiceRegistry(workspace, plannedOutputs(root), { errorPrefix: "✗ " }), (err) => {
     assert.match(err.message, /^✗ src\/registry\/serviceRegistry\.ts を生成できません:\n/);
-    assert.match(err.message, /src\/features\/bar\/services\/server に drizzleBase\.ts \/ firestoreBase\.ts があるのに domainEntry\.ts が無い/);
+    assert.match(err.message, /src\/domains\/bar\/services\/server に drizzleBase\.ts \/ firestoreBase\.ts があるのに domainEntry\.ts が無い/);
     return true;
   });
   assert.equal(fs.existsSync(path.join(root, "src", "features", "foo", "services", "server")), false, "何も書かれていない");

@@ -2,7 +2,7 @@
 
 ## Overview
 
-- `storage://` の ref を保存するメディア列を、ファイル台帳（`src/features/core/storageObject/README.md`）と同じ TX で連動させる createCrudService の `storage` オプション（Drizzle のみ）。指定しないサービスの挙動は変わらない
+- `storage://` の ref を保存するメディア列を、ファイル台帳（`src/domains/core/storageObject/README.md`）と同じ TX で連動させる createCrudService の `storage` オプション（Drizzle のみ）。指定しないサービスの挙動は変わらない
 - メディア列の書き込みはこの binding か `storageObjectService.attach` だけで行う（core/services.md media_columns）
 - lib/crud が持つのは型（`types.ts` の `CrudStorageBinding`）と呼び出し口（`applyStorageBinding.ts`）だけ。台帳の操作は features 側の `storageBindingFor` が差し込む（lib → features の依存を作らない）
 
@@ -11,7 +11,7 @@
 - pnpm generate domain はメディア列を持つドメインの drizzleBase にこの binding を出す（purpose = `<domain>.<field>`）
 
 ```ts
-import { storageBindingFor } from "@/features/core/storageObject/services/server";
+import { storageBindingFor } from "@/domains/core/storageObject/services/server";
 
 createCrudService(SampleTable, {
   storage: storageBindingFor("sample", [
@@ -66,5 +66,5 @@ createCrudService(SampleTable, {
 - **actor**: routeFactory が敷く AuditContext の actorId。`runAsSystem` の中では null（所有者 null のサーバー内の書き込みだけが紐付く）。binding の紐付けのための読み出しで、業務の認可に使う手段ではない（[routeFactory README「業務処理に利用者が要るとき」](../../routeFactory/README.md)）
 - **storageFields**: storage を指定したサービスは、binding の列の宣言（`name` / `purpose` / `multi` / `scope`）を読み取り専用の `service.storageFields` で出す。指定しないサービスでは undefined。どの列がメディア列かを知る正本で、dataMigration の import / export が使う（クライアントの申告は信用しない）
 - **FK cascade**: メディア列を持つ表に、親の削除に伴う DB の `onDelete: "cascade"` を付けてよい
-  - DB が消した行は binding を通らない。残った紐付けは、掃除 cron（`storage-sweep`）の照合が後の実行で外し、実物を消す（その場ではない。予算と上限つき。[storageObject README「掃除」](../../../features/core/storageObject/README.md)）
+  - DB が消した行は binding を通らない。残った紐付けは、掃除 cron（`storage-sweep`）の照合が後の実行で外し、実物を消す（その場ではない。予算と上限つき。[storageObject README「掃除」](../../../domains/core/storageObject/README.md)）
   - すぐ片付けたい表は、子の表の FK を `onDelete: "restrict"` にし、親のサービスの削除（delete / hardDelete の wrapper）の中で、同じ tx を渡して子のサービスの削除（`bulkDeleteByQuery` など）を先に呼ぶ（任意）

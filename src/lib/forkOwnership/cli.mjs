@@ -26,7 +26,7 @@ const LABELS = {
   deleted: "削除",
   renamed: "rename・移動",
   "inside-unit-add": "上流の単位(部品の棚・祖先の lib)の中への追加",
-  "core-add": "src/features/core/ の中への追加(受け口の項目以外。自分のドメインは src/features/<x> へ)",
+  "core-add": "src/domains/core/ の中への追加(受け口の項目以外。自分のドメインは src/domains/<x> へ)",
   "gate-add": "門番 src/featureGate/ の中への追加(受け口の項目以外。足せるのは rules/・alwaysOnExceptions/・required/ の <名前>.ts)",
   "unit-clash": "基準の単位と同名の追加(x.ts と x.tsx・ファイルとフォルダ。別の名前にするか、丸ごと置き換えは <名前>.replace)",
   "override-own": "対象が基準に無い override(fork の項目は直接書き換える。override は上の Tier の項目にだけ)",

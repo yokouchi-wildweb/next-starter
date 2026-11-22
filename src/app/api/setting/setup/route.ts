@@ -1,7 +1,7 @@
 // src/app/api/setting/setup/route.ts
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { initializeAdminSetup } from "@/features/core/setting/services/server/settingService";
+import { initializeAdminSetup } from "@/domains/core/setting/services/server/settingService";
 
 export const POST = createApiRoute(
   {

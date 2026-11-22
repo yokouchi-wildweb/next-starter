@@ -1,0 +1,25 @@
+// src/domains/core/wallet/services/server/lots/index.ts
+
+export {
+  grantLot,
+  grantLotsBulk,
+  consumeLotsFifo,
+  consumeLotsFifoBulk,
+  rebaselineLots,
+  rebaselineLotsBulk,
+  clearLots,
+} from "./lotAccounting";
+export { sweepExpiredWalletLots } from "./sweepExpiredLots";
+export type { SweepExpiredLotsOptions, SweepExpiredLotsResult } from "./sweepExpiredLots";
+export { initWalletLots } from "./initWalletLots";
+export type { InitWalletLotsOptions, InitWalletLotsResult } from "./initWalletLots";
+export { initWalletLotsFromHistory } from "./initWalletLotsFromHistory";
+export type {
+  InitWalletLotsFromHistoryOptions,
+  InitWalletLotsFromHistoryResult,
+} from "./initWalletLotsFromHistory";
+export { getExpiringLots, getExpiringSummaryByUsers } from "./getExpiringLots";
+export { findUsersWithExpiringLots } from "./findUsersWithExpiringLots";
+export { listExpirationResults } from "./listExpirationResults";
+export { pruneConsumedWalletLots } from "./pruneConsumedLots";
+export type { PruneConsumedLotsOptions, PruneConsumedLotsResult } from "./pruneConsumedLots";

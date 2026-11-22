@@ -1,0 +1,131 @@
+// src/domains/user/entities/schema.ts
+
+import { USER_PROVIDER_TYPES, USER_ROLES, USER_STATUSES } from "@/domains/core/user/constants";
+import { UserNameSchema, UserNameNullishSchema } from "@/domains/core/user/entities/userName";
+import { createHashPreservingNullish } from "@/utils/hash";
+import { storageMediaValueSchema } from "@/lib/storage";
+import { emptyToNull } from "@/utils/string";
+import { z } from "zod";
+
+export const UserCoreSchema = z.object({
+  providerType: z.enum(USER_PROVIDER_TYPES),
+  providerUid: z
+    .string({ required_error: "プロバイダー UID が不足しています" })
+    .trim()
+    .min(1, { message: "プロバイダー UID が不足しています" }),
+  role: z.enum(USER_ROLES),
+  status: z.enum(USER_STATUSES),
+  isDemo: z.boolean().default(false),
+  email: z
+    .string()
+    .email()
+    .nullish()
+    .transform((value) => emptyToNull(value)),
+  localPassword: z
+    .string()
+    .nullish()
+    .transform((value) => emptyToNull(value))
+    .transform(async (value) => await createHashPreservingNullish(value)),
+  lastAuthenticatedAt: z.coerce.date().nullish(),
+  phoneNumber: z
+    .string()
+    .regex(/^\+[1-9]\d{1,14}$/, { message: "電話番号はE.164形式で入力してください" })
+    .nullish(),
+  phoneVerifiedAt: z.coerce.date().nullish(),
+  avatarUrl: storageMediaValueSchema.nullish(),
+  signupIp: z.string().nullish(),
+  metadata: z.record(z.unknown()).default({}),
+  deletedAt: z.coerce.date().nullish(),
+  name: UserNameNullishSchema,
+  /** 管理者メモ (機能フラグ enableUserMemo で UI 切り替え。空文字は null に正規化) */
+  adminMemo: z
+    .string()
+    .nullish()
+    .transform((value) => emptyToNull(value)),
+  // アカウントロックアウト関連 (詳細: src/domains/core/user/config.ts の authLockout)
+  // 認証フロー側で管理するため admin/self 編集スキーマには含めない。
+  failedLoginCount: z.number().int().nonnegative().default(0),
+  lockedUntil: z.coerce.date().nullish(),
+  lastFailedLoginAt: z.coerce.date().nullish(),
+  // セッション失効境界時刻。invalidateSessionsForUser 経由でのみ更新される。
+  sessionsInvalidatedAt: z.coerce.date().nullish(),
+  user_tag_ids: z.array(z.string()).optional(),
+});
+
+/**
+ * ユーザー更新用に項目をオプショナルにしたスキーマ。
+ * providerType と providerUid は必須のまま維持。
+ */
+export const UserOptionalSchema = UserCoreSchema.partial().extend({
+  providerType: UserCoreSchema.shape.providerType,
+  providerUid: UserCoreSchema.shape.providerUid,
+});
+
+/**
+ * 管理者がユーザー情報を更新する際のスキーマ。
+ * 許可するフィールドをホワイトリストで明示的に指定。
+ * avatarUrl: 管理者が自分のアバターを /api/me/profile で変える経路にも使われるため含める
+ * （update ラッパーは操作者が admin ならこのスキーマを使う）。書けるのは storage binding が通す
+ * 「操作者本人が上げた未紐付けの ref」か同じ値・null だけで、他人の画像は 400 になる。
+ */
+export const UserUpdateByAdminSchema = UserOptionalSchema.pick({
+  name: true,
+  email: true,
+  localPassword: true,
+  status: true,
+  role: true,
+  isDemo: true,
+  phoneNumber: true,
+  adminMemo: true,
+  avatarUrl: true,
+});
+
+/**
+ * 一般ユーザーが自身でプロフィール情報を更新する際のスキーマ。
+ * 許可するフィールドをホワイトリストで明示的に指定。
+ */
+export const UserSelfUpdateSchema = UserOptionalSchema.pick({
+  name: true,
+  email: true,
+  localPassword: true,
+  avatarUrl: true,
+});
+
+// 登録経路（本登録・仮登録）のエラーはそのまま DomainError のメッセージになり、利用者に届く。
+// Zod 既定の英語メッセージ（"Invalid email" など）を出さないよう、全項目に日本語のメッセージを持たせる。
+// role / status / providerType / lastAuthenticatedAt はサーバーが入れる値なので、外れたら内部の不整合として汎用文言にする
+const REGISTRATION_INTERNAL_ERROR = { errorMap: () => ({ message: "登録情報が不正です" }) };
+const RegistrationEmailSchema = z
+  .string({ invalid_type_error: "メールアドレスの形式が正しくありません" })
+  .email({ message: "メールアドレスの形式が正しくありません" })
+  .nullish()
+  .transform((value) => emptyToNull(value));
+
+/**
+ * 本登録時のユーザー有効化スキーマ。
+ * pending → active への状態遷移で更新可能なフィールドを定義。
+ */
+export const UserActivationSchema = z.object({
+  role: z.enum(USER_ROLES, REGISTRATION_INTERNAL_ERROR),
+  status: z.literal("active", REGISTRATION_INTERNAL_ERROR),
+  name: UserNameSchema,
+  email: RegistrationEmailSchema,
+  lastAuthenticatedAt: z.coerce.date(REGISTRATION_INTERNAL_ERROR),
+});
+
+/**
+ * 仮登録時のユーザー作成スキーマ。
+ * 新規作成 or withdrawn → pending への状態遷移で設定するフィールドを定義。
+ */
+export const UserPreRegistrationSchema = z.object({
+  providerType: z.enum(USER_PROVIDER_TYPES, REGISTRATION_INTERNAL_ERROR),
+  providerUid: z
+    .string({ required_error: "プロバイダー UID が不足しています", invalid_type_error: "プロバイダー UID が不足しています" })
+    .trim()
+    .min(1, { message: "プロバイダー UID が不足しています" }),
+  role: z.literal("user", REGISTRATION_INTERNAL_ERROR),
+  status: z.literal("pending", REGISTRATION_INTERNAL_ERROR),
+  email: RegistrationEmailSchema,
+  lastAuthenticatedAt: z.coerce.date(REGISTRATION_INTERNAL_ERROR),
+});
+

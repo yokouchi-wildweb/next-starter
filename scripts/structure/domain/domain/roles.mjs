@@ -1,4 +1,4 @@
-// ロール定義（src/features/core/user/coreRoles/・roles/ の *.role.json）の読み出し。ファイル用途のアップロード権限の判定に使う
+// ロール定義（src/domains/core/user/coreRoles/・roles/ の *.role.json）の読み出し。ファイル用途のアップロード権限の判定に使う
 
 /**
  * ロール ID → カテゴリ（"admin" | "user"）。読めないロール定義は pnpm generate role 側で検出されるので無視する

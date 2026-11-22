@@ -10,8 +10,8 @@ import path from "node:path";
 import { featureRel } from "../../domain/context.mjs";
 import { file } from "../output.mjs";
 
-/** 生成するドメインの import の住所(src/features/<x>/ → @/features/<x>) */
-const featureImport = (ctx) => `@/features/${featureRel(ctx).replace(/^src\/features\//, "").replace(/^core\//, "")}`;
+/** 生成するドメインの import の住所(src/domains/<x>/ → @/domains/<x>) */
+const featureImport = (ctx) => `@/domains/${featureRel(ctx).replace(/^src\/domains\//, "").replace(/^core\//, "")}`;
 
 export function extensionPointsContent(ctx) {
   return `// ${featureRel(ctx)}/extensionPoints.ts
@@ -38,7 +38,7 @@ export function adminBulkActionTypeContent(ctx) {
 
 import type { BulkActionItem } from "@/lib/tableSuite";
 import type { ${ctx.pascal} } from "${featureImport(ctx)}/entities";
-import type { AdminBulkActionAccess } from "@/features/core/user/types";
+import type { AdminBulkActionAccess } from "@/domains/core/user/types";
 
 /** ${featureRel(ctx)}/adminBulkActions/<名前>.tsx の export const bulkAction。作り方: src/lib/tableSuite/README.md「一括操作の受け口」 */
 export type ${ctx.pascal}AdminBulkActionItem = BulkActionItem<${ctx.pascal}, AdminBulkActionAccess>;

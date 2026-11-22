@@ -49,7 +49,7 @@ export function buildOnDeleteOption(behavior) {
 
 /**
  * リレーション先ドメインの表名。domain.json があれば plural、無ければ snake_case 化。
- * features/ と features/core/ の両方を探し、最初に見つかった domain.json だけを見る（壊れていれば snake_case）
+ * domains/ と domains/core/ の両方を探し、最初に見つかった domain.json だけを見る（壊れていれば snake_case）
  */
 export function foreignTableName(workspace, domainName) {
   const domainCamel = toCamelCase(domainName) || domainName;

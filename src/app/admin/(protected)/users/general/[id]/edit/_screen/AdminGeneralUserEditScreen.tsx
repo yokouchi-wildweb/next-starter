@@ -4,7 +4,7 @@
 // 手順: src/lib/screens/README.md
 
 import type { ScreenProps } from "@/lib/screens";
-import { GeneralUserEdit } from "@/features/core/user/components/admin";
+import { GeneralUserEdit } from "@/domains/core/user/components/admin";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 
 import { loadAdminGeneralUserEditScreen, type AdminGeneralUserEditScreenParams } from "./loader";

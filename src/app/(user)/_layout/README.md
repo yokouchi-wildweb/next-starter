@@ -93,9 +93,9 @@ export { AcmeUserLayout as default } from "./_layout/UserLayout.replace";
 | `footer` | `UserFooter`(`./Footer`、upstream では既定 Footer) | 本文の包みの後 |
 | `bottomNav` | `BottomNavSpacer` + `UserBottomNav`(スペーサーごと差し替える) | フッターの後 |
 
-- 未読のお知らせのモーダル: 既定の `UserLayout` が外枠の末尾（ボトムナビの後）に messaging の公開の部品 `InboxUnreadModal`（`@/features/core/messaging/components/InboxUnreadModal`）を置く（slot ではない）。
+- 未読のお知らせのモーダル: 既定の `UserLayout` が外枠の末尾（ボトムナビの後）に messaging の公開の部品 `InboxUnreadModal`（`@/domains/core/messaging/components/InboxUnreadModal`）を置く（slot ではない）。
   - お知らせの機能（門 `messagingInbox`）が閉、または `messagingConfig.inbox.showUnreadModal`（既定 入）が切なら何も描かず取りに行かない。
-  - 出す住所は `inbox.unreadModalPaths`（既定 `["/"]`、上書き `src/config/features/messaging.config.ts`）。
+  - 出す住所は `inbox.unreadModalPaths`（既定 `["/"]`、上書き `src/config/domains/messaging.config.ts`）。
   - `UserLayout.replace` は既定の `UserLayout` を描けばそのまま付く（自分の枠にもう 1 つ置くと 2 重に出る）。
   - 流れは hook `useInboxUnreadModal`（自前のモーダルを組む時もこれを呼ぶ。門と config もここで見る）
 - slot の約束: 省略(undefined) = 既定の部品 / `null` = 描かない / 要素 = それを描く。props なしの描画(DOM・id・順序)は test で固定(寸法の変数のために既定の DOM が持つ 2 か所は下の「寸法の CSS 変数」)

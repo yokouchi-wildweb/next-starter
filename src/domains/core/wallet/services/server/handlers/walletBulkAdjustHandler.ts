@@ -1,0 +1,53 @@
+// src/domains/core/wallet/services/server/handlers/walletBulkAdjustHandler.ts
+
+import { batchJobService } from "@/domains/batchJob/services/server/batchJobService";
+import type { BulkAdjustByUsersParams } from "../wrappers/bulkAdjustByUsers";
+import { WALLET_BULK_ADJUST_JOB_TYPE } from "../../../constants/batchJob";
+import type { BatchJob } from "@/domains/batchJob/types";
+import type { WalletTypeValue } from "@/domains/wallet/types/field";
+import type { WalletHistoryChangeMethodValue, WalletHistorySourceTypeValue } from "@/domains/walletHistory/types/field";
+import type { ReasonCategory } from "@/domains/walletHistory/config";
+
+export { WALLET_BULK_ADJUST_JOB_TYPE };
+
+// 処理の本体は batchJob の項目 jobHandlers/walletBulkAdjust.ts
+
+// --- ファサード: ダウンストリーム向け型安全なジョブ作成 ---
+
+type CreateWalletBulkAdjustJobInput = {
+  jobKey: string;
+  userIds: string[];
+  walletType: WalletTypeValue;
+  changeMethod: WalletHistoryChangeMethodValue;
+  amount: number;
+  sourceType?: WalletHistorySourceTypeValue;
+  reason?: string;
+  reasonCategory?: ReasonCategory;
+  /** 付与の種類(walletHistory/reasonKeys の key)。渡すと区分は種類から決まる */
+  reasonKey?: string;
+  meta?: Record<string, unknown>;
+  batchSize?: number;
+};
+
+/**
+ * ウォレット一括調整バッチジョブを作成する。
+ * ダウンストリームはこの関数を使うことで、jobTypeやparams構造を知る必要がない。
+ */
+export async function createWalletBulkAdjustJob(input: CreateWalletBulkAdjustJobInput): Promise<BatchJob> {
+  return batchJobService.createJob({
+    jobType: WALLET_BULK_ADJUST_JOB_TYPE,
+    jobKey: input.jobKey,
+    itemKeys: input.userIds,
+    batchSize: input.batchSize,
+    params: {
+      walletType: input.walletType,
+      changeMethod: input.changeMethod,
+      amount: input.amount,
+      sourceType: input.sourceType ?? "system",
+      reason: input.reason,
+      reasonCategory: input.reasonCategory,
+      reasonKey: input.reasonKey,
+      meta: input.meta,
+    } satisfies BulkAdjustByUsersParams,
+  });
+}

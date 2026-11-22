@@ -15,7 +15,7 @@ async function checkDevAdmin(): Promise<Record<string, unknown>> {
   const reason = notDevelopmentReason(process.env);
   if (reason) throw new Error(`dev-admin: ${reason}`);
   await requireDatabase("dev-admin");
-  const { userService } = await import("@/features/core/user/services/server/userService");
+  const { userService } = await import("@/domains/core/user/services/server/userService");
   return checkResult(await userService.findByLocalEmail(DEV_ADMIN_EMAIL));
 }
 
@@ -24,8 +24,8 @@ async function ensureDevAdmin(): Promise<Record<string, unknown>> {
   if (reason) throw new Error(`dev-admin: ${reason}`);
   await requireDatabase("dev-admin");
 
-  const { userService } = await import("@/features/core/user/services/server/userService");
-  const { verifyPassword } = await import("@/features/core/auth/utils/password");
+  const { userService } = await import("@/domains/core/user/services/server/userService");
+  const { verifyPassword } = await import("@/domains/core/auth/utils/password");
 
   const password = devAdminPassword(process.env.AUTH_JWT_SECRET as string);
 

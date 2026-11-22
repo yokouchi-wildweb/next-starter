@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/features/core/storageObject/**"
-  - "src/config/features/storageObject.config.ts"
+  - "src/domains/core/storageObject/**"
+  - "src/config/domains/storageObject.config.ts"
 ---
-# features/storageObject
+# domains/storageObject
 what: the file ledger storage_objects: upload grants, commit (check, strip images re-rendered), discard, private reads, binding to business rows | storageObjectService, routes /api/me/storage/uploads, /api/storage/objects, /api/storage/purposes | parts in @/lib/storage
 use: always (in no rule's domains)
-change: add = purposes/<name>.ts (receptacle purposes) | placement = src/config/features/storageObject.config.ts
+change: add = purposes/<name>.ts (receptacle purposes) | placement = src/config/domains/storageObject.config.ts
 rules:
 using:
 - purpose_gate: a purpose reading a closable feature's table checks gate.enabled on upload (read stays open)

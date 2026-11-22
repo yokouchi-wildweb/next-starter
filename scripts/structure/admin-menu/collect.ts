@@ -1,5 +1,5 @@
 // scripts/structure/admin-menu/collect.ts
-// 管理メニューの受け口(src/features/core/admin/menu/{categories,items})・管理ダッシュボードの受け口(dashboard/sections)・
+// 管理メニューの受け口(src/domains/core/admin/menu/{categories,items})・管理ダッシュボードの受け口(dashboard/sections)・
 // ルート地図・門番の規則・設定の節を集める(読むだけ)。
 // 受け口の項目は生成の一覧でなく素のファイルから読む(上書きの前の上流の値で allowRoles の広がりを見るため)。中身の判定は ./inspect.ts
 
@@ -8,15 +8,15 @@ import { join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { rules } from "@/featureGate/node";
-import { settingSectionRows } from "@/features/core/admin/menu/sources";
-import type { AdminMenuRow } from "@/features/core/admin/menu/types";
+import { settingSectionRows } from "@/domains/core/admin/menu/sources";
+import type { AdminMenuRow } from "@/domains/core/admin/menu/types";
 
 import type { DashboardSnapshot, GateRuleView, MenuEntry, MenuSnapshot, OrphanOverride } from "./inspect";
 
 /** リポジトリ直下(pnpm のスクリプトはここで走る) */
 export const REPO_ROOT = resolve(process.cwd());
-const MENU_DIR = "src/features/core/admin/menu";
-const DASHBOARD_SECTIONS_DIR = "src/features/core/admin/dashboard/sections";
+const MENU_DIR = "src/domains/core/admin/menu";
+const DASHBOARD_SECTIONS_DIR = "src/domains/core/admin/dashboard/sections";
 const ROUTE_MAP = "src/app/route-map.jsonl";
 
 const ITEM_FILE = /^([A-Za-z][A-Za-z0-9]*)\.tsx?$/;

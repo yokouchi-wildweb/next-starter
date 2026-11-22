@@ -7,7 +7,7 @@ import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
-import { InboxList } from "@/features/core/messaging/components/InboxList";
+import { InboxList } from "@/domains/core/messaging/components/InboxList";
 
 import { loadMessagesScreen } from "./loader";
 

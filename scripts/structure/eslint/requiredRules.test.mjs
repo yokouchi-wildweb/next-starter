@@ -62,7 +62,7 @@ test("規則が設定に無い・代表のファイルが無いと落ちる", as
     [
       { rule: "no-such-plugin/no-such-rule", files: ["src/app/(user)/layout.tsx"] },
       { rule: "entry/only-entries", files: ["src/no/such/file.tsx"] },
-      { rule: "realtime-room/purity", files: ["src/features/example/room/reducer.ts"], example: true },
+      { rule: "realtime-room/purity", files: ["src/domains/example/room/reducer.ts"], example: true },
     ],
     repoRoot,
   );

@@ -21,10 +21,10 @@
 
 ### 定義ファイル: `services/server/domainEntry.ts`
 
-登録表に載る全ドメイン（core・業務・fork が core パスに作るドメイン）は `src/features/**/services/server/domainEntry.ts` を 1 ファイル持つ。名前は固定（`registration.ts` ではない。auth の registration と衝突するため）。
+登録表に載る全ドメイン（core・業務・fork が core パスに作るドメイン）は `src/domains/**/services/server/domainEntry.ts` を 1 ファイル持つ。名前は固定（`registration.ts` ではない。auth の registration と衝突するため）。
 
 ```ts
-// src/features/core/auditLog/services/server/domainEntry.ts
+// src/domains/core/auditLog/services/server/domainEntry.ts
 import type { DomainEntries } from "@/lib/domain";
 import { INTERNAL_ONLY } from "@/lib/domainAccess";
 

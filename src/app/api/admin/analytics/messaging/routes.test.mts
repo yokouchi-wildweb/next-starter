@@ -10,7 +10,7 @@ import { beforeEach, mock, test } from "node:test";
 import { NextRequest, NextResponse } from "next/server";
 
 const { DomainError } = await import("@/lib/errors");
-const { parseMessagingFilterParams } = await import("@/features/core/analytics/services/server/messagingAnalytics/params");
+const { parseMessagingFilterParams } = await import("@/domains/core/analytics/services/server/messagingAnalytics/params");
 
 const declared: { operation: string; access: unknown }[] = [];
 type Handler = (req: NextRequest) => Promise<unknown>;
@@ -33,7 +33,7 @@ const record = (name: string) => async (params: { axis?: string }) => {
   if (name === "breakdown" && params.axis === "nope") throw new DomainError("axis が違います", { status: 400 });
   return { ok: name };
 };
-mock.module("@/features/core/analytics/services/server/messagingAnalytics", {
+mock.module("@/domains/core/analytics/services/server/messagingAnalytics", {
   namedExports: {
     getMessagingSummary: record("summary"),
     getMessagingSeries: record("series"),

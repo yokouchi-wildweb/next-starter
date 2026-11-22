@@ -1,0 +1,71 @@
+"use client";
+
+// src/domains/core/user/components/common/UserAsyncCombobox.tsx
+
+import { type ReactNode, useMemo } from "react";
+
+import {
+  AsyncComboboxInput,
+  type AsyncComboboxInputProps,
+} from "@/components/Input/AsyncComboboxInput";
+import type { User } from "@/domains/core/user/entities";
+import type { UserRoleType } from "@/domains/core/user/types";
+import type { WhereExpr } from "@/lib/crud";
+
+import { useUserAsyncOptionSource } from "@/domains/core/user/hooks/useUserAsyncOptionSource";
+import { DEFAULT_USER_SEARCH_FIELDS } from "@/domains/core/user/utils/userOption";
+
+type OmittedProps =
+  | "searchFn"
+  | "getOptionFromResult"
+  | "searchFields"
+  | "initialOption"
+  // 基底 HTMLAttributes の role(AriaRole) を遮断（ロールフィルタの role と衝突し配列形が型エラーになるため）
+  | "role";
+
+export type UserAsyncComboboxProps = Omit<
+  AsyncComboboxInputProps<User>,
+  OmittedProps
+> & {
+  /** ロールでフィルタリング */
+  role?: UserRoleType | UserRoleType[];
+  /** 追加の検索条件 */
+  where?: WhereExpr;
+  /** ラベルのカスタムフォーマット */
+  formatLabel?: (user: User) => ReactNode;
+  /** 検索対象フィールド（デフォルト: ["name", "email"]） */
+  searchFields?: string[];
+  /** 編集時の既存値ID（内部でSWR解決） */
+  initialId?: string;
+};
+
+export function UserAsyncCombobox({
+  role,
+  where,
+  formatLabel,
+  searchFields = DEFAULT_USER_SEARCH_FIELDS,
+  initialId,
+  ...rest
+}: UserAsyncComboboxProps) {
+  const initialIds = useMemo(() => (initialId ? [initialId] : undefined), [initialId]);
+  const { searchFn, getOptionFromResult, initialOptions } = useUserAsyncOptionSource({
+    role,
+    where,
+    formatLabel,
+    initialIds,
+  });
+  const initialOption = initialOptions?.[0];
+
+  return (
+    <AsyncComboboxInput<User>
+      searchFn={searchFn}
+      getOptionFromResult={getOptionFromResult}
+      searchFields={searchFields}
+      initialOption={initialOption}
+      placeholder="ユーザーを検索して選択"
+      searchPlaceholder="名前またはメールで検索（Enter）"
+      emptyMessage="該当するユーザーがいません"
+      {...rest}
+    />
+  );
+}

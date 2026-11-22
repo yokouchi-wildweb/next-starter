@@ -43,7 +43,7 @@ export const REASONS = {
   deleted: "violation", // 基準にあるファイルの削除
   renamed: "violation", // 基準にあるファイルの rename・移動
   "inside-unit-add": "violation", // 上流の単位の中へのファイル追加(部品の棚 src/components/<分類>/<単位>/・src/hooks|utils/<単位>/ と祖先の lib src/lib/<名前>/)
-  "core-add": "violation", // src/features/core/ の中への受け口の項目でない追加(fork のドメインは src/features/<x>)
+  "core-add": "violation", // src/domains/core/ の中への受け口の項目でない追加(fork のドメインは src/domains/<x>)
   "gate-add": "violation", // 門番 src/featureGate/ の中への受け口の項目でない追加(受け口は rules/・alwaysOnExceptions/・dependencyExceptions/・required/)
   "rules-core-add": "violation", // 上流の決まりのファイル .claude/rules/core/ の中への追加(自分の決まりは .claude/rules/ の core/ の外、D131)
   "unit-clash": "violation", // 検査する場所(部品の棚・受け口・wiring・route の隣・scripts の直下)への追加が基準の単位と同名(x.ts と x.tsx、ファイルとフォルダ)
@@ -66,7 +66,7 @@ const libNameOf = (/** @type {string} */ path) => {
   return match ? match[1] : null;
 };
 
-const CORE_PREFIX = "src/features/core/";
+const CORE_PREFIX = "src/domains/core/";
 const GATE_PREFIX = "src/featureGate/";
 const RULES_CORE_PREFIX = ".claude/rules/core/";
 
@@ -129,7 +129,7 @@ const isDefaultName = (/** @type {string} */ path) => classifyDottedName(path.sl
  *   baseText: (path: string) => string | null,                   // 基準側の中身(無ければ null)
  *   headText: (path: string) => string | null,                   // fork 側の中身(無ければ null)
  *   baseLibs: Iterable<string>,                                  // 基準の src/lib 直下のディレクトリ名
- *   baseHasCore?: boolean,                                       // 基準に src/features/core/ があるか
+ *   baseHasCore?: boolean,                                       // 基準に src/domains/core/ があるか
  *   baseHasGate?: boolean,                                       // 基準に src/featureGate/ があるか
  *   baseHasRulesCore?: boolean,                                  // 基準に .claude/rules/core/ があるか
  *   intake: Pick<IntakeRule, "kind" | "glob" | "exclude" | "line">[],  // parseIntake(基準側の intake.txt).rules

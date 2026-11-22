@@ -65,7 +65,7 @@ export function buildRelationTableImports(relationDomainImports, selfDomain = ""
 
   const lines = [];
   byDomain.forEach((imports, domainCamel) => {
-    lines.push(`import { ${imports.join(", ")} } from "@/features/${domainCamel}/entities/drizzle";`);
+    lines.push(`import { ${imports.join(", ")} } from "@/domains/${domainCamel}/entities/drizzle";`);
   });
   return lines.length ? lines.join("\n") + "\n" : "";
 }

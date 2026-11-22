@@ -25,7 +25,7 @@ const base = {
   ],
 };
 
-const seedPath = (root) => path.join(root, "src/features/shopItem/seed.ts");
+const seedPath = (root) => path.join(root, "src/domains/shopItem/seed.ts");
 const run = (root) => {
   const { ctx } = contextFor(root, "shopItem");
   return applyAndCapture(renderSeed(ctx));
@@ -35,7 +35,7 @@ test("無ければ書く: 表名・列(formInput none は除く)・$unique の�
   const root = makeProject({ configs: { shopItem: base }, cleanup });
   run(root);
   const body = fs.readFileSync(seedPath(root), "utf8");
-  assert.match(body, /^\/\/ src\/features\/shopItem\/seed\.ts/);
+  assert.match(body, /^\/\/ src\/domains\/shopItem\/seed\.ts/);
   assert.match(body, /import "server-only";/);
   assert.match(body, /export const seed = defineSeed\(\{/);
   assert.match(body, /\n    shop_items: \[\n/);

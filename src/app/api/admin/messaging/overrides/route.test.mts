@@ -42,7 +42,7 @@ mock.module("@/featureGate", {
 });
 
 const calls: unknown[][] = [];
-mock.module("@/features/core/messaging/services/server/messagingService", {
+mock.module("@/domains/core/messaging/services/server/messagingService", {
   namedExports: {
     messagingService: {
       listMessageOverrides: async () => {

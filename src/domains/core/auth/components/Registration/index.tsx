@@ -1,0 +1,58 @@
+// src/domains/auth/components/Registration/index.tsx
+
+"use client";
+
+import type { ComponentType } from "react";
+
+import { Stack } from "@/components/Layout/Stack";
+import { ScreenLoader } from "@/components/Overlays/Loading";
+import { authConfig } from "@/domains/auth/config";
+import { useTransitionGuard } from "@/lib/transitionGuard";
+
+import { OAuthRegistrationForm } from "./OAuth"
+import { EmailRegistrationForm } from "./Email";
+import { UnknownRegistrationForm } from "./UnknownRegistrationForm";
+import { RegistrationSteps } from "./RegistrationSteps";
+
+export { InviteCodeField } from "./InviteCodeField";
+export { RateLimitWarningModal } from "./RateLimitWarningModal";
+export { RateLimitWarningContent } from "./RateLimitWarningContent";
+export { RegistrationSteps } from "./RegistrationSteps";
+export { UnknownRegistrationForm } from "./UnknownRegistrationForm";
+
+export type RegistrationMethod = "email" | "thirdParty";
+
+export type RegistrationFormProps = {
+  method?: RegistrationMethod;
+};
+
+const registrationComponentMap: Record<RegistrationMethod, ComponentType> = {
+  email: EmailRegistrationForm,
+  thirdParty: OAuthRegistrationForm,
+};
+
+export function Registration({ method = "email" }: RegistrationFormProps) {
+  // 遷移ガード: verify または oauth からのトークン付き遷移のみ許可
+  const { isChecking } = useTransitionGuard({
+    allowedReferers: ["/signup/verify", "/signup/oauth"],
+    onFail: { action: "error" },
+  });
+
+  const Component = registrationComponentMap[method] ?? UnknownRegistrationForm;
+  const showSteps = authConfig.signup.showRegistrationSteps;
+
+  // メール認証: 3番目のステップ（基本情報設定）
+  // OAuth: 2番目のステップ（プロフィール入力）
+  const currentStep = method === "email" ? 2 : 1;
+
+  if (isChecking) {
+    return <ScreenLoader mode="local" className="min-h-[300px]" />;
+  }
+
+  return (
+    <Stack gap="xl" className="pb-8">
+      {showSteps && <RegistrationSteps method={method} currentStep={currentStep} />}
+      <Component />
+    </Stack>
+  );
+}

@@ -2,9 +2,9 @@
 // 型と入力欄の組・選択肢・既定値はドメインの検査（scripts/structure/domain/checks/fields.mjs、表は src/lib/domain/fields/fieldFormInputs.mjs の Neon）を共用する。
 // プロフィール固有: 項目は 1 つ以上、既定値のキーは defaultValue（default は止める）、型は表にあるものだけ、メディア型（mediaUploader / mediaCollection）は使えない（プロフィールのテーブルはファイル台帳に未対応）、
 // tags のキーは PROFILE_FIELD_TAGS、値は項目名か belongsTo / belongsToMany の fieldName。
-// 規則の正: src/features/core/userProfile/README.md（プロフィール設定）
+// 規則の正: src/domains/core/userProfile/README.md（プロフィール設定）
 
-import { PROFILE_FIELD_TAGS } from "../../../../src/features/core/userProfile/constants/fieldTags.mjs";
+import { PROFILE_FIELD_TAGS } from "../../../../src/domains/core/userProfile/constants/fieldTags.mjs";
 import { FIELD_TYPES, isCollectionFieldType, isMediaFieldType } from "../../../../src/lib/domain/node.mjs";
 import { fieldsIssues, fieldsWarnings } from "../../domain/checks/fields.mjs";
 
@@ -56,7 +56,7 @@ export function profileTagIssues(profile) {
   const issues = [];
   for (const [tag, members] of Object.entries(tags)) {
     if (!known.has(tag)) {
-      issues.push(`tags "${tag}" は知らないタグです（${[...known].join(" / ")}。足すときは src/features/core/userProfile/constants/fieldTags.mjs）`);
+      issues.push(`tags "${tag}" は知らないタグです（${[...known].join(" / ")}。足すときは src/domains/core/userProfile/constants/fieldTags.mjs）`);
       continue;
     }
     if (!Array.isArray(members)) {

@@ -12,7 +12,7 @@
 
 ```tsx
 import { AsyncPickerModal } from "@/components/Overlays/AsyncPickerModal";
-import { boardGameClient } from "@/features/boardGame/services/client/boardGameClient"; // 例: 業務ドメインの client(このリポには無い)
+import { boardGameClient } from "@/domains/boardGame/services/client/boardGameClient"; // 例: 業務ドメインの client(このリポには無い)
 
 const [open, setOpen] = useState(false);
 

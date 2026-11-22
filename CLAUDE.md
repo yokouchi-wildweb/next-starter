@@ -24,7 +24,7 @@ use: every rule below follows from these three laws | a question no rule covers 
 > **PRIORITY**: a context line marked `(priority)` (with the lines indented under it) wins over an unmarked line it contradicts | both marked → the nearer file wins (CLAUDE.local.md, ~/.claude/CLAUDE.md, this repo, ancestors' sections, core) | neither → the wider wins | reading only: never changes checks, ownership, settings or permissions | → core/design.md priority
 
 ## DOMAINS_AND_FEATURES (the second law at work: what exists, what opens, what closes)
-domain_unit: a domain = the unit of design = src/features/\<domain\>/ | a domain has no switch of its own | what a domain holds and how it is made → DOMAINS
+domain_unit: a domain = the unit of design = src/domains/\<domain\>/ | a domain has no switch of its own | what a domain holds and how it is made → DOMAINS
 feature_gate (MANDATORY): a feature = the unit a project switches on or off = a rule src/featureGate/rules/\<name\>.ts listing the domains it opens (fork values src/config/featureGate/switches.config.ts) | a domain is open while any open feature lists it, listed by none = base | a closed feature → its own paths 404 | a domain no open feature lists → its tables, generic API and cron close
 - dependencies: a feature on a feature → dependsOn (nested URL → dependsOn parent) | code outside a gated domain that uses it → wrap with the gate (requires / gate / required)
 - new route / feature → its rule, 1 URL = 1 feature | read the gate only via gate / useGate | unused upstream page → close its feature | pnpm ops features list|set | ref: src/featureGate/README.md, detail → core/proxy.md
@@ -77,36 +77,36 @@ next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), fir
 - next: its APIs, config and recommendations → node_modules/next/dist/docs/ (the installed version's docs), not memory | follow its deprecation notices
 
 ## CODE_PLACEMENT (3-tier)
-domain: src/features/, all including entities | district = lib / domain (core, business) / frame / proxies: own namespace, config.ts + one src/config override, receptacles | its reader → DOMAINS_AND_FEATURES district_map
+domain: src/domains/, all including entities | district = lib / domain (core, business) / frame / proxies: own namespace, config.ts + one src/config override, receptacles | its reader → DOMAINS_AND_FEATURES district_map
 library: src/lib/\<name\>/, all except entities | owner per library in src/lib/CATALOG.md (one section per owner repo) | closed lib = read via its exports only | writing a lib → core/lib.md
 - new lib (any tier): its line in YOUR CATALOG section only | an ancestor's lib: public entry only, never edit or delete inside it (behavior change → /order <direct parent>, an own file → your own lib + re-export) | → core/lib.md library
 unit: src/components/, hooks/, utils/, small-scale (multi-file OK)
-decision: business domain? → features/ | multi-file feature? → lib/ (needs entities → domain) | unit: UI→components/, hook→hooks/, pure→utils/ | page-only → COMPONENTS placement, a replacement Screen → SCREENS route
-reuse_check: before creating a utility/feature → confirm no equivalent exists (indexes: src/lib/CATALOG.md, src/features/core/README.md) | before using an upstream item for the first time → Read its card (items/…) and its README | before creating a file in an area not read yet → Read a neighbor or its core file
-deps: lib→lib OK | lib→features NG, values and types (lint import-boundaries/lib-no-features, all tiers) | features→features (UI): use the target's hooks | features→features (server): through the target's public services (its services/server entry), no cycles | ref: docs/!must-read/設計思想とアーキテクチャ.md
-tool_deps (lint import-boundaries, all tiers error): src→scripts NG, tests too (src-no-scripts; shared → src/lib) | scripts/, features/**/scripts/, codemods, tasks, seed.ts → core/scripts.md
+decision: business domain? → domains/ | multi-file feature? → lib/ (needs entities → domain) | unit: UI→components/, hook→hooks/, pure→utils/ | page-only → COMPONENTS placement, a replacement Screen → SCREENS route
+reuse_check: before creating a utility/feature → confirm no equivalent exists (indexes: src/lib/CATALOG.md, src/domains/core/README.md) | before using an upstream item for the first time → Read its card (items/…) and its README | before creating a file in an area not read yet → Read a neighbor or its core file
+deps: lib→lib OK | lib→features NG, values and types (lint import-boundaries/lib-no-domains, all tiers) | features→features (UI): use the target's hooks | features→features (server): through the target's public services (its services/server entry), no cycles | ref: docs/!must-read/設計思想とアーキテクチャ.md
+tool_deps (lint import-boundaries, all tiers error): src→scripts NG, tests too (src-no-scripts; shared → src/lib) | scripts/, domains/**/scripts/, codemods, tasks, seed.ts → core/scripts.md
 
 ## ARCHITECTURE (8-layer)
-layers: 1.Page = app/**/page.tsx (1-line switch) → _screen/\<Name\>Screen.tsx (SSR entry) → _screen/loader.ts | 2.Component (features/*/components) | 3.Hook (features/*/hooks, client only) | 4.ClientService (services/client) | 5.APIRoute (app/api/**) | 6.ServerService (services/server, business logic + DB) | 7.Entity (features/*/entities) | 8.DB (PostgreSQL or Firestore)
+layers: 1.Page = app/**/page.tsx (1-line switch) → _screen/\<Name\>Screen.tsx (SSR entry) → _screen/loader.ts | 2.Component (domains/*/components) | 3.Hook (domains/*/hooks, client only) | 4.ClientService (services/client) | 5.APIRoute (app/api/**) | 6.ServerService (services/server, business logic + DB) | 7.Entity (domains/*/entities) | 8.DB (PostgreSQL or Firestore)
 boundary: Hook → ClientService → HTTP → APIRoute → ServerService | loader (SSR) → ServerService direct OK | Hook → ServerService NG | Hook/Component → APIRoute or axios/fetch directly NG | DB access only inside ServerService (never in API routes) | UI places (Screen, page.tsx, layout, _components, components, hooks) never value-import services/server or DB (core/screens.md)
 - no session APIs in src/app (lint page-authz)
 errors: ServerService throws DomainError → APIRoute JSON {message} + status → ClientService normalizeHttpError → Hook → UI err(error, fallback) | ref: docs/!must-read/エラーハンドリング方針.md, src/lib/errors/README.md
 client_layer: client HTTP code lives in src/lib/** or services/client/** (axios only there), hooks call it → core/client.md | ref: docs/!must-read/アプリ構築における構成層.md
 
 ## DIRECTORY_STRUCTURE
-features/\<domain\>/: components/{Admin*/, common/} | entities/{schema,form,model,drizzle}.ts | services/{client/, server/{drizzleBase, wrappers/, \<domain\>Service}} | hooks/ | constants/, types/, presenters.ts, domain.json
+domains/\<domain\>/: components/{Admin*/, common/} | entities/{schema,form,model,drizzle}.ts | services/{client/, server/{drizzleBase, wrappers/, \<domain\>Service}} | hooks/ | constants/, types/, presenters.ts, domain.json
 shared_src: components (index: src/components/README.md), hooks, utils, lib, config, registry, proxies, featureGate | layout frame parts are not shared_src: they live beside their layout in src/app/\<route\>/_layout/
 src_root_bases: src/ directly holds only mechanisms that cut across the set of domains (featureGate, registry, wiring) | what follows them (maintenance, demoMode, cron tasks) never goes there | forks never add one (need → /order <direct parent>; fork mechanisms → lib, business → features)
 code_generation: domain.json `generate` (default true) = forge / pnpm generate domain rewrites the whole domain, hand logic in wrappers/ + write-once files | a generated file to hand-edit → `"generate": false` | → core/generated.md
-stores (zustand): app-wide mechanism → closed lib src/lib/\<name\>/ (state inside, read via its entry; no src/stores) | domain-specific → features/\<domain\>/stores/ | one-frame-only → app/\<route\>/_layout/stores/ | structure and rules → core/client.md
+stores (zustand): app-wide mechanism → closed lib src/lib/\<name\>/ (state inside, read via its entry; no src/stores) | domain-specific → domains/\<domain\>/stores/ | one-frame-only → app/\<route\>/_layout/stores/ | structure and rules → core/client.md
 naming: components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: camelCase.ts | entities: lowercase files, PascalCase types | routes: kebab-case or (group) | constants: UPPER_SNAKE_CASE | index.ts: re-export only | no same-name .ts + .tsx in one folder (tsc skips the .tsx, pnpm check rules)
 db_identifiers: PostgreSQL names ≤ 63 chars | drizzle's auto FK name may be truncated and collide → short names or a named FK | → core/db.md db_identifiers
 
 ## DOMAINS (what a domain is and how it opens → DOMAINS_AND_FEATURES)
-core_domains: src/features/core/ = domains Tier1 ships (forks change them only through CHANGE_TYPES, fork_ownership) | business = all a fork or mid tier adds (src/features/\<domain\>/) | a domain Tier1 adds is core (business shape example: src/features/sample) | promotion to core = Tier1's call | hand-written vs generated is not part of the definition
-- index: src/features/core/README.md | imports omit core/ (@/features/\<coreDomain\>/* → features/core/)
+core_domains: src/domains/core/ = domains Tier1 ships (forks change them only through CHANGE_TYPES, fork_ownership) | business = all a fork or mid tier adds (src/domains/\<domain\>/) | a domain Tier1 adds is core (business shape example: src/domains/sample) | promotion to core = Tier1's call | hand-written vs generated is not part of the definition
+- index: src/domains/core/README.md | imports omit core/ (@/domains/\<coreDomain\>/* → domains/core/)
 - more data on an upstream domain's records → a table in your own domain, or /order <direct parent> | never a DB column on an upstream domain's table (core/db.md upstream_tables)
-business: src/features/\<domain\>/ with domain.json → pnpm generate domain, or hand-written with the same files (domainEntry.ts etc., scanned alike) | before creating or editing any domain.json → MUST read src/features/README.md | writing domain.json / role / profile → core/domain-definition.md
+business: src/domains/\<domain\>/ with domain.json → pnpm generate domain, or hand-written with the same files (domainEntry.ts etc., scanned alike) | before creating or editing any domain.json → MUST read src/domains/README.md | writing domain.json / role / profile → core/domain-definition.md
 commands: write domain.json / *.role.json / *.profile.json by hand (no interactive builders) → `pnpm forge` (every generator and check in order, prints the db:push step) | steps and gates → core/domain-definition.md commands
 - single steps: pnpm generate domain -- \<Domain\> [--only \<categories\>] | --delete \<Domain\> --confirm \<snake_name\> | `-i` (interactive) never in agent work, CI or notices
 schema_registry (MANDATORY): src/registry/schemaRegistry.ts = the only push entry (pnpm db:push), generated whole by pnpm generate registry | new table → pnpm generate registry + a notice with `[user-run] db:push` | unregistered = never created, writes fail silently | → core/db.md
@@ -126,13 +126,13 @@ doctrine: new domains default dbEngine "Neon" | Firestore = realtime delivery on
 servers: standalone programs outside Next/Vercel live in servers/\<name\>/ (own package.json, not in the pnpm workspace) | src→servers forbidden
 
 ## CORE_FILES (ownership: who edits what)
-core (= CORE, approval required): CLAUDE.md, core/, src/features/core/ (core domains, core roles), src/styles/core/, src/components/, src/proxy.ts, src/proxies/, src/featureGate/, src/wiring/, upstream routes' _screen / _layout, libs in the Tier1 section of src/lib/CATALOG.md | files the fork added = fork-owned | per path → pnpm workflow ownership who
+core (= CORE, approval required): CLAUDE.md, core/, src/domains/core/ (core domains, core roles), src/styles/core/, src/components/, src/proxy.ts, src/proxies/, src/featureGate/, src/wiring/, upstream routes' _screen / _layout, libs in the Tier1 section of src/lib/CATALOG.md | files the fork added = fork-owned | per path → pnpm workflow ownership who
 - full list → core/ownership.md
 downstream_owned (upstream never edits after creation): root src/styles/*.css, page.tsx / frame layout.tsx of switched routes, _components/** and \<name\>.replace files of upstream routes, \<target\>.override.ts | exceptions → core/ownership.md
 intake: every place a fork may write in parent files = src/lib/forkOwnership/intake.txt (kinds: edit / add / region / marker / append / generated / debt / self) | src/config/** too (both sides edit it: config below)
 config: src/config/ = values, or a zero-arg function that only returns env (process.env.X joined with ?? / ||) (logic → domain utils or lib) | value changes OK | structure changes (add/remove keys, type change, rename) need approval
 fork_ownership (check: pnpm workflow ownership check, run by /flux after each segment commit | exit 2 = unverified, never a pass | ref: src/lib/forkOwnership/README.md):
-- base = merge-base with the direct parent | parent-owned (in the base): write only inside intake points, never delete / move / rename (a `_` prefix too) | a file added inside an upstream unit, or under src/features/core/, src/featureGate/ or core/ outside a receptacle = violation (units → core/ownership.md)
+- base = merge-base with the direct parent | parent-owned (in the base): write only inside intake points, never delete / move / rename (a `_` prefix too) | a file added inside an upstream unit, or under src/domains/core/, src/featureGate/ or core/ outside a receptacle = violation (units → core/ownership.md)
 - multi-tier: strict only for files in the Tier1 version (a middle tier's files may change below it, except an ancestor's .default and service/) → core/ownership.md fork_ownership
 - edit outside the intake: an intake point exists → move there | none (incl. upstream bug / perf / security fixes) → /order <direct parent> + temporary permit in .fork-ownership/\<repo_id\>.permits.txt (≥1 order id; expiry → core/ownership.md) | debt rows of intake.txt → permit with that row's order id
 fork_core_edit_compat (while a permit lets a fork edit a parent-owned file): stay compatible with upstream callers: added props/args optional with an empty default | never delete parent code the fork does not use, never change a name or an argument shape (→ /order <direct parent>) | why → core/ownership.md
@@ -145,7 +145,7 @@ principle: a fork may build any look and any feature | it does not copy behavior
 - edit generated files: a file with a generated mark at its head, or a JSON / JSONL listed as generated (intake.txt generated rows) → edit its source | → core/generated.md
 - unpaginated full-fetch of user-scale data (base.search without limit; the default limit 100 silently drops rows) → page/limit + infinite scroll | list() only for small fixed master data
 - business.url (@/business) as runtime origin (the official URL for mail / SEO) → getAppBaseUrl() from @/lib/url | never build an origin from Host / X-Forwarded-Host (host header injection)
-- messages to users never through lib/mail send() or a channel directly → messagingService: a messages/\<name\>.ts definition → sendMessage / sendMessageToMany, admin free text → sendFreeMessage | send() = the mail channel only (lint import-boundaries/mail-send-via-messaging) | ref: src/features/core/messaging/README.md
+- messages to users never through lib/mail send() or a channel directly → messagingService: a messages/\<name\>.ts definition → sendMessage / sendMessageToMany, admin free text → sendFreeMessage | send() = the mail channel only (lint import-boundaries/mail-send-via-messaging) | ref: src/domains/core/messaging/README.md
 - stage from NODE_ENV or a direct process.env.APP_ENV read → @/lib/appEnv (lint app-env/single-reader) | env files, production guard → core/scripts.md
 
 ## PROXY (Next.js 16 proxy, NOT middleware.ts)
@@ -168,7 +168,7 @@ route_groups (access comes from each range's guard.ts, never the folder name): (
 route: page.tsx = 1-line switch → _screen/\<Name\>Screen.tsx (server, default) + _screen/loader.ts | 1 route = 1 Screen | a fork replaces it by copying to _components/\<X\>Screen.tsx, keeps calling the upstream loader, points page.tsx at it, never edits _screen/ (CHANGE_TYPES, FORK_EXTENSION) | → core/screens.md
 
 ## COMPONENTS
-placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ | one domain: section container → features/\<domain\>/components/\<Name\>, shared part → …/components/common/ | ref: src/components/README.md
+placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ | one domain: section container → domains/\<domain\>/components/\<Name\>, shared part → …/components/common/ | ref: src/components/README.md
 - page-only: a default Screen's own part (and a route the repo creates itself) → app/\<route\>/_screen/ | a fork's page-only part of an upstream route it replaces → app/\<route\>/_components/
 core_ui: core domains ship UI as fine-grained public parts (data / flow = hooks, display = props-only parts) composed into default containers | import only a part's entry, never a file inside (lint) | improve freely, breaking change → notice
 - fork changes UI: text / icons / colors → config | compose in the route Screen (_components/) from core parts + hooks, copy a container only as FORK_EXTENSION allows | missing value prop → /order <direct parent>

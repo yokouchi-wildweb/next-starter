@@ -4,8 +4,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createMeRoute } from "@/wiring/apiRoute";
-import { sendEmailChangeLink } from "@/features/core/auth/services/server/sendEmailChangeLink";
-import { userService } from "@/features/core/user/services/server/userService";
+import { sendEmailChangeLink } from "@/domains/core/auth/services/server/sendEmailChangeLink";
+import { userService } from "@/domains/core/user/services/server/userService";
 import { DomainError } from "@/lib/errors";
 
 const RequestSchema = z.object({

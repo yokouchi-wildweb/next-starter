@@ -4,7 +4,7 @@
 // program 未設定の環境では 503（fail-closed）。
 
 import { createMeRoute } from "@/wiring/apiRoute";
-import { issueForGrant } from "@/features/core/couponIssuerGrant/services/server";
+import { issueForGrant } from "@/domains/core/couponIssuerGrant/services/server";
 
 export const POST = createMeRoute(
   {

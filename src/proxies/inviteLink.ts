@@ -5,7 +5,7 @@ import {
   INVITE_LINK_COOKIE_MAX_AGE_DAYS,
   INVITE_LINK_COOKIE_NAME,
   readInviteLinkParam,
-} from '@/features/core/referral/lib/inviteLinkCookie';
+} from '@/domains/core/referral/lib/inviteLinkCookie';
 import { isPageNavigation } from './attribution';
 import type { ProxyResponseDecorator } from './types';
 import { gate } from "@/featureGate";

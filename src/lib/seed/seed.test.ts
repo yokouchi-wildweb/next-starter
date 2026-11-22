@@ -5,7 +5,7 @@ import { test } from "node:test";
 
 import { defineSeed, planSeeds, ref, resolveRow, type SeedEntry } from "./index";
 
-const entry = (domain: string, seed: ReturnType<typeof defineSeed>, closedBy: string | null = null): SeedEntry => ({ domain, folder: domain, file: `src/features/${domain}/seed.ts`, seed, closedBy });
+const entry = (domain: string, seed: ReturnType<typeof defineSeed>, closedBy: string | null = null): SeedEntry => ({ domain, folder: domain, file: `src/domains/${domain}/seed.ts`, seed, closedBy });
 
 test("defineSeed: $key の形・ドメインの中の重複・$unique の列が行に無いと止める", () => {
   assert.throws(() => defineSeed({ tables: { t: [{ $key: "" }] } }), /\$key/);

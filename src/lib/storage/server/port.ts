@@ -1,7 +1,7 @@
 // src/lib/storage/server/port.ts
 //
 // ストレージエンジンの境界（StoragePort）。実装は GCS の 1 つ（gcs.ts）と、テスト用の fake（fake.ts）。
-// 判定（誰が・何を）はこの層に持たせない。呼び出し側（features/core/storageObject）が認可してから使う。
+// 判定（誰が・何を）はこの層に持たせない。呼び出し側（domains/core/storageObject）が認可してから使う。
 //
 // 実装が守る約束:
 // - issuePut / issueSession / put / copy は、Content-Disposition を contentTypes.ts の contentDispositionFor で決めて
@@ -12,7 +12,7 @@
 // - generation を受ける操作は、指定があればその世代だけを対象にする
 // - read は maxBytes を超えるオブジェクトを読み込む前に失敗させる（StorageReadTooLargeError）
 //
-// metadata: "strip" の用途の描き直し（features/core/storageObject）は、受け取った原本を read で読み、
+// metadata: "strip" の用途の描き直し（domains/core/storageObject）は、受け取った原本を read で読み、
 // 処理後の物を put で本来の位置に書き、原本を delete で消す（専用の書き込み・削除は持たない）
 
 import "server-only";

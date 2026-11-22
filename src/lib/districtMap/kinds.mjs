@@ -6,7 +6,7 @@
 export const DISTRICT_KINDS = /** @type {const} */ (["features", "lib", "frame", "proxies"]);
 
 /** features の地区を探すフォルダ(直下の _ 始まりでないフォルダ = 1 地区、目録 D3) */
-export const FEATURES_ROOT = "src/features";
+export const FEATURES_ROOT = "src/domains";
 /** core の地区を探すフォルダ(FEATURES_ROOT の直下の core は地区でなく core の置き場) */
 export const CORE_DIR_NAME = "core";
 /** lib の地区を探すフォルダ(直下のフォルダ = 1 地区)。見つけ方の決まりは src/lib/libPackage の listLibsFrom(L1.14) */

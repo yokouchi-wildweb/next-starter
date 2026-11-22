@@ -14,11 +14,11 @@
 import { oldMarkerProblem } from "../../lib/districtMap/index.mjs";
 import { matchesPath } from "../../lib/pathPattern/index.mjs";
 
-/** 機能のフォルダ(src/features からの相対)を import 元の印に。core は `@/features/core/<x>/` と `@/features/<x>/` の両方 */
+/** 機能のフォルダ(src/domains からの相対)を import 元の印に。core は `@/domains/core/<x>/` と `@/domains/<x>/` の両方 */
 export function folderSourcePattern(folder) {
   const escaped = folder.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const alias = folder.startsWith("core/") ? `|${folder.slice("core/".length).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}` : "";
-  return new RegExp(`^@/features/(?:${escaped}${alias})(?:/|$)`);
+  return new RegExp(`^@/domains/(?:${escaped}${alias})(?:/|$)`);
 }
 
 const STATIC_IMPORT = /import\s+(type\s+)?([\s\S]*?)\s+from\s+["']([^"']+)["']/g;
@@ -77,7 +77,7 @@ export function cronTaskPathOf(file) {
 /**
  * cron のタスクの住所を、import した機能のフォルダを持つ規則が全部閉じるか。覆わない規則の名前を返す
  * @param {string} taskPath /api/cron/<name>
- * @param {string[]} sources import 元(@/features/…)
+ * @param {string[]} sources import 元(@/domains/…)
  * @param {{ name: string, domains?: string[], pathPatterns: string[] }[]} rules
  */
 export function rulesNotCoveringCronTask(taskPath, sources, rules) {
@@ -85,11 +85,11 @@ export function rulesNotCoveringCronTask(taskPath, sources, rules) {
   return owners.filter((rule) => !rule.pathPatterns.some((pattern) => matchesPath(taskPath, pattern))).map((rule) => rule.name);
 }
 
-// 規則のファイル(src/featureGate/rules/)が自分の機能のドメインの config(src/features/<d>/config.ts、入切の値だけ)を読むのは閉じ漏れでない
+// 規則のファイル(src/featureGate/rules/)が自分の機能のドメインの config(src/domains/<d>/config.ts、入切の値だけ)を読むのは閉じ漏れでない
 // (入切でない条件の値、例 決済の自社振込が選べるか。入切そのものは規則の defaultEnabled と switches.config.ts、D35)。config が値以外に届くかは到達の検査
 // (pnpm test src/featureGate/checks/reachability.test.mjs: 入口から services・drizzle・server-only に届かない)が見る
 const RULE_FILE = /^src\/featureGate\/rules\//;
-const DOMAIN_CONFIG = /^@\/features\/(?:core\/)?[^/]+\/config$/;
+const DOMAIN_CONFIG = /^@\/domains\/(?:core\/)?[^/]+\/config$/;
 export const isRuleConfigImport = (path, source) => RULE_FILE.test(path) && DOMAIN_CONFIG.test(source);
 
 /**

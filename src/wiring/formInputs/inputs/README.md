@@ -22,7 +22,7 @@ import type { FormInputItem } from "@/lib/formSuite";
 
 export const formInput = {
   name: "ticketRates",
-  load: () => import("@/features/foo/components/common/TicketRatesInput"),
+  load: () => import("@/domains/foo/components/common/TicketRatesInput"),
   frame: false,
 } as const satisfies FormInputItem;
 ```

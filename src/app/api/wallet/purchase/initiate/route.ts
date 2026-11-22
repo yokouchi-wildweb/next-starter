@@ -4,11 +4,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { purchaseRequestService } from "@/features/core/purchaseRequest/services/server/purchaseRequestService";
-import { walletConfig, type WalletType } from "@/features/wallet/config";
+import { purchaseRequestService } from "@/domains/core/purchaseRequest/services/server/purchaseRequestService";
+import { walletConfig, type WalletType } from "@/domains/wallet/config";
 import { getAppBaseUrl } from "@/lib/url";
-import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/features/core/wallet/utils/purchaseSuspension";
-import { isPaymentMethodSelectable } from "@/features/purchaseRequest/utils/paymentMethods";
+import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/domains/core/wallet/utils/purchaseSuspension";
+import { isPaymentMethodSelectable } from "@/domains/purchaseRequest/utils/paymentMethods";
 
 // wallet の config.ts の currency から動的に walletType の値を取得（型安全）
 const walletTypes = Object.keys(walletConfig.currency) as [WalletType, ...WalletType[]];

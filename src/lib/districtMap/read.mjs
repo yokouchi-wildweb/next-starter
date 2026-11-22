@@ -166,7 +166,7 @@ function nameProblems(found) {
 /**
  * 門の規則の features → 地区の dir ごとの規則の名前
  * @param {DistrictSource} source
- * @param {Map<string, string>} featuresByFolder src/features からの相対 → 地区の dir
+ * @param {Map<string, string>} featuresByFolder src/domains からの相対 → 地区の dir
  * @param {string[]} problems
  * @returns {Map<string, string[]>}
  */
@@ -203,7 +203,7 @@ export function readDistrictMap(source) {
   const tableProblems = [];
   const found = discover(source, problems);
   problems.push(...nameProblems(found));
-  // 規則の features は src/features からの相対("core/<d>" か "<d>")
+  // 規則の features は src/domains からの相対("core/<d>" か "<d>")
   const featuresByFolder = new Map(found.filter((d) => d.kind === "features").map((d) => [d.dir.slice(FEATURES_ROOT.length + 1), d.dir]));
   const gates = readGates(source, featuresByFolder, problems);
   /** @type {Map<string, string[]>} */

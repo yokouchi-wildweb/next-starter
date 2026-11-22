@@ -5,7 +5,7 @@
 
 import { NextResponse } from "next/server";
 
-import { messagingService } from "@/features/core/messaging/services/server";
+import { messagingService } from "@/domains/core/messaging/services/server";
 import { DomainError } from "@/lib/errors";
 import { createMeRoute } from "@/wiring/apiRoute";
 

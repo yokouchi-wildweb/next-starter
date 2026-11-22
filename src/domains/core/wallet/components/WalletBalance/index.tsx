@@ -1,0 +1,163 @@
+// src/domains/core/wallet/components/WalletBalance/index.tsx
+// セクションコンテナ(残高・購入)。
+// 下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
+
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
+import { Flex } from "@/components/Layout/Flex";
+import { Para } from "@/components/TextBlocks/Para";
+import { InlineLoader } from "@/components/Overlays/Loading";
+import { LinkButton } from "@/components/Button/LinkButton";
+import { walletConfig } from "@/domains/wallet/config";
+import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/domains/core/wallet/utils/purchaseSuspension";
+import { useAuthSession } from "@/domains/core/auth/hooks/useAuthSession";
+import { useMyWalletBalances } from "@/domains/core/wallet/hooks/useMyWalletBalances";
+import { usePurchaseBonuses } from "@/domains/core/wallet/hooks/usePurchaseBonuses";
+import { getCurrencyConfigBySlug } from "@/domains/core/wallet/utils/currency";
+import { setActiveCoupon, clearActiveCoupon } from "@/domains/core/wallet/utils/couponParam";
+import type { PurchaseDiscountEffect } from "@/domains/core/purchaseRequest/types/couponEffect";
+import type { Wallet } from "@/domains/core/wallet/entities";
+import { CouponInput } from "@/domains/core/wallet/components/WalletPurchase";
+import { ActiveTransferBanner } from "@/domains/core/bankTransferReview/components/ActiveTransferBanner";
+import { useGate } from "@/featureGate/client";
+import { PurchaseSuspended } from "@/domains/core/wallet/components/common/PurchaseSuspended";
+import { BalanceCard } from "@/domains/core/wallet/components/WalletBalance/BalanceCard";
+import { PurchaseList } from "@/domains/core/wallet/components/WalletBalance/PurchaseList";
+import { PhoneVerificationRequired } from "@/domains/core/wallet/components/WalletBalance/PhoneVerificationRequired";
+
+// 部品の barrel export: 下流が Screen やセクションコンテナを複製するときはここから import する
+export { BalanceCard, PurchaseList, PhoneVerificationRequired };
+
+export type WalletBalanceProps = {
+  /** URLスラッグ */
+  slug: string;
+  /** 電話番号認証日時（認証済みの場合） */
+  phoneVerifiedAt?: Date | null;
+  /** 現在の電話番号 */
+  currentPhoneNumber?: string | null;
+  /** loader がサーバーで取った本人の全ウォレット(初回描画用)。無ければ hook が取る */
+  initialWallets?: Wallet[];
+};
+
+export function WalletBalance({
+  slug,
+  phoneVerifiedAt,
+  currentPhoneNumber,
+  initialWallets,
+}: WalletBalanceProps) {
+  const searchParams = useSearchParams();
+  const config = getCurrencyConfigBySlug(slug);
+  const { user } = useAuthSession();
+  const { data, isLoading, error } = useMyWalletBalances(user?.userId, {
+    fallbackData: initialWallets ? { wallets: initialWallets } : undefined,
+  });
+  // 振込の案内は決済の機能(bankTransferReview は payment の規則のフォルダ)が開いているときだけ
+  const showTransferBanner = useGate().enabled("payment");
+  const phoneVerificationOpen = useGate().enabled("phoneVerification");
+
+  // 購入の特典の表示(受け口 purchaseBonuses。提供元が 0 なら空 = 今まで通り)
+  const { forPackage: packageBonuses } = usePurchaseBonuses();
+
+  // クーポン状態管理
+  const [couponEffect, setCouponEffect] = useState<PurchaseDiscountEffect | null>(null);
+
+  const handleCouponApply = useCallback((code: string, effect: PurchaseDiscountEffect) => {
+    setCouponEffect(effect);
+    setActiveCoupon(code);
+  }, []);
+
+  const handleCouponClear = useCallback(() => {
+    setCouponEffect(null);
+    clearActiveCoupon();
+  }, []);
+
+  // URLパラメータ ?coupon=CODE をアクティブクーポンとして保存
+  useEffect(() => {
+    const coupon = searchParams.get("coupon");
+    if (coupon) {
+      setActiveCoupon(coupon);
+    }
+  }, [searchParams]);
+
+  // 無効なスラッグ
+  if (!config) {
+    return (
+      <Block padding={{ base: "md", sm: "lg" }}>
+        <Para tone="destructive" align="center">
+          無効な通貨タイプです。
+        </Para>
+      </Block>
+    );
+  }
+
+  // ローディング中
+  if (isLoading) {
+    return (
+      <InlineLoader size="lg" />
+    );
+  }
+
+  // エラー
+  if (error) {
+    return (
+      <Block padding={{ base: "md", sm: "lg" }}>
+        <Para tone="destructive" align="center">
+          残高情報の取得に失敗しました。
+        </Para>
+      </Block>
+    );
+  }
+
+  // 該当ウォレットの残高を取得
+  const wallet = data?.wallets.find((w) => w.type === config.walletType);
+  const currentBalance = wallet?.balance ?? 0;
+
+  // 購入一時停止チェック
+  const purchaseSuspended = isPurchaseSuspended();
+
+  // 購入制限チェック: SMS認証が必要かどうか(SMS 認証の機能 phoneVerification が閉なら求めない)
+  const requiresPhoneVerification =
+    walletConfig.purchaseRestriction === "phoneVerified" && phoneVerificationOpen && !phoneVerifiedAt;
+
+  // 購入セクションの表示判定
+  const renderPurchaseSection = () => {
+    if (purchaseSuspended) {
+      return <PurchaseSuspended message={getPurchaseSuspensionMessage()} />;
+    }
+    if (requiresPhoneVerification) {
+      return <PhoneVerificationRequired currentPhoneNumber={currentPhoneNumber} />;
+    }
+    return (
+      <>
+        <CouponInput
+          onApply={handleCouponApply}
+          onClear={handleCouponClear}
+        />
+        <PurchaseList
+          slug={slug}
+          config={config}
+          couponEffect={couponEffect}
+          packageBonuses={packageBonuses}
+        />
+      </>
+    );
+  };
+
+  return (
+    <Stack gap="lg">
+      {/* 進行中の自社銀行振込バナー（active が null なら自動的に非描画） */}
+      {showTransferBanner && <ActiveTransferBanner />}
+      <Flex justify="end">
+        <LinkButton href={`/wallet/${slug}/history`} variant="outline" size="sm">
+          履歴
+        </LinkButton>
+      </Flex>
+      <BalanceCard balance={currentBalance} config={config} />
+      {renderPurchaseSection()}
+    </Stack>
+  );
+}

@@ -2,7 +2,7 @@
 //
 // 汎用の Factory に差し込む値の型。lib/routeFactory は主体（ログイン中の利用者・登録端末）の解き方と
 // access の評価、ドメイン名 → 登録行の表を自分で import せず、ここで決めた形で受け取る。
-// 束を作るのは持ち主のドメイン（利用者 = features/core/auth、端末 = features/core/pairedDevice）、
+// 束を作るのは持ち主のドメイン（利用者 = domains/core/auth、端末 = domains/core/pairedDevice）、
 // 結ぶのは src/wiring/apiRoute.ts。全項目必須（足りない束は型で止まる）。
 // 主体の具体の型（利用者・status・端末）も lib は持たず、型引数で受ける（lib は features を import しない）。
 
@@ -26,7 +26,7 @@ export type RouteUserBase<TStatus extends string = string> = {
   isDemo: boolean;
 };
 
-/** 利用者の束（features/core/auth が export する） */
+/** 利用者の束（domains/core/auth が export する） */
 export type RouteUserDeps<TUser extends RouteUserBase<TStatus>, TStatus extends string> = {
   /**
    * Cookie から DB 同期の利用者を解く。
@@ -50,10 +50,10 @@ export type RouteUserDeps<TUser extends RouteUserBase<TStatus>, TStatus extends 
   availableStatuses: readonly TStatus[];
 };
 
-/** 認証済みの登録端末（持ち主 features/core/pairedDevice の形を Factory は中身まで見ない） */
+/** 認証済みの登録端末（持ち主 domains/core/pairedDevice の形を Factory は中身まで見ない） */
 export type RouteAuthenticatedDevice<TDevice = unknown> = { device: TDevice & { deviceId: string; kind: string } };
 
-/** 登録端末の束（features/core/pairedDevice が export する） */
+/** 登録端末の束（domains/core/pairedDevice が export する） */
 export type RouteDeviceDeps<TAuthenticated extends RouteAuthenticatedDevice = RouteAuthenticatedDevice, TCategory extends string = string> = {
   /** リクエストの Cookie から端末を認証する（無い・失効・期限切れなら null） */
   authenticateRequestDevice: (req: NextRequest) => Promise<TAuthenticated | null>;
@@ -71,7 +71,7 @@ export type RouteRateLimitResult = {
   resetAt: Date;
 };
 
-/** レート制限の束（features/core/rateLimit が export する）。TCategory = カテゴリの名前(wiring が渡す、既定 string) */
+/** レート制限の束（domains/core/rateLimit が export する）。TCategory = カテゴリの名前(wiring が渡す、既定 string) */
 export type RouteRateLimitDeps<TCategory extends string = string> = {
   /** IP・サブネット単位の判定。呼ぶとカウントが進む */
   checkRateLimit: (category: TCategory, identifier: string) => Promise<RouteRateLimitResult>;

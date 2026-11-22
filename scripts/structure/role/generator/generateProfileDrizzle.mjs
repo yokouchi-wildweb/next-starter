@@ -12,7 +12,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "../../../..");
 const GENERATED_DIR = path.join(
   ROOT_DIR,
-  "src/features/core/userProfile/entities/profiles"
+  "src/domains/core/userProfile/entities/profiles"
 );
 
 /**
@@ -265,7 +265,7 @@ export function generateProfileDrizzle(roleConfig, profileConfig) {
   const relationImportLines = Array.from(allRelationImports.entries())
     .map(
       ([domain, tableVar]) =>
-        `import { ${tableVar} } from "@/features/${domain}/entities/drizzle";`
+        `import { ${tableVar} } from "@/domains/${domain}/entities/drizzle";`
     )
     .join("\n");
   const relationImportBlock = relationImportLines ? `\n${relationImportLines}` : "";
@@ -283,13 +283,13 @@ ${belongsTo.lines.join("\n")}\n`
   const m2mBlock = m2m.blocks.join("\n");
 
   const content = `${profileFileHeader(roleId)}
-// src/features/core/userProfile/entities/profiles/${roleId}/drizzle.ts
+// src/domains/core/userProfile/entities/profiles/${roleId}/drizzle.ts
 // ${roleConfig.label}（${roleId}）ロール用のプロフィールテーブル
 //
-// 元情報: src/features/core/userProfile/profiles/${roleId}.profile.json
+// 元情報: src/domains/core/userProfile/profiles/${roleId}.profile.json
 // このファイルは pnpm generate role によって自動生成されました
 
-import { UserTable } from "@/features/core/user/entities/drizzle";
+import { UserTable } from "@/domains/core/user/entities/drizzle";
 import { ${Array.from(imports).join(", ")}, pgTable } from "drizzle-orm/pg-core";${relationImportBlock}
 
 /**

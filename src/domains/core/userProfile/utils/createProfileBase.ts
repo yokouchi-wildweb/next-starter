@@ -1,0 +1,105 @@
+// src/domains/core/userProfile/utils/createProfileBase.ts
+// プロフィールベースのファクトリ関数
+
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/drizzle";
+import { createCrudService } from "@/lib/crud/server";
+import type { BelongsToManyRelationConfig, CrudServiceOptions } from "@/lib/crud/server";
+import type { BelongsToRelation, BelongsToManyObjectRelation, CountableRelation } from "@/lib/crud";
+import type { ProfileBase } from "../types";
+
+/** createProfileBase のオプション */
+type CreateProfileBaseOptions = {
+  /** keyword検索対象のカラム名 */
+  defaultSearchFields?: string[];
+  /** belongsToMany リレーション（ID配列の同期） */
+  belongsToManyRelations?: CrudServiceOptions<any>["belongsToManyRelations"];
+  /** belongsTo リレーション（withRelations 用） */
+  belongsToRelations?: BelongsToRelation[];
+  /** belongsToMany オブジェクト展開（withRelations 用） */
+  belongsToManyObjectRelations?: BelongsToManyObjectRelation[];
+  /** カウント取得対象リレーション（withCount 用） */
+  countableRelations?: CountableRelation[];
+  /** 監査ログの設定（createCrudService の audit をそのまま渡す。pnpm generate role が profile.json から書く） */
+  audit?: CrudServiceOptions<any>["audit"];
+};
+
+/**
+ * プロフィールベースを生成するファクトリ関数
+ *
+ * @param table - Drizzle プロフィールテーブル（id, userId, createdAt, updatedAt を持つ）
+ * @param options - オプション設定
+ * @returns ProfileBase インターフェースを実装したオブジェクト
+ */
+export function createProfileBase(
+  table: any,
+  options?: CreateProfileBaseOptions,
+): ProfileBase {
+  // 基本CRUD（createCrudService使用）
+  const base = createCrudService(table, {
+    idType: "uuid",
+    useCreatedAt: true,
+    useUpdatedAt: true,
+    defaultUpsertConflictFields: ["userId"],
+    defaultSearchFields: options?.defaultSearchFields,
+    belongsToManyRelations: options?.belongsToManyRelations,
+    belongsToRelations: options?.belongsToRelations,
+    belongsToManyObjectRelations: options?.belongsToManyObjectRelations,
+    countableRelations: options?.countableRelations,
+    audit: options?.audit,
+  });
+
+  /**
+   * userId でプロフィールを取得
+   */
+  async function getByUserId(userId: string): Promise<Record<string, unknown> | null> {
+    const result = await db
+      .select()
+      .from(table)
+      .where(eq(table.userId, userId));
+    return (result[0] as Record<string, unknown>) ?? null;
+  }
+
+  /**
+   * userId でプロフィールが存在するか確認
+   */
+  async function existsByUserId(userId: string): Promise<boolean> {
+    const result = await getByUserId(userId);
+    return result !== null;
+  }
+
+  /**
+   * userId でプロフィールを更新
+   *
+   * audit の自動記録を効かせるため base.update を通す（updatedAt も base.update が付ける）
+   */
+  async function updateByUserId(
+    userId: string,
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown> | null> {
+    const existing = await getByUserId(userId);
+    if (!existing) return null;
+    const updated = await (base as any).update(existing.id as string, data);
+    return (updated as Record<string, unknown>) ?? null;
+  }
+
+  /**
+   * userId でプロフィールを削除
+   */
+  async function deleteByUserId(userId: string): Promise<boolean> {
+    const result = await db
+      .delete(table)
+      .where(eq(table.userId, userId))
+      .returning();
+
+    return result.length > 0;
+  }
+
+  return {
+    ...(base as unknown as Record<string, unknown>),
+    getByUserId,
+    existsByUserId,
+    updateByUserId,
+    deleteByUserId,
+  } as ProfileBase;
+}

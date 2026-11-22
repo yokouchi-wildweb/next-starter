@@ -6,9 +6,9 @@ import assert from "node:assert/strict";
 import { checkFeatureRequirements, requiresFeature, unmetRequirements, valueAt, type RequirementSubject } from "./featureRequirements";
 
 const subject = (composed: Record<string, unknown> | null, requirements: RequirementSubject["requirements"]): RequirementSubject => ({
-  district: "features/wallet",
-  configPath: "src/features/core/wallet/config.ts",
-  overridePath: "src/config/features/wallet.config.ts",
+  district: "domains/wallet",
+  configPath: "src/domains/core/wallet/config.ts",
+  overridePath: "src/config/domains/wallet.config.ts",
   requirements,
   composed,
 });
@@ -35,7 +35,7 @@ test("値が off なら機能が閉でも通る / off でなく機能が閉な�
   assert.equal(rest.length, 0);
   assert.match(problem, /features\/wallet の purchaseRestriction = "phoneVerified" は機能 phoneVerification を要する/);
   assert.match(problem, /pnpm ops features set phoneVerification on/);
-  assert.match(problem, /src\/config\/features\/wallet\.config\.ts に purchaseRestriction = "none"/);
+  assert.match(problem, /src\/config\/domains\/wallet\.config\.ts に purchaseRestriction = "none"/);
   assert.deepEqual(unmetRequirements([subject({ purchaseRestriction: "phoneVerified" }, [req])], () => true, known), []);
 });
 

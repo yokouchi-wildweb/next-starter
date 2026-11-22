@@ -9,8 +9,8 @@ import { AppForm } from "@/lib/formSuite";
 import { Button } from "@/components/Button/Button";
 import { FieldRenderer } from "@/lib/formSuite";
 import { Flex } from "@/components/Layout/Flex";
-import type { Setting } from "@/features/core/setting/entities";
-import { useSettingSectionForm } from "@/features/core/setting/hooks/useSettingSectionForm";
+import type { Setting } from "@/domains/core/setting/entities";
+import { useSettingSectionForm } from "@/domains/core/setting/hooks/useSettingSectionForm";
 
 type Props = {
   /** セクションの key(定義のアイコンは Server Component から渡せないのでここで引く) */

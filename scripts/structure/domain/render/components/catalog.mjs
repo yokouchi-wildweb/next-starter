@@ -1,5 +1,5 @@
 // components/ のテンプレート一覧（生成順 = この配列の順）。
-// template = src/features/_template/components/ からの相対パス、output = 出力の相対パス（省略 = template と同じ）
+// template = src/domains/_template/components/ からの相対パス、output = 出力の相対パス（省略 = template と同じ）
 
 /**
  * @typedef {object} ComponentSpec

@@ -3,7 +3,7 @@
 // アップロードの完了を確定する。HEAD で size・申告 MIME・generation を照合して ready にし、ref を返す
 // （ファイルの中身は検査しない）。再送・並行実行には同じ ref を返す。
 
-import { parseObjectId, storageObjectService } from "@/features/core/storageObject/services/server";
+import { parseObjectId, storageObjectService } from "@/domains/core/storageObject/services/server";
 import { createMeRoute } from "@/wiring/apiRoute";
 
 export const POST = createMeRoute<{ id: string }>(

@@ -29,13 +29,13 @@ import {
 import { DataTable, RecordSelectionTable } from "@/lib/tableSuite";
 import { EnumFieldButton, BelongsToFieldButton, BelongsToManyFieldButton, BulkDeleteButton, BulkEnumFieldButton, BulkBelongsToFieldButton, BulkBelongsToManyFieldButton } from "@/lib/crud";
 import useSWR from "swr";
-import { sampleClient } from "@/features/sample/services/client/sampleClient";
-import type { SampleWithRelations } from "@/features/sample/entities/model";
+import { sampleClient } from "@/domains/sample/services/client/sampleClient";
+import type { SampleWithRelations } from "@/domains/sample/entities/model";
 import { Flex } from "@/components/Layout/Flex";
 import { InlineLoader } from "@/components/Overlays/Loading";
 import { Tooltip } from "@/components/Overlays/Tooltip";
 import { HoverCard } from "@/components/Overlays/HoverCard";
-import { domainDisplay as sampleDisplay } from "@/features/sample/entities/display";
+import { domainDisplay as sampleDisplay } from "@/domains/sample/entities/display";
 
 // デモ用のダミーデータ
 const DEMO_SHIPMENTS = [

@@ -16,15 +16,15 @@ import { assertPairs, collectionChildrenOf, groupOf, pairSummary, printPairNotic
 import { planDomain } from "./plan.mjs";
 import { precheckServiceRegistry, regenerateServiceRegistry } from "./serviceRegistry.mjs";
 
-/** core のドメインは生成物の import（@/features/<camel>/...）に tsconfig.json の paths の別名が要る。無ければエラー文 */
+/** core のドメインは生成物の import（@/domains/<camel>/...）に tsconfig.json の paths の別名が要る。無ければエラー文 */
 function coreAliasIssue(workspace, ctx) {
   if (ctx.kind !== "core") return null;
   const tsconfig = path.join(workspace.rootDir, "tsconfig.json");
-  const alias = `"@/features/${ctx.camel}/*"`;
+  const alias = `"@/domains/${ctx.camel}/*"`;
   if (workspace.exists(tsconfig) && workspace.readText(tsconfig).includes(alias)) return null;
   return (
-    `[${ctx.camel}] core のドメインの生成物は @/features/${ctx.camel}/... で import します。` +
-    `tsconfig.json の compilerOptions.paths に ${alias}: ["./src/features/core/${ctx.camel}/*"] を足してください（生成器は tsconfig.json を書きません）`
+    `[${ctx.camel}] core のドメインの生成物は @/domains/${ctx.camel}/... で import します。` +
+    `tsconfig.json の compilerOptions.paths に ${alias}: ["./src/domains/core/${ctx.camel}/*"] を足してください（生成器は tsconfig.json を書きません）`
   );
 }
 

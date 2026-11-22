@@ -5,7 +5,7 @@
 // 門番の規則 deviceFingerprint(既定は閉)が閉じていれば proxy が 404 を返す(ここまで届かない)。
 
 import { createMeRoute } from "@/wiring/apiRoute";
-import { recordDeviceFingerprint } from "@/features/core/deviceFingerprint/services/server";
+import { recordDeviceFingerprint } from "@/domains/core/deviceFingerprint/services/server";
 
 export const POST = createMeRoute(
   {

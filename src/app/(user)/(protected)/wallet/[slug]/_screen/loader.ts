@@ -9,12 +9,12 @@
 import "server-only";
 import { notFound } from "next/navigation";
 
-import type { WalletType } from "@/features/wallet/config";
+import type { WalletType } from "@/domains/wallet/config";
 import type { ScreenProps } from "@/lib/screens";
-import { requireUserRecord } from "@/features/core/user/services/server/userService";
-import type { Wallet } from "@/features/core/wallet/entities";
-import { walletService } from "@/features/core/wallet/services/server/walletService";
-import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
+import { requireUserRecord } from "@/domains/core/user/services/server/userService";
+import type { Wallet } from "@/domains/core/wallet/entities";
+import { walletService } from "@/domains/core/wallet/services/server/walletService";
+import { getCurrencyConfigBySlug } from "@/domains/core/wallet/utils/currency";
 import { createLoader } from "@/app/(user)/(protected)/guard";
 
 export type WalletBalanceScreenParams = { slug: string };

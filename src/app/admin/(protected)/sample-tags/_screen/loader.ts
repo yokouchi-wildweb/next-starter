@@ -6,7 +6,7 @@
 
 import "server-only";
 
-import type { SampleTag } from "@/features/sampleTag/entities/model";
+import type { SampleTag } from "@/domains/sampleTag/entities/model";
 import { createLoader } from "@/app/admin/(protected)/guard";
 import { adminListParts } from "@/wiring/adminScreenParts";
 

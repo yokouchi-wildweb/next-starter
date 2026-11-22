@@ -3,7 +3,7 @@
 // 画面を変えるときは _components/ にコピーして page.tsx の import 先を向ける。
 
 import type { ScreenProps } from "@/lib/screens";
-import Admin__Domain__Sort from "@/features/__domain__/components/Admin__Domain__Sort";
+import Admin__Domain__Sort from "@/domains/__domain__/components/Admin__Domain__Sort";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 
 import { loadAdmin__Domain__SortScreen } from "./loader";

@@ -88,7 +88,7 @@ const walk = (dir, out = []) => {
   return out;
 };
 
-// テーブル名 → それを定義するドメイン名（src/features/<domain> または src/features/core/<domain>）
+// テーブル名 → それを定義するドメイン名（src/domains/<domain> または src/domains/core/<domain>）
 // src/app 配下のファイルパス → それが属するルートの URL セグメント
 // （ルートグループは除き、private フォルダ（_screen / _components 等）以降は切り捨て、動的セグメントは "[x]" のまま）
 const toUrlSegments = (file) => {
@@ -310,7 +310,7 @@ test("住所: 同じ住所を 2 つの機能に書かず、親の前方一致の
 // 機能とドメインの組み合わせ(D24・D27・D34 K5・設定 D56。判定は src/featureGate/checks/integrity.mjs)
 const domainFacts = readDistrictMapAt(ROOT)
   .districts.filter((d) => d.kind === "features")
-  .map((d) => ({ folder: d.dir.slice("src/features/".length), name: d.name, requires: d.requires, tables: d.tables }));
+  .map((d) => ({ folder: d.dir.slice("src/domains/".length), name: d.name, requires: d.requires, tables: d.tables }));
 const foreignKeys = Object.values(schema)
   .filter((value) => is(value, PgTable))
   .flatMap((table) => getTableConfig(table).foreignKeys.map((fk) => ({ from: getTableName(table), to: getTableName(fk.reference().foreignTable) })));
@@ -381,11 +381,11 @@ test("常時実行の入口: 規則の features の機能を import するなら
 test("fixture: 表 0 のドメインの規則も、ルート・汎用 CRUD・常時実行の入口の検査に掛かる。features の無い規則は対象外", () => {
   const chat = { name: "chatRoom", domains: ["core/chatRoom"], tables: [], pathPatterns: ["/chat", "/api/chatRoom", "/api/cron/chat-sweep"] };
   const plain = { name: "plain", pathPatterns: ["/plain"] };
-  const IMPORT_CHAT = 'import { useChat } from "@/features/chatRoom/hooks/useChat";\nexport const x = useChat;\n';
+  const IMPORT_CHAT = 'import { useChat } from "@/domains/chatRoom/hooks/useChat";\nexport const x = useChat;\n';
   const routeFiles = [
     { rel: "(user)/mypage/_screen/MypageScreen.tsx", segments: ["mypage"], text: IMPORT_CHAT },
     { rel: "(user)/chat/[id]/page.tsx", segments: ["chat", "[id]"], text: IMPORT_CHAT },
-    { rel: "(user)/plain/page.tsx", segments: ["plain"], text: 'import { x } from "@/features/core/wallet/hooks/x";\n' },
+    { rel: "(user)/plain/page.tsx", segments: ["plain"], text: 'import { x } from "@/domains/core/wallet/hooks/x";\n' },
   ];
   assert.deepEqual(
     findOpenRouteImports([chat, plain], routeFiles, {}).map((p) => p.split("（")[0]),
@@ -399,7 +399,7 @@ test("fixture: 表 0 のドメインの規則も、ルート・汎用 CRUD・常
 
   const task = (pathPatterns) =>
     judgeAlwaysOnEntries(
-      [{ path: "src/app/api/cron/chat-sweep/task.ts", kind: "cronTask", text: 'import { sweep } from "@/features/core/chatRoom/services/server/sweep";\nexport const run = sweep;\n' }],
+      [{ path: "src/app/api/cron/chat-sweep/task.ts", kind: "cronTask", text: 'import { sweep } from "@/domains/core/chatRoom/services/server/sweep";\nexport const run = sweep;\n' }],
       [{ ...chat, pathPatterns }],
       {},
     ).problems;

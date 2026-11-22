@@ -7,7 +7,7 @@
 import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens";
 import { loadAdminUserTagListScreen } from "./loader";
-import AdminUserTagList from "@/features/core/userTag/components/AdminUserTagList";
+import AdminUserTagList from "@/domains/core/userTag/components/AdminUserTagList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 
 export const metadata = {

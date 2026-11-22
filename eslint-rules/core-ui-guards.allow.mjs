@@ -8,24 +8,24 @@
 
 export const CORE_UI_GUARDS_ALLOW = [
   // auth: 本登録の画面の入口(遷移の守り useTransitionGuard。検出を広げた時に当たった。棚の段 3 で分割)
-  "src/features/core/auth/components/Registration/index.tsx",
+  "src/domains/core/auth/components/Registration/index.tsx",
   // auth: メール認証の画面(useForm / 完了時の遷移)
-  "src/features/core/auth/components/Verification/CompletedState.tsx",
-  "src/features/core/auth/components/Verification/EmailInputState.tsx",
+  "src/domains/core/auth/components/Verification/CompletedState.tsx",
+  "src/domains/core/auth/components/Verification/EmailInputState.tsx",
   // 管理画面・利用者画面の入力 form(useForm)
-  "src/features/core/chatRoom/components/common/CreateChatRoomForm.tsx",
-  "src/features/core/chatRoom/components/common/EditChatRoomForm.tsx",
-  "src/features/core/coupon/components/common/CreateCouponForm.tsx",
-  "src/features/core/coupon/components/common/EditCouponForm.tsx",
+  "src/domains/core/chatRoom/components/common/CreateChatRoomForm.tsx",
+  "src/domains/core/chatRoom/components/common/EditChatRoomForm.tsx",
+  "src/domains/core/coupon/components/common/CreateCouponForm.tsx",
+  "src/domains/core/coupon/components/common/EditCouponForm.tsx",
   // purchaseRequest: 購入完了(コンバージョン計測 useGoogleAdsConversion。検出を広げた時に当たった。棚の段 3 で分割)
-  "src/features/core/purchaseRequest/components/PurchaseComplete/index.tsx",
-  "src/features/core/user/components/EditProfile.tsx",
-  "src/features/core/user/components/forms/AdminDemoUserCreateForm/index.tsx",
-  "src/features/core/user/components/forms/AdminGeneralUserCreateForm/index.tsx",
-  "src/features/core/user/components/forms/AdminGeneralUserEditForm/index.tsx",
-  "src/features/core/user/components/forms/AdminManagerialUserCreateForm/index.tsx",
-  "src/features/core/user/components/forms/AdminManagerialUserEditForm/index.tsx",
-  "src/features/core/userTag/components/common/CreateUserTagForm.tsx",
-  "src/features/core/userTag/components/common/EditUserTagForm.tsx",
-  "src/features/core/wallet/components/AdminWalletAdjustModal/index.tsx",
+  "src/domains/core/purchaseRequest/components/PurchaseComplete/index.tsx",
+  "src/domains/core/user/components/EditProfile.tsx",
+  "src/domains/core/user/components/forms/AdminDemoUserCreateForm/index.tsx",
+  "src/domains/core/user/components/forms/AdminGeneralUserCreateForm/index.tsx",
+  "src/domains/core/user/components/forms/AdminGeneralUserEditForm/index.tsx",
+  "src/domains/core/user/components/forms/AdminManagerialUserCreateForm/index.tsx",
+  "src/domains/core/user/components/forms/AdminManagerialUserEditForm/index.tsx",
+  "src/domains/core/userTag/components/common/CreateUserTagForm.tsx",
+  "src/domains/core/userTag/components/common/EditUserTagForm.tsx",
+  "src/domains/core/wallet/components/AdminWalletAdjustModal/index.tsx",
 ];

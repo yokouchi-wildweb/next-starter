@@ -64,15 +64,15 @@ const config = [
       "src/app/admin/_template/__domains__/new/_screen/Admin__Domain__CreateScreen.tsx",
       "src/app/admin/_template/__domains__/[[]id]/edit/_screen/loader.ts",
       "src/app/admin/_template/__domains__/new/_screen/loader.ts",
-      "src/features/_template/components/Admin__Domain__List/Table.tsx",
-      "src/features/_template/components/Admin__Domain__List/Table.withDetailModal.tsx",
-      "src/features/_template/services/server/drizzleBase.ts",
+      "src/domains/_template/components/Admin__Domain__List/Table.tsx",
+      "src/domains/_template/components/Admin__Domain__List/Table.withDetailModal.tsx",
+      "src/domains/_template/services/server/drizzleBase.ts",
     ],
   },
   // テンプレートのフックは名前がプレースホルダー(use__Domain__)でフックの命名規則を満たせないため、
   // react-hooks の規則だけ外す。生成後のフックは sample 系ドメインで通常どおり検査される。
   {
-    files: ["src/features/_template/hooks/**/*.{ts,tsx}"],
+    files: ["src/domains/_template/hooks/**/*.{ts,tsx}"],
     rules: {
       "react-hooks/rules-of-hooks": "off",
       "react-hooks/exhaustive-deps": "off",
@@ -128,7 +128,7 @@ const config = [
   // - cron-route-via-wiring: @/lib/cron の作り手 createCronTaskRoute / createCronRoute の値 import は src/wiring/** だけ(D19。cron の route は @/wiring/cronRoute)
   // - features-index-no-server-reexport: features の index.ts は services/server を値で再 export しない(D73 K5)
   // - lib-no-registry: src/lib/** → src/registry/** は値も型も禁止(D23 K3、例外の一覧なし)
-  // - lib-no-features: src/lib/** → src/features/** は値も型も禁止(親 D8、例外の一覧なし)
+  // - lib-no-domains: src/lib/** → src/domains/** は値も型も禁止(親 D8、例外の一覧なし)
   // - feature-gate-entries: 門番 src/featureGate の外からは入口 3 つだけ、lib は読まない、node.ts は scripts だけ(D7。テストは対象外 L1.3)
   // 詳細: eslint-rules/import-boundaries.mjs
   {
@@ -145,7 +145,7 @@ const config = [
   // - src-no-scripts: src/**(テストも)→ scripts/** の import 禁止(D78)
   // - src-no-district-map: src/**(テストも)→ src/registry/district-map.jsonl の import 禁止(地区の地図の写し、目録 D12)
   // - scripts-no-static-wiring: 道具(scripts・ドメインの scripts・.notices の codemod)→ src/wiring の静的 import 禁止、import() は可(D79)
-  // - seed-reader: ドメインのシード src/features/**/seed.ts を読むのは scripts/runner/seed だけ(D52)
+  // - seed-reader: ドメインのシード src/domains/**/seed.ts を読むのは scripts/runner/seed だけ(D52)
   // - tools-no-db-write: ドメインの scripts/tasks・scripts/operations(db を除く)・seed.ts・scripts/workflow/dev-admin → DB を直接書く部品の import 禁止、移行は例外(D75・D90)
   {
     files: ["src/**/*.{ts,tsx,mts,mjs,js,cjs}", "scripts/**/*.{ts,mts,mjs,js,cjs}", ".notices/*.mjs"],
@@ -207,13 +207,13 @@ const config = [
       "import-boundaries/ui-libs-in-primitives": "error",
     },
   },
-  // hooks-utils-no-features: src/hooks・src/utils → src/features は値も型も禁止(D87、lib-no-features と同じくテストは対象外)。上流も fork も error
+  // hooks-utils-no-domains: src/hooks・src/utils → src/domains は値も型も禁止(D87、lib-no-domains と同じくテストは対象外)。上流も fork も error
   {
     files: ["src/hooks/**/*.{ts,tsx,mts,mjs}", "src/utils/**/*.{ts,tsx,mts,mjs}"],
     ignores: ["src/hooks/**/*.test.{ts,tsx,mts,mjs}", "src/utils/**/*.test.{ts,tsx,mts,mjs}"],
     plugins: { "import-boundaries": importBoundariesPlugin },
     rules: {
-      "import-boundaries/hooks-utils-no-features": "error",
+      "import-boundaries/hooks-utils-no-domains": "error",
     },
   },
   // shelf-purity: 棚(src/components)は features・app・wiring・registry・stores・services・フォームとデータの lib・SDK と SDK を包む lib・
@@ -227,7 +227,7 @@ const config = [
     },
   },
   {
-    files: ["src/features/**/index.{ts,tsx}"],
+    files: ["src/domains/**/index.{ts,tsx}"],
     plugins: { "import-boundaries": importBoundariesPlugin },
     rules: {
       "import-boundaries/features-index-no-server-reexport": "error",
@@ -240,14 +240,14 @@ const config = [
     plugins: { "import-boundaries": importBoundariesPlugin },
     rules: {
       "import-boundaries/lib-no-registry": "error",
-      "import-boundaries/lib-no-features": "error",
+      "import-boundaries/lib-no-domains": "error",
     },
   },
   // 見出しの直下の <Span> に size / weight を書かせる(Span の既定 text-base font-normal が見出しを上書きするため。
   // 詳細: eslint-rules/style-tokens.mjs span-in-heading, src/components/TextBlocks/README.md)。
-  // 下流の画面(app/ と features/<business>)は warn。upstream 所有の UI は下の style-tokens ブロックで error に上書きする。
+  // 下流の画面(app/ と domains/<business>)は warn。upstream 所有の UI は下の style-tokens ブロックで error に上書きする。
   {
-    files: ["src/app/**/*.tsx", "src/features/**/*.tsx"],
+    files: ["src/app/**/*.tsx", "src/domains/**/*.tsx"],
     plugins: { "style-tokens": styleTokensPlugin },
     rules: {
       "style-tokens/span-in-heading": "warn",
@@ -256,7 +256,7 @@ const config = [
   // 生パレット色(bg-slate-900 / text-white / bg-[#fff] 等)の禁止。色はテーマトークンで書く
   // 同じ範囲で意味色の素の文字 text-success / text-info / text-warning / text-destructive も禁止(no-bare-semantic-text。CLAUDE.md semantic_colors)。
   // (詳細: eslint-rules/style-tokens.mjs, src/styles/README.md)。
-  // upstream 所有の UI(共有 UI・core ドメイン・ドメイン雛形)は error。下流固有 UI(features/<business>, app/)は対象外
+  // upstream 所有の UI(共有 UI・core ドメイン・ドメイン雛形)は error。下流固有 UI(domains/<business>, app/)は対象外
   // (下流が同じ規律を敷きたい場合は files にパスを足す)。
   // 除外: Three(3D 演出) / gradient(トークン生成元)。
   // ブランドロゴ色・ユーザーが選ぶ固定パレットなど正当な例外は理由付き eslint-disable で明示する。
@@ -266,8 +266,8 @@ const config = [
     files: [
       "src/components/**/*.{ts,tsx}",
       "src/lib/**/*.{ts,tsx}",
-      "src/features/core/**/*.{ts,tsx}",
-      "src/features/_template/**/*.{ts,tsx}",
+      "src/domains/core/**/*.{ts,tsx}",
+      "src/domains/_template/**/*.{ts,tsx}",
       "src/app/**/_layout/**/*.{ts,tsx}",
     ],
     ignores: [
@@ -341,7 +341,7 @@ const config = [
   // 同じく shim なし。入口の行は exact: 配下の部品のファイル @/components/<Category>/<Unit> は検出しない。直し方は
   // .notices/20261120-150000-shelf-s1.places.mjs が名前ごとに分ける)と、Form をほどいて Button・Input の単位へ移した物(checkpoint shelf-s2、
   // 同じく shim なし。直し方は .notices/20261120-160000-shelf-s2.shelf.mjs)。
-  // 書式: { from: "@/features/...", to: "@/features/...", until: "checkpoint <label> の次"[, exact: true | collapse: true] }
+  // 書式: { from: "@/domains/...", to: "@/domains/...", until: "checkpoint <label> の次"[, exact: true | collapse: true] }
   {
     files: ["src/**/*.{ts,tsx}"],
     plugins: { "deprecated-imports": deprecatedImportsPlugin },
@@ -448,11 +448,11 @@ const config = [
     },
   },
   // UI から ClientService を直接 import しない(HTTP は Hook → ClientService。詳細: eslint-rules/client-service-boundary.mjs)。
-  // 下流の UI(features/<business>/components, app/ の画面)は warn、upstream 所有の UI は error(後のブロックが上書き)。
+  // 下流の UI(domains/<business>/components, app/ の画面)は warn、upstream 所有の UI は error(後のブロックが上書き)。
   // 除外: app/api(UI ではない) / demo(エンジンに fetcher を渡す使い方の見本)。
   // セッション状態の持ち主の Provider など正当な例外は理由付き eslint-disable で明示する。
   {
-    files: ["src/features/**/components/**/*.{ts,tsx}", "src/app/**/*.{ts,tsx}"],
+    files: ["src/domains/**/components/**/*.{ts,tsx}", "src/app/**/*.{ts,tsx}"],
     ignores: ["src/app/api/**", "src/app/(user)/demo/**"],
     plugins: { "client-service-boundary": clientServiceBoundaryPlugin },
     rules: {
@@ -462,8 +462,8 @@ const config = [
   {
     files: [
       "src/components/**/*.{ts,tsx}",
-      "src/features/core/**/components/**/*.{ts,tsx}",
-      "src/features/_template/**/components/**/*.{ts,tsx}",
+      "src/domains/core/**/components/**/*.{ts,tsx}",
+      "src/domains/_template/**/components/**/*.{ts,tsx}",
       "src/app/**/_layout/**/*.{ts,tsx}",
     ],
     // 枠の既定部品は upstream 所有の UI。隣の丸ごと置き換え(<Name>.replace.tsx)は上の app/ の warn
@@ -548,25 +548,25 @@ const config = [
       ],
     },
   },
-  // UI の場所はサーバーのデータを取らない(M4 を D73 K1 の範囲へ。詳細: eslint-rules/page-authz.mjs, src/features/core/auth/README.md)。
+  // UI の場所はサーバーのデータを取らない(M4 を D73 K1 の範囲へ。詳細: eslint-rules/page-authz.mjs, src/domains/core/auth/README.md)。
   // 対象 = src/app の Screen・page・layout・_layout・guard.ts・_components の部品と components・hooks。services/server・DB(L1.20)を
   // 値で import しない(型は可)。取得は同じルートの loader(guard.ts の createLoader)へ。loader.ts・route.ts・API は対象外。
-  // features/**/hooks は React の hook(層 3)の意味。services/server/**/hooks 等のサーバーのコードは UI ではないので外す。
+  // domains/**/hooks は React の hook(層 3)の意味。services/server/**/hooks 等のサーバーのコードは UI ではないので外す。
   // 名前付き例外 = AuthSessionProvider(Cookie の解析とセッション解決)。セキュリティの検査なので upstream・下流とも error(fork 分岐なし)。
   {
     files: [
       "src/app/**/*.{ts,tsx}",
       "src/components/**/*.{ts,tsx}",
-      "src/features/**/components/**/*.{ts,tsx}",
-      "src/features/**/hooks/**/*.{ts,tsx}",
+      "src/domains/**/components/**/*.{ts,tsx}",
+      "src/domains/**/hooks/**/*.{ts,tsx}",
       "src/hooks/**/*.{ts,tsx}",
     ],
     ignores: [
       "src/app/**/loader.ts",
       "src/app/**/route.{ts,tsx}",
       "src/app/api/**",
-      "src/features/**/services/server/**",
-      "src/features/core/auth/components/AuthSessionProvider.tsx",
+      "src/domains/**/services/server/**",
+      "src/domains/core/auth/components/AuthSessionProvider.tsx",
     ],
     plugins: { "page-authz": pageAuthzPlugin },
     rules: {
@@ -584,16 +584,16 @@ const config = [
     files: [
       "src/app/**/*.{ts,tsx}",
       "src/components/**/*.{ts,tsx}",
-      "src/features/**/components/**/*.{ts,tsx}",
-      "src/features/**/hooks/**/*.{ts,tsx}",
+      "src/domains/**/components/**/*.{ts,tsx}",
+      "src/domains/**/hooks/**/*.{ts,tsx}",
       "src/hooks/**/*.{ts,tsx}",
       "src/proxies/**/*.{ts,tsx,mts,mjs}",
       "src/featureGate/**/*.{ts,tsx,mts,mjs}",
     ],
     ignores: [
-      "src/features/core/auth/components/AuthSessionProvider.tsx",
+      "src/domains/core/auth/components/AuthSessionProvider.tsx",
       // サーバーのコード(services/server/**/hooks 等)は UI の hooks ではない。core の分は次の項目で見る
-      "src/features/**/services/server/**",
+      "src/domains/**/services/server/**",
     ],
     plugins: { "page-authz": pageAuthzPlugin },
     rules: {
@@ -604,10 +604,10 @@ const config = [
   // fork のサービスは対象外: 自前のドメインで読んでいる fork があり、別の依頼で判断する。
   // 上の UI の項目と分けているのは、flat config の ignores が項目全体に効くため(UI 側で services/server を外すと core の分まで外れる)
   {
-    files: ["src/features/core/**/services/server/**/*.{ts,tsx}"],
+    files: ["src/domains/core/**/services/server/**/*.{ts,tsx}"],
     ignores: [
-      "src/features/core/auth/services/server/**",
-      "src/features/core/pairedDevice/services/server/session/**",
+      "src/domains/core/auth/services/server/**",
+      "src/domains/core/pairedDevice/services/server/session/**",
     ],
     plugins: { "page-authz": pageAuthzPlugin },
     rules: {
@@ -629,7 +629,7 @@ const config = [
   // 除外: demo(lib の使い方の見本。useForm・getIdToken を直に使って見せる)。
   // 許可一覧 eslint-rules/core-ui-guards.allow.mjs は縮める一方(部品を hook 化したらその行を消す。足すのは規則を広げた時だけ)。
   {
-    files: ["src/features/core/**/components/**/*.tsx", "src/app/**/_screen/**/*.tsx"],
+    files: ["src/domains/core/**/components/**/*.tsx", "src/app/**/_screen/**/*.tsx"],
     ignores: ["src/app/(user)/demo/**"],
     plugins: { "core-ui-guards": coreUiGuardsPlugin },
     rules: {
@@ -639,7 +639,7 @@ const config = [
   // ルームロジック (servers/room にバンドルされる) の純度制約。
   // Node/Next/DB import を静的に遮断する (詳細: eslint-rules/realtime-room-purity.mjs)。
   {
-    files: ["src/features/**/room/**/*.ts"],
+    files: ["src/domains/**/room/**/*.ts"],
     plugins: { "realtime-room": realtimeRoomPlugin },
     rules: {
       "realtime-room/purity": "error",

@@ -1,0 +1,142 @@
+// src/domains/core/phoneVerification/components/PhoneVerification/OtpStep.tsx
+
+"use client";
+
+import { useState, type FormEvent } from "react";
+import { ArrowLeft } from "lucide-react";
+
+import { Button } from "@/components/Button/Button";
+import { Label } from "@/components/Input/Label";
+import { Input } from "@/components/Input/Input";
+import { Block } from "@/components/Layout/Block";
+import { Section } from "@/components/Layout/Section";
+import { Stack } from "@/components/Layout/Stack";
+import { Para } from "@/components/TextBlocks/Para";
+import { SecTitle } from "@/components/TextBlocks/SecTitle";
+import { PHONE_VERIFICATION_OTP_LENGTH } from "@/domains/core/phoneVerification/constants";
+import { formatForDisplay } from "@/domains/core/user/utils/phoneNumber";
+
+export type OtpStepProps = {
+  phoneNumber: string;
+  isLoading: boolean;
+  error: Error | null;
+  onVerify: (otpCode: string) => Promise<void>;
+  onResend: () => Promise<void>;
+  onBack: () => void;
+};
+
+export function OtpStep({
+  phoneNumber,
+  isLoading,
+  error,
+  onVerify,
+  onResend,
+  onBack,
+}: OtpStepProps) {
+  const [otpCode, setOtpCode] = useState("");
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (isLoading || otpCode.length !== PHONE_VERIFICATION_OTP_LENGTH) return;
+
+    try {
+      await onVerify(otpCode);
+    } catch {
+      // エラーはフック側で管理される
+    }
+  };
+
+  const handleResend = async () => {
+    if (isLoading) return;
+
+    try {
+      await onResend();
+    } catch {
+      // エラーはフック側で管理される
+    }
+  };
+
+  const handleOtpChange = (value: string) => {
+    // 数字のみ許可
+    const numericValue = value.replace(/\D/g, "");
+    if (numericValue.length <= PHONE_VERIFICATION_OTP_LENGTH) {
+      setOtpCode(numericValue);
+    }
+  };
+
+  const displayPhoneNumber = formatForDisplay(phoneNumber);
+
+  return (
+    <Section id="phone-verification-otp" className="w-full">
+      <Stack gap="lg">
+        <Stack gap="xs">
+          <SecTitle size="xl" weight="semiBold" align="inherit">認証コード入力</SecTitle>
+          <Para size="sm" className="text-muted-foreground">
+            {displayPhoneNumber} に送信された{PHONE_VERIFICATION_OTP_LENGTH}桁の認証コードを入力してください。
+          </Para>
+        </Stack>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <Stack gap="xs">
+            <Label htmlFor="otp-code" className="block text-foreground">
+              認証コード
+            </Label>
+            <Input
+              id="otp-code"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              required
+              value={otpCode}
+              onChange={(event) => handleOtpChange(event.target.value)}
+              placeholder={"0".repeat(PHONE_VERIFICATION_OTP_LENGTH)}
+              disabled={isLoading}
+              maxLength={PHONE_VERIFICATION_OTP_LENGTH}
+              className="text-center text-2xl tracking-widest"
+            />
+          </Stack>
+
+          {error && (
+            <Para tone="destructive" size="sm">
+              {error.message}
+            </Para>
+          )}
+
+          <Stack gap="sm">
+            <Button
+              type="submit"
+              disabled={isLoading || otpCode.length !== PHONE_VERIFICATION_OTP_LENGTH}
+              className="w-full"
+            >
+              {isLoading ? "検証中..." : "認証する"}
+            </Button>
+
+            <Block className="text-center">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleResend}
+                disabled={isLoading}
+                className="text-sm text-primary hover:underline"
+              >
+                認証コードを再送信
+              </Button>
+            </Block>
+
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onBack}
+              disabled={isLoading}
+              className="w-full"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              電話番号を変更
+            </Button>
+          </Stack>
+        </form>
+      </Stack>
+    </Section>
+  );
+}

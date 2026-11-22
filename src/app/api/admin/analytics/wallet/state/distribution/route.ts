@@ -3,13 +3,13 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { parseUserFilterParams } from "@/features/core/analytics/services/server/utils/userFilter";
-import { getWalletStateDistribution } from "@/features/core/analytics/services/server/walletStateAnalytics";
+import { parseUserFilterParams } from "@/domains/core/analytics/services/server/utils/userFilter";
+import { getWalletStateDistribution } from "@/domains/core/analytics/services/server/walletStateAnalytics";
 import {
   parseBoundaries,
   BOUNDARIES_ERROR_MESSAGE,
-} from "@/features/core/analytics/services/server/utils/distribution";
-import { isWalletType } from "@/features/core/wallet/utils/currency";
+} from "@/domains/core/analytics/services/server/utils/distribution";
+import { isWalletType } from "@/domains/core/wallet/utils/currency";
 
 export const GET = createApiRoute(
   {

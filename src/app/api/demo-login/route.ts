@@ -4,8 +4,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { demoLogin } from "@/features/core/demo/services/server/demoLogin";
-import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";
+import { demoLogin } from "@/domains/core/demo/services/server/demoLogin";
+import { issueSessionCookie } from "@/domains/core/auth/services/server/session/issueSessionCookie";
 import { getClientIp } from "@/lib/request";
 
 const DemoLoginRequestSchema = z.object({

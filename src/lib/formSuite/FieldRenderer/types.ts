@@ -44,7 +44,7 @@ export type MediaHandleEntry = {
 /**
  * フィールドグループ定義（セクション分け用）
  * @see src/lib/formSuite/FieldRenderer/README.md - fieldGroups（セクション分け）
- * @see src/features/README.md - FieldGroup（フィールドグループ）※domain.json スキーマ
+ * @see src/domains/README.md - FieldGroup（フィールドグループ）※domain.json スキーマ
  */
 export type FieldGroup = {
   /** グループキー（一意識別子） */

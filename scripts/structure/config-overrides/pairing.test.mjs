@@ -17,13 +17,13 @@ after(() => roots.forEach((r) => rmSync(r, { recursive: true, force: true })));
 const EMPTY = "export default {};\n";
 /** 揃った木: core と業務(fork が足した)のドメイン・宣言済みと宣言の無い lib・枠・proxies */
 const BASE = {
-  "src/features/core/wallet/config.ts": "export const walletConfig = {};\n",
-  "src/config/features/wallet.config.ts": EMPTY,
-  "src/features/core/wallet/config.ui.ts": "export const walletUi = {};\n",
-  "src/config/features/wallet.ui.config.ts": EMPTY,
-  "src/features/gacha/config.ts": "export const gachaConfig = {};\n",
-  "src/config/features/gacha.config.ts": EMPTY,
-  "src/features/core/user/index.ts": "",
+  "src/domains/core/wallet/config.ts": "export const walletConfig = {};\n",
+  "src/config/domains/wallet.config.ts": EMPTY,
+  "src/domains/core/wallet/config.ui.ts": "export const walletUi = {};\n",
+  "src/config/domains/wallet.ui.config.ts": EMPTY,
+  "src/domains/gacha/config.ts": "export const gachaConfig = {};\n",
+  "src/config/domains/gacha.config.ts": EMPTY,
+  "src/domains/core/user/index.ts": "",
   "src/lib/toast/config.ts": "export const toastConfig = {};\n",
   "src/lib/toast/package.json": JSON.stringify({ exports: { ".": "./config.ts" } }),
   "src/config/lib/toast.config.ts": EMPTY,
@@ -32,7 +32,7 @@ const BASE = {
   "src/app/admin/_layout/config.ts": `export const adminLayoutConfig = { frame: "admin" };\n`,
   "src/config/layout/admin.config.ts": EMPTY,
   "src/proxies/index.ts": "",
-  "src/config/features/README.md": "",
+  "src/config/domains/README.md": "",
   // 古いフォルダと直下のファイルは見ない
   "src/config/app/whatever.config.ts": EMPTY,
   "src/config/ui/user-header.config.ts": EMPTY,
@@ -68,23 +68,23 @@ test("揃った木は通る(古いフォルダ app・ui・documents と直下の
 });
 
 test("余り: 持ち主の地区が無い上書き(ドメイン・lib・枠・proxies の名前)", () => {
-  one(run({ "src/config/features/ghost.config.ts": EMPTY }), /src\/config\/features\/ghost\.config\.ts: 持ち主の無い上書き.*ドメイン ghost が無い/);
+  one(run({ "src/config/domains/ghost.config.ts": EMPTY }), /src\/config\/domains\/ghost\.config\.ts: 持ち主の無い上書き.*ドメイン ghost が無い/);
   one(run({ "src/config/lib/gone.config.ts": EMPTY }), /src\/config\/lib\/gone\.config\.ts: 持ち主の無い上書き.*lib gone が無い/);
   one(run({ "src/config/layout/user.config.ts": EMPTY }), /src\/config\/layout\/user\.config\.ts: 持ち主の無い上書き.*frame: "user" の宣言が無い/);
   one(run({ "src/config/proxies/redirect.config.ts": EMPTY }), /src\/config\/proxies\/redirect\.config\.ts: 持ち主の無い上書き.*src\/proxies\/redirect\/config\.ts が無い/);
 });
 
 test("余り: 持ち主はいるが config.ts が無い上書き", () => {
-  one(run({ "src/config/features/user.config.ts": EMPTY }), /src\/config\/features\/user\.config\.ts: 持ち主 src\/features\/core\/user に config\.ts が無い上書き/);
+  one(run({ "src/config/domains/user.config.ts": EMPTY }), /src\/config\/domains\/user\.config\.ts: 持ち主 src\/domains\/core\/user に config\.ts が無い上書き/);
 });
 
 test("余り: 種類のフォルダのサブフォルダ・置けない名前", () => {
-  one(run({ "src/config/features/nested/a.config.ts": EMPTY }), /src\/config\/features\/nested\/: 種類のフォルダの中は平ら/);
-  one(run({ "src/config/features/wallet.ts": EMPTY }), /src\/config\/features\/wallet\.ts: 置けない名前/);
+  one(run({ "src/config/domains/nested/a.config.ts": EMPTY }), /src\/config\/domains\/nested\/: 種類のフォルダの中は平ら/);
+  one(run({ "src/config/domains/wallet.ts": EMPTY }), /src\/config\/domains\/wallet\.ts: 置けない名前/);
 });
 
 test("欠落: features・枠・proxies は config.ts があるのに上書きが無いと落ちる", () => {
-  one(run({ "src/config/features/gacha.config.ts": null }), /src\/features\/gacha\/config\.ts: 上書き src\/config\/features\/gacha\.config\.ts が無い/);
+  one(run({ "src/config/domains/gacha.config.ts": null }), /src\/domains\/gacha\/config\.ts: 上書き src\/config\/domains\/gacha\.config\.ts が無い/);
   one(run({ "src/config/layout/admin.config.ts": null }), /src\/app\/admin\/_layout\/config\.ts: 上書き src\/config\/layout\/admin\.config\.ts が無い/);
   one(run({ "src/proxies/demo/config.ts": "export const demoConfig = {};\n" }), /src\/proxies\/demo\/config\.ts: 上書き src\/config\/proxies\/demo\.config\.ts が無い/);
 });
@@ -95,8 +95,8 @@ test("欠落: lib は package.json を宣言した lib なら数えない(pnpm c
 });
 
 test("描画専用: <名前>.ui.config.ts は持ち主が config.ui.ts を持つときだけ 1 本(片方だけは落ちる)", () => {
-  one(run({ "src/config/features/wallet.ui.config.ts": null }), /src\/features\/core\/wallet\/config\.ui\.ts: 描画専用の上書き src\/config\/features\/wallet\.ui\.config\.ts が無い/);
-  one(run({ "src/config/features/gacha.ui.config.ts": EMPTY }), /src\/config\/features\/gacha\.ui\.config\.ts: 持ち主 src\/features\/gacha に config\.ui\.ts が無い上書き/);
+  one(run({ "src/config/domains/wallet.ui.config.ts": null }), /src\/domains\/core\/wallet\/config\.ui\.ts: 描画専用の上書き src\/config\/domains\/wallet\.ui\.config\.ts が無い/);
+  one(run({ "src/config/domains/gacha.ui.config.ts": EMPTY }), /src\/config\/domains\/gacha\.ui\.config\.ts: 持ち主 src\/domains\/gacha に config\.ui\.ts が無い上書き/);
   one(run({ "src/config/lib/toast.ui.config.ts": EMPTY }), /toast\.ui\.config\.ts: 持ち主 src\/lib\/toast に config\.ui\.ts が無い/);
 });
 

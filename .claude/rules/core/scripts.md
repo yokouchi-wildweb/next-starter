@@ -1,7 +1,7 @@
 ---
 paths:
   - "scripts/**"
-  - "src/features/**/scripts/**"
+  - "src/domains/**/scripts/**"
   - "**/seed.ts"
   - ".notices/*.mjs"
   - "eslint-rules/**"
@@ -18,13 +18,13 @@ gates: a checker / generator rides gates by gate.json (check / generate entry fi
 write_guard (MANDATORY): every entry that writes a DB / cloud / external starts with guardEntry({ write: true, ... }) (read-only entries write: false, deploys guardDeploy) from scripts/runner/guard, never reads dotenv itself, and is listed in guard.test.ts | default target development, others --env \<stage\>, production = typing production on a TTY or --confirm=production
 - ref: scripts/runner/guard/README.md
 - env files: .env.development + .env.production, each with one APP_ENV=\<stage\> line, separate DBs | which file is read = ENV_FILE, never APP_ENV (APP_ENV is the stage) | personal overrides / secrets = .env.\<stage\>.local (git-ignored) | pnpm ops setup env writes both | ref: src/lib/appEnv/README.md
-tasks: src/features/\<domain\>/scripts/tasks/\<kebab\>.ts exporting `task: OneShotTask` (@/lib/task), name = \<domain\>:\<file\> | declare stopKeys(args) when a second run would hurt | usage / validation errors → TaskNotStartedError (failed, no key) | never call runAsSystem (the runner does, requestId = task_runs row id; core/audit.md context) | ref: src/lib/task/README.md
-migrations: src/features/\<domain\>/scripts/migrations/\<kebab\>.ts with notice: "\<id\>", shipped in the notice's commit (uses:), run once (key migration:\<notice\>:\<name\>) | \<name\>.local.ts = never committed (pnpm check local-migrations), real run only after a dry-run of the same content, the runner writes a journal draft
+tasks: src/domains/\<domain\>/scripts/tasks/\<kebab\>.ts exporting `task: OneShotTask` (@/lib/task), name = \<domain\>:\<file\> | declare stopKeys(args) when a second run would hurt | usage / validation errors → TaskNotStartedError (failed, no key) | never call runAsSystem (the runner does, requestId = task_runs row id; core/audit.md context) | ref: src/lib/task/README.md
+migrations: src/domains/\<domain\>/scripts/migrations/\<kebab\>.ts with notice: "\<id\>", shipped in the notice's commit (uses:), run once (key migration:\<notice\>:\<name\>) | \<name\>.local.ts = never committed (pnpm check local-migrations), real run only after a dry-run of the same content, the runner writes a journal draft
 - removal: ship it with its notice in one commit → run it on your own DB → delete the tool and the notice's attachments in the next commit (never fold the first ship and the removal into one; .notices/README.md)
 seed: \<domain\>/seed.ts = defineSeed data only (@/lib/seed), inserted through the domain service (seedCreate first), $unique on rows that must be reused | read only by the seed runner (lint seed-reader) | ref: src/lib/seed/README.md
 records: every named pnpm task run and every pnpm ops data write is a task_runs row (kind task / migration / cron / data) | no row → no run | --due is not recorded | unknown = check the data, then pnpm task --resolve \<runId\> succeeded|failed
 - incomplete = run stopped on its time budget (taskIncomplete, not key-holding) → run the same command again | TaskRerunnableError = failed after writes, result kept, rerunnable | ref: src/lib/task/README.md
-lint (all tiers error): src-no-scripts | scripts-no-static-wiring (scripts/**, features/**/scripts/**, codemods: @/wiring by import() only) | tools-no-db-write (domain tasks, scripts/operations except operations/db, seed.ts, workflow/dev-admin: no @/lib/drizzle, entities/drizzle, raw sql, drivers; migrations exempt) | seed-reader
+lint (all tiers error): src-no-scripts | scripts-no-static-wiring (scripts/**, domains/**/scripts/**, codemods: @/wiring by import() only) | tools-no-db-write (domain tasks, scripts/operations except operations/db, seed.ts, workflow/dev-admin: no @/lib/drizzle, entities/drizzle, raw sql, drivers; migrations exempt) | seed-reader
 - a reasoned eslint-disable for a real exception (e.g. a db test closing the pool)
 tests: pnpm test [path|--changed|--db] = the test entry /ship runs (checks_in_ship: never as a step of the work) | groups by name: \*.db.test.\* = db, tests/ outside tests/e2e/ = fork (tests a fork adds), else unit | the entry always adds the server-only preload and module mocks (never write them)
 - gate_tests: a test a gate runs (gate.json `check` is a test file, or its `tests` list) runs once, in that gate: pnpm test skips it unless named (D389)

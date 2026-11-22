@@ -5,16 +5,16 @@
 // コンポーネントは hooks/ のフックを呼び、ClientService を import しない。
 //
 // 検出するもの:
-//   1. `services/client` を含むパスからの値 import(絶対 `@/features/x/services/client/...`・相対 `../../services/client/...` の両方)
-//   2. ドメインのまとめ import(`@/features/<d>` / `@/features/core/<d>`)から `*Client` という名前の値を取り出すもの
-//      (例: `import { auditLogClient } from "@/features/core/auditLog"`)
+//   1. `services/client` を含むパスからの値 import(絶対 `@/domains/x/services/client/...`・相対 `../../services/client/...` の両方)
+//   2. ドメインのまとめ import(`@/domains/<d>` / `@/domains/core/<d>`)から `*Client` という名前の値を取り出すもの
+//      (例: `import { auditLogClient } from "@/domains/core/auditLog"`)
 // 通すもの: 型だけの import(`import type` / `import { type X }`。型は HTTP を呼ばない)
 //
 // 正当な例外(セッション状態の持ち主である Provider など)は理由付き eslint-disable で明示する。
 // 対象範囲と強さは eslint.config.mjs 側で決める(upstream 所有の UI は error、下流の UI は warn)。
 
 const CLIENT_SERVICE_PATH = /(^|\/)services\/client(\/|$)/;
-const DOMAIN_BARREL = /^@\/features\/(core\/)?[^/]+$/;
+const DOMAIN_BARREL = /^@\/domains\/(core\/)?[^/]+$/;
 const CLIENT_NAME = /Client$/;
 
 /**

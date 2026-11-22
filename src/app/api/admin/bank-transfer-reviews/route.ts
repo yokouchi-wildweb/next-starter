@@ -16,11 +16,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { bankTransferReviewService } from "@/features/bankTransferReview/services/server/bankTransferReviewService";
+import { bankTransferReviewService } from "@/domains/bankTransferReview/services/server/bankTransferReviewService";
 import {
   BANK_TRANSFER_REVIEW_MODES,
   BANK_TRANSFER_REVIEW_STATUSES,
-} from "@/features/bankTransferReview/entities/schema";
+} from "@/domains/bankTransferReview/entities/schema";
 
 const QuerySchema = z.object({
   status: z.enum(BANK_TRANSFER_REVIEW_STATUSES).optional(),

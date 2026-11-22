@@ -7,7 +7,7 @@ export const extensionPoints = {
   categories: {
     dir: "categories",
     export: "category",
-    type: { from: "@/features/core/adminCommand/base/types", name: "CategoryConfig" },
+    type: { from: "@/domains/core/adminCommand/base/types", name: "CategoryConfig" },
     side: "client",
     load: "lazy",
   },
@@ -15,7 +15,7 @@ export const extensionPoints = {
   plugins: {
     dir: "plugins",
     export: "plugin",
-    type: { from: "@/features/core/adminCommand/base/types", name: "AdminCommandPlugin" },
+    type: { from: "@/domains/core/adminCommand/base/types", name: "AdminCommandPlugin" },
     side: "client",
     load: "lazy",
   },

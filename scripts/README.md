@@ -52,11 +52,11 @@ pnpm generate cron -- --plan hobby|pro              # vercel.json の crons を�
 
 ### ドメインの持ち物(scripts/ の外、ランナーが探して動かす)
 
-- 運用コマンド: `src/features/<ドメイン>/scripts/tasks/<名前>.ts` = `pnpm task <ドメイン>:<名前>`(例 `pnpm task wallet:reverse-history`・`pnpm task user:bulk-change-status`)
-- 移行(notice が名指す 1 回きり): `src/features/<ドメイン>/scripts/migrations/<名前>.ts`。git に入れない緊急の修正は `<名前>.local.ts`
-- シード: `src/features/<ドメイン>/seed.ts`(`defineSeed`)= `pnpm ops db seed [--all]`
+- 運用コマンド: `src/domains/<ドメイン>/scripts/tasks/<名前>.ts` = `pnpm task <ドメイン>:<名前>`(例 `pnpm task wallet:reverse-history`・`pnpm task user:bulk-change-status`)
+- 移行(notice が名指す 1 回きり): `src/domains/<ドメイン>/scripts/migrations/<名前>.ts`。git に入れない緊急の修正は `<名前>.local.ts`
+- シード: `src/domains/<ドメイン>/seed.ts`(`defineSeed`)= `pnpm ops db seed [--all]`
 - 実行は毎回 `task_runs`(core の taskRun)に記録し、止める鍵で二度流さない
-- 書き方: [src/lib/task/README.md](../src/lib/task/README.md)・[src/lib/seed/README.md](../src/lib/seed/README.md)・[runner/seed/README.md](./runner/seed/README.md)。ドメインに置く理由: [src/features/README.md](../src/features/README.md)「ドメインの運用コマンド・移行・シード」
+- 書き方: [src/lib/task/README.md](../src/lib/task/README.md)・[src/lib/seed/README.md](../src/lib/seed/README.md)・[runner/seed/README.md](./runner/seed/README.md)。ドメインに置く理由: [src/domains/README.md](../src/domains/README.md)「ドメインの運用コマンド・移行・シード」
 
 ### 書く入口の守りと env
 
@@ -97,8 +97,8 @@ pnpm generate cron -- --plan hobby|pro              # vercel.json の crons を�
 ### 置き場の境目(lint、全 Tier で error)
 
 - `import-boundaries/src-no-scripts`: `src/**`(テストも)は `scripts/**` を import しない。道具の側を確かめるテストは `scripts` の側に置く
-- `import-boundaries/scripts-no-static-wiring`: 道具(`scripts/**`・`src/features/**/scripts/**`・`.notices` の codemod)は `src/wiring` を静的に import しない。使う時は run の中で `await import("@/wiring/…")`
-- `import-boundaries/tools-no-db-write`: ドメインの `src/features/<ドメイン>/scripts/tasks`・`scripts/operations`(`operations/db` を除く)・`seed.ts`・`scripts/workflow/dev-admin` は DB を直接書く部品(`@/lib/drizzle` の db・表の定義・drizzle-orm の `sql`・接続のドライバ)を読まない。書くのはドメインのサービスを通す。直接の SQL が要るなら移行
+- `import-boundaries/scripts-no-static-wiring`: 道具(`scripts/**`・`src/domains/**/scripts/**`・`.notices` の codemod)は `src/wiring` を静的に import しない。使う時は run の中で `await import("@/wiring/…")`
+- `import-boundaries/tools-no-db-write`: ドメインの `src/domains/<ドメイン>/scripts/tasks`・`scripts/operations`(`operations/db` を除く)・`seed.ts`・`scripts/workflow/dev-admin` は DB を直接書く部品(`@/lib/drizzle` の db・表の定義・drizzle-orm の `sql`・接続のドライバ)を読まない。書くのはドメインのサービスを通す。直接の SQL が要るなら移行
 - 3 本とも必須の規則(`eslint-rules/required-rules.mjs`)。fork が off / warn にすると `pnpm build` の `pnpm check eslint` が止まる。行ごとの例外は理由付きの eslint-disable
 
 ## Verification

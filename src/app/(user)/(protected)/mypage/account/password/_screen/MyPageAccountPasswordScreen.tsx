@@ -5,7 +5,7 @@
 
 import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
-import { EditPassword } from "@/features/core/user/components/EditPassword";
+import { EditPassword } from "@/domains/core/user/components/EditPassword";
 
 import { loadMyPageAccountPasswordScreen } from "./loader";
 

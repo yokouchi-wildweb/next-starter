@@ -6,8 +6,8 @@
 
 import "server-only";
 
-import type { Sample } from "@/features/sample/entities/model";
-import domainConfig from "@/features/sample/domain.json";
+import type { Sample } from "@/domains/sample/entities/model";
+import domainConfig from "@/domains/sample/domain.json";
 import { createLoader } from "@/app/admin/(protected)/guard";
 import { adminEditParts } from "@/wiring/adminScreenParts";
 

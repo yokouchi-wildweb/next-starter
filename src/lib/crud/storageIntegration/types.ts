@@ -2,7 +2,7 @@
 //
 // createCrudService の `storage` オプション（ファイル台帳との連動）の型。
 // lib/crud は features に依存しないので、ここは型と呼び出しの約束だけを持つ。
-// 実装（台帳への attach / detach / copy）は features/core/storageObject の storageBindingFor が差し込む。
+// 実装（台帳への attach / detach / copy）は domains/core/storageObject の storageBindingFor が差し込む。
 
 import type { DbTransaction } from "../drizzle/types";
 

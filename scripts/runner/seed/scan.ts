@@ -1,6 +1,6 @@
 // scripts/runner/seed/scan.ts
-// ドメインのシード src/features/<ドメイン>/seed.ts(core は src/features/core/<ドメイン>/seed.ts)を走査して読み込む(一覧ファイルは持たない)。
-// ドメイン名 = フォルダ名。閉じた機能の判定 = そのフォルダ(src/features からの相対)を features に持つ規則が閉じているか。
+// ドメインのシード src/domains/<ドメイン>/seed.ts(core は src/domains/core/<ドメイン>/seed.ts)を走査して読み込む(一覧ファイルは持たない)。
+// ドメイン名 = フォルダ名。閉じた機能の判定 = そのフォルダ(src/domains からの相対)を features に持つ規則が閉じているか。
 // 利用者: scripts/runner/seed/run.ts・テスト
 
 import { existsSync, readdirSync } from "node:fs";
@@ -18,11 +18,11 @@ const dirsIn = (abs: string): string[] =>
 export function listSeedFiles(repoRoot: string): SeedFile[] {
   const out: SeedFile[] = [];
   const add = (domain: string, folder: string) => {
-    const file = `src/features/${folder}/seed.ts`;
+    const file = `src/domains/${folder}/seed.ts`;
     if (existsSync(path.join(repoRoot, file))) out.push({ domain, folder, file });
   };
-  for (const name of dirsIn(path.join(repoRoot, "src/features/core"))) add(name, `core/${name}`);
-  for (const name of dirsIn(path.join(repoRoot, "src/features"))) if (name !== "core") add(name, name);
+  for (const name of dirsIn(path.join(repoRoot, "src/domains/core"))) add(name, `core/${name}`);
+  for (const name of dirsIn(path.join(repoRoot, "src/domains"))) if (name !== "core") add(name, name);
   const seen = new Map<string, string>();
   for (const f of out) {
     const prev = seen.get(f.domain);
@@ -32,7 +32,7 @@ export function listSeedFiles(repoRoot: string): SeedFile[] {
   return out.sort((a, b) => (a.domain < b.domain ? -1 : 1));
 }
 
-/** 規則の一覧(features = src/features からの相対のフォルダ)から、閉じたドメインのフォルダを閉じている規則の名前を返す(開いたドメインは null) */
+/** 規則の一覧(features = src/domains からの相対のフォルダ)から、閉じたドメインのフォルダを閉じている規則の名前を返す(開いたドメインは null) */
 export function closedByOf(rules: readonly { name: string; domains?: readonly string[]; enabled: () => boolean }[]) {
   // ドメインの開閉(src/featureGate/Internals.md「ドメインの開閉(表・汎用 API・cron)と設定の節」): 持つ規則が全部閉なら閉、答えは持ち主のうち一覧の順で最初。どの規則にも載らないドメインは開
   return (folder: string): string | null => {

@@ -1,0 +1,38 @@
+// src/domains/coupon/components/AdminCouponList/index.tsx
+
+// セクションタブ（official / affiliate / invite ...）はここでは描画しない。
+// 配置はページの関心事なので Screen が AdminCouponSectionTabs を置く
+// （@/domains/core/coupon/components/AdminCouponSectionTabs）。
+
+import type { Coupon } from "@/domains/core/coupon/entities";
+import Header from "./Header";
+import Table from "./Table";
+import { Section } from "@/components/Layout/Section";
+import { Stack } from "@/components/Layout/Stack";
+
+export { default as AdminCouponListHeader } from "./Header";
+export { default as AdminCouponListTable } from "./Table";
+export { createAdminCouponListColumns } from "./columns";
+
+export type AdminCouponListProps = {
+  coupons: Coupon[];
+  page: number;
+  perPage: number;
+  total: number;
+};
+
+export default function AdminCouponList({
+  coupons,
+  page,
+  perPage,
+  total,
+}: AdminCouponListProps) {
+  return (
+    <Section>
+      <Stack gap="lg">
+        <Header page={page} perPage={perPage} total={total} />
+        <Table coupons={coupons} />
+      </Stack>
+    </Section>
+  );
+}

@@ -105,7 +105,7 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
 
 ### 生成器からの配線
 
-- domain.json の主の集まりの項目（`fieldType: "mediaCollection"`、[src/features/README.md](../../../features/README.md)「主の集まりの項目（mediaCollection）」）から、`pnpm generate domain` が従属の domain.json（無いときだけ）・主の `services/server/collections.ts`（`collections: CrudCollectionConfig[]`、毎回上書き）・主のスキーマ / モデル / フォームを生成する
+- domain.json の主の集まりの項目（`fieldType: "mediaCollection"`、[src/domains/README.md](../../../domains/README.md)「主の集まりの項目（mediaCollection）」）から、`pnpm generate domain` が従属の domain.json（無いときだけ）・主の `services/server/collections.ts`（`collections: CrudCollectionConfig[]`、毎回上書き）・主のスキーマ / モデル / フォームを生成する
   - `fieldName` = 項目名（domain.json に書いたまま）、`service` = 従属の `<child>Service` の遅延 import、`parentColumn` / `valueColumn` / `sortColumn` = 従属の主への参照列 / `file` 列 / `sortOrderField`、`maxItems` = `collection.maxItems`、`minItems` = required なら 1、`duplicate` = `collection.duplicate`
 - 生成の drizzleBase.ts は `import { collections } from "./collections"` して `createCrudService` の options に `collections` を渡す
 - drizzleBase.ts を手書きする主（`generate: false` のドメイン）は、この 2 行を自分で足す（渡し忘れは `pnpm test scripts/structure/registry/collectionWiring/collectionWiring.test.mjs` が見つける）
@@ -161,7 +161,7 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
 - 集まりごとに呼び出し 1 回で 1 クエリ（主の id の IN）。呼び出し元の tx の外（`db`）で読む。複製の 1 段目の読み出しも同じ
 - TS 側の先頭 1 件は配列の `[0]`
 - 他ドメインの withRelations で埋め込まれた主の行（belongsTo / hasMany / belongsToMany、深さ 2 まで）にも、主の読み出しと同じ規則（全件・並び順・従属が無ければ `[]`）で集まりの配列を載せる
-  - 埋め込む側のサービスは主のサービスを読まないので、表に集まりを登録して引く: 主の `entities/drizzle.ts` の `defineTableCollections(<Domain>Table, () => import("@/features/<domain>/services/server/collections").then((m) => m.collections))`（`pnpm generate domain` が出す。遅延 import = drizzle.ts ↔ collections.ts ↔ 従属の表の循環を避ける）。主のサービス（`createCrudService` の `collections`）を作ったときも同じ表に登録する
+  - 埋め込む側のサービスは主のサービスを読まないので、表に集まりを登録して引く: 主の `entities/drizzle.ts` の `defineTableCollections(<Domain>Table, () => import("@/domains/<domain>/services/server/collections").then((m) => m.collections))`（`pnpm generate domain` が出す。遅延 import = drizzle.ts ↔ collections.ts ↔ 従属の表の循環を避ける）。主のサービス（`createCrudService` の `collections`）を作ったときも同じ表に登録する
   - 埋め込んだ行の集まりは、リレーション 1 つ・深さ 1 つごとに、集まり 1 つにつき 1 クエリ（埋め込んだ主の id の IN）。登録の無い表の埋め込みはクエリも動きも変わらない
   - `entities/drizzle.ts` を手書きする主は、この 1 行を自分で足す（`pnpm test scripts/structure/registry/collectionWiring/collectionWiring.test.mjs` が、サービスを読まずに表の登録があるかを確かめる）。無いと、主のサービスを読まない画面の埋め込みで配列が欠ける
   - 埋め込みの配列は全件（先頭だけの省略はしない）なので、埋め込んだ行から作ったフォームを保存しても集まりは減らない

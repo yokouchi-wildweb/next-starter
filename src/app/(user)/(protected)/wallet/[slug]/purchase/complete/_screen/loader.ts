@@ -9,7 +9,7 @@ import "server-only";
 import { notFound } from "next/navigation";
 
 import type { ScreenProps } from "@/lib/screens";
-import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
+import { getCurrencyConfigBySlug } from "@/domains/core/wallet/utils/currency";
 import { createLoader } from "@/app/(user)/(protected)/guard";
 
 export type WalletPurchaseCompleteScreenParams = { slug: string };

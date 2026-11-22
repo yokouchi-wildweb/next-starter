@@ -11,7 +11,7 @@
 // - 入力値・ペースト内容は記録しない（文字数のみ）
 // - マウス座標の生系列は保持せず統計値のみ
 //
-// 使用例（詳細レシピ: src/features/core/fingerprintChallenge/README.md）:
+// 使用例（詳細レシピ: src/domains/core/fingerprintChallenge/README.md）:
 //   const behavior = useBehavioralCapture();
 //   <div {...behavior.containerProps}> ...フォーム... </div>
 //   // 送信時: behavior.getPayload()

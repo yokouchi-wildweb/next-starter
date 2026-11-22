@@ -45,13 +45,13 @@ const outcome = async (run: () => Promise<unknown>) => {
 
 // 項目の判定は偽物: 変えられる一覧を test ごとに差し替える(本物の一覧は user の設定 account.editableItems)
 const editable = new Set<string>();
-mock.module("@/features/core/user/utils/accountItems", {
+mock.module("@/domains/core/user/utils/accountItems", {
   namedExports: { isAccountItemEditable: (item: string) => editable.has(item) },
 });
 
 let record: Record<string, unknown> = {};
 const recordRedirects: string[] = [];
-mock.module("@/features/core/user/services/server/userService", {
+mock.module("@/domains/core/user/services/server/userService", {
   namedExports: {
     requireUserRecord: async (_user: unknown, redirectTo: string) => {
       recordRedirects.push(redirectTo);

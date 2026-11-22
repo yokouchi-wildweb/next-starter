@@ -39,10 +39,10 @@ mock.module("@/registry/serviceRegistry", {
     },
   },
 });
-mock.module("@/features/core/auth/services/server/session/getTokenOnlySession", {
+mock.module("@/domains/core/auth/services/server/session/getTokenOnlySession", {
   namedExports: { getTokenOnlySession: async () => currentUser },
 });
-mock.module("@/features/core/auth/services/server/session/getSessionUser", {
+mock.module("@/domains/core/auth/services/server/session/getSessionUser", {
   namedExports: { getSessionUser: async () => currentUser, getSessionUserForRoute: async () => currentUser },
 });
 

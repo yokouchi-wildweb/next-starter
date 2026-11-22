@@ -1,13 +1,13 @@
 // scripts/operations/legal/from-example.ts(pnpm ops legal from-example [terms|privacy|tradelaw …] [--force])
-// 法務の文書の例文(src/features/core/legal/examples/)を上書き src/config/features/legal.config.ts へ写して source: "own" にする。文面はその後に直す。
-// 種類を書かなければ 3 文書とも。既に own の文書は --force が無い限り変えない。DB・外部には書かない(手元のファイル 1 つ)。詳細: src/features/core/legal/README.md
+// 法務の文書の例文(src/domains/core/legal/examples/)を上書き src/config/domains/legal.config.ts へ写して source: "own" にする。文面はその後に直す。
+// 種類を書かなければ 3 文書とも。既に own の文書は --force が無い限り変えない。DB・外部には書かない(手元のファイル 1 つ)。詳細: src/domains/core/legal/README.md
 
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { LEGAL_DOCUMENT_KINDS } from "@/features/legal/constants";
-import { LEGAL_EXAMPLES } from "@/features/legal/documents";
-import type { LegalDocumentKind } from "@/features/legal/types";
+import { LEGAL_DOCUMENT_KINDS } from "@/domains/legal/constants";
+import { LEGAL_EXAMPLES } from "@/domains/legal/documents";
+import type { LegalDocumentKind } from "@/domains/legal/types";
 
 import { LEGAL_OVERRIDE_FILE, overrideFileText, withExamples } from "./lib";
 

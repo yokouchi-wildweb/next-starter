@@ -84,7 +84,7 @@ test("entryForFile: 中のファイル → その物を出す入口の鍵(拡張
 test("書き換え: 名前つき・type・名前ごとの type・re-export・別名・相対・入口ごとの分割", () => {
   const root = makeRepo({
     ...BOX,
-    "src/features/a/A.tsx": [
+    "src/domains/a/A.tsx": [
       'import { useBox } from "@/lib/box/hooks/useBox";',
       'import type { BoxSize } from "@/lib/box/types";',
       'import { type BoxProps } from "../../lib/box/types";',
@@ -92,30 +92,30 @@ test("書き換え: 名前つき・type・名前ごとの type・re-export・別
       'import { useBox as use, } from "src/lib/box/hooks/useBox.ts";',
       "",
     ].join("\n"),
-    "src/features/a/index.ts": 'export { Shelf } from "@/lib/box/parts/Shelf";\nexport type { BoxSize as Size } from "@/lib/box/types";\n',
-    "src/features/a/mixed.ts": '  import { useBox } from "@/lib/box/hooks/useBox"; import { readBox } from "@/lib/box/internal/read";\n',
+    "src/domains/a/index.ts": 'export { Shelf } from "@/lib/box/parts/Shelf";\nexport type { BoxSize as Size } from "@/lib/box/types";\n',
+    "src/domains/a/mixed.ts": '  import { useBox } from "@/lib/box/hooks/useBox"; import { readBox } from "@/lib/box/internal/read";\n',
     "scripts/tool.mjs": 'import { readBox } from "../src/lib/box/internal/read";\n',
     "src/lib/box/hooks/inside.ts": 'import { boxColor } from "../theme";\n',
     "src/lib/other/index.ts": 'import { useBox } from "@/lib/box/hooks/useBox";\nexport const z = useBox;\n',
-    "src/features/b/B.ts": 'import { y } from "@/lib/loose/deep";\nimport { useBox } from "@/lib/box";\n',
+    "src/domains/b/B.ts": 'import { y } from "@/lib/loose/deep";\nimport { useBox } from "@/lib/box";\n',
     "src/lib/box/all.ts": 'export { useBox } from "./hooks/useBox";\nexport { readBox } from "./internal/read";\n',
-    "src/features/e/E.ts": '\timport { useBox, readBox as rb } from "@/lib/box/all";\n',
+    "src/domains/e/E.ts": '\timport { useBox, readBox as rb } from "@/lib/box/all";\n',
   });
   const plan = planCodemod(root);
   assert.deepEqual(plan.stops, []);
   const out = plan.changes.map((c) => `${c.file}:${c.line} ${c.text}`).sort();
   assert.deepEqual(out, [
     'scripts/tool.mjs:1 import { readBox } from "../src/lib/box/server";',
-    'src/features/a/A.tsx:1 import { useBox } from "@/lib/box";',
-    'src/features/a/A.tsx:2 import type { BoxSize } from "@/lib/box";',
-    'src/features/a/A.tsx:3 import { type BoxProps } from "@/lib/box";',
-    'src/features/a/A.tsx:4 import { color as boxColor } from "@/lib/box";',
-    'src/features/a/A.tsx:5 import { useBox as use } from "@/lib/box";',
-    'src/features/a/index.ts:1 export { Shelf } from "@/lib/box";',
-    'src/features/a/index.ts:2 export type { BoxSize as Size } from "@/lib/box";',
-    'src/features/a/mixed.ts:1 import { readBox } from "@/lib/box/server";',
-    'src/features/a/mixed.ts:1 import { useBox } from "@/lib/box";',
-    'src/features/e/E.ts:1 import { useBox } from "@/lib/box";\n\timport { readBox as rb } from "@/lib/box/server";',
+    'src/domains/a/A.tsx:1 import { useBox } from "@/lib/box";',
+    'src/domains/a/A.tsx:2 import type { BoxSize } from "@/lib/box";',
+    'src/domains/a/A.tsx:3 import { type BoxProps } from "@/lib/box";',
+    'src/domains/a/A.tsx:4 import { color as boxColor } from "@/lib/box";',
+    'src/domains/a/A.tsx:5 import { useBox as use } from "@/lib/box";',
+    'src/domains/a/index.ts:1 export { Shelf } from "@/lib/box";',
+    'src/domains/a/index.ts:2 export type { BoxSize as Size } from "@/lib/box";',
+    'src/domains/a/mixed.ts:1 import { readBox } from "@/lib/box/server";',
+    'src/domains/a/mixed.ts:1 import { useBox } from "@/lib/box";',
+    'src/domains/e/E.ts:1 import { useBox } from "@/lib/box";\n\timport { readBox as rb } from "@/lib/box/server";',
     'src/lib/other/index.ts:1 import { useBox } from "@/lib/box";',
   ]);
 });
@@ -125,21 +125,21 @@ test("JS の入口(.mjs)はファイル名まで書き、JS のファイルの�
     "src/lib/kase/package.json": { exports: { ".": "./index.mjs" } },
     "src/lib/kase/index.mjs": 'export { toKase } from "./impl.mjs";\n',
     "src/lib/kase/impl.mjs": "export function toKase(s) { return s; }\n",
-    "src/features/k/K.ts": 'import { toKase } from "@/lib/kase/impl.mjs";\n',
+    "src/domains/k/K.ts": 'import { toKase } from "@/lib/kase/impl.mjs";\n',
     "scripts/gen/tool.mjs": 'import { toKase } from "../../src/lib/kase/impl.mjs";\n',
   });
   assert.deepEqual(entryIndex(root, "kase").map((r) => r.specifier), ["@/lib/kase/index.mjs"]);
   const out = planCodemod(root).changes.map((c) => `${c.file} ${c.text}`).sort();
   assert.deepEqual(out, [
     'scripts/gen/tool.mjs import { toKase } from "../../src/lib/kase/index.mjs";',
-    'src/features/k/K.ts import { toKase } from "@/lib/kase/index.mjs";',
+    'src/domains/k/K.ts import { toKase } from "@/lib/kase/index.mjs";',
   ]);
 });
 
 test("止まる一覧: default・namespace・export *・副作用・動的・require・入口に無い名前(文は丸ごと)", () => {
   const root = makeRepo({
     ...BOX,
-    "src/features/c/C.tsx": [
+    "src/domains/c/C.tsx": [
       'import Shelf from "@/lib/box/parts/Shelf";',
       'import * as theme from "@/lib/box/theme";',
       'export * from "@/lib/box/theme";',
@@ -163,11 +163,11 @@ test("止まる一覧: default・namespace・export *・副作用・動的・req
 
 test("runCodemod: dry-run は書かず、--apply で書き、もう一度回すと 0。--json の形、知らない引数は 2", () => {
   const source = 'import { useBox } from "@/lib/box/hooks/useBox";\nexport const a = useBox;\n';
-  const root = makeRepo({ ...BOX, "src/features/d/D.ts": source });
+  const root = makeRepo({ ...BOX, "src/domains/d/D.ts": source });
   const lines = [];
   const stdout = { write: (s) => lines.push(s) };
   assert.equal(runCodemod(root, [], { stdout }), 0);
-  assert.equal(readFileSync(path.join(root, "src/features/d/D.ts"), "utf8"), source, "dry-run は書かない");
+  assert.equal(readFileSync(path.join(root, "src/domains/d/D.ts"), "utf8"), source, "dry-run は書かない");
   assert.match(lines.join(""), /dry-run/);
 
   lines.length = 0;
@@ -176,7 +176,7 @@ test("runCodemod: dry-run は書かず、--apply で書き、もう一度回す�
   assert.equal(json.apply, true);
   assert.deepEqual(Object.keys(json.changes[0]).sort(), ["file", "from", "line", "names", "text", "to"]);
   assert.deepEqual(json.stops, []);
-  assert.equal(readFileSync(path.join(root, "src/features/d/D.ts"), "utf8"), 'import { useBox } from "@/lib/box";\nexport const a = useBox;\n');
+  assert.equal(readFileSync(path.join(root, "src/domains/d/D.ts"), "utf8"), 'import { useBox } from "@/lib/box";\nexport const a = useBox;\n');
   assert.equal(planCodemod(root).changes.length, 0, "2 回目は 0");
 
   assert.equal(runCodemod(root, ["--bogus"], { stdout }), 2);
@@ -212,7 +212,7 @@ test("上流で回すと書き換え 0(閉じた lib の中を読む import は�
 function makeMovedRepo() {
   const root = makeRepo({
     "src/hooks/useThing.ts": "export function useThing() { return 1; }\nexport const thingOnly = 1;\n",
-    "src/features/f/F.tsx": [
+    "src/domains/f/F.tsx": [
       'import { useThing } from "@/hooks/useThing";',
       'import type { useThing as T } from "../../hooks/useThing";',
       'import { thingOnly } from "@/hooks/useThing";',
@@ -260,7 +260,7 @@ test("--base なしでは古い指定子は触らない。runCodemod --base で�
   const stdout = { write: (s) => lines.push(s) };
   assert.equal(runCodemod(root, ["--base", base, "--apply"], { stdout }), 0);
   assert.match(lines.join(""), /古い指定子の行 1/);
-  assert.match(readFileSync(path.join(root, "src/features/f/F.tsx"), "utf8"), /^import \{ useThing \} from "@\/lib\/thing";/);
+  assert.match(readFileSync(path.join(root, "src/domains/f/F.tsx"), "utf8"), /^import \{ useThing \} from "@\/lib\/thing";/);
   assert.equal(planCodemod(root, { base }).changes.length, 0, "2 回目は 0");
   assert.equal(runCodemod(root, ["--base"], { stdout }), 2, "--base に値が無いと 2");
 });
@@ -273,7 +273,7 @@ function makeFoldedRepo() {
     "src/lib/s/client/index.ts": 'export { upload, type Upload } from "./upload";\n',
     "src/lib/s/client/upload.ts": "export const upload = 1;\nexport type Upload = number;\nexport const notInBarrel = 1;\n",
     "src/lib/s/server/fake.ts": "export const fake = 1;\n",
-    "src/features/f/F.tsx": [
+    "src/domains/f/F.tsx": [
       'import { upload, type Upload } from "@/lib/s/client";',
       'import { upload as send } from "@/lib/s/client";',
       'import { notInBarrel } from "@/lib/s/client";',
@@ -333,7 +333,7 @@ const SPLIT = {
   "src/lib/a1/index.ts": "export const twin = 1;\n",
   "src/lib/a2/package.json": { exports: { ".": "./index.ts" } },
   "src/lib/a2/index.ts": "export const twin = 2;\n",
-  "src/features/x/X.ts": [
+  "src/domains/x/X.ts": [
     'import { useKit, omit, ID_FIELD, type Paths } from "@/lib/kit";',
     'import { useKit as k } from "@/lib/kit";',
     'import { twin } from "@/lib/kit";',
@@ -372,7 +372,7 @@ function makeRenamedRepo() {
     "src/lib/dom/index.ts": "export const other = 1;\n",
     "src/lib/zz/package.json": { exports: { ".": "./index.ts" } },
     "src/lib/zz/index.ts": "export const CONST_A = 9;\n",
-    "src/features/b/a.ts": 'import { createCrudService } from "@/lib/st";\nimport { createCrudService as fire } from "@/lib/st/server";\nimport { CONST_A } from "@/lib/st";\nexport const z = [createCrudService, fire, CONST_A];\n',
+    "src/domains/b/a.ts": 'import { createCrudService } from "@/lib/st";\nimport { createCrudService as fire } from "@/lib/st/server";\nimport { CONST_A } from "@/lib/st";\nexport const z = [createCrudService, fire, CONST_A];\n',
   });
   const git = (...args) => execFileSync("git", args, { cwd: root, encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.test", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.test" } });
   git("init", "-q");
@@ -417,7 +417,7 @@ const RENAMED_SVC = {
   "src/lib/svc/index.ts": 'export { createService, type IdStrategy } from "./service";\nexport { createApiClient, type ApiClient } from "./client";\n',
   "src/lib/svc/service.ts": 'export type IdStrategy = "uuid" | "db";\nexport function createService() { return { async get(id: string) { return id; }, async delete(id: string) {}, async hardDelete(id: string) {} }; }\n',
   "src/lib/svc/client.ts": "export interface ApiClient { get(id: string): Promise<string>; delete(id: string): Promise<void> }\nexport function createApiClient(): ApiClient { return { get: async (id) => id, delete: async () => {} }; }\n",
-  "src/features/s/service.ts": [
+  "src/domains/s/service.ts": [
     'import { createService, createApiClient, type IdType } from "@/lib/svc";',
     "const base = createService();",
     "export const wrapped = { ...base, async remove(id: string) { await base.remove(id); } };",
@@ -474,7 +474,7 @@ test("改名表: method の行は型で受け手が lib の物と分かる所だ
   assert.deepEqual(plan.stops.map((s) => `${s.line} ${s.kind}`), ["20 untyped"], "any の受け手は書き換えず報告");
 
   applyCodemod(root, plan);
-  const after = readFileSync(path.join(root, "src/features/s/service.ts"), "utf8");
+  const after = readFileSync(path.join(root, "src/domains/s/service.ts"), "utf8");
   assert.match(after, /export const wrapped = \{ \.\.\.base, async delete\(id: string\) \{ await base\.delete\(id\); \} \};/);
   assert.match(after, /const \{ delete: remove \} = base;/);
   assert.match(after, /export const shape = \{ IdType: strategy \};/);
@@ -506,7 +506,7 @@ function makeLooseRepo() {
     "src/lib/raw/index.ts": 'export { keep, ID } from "./types";\n',
     "src/lib/raw/types.ts": 'export const keep = 1;\nexport const ID = "id";\n',
     "src/lib/raw/utils/paths.ts": "export function adminPaths() { return 1; }\nexport function returnTo() { return 2; }\n",
-    "src/features/f/F.ts": [
+    "src/domains/f/F.ts": [
       'import { keep, ID } from "@/lib/raw";',
       'import { ID as Key } from "@/lib/raw/types";',
       'import { adminPaths, returnTo } from "@/lib/raw/utils/paths";',

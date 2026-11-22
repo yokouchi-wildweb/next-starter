@@ -11,7 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "../../../..");
 const GENERATED_DIR = path.join(
   ROOT_DIR,
-  "src/features/core/userProfile/entities/profiles"
+  "src/domains/core/userProfile/entities/profiles"
 );
 
 /**
@@ -50,10 +50,10 @@ export function generateProfileFieldTypes(roleConfig, profileConfig) {
   });
 
   const content = `${profileFileHeader(roleId)}
-// src/features/core/userProfile/entities/profiles/${roleId}/fieldTypes.ts
+// src/domains/core/userProfile/entities/profiles/${roleId}/fieldTypes.ts
 // ${roleConfig.label}プロフィールのフィールド型定義
 //
-// 元情報: src/features/core/userProfile/profiles/${roleId}.profile.json
+// 元情報: src/domains/core/userProfile/profiles/${roleId}.profile.json
 // このファイルは pnpm generate role によって自動生成されました
 
 type FieldConstants = typeof import("./fieldConstants");

@@ -8,7 +8,7 @@
 
 import "server-only";
 
-import type { RegistrationMethod } from "@/features/core/auth/components/Registration";
+import type { RegistrationMethod } from "@/domains/core/auth/components/Registration";
 import type { ScreenProps } from "@/lib/screens";
 import { createLoader } from "@/app/guard";
 

@@ -104,7 +104,7 @@
 
 - upstream は直下の `global.css` / `palette.css` / `typography.css` / `overrides.css` / `gradient.css` を初回作成後に編集しない。例外は入口の `@import` の行を足すときだけ: 上流の `global.css` を直し、notice で fork に同じ 1 行を足させる(直下の生成物 `gradient.css`・`z-layer.css` の読み込み)。fork が直下に足した CSS も fork の物
 - グラデーションは既定と実効の対: `pnpm generate styles` が上流の既定を `core/gradient.css` に、そのリポの分(`src/config/lib/gradient.config.ts`)を直下の `gradient.css` に書く。fork が自分の分を足して再生成するのは正しい使い方(手で編集しない)。`core/` の下に fork の差分は出ない。同じ key を書けば直下の分が後から読まれて上書きする
-- 名前の印: `core/` = upstream の物(`src/features/core/` と同じ印)。既定と上書きは置き場で分ける: `core/<名前>.css` = 上流の既定、直下の同じ名前 `<名前>.css` = そのリポの上書き(`core/palette.css` と直下の `palette.css` など)
+- 名前の印: `core/` = upstream の物(`src/domains/core/` と同じ印)。既定と上書きは置き場で分ける: `core/<名前>.css` = 上流の既定、直下の同じ名前 `<名前>.css` = そのリポの上書き(`core/palette.css` と直下の `palette.css` など)
 
 upstream 側のファイルの役割(upstream でスタイルを足すときの置き場所):
 

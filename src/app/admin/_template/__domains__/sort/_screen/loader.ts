@@ -5,7 +5,7 @@
 
 import "server-only";
 
-import type { __Domain__ } from "@/features/__domain__/entities/model";
+import type { __Domain__ } from "@/domains/__domain__/entities/model";
 import { createLoader } from "@/app/admin/(protected)/guard";
 import { adminSortParts } from "@/wiring/adminScreenParts";
 

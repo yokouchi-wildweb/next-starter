@@ -62,7 +62,7 @@ export function renderDrizzleEntity(ctx, workspace) {
     content += `import { ${crudServerNames.join(", ")} } from "@/lib/crud/server";\n`;
   }
   relationImports.forEach((domainPascal, domainCamel) => {
-    content += `import { ${domainPascal}Table } from "@/features/${domainCamel}/entities/drizzle";\n`;
+    content += `import { ${domainPascal}Table } from "@/domains/${domainCamel}/entities/drizzle";\n`;
   });
   content += `\n`;
   if (enumDefs.length) content += enumDefs.join("\n") + "\n\n";
@@ -90,7 +90,7 @@ export function renderDrizzleEntity(ctx, workspace) {
     // 他ドメインの withRelations で埋め込まれた行にも集まりを載せるため、表に宣言を登録する（collections.ts は遅延 import = 循環を避ける）
     content +=
       `\n// 主の集まりの項目（従属ドメインの行の並び）。他ドメインの withRelations で埋め込まれた行にも載せるため表に登録する\n` +
-      `defineTableCollections(${pascal}Table, () => import("@/features/${camel}/services/server/collections").then((m) => m.collections));\n`;
+      `defineTableCollections(${pascal}Table, () => import("@/domains/${camel}/services/server/collections").then((m) => m.collections));\n`;
   }
   content += renderJunctionTables(ctx, junctionTables);
   return content;

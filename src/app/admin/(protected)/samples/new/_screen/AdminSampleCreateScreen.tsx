@@ -5,7 +5,7 @@
 
 import type { ScreenProps } from "@/lib/screens";
 import { SWRConfig } from "swr";
-import AdminSampleCreate from "@/features/sample/components/AdminSampleCreate";
+import AdminSampleCreate from "@/domains/sample/components/AdminSampleCreate";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 
 import { loadAdminSampleCreateScreen } from "./loader";

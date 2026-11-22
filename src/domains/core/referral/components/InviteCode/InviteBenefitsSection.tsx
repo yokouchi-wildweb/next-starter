@@ -1,0 +1,50 @@
+// src/domains/core/referral/components/InviteCode/InviteBenefitsSection.tsx
+// 招待特典の説明セクション
+// 差し替えは InviteCode の benefits prop(fork の Screen から渡す。README 参照)
+
+import { CheckCircleIcon, GiftIcon } from "lucide-react";
+
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
+import { Stack } from "@/components/Layout/Stack";
+import { Para } from "@/components/TextBlocks/Para";
+
+const PLACEHOLDER_BENEFITS = [
+  "招待した方に特典をプレゼント",
+  "招待された方にも特典をプレゼント",
+];
+
+export function InviteBenefitsSection() {
+  return (
+    <Block className="rounded-lg bg-gradient-to-br from-primary/5 to-transparent px-4 py-6">
+      <Flex direction="column" align="center" gap="lg">
+        {/* アイコン */}
+        <Flex align="center" justify="center" className="h-14 w-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/10">
+          <GiftIcon className="h-7 w-7 text-primary" />
+        </Flex>
+
+        {/* タイトル・説明文 */}
+        <Stack gap="2xs">
+          <Para size="sm" weight="medium" className="!mb-0 text-center">
+            招待特典
+          </Para>
+          <Para size="xs" tone="muted" className="!mb-0 text-center">
+            紹介者と新規登録者の両方に特典があります。
+          </Para>
+        </Stack>
+
+        {/* 特典リスト */}
+        <Stack gap="xs" className="items-center">
+          {PLACEHOLDER_BENEFITS.map((benefit) => (
+            <Flex key={benefit} align="center" gap="xs">
+              <CheckCircleIcon className="h-4 w-4 shrink-0 text-primary/70" />
+              <Para size="xs" tone="muted" className="!mb-0">
+                {benefit}
+              </Para>
+            </Flex>
+          ))}
+        </Stack>
+      </Flex>
+    </Block>
+  );
+}

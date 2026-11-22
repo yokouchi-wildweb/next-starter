@@ -6,8 +6,8 @@
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Section } from "@/components/Layout/Section";
 import type { ScreenProps } from "@/lib/screens";
-import { AdminMessagingSectionTabs } from "@/features/core/messaging/components/AdminMessagingSectionTabs";
-import { AdminMessageTemplateList } from "@/features/core/messaging/components/AdminMessageTemplateList";
+import { AdminMessagingSectionTabs } from "@/domains/core/messaging/components/AdminMessagingSectionTabs";
+import { AdminMessageTemplateList } from "@/domains/core/messaging/components/AdminMessageTemplateList";
 
 import { loadAdminMessagingTemplateListScreen } from "./loader";
 

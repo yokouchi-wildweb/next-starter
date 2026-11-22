@@ -5,15 +5,15 @@ import { NextResponse } from "next/server";
 import { gate } from "@/featureGate";
 import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha";
 import { createApiRoute } from "@/wiring/apiRoute";
-import { register } from "@/features/core/auth/services/server/registration";
-import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";
-import { INVITE_LINK_COOKIE_NAME } from "@/features/core/referral/lib/inviteLinkCookie";
-import { ACQUISITION_COOKIE_NAME } from "@/features/core/userAcquisition/constants";
+import { register } from "@/domains/core/auth/services/server/registration";
+import { issueSessionCookie } from "@/domains/core/auth/services/server/session/issueSessionCookie";
+import { INVITE_LINK_COOKIE_NAME } from "@/domains/core/referral/lib/inviteLinkCookie";
+import { ACQUISITION_COOKIE_NAME } from "@/domains/core/userAcquisition/constants";
 import {
   extractGaClientId,
   parseAttributionCookie,
   toAcquisitionTouch,
-} from "@/features/core/userAcquisition/lib/attributionCookie";
+} from "@/domains/core/userAcquisition/lib/attributionCookie";
 import { getClientIp } from "@/lib/request";
 
 export const POST = createApiRoute(

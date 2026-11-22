@@ -10,7 +10,7 @@ export const cronTask: CronTaskDefinition = {
   description: "期限の来た定期計算のユーザーグループの新しい版を予算つきで書き、書き終えたら今の版を一度に切り替える（失敗は理由を残し今の版のまま、古い版は片付ける）",
   schedule: "55 * * * *", // 毎時 55 分（--plan hobby では 1 日 1 回になる: グループの間隔が 1 日より短くても 1 日 1 回）
   run: async () => {
-    const { runUserGroupRecompute } = await import("@/features/core/userGroup/services/server/recompute");
+    const { runUserGroupRecompute } = await import("@/domains/core/userGroup/services/server/recompute");
     return await runUserGroupRecompute();
   },
 };

@@ -13,7 +13,7 @@
 - 呼び手はドメインの ClientService。Hook は ClientService を経由して使う
 
 ```
-Hook → ClientService (features/*/services/client/)
+Hook → ClientService (domains/*/services/client/)
   → lib/firestore/client/ (subscribe, batch, converter)
     → @/lib/firebase/client (fstore インスタンス)
       → Firebase SDK

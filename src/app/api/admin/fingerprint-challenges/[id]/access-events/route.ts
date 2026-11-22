@@ -12,7 +12,7 @@ import { DomainError } from "@/lib/errors";
 import {
   fingerprintChallengeBase,
   listChallengeAccessEvents,
-} from "@/features/core/fingerprintChallenge/services/server";
+} from "@/domains/core/fingerprintChallenge/services/server";
 
 import { BadRequestError, parsePositiveInteger } from "@/app/api/[domain]/search/utils";
 

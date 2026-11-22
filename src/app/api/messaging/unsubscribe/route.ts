@@ -15,7 +15,7 @@ import {
   recordUnsubscribe,
   unsubscribePageUrlForToken,
   verifyUnsubscribeToken,
-} from "@/features/core/messaging/services/server/unsubscribe";
+} from "@/domains/core/messaging/services/server/unsubscribe";
 import { createApiRoute } from "@/wiring/apiRoute";
 
 export const POST = createApiRoute(

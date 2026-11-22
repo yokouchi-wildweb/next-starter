@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { checkPhoneAvailability } from "@/features/core/phoneVerification/services/server";
+import { checkPhoneAvailability } from "@/domains/core/phoneVerification/services/server";
 
 /**
  * 電話番号が使用可能かどうかをチェックする

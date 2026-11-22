@@ -43,7 +43,7 @@ export const message = defineMessage({
 種別の性質の検査(required の email・テキストの編集・間引き・email を外せない種別の email の off・上流の functional を止めない)は上書きを重ねた後の値(付け替えた先のカテゴリーの種別・送信チャンネル)に掛かる。functional の連絡をほかの種別のカテゴリーへ移すと、上書きで止められるようになる(D167: 付け替える fork には理由がある)。どのカテゴリーの項目を引くかは `messageCategoryKeyOf(definition, override)`。
 
 ```ts
-// src/features/core/auth/messages/verification.override.ts(fork)
+// src/domains/core/auth/messages/verification.override.ts(fork)
 import type { MessageOverride } from "@/lib/messaging";
 
 export const messageOverride = {
@@ -51,7 +51,7 @@ export const messageOverride = {
 } satisfies MessageOverride;
 ```
 
-- 上書きの点 = この lib の `extensionPoints.ts` の `messages`(`overrides: "src/features/**/messages/*.ts"`、直下だけ。見た目はレイアウトの描き方の 1 行スイッチの `.replace`)。書ける鍵は宣言の `overrideOf`(`MessageOverride` の鍵と同じ。テストが固定)
+- 上書きの点 = この lib の `extensionPoints.ts` の `messages`(`overrides: "src/domains/**/messages/*.ts"`、直下だけ。見た目はレイアウトの描き方の 1 行スイッチの `.replace`)。書ける鍵は宣言の `overrideOf`(`MessageOverride` の鍵と同じ。テストが固定)
 - 形は `export const messageOverride = { … }`(`satisfies MessageOverride` 可。関数で包むと字面で読めず止まる)
 - `applyMessageOverride(definition, override)` で重ねた結果(`enabled` つき)を得る。元の定義は変えない
 
@@ -84,8 +84,8 @@ export const messageOverride = {
 - `adminEditableOnly`: 管理画面で直せる欄の絞り(レイアウトの欄の鍵)。無い = レイアウトの欄のうちカテゴリーの送信チャンネルで使う物を全部直せる(`adminEditableFields`: 種別の性質 `adminTextOverride` が true で required でない連絡)。書いた時だけその欄に絞る。required の連絡は付けない。レイアウトに無い鍵は `unknown_admin_editable`
 - `record`: 本文の残し方 `meta` | `vars`(既定)| `full`
 - `throttle`: 会話の間引き `{ by: [vars の鍵], mode: "untilRead" | "window", seconds }`
-- `silent`: 静かなお知らせ(既定 false)。true = お知らせ(inApp)の行を静かな行(`metadata.silent = true`)で書く: 受け取り箱の一覧には出し、未読の数と未読だけの一覧(未読のモーダル)には入れない。ほかの送信チャンネルには効かない。上書きで変えられない(送る口 = src/features/core/messaging/services/server/sendMessage/content.ts、読む側 = services/server/inbox/readState.ts)
-- `layout`(必須): レイアウトの鍵(`src/features/core/messaging/layouts/<名前>/`。上流は simple・notice・link・welcome・statement・alert)。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `layouts`(`unknown_layout`)。無効(`disabled`)のレイアウトも誤り(`disabled_layout`)。上書きで変えられない
+- `silent`: 静かなお知らせ(既定 false)。true = お知らせ(inApp)の行を静かな行(`metadata.silent = true`)で書く: 受け取り箱の一覧には出し、未読の数と未読だけの一覧(未読のモーダル)には入れない。ほかの送信チャンネルには効かない。上書きで変えられない(送る口 = src/domains/core/messaging/services/server/sendMessage/content.ts、読む側 = services/server/inbox/readState.ts)
+- `layout`(必須): レイアウトの鍵(`src/domains/core/messaging/layouts/<名前>/`。上流は simple・notice・link・welcome・statement・alert)。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `layouts`(`unknown_layout`)。無効(`disabled`)のレイアウトも誤り(`disabled_layout`)。上書きで変えられない
 - `values`: レイアウトの欄の中身(欄の鍵 → 値。文字列に `{{鍵}}` を書ける)。レイアウトの欄の zod(`layoutValuesSchema`、カテゴリーの送信チャンネルで使う欄だけ必須)を通る(`invalid_values`)。検査の前に空を「無い」にする(`normalizeLayoutValues` / `normalizeFieldValue`: 画像の空文字・ボタン / リンクの全部が空・空の並び。ボタンの片方だけ空・URL の無いリンクは空の側の誤り)
 - `extras`: fork が足す欄の入れ物
 - 管理者が送る時の宣言(D175・D195。どれも省略でき、今の上流の定義は書かない):
@@ -114,7 +114,7 @@ export const messageOverride = {
 - 一覧 `varCatalog({ own, vars, enrichers, throttle })` = 共通 + 当たる enrichers + 専用(テンプレートの宣言 `own`、定義連絡の vars の名前 `vars` = 定義の varNames)。`checkVarCatalog` が止める: 鍵の形(英字で始まる英数字)・別名の形(空白・記号なし、英数字以外の字を含む)・鍵の重なり・別名の重なり(専用どうしも共通・enrichers の名前とも)・enrichers の別名の欠け
 - 日付・日時の専用の値: 残す値は ISO のまま。`varValuesSchema` が隣に型の印 `<鍵>@type`(`VAR_TYPE_SUFFIX`、書式 {{名前}} に拾われない)を出し、送信の値と一緒に残る。差し込む時に `displayVarValues` が人が読む字にする(`varDisplayText`: 2026年12月1日 / 2026年12月1日 11:00、日本時間)
 - 差し込み: `findVar(文面, 一覧)` = 書かれた名前を鍵に直した並びと一覧に無い名前(保存・送る前に拒む)。`varMap(鍵 → 値, 一覧)` = 別名の行を足した表(`replaceVariables` に渡す)
-- 定義の検査(`validateMessageDefinition`)と管理画面の値の鍵(`adminFieldAllowedKeys`)は共通の別名と vars の別名(管理画面は秘密を除く)を通す(enrichers の鍵と別名は呼び手が `variableKeys` で、vars の別名と照らす鍵と別名の組は `sharedVarNames` で渡す)。送る口は差し込みの表に別名の行を足し、テンプレートの保存・送る前の検査は一覧で名前を確かめる(features/core/messaging)
+- 定義の検査(`validateMessageDefinition`)と管理画面の値の鍵(`adminFieldAllowedKeys`)は共通の別名と vars の別名(管理画面は秘密を除く)を通す(enrichers の鍵と別名は呼び手が `variableKeys` で、vars の別名と照らす鍵と別名の組は `sharedVarNames` で渡す)。送る口は差し込みの表に別名の行を足し、テンプレートの保存・送る前の検査は一覧で名前を確かめる(domains/core/messaging)
 
 ### 定義の読み手の検査(validateMessageDefinition)
 
@@ -151,7 +151,7 @@ export const messageOverride = {
 
 ### レイアウト(layout/)
 
-連絡の見た目の型。レイアウト = 欄の宣言・仮の文・要約(必須)・管理者が選べる印・改版の対応。種別・カテゴリー・送信チャンネルを知らない(送信チャンネルだけの欄は欄の `channels` に送信チャンネルの鍵を値として持つだけ)。送信チャンネルごとの描き方はレイアウトのフォルダのファイル(server = email、client = inApp)が持ち、型は持たない。連絡定義はレイアウトの鍵と欄の中身を持ち、送る口は送信チャンネルごとに下の 3 段で描く(送信チャンネルは自分の欄を持たない。管理画面の入力とプレビューもレイアウトの欄の宣言と描き方から。なぜこの形か = src/features/core/messaging/Internals.md)。
+連絡の見た目の型。レイアウト = 欄の宣言・仮の文・要約(必須)・管理者が選べる印・改版の対応。種別・カテゴリー・送信チャンネルを知らない(送信チャンネルだけの欄は欄の `channels` に送信チャンネルの鍵を値として持つだけ)。送信チャンネルごとの描き方はレイアウトのフォルダのファイル(server = email、client = inApp)が持ち、型は持たない。連絡定義はレイアウトの鍵と欄の中身を持ち、送る口は送信チャンネルごとに下の 3 段で描く(送信チャンネルは自分の欄を持たない。管理画面の入力とプレビューもレイアウトの欄の宣言と描き方から。なぜこの形か = src/domains/core/messaging/Internals.md)。
 
 - `defineMessageLayout({ key, label, description?, fields, summary, adminSelectable?, disabled?, version?, revisions? })`: 欄の宣言から中身の型(`MessageLayoutValues`)を引く。`version` = 版(既定 1、`layoutVersionOf`)
 - `disabled`(既定 false)= 無効: 上流のレイアウトを fork が `layouts/<名前>/layout.override.ts`(`MessageLayoutOverride` = `disabled`・`adminSelectable` だけ)で付ける。`isLayoutUsable(layout)`(disabled でない)・`isLayoutAdminSelectable(layout)`(使えて adminSelectable)が判定の 1 か所(送る画面・テンプレート・送る口・検査が使う)
@@ -174,7 +174,7 @@ export const messageOverride = {
 
 ### 受け口の項目(receptacles/types.ts)
 
-ドメイン messaging の受け口(`src/features/core/messaging/extensionPoints.ts`、表は `src/features/core/messaging/README.md`「受け口」)に置く項目の型。
+ドメイン messaging の受け口(`src/domains/core/messaging/extensionPoints.ts`、表は `src/domains/core/messaging/README.md`「受け口」)に置く項目の型。
 
 - `MessageChannel`(送信チャンネル):
   - `key`
@@ -211,7 +211,7 @@ export const messageOverride = {
 
 ### 定義で間違えやすい線
 
-定義の側の線。運用の側(その送信は絞るだけ・種別まるごとの停止はデータだけ・グループは見出しだけ・法の義務の告知はメールを含める)は src/features/core/messaging/README.md の「運用で間違えやすい線」。
+定義の側の線。運用の側(その送信は絞るだけ・種別まるごとの停止はデータだけ・グループは見出しだけ・法の義務の告知はメールを含める)は src/domains/core/messaging/README.md の「運用で間違えやすい線」。
 
 
 #### 種別と送信チャンネルはカテゴリー(category)が持つ
@@ -222,7 +222,7 @@ export const messageOverride = {
 
 - 設計の意図: カテゴリーは停止の単位で、集計と絞り込みの物差し。粒が種別ごと・ドメインごとにばらけると、止める単位も数える単位も揃わない。止められない種別のカテゴリーも同じ粒にする
   - 例: いいねをされた時(likeReceived)・フォローされた時・出品した物が売れた時(itemSold)・投稿にコメントが付いた時・メールアドレスの確認(emailVerification)・パスワードの再設定(passwordReset)・アカウントのロック(accountLocked)・会員登録が完了した時(registrationComplete)・ポイントの失効が近づいた時(walletExpiring)・ポイントが失効した時(walletExpired)
-  - 上流のカテゴリーの一覧: src/features/core/messaging/README.md「連絡を足す」
+  - 上流のカテゴリーの一覧: src/domains/core/messaging/README.md「連絡を足す」
 
 #### カテゴリーは上書きで付け替えられ、種別はカテゴリーが持つ
 
@@ -239,7 +239,7 @@ export const messageOverride = {
 - 全部の定義: `label`(字面の空でない文字列)が無い / `category` が無い・受け口に無い / `layout` が無い・レイアウトの受け口のフォルダに無い。上書きの `category`(付け替え)も受け口の鍵で、下の守りは付け替えた後のカテゴリーで見る
 - 送信チャンネルの固定(`channelModes`、上書きがあれば上書きの物を丸ごと): required か email を外せない種別(functional・security)の連絡の `email: "off"`
 - required の定義: カテゴリーの送信チャンネルに `"email"` が無い・`adminEditableOnly` が空でない・`throttle` がある。その上書き: `enabled: false`・空でない `adminEditableOnly`・`throttle`(`null` で外すのは通す)
-- 上流(`src/features/core`)の functional のカテゴリーの連絡(付け替えた後のカテゴリーで見る): 上書きで `enabled: false`
+- 上流(`src/domains/core`)の functional のカテゴリーの連絡(付け替えた後のカテゴリーで見る): 上書きで `enabled: false`
 - カテゴリーの上書き(`categories/<名前>.override.ts`): functional・security のカテゴリーの `channels` から `"email"` を外す・空にする。`group` が categoryGroups の受け口に無い・1 つのグループに別の種別のカテゴリー
 - 守りに関わる値が変数・式だと止まる。種別の性質は `definition/kinds.ts` を字面で読む
 
@@ -247,13 +247,13 @@ export const messageOverride = {
 
 `pnpm generate registry` が全ドメインの `messages/<名前>.ts`(直下。`.override`・`.test` を除く)を字面で読み、鍵 → 項目の一覧を書く(`scripts/structure/registry/alpha/messageRegistry.mjs`)。送る口・管理画面・プレビューはこれを読む(server-only)。
 
-- 鍵 = `<ドメインのフォルダ名>.<ファイル名>`(例 `src/features/core/auth/messages/verification.ts` → `auth.verification`)。定義の `key` はこの値の文字列リテラルで書く(ずれ・重なりは生成が止める)
+- 鍵 = `<ドメインのフォルダ名>.<ファイル名>`(例 `src/domains/core/auth/messages/verification.ts` → `auth.verification`)。定義の `key` はこの値の文字列リテラルで書く(ずれ・重なりは生成が止める)
 - 項目 `MessageRegistryEntry` = `{ key, definition, override? }`。どれも遅延 import(`definition` → `{ message }`、`override` → `{ messageOverride }`)。描き方はレイアウトが持つ(連絡ごとの描き方のフォルダは持たない。前の形の view のフォルダが残っていれば生成が止まる)
 - ファイル名は英小文字始まりの camelCase(点や印は付けない)
-- 全件の検査: `src/features/core/messaging/services/server/sendMessage/messageRegistry.test.ts` が一覧の全件に上書きを重ねて `validateMessageDefinition` をかけ、鍵の一致とカテゴリーの送信チャンネルの全部で描けることを確かめる(`checkMessageRegistry`)
+- 全件の検査: `src/domains/core/messaging/services/server/sendMessage/messageRegistry.test.ts` が一覧の全件に上書きを重ねて `validateMessageDefinition` をかけ、鍵の一致とカテゴリーの送信チャンネルの全部で描けることを確かめる(`checkMessageRegistry`)
 - 生成は字面だけを読み、定義を実行しない。欄・`{{鍵}}` などの値は送る口が `validateMessageDefinition` で見る
 
 ## Verification
 
 - `pnpm test src/lib/messaging`
-- 一覧の全件の検査: `src/features/core/messaging/services/server/sendMessage/messageRegistry.test.ts`
+- 一覧の全件の検査: `src/domains/core/messaging/services/server/sendMessage/messageRegistry.test.ts`

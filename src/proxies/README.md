@@ -42,7 +42,7 @@ export const handler: ProxyHandler = async (request, ctx) => {
 ### ctx.user()
 
 - `ctx.user()` は**呼ばれたときだけ** 1 回解決し、同じリクエストの中では結果を使い回す（呼ぶ項目が無ければ DB を引かない）
-- 解決器は `features/core/auth` の `createProxyUser`（API の Factory・ページの守りと同じ `resolveSessionUser`、DB 同期）。`src/proxy.ts` だけが作る
+- 解決器は `domains/core/auth` の `createProxyUser`（API の Factory・ページの守りと同じ `resolveSessionUser`、DB 同期）。`src/proxy.ts` だけが作る
 - **利用可能な status（`USER_AVAILABLE_STATUSES`）の利用者だけ**非 null。停止中・休会中・未ログイン・DB 未構成は null（停止中の管理者・debugger はメンテナンス中に入れない）
 - 項目（上流・fork）はセッションを自分で解かない: `getSessionUser`・`resolveSessionUser`・`parseSessionCookie`・`createProxyUser` などの値 import は lint `page-authz/session-api-callsite` が `src/proxies/**` で止める。token のクレームだけで判定する版は無い
 

@@ -1,7 +1,7 @@
 // src/app/_layout/adminCommand/categories/userSession.tsx
 
-import type { CategoryConfig } from "@/features/core/adminCommand/base/types";
-import { SessionRenderer } from "@/features/core/adminCommand/definitions/session/SessionRenderer";
+import type { CategoryConfig } from "@/domains/core/adminCommand/base/types";
+import { SessionRenderer } from "@/domains/core/adminCommand/definitions/session/SessionRenderer";
 
 export const category: CategoryConfig = {
   id: "session",

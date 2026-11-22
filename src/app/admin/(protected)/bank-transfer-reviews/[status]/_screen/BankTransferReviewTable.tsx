@@ -21,8 +21,8 @@ import type {
   AdminBankTransferReviewListItem,
   BankTransferReviewMode,
   BankTransferReviewStatus,
-} from "@/features/core/bankTransferReview";
-import { useBankTransferReviewAdminBulkActions } from "@/features/core/bankTransferReview/hooks/useBankTransferReviewAdminBulkActions";
+} from "@/domains/core/bankTransferReview";
+import { useBankTransferReviewAdminBulkActions } from "@/domains/core/bankTransferReview/hooks/useBankTransferReviewAdminBulkActions";
 
 import {
   approvalSourceBadgeVariant,
@@ -35,7 +35,7 @@ import {
   formatPurchaseRequestStatusLabel,
   modeBadgeVariant,
   purchaseRequestStatusBadgeVariant,
-} from "@/features/core/bankTransferReview/presenters";
+} from "@/domains/core/bankTransferReview/presenters";
 
 type Props = {
   /** 現在表示中のタブ。要確認タブのときは「理由」列を出す */

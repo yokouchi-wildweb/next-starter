@@ -1,0 +1,103 @@
+// src/domains/core/wallet/components/WalletPurchase/PurchaseSummaryCard.tsx
+
+import { Stack } from "@/components/Layout/Stack";
+import { Flex } from "@/components/Layout/Flex";
+import { Section } from "@/components/Layout/Section";
+import { Span } from "@/components/TextBlocks/Span";
+import type { WalletType } from "@/domains/wallet/config";
+import type { PurchaseBonus } from "@/domains/core/wallet/types/purchaseBonus";
+import { getCurrencyConfig } from "@/domains/core/wallet/utils/currency";
+import { CurrencyDisplay } from "../common/CurrencyDisplay";
+
+type PurchaseSummaryCardProps = {
+  purchaseAmount: number;
+  paymentAmount: number;
+  currentBalance: number;
+  walletType: WalletType;
+  /** 割引額（クーポン適用時） */
+  discountAmount?: number;
+  /** 割引前の金額（クーポン適用時） */
+  originalPaymentAmount?: number;
+  /** 購入の特典(usePurchaseBonuses().forPurchase の結果。amount は購入後の残高に足す。省略 = 出さない) */
+  bonuses?: PurchaseBonus[];
+};
+
+const NO_BONUSES: PurchaseBonus[] = [];
+
+export function PurchaseSummaryCard({
+  purchaseAmount,
+  paymentAmount,
+  currentBalance,
+  walletType,
+  discountAmount,
+  originalPaymentAmount,
+  bonuses = NO_BONUSES,
+}: PurchaseSummaryCardProps) {
+  const config = getCurrencyConfig(walletType);
+  const bonusAmount = bonuses.reduce((sum, bonus) => sum + (bonus.amount ?? 0), 0);
+  const balanceAfterPurchase = currentBalance + purchaseAmount + bonusAmount;
+  const hasDiscount = discountAmount != null && discountAmount > 0;
+
+  return (
+    <Section className="-mx-4 bg-muted px-4 py-4">
+      <Stack className="rounded-lg bg-card" padding={{ base: "md", sm: "lg" }} gap="md">
+        <Flex justify="between" align="center" className="py-2">
+          <Span tone="muted">ご購入{config.label}</Span>
+          <CurrencyDisplay
+            walletType={walletType}
+            amount={purchaseAmount}
+            size="md"
+            showUnit
+            bold
+          />
+        </Flex>
+        <Flex justify="between" align="center" className="border-t border-border py-2">
+          <Span tone="muted">お支払い金額</Span>
+          {hasDiscount ? (
+            <Stack gap="2xs" className="items-end">
+              <Span size="sm" tone="muted" className="line-through">
+                ¥{(originalPaymentAmount ?? paymentAmount).toLocaleString()}
+              </Span>
+              <Span weight="bold" size="lg">
+                ¥{paymentAmount.toLocaleString()}
+              </Span>
+            </Stack>
+          ) : (
+            <Span weight="bold" size="lg">
+              ¥{paymentAmount.toLocaleString()}
+            </Span>
+          )}
+        </Flex>
+        {hasDiscount && (
+          <Flex justify="between" align="center" className="border-t border-border py-2">
+            <Span tone="muted">クーポン割引</Span>
+            <Span weight="bold" tone="success">
+              -¥{discountAmount.toLocaleString()}
+            </Span>
+          </Flex>
+        )}
+        {bonuses.map((bonus, index) => (
+          <Flex key={bonus.key ?? index} justify="between" align="center" className="border-t border-border py-2">
+            <Span tone="muted">{bonus.label}</Span>
+            {bonus.amount != null && bonus.amount > 0 && (
+              <Span weight="bold" tone="success">
+                +{bonus.amount.toLocaleString()}
+                {config.unit}
+              </Span>
+            )}
+          </Flex>
+        ))}
+        <Flex justify="between" align="center" className="border-t border-border py-2">
+          <Span tone="muted">購入後の{config.label}残高</Span>
+          <CurrencyDisplay
+            walletType={walletType}
+            amount={balanceAfterPurchase}
+            size="md"
+            showUnit
+            bold
+          />
+        </Flex>
+      </Stack>
+    </Section>
+  );
+}

@@ -45,7 +45,7 @@ const record = (name: string) => async (...args: unknown[]) => {
   calls.push([name, ...args]);
   return { ok: name };
 };
-mock.module("@/features/core/messaging/services/server/messagingService", {
+mock.module("@/domains/core/messaging/services/server/messagingService", {
   namedExports: {
     messagingService: Object.fromEntries(
       ["adminSend", "adminSendPreview", "adminSendEstimate", "adminSendTest", "adminSendOptions"].map((name) => [name, record(name)]),

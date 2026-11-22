@@ -42,5 +42,5 @@ test("対象: 記録と上流の決まりのファイルは見ない", () => {
   assert.equal(isStaleRefTarget("docs/journal/2026-01-01--x.md"), false);
   assert.equal(isStaleRefTarget(".claude/rules/core/design.md"), false);
   assert.equal(isStaleRefTarget(".claude/rules/project.md"), true);
-  assert.equal(isStaleRefTarget("src/features/shop/README.md"), true);
+  assert.equal(isStaleRefTarget("src/domains/shop/README.md"), true);
 });

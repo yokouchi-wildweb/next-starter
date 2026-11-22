@@ -90,7 +90,7 @@ export type BulkAuditMode = "aggregate" | "detail" | "off";
 /**
  * createCrudService に渡す監査ログ設定。
  *
- * 実体の recorder（auditLogger）は features/core/auditLog 側にあるため、
+ * 実体の recorder（auditLogger）は domains/core/auditLog 側にあるため、
  * 呼び出し側が DI で渡す（lib→features 違反を回避するため）。
  *
  * - enabled: false の場合は audit hook を一切呼び出さない（性能影響ゼロ）
@@ -141,11 +141,11 @@ export type CrudServiceOptions<TData extends Record<string, any>> = CrudServiceB
   sortOrderColumn?: AnyPgColumn;
   /**
    * 監査ログ設定。指定すると CRUD 操作が自動的に audit_logs に記録される。
-   * recorder は features/core/auditLog の `auditLogger` を渡す。
+   * recorder は domains/core/auditLog の `auditLogger` を渡す。
    */
   audit?: AuditConfig;
   /**
-   * ファイル台帳との連動（storage:// の ref を持つメディア列）。features/core/storageObject の
+   * ファイル台帳との連動（storage:// の ref を持つメディア列）。domains/core/storageObject の
    * storageBindingFor(...) を渡す。指定すると、create / update / upsert / 物理削除 / duplicate で
    * 業務行の書き込みと同じ TX の中で台帳に紐付け・解除し、bulkUpdate* / bulkUpsert でメディア列を
    * 変える呼び出しを拒否する。指定しないサービスの挙動は変わらない。

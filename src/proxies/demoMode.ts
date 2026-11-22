@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { gate } from "@/featureGate";
-import { demoConfig } from "@/features/core/demo/config";
+import { demoConfig } from "@/domains/core/demo/config";
 
 import type { ProxyHandler } from "./types";
 

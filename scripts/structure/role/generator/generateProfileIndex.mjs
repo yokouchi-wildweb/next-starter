@@ -11,7 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "../../../..");
 const GENERATED_DIR = path.join(
   ROOT_DIR,
-  "src/features/core/userProfile/entities/profiles"
+  "src/domains/core/userProfile/entities/profiles"
 );
 
 /**
@@ -38,7 +38,7 @@ export function generateProfileIndex(roleConfig, profileConfig, hasFieldConstant
   }
 
   const content = `${profileFileHeader(roleId)}
-// src/features/core/userProfile/entities/profiles/${roleId}/index.ts
+// src/domains/core/userProfile/entities/profiles/${roleId}/index.ts
 // ${roleConfig.label}プロフィールのエクスポート
 //
 // このファイルは pnpm generate role によって自動生成されました

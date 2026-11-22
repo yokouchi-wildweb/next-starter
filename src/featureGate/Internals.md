@@ -54,7 +54,7 @@ featureGate の README の Internals を分けた文書(README が 20,000 字を
 | fork の手書きの登録表（下の `registries`） | 使い所を `...(<フラグ> ? [x] : [])` で包む |
 | 常に読み込まれる結線（`src/app/layout.tsx`・`src/wiring/**`・`src/proxies/**`・`src/featureGate/**`） | import しない。避けられないものは理由付きの例外表 |
 
-- 規則のファイル（`rules/<名前>.ts`）が機能のドメインの入切の値 `@/features/<d>/config`（`config.ts`、値だけ）を読むのは閉じ漏れに数えない（入切でない条件の値、例 決済の自社振込が選べるか。入切そのものは規則の `defaultEnabled` と `switches.config.ts`）。`config.ts` が値の外（services・drizzle・server-only）に届くと到達の検査 `pnpm test src/featureGate/checks/reachability.test.mjs` が止める
+- 規則のファイル（`rules/<名前>.ts`）が機能のドメインの入切の値 `@/domains/<d>/config`（`config.ts`、値だけ）を読むのは閉じ漏れに数えない（入切でない条件の値、例 決済の自社振込が選べるか。入切そのものは規則の `defaultEnabled` と `switches.config.ts`）。`config.ts` が値の外（services・drizzle・server-only）に届くと到達の検査 `pnpm test src/featureGate/checks/reachability.test.mjs` が止める
 
 - 上流の例外表はテスト内の `ALWAYS_ON_EXCEPTIONS`（縮む表。当たらなくなった行は失敗）
 - **fork の分は 1 項目 1 ファイルの受け口に理由つきで**: `alwaysOnExceptions/<名前>.ts`(名前は英字始まりの英数字、fork の印は付けない。宣言の点 `alwaysOnExceptions`・`alwaysOnRegistries`)

@@ -51,9 +51,9 @@ function fixture(files) {
   const root = mkdtempSync(join(tmpdir(), "gate-deps-"));
   const base = {
     "tsconfig.json": JSON.stringify({ compilerOptions: { baseUrl: ".", paths: { "@/*": ["./src/*"] } } }),
-    "src/features/core/wallet/services/server/walletService.ts": "export const walletService = {};\n",
-    "src/features/core/walletHistory/services/server/walletHistoryService.ts": "export const h = {};\n",
-    "src/features/core/coupon/services/server/couponService.ts": "export const couponService = {};\n",
+    "src/domains/core/wallet/services/server/walletService.ts": "export const walletService = {};\n",
+    "src/domains/core/walletHistory/services/server/walletHistoryService.ts": "export const h = {};\n",
+    "src/domains/core/coupon/services/server/couponService.ts": "export const couponService = {};\n",
     ...files,
   };
   for (const [path, text] of Object.entries(base)) {
@@ -66,17 +66,17 @@ const fixtureRules = [
   { name: "wallet", domains: ["core/wallet", "core/walletHistory"], pathPatterns: ["/wallet", "/api/wallet"] },
   { name: "coupon", domains: ["core/coupon"], pathPatterns: ["/coupon"] },
 ];
-const IMPORT_WALLET = 'import { walletService } from "@/features/core/wallet/services/server/walletService";\nexport const x = walletService;\n';
+const IMPORT_WALLET = 'import { walletService } from "@/domains/core/wallet/services/server/walletService";\nexport const x = walletService;\n';
 const run = (files, opts = {}) => findDependencyViolations({ root: fixture(files), rules: fixtureRules, requiredNames: [], ...opts }).map(keyOf);
 
 test("fixture: 確かめずに読むと落ち、6 つの形で通る", () => {
-  const caller = "src/features/core/purchase/services/server/buy.ts";
+  const caller = "src/domains/core/purchase/services/server/buy.ts";
   assert.deepEqual(run({ [caller]: IMPORT_WALLET }), [`${caller} → core/wallet`]);
   // (1) requires(ドメイン名 = フォルダ名の末尾)
-  assert.deepEqual(run({ [caller]: IMPORT_WALLET, "src/features/core/purchase/services/server/domainEntry.ts": 'export const domainEntries = {\n  purchase: { requires: ["wallet"] },\n} satisfies X;\n' }), []);
+  assert.deepEqual(run({ [caller]: IMPORT_WALLET, "src/domains/core/purchase/services/server/domainEntry.ts": 'export const domainEntries = {\n  purchase: { requires: ["wallet"] },\n} satisfies X;\n' }), []);
   // 名乗りはフォルダ名だけ(目録 D4): 相手の domainEntry のキー(資源の名前)で requires を書いても当たらない
-  const walletEntry = { "src/features/core/wallet/services/server/domainEntry.ts": 'export const domainEntries = {\n  wallet: { table: "wallets" },\n  walletLedger: { table: "ledgers" },\n} satisfies X;\n' };
-  const requiresOf = (name) => ({ "src/features/core/purchase/services/server/domainEntry.ts": `export const domainEntries = {\n  purchase: { requires: ["${name}"] },\n} satisfies X;\n` });
+  const walletEntry = { "src/domains/core/wallet/services/server/domainEntry.ts": 'export const domainEntries = {\n  wallet: { table: "wallets" },\n  walletLedger: { table: "ledgers" },\n} satisfies X;\n' };
+  const requiresOf = (name) => ({ "src/domains/core/purchase/services/server/domainEntry.ts": `export const domainEntries = {\n  purchase: { requires: ["${name}"] },\n} satisfies X;\n` });
   assert.deepEqual(run({ [caller]: IMPORT_WALLET, ...walletEntry, ...requiresOf("walletLedger") }), [`${caller} → core/wallet`]);
   assert.deepEqual(run({ [caller]: IMPORT_WALLET, ...walletEntry, ...requiresOf("core/wallet") }), [`${caller} → core/wallet`]);
   assert.deepEqual(run({ [caller]: IMPORT_WALLET, ...walletEntry, ...requiresOf("wallet") }), []);
@@ -88,7 +88,7 @@ test("fixture: 確かめずに読むと落ち、6 つの形で通る", () => {
   assert.deepEqual(run({ "src/app/(user)/wallet/[slug]/_screen/loader.ts": IMPORT_WALLET, "src/app/api/wallet/route.ts": IMPORT_WALLET }), []);
   assert.deepEqual(run({ "src/app/(user)/mypage/_screen/loader.ts": IMPORT_WALLET }), ["src/app/(user)/mypage/_screen/loader.ts → core/wallet"]);
   // (4) 同じ規則のフォルダどうし
-  assert.deepEqual(run({ "src/features/core/walletHistory/services/server/x.ts": IMPORT_WALLET }), []);
+  assert.deepEqual(run({ "src/domains/core/walletHistory/services/server/x.ts": IMPORT_WALLET }), []);
   // (5) fork の required/
   assert.deepEqual(run({ [caller]: IMPORT_WALLET }, { requiredNames: ["wallet"] }), []);
   // (6) 例外
@@ -96,10 +96,10 @@ test("fixture: 確かめずに読むと落ち、6 つの形で通る", () => {
 });
 
 test("fixture: 型だけの import は数えず、動的 import・副作用 import は数える。生成の一覧(src/registry)は数えない", () => {
-  const caller = "src/features/core/purchase/services/server/buy.ts";
-  assert.deepEqual(run({ [caller]: 'import type { W } from "@/features/core/wallet/services/server/walletService";\n' }), []);
-  assert.deepEqual(run({ [caller]: 'export const load = () => import("@/features/core/wallet/services/server/walletService");\n' }), [`${caller} → core/wallet`]);
-  assert.deepEqual(run({ [caller]: 'import "@/features/core/coupon/services/server/couponService";\n' }), [`${caller} → core/coupon`]);
+  const caller = "src/domains/core/purchase/services/server/buy.ts";
+  assert.deepEqual(run({ [caller]: 'import type { W } from "@/domains/core/wallet/services/server/walletService";\n' }), []);
+  assert.deepEqual(run({ [caller]: 'export const load = () => import("@/domains/core/wallet/services/server/walletService");\n' }), [`${caller} → core/wallet`]);
+  assert.deepEqual(run({ [caller]: 'import "@/domains/core/coupon/services/server/couponService";\n' }), [`${caller} → core/coupon`]);
   assert.deepEqual(run({ "src/registry/serviceRegistry.ts": IMPORT_WALLET }), []);
 });
 
@@ -107,12 +107,12 @@ test("fixture: 表を持たない閉じられるフォルダ(Firestore 版など
   // core/chatRoom は pgTable を持たない(domainEntry の table: null)。判定は規則の domains だけを見る
   const rules = [...fixtureRules, { name: "chatRoom", domains: ["core/chatRoom"], pathPatterns: ["/chat"] }];
   const tableless = {
-    "src/features/core/chatRoom/services/server/chatRoomService.ts": "export const chatRoomService = {};\n",
-    "src/features/core/chatRoom/services/server/domainEntry.ts": 'export const domainEntries = {\n  chatRoom: { table: null, idColumn: null },\n} satisfies X;\n',
+    "src/domains/core/chatRoom/services/server/chatRoomService.ts": "export const chatRoomService = {};\n",
+    "src/domains/core/chatRoom/services/server/domainEntry.ts": 'export const domainEntries = {\n  chatRoom: { table: null, idColumn: null },\n} satisfies X;\n',
   };
-  const IMPORT_CHAT = 'import { chatRoomService } from "@/features/core/chatRoom/services/server/chatRoomService";\nexport const x = chatRoomService;\n';
+  const IMPORT_CHAT = 'import { chatRoomService } from "@/domains/core/chatRoom/services/server/chatRoomService";\nexport const x = chatRoomService;\n';
   const runChat = (files, opts = {}) => findDependencyViolations({ root: fixture({ ...tableless, ...files }), rules, requiredNames: [], ...opts }).map(keyOf);
-  const caller = "src/features/core/purchase/services/server/notify.ts";
+  const caller = "src/domains/core/purchase/services/server/notify.ts";
   assert.deepEqual(runChat({ [caller]: IMPORT_CHAT }), [`${caller} → core/chatRoom`]);
   assert.deepEqual(runChat({ [caller]: IMPORT_CHAT + 'if (!gate.enabled("chatRoom")) throw 0;\n' }), []);
   assert.deepEqual(runChat({ "src/app/(user)/chat/_screen/loader.ts": IMPORT_CHAT }), []);

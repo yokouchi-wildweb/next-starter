@@ -27,7 +27,7 @@ import { addedRoleFileNames, coreRoleFileNames, findRoleFile, listRoleFiles, rol
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "../../..");
-const PROFILES_DIR = path.join(ROOT_DIR, "src/features/core/userProfile/profiles");
+const PROFILES_DIR = path.join(ROOT_DIR, "src/domains/core/userProfile/profiles");
 
 /**
  * ロール設定JSONを読み込む（隣の上書きを重ねる）

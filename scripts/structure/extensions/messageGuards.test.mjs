@@ -21,12 +21,12 @@ import { planExtensions } from "./extensions.mjs";
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 // 宣言と性質の表は本物を使う(点の glob・export・overrideOf・種別の性質を写さない)
 const DECLARATION = readFileSync(join(repoRoot, "src/lib/messaging/extensionPoints.ts"), "utf8");
-const MESSAGING_DECLARATION = readFileSync(join(repoRoot, "src/features/core/messaging/extensionPoints.ts"), "utf8");
+const MESSAGING_DECLARATION = readFileSync(join(repoRoot, "src/domains/core/messaging/extensionPoints.ts"), "utf8");
 const KINDS = readFileSync(join(repoRoot, "src/lib/messaging/definition/kinds.ts"), "utf8");
 
 const categoryItem = (key, kind, channels) =>
   `import type { MessageCategory } from "@/lib/messaging";\n\nexport const category: MessageCategory = { key: "${key}", label: "${key}", kind: "${kind}", channels: ${JSON.stringify(channels)} };\n`;
-const C = "src/features/core/messaging/categories/";
+const C = "src/domains/core/messaging/categories/";
 
 function fixture(files) {
   const root = mkdtempSync(join(tmpdir(), "message-guards-"));
@@ -39,17 +39,17 @@ function fixture(files) {
   put("src/lib/CATALOG.md", "## next-starter\n\n## parent\n\n## acme\n");
   put("src/lib/messaging/extensionPoints.ts", DECLARATION);
   put("src/lib/messaging/definition/kinds.ts", KINDS);
-  put("src/features/core/messaging/extensionPoints.ts", MESSAGING_DECLARATION);
+  put("src/domains/core/messaging/extensionPoints.ts", MESSAGING_DECLARATION);
   put(`${C}account.ts`, categoryItem("account", "functional", ["email"]));
   put(`${C}notice.ts`, categoryItem("notice", "transactional", ["email", "inApp"]));
   put(`${C}alert.ts`, categoryItem("alert", "security", ["email"]));
   put(`${C}inAppOnly.ts`, categoryItem("inAppOnly", "transactional", ["inApp"]));
-  put("src/features/core/messaging/layouts/notice/layout.ts", "export const layout = { key: \"notice\" };\n");
+  put("src/domains/core/messaging/layouts/notice/layout.ts", "export const layout = { key: \"notice\" };\n");
   for (const [path, text] of Object.entries(files)) put(path, text);
   return root;
 }
 
-const M = "src/features/core/auth/messages/";
+const M = "src/domains/core/auth/messages/";
 const definition = (props, category = "account") => `import { z } from "zod";
 import { defineMessage } from "@/lib/messaging";
 
@@ -163,7 +163,7 @@ test("required への上書き: enabled:false・adminEditableOnly・throttle を
 test("上流の functional の連絡は止められない(required でなくても)、fork の自分の連絡と他の種別は止められる", () => {
   const plainFunctional = definition("");
   expectOne({ [`${M}a.ts`]: plainFunctional, [`${M}a.override.ts`]: override("enabled: false") }, `${M}a.override.ts`, /上流の種別 functional の連絡は止められない/);
-  const F = "src/features/shop/messages/";
+  const F = "src/domains/shop/messages/";
   assert.deepEqual(problemsOf({ [`${F}a.ts`]: plainFunctional.replace("auth.verification", "shop.a") }), []);
   assert.deepEqual(problemsOf({ [`${M}a.ts`]: OPTIONAL, [`${M}a.override.ts`]: override("enabled: false") }), []);
 });
@@ -172,7 +172,7 @@ test("カテゴリーの上書き: functional・security の email は外せな�
   expectOne({ [`${C}account.override.ts`]: categoryOverride('channels: ["inApp"]') }, `${C}account.override.ts`, /email は外せない/);
   expectOne({ [`${C}alert.override.ts`]: categoryOverride('channels: ["inApp"]') }, `${C}alert.override.ts`, /email は外せない/);
   assert.deepEqual(problemsOf({ [`${C}notice.override.ts`]: categoryOverride('channels: ["inApp"], label: "知らせ"') }), []);
-  const G = "src/features/core/messaging/categoryGroups/";
+  const G = "src/domains/core/messaging/categoryGroups/";
   const group = `export const group = { key: "social", label: "交流", order: 1 };\n`;
   expectOne({ [`${C}notice.override.ts`]: categoryOverride('group: "nope"') }, `${C}notice.ts`, /group nope は categoryGroups の受け口に無い/);
   assert.deepEqual(

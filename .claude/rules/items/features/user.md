@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/features/core/user/**"
-  - "src/config/features/user.config.ts"
+  - "src/domains/core/user/**"
+  - "src/config/domains/user.config.ts"
 ---
-# features/user
+# domains/user
 what: users (admins too), roles, status history, display names, delete cleanup | userService
 use: always
-change: placement = src/config/features/user.config.ts | overlay = <name>.override.ts | add = receptacles (extensionPoints.ts)
+change: placement = src/config/domains/user.config.ts | overlay = <name>.override.ts | add = receptacles (extensionPoints.ts)
 rules:
 using:
 - no_raw_users_write: users and names are written only via createFromProvider / userService | refuse withdrawn users via findByProvider first, not a createFromProvider option
@@ -27,4 +27,4 @@ using:
 - unique_check: lockUserName / isUserNameTaken only if name.unique.enabled
 editing:
 - no_silent_password: newPassword with no password route → 400, never success
-read: statuses → Overview | roles, bulk, search, avatar, list → Usage | columns, createFromProvider → src/features/core/user/API.md API | mypage, cleanup → src/features/core/user/Extension.md Extension | deletion, history → src/features/core/user/Internals.md Internals
+read: statuses → Overview | roles, bulk, search, avatar, list → Usage | columns, createFromProvider → src/domains/core/user/API.md API | mypage, cleanup → src/domains/core/user/Extension.md Extension | deletion, history → src/domains/core/user/Internals.md Internals

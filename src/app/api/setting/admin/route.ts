@@ -1,7 +1,7 @@
 // src/app/api/setting/admin/route.ts
 // 管理者向けの設定の読み書き。ロールごとに許されたキーだけ(汎用 /api/setting は主体を渡せないので閉じている)。
 
-import { getSettingForActor, saveSettingAsActor } from "@/features/core/setting/services/server/settingActor";
+import { getSettingForActor, saveSettingAsActor } from "@/domains/core/setting/services/server/settingActor";
 import { createApiRoute } from "@/wiring/apiRoute";
 
 const ADMIN = { roleCategories: ["admin"] };

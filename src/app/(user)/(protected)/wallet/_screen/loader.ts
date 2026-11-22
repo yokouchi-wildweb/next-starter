@@ -6,8 +6,8 @@
 
 import "server-only";
 
-import { walletConfig, type WalletType } from "@/features/wallet/config";
-import type { WalletIndexEntry } from "@/features/core/wallet/types/screen";
+import { walletConfig, type WalletType } from "@/domains/wallet/config";
+import type { WalletIndexEntry } from "@/domains/core/wallet/types/screen";
 import { createLoader } from "@/app/(user)/(protected)/guard";
 
 export type WalletIndexScreenData = {

@@ -7,7 +7,7 @@
 import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens";
 import { loadAdminChatRoomListScreen } from "./loader";
-import AdminChatRoomList from "@/features/core/chatRoom/components/AdminChatRoomList";
+import AdminChatRoomList from "@/domains/core/chatRoom/components/AdminChatRoomList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 
 export const metadata = {

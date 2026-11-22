@@ -2,13 +2,13 @@
 // 統合コイン創出サマリー API。
 //
 // 管理画面ダッシュボード向けに、期間内のコイン収支を 1 リクエストで返す。
-// 個別ソースの集計ロジックは src/features/core/analytics/extensions/coinIssuanceSources.ts に並ぶ
+// 個別ソースの集計ロジックは src/domains/core/analytics/extensions/coinIssuanceSources.ts に並ぶ
 // CoinIssuanceSource に委譲する。
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { parseDateRangeParams } from "@/features/core/analytics/services/server/utils/dateRange";
-import { parseUserFilterParams } from "@/features/core/analytics/services/server/utils/userFilter";
-import { getCoinIssuanceSummary } from "@/features/core/analytics/services/server/coinIssuance";
+import { parseDateRangeParams } from "@/domains/core/analytics/services/server/utils/dateRange";
+import { parseUserFilterParams } from "@/domains/core/analytics/services/server/utils/userFilter";
+import { getCoinIssuanceSummary } from "@/domains/core/analytics/services/server/coinIssuance";
 
 export const GET = createApiRoute(
   {

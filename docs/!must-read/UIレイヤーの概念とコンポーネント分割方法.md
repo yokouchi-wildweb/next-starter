@@ -22,7 +22,7 @@
 | UI レイヤー | 役割 | 置き場 / 名前 | 公開契約 | フック | Server / Client |
 |---|---|---|---|---|---|
 | ページ | ルートの入口。loader を await し、セクションコンテナを配置する | `src/app/<route>/page.tsx`（1 行スイッチ）+ `_screen/<Name>Screen.tsx`（本体）+ `_screen/loader.ts` | Screen の入口と loader | ❌（サーバー側の処理は loader） | ✅ Server |
-| セクションコンテナ | **Screen が直接配置するコンポーネント**。hook と状態を握り、部品を組み立てる | `features/<domain>/components/<Name>`（`<Name>/index.tsx` または `<Name>.tsx`）。接尾辞なし（例: `Signup`、`AdminCouponList`） | トップレベルの props | ✅（hook はここで呼ぶ。client service の直叩きは禁止） | ⬜ 両対応（hook を使うなら Client） |
+| セクションコンテナ | **Screen が直接配置するコンポーネント**。hook と状態を握り、部品を組み立てる | `domains/<domain>/components/<Name>`（`<Name>/index.tsx` または `<Name>.tsx`）。接尾辞なし（例: `Signup`、`AdminCouponList`） | トップレベルの props | ✅（hook はここで呼ぶ。client service の直叩きは禁止） | ⬜ 両対応（hook を使うなら Client） |
 | 部品 | セクションコンテナの内側の要素。表示専用のものも、自己完結した操作を持つものもある | コンテナのディレクトリ内（`<Name>/<Part>.tsx`）、ドメイン共有なら `common/` | なし（契約外） | △（原則なし。自己完結するときだけ可、§5） | ⬜ 両対応 |
 
 ### 原則
@@ -31,7 +31,7 @@
 - **処理や状態を握るのはできるだけ上位**（セクションコンテナ）
 - **下位の要素で行う処理は上位から props で渡す**
 - **副作用（API 操作、通知表示など）をコンポーネントと混在させない**
-- **Screen が import してよいのは `features/<domain>/components/<Name>` まで**（部品を直接読まない。`pnpm test scripts/structure/routes/screens.test.mjs` が検査）
+- **Screen が import してよいのは `domains/<domain>/components/<Name>` まで**（部品を直接読まない。`pnpm test scripts/structure/routes/screens.test.mjs` が検査）
 
 ---
 
@@ -206,7 +206,7 @@ Screen が import するのは **セクションコンテナそのもの** で�
 
 複製してよいかの方針は [フォークでの拡張の方針](フォークでの拡張の方針_コピーと受け口の使い分け.md) を参照。ここでは複製できるようにするコンテナ側の条件を書きます。
 
-- `index.tsx` から部品を export する（部品は全部公開で、読むのは入口だけ。CLAUDE.md `core_ui`、lint `entry/only-entries`）。下流が `index.tsx` を `_components/` に複製したら、部品の import を入口（`@/features/core/wallet/components/WalletBalance`）へ向ける。無ければ上流へ `/order`
+- `index.tsx` から部品を export する（部品は全部公開で、読むのは入口だけ。CLAUDE.md `core_ui`、lint `entry/only-entries`）。下流が `index.tsx` を `_components/` に複製したら、部品の import を入口（`@/domains/core/wallet/components/WalletBalance`）へ向ける。無ければ上流へ `/order`
 - HTTP は hook 経由のみ。client service の直叩きは hook に昇格する
 - トップレベルの props（例: `WalletBalance` の `slug / phoneVerifiedAt / currentPhoneNumber / initialWallets`）は公開契約。追加は自由（§3 の `initial<Name>` も追加）、改名・必須化は `.notices` で通知
 

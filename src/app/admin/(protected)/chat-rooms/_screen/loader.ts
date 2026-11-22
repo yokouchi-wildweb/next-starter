@@ -4,7 +4,7 @@
 
 import "server-only";
 
-import type { ChatRoom } from "@/features/core/chatRoom/entities/model";
+import type { ChatRoom } from "@/domains/core/chatRoom/entities/model";
 import { createLoader } from "@/app/admin/(protected)/guard";
 import { adminListParts } from "@/wiring/adminScreenParts";
 

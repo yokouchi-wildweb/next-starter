@@ -164,12 +164,12 @@ export function resolveScreenFile(pageDir, target) {
 }
 
 /**
- * `@/features/.../components/<a>` が部品を持つセクションコンテナ(index.tsx を持つディレクトリ)か。
- * `@/features/<d>` は tsconfig paths と同じく core ドメインなら src/features/core/<d> に解決する
+ * `@/domains/.../components/<a>` が部品を持つセクションコンテナ(index.tsx を持つディレクトリ)か。
+ * `@/domains/<d>` は tsconfig paths と同じく core ドメインなら src/domains/core/<d> に解決する
  */
 export function isContainerDir(dirSpec) {
-  const rest = dirSpec.replace(/^@\/features\//, "");
-  const dir = rest.startsWith("core/") || !isDir(`src/features/core/${rest.split("/")[0]}`) ? `src/features/${rest}` : `src/features/core/${rest}`;
+  const rest = dirSpec.replace(/^@\/domains\//, "");
+  const dir = rest.startsWith("core/") || !isDir(`src/domains/core/${rest.split("/")[0]}`) ? `src/domains/${rest}` : `src/domains/core/${rest}`;
   return exists(`${dir}/index.tsx`);
 }
 
@@ -409,7 +409,7 @@ test("parseSwitchPage: _screen / _components / metadata re-export を許可し�
   assert.ok(parseSwitchPage(navigation).problems.some((p) => p.includes("next/navigation")));
 
   const sectionContainer = `
-    import { WalletBalance } from "@/features/core/wallet/components/WalletBalance";
+    import { WalletBalance } from "@/domains/core/wallet/components/WalletBalance";
     export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
   `;
   assert.ok(parseSwitchPage(sectionContainer).problems.some((p) => p.includes("components/WalletBalance")));
@@ -431,36 +431,36 @@ test("parseSwitchPage: _screen / _components / metadata re-export を許可し�
 
 test("checkScreenImports: index.tsx を持つコンテナの内側(部品)は弾き、グループ分けのディレクトリは名前空間として通す", () => {
   const ok = `
-    import { WalletBalance } from "@/features/core/wallet/components/WalletBalance";
-    import { Signup } from "@/features/auth/components/Signup";
-    import { AdminSampleList } from "@/features/sample/components/AdminSampleList/index";
+    import { WalletBalance } from "@/domains/core/wallet/components/WalletBalance";
+    import { Signup } from "@/domains/auth/components/Signup";
+    import { AdminSampleList } from "@/domains/sample/components/AdminSampleList/index";
     import { UserPage } from "@/app/(user)/_layout/UserPage";
     import { loadXScreen } from "./loader";
     import { Part } from "./Part";
   `;
   assert.deepEqual(checkScreenImports(ok), []);
   // 述語を省略すると入れ子は全て違反(厳しい側)
-  assert.ok(checkScreenImports(`export { X } from "@/features/core/x/components/Y/Z";`).length === 1);
+  assert.ok(checkScreenImports(`export { X } from "@/domains/core/x/components/Y/Z";`).length === 1);
 
-  const containers = new Set(["@/features/core/wallet/components/WalletBalance", "@/features/shop/components/Admin/OrderList"]);
+  const containers = new Set(["@/domains/core/wallet/components/WalletBalance", "@/domains/shop/components/Admin/OrderList"]);
   const opts = { isContainerDir: (d) => containers.has(d) };
-  assert.ok(checkScreenImports(`import { BalanceCard } from "@/features/core/wallet/components/WalletBalance/BalanceCard";`, opts).length === 1);
-  assert.ok(checkScreenImports(`import { Row } from "@/features/shop/components/Admin/OrderList/Row";`, opts).length === 1, "グループ内のコンテナの部品も弾く");
+  assert.ok(checkScreenImports(`import { BalanceCard } from "@/domains/core/wallet/components/WalletBalance/BalanceCard";`, opts).length === 1);
+  assert.ok(checkScreenImports(`import { Row } from "@/domains/shop/components/Admin/OrderList/Row";`, opts).length === 1, "グループ内のコンテナの部品も弾く");
   const grouped = `
-    import { OrderList } from "@/features/shop/components/Admin/OrderList";
-    import { OrderList as L } from "@/features/shop/components/Admin/OrderList/index";
-    import { GachaList } from "@/features/shop/components/common/GachaList";
-    import { Picker } from "@/features/shop/components/Mobile/sub/Picker";
+    import { OrderList } from "@/domains/shop/components/Admin/OrderList";
+    import { OrderList as L } from "@/domains/shop/components/Admin/OrderList/index";
+    import { GachaList } from "@/domains/shop/components/common/GachaList";
+    import { Picker } from "@/domains/shop/components/Mobile/sub/Picker";
   `;
   assert.deepEqual(checkScreenImports(grouped, opts), []);
 });
 
 test("isContainerDir: index.tsx を持つディレクトリだけをコンテナとみなす(core の別名を解決、index.ts だけの barrel は名前空間)", () => {
-  assert.equal(isContainerDir("@/features/auth/components/Signup"), true);
-  assert.equal(isContainerDir("@/features/core/auth/components/Signup"), true);
-  assert.equal(isContainerDir("@/features/user/components/admin"), false);
-  assert.equal(isContainerDir("@/features/userProfile/components/common"), false, "common/index.ts は barrel");
-  assert.equal(isContainerDir("@/features/no-such-domain/components/X"), false);
+  assert.equal(isContainerDir("@/domains/auth/components/Signup"), true);
+  assert.equal(isContainerDir("@/domains/core/auth/components/Signup"), true);
+  assert.equal(isContainerDir("@/domains/user/components/admin"), false);
+  assert.equal(isContainerDir("@/domains/userProfile/components/common"), false, "common/index.ts は barrel");
+  assert.equal(isContainerDir("@/domains/no-such-domain/components/X"), false);
 });
 
 test("checkScreenFile: named export / barrel を認め、default export と \"use client\" を弾く", () => {
@@ -496,7 +496,7 @@ test("checkLoaderFile: createLoader 製(Factory が cache を張る)も cache() 
 
 test("checkLoaderFile: DTO 型は loader が所有する(_components / Screen からの import は type でも不可)", () => {
   const base = `import "server-only";\nimport { cache } from "react";\n`;
-  const ok = `${base}import type { ScreenProps } from "@/lib/screens";\nimport { userService } from "@/features/core/user/services/server/userService";\nexport type WinReportScreenData = { reports: string[] };\nexport const loadWinReportScreen = cache(async () => ({ reports: [] }));`;
+  const ok = `${base}import type { ScreenProps } from "@/lib/screens";\nimport { userService } from "@/domains/core/user/services/server/userService";\nexport type WinReportScreenData = { reports: string[] };\nexport const loadWinReportScreen = cache(async () => ({ reports: [] }));`;
   assert.deepEqual(checkLoaderFile(ok, { path: "src/app/(user)/(protected)/win-reports/_screen/loader.ts" }), []);
   const fromParts = `${base}import type { WinReportData } from "../_components/WinReportList";\nexport const loadWinReportScreen = cache(async (): Promise<WinReportData[]> => []);`;
   assert.ok(checkLoaderFile(fromParts).some((p) => p.includes("../_components/WinReportList")));
@@ -512,7 +512,7 @@ test("checkLoaderFile: DTO 型は loader が所有する(_components / Screen �
   const forkFromPart = `${base}import type { WinReportData } from "./WinReportList";\nexport const loadWinReportExtra = cache(async (): Promise<WinReportData[]> => []);`;
   assert.ok(checkLoaderFile(forkFromPart, { path: forkLoaderPath }).some((p) => p.includes("./WinReportList")));
   // Screen 名の判定は相対 import か _screen/ / _components/ 配下だけ(ドメインの型ファイルは誤検出しない)
-  const typesFile = `${base}import type { WalletIndexScreen } from "@/features/core/wallet/types/WalletIndexScreen";\nexport const loadWalletIndexScreen = cache(async (): Promise<WalletIndexScreen> => ({}));`;
+  const typesFile = `${base}import type { WalletIndexScreen } from "@/domains/core/wallet/types/WalletIndexScreen";\nexport const loadWalletIndexScreen = cache(async (): Promise<WalletIndexScreen> => ({}));`;
   assert.deepEqual(checkLoaderFile(typesFile), []);
   const dirScreen = `${base}import type { Props } from "../_screen/WinReportScreen/index";\nexport const loadWinReportScreen = cache(async (): Promise<Props> => ({}));`;
   assert.ok(checkLoaderFile(dirScreen).some((p) => p.includes("WinReportScreen")));
@@ -646,7 +646,7 @@ test("findForkOwnedDirFiles: src/app 配下の _components/ のファイルだ�
     "src/app/(user)/wallet/_screen/WalletScreen.tsx",
     "src/app/(user)/wallet/page.tsx",
     "src/app/admin/(protected)/users/_components/loader.ts",
-    "src/features/foo/_components/Bar.tsx",
+    "src/domains/foo/_components/Bar.tsx",
     "src/app/(user)/my_components/X.tsx",
   ];
   assert.deepEqual(findForkOwnedDirFiles(files), [

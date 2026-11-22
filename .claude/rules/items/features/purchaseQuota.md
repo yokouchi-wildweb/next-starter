@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/features/core/purchaseQuota/**"
-  - "src/config/features/purchaseQuota.config.ts"
+  - "src/domains/core/purchaseQuota/**"
+  - "src/config/domains/purchaseQuota.config.ts"
 ---
-# features/purchaseQuota
-what: a per-user cap on the amount bought within a time window (ledger purchase_quota_ledger: reserved / committed / released), built into the purchase flow | entry @/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper
+# domains/purchaseQuota
+what: a per-user cap on the amount bought within a time window (ledger purchase_quota_ledger: reserved / committed / released), built into the purchase flow | entry @/domains/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper
 use: payment
-change: placement = src/config/features/purchaseQuota.config.ts (`rules`; empty = off)
+change: placement = src/config/domains/purchaseQuota.config.ts (`rules`; empty = off)
 rules:
 using:
 - reserve_in_purchase_tx: reserveQuota always runs inside the caller's purchase tx (the ledger rolls back with it)

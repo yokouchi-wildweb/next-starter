@@ -11,7 +11,7 @@ import {
   getAudience,
   AUDIENCE_ORDER_BY,
   type AudienceOrderBy,
-} from "@/features/core/interactionTracking/services/server";
+} from "@/domains/core/interactionTracking/services/server";
 
 export const GET = createApiRoute(
   {

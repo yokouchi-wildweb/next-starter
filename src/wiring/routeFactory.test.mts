@@ -10,7 +10,7 @@ import { mock, test } from "node:test";
 
 import nextServer, { NextRequest } from "next/server";
 
-import { evaluateApiAccessRule } from "@/features/core/auth/services/server/apiAccess";
+import { evaluateApiAccessRule } from "@/domains/core/auth/services/server/apiAccess";
 import { DomainError } from "@/lib/errors";
 
 // 入口の芯は最初に next/server の connection() を待つ。Next のリクエストの外(ここ)では throw するので、

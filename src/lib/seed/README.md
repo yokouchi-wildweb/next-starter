@@ -9,7 +9,7 @@
 
 ## Usage
 
-置き場はドメイン直下 `src/features/<ドメイン>/seed.ts`(core は `src/features/core/<ドメイン>/seed.ts`)。一覧ファイルは無く、ランナーが走査する。`pnpm generate domain` が無ければ雛形を書く(write-once、Firestore のドメインは除く)。
+置き場はドメイン直下 `src/domains/<ドメイン>/seed.ts`(core は `src/domains/core/<ドメイン>/seed.ts`)。一覧ファイルは無く、ランナーが走査する。`pnpm generate domain` が無ければ雛形を書く(write-once、Firestore のドメインは除く)。
 
 ```ts
 import "server-only";

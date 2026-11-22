@@ -1,5 +1,5 @@
 // scripts/runner/task/discover.ts
-// ドメインのタスク・移行(src/features/<ドメイン>/scripts/{tasks,migrations}/<名前>.ts)を集め、実行するファイルだけを読み込む。
+// ドメインのタスク・移行(src/domains/<ドメイン>/scripts/{tasks,migrations}/<名前>.ts)を集め、実行するファイルだけを読み込む。
 // 走査そのものは scan.mjs(一覧ファイルは持たない。一覧と名前の検査はファイルを読み込まない)。
 // 利用者: scripts/runner/task/run.ts(pnpm task)
 

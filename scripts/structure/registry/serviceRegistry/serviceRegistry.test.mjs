@@ -228,22 +228,22 @@ function makeRoot(files) {
 test("生成: core → 業務の順に並び、override は access だけ差し替え、2 回目は変更なし", (t) => {
   t.mock.method(console, "log", () => {});
   const root = makeRoot({
-    "src/features/core/user/services/server/domainEntry.ts": ENTRY("user"),
-    "src/features/core/user/services/server/drizzleBase.ts": "",
-    "src/features/core/userTag/services/server/domainEntry.ts": ENTRY("userTag"),
-    "src/features/core/userTag/services/server/domainEntry.override.ts": `import type { DomainEntryOverrides } from "@/lib/domain";
+    "src/domains/core/user/services/server/domainEntry.ts": ENTRY("user"),
+    "src/domains/core/user/services/server/drizzleBase.ts": "",
+    "src/domains/core/userTag/services/server/domainEntry.ts": ENTRY("userTag"),
+    "src/domains/core/userTag/services/server/domainEntry.override.ts": `import type { DomainEntryOverrides } from "@/lib/domain";
 import { PUBLIC_READ } from "@/lib/domainAccess";
 export const domainEntryOverrides = { userTag: PUBLIC_READ } satisfies DomainEntryOverrides;
 `,
-    "src/features/article/services/server/domainEntry.ts": ENTRY("article"),
-    "src/features/article/domain.json": "{}",
+    "src/domains/article/services/server/domainEntry.ts": ENTRY("article"),
+    "src/domains/article/domain.json": "{}",
   });
   const first = generateServiceRegistry(root);
   assert.equal(first.written, true);
   const text = fs.readFileSync(path.join(root, REGISTRY_FILE), "utf8");
   assert.equal(text.split("\n")[0], GENERATED_HEADER);
-  assert.match(text, /import \{ domainEntries as userEntries \} from "@\/features\/core\/user\/services\/server\/domainEntry";/);
-  assert.match(text, /import \{ domainEntryOverrides as userTagEntriesOverrides \} from "@\/features\/core\/userTag\/services\/server\/domainEntry.override";/);
+  assert.match(text, /import \{ domainEntries as userEntries \} from "@\/domains\/core\/user\/services\/server\/domainEntry";/);
+  assert.match(text, /import \{ domainEntryOverrides as userTagEntriesOverrides \} from "@\/domains\/core\/userTag\/services\/server\/domainEntry.override";/);
   assert.match(text, /\n  user: userEntries\.user,\n  userTag: \{ service: userTagEntries\.userTag\.service, access: userTagEntriesOverrides\.userTag \},\n  article: articleEntries\.article,\n\};/);
   assert.deepEqual(readObjectKeys(text, "serviceRegistry").keys, ["user", "userTag", "article"]);
   const second = generateServiceRegistry(root);
@@ -254,12 +254,12 @@ export const domainEntryOverrides = { userTag: PUBLIC_READ } satisfies DomainEnt
 test("検査: 生成ヘッダの無い旧ファイルの手書き行は失敗し、移し先を出す。生成ヘッダ付きなら pnpm generate domain -- --delete 後の除去として通す", (t) => {
   t.mock.method(console, "log", () => {});
   const root = makeRoot({
-    "src/features/core/user/services/server/domainEntry.ts": ENTRY("user"),
-    "src/features/sample/domain.json": "{}",
-    "src/features/sample/services/server/sampleService.ts": "",
-    [REGISTRY_FILE]: `import { userService } from "@/features/user/services/server/userService";
-import { sampleService } from "@/features/sample/services/server/sampleService";
-import { legacyService } from "@/features/legacy/services/server/legacyService";
+    "src/domains/core/user/services/server/domainEntry.ts": ENTRY("user"),
+    "src/domains/sample/domain.json": "{}",
+    "src/domains/sample/services/server/sampleService.ts": "",
+    [REGISTRY_FILE]: `import { userService } from "@/domains/user/services/server/userService";
+import { sampleService } from "@/domains/sample/services/server/sampleService";
+import { legacyService } from "@/domains/legacy/services/server/legacyService";
 export const serviceRegistry = {
   user: { service: userService, access: ADMIN_ONLY },
   sample: { service: sampleService, access: ADMIN_ONLY },
@@ -283,27 +283,27 @@ export const serviceRegistry = {
 test("override: 空(空白とコメントだけ)の domainEntry.override.ts は不在と同じ(D34 K1)", (t) => {
   t.mock.method(console, "log", () => {});
   const root = makeRoot({
-    "src/features/core/userTag/services/server/domainEntry.ts": ENTRY("userTag"),
-    "src/features/core/userTag/services/server/domainEntry.override.ts": "// 親の上書きを外した(下の Tier)\n",
+    "src/domains/core/userTag/services/server/domainEntry.ts": ENTRY("userTag"),
+    "src/domains/core/userTag/services/server/domainEntry.override.ts": "// 親の上書きを外した(下の Tier)\n",
   });
   generateServiceRegistry(root);
   const text = fs.readFileSync(path.join(root, REGISTRY_FILE), "utf8");
-  assert.doesNotMatch(text, /from "@\/features\/core\/userTag\/services\/server\/domainEntry\.override"/);
+  assert.doesNotMatch(text, /from "@\/domains\/core\/userTag\/services\/server\/domainEntry\.override"/);
   assert.deepEqual(checkServiceRegistry(root).errors, []);
 });
 
 test("検査: 重複キー・base があるのに domainEntry.ts が無い・record_type・決まりに合わない import・読めない行(対象の無い override は orphans.mjs)", () => {
   const root = makeRoot({
-    "src/features/core/user/services/server/domainEntry.ts": ENTRY("user"),
-    "src/features/core/dup/services/server/domainEntry.ts": ENTRY("user"),
-    "src/features/core/orphan/services/server/drizzleBase.ts": "",
-    "src/features/core/orphan/services/server/photo.ts": 'storageBindingFor("orphanPhoto", [])',
-    "src/features/core/orphan/services/server/photo.test.ts": 'storageBindingFor("ignored", [])',
-    "src/features/core/leak/services/server/domainEntry.ts": `import { leakService } from "./leakService";\nexport const domainEntries = { leak: { service: async () => leakService, access: {} } };\n`,
-    "src/features/core/lonely/services/server/domainEntry.override.ts": `export const domainEntryOverrides = { nope: {} };\n`,
-    "src/features/core/broken/services/server/domainEntry.ts": `export const other = {};\n`,
-    "src/features/business/domain.json": "{}",
-    "src/features/business/services/server/drizzleBase.ts": "",
+    "src/domains/core/user/services/server/domainEntry.ts": ENTRY("user"),
+    "src/domains/core/dup/services/server/domainEntry.ts": ENTRY("user"),
+    "src/domains/core/orphan/services/server/drizzleBase.ts": "",
+    "src/domains/core/orphan/services/server/photo.ts": 'storageBindingFor("orphanPhoto", [])',
+    "src/domains/core/orphan/services/server/photo.test.ts": 'storageBindingFor("ignored", [])',
+    "src/domains/core/leak/services/server/domainEntry.ts": `import { leakService } from "./leakService";\nexport const domainEntries = { leak: { service: async () => leakService, access: {} } };\n`,
+    "src/domains/core/lonely/services/server/domainEntry.override.ts": `export const domainEntryOverrides = { nope: {} };\n`,
+    "src/domains/core/broken/services/server/domainEntry.ts": `export const other = {};\n`,
+    "src/domains/business/domain.json": "{}",
+    "src/domains/business/services/server/drizzleBase.ts": "",
   });
   const { errors } = checkServiceRegistry(root);
   const expect = (pattern) => assert.ok(errors.some((error) => pattern.test(error)), `${pattern} が無い:\n${errors.join("\n")}`);
@@ -321,16 +321,16 @@ test("検査: 重複キー・base があるのに domainEntry.ts が無い・rec
 test("検査: table / idColumn の欠け・リテラル以外・形式違い・片方だけ null・同じ表が 2 キーは失敗、null / null は通る", () => {
   const long = "a".repeat(64);
   const root = makeRoot({
-    "src/features/core/missing/services/server/domainEntry.ts": ENTRY("missing", "missingService", `"missings"`).replace(', idColumn: "id"', ""),
-    "src/features/core/constant/services/server/domainEntry.ts": ENTRY("constant", "constantService", `TABLE, idColumn: "id"`),
-    "src/features/core/empty/services/server/domainEntry.ts": ENTRY("empty", "emptyService", `"", idColumn: "id"`),
-    "src/features/core/tooLong/services/server/domainEntry.ts": ENTRY("tooLong", "tooLongService", `"${long}", idColumn: "id"`),
-    "src/features/core/spaced/services/server/domainEntry.ts": ENTRY("spaced", "spacedService", `"spaced items", idColumn: "id"`),
-    "src/features/core/half/services/server/domainEntry.ts": ENTRY("half", "halfService", `null, idColumn: "id"`),
-    "src/features/core/first/services/server/domainEntry.ts": ENTRY("first", "firstService", `"shared_items", idColumn: "id"`),
-    "src/features/core/second/services/server/domainEntry.ts": ENTRY("second", "secondService", `"shared_items", idColumn: "id"`),
-    "src/features/core/realtime/services/server/domainEntry.ts": ENTRY("realtime", "realtimeService", `null, idColumn: null`),
-    "src/features/core/mixedCase/services/server/domainEntry.ts": ENTRY("mixedCase", "mixedCaseService", `"MixedItems", idColumn: "ID"`),
+    "src/domains/core/missing/services/server/domainEntry.ts": ENTRY("missing", "missingService", `"missings"`).replace(', idColumn: "id"', ""),
+    "src/domains/core/constant/services/server/domainEntry.ts": ENTRY("constant", "constantService", `TABLE, idColumn: "id"`),
+    "src/domains/core/empty/services/server/domainEntry.ts": ENTRY("empty", "emptyService", `"", idColumn: "id"`),
+    "src/domains/core/tooLong/services/server/domainEntry.ts": ENTRY("tooLong", "tooLongService", `"${long}", idColumn: "id"`),
+    "src/domains/core/spaced/services/server/domainEntry.ts": ENTRY("spaced", "spacedService", `"spaced items", idColumn: "id"`),
+    "src/domains/core/half/services/server/domainEntry.ts": ENTRY("half", "halfService", `null, idColumn: "id"`),
+    "src/domains/core/first/services/server/domainEntry.ts": ENTRY("first", "firstService", `"shared_items", idColumn: "id"`),
+    "src/domains/core/second/services/server/domainEntry.ts": ENTRY("second", "secondService", `"shared_items", idColumn: "id"`),
+    "src/domains/core/realtime/services/server/domainEntry.ts": ENTRY("realtime", "realtimeService", `null, idColumn: null`),
+    "src/domains/core/mixedCase/services/server/domainEntry.ts": ENTRY("mixedCase", "mixedCaseService", `"MixedItems", idColumn: "ID"`),
   });
   const { errors } = checkServiceRegistry(root);
   const expect = (pattern) => assert.ok(errors.some((error) => pattern.test(error)), `${pattern} が無い:\n${errors.join("\n")}`);
@@ -358,31 +358,31 @@ test("generate: false の業務ドメイン: domainEntry.ts が無いと手書�
 
   const domainJson = JSON.stringify({ singular: "visit", plural: "visits", generate: false });
   const root = makeRoot({
-    "src/features/visit/domain.json": domainJson,
-    "src/features/visit/services/server/drizzleBase.ts": "",
-    "src/features/visit/services/server/visitService.ts": "",
-    "src/features/order/domain.json": JSON.stringify({ singular: "order", plural: "orders" }),
-    "src/features/order/services/server/drizzleBase.ts": "",
+    "src/domains/visit/domain.json": domainJson,
+    "src/domains/visit/services/server/drizzleBase.ts": "",
+    "src/domains/visit/services/server/visitService.ts": "",
+    "src/domains/order/domain.json": JSON.stringify({ singular: "order", plural: "orders" }),
+    "src/domains/order/services/server/drizzleBase.ts": "",
   });
   const missing = checkServiceRegistry(root).errors;
-  const visitError = missing.find((error) => error.includes("src/features/visit/services/server"));
+  const visitError = missing.find((error) => error.includes("src/domains/visit/services/server"));
   assert.match(visitError, /"generate": false なので pnpm generate domain は書かない → 手書きする。形: src\/lib\/domain\/README.md「generate: false の業務ドメイン」/);
   assert.doesNotMatch(visitError, /--only registry/, "generate: false には書かない命令を案内しない");
-  assert.match(missing.find((error) => error.includes("src/features/order/services/server")), /pnpm generate domain -- order --yes --only registry/, "generate: true は今までどおり生成を案内する");
+  assert.match(missing.find((error) => error.includes("src/domains/order/services/server")), /pnpm generate domain -- order --yes --only registry/, "generate: true は今までどおり生成を案内する");
 
   // 移行前の手書き行（旧 generateFiles.registry: false のドメイン）の移し先も手書きを案内する
   fs.mkdirSync(path.join(root, path.dirname(REGISTRY_FILE)), { recursive: true });
   fs.writeFileSync(
     path.join(root, REGISTRY_FILE),
-    `import { visitService } from "@/features/visit/services/server/visitService";\nexport const serviceRegistry = {\n  visit: { service: visitService, access: ADMIN_ONLY },\n};\n`,
+    `import { visitService } from "@/domains/visit/services/server/visitService";\nexport const serviceRegistry = {\n  visit: { service: visitService, access: ADMIN_ONLY },\n};\n`,
   );
   const legacy = checkServiceRegistry(root).errors.find((error) => error.includes('手書きの行 "visit"'));
-  assert.match(legacy, /"generate": false なので pnpm generate domain は書かない → src\/features\/visit\/services\/server\/domainEntry.ts を手書きし/);
+  assert.match(legacy, /"generate": false なので pnpm generate domain は書かない → src\/domains\/visit\/services\/server\/domainEntry.ts を手書きし/);
   fs.rmSync(path.join(root, REGISTRY_FILE));
 
   // README の例をそのまま置く → 登録・検査が通る
-  fs.rmSync(path.join(root, "src/features/order"), { recursive: true });
-  fs.writeFileSync(path.join(root, "src/features/visit/services/server/domainEntry.ts"), example);
+  fs.rmSync(path.join(root, "src/domains/order"), { recursive: true });
+  fs.writeFileSync(path.join(root, "src/domains/visit/services/server/domainEntry.ts"), example);
   generateServiceRegistry(root);
   assert.deepEqual(checkServiceRegistry(root).errors, []);
   const [visit] = discoverDomainEntries(root).filter((domain) => domain.camel === "visit");
@@ -402,7 +402,7 @@ test("generate: false の業務ドメイン: domainEntry.ts が無いと手書�
 function makeImportRoot(entryImports, files = {}) {
   return makeRoot({
     ...files,
-    "src/features/shop/services/server/domainEntry.ts": `import type { DomainEntries } from "@/lib/domain";
+    "src/domains/shop/services/server/domainEntry.ts": `import type { DomainEntries } from "@/lib/domain";
 ${entryImports}
 export const domainEntries = {
   shop: { service: () => import("./shopService").then((m) => m.shopService), table: "shops", idColumn: "id", access: {} },
@@ -411,24 +411,24 @@ export const domainEntries = {
   });
 }
 
-const ENTRY_PATH = "src/features/shop/services/server/domainEntry.ts";
+const ENTRY_PATH = "src/domains/shop/services/server/domainEntry.ts";
 
 test("静的 import の決まり: 通る例(lib/domain の 2 つ・fork の constants/ の定型・型だけの import・推移と循環)", () => {
   const cases = {
     "lib/domain の定型": `import { ADMIN_ONLY, ADMIN_RULE } from "@/lib/domainAccess";`,
     "lib/domain/types の値の import(型だけのファイルの再 export)": `import { DOMAIN_DATA_OPERATIONS } from "@/lib/domainAccess";
 `,
-    "fork の constants/ の定型(spread・参照・as const・satisfies)": `import { STAFF_ONLY } from "@/features/shop/constants/access";`,
+    "fork の constants/ の定型(spread・参照・as const・satisfies)": `import { STAFF_ONLY } from "@/domains/shop/constants/access";`,
     "相対の値の import": `import { STAFF_ONLY } from "../../constants/access";`,
     "型だけの import はどこからでも(services・drizzle・パッケージ)": [
       `import type { ShopService } from "./shopService";`,
-      `import { type ShopTable } from "@/features/shop/entities/drizzle";`,
+      `import { type ShopTable } from "@/domains/shop/entities/drizzle";`,
       `import type { NextRequest } from "next/server";`,
     ].join("\n"),
-    "値だけのファイルが値だけのファイルを読む(推移)・循環しても止まる": `import { CHAIN } from "@/features/shop/constants/chain";`,
+    "値だけのファイルが値だけのファイルを読む(推移)・循環しても止まる": `import { CHAIN } from "@/domains/shop/constants/chain";`,
   };
   const files = {
-    "src/features/shop/constants/access.ts": `import type { DomainApiAccessConfig } from "@/lib/domainAccess";
+    "src/domains/shop/constants/access.ts": `import type { DomainApiAccessConfig } from "@/lib/domainAccess";
 import { ADMIN_RULE } from "@/lib/domainAccess";
 
 /** 店舗の関係者だけ */
@@ -439,9 +439,9 @@ export interface Staff { id: string }
 export { STAFF_RULE };
 export default STAFF_ONLY;
 `,
-    "src/features/shop/constants/chain.ts": `import { LOOP } from "./loop";\nimport { STAFF_ONLY } from "./access";\nexport const CHAIN = { ...STAFF_ONLY, loop: LOOP.a };\n`,
+    "src/domains/shop/constants/chain.ts": `import { LOOP } from "./loop";\nimport { STAFF_ONLY } from "./access";\nexport const CHAIN = { ...STAFF_ONLY, loop: LOOP.a };\n`,
     // chain → loop → chain の循環
-    "src/features/shop/constants/loop.ts": `import { CHAIN } from "./chain";\nexport const LOOP = { a: 1 };\nexport const BACK = CHAIN;\n`,
+    "src/domains/shop/constants/loop.ts": `import { CHAIN } from "./chain";\nexport const LOOP = { a: 1 };\nexport const BACK = CHAIN;\n`,
   };
   for (const [name, imports] of Object.entries(cases)) {
     const root = makeImportRoot(imports, files);
@@ -451,20 +451,20 @@ export default STAFF_ONLY;
 
 test("静的 import の決まり: 落ちる例(services・drizzle・entities の値・副作用の import・関数や呼び出し・推移の先・解けない指定子)", () => {
   const cases = [
-    ["services の値", `import { shopService } from "./shopService";`, { "src/features/shop/services/server/shopService.ts": `import { createCrudService } from "@/lib/crud/server";\nexport const shopService = createCrudService({});\n` }, /"\.\/shopService" → .*shopService\.ts: const shopService が 値の式でない/],
-    ["drizzle の値", `import { ShopTable } from "@/features/shop/entities/drizzle";`, { "src/features/shop/entities/drizzle.ts": `import { pgTable } from "drizzle-orm/pg-core";\nexport const ShopTable = pgTable("shops", {});\n` }, /"drizzle-orm\/pg-core" を値で import している\(解けない指定子/],
-    ["entities の関数", `import { toShop } from "@/features/shop/entities/model";`, { "src/features/shop/entities/model.ts": `export function toShop() { return 1; }\n` }, /model\.ts: 値だけのファイルに置けない文がある\(関数/],
-    ["副作用の import", `import "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `export const A = 1;\n` }, /"@\/features\/shop\/constants\/access" を副作用の import している/],
-    ["呼び出しを持つ定数", `import { A } from "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `export const A = Object.freeze({ a: 1 });\n` }, /const A が 値の式でない/],
-    ["new", `import { A } from "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `export const A = new Set([1]);\n` }, /const A が 値の式でない/],
-    ["アロー関数のキー", `import { A } from "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `export const A = { f: () => 1 };\n` }, /const A が 値の式でない/],
-    ["メソッドのキー", `import { A } from "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `export const A = { f() { return 1; } };\n` }, /関数・getter のキー/],
-    ["let", `import { A } from "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `export let A = 1;\n` }, /let \/ var \/ declare/],
-    ["enum", `import { A } from "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `export enum A { x }\n` }, /値だけのファイルに置けない文/],
-    ["知らない名前の参照(process)", `import { A } from "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `export const A = { env: process.env.X };\n` }, /名前 process/],
-    ["推移の先が値でない", `import { A } from "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `import { B } from "./b";\nexport const A = { b: B };\n`, "src/features/shop/constants/b.ts": `export const B = Math.max(1, 2);\n` }, /"\.\/b" → src\/features\/shop\/constants\/b\.ts: const B が 値の式でない/],
-    ["値の再 export の先が値でない", `import { A } from "@/features/shop/constants/access";`, { "src/features/shop/constants/access.ts": `export { B as A } from "./b";\n`, "src/features/shop/constants/b.ts": `export const B = Date.now();\n` }, /b\.ts: const B が 値の式でない/],
-    ["無いファイル", `import { A } from "@/features/shop/constants/missing";`, {}, /"@\/features\/shop\/constants\/missing" を値で import している\(解けない指定子/],
+    ["services の値", `import { shopService } from "./shopService";`, { "src/domains/shop/services/server/shopService.ts": `import { createCrudService } from "@/lib/crud/server";\nexport const shopService = createCrudService({});\n` }, /"\.\/shopService" → .*shopService\.ts: const shopService が 値の式でない/],
+    ["drizzle の値", `import { ShopTable } from "@/domains/shop/entities/drizzle";`, { "src/domains/shop/entities/drizzle.ts": `import { pgTable } from "drizzle-orm/pg-core";\nexport const ShopTable = pgTable("shops", {});\n` }, /"drizzle-orm\/pg-core" を値で import している\(解けない指定子/],
+    ["entities の関数", `import { toShop } from "@/domains/shop/entities/model";`, { "src/domains/shop/entities/model.ts": `export function toShop() { return 1; }\n` }, /model\.ts: 値だけのファイルに置けない文がある\(関数/],
+    ["副作用の import", `import "@/domains/shop/constants/access";`, { "src/domains/shop/constants/access.ts": `export const A = 1;\n` }, /"@\/domains\/shop\/constants\/access" を副作用の import している/],
+    ["呼び出しを持つ定数", `import { A } from "@/domains/shop/constants/access";`, { "src/domains/shop/constants/access.ts": `export const A = Object.freeze({ a: 1 });\n` }, /const A が 値の式でない/],
+    ["new", `import { A } from "@/domains/shop/constants/access";`, { "src/domains/shop/constants/access.ts": `export const A = new Set([1]);\n` }, /const A が 値の式でない/],
+    ["アロー関数のキー", `import { A } from "@/domains/shop/constants/access";`, { "src/domains/shop/constants/access.ts": `export const A = { f: () => 1 };\n` }, /const A が 値の式でない/],
+    ["メソッドのキー", `import { A } from "@/domains/shop/constants/access";`, { "src/domains/shop/constants/access.ts": `export const A = { f() { return 1; } };\n` }, /関数・getter のキー/],
+    ["let", `import { A } from "@/domains/shop/constants/access";`, { "src/domains/shop/constants/access.ts": `export let A = 1;\n` }, /let \/ var \/ declare/],
+    ["enum", `import { A } from "@/domains/shop/constants/access";`, { "src/domains/shop/constants/access.ts": `export enum A { x }\n` }, /値だけのファイルに置けない文/],
+    ["知らない名前の参照(process)", `import { A } from "@/domains/shop/constants/access";`, { "src/domains/shop/constants/access.ts": `export const A = { env: process.env.X };\n` }, /名前 process/],
+    ["推移の先が値でない", `import { A } from "@/domains/shop/constants/access";`, { "src/domains/shop/constants/access.ts": `import { B } from "./b";\nexport const A = { b: B };\n`, "src/domains/shop/constants/b.ts": `export const B = Math.max(1, 2);\n` }, /"\.\/b" → src\/domains\/shop\/constants\/b\.ts: const B が 値の式でない/],
+    ["値の再 export の先が値でない", `import { A } from "@/domains/shop/constants/access";`, { "src/domains/shop/constants/access.ts": `export { B as A } from "./b";\n`, "src/domains/shop/constants/b.ts": `export const B = Date.now();\n` }, /b\.ts: const B が 値の式でない/],
+    ["無いファイル", `import { A } from "@/domains/shop/constants/missing";`, {}, /"@\/domains\/shop\/constants\/missing" を値で import している\(解けない指定子/],
     ["パッケージの値", `import { z } from "zod";`, {}, /"zod" を値で import している\(解けない指定子/],
   ];
   for (const [name, imports, files, pattern] of cases) {
@@ -476,11 +476,11 @@ test("静的 import の決まり: 落ちる例(services・drizzle・entities の
 
 test("静的 import の決まり: override も同じ決まりで pnpm check registry が見る。生成器の domainEntry の出力も通る", () => {
   const root = makeImportRoot(`import { ADMIN_ONLY } from "@/lib/domainAccess";`, {
-    "src/features/shop/services/server/domainEntry.override.ts": `import type { DomainEntryOverrides } from "@/lib/domain";
+    "src/domains/shop/services/server/domainEntry.override.ts": `import type { DomainEntryOverrides } from "@/lib/domain";
 import { shopService } from "./shopService";
 export const domainEntryOverrides = { shop: { read: "public", write: "none" } } satisfies DomainEntryOverrides;
 `,
-    "src/features/shop/services/server/shopService.ts": `export const shopService = createThing();\n`,
+    "src/domains/shop/services/server/shopService.ts": `export const shopService = createThing();\n`,
   });
   const [shop] = discoverDomainEntries(root);
   assert.ok(shop.overrideErrors.some((error) => /domainEntry\.override\.ts: "\.\/shopService" → .*const shopService が 値の式でない/.test(error)), shop.overrideErrors.join("\n"));

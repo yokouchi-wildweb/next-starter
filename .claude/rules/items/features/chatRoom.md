@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/features/core/chatRoom/**"
-  - "src/config/features/chatRoom.config.ts"
+  - "src/domains/core/chatRoom/**"
+  - "src/config/domains/chatRoom.config.ts"
 ---
-# features/chatRoom
+# domains/chatRoom
 what: realtime chat on Firestore: the browser reads and writes chat_rooms / messages through the chatRoom clients and hooks (hooks/firestore/), no REST in between; the admin screens use the generated CRUD API
 use: chatRoom
-change: placement → src/config/features/chatRoom.config.ts (attachment content types) | own room types, room fields and message metadata need no core edit (Firestore is schemaless)
+change: placement → src/config/domains/chatRoom.config.ts (attachment content types) | own room types, room fields and message metadata need no core edit (Firestore is schemaless)
 rules:
 using:
 - chat_indexes: create the Firestore composite indexes of Usage「Firestore 複合インデックス」 before use (rooms list, type filter, admin list)
@@ -20,4 +20,4 @@ editing:
 - chat_app_internal: the dedicated Firebase app (chatFirebase.ts) stays inside chatRoom, never a public entry
 - chat_no_firebase_storage: attachments use lib/storage purposes chatRoom.*, never Firebase Storage
 - chat_typing_rtdb: → core/backends.md high_frequency_presence
-read: set up, build a screen, extend → Usage | data model, limits → API | sync, rules, attachments → Internals | hooks → src/features/core/chatRoom/hooks/firestore/README.md API | room / message calls → src/features/core/chatRoom/services/client/README.md Usage
+read: set up, build a screen, extend → Usage | data model, limits → API | sync, rules, attachments → Internals | hooks → src/domains/core/chatRoom/hooks/firestore/README.md API | room / message calls → src/domains/core/chatRoom/services/client/README.md Usage

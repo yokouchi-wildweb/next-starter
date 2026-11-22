@@ -14,8 +14,8 @@ import { z } from "zod";
 
 import { gate } from "@/featureGate";
 import { createApiRoute } from "@/wiring/apiRoute";
-import { INVITE_CODE_INVALID_MESSAGE } from "@/features/core/referral/constants/inviteCodeValidation";
-import { referralService } from "@/features/core/referral/services/server/referralService";
+import { INVITE_CODE_INVALID_MESSAGE } from "@/domains/core/referral/constants/inviteCodeValidation";
+import { referralService } from "@/domains/core/referral/services/server/referralService";
 
 const RequestSchema = z.object({
   code: z.string().trim().min(1, { message: "招待コードを指定してください。" }),

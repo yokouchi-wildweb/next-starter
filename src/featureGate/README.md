@@ -10,7 +10,7 @@ src 直下の専用の基盤に置く(lib にも core のドメインにも置�
 
 - **住所**: 機能が閉じる URL の型(`pathPatterns`。前方一致、`=` 付きは完全一致)
 - **常時実行の入口**: どのページからも読まれる結線(provider・登録表など)。閉じた機能の物を自分で外す
-- **ドメイン**(domain): 業務か仕組みの概念の部品。表・サービス・画面の部品の持ち主(今は `src/features/<d>/`)。**開閉の概念を持たない**: 開いた機能のどれかが規則の `domains` に持てば開、どの機能にも載らないドメインは基盤として常に開
+- **ドメイン**(domain): 業務か仕組みの概念の部品。表・サービス・画面の部品の持ち主(今は `src/domains/<d>/`)。**開閉の概念を持たない**: 開いた機能のどれかが規則の `domains` に持てば開、どの機能にも載らないドメインは基盤として常に開
 - **機能**(feature): プロジェクトが開け閉めする単位 = 規則 1 本(`rules/<名前>.ts`、名前 = `FeatureName`)。使うドメイン(`domains`)・自分の住所(`pathPatterns`)・依存する機能(`dependsOn` / `anyOf`)・自分のスイッチ(`defaultEnabled` と fork の `switches.config.ts`)を持つ
 - **門番**(featureGate): 機能の開閉を評価し、住所・表・汎用 API・cron・設定の節・リンクに及ぼす基盤(このフォルダ)。名前(`featureGate`・`FeatureName`・`gate` / `useGate`・設定の節の `feature:`・`pnpm ops features list / set`・`rules/`)はもとから機能の意味
 
@@ -73,7 +73,7 @@ export const rule: FeatureGateRule = {
 
 - upstream の機能を使わない: その機能のフラグを false にする。ルートは 404、テーブルは作られない。コードは削除しない
 - upstream の画面を使わない: 画面を消したり `_` 付きに rename したりせず（所有の検査で違反、src/lib/forkOwnership/README.md）、その画面の機能(`pageMypage`・`pageEntry`・`pageServices`・`pageTerms` ほか規約 3 種・`adminDemoUsers` など)を `pnpm ops features set <名前> off` で閉じる(`src/config/featureGate/switches.config.ts` に書かれる)。止めたページはルート地図に `gated-off(<pattern>)` と載る。置き換えたいときは止めずに 1 行スイッチで `_components/` の Screen へ向ける
-  - マイページのアカウントの項目(メール・パスワード・プロフィール・電話番号)は機能でなく user の設定 `account.editableItems` で選ぶ(`src/features/core/user/Extension.md`)。チャットの管理画面は親の機能(`chatRoom`)の住所で子のスイッチは無い。機能は使い管理画面だけを閉じたい fork は、その住所だけを持つ自前の規則(`defaultEnabled: false`)を足す(上流の住所と重なるのは表示だけで止まらない)。ユーザータグは規則を持たない常時開の基盤
+  - マイページのアカウントの項目(メール・パスワード・プロフィール・電話番号)は機能でなく user の設定 `account.editableItems` で選ぶ(`src/domains/core/user/Extension.md`)。チャットの管理画面は親の機能(`chatRoom`)の住所で子のスイッチは無い。機能は使い管理画面だけを閉じたい fork は、その住所だけを持つ自前の規則(`defaultEnabled: false`)を足す(上流の住所と重なるのは表示だけで止まらない)。ユーザータグは規則を持たない常時開の基盤
 - スイッチの無い upstream の画面を止めたい: upstream に依頼する（`/order <親>`）。fork の規則で upstream の画面を止めない（upstream の規則と重なり、merge のたびに見直しになる）
 - 新しいドメインを機能として閉じられるようにする: ドメインを作り(`pnpm forge`)、`rules/<機能の名前>.ts` に規則を手で書いて `domains` にそのドメインのフォルダを入れる(管理画面の住所は `pathPatterns`、入切の既定は `defaultEnabled`)→ `pnpm generate extensions`。汎用 API・表・cron は導出に任せる。domain.json の `closable`(閉じられる形の印)と 1 対 1 のひな形はなくした(書くと生成器が案内して止める)。どの機能にも載らないドメインは基盤として常に開
 - fork 自身の機能を閉じたい: `rules/<名前>.ts`(上流の規則と違う名前)に規則を 1 つ置き、`pnpm generate extensions`。upstream の機能と一緒に開閉させるなら `dependsOn` に upstream の機能を書く（例: `dependsOn: ["payment"]`）。入切の既定は `defaultEnabled`、値を変えるのは `switches.config.ts`

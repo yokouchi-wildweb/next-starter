@@ -101,7 +101,7 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
   - 非公開ファイルは常に no-store
 - generation を受ける操作は、指定があればその世代だけを対象にする（照合した世代と違う中身を配らない・読まない・消さない）
 - Content-Disposition は「配信規則」のとおり実装が付ける
-- 認可はしない。呼び出し側（features/core/storageObject）が判定してから使う
+- 認可はしない。呼び出し側（domains/core/storageObject）が判定してから使う
 - strip の描き直しは、専用のメソッドを持たず read（原本を読む）→ put（本来の位置に書く）→ delete（原本を消す）で行う
 - StoragePort を自前で実装する場合は read も実装する（fake は同梱）
 
@@ -154,7 +154,7 @@ type StoragePurpose = {
 
 - allow（既存の DomainApiAccessRule の語彙）と check（任意の判定関数）は AND。暗黙に判定を通る道（admin・system の素通し）は無い
 - `resolveStoragePurpose(map, id)` は、未登録なら `StoragePurposeNotFoundError`（400）を投げる。`findStoragePurpose(map, id)` は未登録で undefined
-- `listStoragePurposeProblems(map)` は用途表の形式を検査する（metadata の値・描き直せない画像の型・画像の無い用途の strip・`user.avatar` の keep・`image` の形と keep / 画像の無い用途への指定を含む）。用途の登録表との結線は `src/features/core/storageObject/services/server/purposeSource.ts` で行う
+- `listStoragePurposeProblems(map)` は用途表の形式を検査する（metadata の値・描き直せない画像の型・画像の無い用途の strip・`user.avatar` の keep・`image` の形と keep / 画像の無い用途への指定を含む）。用途の登録表との結線は `src/domains/core/storageObject/services/server/purposeSource.ts` で行う
 
 ### 用途の方針: `GET /api/storage/purposes/[purpose]`
 

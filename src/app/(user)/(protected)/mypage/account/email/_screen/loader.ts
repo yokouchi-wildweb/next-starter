@@ -9,8 +9,8 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 
-import { isAccountItemEditable } from "@/features/core/user/utils/accountItems";
-import { requireUserRecord } from "@/features/core/user/services/server/userService";
+import { isAccountItemEditable } from "@/domains/core/user/utils/accountItems";
+import { requireUserRecord } from "@/domains/core/user/services/server/userService";
 import { createLoader } from "@/app/(user)/(protected)/guard";
 
 /** 項目が変えられる一覧に無いときの行き先 */

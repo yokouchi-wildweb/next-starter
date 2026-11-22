@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { verifyCurrentUserPassword } from "@/features/core/auth/services/server/verifyCurrentUserPassword";
+import { verifyCurrentUserPassword } from "@/domains/core/auth/services/server/verifyCurrentUserPassword";
 
 const VerifyPasswordPayloadSchema = z.object({
   password: z.string().min(1, "パスワードを入力してください"),

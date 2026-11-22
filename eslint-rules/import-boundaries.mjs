@@ -19,8 +19,8 @@
 // src/lib/** から src/registry/** を import しない(値も型も)。lib の関数は登録表を引数・注入で受け、結ぶのは src/wiring/**。
 // 一覧の行(file + target)に当たる import は通す。一覧の行のファイルにその import が無くなったら、行を消すよう error。
 //
-// ── lib-no-features(親 D8) ──
-// src/lib/** から src/features/** を import しない(値も型も、例外の一覧なし)。型は lib が持つか型引数で受け、
+// ── lib-no-domains(親 D8) ──
+// src/lib/** から src/domains/** を import しない(値も型も、例外の一覧なし)。型は lib が持つか型引数で受け、
 // 値は注入で受ける。渡し方の既定 = 組み立て側 1 モジュールが import 時に作る設定済みの版(src/wiring/**)。
 //
 // ── page-guard-via-wiring(L1.18、D5 K1 と同じ形) ──
@@ -29,7 +29,7 @@
 // 型だけの import は誰でも可(auth の束 pageGuardUserDeps は型だけ)。guard.ts は root を @/wiring/pageGuard から、子を親の extend で作る。
 //
 // ── features-index-no-server-reexport(D73 K5) ──
-// src/features/**/index.ts(services/server の外の barrel)は services/server を値で再 export しない(export … from / export * from)。
+// src/domains/**/index.ts(services/server の外の barrel)は services/server を値で再 export しない(export … from / export * from)。
 // 型だけの再 export は可。理由: UI が barrel 経由でサーバーのサービスを値 import すると、UI の場所の検査(page-authz M4)を
 // 迂回できる(barrel のパスに services/server が出ない)。サーバーの値は services/server のパスから直接 import する。
 //
@@ -43,7 +43,7 @@
 // 門番 src/featureGate/ の外からは入口 3 つ(index.ts = @/featureGate・client.ts・node.ts)だけを読む(値も型も)。
 // - lib(src/lib/**)は門番を読まない(入口も。値も型も)。lib の関数は規則や判定を引数で受ける(例 routeMap の gateRules)
 // - node.ts(規則の一覧・gatedSchema・closedTables)は scripts/** とテストだけ。アプリ・proxy は index.ts / client.ts
-// - テスト(*.test.*)はこの規則の対象外(中の部品を確かめるのが役。lib-no-features がテストを外すのと同じ)
+// - テスト(*.test.*)はこの規則の対象外(中の部品を確かめるのが役。lib-no-domains がテストを外すのと同じ)
 // - 配線用の 2 名(L1.7: index.ts の clientGateState・client.ts の GateProvider)は root layout・AppProviders・admin の守りの layout 2 つだけ
 //   (名前で読む import / re-export を見る。namespace import・dynamic import は名前が分からないので見ない)
 // 門番の中どうし(生成一覧 → 規則、道具 → evaluate、規則 → @/featureGate の型)は自由。到達の検査は src/featureGate/checks/reachability.test.mjs
@@ -57,19 +57,19 @@
 // あれは人・agent・/ship と /flux の差分のための写し。道具・lint・生成は毎回読み手 src/lib/districtMap を呼ぶ(他の生成の入力にもしない)。
 //
 // ── scripts-no-static-wiring(D79) ──
-// 道具(scripts/**・src/features/**/scripts/**・.notices/<id>.<名前>.mjs の codemod)は src/wiring/** を静的に import しない
+// 道具(scripts/**・src/domains/**/scripts/**・.notices/<id>.<名前>.mjs の codemod)は src/wiring/** を静的に import しない
 // (import / export … from、値も型も)。run の中の動的 import()・require は可(読み込みのたびに結線の束を立ち上げないため。
 // 道具の一覧・検査は結線を読まずに動く)。
 //
 // ── tools-no-db-write(D75・D90) ──
 // DB を直接書く部品(@/lib/drizzle の db、表の定義 **/entities/drizzle、drizzle-orm の生 SQL sql・接続のドライバ、postgres 等)を
-// import しない(どの形も): src/features/**/scripts/tasks/**・scripts/operations/**(scripts/operations/db/** を除く)・
-// src/features/**/seed.ts・scripts/workflow/dev-admin/**(DB に書く開発の道具)。書くのはドメインのサービスを通す。移行 src/features/**/scripts/migrations/**(.local.ts を含む)は例外(直接の SQL・db を許す)。
+// import しない(どの形も): src/domains/**/scripts/tasks/**・scripts/operations/**(scripts/operations/db/** を除く)・
+// src/domains/**/seed.ts・scripts/workflow/dev-admin/**(DB に書く開発の道具)。書くのはドメインのサービスを通す。移行 src/domains/**/scripts/migrations/**(.local.ts を含む)は例外(直接の SQL・db を許す)。
 
 // 限界: 直接の import だけを見る(値を変数に入れて別ファイルへ渡す形は追わない)。
 //
 // ── seed-reader(D52) ──
-// ドメインのシード src/features/**/seed.ts(データだけ)を読むのはシードのランナー scripts/runner/seed/** だけ(静的・動的とも)。
+// ドメインのシード src/domains/**/seed.ts(データだけ)を読むのはシードのランナー scripts/runner/seed/** だけ(静的・動的とも)。
 // アプリ・ほかの道具はシードを読まない(デモのデータが本番の経路に混ざらないため)。
 
 // ── link-via-shelf(D14、L1.9) ──
@@ -97,7 +97,7 @@
 // 強さは Tier で切り替える: 上流(目録の先頭の節)= error、fork = warn(eslint.config.mjs)。
 //
 // ── mail-send-via-messaging(当議会 D133) ──
-// @/lib/mail の send(値)を読めるのは src/lib/mail 自身と messaging の送り口 src/features/core/messaging/channels/email/** だけ。
+// @/lib/mail の send(値)を読めるのは src/lib/mail 自身と messaging の送り口 src/domains/core/messaging/channels/email/** だけ。
 // 利用者への連絡は messagingService.sendMessage / sendMessageToMany(記録と配信停止を通す)。
 // テンプレートの部品(Mail*)・型・MAIL_THEME_COLORS・MailSendError・webhook の関数は誰でも可。名前を問わない形(namespace・
 // 動的 import・export *)は send を含みうるので止める(動的 import を `const { 名前 } = await import(…)` で受ける形は名前で見る)。強さ: 全 Tier error(必須の規則の一覧)。
@@ -123,7 +123,7 @@ const SERVER_SERVICE_DIR = /(^|\/)services\/server(\/|$)/;
 const WIRING = "src/wiring";
 const LIB = "src/lib";
 const REGISTRY = "src/registry";
-const FEATURES = "src/features";
+const FEATURES = "src/domains";
 const FEATURE_GATE = "src/featureGate";
 const FEATURE_GATE_ENTRIES = ["src/featureGate", "src/featureGate/index", "src/featureGate/client", "src/featureGate/node"];
 /** 配線用の名前(L1.7)と、それを読んでよいファイル */
@@ -162,7 +162,7 @@ export function classifyCronFactoryImport(importerRel, resolved, typeOnly, speci
 }
 
 const MAIL_LIB = "src/lib/mail";
-const MAIL_SEND_POINT = "src/features/core/messaging/channels/email";
+const MAIL_SEND_POINT = "src/domains/core/messaging/channels/email";
 const MAIL_SEND_NAMES = ["send"];
 const CLIENT_SERVICE_DIR = /(^|\/)services\/client(\/|$)/;
 
@@ -188,7 +188,7 @@ export function classifyMailSendImport(importerRel, resolved, typeOnly, specifie
 /** features の barrel(services/server の外の index.ts)が services/server を値で再 export するか */
 export function classifyFeaturesIndexReexport(importerRel, resolved, typeOnly, isReexport) {
   if (!isReexport || typeOnly || !resolved) return null;
-  if (!/^src\/features\/.+\/index\.(ts|tsx)$/.test(importerRel) || SERVER_SERVICE_DIR.test(importerRel)) return null;
+  if (!/^src\/domains\/.+\/index\.(ts|tsx)$/.test(importerRel) || SERVER_SERVICE_DIR.test(importerRel)) return null;
   return SERVER_SERVICE_DIR.test(resolved) ? "serverReexport" : null;
 }
 
@@ -393,16 +393,16 @@ const libNoRegistry = {
 export const isSrcScriptsImport = (importerRel, resolved) => isUnder(importerRel, "src") && isUnder(resolved, "scripts");
 
 /** 道具のファイルか(D79: scripts・ドメインの scripts・.notices の codemod) */
-export const isToolFile = (rel) => isUnder(rel, "scripts") || /^src\/features\/.+\/scripts\//.test(rel) || /^\.notices\/[^/]+\.mjs$/.test(rel);
+export const isToolFile = (rel) => isUnder(rel, "scripts") || /^src\/domains\/.+\/scripts\//.test(rel) || /^\.notices\/[^/]+\.mjs$/.test(rel);
 
 /** 道具から wiring への静的 import か(D79。import()・require は通す) */
 export const isToolStaticWiringImport = (importerRel, resolved, dynamic) => !dynamic && isToolFile(importerRel) && isUnder(resolved, WIRING);
 
 /** DB を直接書く部品を禁じる場所か(D75・D90。移行は例外) */
 export function isDbWriteGuardedFile(rel) {
-  if (/^src\/features\/.+\/scripts\/migrations\//.test(rel)) return false;
-  if (/^src\/features\/.+\/scripts\/tasks\//.test(rel)) return true;
-  if (/^src\/features\/.+\/seed\.ts$/.test(rel)) return true;
+  if (/^src\/domains\/.+\/scripts\/migrations\//.test(rel)) return false;
+  if (/^src\/domains\/.+\/scripts\/tasks\//.test(rel)) return true;
+  if (/^src\/domains\/.+\/seed\.ts$/.test(rel)) return true;
   // DB に書く開発の道具(利用者を userService で作る。L1.30)
   if (isUnder(rel, "scripts/workflow/dev-admin")) return true;
   return isUnder(rel, "scripts/operations") && !isUnder(rel, "scripts/operations/db");
@@ -419,9 +419,9 @@ export function classifyDbWriteImport(source, resolved, specifiers) {
   return null;
 }
 
-/** ドメインのシード(src/features/<ドメイン>/seed.ts)を、シードのランナーの外から読む import か */
+/** ドメインのシード(src/domains/<ドメイン>/seed.ts)を、シードのランナーの外から読む import か */
 export const isSeedReaderViolation = (importerRel, resolved) =>
-  Boolean(resolved) && /^src\/features\/(?:.+\/)?seed(?:\.ts)?$/.test(resolved) && !isUnder(importerRel, "scripts/runner/seed");
+  Boolean(resolved) && /^src\/domains\/(?:.+\/)?seed(?:\.ts)?$/.test(resolved) && !isUnder(importerRel, "scripts/runner/seed");
 
 const seedReader = {
   meta: {
@@ -505,7 +505,7 @@ const toolsNoDbWrite = {
     type: "problem",
     docs: { description: "タスク・操作・シードは DB を直接書く部品を import しない(D75・D90。移行は例外)" },
     messages: {
-      dbWrite: '"{{source}}" は DB を直接書く部品({{what}})です。ドメインのタスク・操作(scripts/operations、db を除く)・seed.ts からは読みません。書くのはドメインのサービスを通します。直接の SQL が要るなら移行(src/features/<domain>/scripts/migrations/)にします',
+      dbWrite: '"{{source}}" は DB を直接書く部品({{what}})です。ドメインのタスク・操作(scripts/operations、db を除く)・seed.ts からは読みません。書くのはドメインのサービスを通します。直接の SQL が要るなら移行(src/domains/<domain>/scripts/migrations/)にします',
     },
     schema: [],
   },
@@ -526,7 +526,7 @@ export const isLibFeaturesImport = (importerRel, resolved) => isUnder(importerRe
 const libNoFeatures = {
   meta: {
     type: "problem",
-    docs: { description: "src/lib から src/features を import しない(値も型も)" },
+    docs: { description: "src/lib から src/domains を import しない(値も型も)" },
     messages: {
       libFeatures: '"{{source}}": lib は features を import しません(値も型も)。型は lib が持つか型引数で受け、値は注入で受けて src/wiring で結びます(CLAUDE.md CODE_PLACEMENT deps)',
     },
@@ -549,7 +549,7 @@ export const isHooksUtilsFeaturesImport = (importerRel, resolved) =>
 const hooksUtilsNoFeatures = {
   meta: {
     type: "problem",
-    docs: { description: "src/hooks・src/utils から src/features を import しない(値も型も)" },
+    docs: { description: "src/hooks・src/utils から src/domains を import しない(値も型も)" },
     messages: {
       hooksUtilsFeatures:
         '"{{source}}": src/hooks・src/utils はドメインを読みません(値も型も)。ドメインの物はそのドメインの hooks / utils に置くか、値と型は引数・型引数で受けます(D87)',
@@ -772,7 +772,7 @@ const mailSendViaMessaging = {
     docs: { description: "lib/mail の send を読めるのは messaging の送り口(channels/email)と lib/mail 自身だけ" },
     messages: {
       mailSend:
-        '"{{source}}" の {{name}} は送信の本体です。利用者への連絡は messagingService.sendMessage / sendMessageToMany(@/features/messaging/services/server、messages/<名前>.ts の定義)を使います。send を読めるのは messaging の送り口 src/features/core/messaging/channels/email/** だけ(テンプレートの部品・型・MAIL_THEME_COLORS は可。詳細: src/features/core/messaging/README.md)',
+        '"{{source}}" の {{name}} は送信の本体です。利用者への連絡は messagingService.sendMessage / sendMessageToMany(@/domains/messaging/services/server、messages/<名前>.ts の定義)を使います。send を読めるのは messaging の送り口 src/domains/core/messaging/channels/email/** だけ(テンプレートの部品・型・MAIL_THEME_COLORS は可。詳細: src/domains/core/messaging/README.md)',
     },
     schema: [],
   },
@@ -848,13 +848,13 @@ const libSelfRelative = {
 
 // ── shelf-purity(D50) ──
 // 棚(src/components、テストを除く)は見た目と振る舞いの部品だけを持つ。値で読まないもの:
-//   (a) src/features・src/app・src/wiring・src/registry・src/stores・services/ の道(別名でも相対でも)
+//   (a) src/domains・src/app・src/wiring・src/registry・src/stores・services/ の道(別名でも相対でも)
 //   (b) react-hook-form・@/lib/domain・@/lib/crud(フォームとデータの lib)
 //   (c) firebase(/*)・axios・@/lib/firebase・@/lib/firestore・@/lib/drizzle(SDK と SDK を包む lib)と、素の fetch の呼び出し
 //   (d) 棚を値で読む lib(自分のファイルが直接、またはほかの lib を通して src/components を値で読む。src/lib の実際のファイルから毎回求める)
 // 型だけの import は数えない。上流も fork も error(eslint.config.mjs)。
 const SHELF = "src/components";
-const SHELF_PATH_BANS = ["src/features", "src/app", "src/wiring", "src/registry", "src/stores"];
+const SHELF_PATH_BANS = ["src/domains", "src/app", "src/wiring", "src/registry", "src/stores"];
 const SHELF_LIB_BANS = ["src/lib/domain", "src/lib/crud", "src/lib/firebase", "src/lib/firestore", "src/lib/drizzle"];
 const SHELF_PACKAGE_BAN = /^(react-hook-form|axios|firebase)(\/.*)?$/;
 const SHELF_CODE_FILE = /\.(ts|tsx|mts|mjs|js|jsx)$/;
@@ -999,8 +999,8 @@ const plugin = {
     "cron-route-via-wiring": cronRouteViaWiring,
     "features-index-no-server-reexport": featuresIndexNoServerReexport,
     "lib-no-registry": libNoRegistry,
-    "lib-no-features": libNoFeatures,
-    "hooks-utils-no-features": hooksUtilsNoFeatures,
+    "lib-no-domains": libNoFeatures,
+    "hooks-utils-no-domains": hooksUtilsNoFeatures,
     "client-no-domain-json": clientNoDomainJson,
     "feature-gate-entries": featureGateEntries,
     "link-via-shelf": linkViaShelf,

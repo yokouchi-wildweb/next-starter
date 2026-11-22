@@ -24,7 +24,7 @@ import { matchIntake } from "./intake.mjs";
 export const EXPLAIN_TYPES = ["1", "2", "3", "4", "5", "generated", "own", "none"];
 
 const GATE_FILE = /^scripts\/structure\/([^/]+)\/gate\.json$/;
-const DOMAIN_JSON = /^src\/features\/(?:core\/)?[^/_][^/]*\/domain\.json$/;
+const DOMAIN_JSON = /^src\/domains\/(?:core\/)?[^/_][^/]*\/domain\.json$/;
 const SCREEN_PART_DIRS = ["_screen", "_layout"];
 const FORK_SCREEN_DIR = "_components";
 const FRAME_KEYS = ["layout", "page"];

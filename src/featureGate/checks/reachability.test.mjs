@@ -1,7 +1,7 @@
 // src/featureGate/checks/reachability.test.mjs
 // 門番の到達の検査(D7): 入口 index.ts(server・proxy)と client.ts から値の import をたどり、
 // データの層と Node 専用の物に届いたら落とす。門番は proxy(Edge)と client の束に載るので、規則と config 以外を引き込まない。
-// - 落とす先: src/features/**/services/**・src/lib/drizzle/**・drizzle-orm / postgres・server-only・node:*
+// - 落とす先: src/domains/**/services/**・src/lib/drizzle/**・drizzle-orm / postgres・server-only・node:*
 // - たどる辺: 静的 import / export … from / 動的 import()。型だけの import(import type・export type・名前が全部 type)は数えない
 // - 解決: eslint-rules/resolve-import.mjs(tsconfig の paths・相対)+ 拡張子と index の補完。パッケージは葉(中に入らない)
 // - proxies の鎖(src/proxy.ts・src/proxies/index.ts)は、たどり着いた config の先だけを同じ禁止の先で見る(目録 D20、下の節)
@@ -29,7 +29,7 @@ export function forbiddenTarget(source, resolvedRel) {
   if (source.startsWith("node:")) return "Node 組み込み";
   if (source === "postgres" || source === "drizzle-orm" || source.startsWith("drizzle-orm/")) return "DB のパッケージ";
   if (!resolvedRel) return null;
-  if (/^src\/features\/.+\/services(\/|$)/.test(resolvedRel)) return "features の services";
+  if (/^src\/domains\/.+\/services(\/|$)/.test(resolvedRel)) return "features の services";
   if (resolvedRel === "src/lib/drizzle" || resolvedRel.startsWith("src/lib/drizzle/") || /^src\/lib\/drizzle\.(ts|mts|mjs)$/.test(resolvedRel)) return "src/lib/drizzle";
   return null;
 }
@@ -152,8 +152,8 @@ function fixture(ruleBody, extra = {}) {
     "src/featureGate/extensions/rules.ts": 'import type { X } from "@/featureGate/types";\nimport { rule as rules_a } from "@/featureGate/rules/a";\nexport const rules = [rules_a];\n',
     "src/featureGate/rules/a.ts": ruleBody,
     "src/config/app.ts": "export const FLAG = true;\n",
-    "src/features/core/wallet/services/server/walletService.ts": "export const walletService = {};\n",
-    "src/features/core/wallet/entities/model.ts": "export type Wallet = {};\n",
+    "src/domains/core/wallet/services/server/walletService.ts": "export const walletService = {};\n",
+    "src/domains/core/wallet/entities/model.ts": "export type Wallet = {};\n",
     "src/lib/drizzle/index.ts": "export const db = {};\n",
     ...extra,
   };
@@ -165,13 +165,13 @@ function fixture(ruleBody, extra = {}) {
 }
 
 test("fixture: 規則が config だけを読むなら通り、型だけの import は数えない", () => {
-  const ok = fixture('import { FLAG } from "@/config/app";\nimport type { Wallet } from "@/features/core/wallet/entities/model";\nimport { type W } from "@/features/core/wallet/services/server/walletService";\nexport const rule = { enabled: () => FLAG };\n');
+  const ok = fixture('import { FLAG } from "@/config/app";\nimport type { Wallet } from "@/domains/core/wallet/entities/model";\nimport { type W } from "@/domains/core/wallet/services/server/walletService";\nexport const rule = { enabled: () => FLAG };\n');
   assert.deepEqual(findForbiddenReach(ok, ENTRIES), []);
 });
 
 test("fixture: services・drizzle・server-only・node: のどれに届いても落ちる(鎖を示す)", () => {
   const cases = {
-    services: ['import { walletService } from "@/features/core/wallet/services/server/walletService";\n', /features の services/],
+    services: ['import { walletService } from "@/domains/core/wallet/services/server/walletService";\n', /features の services/],
     drizzle: ['import { db } from "../../lib/drizzle";\n', /src\/lib\/drizzle/],
     serverOnly: ['import "server-only";\n', /server-only/],
     node: ['const fs = await import("node:fs");\n', /Node 組み込み/],
@@ -213,8 +213,8 @@ function proxyFixture(itemBody, extra = {}) {
 }
 
 test("fixture: proxies の項目が読む config が services・drizzle・server-only・node: に届くと鎖つきで落ち、項目が直に読む services は対象外(目録 D20)", () => {
-  const item = 'import { SHOP_CONFIG } from "@/features/core/wallet/config";\nimport { walletService } from "@/features/core/wallet/services/server/walletService";\nexport const handler = () => [SHOP_CONFIG, walletService];\n';
-  assert.deepEqual(findProxyConfigReach(proxyFixture(item, { "src/features/core/wallet/config.ts": "export const SHOP_CONFIG = { enabled: true };\n" })), []);
+  const item = 'import { SHOP_CONFIG } from "@/domains/core/wallet/config";\nimport { walletService } from "@/domains/core/wallet/services/server/walletService";\nexport const handler = () => [SHOP_CONFIG, walletService];\n';
+  assert.deepEqual(findProxyConfigReach(proxyFixture(item, { "src/domains/core/wallet/config.ts": "export const SHOP_CONFIG = { enabled: true };\n" })), []);
   const cases = {
     services: ['import { walletService } from "./services/server/walletService";\n', /features の services/],
     drizzle: ['import { db } from "@/lib/drizzle";\n', /src\/lib\/drizzle/],
@@ -222,14 +222,14 @@ test("fixture: proxies の項目が読む config が services・drizzle・server
     node: ['import { readFileSync } from "node:fs";\n', /Node 組み込み/],
   };
   for (const [name, [body, reason]] of Object.entries(cases)) {
-    const root = proxyFixture(item, { "src/features/core/wallet/config.ts": `${body}export const SHOP_CONFIG = { enabled: true };\n` });
+    const root = proxyFixture(item, { "src/domains/core/wallet/config.ts": `${body}export const SHOP_CONFIG = { enabled: true };\n` });
     const problems = findProxyConfigReach(root);
     assert.equal(problems.length, 1, `${name}: ${problems.join("\n")}`);
-    assert.match(problems[0], /^(src\/proxy\.ts → )?src\/proxies\/index\.ts → src\/proxies\/item\.ts → src\/features\/core\/wallet\/config\.ts → /);
+    assert.match(problems[0], /^(src\/proxy\.ts → )?src\/proxies\/index\.ts → src\/proxies\/item\.ts → src\/domains\/core\/wallet\/config\.ts → /);
     assert.match(problems[0], reason);
   }
   // src/config の下と *.config.ts も config、型だけの import は数えない
-  const viaAppConfig = proxyFixture('import { FLAG } from "@/config/app/shop.config";\nexport const handler = () => FLAG;\n', { "src/config/app/shop.config.ts": 'import type { X } from "@/features/core/wallet/services/server/walletService";\nimport "server-only";\nexport const FLAG = true;\n' });
+  const viaAppConfig = proxyFixture('import { FLAG } from "@/config/app/shop.config";\nexport const handler = () => FLAG;\n', { "src/config/app/shop.config.ts": 'import type { X } from "@/domains/core/wallet/services/server/walletService";\nimport "server-only";\nexport const FLAG = true;\n' });
   assert.match(findProxyConfigReach(viaAppConfig)[0] ?? "", /src\/config\/app\/shop\.config\.ts → server-only: server-only/);
   assert.deepEqual(findConfigsReachedFrom(viaAppConfig, PROXY_ENTRIES).map((c) => c.config), ["src/config/app/shop.config.ts"]);
 });

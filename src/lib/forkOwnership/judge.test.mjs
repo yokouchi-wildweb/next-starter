@@ -80,26 +80,26 @@ describe("実リポジトリの intake.txt", () => {
       [".claude/rules/shortcuts.md", "marker"],
       ["src/lib/CATALOG.md", "append"],
       [".claude/rules/lineage.md", "append"],
-      ["src/features/core/user/services/server/userService.ts", null],
-      ["src/features/core/setting/fields/x.ts", "add"],
-      ["src/features/core/setting/fields/adminListPerPage.override.ts", "add"],
-      ["src/features/core/setting/fields/adminListPerPage.ts", "add"],
-      ["src/features/core/userLineProfile/webhookHandlers/postback.ts", "add"],
-      ["src/features/core/purchaseRequest/services/server/payment/sessionEnricher.replace.ts", "add"],
-      ["src/features/core/purchaseRequest/services/server/payment/sessionEnricher.ts", "edit"],
-      ["src/features/core/purchaseRequest/services/server/payment/sessionEnricher.default.ts", null],
-      ["src/features/core/user/scripts/tasks/mine.ts", null],
+      ["src/domains/core/user/services/server/userService.ts", null],
+      ["src/domains/core/setting/fields/x.ts", "add"],
+      ["src/domains/core/setting/fields/adminListPerPage.override.ts", "add"],
+      ["src/domains/core/setting/fields/adminListPerPage.ts", "add"],
+      ["src/domains/core/userLineProfile/webhookHandlers/postback.ts", "add"],
+      ["src/domains/core/purchaseRequest/services/server/payment/sessionEnricher.replace.ts", "add"],
+      ["src/domains/core/purchaseRequest/services/server/payment/sessionEnricher.ts", "edit"],
+      ["src/domains/core/purchaseRequest/services/server/payment/sessionEnricher.default.ts", null],
+      ["src/domains/core/user/scripts/tasks/mine.ts", null],
       ["src/featureGate/alwaysOnExceptions/mine.ts", "add"],
-      ["src/features/core/user/extensionPoints.acme.ts", null],
-      ["src/features/core/user/coreRoles/user.role.override.ts", "edit"],
-      ["src/features/core/user/coreRoles/user.role.json", null],
-      ["src/features/core/user/roles/editor.role.override.ts", "edit"],
+      ["src/domains/core/user/extensionPoints.acme.ts", null],
+      ["src/domains/core/user/coreRoles/user.role.override.ts", "edit"],
+      ["src/domains/core/user/coreRoles/user.role.json", null],
+      ["src/domains/core/user/roles/editor.role.override.ts", "edit"],
       ["src/wiring/formInputs/inputs/ticketRates.ts", "add"],
       ["src/wiring/formInputs/FormInputsRoot.tsx", null],
-      ["src/features/core/userProfile/profiles/user.profile.override.ts", "edit"],
-      ["src/features/core/userProfile/profiles/user.profile.json", "add"],
-      ["src/features/core/userProfile/profiles/index.ts", null],
-      ["src/features/core/user/roles/editor.role.json", "add"],
+      ["src/domains/core/userProfile/profiles/user.profile.override.ts", "edit"],
+      ["src/domains/core/userProfile/profiles/user.profile.json", "add"],
+      ["src/domains/core/userProfile/profiles/index.ts", null],
+      ["src/domains/core/user/roles/editor.role.json", "add"],
       ["src/registry/district-map.jsonl", "generated"],
       ["eslint.config.mjs", null],
       ["eslint.config.fork.mjs", "edit"],
@@ -107,7 +107,7 @@ describe("実リポジトリの intake.txt", () => {
       ["AGENTS.md", null],
       ["public/assets/imgs/logos/default.png", "edit"],
       ["servers/room/src/registry.ts", "region"],
-      ["src/features/core/user/seed.ts", null],
+      ["src/domains/core/user/seed.ts", null],
     ];
     for (const [path, kind] of cases) {
       assert.equal(matchIntake(rules, path)?.kind ?? null, kind, path);
@@ -172,7 +172,7 @@ describe("judge", () => {
       "marker .claude/rules/shortcuts.md  # r",
       "append src/lib/CATALOG.md  # r",
       "append .claude/rules/lineage.md  # r",
-      "debt src/features/core/mail/templates/**  # r",
+      "debt src/domains/core/mail/templates/**  # r",
     ].join("\n"),
   );
 
@@ -180,7 +180,7 @@ describe("judge", () => {
     judge({ changes: [change], baseText: () => base, headText: () => head, baseLibs, baseHasCore, intake }).entries[0];
 
   test("A: fork の物 / 祖先 lib の中は違反", () => {
-    assert.equal(run({ status: "A", path: "src/features/gacha/x.ts" }, null, "x").reason, "added");
+    assert.equal(run({ status: "A", path: "src/domains/gacha/x.ts" }, null, "x").reason, "added");
     assert.equal(run({ status: "A", path: "src/lib/myLib/x.ts" }, null, "x", ["crud"]).reason, "added");
     const entry = run({ status: "A", path: "src/lib/crud/extra.ts" }, null, "x", ["crud"]);
     assert.equal(entry.reason, "inside-unit-add");
@@ -188,7 +188,7 @@ describe("judge", () => {
   });
 
   test("A: 検査する場所で基準と同じ単位は unit-clash(x.ts と x.tsx・ファイルとフォルダ)、場所の外と新しい名前は added", () => {
-    const baseFiles = ["src/wiring/apiRoute.ts", "src/wiring/dbAgent/index.ts", "src/app/(user)/_layout/Header/index.tsx", "src/features/sample/x.ts", "src/proxies/extensionPoints.ts", "src/proxies/maintenance.ts"];
+    const baseFiles = ["src/wiring/apiRoute.ts", "src/wiring/dbAgent/index.ts", "src/app/(user)/_layout/Header/index.tsx", "src/domains/sample/x.ts", "src/proxies/extensionPoints.ts", "src/proxies/maintenance.ts"];
     const places = unitPlaces(baseFiles, (p) => (p === "src/proxies/extensionPoints.ts" ? 'export const extensionPoints = { h: { dir: ".", export: "handler", type: { from: "@/t", name: "T" }, side: "server" } };' : null));
     const baseUnits = unitIndex(baseFiles);
     const one = (/** @type {string} */ path) => judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: [], intake, places, baseUnits }).entries[0];
@@ -199,7 +199,7 @@ describe("judge", () => {
     assert.equal(one("src/wiring/dbAgent.ts").reason, "unit-clash", "ファイルとフォルダ");
     assert.equal(one("src/app/(user)/_layout/Header.tsx").reason, "unit-clash");
     assert.equal(one("src/proxies/maintenance.tsx").reason, "unit-clash", "受け口(dir: \".\")の直下");
-    assert.equal(one("src/features/sample/x.tsx").reason, "added", "場所の外は見ない");
+    assert.equal(one("src/domains/sample/x.tsx").reason, "added", "場所の外は見ない");
     assert.equal(one("src/wiring/other.ts").reason, "added");
     assert.equal(one("src/app/(user)/_layout/Header.replace.tsx").reason, "added", ".replace は別の単位");
   });
@@ -241,13 +241,13 @@ describe("judge", () => {
   });
 
   test("A: <対象>.override の対象が基準に無ければ override-own、上の Tier の項目への override は added", () => {
-    const baseFiles = ["src/features/core/setting/fields/a.ts", "src/features/core/user/roles/coreRoles/user.role.json", "src/app/api/cron/x/task.ts"];
+    const baseFiles = ["src/domains/core/setting/fields/a.ts", "src/domains/core/user/roles/coreRoles/user.role.json", "src/app/api/cron/x/task.ts"];
     const places = unitPlaces(baseFiles, () => null);
     const baseUnits = unitIndex(baseFiles);
     const one = (/** @type {string} */ path) => judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: [], intake, places, baseUnits }).entries[0];
-    assert.equal(one("src/features/core/setting/fields/a.override.ts").reason, "added");
-    assert.equal(one("src/features/core/user/roles/coreRoles/user.role.override.ts").reason, "added");
-    const own = one("src/features/core/setting/fields/mine.override.ts");
+    assert.equal(one("src/domains/core/setting/fields/a.override.ts").reason, "added");
+    assert.equal(one("src/domains/core/user/roles/coreRoles/user.role.override.ts").reason, "added");
+    const own = one("src/domains/core/setting/fields/mine.override.ts");
     assert.equal(own.reason, "override-own");
     assert.equal(own.verdict, "violation");
     assert.equal(one("src/app/api/cron/x/task.override.ts").reason, "added", "cron の task.override.ts は上流の task.ts への上書き");
@@ -278,7 +278,7 @@ describe("judge", () => {
   });
 
   test("既定(*.default.*): 親のファイルのあるフォルダへの追加は default-add、親の既定の書き換えは default-edit、自分のフォルダの自分の既定と隣の frame.override.ts は合格", () => {
-    const baseFiles = ["src/app/(user)/(public)/news/page.tsx", "src/app/(user)/(public)/news/frame.default.ts", "src/app/(user)/(protected)/layout.tsx", "src/features/core/x/services/server/enricher.default.ts"];
+    const baseFiles = ["src/app/(user)/(public)/news/page.tsx", "src/app/(user)/(public)/news/frame.default.ts", "src/app/(user)/(protected)/layout.tsx", "src/domains/core/x/services/server/enricher.default.ts"];
     const places = unitPlaces(baseFiles, () => null);
     const baseUnits = unitIndex(baseFiles);
     const one = (/** @type {string} */ status, /** @type {string} */ path) => judge({ changes: [{ status, path }], baseText: () => "a", headText: () => "b", baseLibs: [], intake, places, baseUnits }).entries[0];
@@ -288,27 +288,27 @@ describe("judge", () => {
     const edit = one("M", "src/app/(user)/(public)/news/frame.default.ts");
     assert.equal(edit.reason, "default-edit");
     assert.equal(edit.verdict, "violation");
-    assert.equal(one("M", "src/features/core/x/services/server/enricher.default.ts").reason, "default-edit");
+    assert.equal(one("M", "src/domains/core/x/services/server/enricher.default.ts").reason, "default-edit");
     assert.equal(one("A", "src/app/(user)/(public)/news/frame.override.ts").reason, "added", "上流のルートの隣の frame.override.ts");
     assert.equal(one("A", "src/app/(user)/(protected)/frame.override.ts").reason, "added");
     assert.equal(one("A", "src/app/(user)/(protected)/frame.ts").reason, "frame-plain", "上流のルートの隣の印なしの frame.ts");
     assert.equal(one("A", "src/app/(user)/(public)/mine/frame.default.ts").reason, "added", "自分のフォルダの自分の既定(中間 Tier の既定)");
-    assert.equal(one("A", "src/features/mine/x.default.ts").reason, "added");
+    assert.equal(one("A", "src/domains/mine/x.default.ts").reason, "added");
     assert.equal(judge({ changes: [{ status: "M", path: "src/x/a.default.ts" }], baseText: () => "a", headText: () => "b", baseLibs: [], intake }).entries[0].reason === "default-edit", false, "places を渡さなければ見ない");
   });
 
   test("A: core の中は受け口の項目だけ。受け口の外・debt は core-add、基準に core が無ければ added", () => {
-    const { rules } = parseIntake(["add src/features/core/user/cleanupHandlers/*.ts  # r", "debt src/features/core/mail/templates/**  # r"].join("\n"));
+    const { rules } = parseIntake(["add src/domains/core/user/cleanupHandlers/*.ts  # r", "debt src/domains/core/mail/templates/**  # r"].join("\n"));
     const add = (/** @type {string} */ path, baseHasCore = true) =>
       judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: [], baseHasCore, intake: rules }).entries[0];
-    assert.equal(add("src/features/core/user/cleanupHandlers/x.ts").reason, "added");
-    const inside = add("src/features/core/user/hooks/useMine.ts");
+    assert.equal(add("src/domains/core/user/cleanupHandlers/x.ts").reason, "added");
+    const inside = add("src/domains/core/user/hooks/useMine.ts");
     assert.equal(inside.reason, "core-add");
     assert.equal(inside.verdict, "violation");
-    assert.equal(add("src/features/core/mail/templates/x.tsx").reason, "core-add");
-    assert.equal(add("src/features/core/mine/x.ts").reason, "core-add");
-    assert.equal(add("src/features/mine/x.ts").reason, "added");
-    assert.equal(add("src/features/core/mine/x.ts", false).reason, "added");
+    assert.equal(add("src/domains/core/mail/templates/x.tsx").reason, "core-add");
+    assert.equal(add("src/domains/core/mine/x.ts").reason, "core-add");
+    assert.equal(add("src/domains/mine/x.ts").reason, "added");
+    assert.equal(add("src/domains/core/mine/x.ts", false).reason, "added");
   });
 
   test("A: 門番の中は受け口の項目だけ。受け口の外・debt は gate-add、基準に門番が無ければ added", () => {
@@ -344,8 +344,8 @@ describe("judge", () => {
   });
 
   test("add: 足すのは added、基準にあるファイルの書き換えは outside-intake", () => {
-    const { rules } = parseIntake("add src/features/core/user/roles/*.role.json  # r");
-    const path = "src/features/core/user/roles/x.role.json";
+    const { rules } = parseIntake("add src/domains/core/user/roles/*.role.json  # r");
+    const path = "src/domains/core/user/roles/x.role.json";
     const entry = (/** @type {string} */ status, /** @type {string | null} */ baseText) =>
       judge({ changes: [{ status, path }], baseText: () => baseText, headText: () => "new", baseLibs: [], baseHasCore: true, intake: rules }).entries[0];
     assert.equal(entry("A", null).reason, "added");
@@ -361,9 +361,9 @@ describe("judge", () => {
 
   test("M: 受け口の中 / 外 / 生成物 / 負債", () => {
     assert.equal(run({ status: "M", path: "src/config/app/x.config.ts" }, "a", "b").reason, "intake");
-    assert.equal(run({ status: "M", path: "src/features/core/user/x.ts" }, "a", "b").reason, "outside-intake");
+    assert.equal(run({ status: "M", path: "src/domains/core/user/x.ts" }, "a", "b").reason, "outside-intake");
     assert.equal(run({ status: "M", path: "src/registry/serviceRegistry.ts" }, "a", "b").reason, "generated");
-    assert.equal(run({ status: "M", path: "src/features/core/mail/templates/x.tsx" }, "a", "b").reason, "debt");
+    assert.equal(run({ status: "M", path: "src/domains/core/mail/templates/x.tsx" }, "a", "b").reason, "debt");
   });
 
   test("M: 受け口の外でも生成器の区画の中だけなら合格", () => {
@@ -381,7 +381,7 @@ describe("judge", () => {
 
   test("M: 受け口の外のファイルに fork の区画の印を足しても合格にならない", () => {
     const head = ["x", S, "fork", E].join("\n");
-    assert.equal(run({ status: "M", path: "src/features/core/user/x.ts" }, "x", head).reason, "outside-intake");
+    assert.equal(run({ status: "M", path: "src/domains/core/user/x.ts" }, "x", head).reason, "outside-intake");
   });
 
   test("M(region): fork の区画の中だけ / 外にも / 印が壊れている", () => {
@@ -487,7 +487,7 @@ describe("一時許可", () => {
 
   const BASE = "export const a = 1;\n";
   const HEAD = "export const a = 2;\n";
-  const PATH = "src/features/core/user/x.ts";
+  const PATH = "src/domains/core/user/x.ts";
   /** @type {{ base: Record<string, string>, head: Record<string, string> }} */
   const texts = { base: { [PATH]: BASE }, head: { [PATH]: HEAD } };
 
@@ -533,7 +533,7 @@ describe("一時許可", () => {
   test("D と R の許可は head:-、R は移動元のパスに書く。祖先 lib への追加は base:-", () => {
     const deleted = { status: "D", path: PATH, kind: null, reason: "deleted", verdict: "violation" };
     assert.equal(run({ permitText: line(PATH, ID, blobId(BASE), "-"), entries: [deleted] }).entries[0].permit, "valid");
-    const renamed = { status: "R", from: PATH, path: "src/features/core/user/_x.ts", kind: null, reason: "renamed", verdict: "violation" };
+    const renamed = { status: "R", from: PATH, path: "src/domains/core/user/_x.ts", kind: null, reason: "renamed", verdict: "violation" };
     assert.equal(run({ permitText: line(PATH, ID, blobId(BASE), "-"), entries: [renamed] }).entries[0].permit, "valid");
     const libPath = "src/lib/crud/extra.ts";
     const added = { status: "A", path: libPath, kind: null, reason: "inside-unit-add", verdict: "violation" };

@@ -2,7 +2,7 @@
 //
 // ブラウザフィンガープリント収集ライブラリの型定義。
 // このライブラリはドメイン非依存（DB / HTTP を持たない）。蓄積・照合は
-// features/core/deviceFingerprint、チャレンジは features/core/fingerprintChallenge が担う。
+// domains/core/deviceFingerprint、チャレンジは domains/core/fingerprintChallenge が担う。
 
 /** 収集フォーマットのバージョン。互換性が壊れる変更時にインクリメント */
 export const FINGERPRINT_SIGNALS_VERSION = 1;

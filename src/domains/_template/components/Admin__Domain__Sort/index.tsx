@@ -1,0 +1,101 @@
+// src/domains/__domain__/components/Admin__Domain__Sort/index.tsx
+
+"use client";
+
+import { useState } from "react";
+import { Link } from "@/components/Navigation/Link";
+import { SortableList, type ReorderResult } from "@/lib/sortableList";
+import type { __Domain__ } from "@/domains/__domain__/entities/model";
+import { Block } from "@/components/Layout/Block";
+import { Section } from "@/components/Layout/Section";
+import { Stack } from "@/components/Layout/Stack";
+import { Flex } from "@/components/Layout/Flex";
+import { Button } from "@/components/Button/Button";
+import { Span } from "@/components/TextBlocks/Span";
+import { useReorder__Domain__ } from "@/domains/__domain__/hooks/useReorder__Domain__";
+import { useLoadingToast } from "@/lib/toast";
+
+type Props = {
+  initial__Domains__: __Domain__[];
+};
+
+/**
+ * __DomainLabel__並び替えセクションコンテナ
+ */
+export default function Admin__Domain__Sort({ initial__Domains__ }: Props) {
+  const [items, setItems] = useState(initial__Domains__);
+  const { trigger: reorder, isMutating: isReordering } = useReorder__Domain__();
+  const [error, setError] = useState<string | null>(null);
+
+  const handleReorder = async (result: ReorderResult) => {
+    setError(null);
+
+    // 楽観的更新: UIを即座に更新
+    const previous = items;
+    setItems((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(result.oldIndex, 1);
+      next.splice(result.newIndex, 0, moved);
+      return next;
+    });
+
+    // サーバーに並び替えを送信
+    try {
+      await reorder(result.itemId, result.afterItemId);
+    } catch (err) {
+      // エラー時は元の状態に戻す
+      setItems(previous);
+      setError(err instanceof Error ? err.message : "並び替えに失敗しました");
+    }
+  };
+
+  // ローディングトースト
+  useLoadingToast(isReordering, "保存中...");
+
+  return (
+    <Section>
+      <Stack gap="md">
+        {/* ヘッダー: 完了ボタン */}
+        <Flex justify="end">
+          <Button asChild>
+            <Link href="/admin/__domainsSlug__">並び替えを完了</Link>
+          </Button>
+        </Flex>
+
+        {/* エラー表示 */}
+        {error && (
+          <Block className="rounded-lg border border-destructive bg-destructive/10 p-4 text-sm text-destructive-text">
+            {error}
+          </Block>
+        )}
+
+        <SortableList<__Domain__>
+          items={items}
+          columns={[
+            {
+              render: (item) => {
+                const source = item as Record<string, unknown>;
+                const label =
+                  (typeof source.name === "string" && source.name) ||
+                  (typeof source.title === "string" && source.title) ||
+                  (typeof source.label === "string" && source.label) ||
+                  String(item.id);
+                return <Span inline weight="medium" className="truncate">{label}</Span>;
+              },
+              width: "flex-1",
+            },
+          ]}
+          onReorder={handleReorder}
+          emptyMessage="__DomainLabel__がありません"
+        />
+
+        {/* フッター: 完了ボタン */}
+        <Flex justify="end">
+          <Button asChild>
+            <Link href="/admin/__domainsSlug__">並び替えを完了</Link>
+          </Button>
+        </Flex>
+      </Stack>
+    </Section>
+  );
+}

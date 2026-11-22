@@ -9,7 +9,7 @@ import { DomainError } from "@/lib/errors";
 import {
   couponIssuerGrantBase,
   getIssuerRewardHistory,
-} from "@/features/core/couponIssuerGrant/services/server";
+} from "@/domains/core/couponIssuerGrant/services/server";
 import { BadRequestError, parsePositiveInteger } from "@/app/api/[domain]/search/utils";
 
 type Params = { id: string };

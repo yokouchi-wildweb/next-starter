@@ -3,7 +3,7 @@
 // import の指定子を repo 相対の実パス(posix、拡張子・index の補完なし)に解く、規則どうしで共有する部品。
 // 別名の import で検査を抜けられないよう、書き方によらず同じ実パスに解く:
 //   - 相対(./ ../)→ import した側のフォルダから
-//   - tsconfig.json の paths(@/* と @/features/<core>/* の別名)→ 一番長く一致した接頭辞の先
+//   - tsconfig.json の paths(@/* と @/domains/<core>/* の別名)→ 一番長く一致した接頭辞の先
 //   - baseUrl("." = repo 直下)からの "src/…" 等
 //   - パッケージ(next/server 等)→ null
 // 解いた先は「そのパスか、その配下か」で比べる(isUnder)。ファイルの有無は見ない(消えたファイルへの import も同じに扱う)。

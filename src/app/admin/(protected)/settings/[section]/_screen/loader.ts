@@ -10,11 +10,11 @@ import "server-only";
 import { notFound, redirect } from "next/navigation";
 
 import type { ScreenProps } from "@/lib/screens";
-import type { Setting } from "@/features/core/setting/entities";
-import { getSettingForActor } from "@/features/core/setting/services/server/settingActor";
-import { settingService } from "@/features/core/setting/services/server/settingService";
-import { sections } from "@/features/core/setting/extensions/sections";
-import type { SettingSectionDefinition } from "@/features/core/setting/types/definition";
+import type { Setting } from "@/domains/core/setting/entities";
+import { getSettingForActor } from "@/domains/core/setting/services/server/settingActor";
+import { settingService } from "@/domains/core/setting/services/server/settingService";
+import { sections } from "@/domains/core/setting/extensions/sections";
+import type { SettingSectionDefinition } from "@/domains/core/setting/types/definition";
 import { createLoader } from "@/app/admin/(protected)/guard";
 
 export type AdminSettingSectionScreenParams = { section: string };

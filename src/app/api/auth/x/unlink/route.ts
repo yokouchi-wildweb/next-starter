@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { userXProfileService } from "@/features/core/userXProfile/services/server/userXProfileService";
+import { userXProfileService } from "@/domains/core/userXProfile/services/server/userXProfileService";
 
 /**
  * X 連携を解除する。

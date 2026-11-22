@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { userService } from "@/features/core/user/services/server/userService";
+import { userService } from "@/domains/core/user/services/server/userService";
 
 const DeletePayloadSchema = z.object({
   reason: z.string().max(500).optional(),

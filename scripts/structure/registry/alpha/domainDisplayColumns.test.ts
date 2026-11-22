@@ -7,12 +7,12 @@ import assert from "node:assert/strict";
 
 import { buildDomainColumns, type DomainColumnDateFormatter, type DomainColumnTruncate } from "@/lib/crud";
 import { normalizeDomainJsonConfig } from "@/lib/domain";
-import sampleConfig from "@/features/sample/domain.json";
-import couponConfig from "@/features/core/coupon/domain.json";
-import chatRoomConfig from "@/features/core/chatRoom/domain.json";
-import { domainDisplay as sampleDisplay } from "@/features/sample/entities/display";
-import { domainDisplay as couponDisplay } from "@/features/core/coupon/entities/display";
-import { domainDisplay as chatRoomDisplay } from "@/features/core/chatRoom/entities/display";
+import sampleConfig from "@/domains/sample/domain.json";
+import couponConfig from "@/domains/core/coupon/domain.json";
+import chatRoomConfig from "@/domains/core/chatRoom/domain.json";
+import { domainDisplay as sampleDisplay } from "@/domains/sample/entities/display";
+import { domainDisplay as couponDisplay } from "@/domains/core/coupon/entities/display";
+import { domainDisplay as chatRoomDisplay } from "@/domains/core/chatRoom/entities/display";
 
 const formatDate: DomainColumnDateFormatter = (value, { format, fallback }) =>
   value == null ? fallback : `${format}|${String(value)}`;

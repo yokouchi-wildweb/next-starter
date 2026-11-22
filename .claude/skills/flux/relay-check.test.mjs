@@ -114,17 +114,17 @@ test("適用作業で上流の変更ファイル外を改名 → 中継が必要
   const r = setupRepo();
   try {
     r.write("src/core.ts", lines(5));
-    r.write("src/features/namePool/index.ts", lines(5));
+    r.write("src/domains/namePool/index.ts", lines(5));
     const p = r.commit("P");
     r.edit("src/core.ts", replaceLine(2, "upstream"));
     const q = r.commit("Q");
     const a = r.commit("A");
-    mkdirSync(join(r.dir, "src/features/namePoolEntry"), { recursive: true });
-    renameSync(join(r.dir, "src/features/namePool/index.ts"), join(r.dir, "src/features/namePoolEntry/index.ts"));
+    mkdirSync(join(r.dir, "src/domains/namePoolEntry"), { recursive: true });
+    renameSync(join(r.dir, "src/domains/namePool/index.ts"), join(r.dir, "src/domains/namePoolEntry/index.ts"));
     const result = relayCheck({ cwd: r.dir, p, q, appliedFrom: a });
     assert.equal(result.needed, true);
     assert.deepEqual(result.overlaps, []);
-    assert.deepEqual(result.outside, ["src/features/namePool/index.ts", "src/features/namePoolEntry/index.ts"]);
+    assert.deepEqual(result.outside, ["src/domains/namePool/index.ts", "src/domains/namePoolEntry/index.ts"]);
   } finally {
     r.cleanup();
   }

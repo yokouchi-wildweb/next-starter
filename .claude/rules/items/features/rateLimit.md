@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/features/core/rateLimit/**"
-  - "src/config/features/rateLimit.config.ts"
+  - "src/domains/core/rateLimit/**"
+  - "src/config/domains/rateLimit.config.ts"
 ---
-# features/rateLimit
+# domains/rateLimit
 what: request limits per identifier (IP by default) and category (window seconds + max requests), table rate_limits | entry: the route Factory option `rateLimit: "<category>"`, helpers checkRateLimit / getRateLimitStatus / cleanupExpiredRateLimits (services/server/wrappers/rateLimitHelper.ts)
 use: always
-change: overlay → src/config/features/rateLimit.config.ts (change values of upstream categories, add own categories declared in `Extra`, literal values)
+change: overlay → src/config/domains/rateLimit.config.ts (change values of upstream categories, add own categories declared in `Extra`, literal values)
 rules:
 using:
 - rate_limit_on_route: a route is limited through its Factory `rateLimit: "<category>"` (or `rateLimitSubnet`) option (no extra wiring); checkRateLimit directly only for a non-IP identifier

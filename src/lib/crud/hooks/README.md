@@ -2,12 +2,12 @@
 
 ## Overview
 
-- `pnpm generate domain` が各ドメインの `features/<domain>/hooks/` に生成するフックの使い方。mutation の並列安全性の契約と独自 mutation フックの作り方は [`../README.md`「汎用フック（hooks/）の mutation 契約」](../README.md#汎用フックhooksの-mutation-契約)
+- `pnpm generate domain` が各ドメインの `domains/<domain>/hooks/` に生成するフックの使い方。mutation の並列安全性の契約と独自 mutation フックの作り方は [`../README.md`「汎用フック（hooks/）の mutation 契約」](../README.md#汎用フックhooksの-mutation-契約)
 - 例のコードの `<domain>` / `<Domain>` / `<domains>` は対象ドメインの名前（camelCase / PascalCase / 複数形）に読み替える
 - 使う時の決まりは札 .claude/rules/items/lib/crud.md にある
 
 - `src/lib/crud/hooks/use*Domain.ts` … ドメイン非依存の本体（SWR / `useDomainMutation`）
-- `features/<domain>/hooks/use*<Domain>.ts` … 生成物。client service（`<domain>Client`）と SWR キーを束ねるだけの薄いラッパー（再生成で上書きされる）
+- `domains/<domain>/hooks/use*<Domain>.ts` … 生成物。client service（`<domain>Client`）と SWR キーを束ねるだけの薄いラッパー（再生成で上書きされる）
 - 独自のフック（派生フック）は同じ `hooks/` に、生成ファイルと衝突しない名前で追加する
 
 ## Usage
@@ -17,7 +17,7 @@
 #### どのフックを使うか
 
 - **ユーザーに紐づく・件数が増えるデータの一覧** → `useInfiniteScrollQuery` を包んだ派生フック + `InfiniteScrollList`（下記）。`use<Domain>List` で全件取得しない（CLAUDE.md PROHIBITED: unpaginated full-fetch）
-  - 増え続ける一覧(お知らせ・ログ・履歴)は `useInfiniteScrollQuery` のカーソルのモード(`cursorFetcher` → `CursorPage { items, nextCursor }`、`@/hooks/cursorPage`)。総数を数えず、読み込みの間に行が足されても続きの位置がずれない(例: `src/features/core/messaging/hooks/useInboxItems.ts`)
+  - 増え続ける一覧(お知らせ・ログ・履歴)は `useInfiniteScrollQuery` のカーソルのモード(`cursorFetcher` → `CursorPage { items, nextCursor }`、`@/hooks/cursorPage`)。総数を数えず、読み込みの間に行が足されても続きの位置がずれない(例: `src/domains/core/messaging/hooks/useInboxItems.ts`)
 - **件数の上限が見えている小さなマスタ**（カテゴリの選択肢など） → `use<Domain>List`。サーバー側の既定 `limit` は 100 で、超えた分は黙って欠ける
 - **条件付き・ページ単位の取得** → `useSearch<Domain>`
 - **件数だけ** → `useCount<Domain>`（レコードを取らない）
@@ -32,7 +32,7 @@
 
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
-import { useSearch<Domain> } from "@/features/<domain>/hooks/useSearch<Domain>";
+import { useSearch<Domain> } from "@/domains/<domain>/hooks/useSearch<Domain>";
 import { err } from "@/lib/errors";
 
 export function <Domain>SearchResult({ keyword }: { keyword: string }) {
@@ -67,15 +67,15 @@ Firestore ドメインでは `where` の `or`、複数列の `orderBy`、`relati
 
 Component から client service を直接呼ばない（lint `client-service-boundary/no-direct-import`）。`useInfiniteScrollQuery` は派生フックの中で呼び、画面は `InfiniteScrollList` に戻り値を渡す。
 
-例: 自分の帰属報酬の履歴 `useMyAttributionRewards`（`src/features/core/couponAttributionReward/hooks/useMyAttributionRewards.ts`）。
+例: 自分の帰属報酬の履歴 `useMyAttributionRewards`（`src/domains/core/couponAttributionReward/hooks/useMyAttributionRewards.ts`）。
 
 ```ts
-// 派生フック（features/<domain>/hooks/）
+// 派生フック（domains/<domain>/hooks/）
 "use client";
 
 import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
-import { fetchMyAttributionRewards } from "@/features/core/couponAttributionReward/services/client/couponAttributionRewardClient";
-import type { CouponAttributionRewardForRecipient } from "@/features/core/couponAttributionReward/entities/model";
+import { fetchMyAttributionRewards } from "@/domains/core/couponAttributionReward/services/client/couponAttributionRewardClient";
+import type { CouponAttributionRewardForRecipient } from "@/domains/core/couponAttributionReward/entities/model";
 
 export function useMyAttributionRewards(options: { limit?: number; enabled?: boolean } = {}) {
   return useInfiniteScrollQuery<CouponAttributionRewardForRecipient, Record<string, never>>({
@@ -90,7 +90,7 @@ export function useMyAttributionRewards(options: { limit?: number; enabled?: boo
 "use client";
 
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
-import { useMyAttributionRewards } from "@/features/core/couponAttributionReward/hooks/useMyAttributionRewards";
+import { useMyAttributionRewards } from "@/domains/core/couponAttributionReward/hooks/useMyAttributionRewards";
 
 export function MyRewardHistory() {
   const { items, isInitialLoading, isFetchingMore, hasMore, error, sentinelRef } = useMyAttributionRewards();
@@ -122,7 +122,7 @@ export function MyRewardHistory() {
 - `use<Domain>(id)` / `useSearch<Domain>` / `useCount<Domain>` は config を受け取らない → 派生フックで `@/lib/crud` の `useDomain(key, fetcher, config)` を包む。キーは生成フックと同じ（`<domain>:${id}`）にしてキャッシュを共有する
 
 ```ts
-// src/features/<domain>/hooks/use<Domain>Detail.ts（派生フック）
+// src/domains/<domain>/hooks/use<Domain>Detail.ts（派生フック）
 "use client";
 
 import { useSWRConfig } from "swr";
@@ -156,10 +156,10 @@ export function use<Domain>Detail(id: string | null, { fallbackData }: { fallbac
 "use client";
 
 import { Button } from "@/components/Button/Button";
-import { useUpdate<Domain> } from "@/features/<domain>/hooks/useUpdate<Domain>";
+import { useUpdate<Domain> } from "@/domains/<domain>/hooks/useUpdate<Domain>";
 import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
-import type { <Domain> } from "@/features/<domain>/entities";
+import type { <Domain> } from "@/domains/<domain>/entities";
 
 type Props = { id: string; onUpdated?: (item: <Domain>) => void };
 
@@ -229,7 +229,7 @@ removeItems((s) => s.id === id);
 
 - 取得系: `useDomain` / `useDomainList` / `useSearchDomain` / `useCountDomain`（`@/lib/crud`）を包むか、`useSWR` を直接使う。client service 経由で HTTP を呼ぶ（Hook から axios / fetch を直接呼ばない）
 - 更新系: `useDomainMutation` を包む。`useSWRMutation` は使わない（理由は [`../README.md`](../README.md#汎用フックhooksの-mutation-契約)）
-- 生成フックのシグネチャを変えたいときはテンプレート（`src/features/_template/hooks/`）と本体（このディレクトリ）を変える。全ドメインに波及する
+- 生成フックのシグネチャを変えたいときはテンプレート（`src/domains/_template/hooks/`）と本体（このディレクトリ）を変える。全ドメインに波及する
 
 ### 編集画面の項目の移動（useDomainItemNavigation）
 
@@ -242,7 +242,7 @@ removeItems((s) => s.id === id);
 
 ### 生成されるフック
 
-テンプレート: `src/features/_template/hooks/`、生成判定: `scripts/structure/domain/render/hooks/catalog.mjs`。
+テンプレート: `src/domains/_template/hooks/`、生成判定: `scripts/structure/domain/render/hooks/catalog.mjs`。
 
 ### 常に生成
 
@@ -275,6 +275,6 @@ removeItems((s) => s.id === id);
 
 - 集まりのエントリ（従属の行 id 付き）は生成フックではなく、`@/lib/crud` の汎用の `useCollectionEntries(domain, field, parentId または parentIds)` を直接使う（`{ data, entriesOf, isLoading, error, mutate }`。詳細: [`../README.md`「エントリ（従属の行 id 付き）と、集まりの 1 件を FK で参照する」](../README.md)）
 - `bulkUpdateByIds` は `@/lib/crud` の `useBulkUpdateByIdsDomain` のみで、ドメインへの生成フックは無い（必要なら派生フックで包む）
-- `bulkAddRelation` / `bulkRemoveRelation` も同じく `useBulkAddRelationDomain` / `useBulkRemoveRelationDomain` のみ（例: `features/core/user/hooks/useBulkAddUserTags.ts`）
+- `bulkAddRelation` / `bulkRemoveRelation` も同じく `useBulkAddRelationDomain` / `useBulkRemoveRelationDomain` のみ（例: `domains/core/user/hooks/useBulkAddUserTags.ts`）
 - `query` / `belongsToMany` / `systemUpdate` / `bulkUpdateByQuery` / `systemBulkUpdateByQuery` はサーバー専用でフックは無い
 - 生成フックは client service に該当メソッドが無いと呼び出し時に例外を投げる（`createApiClient` は全メソッドを持つので、生成ドメインでは通常起きない）

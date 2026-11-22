@@ -53,7 +53,7 @@ export type AuditRecordInput = {
    * - bulk aggregate / システム設定変更 / 対象ユーザーが特定できない操作: 省略可（NULL）
    *
    * 規約として「ユーザーに紐づく操作」では必ず設定すること。詳細は
-   * src/features/core/auditLog/README.md の "actor / subject / target" セクション参照。
+   * src/domains/core/auditLog/README.md の "actor / subject / target" セクション参照。
    */
   subjectUserId?: string | null;
   /** action 名（規約: "<domain>.<entity>.<verb_past>"。例: "user.email.changed"） */
@@ -128,7 +128,7 @@ export type AuditRecordDiffInput = Omit<AuditRecordInput, "before" | "after"> & 
 /**
  * 監査ログの recorder インターフェース。
  *
- * 実体は features/core/auditLog/services/server に存在する `auditLogger` だが、
+ * 実体は domains/core/auditLog/services/server に存在する `auditLogger` だが、
  * lib 層（lib/crud 等）からは features を import できないため、
  * 呼び出し側が DI でインスタンスを渡す形を取る（`createCrudService` の `audit.recorder`）。
  *

@@ -15,7 +15,7 @@ import {
   type BehaviorPayload,
   type FingerprintPayload,
 } from "@/lib/fingerprint";
-import { reportFingerprint } from "@/features/core/deviceFingerprint/services/client/fingerprintClient";
+import { reportFingerprint } from "@/domains/core/deviceFingerprint/services/client/fingerprintClient";
 import { Button } from "@/components/Button/Button";
 import { Input } from "@/components/Input/Input";
 import { Textarea } from "@/components/Input/Textarea";

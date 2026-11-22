@@ -4,7 +4,7 @@
 /**
  * @typedef {object} HookSpec
  * @property {string} key       フックの識別子（render の分岐で使う）
- * @property {string} template  src/features/_template/hooks/ のファイル名
+ * @property {string} template  src/domains/_template/hooks/ のファイル名
  * @property {string} [when]    生成条件になる domain.json のキー
  * @property {boolean} [drizzleOnly] Firestore では生成しない
  */

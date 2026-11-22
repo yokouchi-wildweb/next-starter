@@ -163,7 +163,7 @@ export const POST = createApiRoute(
 | `access` | `RouteAccess` | **必須**。上の語彙表 |
 | `allowStatuses` | `readonly UserStatus[]` | 通す status（省略時は利用可能な status だけ） |
 | `skipForDemo` | `boolean` | 下の表 |
-| `rateLimit` / `rateLimitSubnet` | `TCategory`(wiring が `RateLimitCategory` を渡す) | IP / サブネット（/24）単位のレート制限(カテゴリの持ち主 `src/features/core/rateLimit/config.ts`。lib はカテゴリの名前を知らず、`createRouteFactories` の型引数 `TCategory` で受ける) |
+| `rateLimit` / `rateLimitSubnet` | `TCategory`(wiring が `RateLimitCategory` を渡す) | IP / サブネット（/24）単位のレート制限(カテゴリの持ち主 `src/domains/core/rateLimit/config.ts`。lib はカテゴリの名前を知らず、`createRouteFactories` の型引数 `TCategory` で受ける) |
 | `recaptcha` | `RecaptchaConfig` | reCAPTCHA v3（中間スコアは v2 チャレンジ） |
 
 `skipForDemo`: 省略 = `operationType: "write"` なら自動スキップ / `true` = 常にスキップ / `false` = デモでも実行（ログイン処理・決済の戻り先など）。スキップ時の応答は `{ success: true, demo: true }`。認可はデモスキップより前に評価する。
@@ -186,7 +186,7 @@ export const GET = createDomainRoute<any, { domain: string }>(
 アクセスポリシーは各ドメインの `domainEntry.ts` の `{ service, access }` で宣言する（型必須）:
 
 ```ts
-// src/features/sample/services/server/domainEntry.ts（業務ドメインは pnpm generate domain が domain.json から生成）
+// src/domains/sample/services/server/domainEntry.ts（業務ドメインは pnpm generate domain が domain.json から生成）
 export const domainEntries = {
   sample: {
     service: () => import("./sampleService").then((m) => m.sampleService),
@@ -199,7 +199,7 @@ export const domainEntries = {
 ```
 
 - 編集元: 自動生成ドメインは domain.json の `apiAccess` / `useImportExport`（domain.json に手で書き、`pnpm generate domain` / forge が domainEntry.ts に展開）。
-  コアドメインは domainEntry.ts を手書き、fork が core の access を変えるときは隣に `domainEntry.override.ts`。ルール値・スキーマは `src/features/README.md`「ApiAccess（汎用 API アクセス制御）」、仕組みは `src/lib/domain/README.md`
+  コアドメインは domainEntry.ts を手書き、fork が core の access を変えるときは隣に `domainEntry.override.ts`。ルール値・スキーマは `src/domains/README.md`「ApiAccess（汎用 API アクセス制御）」、仕組みは `src/lib/domain/README.md`
 - 管理データ操作 `truncateAll` / `export` / `import` は `operations` に明示したときだけ開く（未指定 = `"none"`）。
   全件削除・データ移行のルートは自分の門（`{ roleCategories: ["admin"] }`）に加えて、ドメインごとの access を `enforceAccessRule(rule, ctx.user)` で評価する（AND）
 - 解決順: `operations[操作名]` → `read` / `write` → `DEFAULT_ACCESS_RULE`(`src/lib/domainAccess/accessPresets.ts`)（`resolveAccessRule`、`src/lib/domain/definition/apiAccess.ts`）。
@@ -208,7 +208,7 @@ export const domainEntries = {
 - プリセット（`src/lib/domainAccess/accessPresets.ts`）: `ADMIN_ONLY` / `PUBLIC_READ`（公開読み取り + 管理者書き込み）/ `ADMIN_OR_DEBUGGER` / `INTERNAL_ONLY`（汎用 API・管理データ操作とも閉じる。登録表には載せる）。
   単一ルール版 `ADMIN_RULE` / `ADMIN_OR_DEBUGGER_RULE` は `operations` の上書きや `createApiRoute` の `access` にも使える。`ADMIN_DATA_OPERATIONS` = 管理データ操作 3 つを管理者に開く断片
 - `authenticated` は where の `user_id` がクライアント任せなので他人のレコードも読める。本人向けは下の createMeRoute
-- **sample ドメインの例外**: `/demo` ページ（`sortable-list` の reorder、`tables` のインライン update）が使うため、`src/features/sample/domain.json` の `apiAccess.operations` で `update` / `reorder` のみ `authenticated` に緩和している。フォーク先で demo ページを削除する場合はこの緩和も削除する
+- **sample ドメインの例外**: `/demo` ページ（`sortable-list` の reorder、`tables` のインライン update）が使うため、`src/domains/sample/domain.json` の `apiAccess.operations` で `update` / `reorder` のみ `authenticated` に緩和している。フォーク先で demo ページを削除する場合はこの緩和も削除する
 
 > **注意（よくある誤解）**: `/api/<domain>/` に独自の静的サブルート（例 `/api/coupon/redeem`）があっても、汎用 `/api/[domain]/**` は**そのまま動く**（Next.js はフルパスでマッチし、静的は完全一致パスだけを占有する）。
 > client で setting 等が読めない場合はルーティングではなく**アクセス制御**（例: setting は `ADMIN_ONLY`）を疑う。確認は dev サーバーへ未認証で `curl -i` を投げ、ステータスと content-type で判定する:
@@ -257,7 +257,7 @@ export const POST = createDeviceRoute(
 - `orUser: "authenticated" | { roles?, roleCategories? }`（+ `allowStatuses`）を付けると、ルールに合うログインユーザーも通る（`ctx.principal` で分岐）
 - `rateLimit` は端末 id / ユーザー id 単位（店内の端末は同じ IP から来るため IP 単位にしない）。`recaptcha` は使えない
 - 端末の Cookie はユーザーの認可に影響しない（端末で `createMeRoute` や `"authenticated"` のルートは通らない）
-- 詳細・ペアリング・ページ側のガード（`deviceGuard` / `principalGuard`）: `src/features/core/pairedDevice/README.md`
+- 詳細・ペアリング・ページ側のガード（`deviceGuard` / `principalGuard`）: `src/domains/core/pairedDevice/README.md`
 - 汎用 CRUD は端末を通さない
 
 既存の `createApiRoute` を端末でも通す例（`{ roleCategories: ["admin"] }` は「全店舗を触れる人」前提なので、scope の確認が無いと店舗 A の端末が店舗 B の行を id 指定で操作できる）:
@@ -322,9 +322,9 @@ export const POST = createApiRoute(
   - proxy の門番の 404 が先に効くので、通り抜けたときの安全網。
   - 土台の最初の文は `await connection()`(next/server)で、門番の 404 を含むどの早期 return より前。cacheComponents の build は request を読まずに返す応答を静的に焼き付けるため(cacheComponents off では何も変えない)。route.ts の側には書かない。
   - lib は門番を知らず、`src/wiring/apiRoute.ts` が `gate.path` で結ぶ(Factory に機能名の指定欄は無い)。
-  - 主体の型(利用者・status・端末の種類ごとの型・認証済みの端末)は型引数で受け、lib は features を import しない(lint `import-boundaries/lib-no-features`)。
+  - 主体の型(利用者・status・端末の種類ごとの型・認証済みの端末)は型引数で受け、lib は features を import しない(lint `import-boundaries/lib-no-domains`)。
   - 具体の型を結ぶのは `src/wiring/apiRoute.ts`（全項目必須、型は `deps.ts`）。
-- 束の持ち主: 利用者 = `features/core/auth` の `apiRouteUserDeps`、端末 = `features/core/pairedDevice` の `apiRouteDeviceDeps`。結ぶのは `src/wiring/apiRoute.ts`
+- 束の持ち主: 利用者 = `domains/core/auth` の `apiRouteUserDeps`、端末 = `domains/core/pairedDevice` の `apiRouteDeviceDeps`。結ぶのは `src/wiring/apiRoute.ts`
 - `runRoute` はハンドラを `runWithAuditContext`(どの深さからでも `getAuditContext()` で actor / IP / UA を取れる)と `runWithUserDirtyTracking`(`markUserDirty` した対象をハンドラの後に反映)で包む
 - `makeRouteCore`（共通の前後処理）→ `makeCreateApiRoute` / `makeDomainRoutes` / `makeCreateMeRoute` / `makeCreateDeviceRoute` / `makeEnforceAccessRule`
 
@@ -337,11 +337,11 @@ export const POST = createApiRoute(
 | `page-authz/session-api-callsite` | `src/app/api/**`（補助ファイルを含む）でセッション取得・`requireRole`・token だけのセッション・Cookie の解析を import しない | `eslint-rules/page-authz.mjs` |
 | 型 | `RouteAccess` に `"custom"` が無い・ctx に `session` が無い・`ctx.user` の null 可は `"public"` だけ・`user: "skip"` は `"public"` だけ | `routeAccess.typecheck.ts`（`pnpm typecheck`） |
 
-テスト: `pnpm test src/wiring/routeFactory.test.mts`（Factory の契約）/ `pnpm test eslint-rules/route-http-export.test.mjs` / `pnpm test eslint-rules/import-boundaries.test.mjs` / `pnpm test src/lib/routeFactory/createDeviceRoute.test.mts src/features/core/pairedDevice src/wiring/apiRoute.test.mts` / `pnpm test src/app/api/collectionEntriesRoute.test.mts`。
+テスト: `pnpm test src/wiring/routeFactory.test.mts`（Factory の契約）/ `pnpm test eslint-rules/route-http-export.test.mjs` / `pnpm test eslint-rules/import-boundaries.test.mjs` / `pnpm test src/lib/routeFactory/createDeviceRoute.test.mts src/domains/core/pairedDevice src/wiring/apiRoute.test.mts` / `pnpm test src/app/api/collectionEntriesRoute.test.mts`。
 
 ## Related
 
 - `src/wiring/README.md` - 設定済み版の置き場・fork の wiring
-- `src/features/README.md`「ApiAccess（汎用 API アクセス制御）」 - domain.json の `apiAccess` スキーマ（generator が registry へ展開）
+- `src/domains/README.md`「ApiAccess（汎用 API アクセス制御）」 - domain.json の `apiAccess` スキーマ（generator が registry へ展開）
 - `src/lib/errors/README.md` - `DomainError` の `code` / `details`
 - `docs/!must-read/アプリ構築における構成層.md` - 全体アーキテクチャ

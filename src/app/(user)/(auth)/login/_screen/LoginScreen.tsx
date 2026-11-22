@@ -8,7 +8,7 @@
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Flex } from "@/components/Layout/Flex";
-import { UserLogin } from "@/features/core/auth/components/UserLogin";
+import { UserLogin } from "@/domains/core/auth/components/UserLogin";
 import type { ScreenProps } from "@/lib/screens";
 
 import { loadLoginScreen, type LoginScreenSearchParams } from "./loader";

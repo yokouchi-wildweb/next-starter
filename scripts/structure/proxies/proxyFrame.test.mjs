@@ -104,7 +104,7 @@ test("規則の domains: ドメインのフォルダの pgTable から表(0 で�
     "rules/noEntry.ts": rule('domains: ["core/quota"],'),
   });
   const feat = (name, tables) => {
-    const d = join(root, "src/features", name, "entities");
+    const d = join(root, "src/domains", name, "entities");
     mkdirSync(d, { recursive: true });
     writeFileSync(join(d, "drizzle.ts"), tables.map((t, i) => `export const T${i} = pgTable("${t}", {});\n`).join(""));
   };
@@ -114,7 +114,7 @@ test("規則の domains: ドメインのフォルダの pgTable から表(0 で�
   feat("core/broken", ["brokens"]);
   feat("core/quota", ["quotas"]);
   const entry = (name, text) => {
-    const d = join(root, "src/features", name, "services/server");
+    const d = join(root, "src/domains", name, "services/server");
     mkdirSync(d, { recursive: true });
     writeFileSync(join(d, "domainEntry.ts"), text);
   };
@@ -124,7 +124,7 @@ test("規則の domains: ドメインのフォルダの pgTable から表(0 で�
   entry("core/broken", "export const somethingElse = {};\n");
   entry("core/empty", "export const domainEntries = {\n  empty: { table: null },\n} satisfies DomainEntries;\n");
   // fork が上流のフォルダに足した表
-  writeFileSync(join(root, "src/features/core/wallet/entities/forkExtra.ts"), 'export const X = pgTable("wallet_fork_extras", {});\n');
+  writeFileSync(join(root, "src/domains/core/wallet/entities/forkExtra.ts"), 'export const X = pgTable("wallet_fork_extras", {});\n');
 
   const plan = planExtensions(root);
   assert.deepEqual(
@@ -172,7 +172,7 @@ test("ドメインの表: 1 つのドメインを 2 つの規則が持てば fea
   const rule = (folders) => `export const rule: FeatureGateRule = { pathPatterns: ["/x"], domains: [${folders.map((f) => JSON.stringify(f)).join(", ")}], enabled: () => true };\n`;
   const root = fixture({ "rules/users.ts": rule(["core/userTag"]), "rules/demoUsers.ts": rule(["core/userTag"]), "rules/plain.ts": rule([]) });
   for (const name of ["core/userTag", "core/base"]) {
-    const d = join(root, "src/features", name, "entities");
+    const d = join(root, "src/domains", name, "entities");
     mkdirSync(d, { recursive: true });
     writeFileSync(join(d, "drizzle.ts"), `export const T = pgTable("${name.split("/")[1]}s", {});\n`);
   }
@@ -181,11 +181,11 @@ test("ドメインの表: 1 つのドメインを 2 つの規則が持てば fea
   assert.match(plan.outputs[GATE_RULES], /export const domains: GatedDomain\[\] = \[\n  \{ folder: "core\/userTag", tables: \["userTags"\], apiPaths: \[\], features: \["demoUsers", "users"\] \},\n\];/);
 });
 
-test("このリポの全ドメイン(src/features/core/<名前>・src/features/<名前>、_ で始まる雛形を除く)を features に書ける。表を持つフォルダはどれもドメインの位置にある", () => {
+test("このリポの全ドメイン(src/domains/core/<名前>・src/domains/<名前>、_ で始まる雛形を除く)を features に書ける。表を持つフォルダはどれもドメインの位置にある", () => {
   const featureTables = createFeatureTables(repoRoot);
   const domains = [
-    ...readdirSync(join(repoRoot, "src/features/core"), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => `core/${e.name}`),
-    ...readdirSync(join(repoRoot, "src/features"), { withFileTypes: true }).filter((e) => e.isDirectory() && e.name !== "core" && !e.name.startsWith("_")).map((e) => e.name),
+    ...readdirSync(join(repoRoot, "src/domains/core"), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => `core/${e.name}`),
+    ...readdirSync(join(repoRoot, "src/domains"), { withFileTypes: true }).filter((e) => e.isDirectory() && e.name !== "core" && !e.name.startsWith("_")).map((e) => e.name),
   ];
   assert.ok(domains.includes("core/chatRoom"), "表を持たない chatRoom も数える");
   const rule = (folder) => `export const rule: FeatureGateRule = { pathPatterns: ["/x"], domains: ["${folder}"], enabled: () => true };\n`;
@@ -195,7 +195,7 @@ test("このリポの全ドメイン(src/features/core/<名前>・src/features/<
   // 雛形(_ で始まるフォルダ)は地区でないので domains に書けない(src/lib/districtMap、目録 D3)
   assert.match(featureTables.apply("_template", rule("_template"), "x").problem, /"_template" はドメインの位置でない/);
   // 今までの判定(表が 1 つ以上ある)で通っていた書き方は、表を持つフォルダかその上。どれもドメインのフォルダの中にある = ドメインの位置で書ける
-  const outside = scanFeatureTables(repoRoot).tables.map((t) => t.file).filter((file) => !domains.some((d) => file.startsWith(`src/features/${d}/`)));
+  const outside = scanFeatureTables(repoRoot).tables.map((t) => t.file).filter((file) => !domains.some((d) => file.startsWith(`src/domains/${d}/`)));
   assert.deepEqual(outside, []);
 });
 
@@ -206,17 +206,17 @@ test("cron の門(目録 D10): task.ts・task.override.ts の値の import(静�
     writeFileSync(join(root, path), text);
   };
   put("tsconfig.json", JSON.stringify({ compilerOptions: { baseUrl: ".", paths: { "@/*": ["./src/*"] } } }));
-  for (const d of ["core/wallet", "core/coupon", "core/audit"]) put(`src/features/${d}/services/server/s.ts`, "export const s = 1;\n");
+  for (const d of ["core/wallet", "core/coupon", "core/audit"]) put(`src/domains/${d}/services/server/s.ts`, "export const s = 1;\n");
   put("src/lib/cron/index.ts", "export const runBudgetedBatches = 1;\n");
   const task = (name, text, file = "task.ts") => put(`src/app/api/cron/${name}/${file}`, text);
-  task("static", 'import { s } from "@/features/core/wallet/services/server/s";\nexport const task = s;\n');
-  task("dynamic", 'export const task = { run: async () => (await import("@/features/core/coupon/services/server/s")).s };\n');
+  task("static", 'import { s } from "@/domains/core/wallet/services/server/s";\nexport const task = s;\n');
+  task("dynamic", 'export const task = { run: async () => (await import("@/domains/core/coupon/services/server/s")).s };\n');
   task("relative", 'import { s } from "../../../../features/core/wallet/services/server/s";\nexport const task = s;\n');
-  task("typeOnly", 'import type { S } from "@/features/core/wallet/services/server/s";\nimport { runBudgetedBatches } from "@/lib/cron";\nexport const task = runBudgetedBatches;\n');
-  task("both", 'import { s } from "@/features/core/wallet/services/server/s";\nimport { s as c } from "@/features/core/coupon/services/server/s";\nexport const task = [s, c];\n');
+  task("typeOnly", 'import type { S } from "@/domains/core/wallet/services/server/s";\nimport { runBudgetedBatches } from "@/lib/cron";\nexport const task = runBudgetedBatches;\n');
+  task("both", 'import { s } from "@/domains/core/wallet/services/server/s";\nimport { s as c } from "@/domains/core/coupon/services/server/s";\nexport const task = [s, c];\n');
   task("overridden", 'import { runBudgetedBatches } from "@/lib/cron";\nexport const task = runBudgetedBatches;\n');
-  task("overridden", 'import { s } from "@/features/core/coupon/services/server/s";\nexport const taskOverride = s;\n', "task.override.ts");
-  task("ungated", 'import { s } from "@/features/core/audit/services/server/s";\nexport const task = s;\n');
+  task("overridden", 'import { s } from "@/domains/core/coupon/services/server/s";\nexport const taskOverride = s;\n', "task.override.ts");
+  task("ungated", 'import { s } from "@/domains/core/audit/services/server/s";\nexport const task = s;\n');
   const featureTables = createFeatureTables(root);
   const rule = (folders, extra = "") => `export const rule: FeatureGateRule = { pathPatterns: ["/x"${extra}], domains: [${folders.map((f) => JSON.stringify(f)).join(", ")}], enabled: () => true };\n`;
   assert.deepEqual(featureTables.apply("wallet", rule(["core/wallet"]), "wallet").fields.cronPaths, ["/api/cron/both", "/api/cron/relative", "/api/cron/static"]);
@@ -246,7 +246,7 @@ test("設定の節の feature: 字面で読む(1 つ・配列・複数行)、書
 test("設定の節の feature から /admin/settings/<key> を導き、生成一覧の settingSections(住所・名指す機能)に載せる(規則の pathPatterns には足さず settingPaths は説明用)。規則名でない feature は止める", () => {
   const R = 'export const rule: FeatureGateRule = { pathPatterns: ["/x"], enabled: () => true };\n';
   const root = fixture({ "rules/wallet.ts": R, "rules/payment.ts": R, "rules/plain.ts": R });
-  const dir = join(root, "src/features/core/setting/sections");
+  const dir = join(root, "src/domains/core/setting/sections");
   mkdirSync(join(dir, "nested"), { recursive: true });
   writeFileSync(join(dir, "general.ts"), 'export const section = { key: "general", label: "基本", order: 10 };\n');
   writeFileSync(join(dir, "shop.ts"), 'export const section = { key: "shop", label: "店", order: 20, feature: ["wallet", "payment"] };\n');
@@ -266,7 +266,7 @@ test("設定の節の feature から /admin/settings/<key> を導き、生成一
   );
   assert.doesNotMatch(plan.outputs[GATE_RULES], /pathPatterns: \[\.\.\.rules_/);
   // この fixture は setting の受け口(overrideOf)を宣言しないので、shop.override.ts は孤立の検査(orphans.mjs)にも止まる
-  const problems = plan.problems.filter((p) => !p.startsWith("src/features/core/setting/sections/shop.override.ts: この上書きを受ける点が無い"));
+  const problems = plan.problems.filter((p) => !p.startsWith("src/domains/core/setting/sections/shop.override.ts: この上書きを受ける点が無い"));
   assert.equal(problems.length, 1, problems.join("\n"));
   assert.match(problems[0], /typo\.ts: feature の "walet" は機能を閉じる規則/);
 });
@@ -279,24 +279,24 @@ test("常時実行の入口の判定: cron は住所が規則の pathPatterns �
     { name: "sample", domains: ["sample"], pathPatterns: ["/sample", "/api/cron"] },
     { name: "pageOnly", pathPatterns: ["/api/cron/wallet-partial"] },
   ];
-  assert.ok(folderSourcePattern("core/wallet").test("@/features/wallet/x"));
-  assert.ok(folderSourcePattern("core/wallet").test("@/features/core/wallet/x"));
-  assert.ok(!folderSourcePattern("core/wallet").test("@/features/core/walletHistory/x"));
+  assert.ok(folderSourcePattern("core/wallet").test("@/domains/wallet/x"));
+  assert.ok(folderSourcePattern("core/wallet").test("@/domains/core/wallet/x"));
+  assert.ok(!folderSourcePattern("core/wallet").test("@/domains/core/walletHistory/x"));
   assert.equal(cronTaskPathOf("src/app/api/cron/wallet-ok/task.ts"), "/api/cron/wallet-ok");
   assert.equal(cronTaskPathOf("src/app/api/other/task.ts"), null);
-  assert.deepEqual(rulesNotCoveringCronTask("/api/cron/wallet-ok", ["@/features/core/wallet/x"], rules), []);
-  assert.deepEqual(rulesNotCoveringCronTask("/api/cron/wallet-ng", ["@/features/wallet/x"], rules), ["wallet", "walletAdmin"]);
-  assert.deepEqual(rulesNotCoveringCronTask("/api/cron/any", ["@/features/sample/x"], rules), [], "セグメント境界の前方一致で覆う");
+  assert.deepEqual(rulesNotCoveringCronTask("/api/cron/wallet-ok", ["@/domains/core/wallet/x"], rules), []);
+  assert.deepEqual(rulesNotCoveringCronTask("/api/cron/wallet-ng", ["@/domains/wallet/x"], rules), ["wallet", "walletAdmin"]);
+  assert.deepEqual(rulesNotCoveringCronTask("/api/cron/any", ["@/domains/sample/x"], rules), [], "セグメント境界の前方一致で覆う");
 
-  const walletTask = `export const cronTask = { run: async () => (await import("@/features/core/wallet/services/server/x")).run() };`;
-  const walletWithEnabled = `export const cronTask = { enabled: () => FLAG, run: async () => (await import("@/features/core/wallet/services/server/x")).run() };`;
-  const cronUnrelated = `export const cronTask = { run: async () => (await import("@/features/core/auditLog/x")).run() };`;
-  const itemOk = `import { x } from "@/features/core/wallet/services/server/x";\nexport const item = { enabled: () => FLAG, run: x };`;
-  const itemNg = `import { x } from "@/features/core/wallet/services/server/x";\nexport const item = { run: x };`;
-  const regOk = `import { clear } from "@/features/core/wallet/services/server/clear";\nimport type { T } from "@/features/sample/types";\nexport const h = [\n  ...(FLAG.enabled ? [clear] : []),\n];`;
-  const regNg = `import { clear } from "@/features/core/wallet/services/server/clear";\nexport const h = [clear];`;
-  const regNamespace = `import * as w from "@/features/core/wallet";\nexport const h = [...(F ? [w.x] : [])];`;
-  const wire = `import { deps } from "@/features/sample/services/server/deps";\nexport const x = deps;`;
+  const walletTask = `export const cronTask = { run: async () => (await import("@/domains/core/wallet/services/server/x")).run() };`;
+  const walletWithEnabled = `export const cronTask = { enabled: () => FLAG, run: async () => (await import("@/domains/core/wallet/services/server/x")).run() };`;
+  const cronUnrelated = `export const cronTask = { run: async () => (await import("@/domains/core/auditLog/x")).run() };`;
+  const itemOk = `import { x } from "@/domains/core/wallet/services/server/x";\nexport const item = { enabled: () => FLAG, run: x };`;
+  const itemNg = `import { x } from "@/domains/core/wallet/services/server/x";\nexport const item = { run: x };`;
+  const regOk = `import { clear } from "@/domains/core/wallet/services/server/clear";\nimport type { T } from "@/domains/sample/types";\nexport const h = [\n  ...(FLAG.enabled ? [clear] : []),\n];`;
+  const regNg = `import { clear } from "@/domains/core/wallet/services/server/clear";\nexport const h = [clear];`;
+  const regNamespace = `import * as w from "@/domains/core/wallet";\nexport const h = [...(F ? [w.x] : [])];`;
+  const wire = `import { deps } from "@/domains/sample/services/server/deps";\nexport const x = deps;`;
   const entries = [
     { path: "src/app/api/cron/wallet-ok/task.ts", kind: "cronTask", text: walletTask },
     { path: "src/app/api/cron/wallet-ng/task.ts", kind: "cronTask", text: walletWithEnabled },
@@ -346,11 +346,11 @@ test("常時実行の入口の判定: cron は住所が規則の pathPatterns �
   assert.deepEqual(oneMissing.problems.length, 1, "同じフォルダを持つ規則の 1 つでも覆わなければ失敗");
   assert.match(oneMissing.problems[0], /規則 walletAdmin/);
   // 規則のファイルが自分の機能のドメインの config(入切の値)を読むのは閉じ漏れでない(L1.18)。config の外・規則の外は今までどおり
-  const configImport = 'import { WALLET_CONFIG } from "@/features/core/wallet/config";\nexport const rule = {};\n';
+  const configImport = 'import { WALLET_CONFIG } from "@/domains/core/wallet/config";\nexport const rule = {};\n';
   const ruleConfig = judgeAlwaysOnEntries(
     [
       { path: "src/featureGate/rules/wallet.ts", kind: "wiring", text: configImport },
-      { path: "src/featureGate/rules/walletBad.ts", kind: "wiring", text: 'import { walletService } from "@/features/core/wallet/services/server/walletService";\n' },
+      { path: "src/featureGate/rules/walletBad.ts", kind: "wiring", text: 'import { walletService } from "@/domains/core/wallet/services/server/walletService";\n' },
       { path: "src/wiring/walletConfig.ts", kind: "wiring", text: configImport },
     ],
     rules,

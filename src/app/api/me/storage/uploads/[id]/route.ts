@@ -2,7 +2,7 @@
 //
 // 本人の未採用ファイル（pending / 業務行に紐付いていない ready）を取り消す。再送しても安全。
 
-import { parseObjectId, storageObjectService } from "@/features/core/storageObject/services/server";
+import { parseObjectId, storageObjectService } from "@/domains/core/storageObject/services/server";
 import { createMeRoute } from "@/wiring/apiRoute";
 
 export const DELETE = createMeRoute<{ id: string }>(

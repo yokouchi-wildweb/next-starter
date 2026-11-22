@@ -31,9 +31,9 @@ const FILES = {
   "src/lib/mine/inner.ts": "export const helper = 1;\n",
   "src/lib/mine/tool.ts": "export const tool = 1;\n",
   "src/lib/mine/mine.test.ts": 'import { mine } from "./index";\nexport const t = mine;\n',
-  "src/lib/bare/thing.ts": 'import { x } from "@/features/shop/x";\nexport const thing = x;\n',
-  "src/features/shop/x.ts": "export const x = 1;\n",
-  "src/features/shop/a.ts": 'import { mine } from "@/lib/mine";\nexport const a = mine;\n',
+  "src/lib/bare/thing.ts": 'import { x } from "@/domains/shop/x";\nexport const thing = x;\n',
+  "src/domains/shop/x.ts": "export const x = 1;\n",
+  "src/domains/shop/a.ts": 'import { mine } from "@/lib/mine";\nexport const a = mine;\n',
   "src/app/api/r/route.ts": 'import { helper } from "@/lib/mine/inner";\nexport const r = helper;\n',
   "scripts/t.ts": 'import { tool } from "@/lib/mine/tool";\nexport const t = tool;\n',
 };
@@ -124,7 +124,7 @@ test("名指ししなければ自分の節の宣言の無い lib 全部。入口
 test("suggestEntry: 読み手の場所から入口の候補", () => {
   assert.equal(suggestEntry("scripts/x.ts"), "./node");
   assert.equal(suggestEntry("servers/room/src/a.ts"), "./node");
-  assert.equal(suggestEntry("src/features/a/services/server/s.ts"), "./server");
+  assert.equal(suggestEntry("src/domains/a/services/server/s.ts"), "./server");
   assert.equal(suggestEntry("src/app/api/x/route.ts"), "./server");
-  assert.equal(suggestEntry("src/features/a/components/A.tsx"), ".");
+  assert.equal(suggestEntry("src/domains/a/components/A.tsx"), ".");
 });

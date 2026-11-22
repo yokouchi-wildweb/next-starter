@@ -8,7 +8,7 @@
 - 同意の条件 = `consent: "notRequired"`、または同意の状態が `"granted"`
 - 既定は `enabled: false` / `consent: "required"`(何も送らない。計測はオプトイン)
 - どの計測サービスに送るかは env で決まる(今は Firebase Analytics = `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID`。`src/lib/firebase/README.md`「Firebase Analytics」)
-- 管理画面の DAU などサーバー側の集計(`features/core/analytics`)はこの門の対象外
+- 管理画面の DAU などサーバー側の集計(`domains/core/analytics`)はこの門の対象外
 - 今この門を通るのは Firebase Analytics だけ。`src/lib/googleTag` / `src/lib/clarity` は env の設定だけで動き、この門を見ない
 
 ## Usage

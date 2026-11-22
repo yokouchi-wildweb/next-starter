@@ -1,0 +1,122 @@
+// src/domains/core/user/components/AccountDetails.tsx
+// セクションコンテナ(アカウント基本情報)。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
+
+import { Link } from "@/components/Navigation/Link";
+import { UserPenIcon, MailIcon, LockIcon, CheckCircleIcon, PhoneIcon, ChevronRightIcon } from "lucide-react";
+
+import { Section } from "@/components/Layout/Section";
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
+import { Grid } from "@/components/Layout/Grid";
+import { Stack } from "@/components/Layout/Stack";
+import { Para } from "@/components/TextBlocks/Para";
+import { gate } from "@/featureGate";
+import { userConfig } from "@/domains/user/config";
+import type { User } from "@/domains/core/user/entities";
+import { formatForDisplay } from "@/domains/core/user/utils/phoneNumber";
+import { isAccountItemEditable } from "@/domains/core/user/utils/accountItems";
+
+import { AccountAvatarSection } from "@/domains/core/user/components/common/AccountAvatarSection";
+import { AccountPageHeader } from "@/domains/core/user/components/common/AccountPageHeader";
+
+export type AccountDetailsProps = {
+  user: User;
+};
+
+type AccountDetailItemProps = {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: React.ReactNode;
+};
+
+function AccountDetailItem({ href, icon: Icon, label, value }: AccountDetailItemProps) {
+  return (
+    <Link
+      href={href}
+      className="flex w-full items-center justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4 text-left shadow-sm transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <Flex align="center" className="gap-3">
+        <Flex align="center" justify="center" className="h-10 w-10 rounded-full bg-primary/10">
+          <Icon className="h-5 w-5 text-primary" />
+        </Flex>
+        <Block>
+          <Para size="sm" weight="medium" tone="default" align="inherit" className="my-0">{label}</Para>
+          <Para size="xs" tone="muted" weight="inherit" align="inherit" className="my-0 flex items-center gap-1.5">
+            {value}
+          </Para>
+        </Block>
+      </Flex>
+      <ChevronRightIcon className="h-5 w-5 text-muted-foreground" />
+    </Link>
+  );
+}
+
+export function AccountDetails({ user }: AccountDetailsProps) {
+  return (
+    <Section>
+      <Stack gap="md">
+        <AccountPageHeader title="アカウント基本情報" backHref="/mypage" />
+        {userConfig.avatarEnabled && (
+          <AccountAvatarSection user={user} />
+        )}
+        <Grid columns="one" className="gap-3">
+          {isAccountItemEditable("profile") && (
+            <AccountDetailItem
+              href="/mypage/account/profile"
+              icon={UserPenIcon}
+              label="プロフィール"
+              value={user.name ?? "未設定"}
+            />
+          )}
+          {isAccountItemEditable("email") && (
+            <AccountDetailItem
+              href="/mypage/account/email"
+              icon={MailIcon}
+              label="メールアドレス"
+              value={
+                user.email ? (
+                  <>
+                    {user.email}
+                    <CheckCircleIcon className="h-3.5 w-3.5 text-success-text" />
+                  </>
+                ) : (
+                  "未設定"
+                )
+              }
+            />
+          )}
+          {isAccountItemEditable("phone") && (
+            <AccountDetailItem
+              href="/mypage/account/phone"
+              icon={PhoneIcon}
+              label="電話番号"
+              value={
+                user.phoneNumber ? (
+                  <>
+                    {formatForDisplay(user.phoneNumber)}
+                    {user.phoneVerifiedAt ? (
+                      <CheckCircleIcon className="h-3.5 w-3.5 text-success-text" />
+                    ) : (
+                      gate.enabled("phoneVerification") && "(未認証)"
+                    )}
+                  </>
+                ) : (
+                  gate.enabled("phoneVerification") ? "未認証" : "未登録"
+                )
+              }
+            />
+          )}
+          {isAccountItemEditable("password") && user.providerType === "email" && (
+            <AccountDetailItem
+              href="/mypage/account/password"
+              icon={LockIcon}
+              label="パスワード"
+              value="パスワードを変更"
+            />
+          )}
+        </Grid>
+      </Stack>
+    </Section>
+  );
+}

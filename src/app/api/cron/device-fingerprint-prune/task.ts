@@ -9,7 +9,7 @@ export const cronTask: CronTaskDefinition = {
   description: "retention_days を過ぎたデバイスフィンガープリント（device_fingerprints）を削除する",
   schedule: "10 18 * * *", // 毎日 03:10 JST
   run: async () => {
-    const { pruneExpiredDeviceFingerprints } = await import("@/features/core/deviceFingerprint/services/server");
+    const { pruneExpiredDeviceFingerprints } = await import("@/domains/core/deviceFingerprint/services/server");
     return await pruneExpiredDeviceFingerprints();
   },
 };

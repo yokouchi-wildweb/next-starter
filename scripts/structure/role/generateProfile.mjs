@@ -16,7 +16,7 @@ const USAGE = "pnpm generate role -- --profile <roleId> | --all [-i]";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "../../..");
-const PROFILES_DIR = path.join(ROOT_DIR, "src/features/core/userProfile/profiles");
+const PROFILES_DIR = path.join(ROOT_DIR, "src/domains/core/userProfile/profiles");
 
 const prompt = inquirer.createPromptModule();
 
@@ -70,7 +70,7 @@ export default async function generateProfile(roleIdArg, options = {}) {
   const roles = getRolesWithProfile();
 
   if (roles.length === 0) {
-    console.log("プロフィール設定が見つかりません。先に src/features/core/userProfile/profiles/<roleId>.profile.json を書き、role.json の hasProfile を true にしてください。");
+    console.log("プロフィール設定が見つかりません。先に src/domains/core/userProfile/profiles/<roleId>.profile.json を書き、role.json の hasProfile を true にしてください。");
     process.exitCode = 1;
     return;
   }

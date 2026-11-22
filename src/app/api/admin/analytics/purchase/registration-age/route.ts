@@ -3,12 +3,12 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { parseDateRangeParams } from "@/features/core/analytics/services/server/utils/dateRange";
-import { parseUserFilterParams } from "@/features/core/analytics/services/server/utils/userFilter";
+import { parseDateRangeParams } from "@/domains/core/analytics/services/server/utils/dateRange";
+import { parseUserFilterParams } from "@/domains/core/analytics/services/server/utils/userFilter";
 import {
   getRegistrationAgeDistribution,
   parseDayBoundaries,
-} from "@/features/core/analytics/services/server/purchaseRegistrationAgeAnalytics";
+} from "@/domains/core/analytics/services/server/purchaseRegistrationAgeAnalytics";
 
 export const GET = createApiRoute(
   {

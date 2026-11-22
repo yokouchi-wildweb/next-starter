@@ -25,9 +25,9 @@ test("生成と削除の最後: 地区の地図を今のフォルダ・generate 
   assert.equal(refreshDistrictMap(workspace, SILENT), false);
   const rows = fs.readFileSync(path.join(root, DISTRICT_MAP_FILE), "utf8").trim().split("\n").map((line) => JSON.parse(line)).filter((d) => d.kind === "features");
   assert.deepEqual(rows.map((d) => `${d.name}:${d.domainJson}:${d.generate}`).sort(), ["alpha:true:true", "beta:true:false"]);
-  fs.writeFileSync(path.join(root, "src/features/beta/domain.json"), JSON.stringify({ singular: "beta" }));
+  fs.writeFileSync(path.join(root, "src/domains/beta/domain.json"), JSON.stringify({ singular: "beta" }));
   assert.equal(refreshDistrictMap(workspace, SILENT), true);
-  fs.writeFileSync(path.join(root, "src/features/beta/domain.json"), "{ broken");
+  fs.writeFileSync(path.join(root, "src/domains/beta/domain.json"), "{ broken");
   const warned = [];
   assert.equal(refreshDistrictMap(workspace, { log: () => {}, warn: (line) => warned.push(line) }), false);
   assert.match(warned.join("\n"), /pnpm check district-map/);

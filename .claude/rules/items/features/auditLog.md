@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/features/core/auditLog/**"
-  - "src/config/features/auditLog.config.ts"
+  - "src/domains/core/auditLog/**"
+  - "src/config/domains/auditLog.config.ts"
 ---
-# features/auditLog
-what: the cross-domain append-only audit trail audit_logs | recorder auditLogger from @/features/core/auditLog/services/server, client parts from @/features/core/auditLog, hooks from its hooks/<name>
+# domains/auditLog
+what: the cross-domain append-only audit trail audit_logs | recorder auditLogger from @/domains/core/auditLog/services/server, client parts from @/domains/core/auditLog, hooks from its hooks/<name>
 use: always
-change: placement = src/config/features/auditLog.config.ts (userVisibleActions, actionLabels)
+change: placement = src/config/domains/auditLog.config.ts (userVisibleActions, actionLabels)
 rules:
 using:
 - interventions_only: record interventions (admin manual ops, policy exceptions, direct writes to a user's assets or permissions) | never business events a business table already traces

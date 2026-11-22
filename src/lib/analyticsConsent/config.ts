@@ -3,7 +3,7 @@
 // アクセス解析の送信の門の設定(既定 + 上書き)。上書きは src/config/lib/analyticsConsent.config.ts(@lib-config/analyticsConsent)。
 // 置き方: src/lib/README.md「設定の届け方」。合成: @/lib/defineConfig
 // どの計測サービスに送るかは env で決まる(今は Firebase Analytics = NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID)。ここは「送ってよいか」だけを決める。
-// 管理画面の DAU などのサーバー側の集計(features/core/analytics)とは別物で、この設定の影響を受けない。
+// 管理画面の DAU などのサーバー側の集計(domains/core/analytics)とは別物で、この設定の影響を受けない。
 
 import { defineConfig, type OverrideOf } from "@/lib/defineConfig";
 import override from "@lib-config/analyticsConsent";

@@ -4,8 +4,8 @@
 
 import "server-only";
 
-import type { Sample } from "@/features/sample/entities/model";
-import { sampleService } from "@/features/sample/services/server/sampleService";
+import type { Sample } from "@/domains/sample/entities/model";
+import { sampleService } from "@/domains/sample/services/server/sampleService";
 import { createLoader } from "@/app/guard";
 
 export type DemoSortableListScreenData = { samples: Sample[] };

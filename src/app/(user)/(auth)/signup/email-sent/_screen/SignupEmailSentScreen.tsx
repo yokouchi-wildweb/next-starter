@@ -10,7 +10,7 @@ import { Link } from "@/components/Navigation/Link";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Para } from "@/components/TextBlocks/Para";
-import { VerificationEmailSent } from "@/features/core/auth/components/VerificationEmailSent";
+import { VerificationEmailSent } from "@/domains/core/auth/components/VerificationEmailSent";
 
 import { loadSignupEmailSentScreen } from "./loader";
 

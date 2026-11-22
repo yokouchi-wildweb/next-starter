@@ -19,7 +19,7 @@ export function parsePaths(text) {
   return paths;
 }
 
-// ワイルドカードを含む最初の区切りより前の固定部分(例: "src/features/*/room/**" → "src/features")
+// ワイルドカードを含む最初の区切りより前の固定部分(例: "src/domains/*/room/**" → "src/domains")
 export function staticPrefix(pattern) {
   const segs = pattern.split("/");
   const i = segs.findIndex((s) => /[*?[{]/.test(s));

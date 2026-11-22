@@ -10,10 +10,10 @@ import "server-only";
 import { notFound, redirect } from "next/navigation";
 
 import type { ScreenProps } from "@/lib/screens";
-import type { User } from "@/features/core/user/entities";
-import { getRoleCategory, type UserRoleType } from "@/features/core/user/constants";
-import { userService } from "@/features/core/user/services/server/userService";
-import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
+import type { User } from "@/domains/core/user/entities";
+import { getRoleCategory, type UserRoleType } from "@/domains/core/user/constants";
+import { userService } from "@/domains/core/user/services/server/userService";
+import { userProfileService } from "@/domains/core/userProfile/services/server/userProfileService";
 import { createLoader } from "@/app/admin/(protected)/users/guard";
 
 export type AdminSystemUserEditScreenParams = { id: string };

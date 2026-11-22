@@ -100,9 +100,9 @@ Firebase コンソールおよび関連する外部サービス（Neon など）
    ```
    - `firestore.rules` は fork が持つファイルです。upstream は同梱しないので、fork のリポでコミットしてレビューします（`.gitignore` には入っていません）
    - サーバーの Admin SDK はルールを通らないので、ブラウザから直接読み書きするコレクションにだけ allow を足します
-4. **使う機能のルールを足す**: チャット（chatRoom）を使う場合は、[src/features/core/chatRoom/firestore.rules.example](../../src/features/core/chatRoom/firestore.rules.example) の `match /chat_rooms` ブロックを `firestore.rules` の `documents` の中へ足します（参加者だけが読み書きでき、送信者は本人だけ。方針は chatRoom の README「セキュリティルールの方針」）。このルールは `request.auth.uid` がアプリの `users.id` であることを前提にしています（ファイル冒頭の注記）。
+4. **使う機能のルールを足す**: チャット（chatRoom）を使う場合は、[src/domains/core/chatRoom/firestore.rules.example](../../src/domains/core/chatRoom/firestore.rules.example) の `match /chat_rooms` ブロックを `firestore.rules` の `documents` の中へ足します（参加者だけが読み書きでき、送信者は本人だけ。方針は chatRoom の README「セキュリティルールの方針」）。このルールは `request.auth.uid` がアプリの `users.id` であることを前提にしています（ファイル冒頭の注記）。
 5. **配備**: fork の `firebase.json` に `"firestore": { "rules": "firestore.rules" }` を足し（`firebase.json` は fork が書いてよい場所です。`storage` の設定は upstream のまま変えません）、`firebase deploy --only firestore:rules --project <project-id>` で配備します。`firestore.rules` を変えたら同じコマンドで同期します。`storage.rules` は upstream が同梱する全拒否のまま変えません（6.1）。
-6. **複合インデックス**: チャット（chatRoom）を使う場合は、必要な複合インデックスを作成します。管理画面のチャットルーム一覧を使うなら `chat_rooms` の（`deletedAt` 昇順、`updatedAt` 降順）が必須で、無いと一覧がエラーページになります。一覧・作り方（コンソール、または fork の手元の `firestore.indexes.json` と `firebase deploy --only firestore:indexes`）は [chatRoom の README「Firestore 複合インデックス」](../../src/features/core/chatRoom/README.md) にあります。
+6. **複合インデックス**: チャット（chatRoom）を使う場合は、必要な複合インデックスを作成します。管理画面のチャットルーム一覧を使うなら `chat_rooms` の（`deletedAt` 昇順、`updatedAt` 降順）が必須で、無いと一覧がエラーページになります。一覧・作り方（コンソール、または fork の手元の `firestore.indexes.json` と `firebase deploy --only firestore:indexes`）は [chatRoom の README「Firestore 複合インデックス」](../../src/domains/core/chatRoom/README.md) にあります。
 
 ---
 

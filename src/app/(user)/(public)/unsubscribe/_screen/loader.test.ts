@@ -15,7 +15,7 @@ const createLoader = (def: Def & { access: unknown }) => {
 };
 mock.module("@/app/guard", { namedExports: { createLoader } });
 const asked: (string | null)[] = [];
-mock.module("@/features/core/messaging/services/server/unsubscribe", {
+mock.module("@/domains/core/messaging/services/server/unsubscribe", {
   namedExports: {
     describeUnsubscribeToken: (token: string | null) => {
       asked.push(token);

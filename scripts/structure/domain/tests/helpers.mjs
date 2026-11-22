@@ -1,4 +1,4 @@
-// テスト用: 一時プロジェクト（src/features/_template と domain.json）を作り、生成器を関数として呼ぶ
+// テスト用: 一時プロジェクト（src/domains/_template と domain.json）を作り、生成器を関数として呼ぶ
 
 import fs from "node:fs";
 import os from "node:os";
@@ -16,7 +16,7 @@ export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)
 /**
  * 一時プロジェクトを作る
  * @param {{ templates?: string[], domains?: string[], configs?: Record<string, object>, cleanup: string[] }} options
- *   templates = リポジトリの src/features/_template からコピーする相対パス、domains = リポジトリの domain.json をコピーするドメイン、
+ *   templates = リポジトリの src/domains/_template からコピーする相対パス、domains = リポジトリの domain.json をコピーするドメイン、
  *   configs = 直接書く domain.json（フォルダ名 → 内容）、cleanup = 作った一時ディレクトリを積む配列（after で消す）
  */
 export function makeProject({ templates = [], domains = [], configs = {}, cleanup }) {

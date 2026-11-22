@@ -4,12 +4,12 @@
 // アップストリームは疎通確認用の sample-counter のみを出荷する。
 //
 // 登録手順:
-//   1. ルームロジック (reducer) を src/features/<domain>/room/ に純粋関数として実装する
+//   1. ルームロジック (reducer) を src/domains/<domain>/room/ に純粋関数として実装する
 //      (純度制約は ESLint realtime-room/purity で強制される。Node/Next/DB import 禁止)
 //   2. ここで import して namespace 名をキーに登録する(import も登録も fork entries の印の対の中に書く)
 //
 // 例:
-//   import { raidRoomDefinition } from "@/features/gachaRaid/room/definition";
+//   import { raidRoomDefinition } from "@/domains/gachaRaid/room/definition";
 //   export const roomRegistry = { raid: raidRoomDefinition, ... };
 
 import type { AnyRoomDefinition, RoomDefinition } from "@/lib/realtimeRoom/node";

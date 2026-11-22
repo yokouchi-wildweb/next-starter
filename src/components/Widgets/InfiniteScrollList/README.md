@@ -23,7 +23,7 @@
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { Stack } from "@/components/Layout/Stack";
 // 派生フック: 中で useInfiniteScrollQuery({ fetcher: (params) => orderClient.search(params), limit: 20 }) を返す
-import { useMyOrders } from "@/features/order/hooks/useMyOrders";
+import { useMyOrders } from "@/domains/order/hooks/useMyOrders";
 
 export function OrderList() {
   const { items, isInitialLoading, isFetchingMore, hasMore, error, sentinelRef, retry } = useMyOrders();
@@ -51,7 +51,7 @@ export function OrderList() {
 }
 ```
 
-- `useInfiniteScrollQuery` の呼び出しは client service を包んだドメインの派生フック(`features/<domain>/hooks/`)に置く(Component から client service を直接呼ばない: CLAUDE.md ARCHITECTURE)。派生フックがフックの戻り値をそのまま返せば、`updateItems` なども使える
+- `useInfiniteScrollQuery` の呼び出しは client service を包んだドメインの派生フック(`domains/<domain>/hooks/`)に置く(Component から client service を直接呼ばない: CLAUDE.md ARCHITECTURE)。派生フックがフックの戻り値をそのまま返せば、`updateItems` なども使える
 
 ### ボタンで読む・上に足す
 

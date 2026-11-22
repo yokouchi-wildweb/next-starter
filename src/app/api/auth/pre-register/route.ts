@@ -1,7 +1,7 @@
 // src/app/api/auth/pre-register/route.ts
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { preRegister } from "@/features/core/auth/services/server/preRegistration";
+import { preRegister } from "@/domains/core/auth/services/server/preRegistration";
 import { getClientIp } from "@/lib/request";
 
 export const POST = createApiRoute(

@@ -11,7 +11,7 @@ export const cronTask: CronTaskDefinition = {
   // 機能の入切は書かない: 住所 /api/cron/expire-pending-purchases を規則 payment の pathPatterns が閉じる（src/featureGate/rules/payment.ts、src/lib/cron/README.md「1. task.ts」）
   run: async () => {
     const { expirePendingRequests } = await import(
-      "@/features/core/purchaseRequest/services/server/wrappers/purchaseService"
+      "@/domains/core/purchaseRequest/services/server/wrappers/purchaseService"
     );
     const expired = await expirePendingRequests();
     return { expired };

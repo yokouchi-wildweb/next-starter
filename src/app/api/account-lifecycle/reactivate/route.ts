@@ -3,8 +3,8 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { refreshSessionCookie } from "@/features/core/auth/services/server/session/token";
-import { reactivate } from "@/features/core/accountLifecycle/services/server/reactivate";
+import { refreshSessionCookie } from "@/domains/core/auth/services/server/session/token";
+import { reactivate } from "@/domains/core/accountLifecycle/services/server/reactivate";
 
 export const POST = createApiRoute(
   {

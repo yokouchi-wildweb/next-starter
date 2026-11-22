@@ -1,7 +1,7 @@
 // 検査: 一覧・検索の設定（searchFields・defaultOrderBy・tableFields）と複合ユニーク（compositeUniques）。
 // 無い項目名は生成物で `table.<名>` になり tsc で落ちる / 一覧で空の列になる。Firestore の複合ユニークは黙って捨てられるので、生成前に止める。
 // 文字列でない列の検索: Neon は buildSearchWhere が `::text` に cast するので警告しない。Firestore だけ警告(文字列の前方一致で比べる)
-// 規則の正: src/features/README.md「API」（searchFields / defaultOrderBy / tableFields / compositeUniques）
+// 規則の正: src/domains/README.md「API」（searchFields / defaultOrderBy / tableFields / compositeUniques）
 
 import { fieldTypeSpec } from "../spec/fieldTypes.mjs";
 

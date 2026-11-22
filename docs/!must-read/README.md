@@ -59,7 +59,7 @@
 ```
              置き場所（どこに置くか）            処理の流れ（どう通るか）
           ┌─────────────────────────┐      ┌───────────────────────────┐
-          │ features/  ドメイン       │      │ ページ → UI → フック        │
+          │ domains/  ドメイン       │      │ ページ → UI → フック        │
           │ lib/       ライブラリ     │  ×   │ → クライアントサービス → API │
           │ components/ hooks/ utils/ │      │ → サーバーサービス → DB      │
           └─────────────────────────┘      └───────────────────────────┘
@@ -75,7 +75,7 @@
 
 #### 置き場所: 3 つの級（[設計思想とアーキテクチャ](設計思想とアーキテクチャ.md)）
 
-コードは規模と性質で 3 つの級（ドメイン級・ライブラリ級・ユニット級）に分けて置く。ビジネス概念として独立していれば `features/<domain>/`（エンティティ・サービス・フック・UI をすべて持つ）、複数ファイルの汎用機能なら `lib/<name>/`（ドメインに依存しない）、それ以下の小さな部品は `components/` / `hooks/` / `utils/`。
+コードは規模と性質で 3 つの級（ドメイン級・ライブラリ級・ユニット級）に分けて置く。ビジネス概念として独立していれば `domains/<domain>/`（エンティティ・サービス・フック・UI をすべて持つ）、複数ファイルの汎用機能なら `lib/<name>/`（ドメインに依存しない）、それ以下の小さな部品は `components/` / `hooks/` / `utils/`。
 依存の向きは `features → lib` の一方向で、lib はドメインを知らない。グローバルな「何でも置き場」は作らず、すべてのコードを何かに所属させる。
 
 #### 処理の流れ: 8 層（[アプリ構築における構成層](アプリ構築における構成層.md)）
@@ -99,11 +99,11 @@
 
 | 仕組み | 何のためにあるか | 詳細 |
 |---|---|---|
-| コード生成（`pnpm generate domain`） | business ドメインのエンティティ・サービス・フック・管理画面を `domain.json` から生成する。生成物は手で編集せず、`wrappers/` などの差し替え口で拡張する | `scripts/structure/domain/README.md`、`src/features/README.md` |
+| コード生成（`pnpm generate domain`） | business ドメインのエンティティ・サービス・フック・管理画面を `domain.json` から生成する。生成物は手で編集せず、`wrappers/` などの差し替え口で拡張する | `scripts/structure/domain/README.md`、`src/domains/README.md` |
 | 汎用 CRUD（`createCrudService`） | 一覧・検索・作成・更新・削除・並び替えなどを全ドメイン共通の実装で提供する。ドメインごとの差分だけを書けば済む | `src/lib/crud/README.md` |
 | API ルートのファクトリー（routeFactory） | すべての API ルートを 4 つのファクトリー（createDomainRoute / createApiRoute / createMeRoute / createDeviceRoute）のどれかで作り、認可・エラー変換・監査のコンテキストを強制する。認可の指定漏れは許可ではなく拒否に倒れる | `src/lib/routeFactory/README.md` |
 | エラーの流れ | サーバーは `DomainError`、クライアントは `HttpError` の 2 種類だけ。ユーザー向けの文言はサーバーサービスが決め、UI はそれを表示するだけ | [エラーハンドリング方針](エラーハンドリング方針.md) |
-| 認証と認可ガード | JWT セッションと、proxy → 範囲の guard.ts（layout が guard() の 1 行、親子 AND）→ loader の access（guard.ts の createLoader）の 3 段の守り。ロール・ステータスによる判定は必ず DB と同期した値（守りと API の Factory が解く利用者 = `getSessionUser`）で行う。JWT だけの軽い取得（`getTokenOnlySession`）は監査の記録者やデモ判定など、拒否に使わない用途に限る。JWT の中身は発行後に古くなり得るため | `src/features/core/auth/README.md`、`src/lib/pageGuard/README.md` |
+| 認証と認可ガード | JWT セッションと、proxy → 範囲の guard.ts（layout が guard() の 1 行、親子 AND）→ loader の access（guard.ts の createLoader）の 3 段の守り。ロール・ステータスによる判定は必ず DB と同期した値（守りと API の Factory が解く利用者 = `getSessionUser`）で行う。JWT だけの軽い取得（`getTokenOnlySession`）は監査の記録者やデモ判定など、拒否に使わない用途に限る。JWT の中身は発行後に古くなり得るため | `src/domains/core/auth/README.md`、`src/lib/pageGuard/README.md` |
 | 登録表（registry） | `src/registry/` は「業務ドメインを全体で扱うため、ドメインを 1 つ作ると 1 行増える一覧」（serviceRegistry・schemaRegistry・domainConfigRegistry など。生成物）。serviceRegistry はドメイン名からサービス・表・主キーを引く正式な仕組みで、各ドメインの `services/server/domainEntry.ts` から生成する。下流の登録口ではない | `src/registry/README.md`、`src/lib/domain/README.md` |
 | 拡張点 | 機能ごとの差し込みは、持ち主のフォルダの受け口にファイルを置くと生成一覧に並ぶ。上流の既定の項目も fork の項目も同じ受け口に置く | `scripts/structure/extensions/README.md` |
 | 機能の門番（featureGate） | 機能 = 入切する単位で、規則が開くドメインを挙げる。閉じた機能のドメインはページ・API・テーブル・定期の作業がまとめて閉じる（第 2 法則、[3つの法則](3つの法則.md)） | `CLAUDE.md` DOMAINS_AND_FEATURES、`src/featureGate/README.md` |
@@ -122,7 +122,7 @@
 | 拡張 | 生成器（`scripts/structure/registry`・`scripts/structure/extensions`）、受け口の宣言、core の `domainEntry.ts` | 業務ドメインの `domain.json`（→ 生成）、core の access を変える `domainEntry.override.ts`、受け口に置く印のない `<名前>.ts`、上流の既定を丸ごと置き換える `<名前>.replace.ts` |
 | ルール | `CLAUDE.md`（全 fork 共通） | `.claude/rules/project.md`（fork ごとの差分） |
 
-core ドメイン（`src/features/core/`）の UI は細かい部品と既定のコンテナで、部品は全部公開。fork は core の下を書き換えず、route の Screen で部品から組む（理由は [設計思想とアーキテクチャ](設計思想とアーキテクチャ.md) §3.1）。
+core ドメイン（`src/domains/core/`）の UI は細かい部品と既定のコンテナで、部品は全部公開。fork は core の下を書き換えず、route の Screen で部品から組む（理由は [設計思想とアーキテクチャ](設計思想とアーキテクチャ.md) §3.1）。
 
 上流の変更で fork 側に作業が必要になるときは、変更と同じコミットで `.notices/` に通知を出す(出荷は `/ship`。要否の判定と通知の起票まで行う)。fork は `/flux` で未適用の通知を順に取り込む（`.notices/README.md`）。
 

@@ -1,14 +1,14 @@
 ---
 paths:
-  - "src/features/core/batchJob/**"
+  - "src/domains/core/batchJob/**"
 ---
-# features/batchJob
-what: a generic base that processes large data in chunks with progress tracking, idempotency and crash recovery; entry @/features/batchJob/services/server (batchJobService), handler types @/features/core/batchJob/types
+# domains/batchJob
+what: a generic base that processes large data in chunks with progress tracking, idempotency and crash recovery; entry @/domains/batchJob/services/server (batchJobService), handler types @/domains/core/batchJob/types
 use: always
 change: add = a job handler in jobHandlers/ (receptacle jobHandlers in extensionPoints.ts)
 rules:
 using:
-- service_entry: entry points (API routes etc.) import from @/features/batchJob/services/server (its index guarantees the handler list)
+- service_entry: entry points (API routes etc.) import from @/domains/batchJob/services/server (its index guarantees the handler list)
 - handler_one_mode: a handler defines exactly one of processChunk or processItem
 - handler_enabled: a handler that imports the folder of a feature the gate can close needs `enabled` (the receptacle runs always on)
 - job_type_const_apart: the jobType const shared by the handler and its facade lives in a file of its own (no import cycle with the handler)

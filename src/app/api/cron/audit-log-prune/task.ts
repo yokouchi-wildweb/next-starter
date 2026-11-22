@@ -9,7 +9,7 @@ export const cronTask: CronTaskDefinition = {
   description: "retention_days を過ぎた監査ログ（audit_logs）をバッチ削除する",
   schedule: "5 18 * * *", // 毎日 03:05 JST
   run: async () => {
-    const { pruneExpiredAuditLogs } = await import("@/features/core/auditLog/services/server");
+    const { pruneExpiredAuditLogs } = await import("@/domains/core/auditLog/services/server");
     return await pruneExpiredAuditLogs();
   },
 };

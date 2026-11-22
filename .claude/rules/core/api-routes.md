@@ -3,10 +3,10 @@ paths:
   - "src/app/api/**"
   - "src/lib/routeFactory/**"
   - "src/registry/serviceRegistry.ts"
-  - "src/features/**/services/server/domainEntry*.ts"
+  - "src/domains/**/services/server/domainEntry*.ts"
   - "src/wiring/*Route*"
   - "src/lib/domainAccess/**"
-  - "src/features/**/domain.json"
+  - "src/domains/**/domain.json"
 ---
 # api-routes
 > **ROLE**: loaded when writing API routes or the route factory | holds API_ROUTES detail

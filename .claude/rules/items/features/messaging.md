@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/features/core/messaging/**"
-  - "src/config/features/messaging.config.ts"
+  - "src/domains/core/messaging/**"
+  - "src/config/domains/messaging.config.ts"
 ---
-# features/messaging
-what: messages to users (email, inbox, LINE, fork channels): definitions messages/<name>.ts sent by messagingService (@/features/messaging/services/server), recorded as dispatches and deliveries
+# domains/messaging
+what: messages to users (email, inbox, LINE, fork channels): definitions messages/<name>.ts sent by messagingService (@/domains/messaging/services/server), recorded as dispatches and deliveries
 use: sending is always open | messagingDispatches, messagingBroadcast, messagingTemplates, messagingOverrides, messagingPreferences, messagingInbox, messagingTracking
-change: placement = src/config/features/messaging.config.ts | overlay = <name>.override.ts | add = receptacle items (extensionPoints.ts) | replace = layouts/<name>/ .replace
+change: placement = src/config/domains/messaging.config.ts | overlay = <name>.override.ts | add = receptacle items (extensionPoints.ts) | replace = layouts/<name>/ .replace
 rules:
 using:
 - send_entry: messages to users go through messagingService only: a definition (messages/<name>.ts) → sendMessage / sendMessageToMany | admin free text → sendFreeMessage (a layout or a DB template) | never lib/mail send() or a channel directly
@@ -24,4 +24,4 @@ using:
 - legal_notice: a legally required notice uses a category with email
 editing:
 - raw_sql_files: raw SQL builders live in db-less files listed in services/server/rawSqlParams.test.ts
-read: model, gates → Overview | send, target, add a message → Usage | endpoints → API | config, receptacles → Extension | parts and why → src/features/core/messaging/Internals.md Internals | which send screen → src/features/core/messaging/components/README.md Usage
+read: model, gates → Overview | send, target, add a message → Usage | endpoints → API | config, receptacles → Extension | parts and why → src/domains/core/messaging/Internals.md Internals | which send screen → src/domains/core/messaging/components/README.md Usage

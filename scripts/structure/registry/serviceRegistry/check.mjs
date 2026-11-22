@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // scripts/structure/registry/serviceRegistry/check.mjs
-// src/registry/serviceRegistry.ts が src/features/**/services/server/domainEntry.ts からの生成結果と一致するか検査する
+// src/registry/serviceRegistry.ts が src/domains/**/services/server/domainEntry.ts からの生成結果と一致するか検査する
 //
 // 使い方:
 //   pnpm check registry   # 手元で。build スクリプトの冒頭でも環境（VERCEL 等）に依らず必ず走る

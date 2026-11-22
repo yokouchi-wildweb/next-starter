@@ -17,7 +17,7 @@ import { createApiRoute } from "@/wiring/apiRoute";
 import {
   bankTransferReviewService,
   BANK_TRANSFER_REVIEW_IMPORT_MAX_TEXT_LENGTH,
-} from "@/features/bankTransferReview/services/server/bankTransferReviewService";
+} from "@/domains/bankTransferReview/services/server/bankTransferReviewService";
 
 const BodySchema = z.object({
   csvText: z

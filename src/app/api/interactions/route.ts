@@ -9,9 +9,9 @@
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
-import { InteractionIngestSchema } from "@/features/core/interactionTracking/entities/schema";
-import { record } from "@/features/core/interactionTracking/services/server";
-import { targetRules } from "@/features/core/interactionTracking/extensions/targetRules";
+import { InteractionIngestSchema } from "@/domains/core/interactionTracking/entities/schema";
+import { record } from "@/domains/core/interactionTracking/services/server";
+import { targetRules } from "@/domains/core/interactionTracking/extensions/targetRules";
 
 export const POST = createApiRoute(
   {

@@ -8,7 +8,7 @@
 //   pnpm check domain -- --parity <git-ref> --fixtures samples,synthetic --modes each,all --variants fresh --keep
 //
 // fixture: samples = このリポの src/ をそのまま | synthetic / synthetic-bad = tests/fixtures/parity/<name>/<domain>/domain.json を
-//   src/features に重ねる | --repo = そのリポの src/features/*/domain.json を重ねる（fresh = domain.json だけ、existing = ドメインフォルダ・
+//   src/domains に重ねる | --repo = そのリポの src/domains/*/domain.json を重ねる（fresh = domain.json だけ、existing = ドメインフォルダ・
 //   管理画面ルート・registry も写す = write-once や「既に登録済み」の経路を通す）
 // mode: each = 1 ドメインずつ --yes | all = --all --yes | all2 = all を 2 回（冪等性）| only-registry | only-entities-hooks
 // 失敗系 fixture では両版が同じ exit code・同じエラー文で止まることを見る。意図して変えた挙動は差分として出るので目で確かめる。

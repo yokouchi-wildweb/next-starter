@@ -37,9 +37,9 @@ function repo(t) {
 
 test("uses: paths exist in the adding commit, codemods are .notices/<id>.<name>.mjs, the notice is a checkpoint", () => {
   const row = (fields) => ({ id: "20990101-000001-a", fields: { severity: "info", checkpoint: "a", ...fields } });
-  const have = new Set([".notices/20990101-000001-a.fix-imports.mjs", "src/features/x/scripts/migrations/m1.ts"]);
+  const have = new Set([".notices/20990101-000001-a.fix-imports.mjs", "src/domains/x/scripts/migrations/m1.ts"]);
   const exists = (p) => have.has(p);
-  assert.deepEqual(checkUses(row({ uses: ".notices/20990101-000001-a.fix-imports.mjs, src/features/x/scripts/migrations/m1.ts" }), exists), []);
+  assert.deepEqual(checkUses(row({ uses: ".notices/20990101-000001-a.fix-imports.mjs, src/domains/x/scripts/migrations/m1.ts" }), exists), []);
   assert.deepEqual(checkUses(row({}), exists), []);
   const text = checkUses(row({ checkpoint: "-", uses: ".notices/other.fix.mjs, src/gone.ts" }), exists).join("\n");
   assert.match(text, /区切り/);

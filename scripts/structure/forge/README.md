@@ -13,7 +13,7 @@ pnpm forge --lint   # 事後検査の最後に lint（eslint . 全体、30 秒�
 
 - 止まったときは表示された段のコマンドで確かめ、直してから `pnpm forge` をもう一度回す（何度回しても、変更が無ければ差分は出ない）
 - cron は forge の外: forge は cron を生成しない。cron のタスク（`src/app/api/cron/<name>/`）を足す・消す・頻度を変えたら、`pnpm generate cron -- --plan hobby|pro` を別に回す（plan はどこにも保存されないので、毎回人が選ぶ。詳細: `src/lib/cron/README.md`）。forge のデプロイ先の検査は、そのずれを見つけて止まるだけ。
-- DB: forge は `db:push` を呼ばない。生成の前後で表の定義（`src/features` の `pgTable` を持つ全ファイル。core・`notificationRead` など drizzle.ts でないものも）の hash を比べ（`tables.mjs`）、変わっていれば最後にファイルの一覧と「`[user-run] pnpm db:push` → `pnpm db:push:check` が差分 0」を出す。
+- DB: forge は `db:push` を呼ばない。生成の前後で表の定義（`src/domains` の `pgTable` を持つ全ファイル。core・`notificationRead` など drizzle.ts でないものも）の hash を比べ（`tables.mjs`）、変わっていれば最後にファイルの一覧と「`[user-run] pnpm db:push` → `pnpm db:push:check` が差分 0」を出す。
 
 ## Internals
 

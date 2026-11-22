@@ -156,7 +156,7 @@ export function renderRecordTargetRegistry(repoRoot) {
     "  },",
   ]);
   const text = [
-    "// 生成物・編集不可: pnpm generate registry が src/features/**/recordTargets/*.ts・*.override.ts から生成する",
+    "// 生成物・編集不可: pnpm generate registry が src/domains/**/recordTargets/*.ts・*.override.ts から生成する",
     `// ${RECORD_TARGET_REGISTRY_FILE}`,
     "//",
     "// 記録の宛先の一覧(鍵 = <ドメインのフォルダ名>.<ファイル名> → ドメイン・項目と上書きの遅延 import)。絞らない: 読み手は loadRecordTarget(門番 recordTargetOpen)を通す",

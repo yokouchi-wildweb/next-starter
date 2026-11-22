@@ -1,7 +1,7 @@
 // 生成器が読み書きするリポジトリの場所。rootDir（既定 = カレントディレクトリ）からの全パスをここで組む。
 // ファイルを読むのはこのモジュールと pipeline/apply（書き込み）・pipeline/remove だけ。render/ と checks/ は読まない。
 //
-// ドメインの所在: business = src/features/<camel>、core = src/features/core/<camel>（domain.json を持つものだけが生成の対象）。
+// ドメインの所在: business = src/domains/<camel>、core = src/domains/core/<camel>（domain.json を持つものだけが生成の対象）。
 // 違いはフォルダだけで、生成・検査・generate の旗は同じ扱い。両方に domain.json があれば止める（locateDomain）
 
 import fs from "node:fs";
@@ -23,7 +23,7 @@ export function createWorkspace(rootDir = process.cwd()) {
   /**
    * ドメインの所在。domain.json のある方（両方にあれば例外）、どちらにも無ければ business の位置
    * @param {string} camel フォルダ名
-   * @returns {{ kind: "business" | "core", dir: string, configPath: string, rel: string }} rel = リポジトリからの相対（例: src/features/core/user）
+   * @returns {{ kind: "business" | "core", dir: string, configPath: string, rel: string }} rel = リポジトリからの相対（例: src/domains/core/user）
    */
   function locateDomain(camel) {
     const business = featurePath(camel);
@@ -31,7 +31,7 @@ export function createWorkspace(rootDir = process.cwd()) {
     const inBusiness = hasConfig(business);
     const inCore = camel !== "core" && hasConfig(core);
     if (inBusiness && inCore) {
-      throw new Error(`ドメイン "${camel}" の domain.json が src/features/${camel}/ と src/features/core/${camel}/ の両方にあります。どちらかに 1 つだけにしてください`);
+      throw new Error(`ドメイン "${camel}" の domain.json が src/domains/${camel}/ と src/domains/core/${camel}/ の両方にあります。どちらかに 1 つだけにしてください`);
     }
     const kind = inCore ? "core" : "business";
     const dir = inCore ? core : business;
@@ -55,7 +55,7 @@ export function createWorkspace(rootDir = process.cwd()) {
     }
   }
 
-  /** domain.json を持つドメインのフォルダ名（business = src/features 直下、core = src/features/core 直下。_template は除く。ソート済み）。名前が重なれば例外 */
+  /** domain.json を持つドメインのフォルダ名（business = src/domains 直下、core = src/domains/core 直下。_template は除く。ソート済み）。名前が重なれば例外 */
   function listDomains() {
     const dirsIn = (dir) =>
       fs.existsSync(dir)
@@ -73,7 +73,7 @@ export function createWorkspace(rootDir = process.cwd()) {
   const districtMapPath = path.join(rootDir, "src", "registry", "district-map.jsonl");
   const readDistrictMap = () => (fs.existsSync(districtMapPath) ? fs.readFileSync(districtMapPath, "utf8") : null);
 
-  /** テンプレート（src/features/_template/...）を読む。無ければ例外 */
+  /** テンプレート（src/domains/_template/...）を読む。無ければ例外 */
   function readTemplate(...segments) {
     const file = path.join(templateDir, ...segments);
     if (!fs.existsSync(file)) {

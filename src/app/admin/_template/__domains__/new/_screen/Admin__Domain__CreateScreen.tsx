@@ -4,7 +4,7 @@
 
 import type { ScreenProps } from "@/lib/screens";
 __RELATION_IMPORTS__
-import Admin__Domain__Create from "@/features/__domain__/components/Admin__Domain__Create";
+import Admin__Domain__Create from "@/domains/__domain__/components/Admin__Domain__Create";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 
 import { loadAdmin__Domain__CreateScreen } from "./loader";

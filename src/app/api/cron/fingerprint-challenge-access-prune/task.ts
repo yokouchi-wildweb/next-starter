@@ -10,7 +10,7 @@ export const cronTask: CronTaskDefinition = {
   schedule: "15 18 * * *", // 毎日 03:15 JST
   run: async () => {
     const { pruneExpiredChallengeAccessEvents } = await import(
-      "@/features/core/fingerprintChallenge/services/server"
+      "@/domains/core/fingerprintChallenge/services/server"
     );
     return await pruneExpiredChallengeAccessEvents();
   },

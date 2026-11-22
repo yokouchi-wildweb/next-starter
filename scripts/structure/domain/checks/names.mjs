@@ -2,7 +2,7 @@
 // テーブル名・列名・フォルダ名・import のパスは全部この名前から組み立てるので、形が崩れた名前で生成を進めない。
 // singular・plural・リレーション先は生成器が snake_case に直して扱う（camelCase でも動く）ので警告だけ（nameWarnings）。
 // 項目名・従属ドメイン名はそのまま列名・singular になるので止める（nameIssues）
-// 規則の正: src/features/README.md「API」（singular / plural / Field の name / Relation の domain）
+// 規則の正: src/domains/README.md「API」（singular / plural / Field の name / Relation の domain）
 
 import { isSnakeCaseName } from "../spec/collectionField.mjs";
 

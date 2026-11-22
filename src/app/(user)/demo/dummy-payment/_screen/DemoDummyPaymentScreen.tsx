@@ -2,7 +2,7 @@
 // /demo/dummy-payment(デモ)の既定画面。
 
 import type { ScreenProps } from "@/lib/screens";
-import { DummyPaymentForm } from "@/features/core/purchaseRequest/components/DummyPaymentForm";
+import { DummyPaymentForm } from "@/domains/core/purchaseRequest/components/DummyPaymentForm";
 
 import { loadDemoDummyPaymentScreen } from "./loader";
 

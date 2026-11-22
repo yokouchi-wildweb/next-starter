@@ -1,7 +1,7 @@
 // 検査: プロフィールのリレーション（種類・外部キーの名前と型・削除時の挙動・入力欄）。
 // プロフィールの生成器は belongsTo / belongsToMany しか読まず（ほかは黙って無視）、外部キーの列は uuid 以外だと text になるのに
 // Zod は uuid 固定でずれる。SET_NULL × required はドメインの生成器は止めるがプロフィールの生成器は止めない。どれも生成前に止める。
-// 規則の正: src/features/core/userProfile/README.md「リレーション設定」
+// 規則の正: src/domains/core/userProfile/README.md「リレーション設定」
 
 import { columnFunction } from "../../../../src/lib/domain/node.mjs";
 import { RELATION_FORM_INPUTS } from "../../domain/spec/domainJson.mjs";

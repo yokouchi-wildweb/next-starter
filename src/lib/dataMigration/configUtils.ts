@@ -8,7 +8,7 @@ import type { ExportField } from "./components/ExportSettingsModal";
  * 写しの fields から ExportField[] を生成
  *
  * @example
- * import { domainDisplay } from "@/features/sample/entities/display";
+ * import { domainDisplay } from "@/domains/sample/entities/display";
  * const exportFields = buildExportFields(domainDisplay);
  */
 export function buildExportFields(config: Pick<DomainDisplay, "fields">): ExportField[] {

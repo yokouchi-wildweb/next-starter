@@ -476,7 +476,7 @@ export function treeSnapshot(repoRoot, rev) {
     .split("\n")
     .filter(Boolean)
     .map((path) => path.replace(/^src\/lib\//, ""));
-  const hasCore = (tryGit(repoRoot, ["ls-tree", "-d", "--name-only", rev, "src/features/core"]) ?? "").trim() !== "";
+  const hasCore = (tryGit(repoRoot, ["ls-tree", "-d", "--name-only", rev, "src/domains/core"]) ?? "").trim() !== "";
   const hasGate = (tryGit(repoRoot, ["ls-tree", "-d", "--name-only", rev, "src/featureGate"]) ?? "").trim() !== "";
   const hasRulesCore = (tryGit(repoRoot, ["ls-tree", "-d", "--name-only", rev, ".claude/rules/core"]) ?? "").trim() !== "";
   // 単位名の同名・自分の項目への override(D137 の印の代わり): 基準のファイルの単位と照らす
@@ -525,7 +525,7 @@ export function resolveForkContext(repoRoot, { parent, branch, fetch = true } = 
 
 const SERVICE_PREFIX = ".claude/rules/service/";
 /** @type {Readonly<Record<string, string | undefined>>} core・門番・決まりの core への追加 → Tier1 の置き場 */
-const TIER1_ADD_PREFIXES = { "core-add": "src/features/core/", "gate-add": "src/featureGate/", "rules-core-add": ".claude/rules/core/" };
+const TIER1_ADD_PREFIXES = { "core-add": "src/domains/core/", "gate-add": "src/featureGate/", "rules-core-add": ".claude/rules/core/" };
 
 /**
  * Tier1 の版に無いファイルの違反を `middle-tier`(合格・参考)に付け替える(D29)。entries を書き換え、付け替えた分を返す

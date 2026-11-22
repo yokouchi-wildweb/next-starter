@@ -8,7 +8,7 @@
  *
  * ⚠️ domain.json スキーマにオプショナルフィールドを追加した場合、ここにも追加すること。
  *    追加漏れ → searchFields がないドメインが存在するだけでビルドエラーになる。
- *    スキーマ定義: src/features/README.md「トップレベルプロパティ」
+ *    スキーマ定義: src/domains/README.md「トップレベルプロパティ」
  */
 export type DomainConfigOptionals = {
   useSoftDelete?: boolean;

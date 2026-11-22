@@ -10,12 +10,12 @@ import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
-import { MarkChallengeNotifiedSchema } from "@/features/core/fingerprintChallenge/entities/schema";
+import { MarkChallengeNotifiedSchema } from "@/domains/core/fingerprintChallenge/entities/schema";
 import {
   cancelChallenge,
   markChallengeNotified,
   reviewChallenge,
-} from "@/features/core/fingerprintChallenge/services/server";
+} from "@/domains/core/fingerprintChallenge/services/server";
 
 type Params = { id: string };
 

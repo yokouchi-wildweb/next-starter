@@ -18,14 +18,14 @@ gate.assert("wallet");         // 閉じていれば DomainError(404、決まっ
 gate.path("/wallet/history");  // { open: true } | { open: false; rule: FeatureName; redirectTo?: string }
 gate.filter(menuItems);        // 閉じた機能の住所を指す項目を除く(既定は item.href、順は保つ)
 gate.filter(rows, (row) => row.link); // href を持たない型は住所の取り出し方を渡す(型で必須)
-gate.domainOpen("wallet");     // ドメイン(src/features/<名前> か core/<名前> のフォルダ名)が開いているか。載せた機能が全部閉なら false、どの規則にも載らなければ true
+gate.domainOpen("wallet");     // ドメイン(src/domains/<名前> か core/<名前> のフォルダ名)が開いているか。載せた機能が全部閉なら false、どの規則にも載らなければ true
 ```
 
 - `gate.assert`: service・API が自分で止まるときに使う。文言は「お探しのページは見つかりませんでした」で固定、機能の名前・`code`・`details` は出さない(閉じた機能の存在を利用者に知らせない)。未知の名前は `gate.enabled` と同じく throw
 - `gate.path`: 閉じた住所(閉じた規則の手書きの住所 + 閉じたドメインの汎用 API・cron の住所)に当たれば、当たった中で**一番細かい一致**(長い住所、同じ長さは `=` の完全一致。`@/lib/pathPattern` の `patternSpecificity`)の `{ open: false, rule, redirectTo }`(同じ細かさは一覧の順)。導出の住所の `rule`・`redirectTo` は閉じた持ち主の機能のうち一覧の順で最初。読み手は proxy の項目 `src/proxies/featureGate.ts`(応答を作る)と demo の loader(閉じたデモを一覧から外す)
 - `gate.filter`: メニュー・一覧から閉じた住所の行を隠すだけ(応答は proxy が作る)。除くのは「`/` で始まる内部の住所(`//` は別オリジンで対象外)で、閉じた住所の並びの順で最初に当たった規則に `redirectTo` が無い」項目だけ。`?` と `#` の後ろは照合から外す。外部 URL・`redirectTo` 付きの閉(行き先の画面がある。例: サインアップ → `/signup-closed`)・住所の無い項目(`getHref` が `undefined`)は残す。判定は `hiddenHref.ts` の純関数で、リンクの自動で隠す判定(client)も同じ関数を使う
-- 管理のコマンドパレットの移動の候補は、管理の枠の中の橋 `AdminCommandGateBridge` が渡す厳密な `useGate.path` の判定で絞る(`redirectTo` 付きの閉も隠す。枠の外では絞らない。`src/features/core/adminCommand/README.md`)
-- 管理メニューは `gate.filter` でなく `useGate.path` で隠す(厳密: `redirectTo` 付きの閉も隠す。行き先の画面があっても、閉じた機能の入口をメニューに出さない)。組み立ては `src/features/core/admin/hooks/useAdminMenu.ts`、仕組みは `src/features/core/admin/menu/README.md`。メニュー専用のスイッチや項目の `feature:` は持たない
+- 管理のコマンドパレットの移動の候補は、管理の枠の中の橋 `AdminCommandGateBridge` が渡す厳密な `useGate.path` の判定で絞る(`redirectTo` 付きの閉も隠す。枠の外では絞らない。`src/domains/core/adminCommand/README.md`)
+- 管理メニューは `gate.filter` でなく `useGate.path` で隠す(厳密: `redirectTo` 付きの閉も隠す。行き先の画面があっても、閉じた機能の入口をメニューに出さない)。組み立ては `src/domains/core/admin/hooks/useAdminMenu.ts`、仕組みは `src/domains/core/admin/menu/README.md`。メニュー専用のスイッチや項目の `feature:` は持たない
 - 既存の読み手(demo の loader・service の自己停止)は `gate.assert` / `gate.filter` へ移す途中(まだ直読み・`gate.path` の箇所がある)
 - 中の名前(`isFeatureEnabled`・`resolvePath`)は外に出さない。道具を足すときは `tools/server/<名前>.ts` に 1 ファイル、束 `tools/server/index.ts` に 1 行(client でも使う道具は `tools/client/` にも同じ名前で。束の名前の一致は `checks/gateTools.test.ts`: client の名前 ⊆ server、server だけの名前は `assert` だけ)
 
@@ -86,11 +86,11 @@ export const rule: FeatureGateRule = {
 
 - `pathPatterns` はセグメント境界の前方一致（`/demo` は `/demo-login` を含まない）。`=` を付けると完全一致（`=/mypage` は `/mypage` だけで、fork が `/mypage/<自分のページ>` を足しても巻き込まない）。照合は `src/lib/pathPattern`（門番の判定・ルート地図・pnpm test src/featureGate scripts/structure/proxies が共有）。動的セグメントは書けないので、値が config で決まるなら展開して書く（例: 通貨 slug ごとの `/wallet/<slug>/purchase`）
 - **閉じた住所の下の画面・API は一緒に閉じる**（前方一致）。上流の規則の接頭の下に fork が足した画面も閉じる
-- `domains` = 規則が閉じるドメインのフォルダ（`src/features` からの相対で `core/<名前>` か `<名前>`、文字列リテラルの配列）。features の地区（`src/lib/districtMap` が見つけるドメイン）でない書き方（無いフォルダ・`core/wallet/entities` のような深い場所・`core` そのもの・`_` で始まる雛形）は生成器が止める。表名は書かない: `pnpm generate extensions`（宣言の `derive: "featureTables"`）が地区の下の全 `pgTable` から導く（地区の地図の読み手 `src/lib/districtMap`、字面・コメントの中は見ない）。fork が上流のフォルダに足した表も上流の規則が拾う
+- `domains` = 規則が閉じるドメインのフォルダ（`src/domains` からの相対で `core/<名前>` か `<名前>`、文字列リテラルの配列）。features の地区（`src/lib/districtMap` が見つけるドメイン）でない書き方（無いフォルダ・`core/wallet/entities` のような深い場所・`core` そのもの・`_` で始まる雛形）は生成器が止める。表名は書かない: `pnpm generate extensions`（宣言の `derive: "featureTables"`）が地区の下の全 `pgTable` から導く（地区の地図の読み手 `src/lib/districtMap`、字面・コメントの中は見ない）。fork が上流のフォルダに足した表も上流の規則が拾う
   - フォルダの一部の表だけを外す書き方は無い。表を持たないドメイン（Firestore 版の `core/chatRoom` など）も書ける: 表は 0 のまま、汎用 API の住所と依存の検査は表のあるドメインと同じに効く
 - **汎用 API の住所（`/api/<domain>`）は書かない**: 生成器が `domains` の各フォルダの `services/server/domainEntry.ts` の `domainEntries` のキーから `/api/<キー>` を導き（字面）、生成一覧の `domains` のそのドメインの `apiPaths` に載せる。住所はドメインに付き、ドメインの開閉で閉じる(下の「ドメインの開閉」。規則の `pathPatterns` には足さない、項目の `domainApiPaths` は説明用)。`domainEntry.ts` の無いフォルダは住所を持たない
   - 手書きと重なると `src/featureGate`・`scripts/structure/proxies` のテスト(/ship の検査が回す)が知らせる（上流の規則は失敗、fork の規則は表示だけ）。ドメインを足した・キーを変えたら `pnpm generate extensions`（ずれは `pnpm check extensions` が止める）
-- **設定の節の住所（`/admin/settings/<key>`）も書かない**: 設定の節（`src/features/core/setting/sections/`）に `feature: "<規則名>"`（か配列）を書くと、生成器が節の住所と名指す機能を生成一覧の `settingSections` に載せる（`scripts/structure/extensions/derive/gateSettingPaths.mjs`）。節自身の判定で、**名指す機能が全部開のときだけ開く**(機能の `pathPatterns` には混ぜない、項目の `settingPaths` は説明用)。閉じたときの `rule` は閉じた名指しの機能のうち一覧の順で最初。管理メニューの行は住所の絞り込みで消える。規則名でない `feature` は生成で失敗
+- **設定の節の住所（`/admin/settings/<key>`）も書かない**: 設定の節（`src/domains/core/setting/sections/`）に `feature: "<規則名>"`（か配列）を書くと、生成器が節の住所と名指す機能を生成一覧の `settingSections` に載せる（`scripts/structure/extensions/derive/gateSettingPaths.mjs`）。節自身の判定で、**名指す機能が全部開のときだけ開く**(機能の `pathPatterns` には混ぜない、項目の `settingPaths` は説明用)。閉じたときの `rule` は閉じた名指しの機能のうち一覧の順で最初。管理メニューの行は住所の絞り込みで消える。規則名でない `feature` は生成で失敗
 - **cron の task の住所（`/api/cron/<name>`）も書かない**: task.ts・task.override.ts がどれかの規則の `domains` のフォルダを値で import すると、生成器が生成一覧の `cronTasks`(住所・読むドメイン)に載せ、読むドメインが全部開のときだけ開く（`scripts/structure/extensions/derive/featureTables.mjs`。項目の `cronPaths` は説明用）。規則に `/api/cron/` を手書きすると生成で失敗
 - **上流の既定**: 上流は付け足しの機能を閉じて出荷し、土台の画面は開いたまま。閉 = wallet・payment・coupon・referral・couponAttributionReward・analytics・chatRoom・milestone・deviceFingerprint・fingerprintChallenge・userAcquisition・userLineProfile・userXProfile・sampleDomain・demoPages・demoLogin・pageEntry・pageServices・interactionTracking・userCounter・phoneVerification・pause・pairedDevice・messagingTracking ほか(依存先に従う子も閉)
   - 開 = signup・pageMypage・利用規約などの法務の画面・withdraw ほか。使う機能は fork が `switches.config.ts` で開ける(`pnpm ops features set <名前> on`)。上流の開発は全開スイッチで全部開ける(「全開スイッチ」)

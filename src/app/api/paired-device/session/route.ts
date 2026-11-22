@@ -9,12 +9,12 @@ import {
   rejectCrossSiteRequest,
   unpairPairedDevice,
   withPairedDeviceErrors,
-} from "@/features/pairedDevice/services/server";
+} from "@/domains/pairedDevice/services/server";
 import {
   authenticateRequestDevice,
   clearPairedDeviceCookie,
   syncPairedDeviceCookie,
-} from "@/features/pairedDevice/services/server/session";
+} from "@/domains/pairedDevice/services/server/session";
 import { getAuditContext, runWithAuditContext } from "@/lib/audit/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 

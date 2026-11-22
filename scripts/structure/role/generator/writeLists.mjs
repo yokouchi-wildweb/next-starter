@@ -14,14 +14,14 @@ import { generatedHeader } from "./header.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "../../../..");
-const EXTENSIONS_REL = "src/features/core/userProfile/extensions";
+const EXTENSIONS_REL = "src/domains/core/userProfile/extensions";
 const EXTENSIONS_DIR = path.join(ROOT_DIR, EXTENSIONS_REL);
-const ROLES_LIST_PATH = path.join(ROOT_DIR, "src/features/core/user/extensions/roles.ts");
-const PROFILE_ENTITIES = "@/features/core/userProfile/entities/profiles";
-const PROFILE_HEADER = generatedHeader("src/features/core/userProfile/extensionPoints.ts");
+const ROLES_LIST_PATH = path.join(ROOT_DIR, "src/domains/core/user/extensions/roles.ts");
+const PROFILE_ENTITIES = "@/domains/core/userProfile/entities/profiles";
+const PROFILE_HEADER = generatedHeader("src/domains/core/userProfile/extensionPoints.ts");
 const PROFILES_DIR = path.join(
   ROOT_DIR,
-  "src/features/core/userProfile/profiles"
+  "src/domains/core/userProfile/profiles"
 );
 
 /** 一覧の要素の式: 上書きが無ければ JSON の変数のまま、あれば変数に上書きの値を重ねる */
@@ -41,7 +41,7 @@ function getAllProfiles() {
   const files = fs.readdirSync(PROFILES_DIR);
   return files
     .filter((file) => file.endsWith(".profile.json"))
-    .filter((file) => fs.existsSync(path.join(ROOT_DIR, "src/features/core/userProfile/entities/profiles", file.replace(".profile.json", ""))))
+    .filter((file) => fs.existsSync(path.join(ROOT_DIR, "src/domains/core/userProfile/entities/profiles", file.replace(".profile.json", ""))))
     .map((file) => {
       const roleId = file.replace(".profile.json", "");
       const configPath = path.join(PROFILES_DIR, file);
@@ -100,13 +100,13 @@ function renderProfileSchemas(profiles) {
 
 /** userProfile/extensions/profileConfigs.ts: ロール → プロフィール設定 */
 function renderProfileConfigs(profiles) {
-  const imports = profiles.map(({ roleId }) => `import ${roleId}Profile from "@/features/core/userProfile/profiles/${roleId}.profile.json";`);
+  const imports = profiles.map(({ roleId }) => `import ${roleId}Profile from "@/domains/core/userProfile/profiles/${roleId}.profile.json";`);
   const entries = profiles.map(({ roleId, override }) => `  ${roleId}: ${withOverride(`${roleId}Profile`, override)} as ProfileConfig,`);
   return [
     PROFILE_HEADER,
     `// ${EXTENSIONS_REL}/profileConfigs.ts`,
     "",
-    'import type { ProfileConfig } from "@/features/core/userProfile/profiles";',
+    'import type { ProfileConfig } from "@/domains/core/userProfile/profiles";',
     ...imports,
     "",
     "export const profileConfigs: Record<string, ProfileConfig> = {",
@@ -317,7 +317,7 @@ function renderProfileBases(profiles) {
     );
     if (!override.searchFields) {
       importLines.push(
-        `import ${profileVar} from "@/features/core/userProfile/profiles/${roleId}.profile.json";`
+        `import ${profileVar} from "@/domains/core/userProfile/profiles/${roleId}.profile.json";`
       );
     }
 
@@ -355,7 +355,7 @@ function renderProfileBases(profiles) {
   const relationImportLines = [];
   for (const [domain, vars] of allRelationTableImports) {
     relationImportLines.push(
-      `import { ${Array.from(vars).join(", ")} } from "@/features/${domain}/entities/drizzle";`
+      `import { ${Array.from(vars).join(", ")} } from "@/domains/${domain}/entities/drizzle";`
     );
   }
 
@@ -374,10 +374,10 @@ function renderProfileBases(profiles) {
     PROFILE_HEADER,
     `// ${EXTENSIONS_REL}/profileBases.ts`,
     "",
-    'import { createProfileBase } from "@/features/core/userProfile/utils/createProfileBase";',
-    'import type { ProfileBase } from "@/features/core/userProfile/types";',
+    'import { createProfileBase } from "@/domains/core/userProfile/utils/createProfileBase";',
+    'import type { ProfileBase } from "@/domains/core/userProfile/types";',
     ...(profiles.some(({ config }) => isAuditActive(config.audit)) ? [AUDIT_LOGGER_IMPORT.trimEnd()] : []),
-    ...(profiles.length ? ['import type { ProfileConfig } from "@/features/core/userProfile/profiles";', ""] : []),
+    ...(profiles.length ? ['import type { ProfileConfig } from "@/domains/core/userProfile/profiles";', ""] : []),
     ...importLines,
     ...extraImports,
     "",
@@ -392,7 +392,7 @@ function renderProfileBases(profiles) {
 function readRoleEntries() {
   if (!fs.existsSync(ROLES_LIST_PATH)) return [];
   const content = fs.readFileSync(ROLES_LIST_PATH, "utf8");
-  return [...content.matchAll(/^import \w+Role from "@\/features\/core\/user\/(?:coreRoles|roles)\/([\w-]+)\.role\.json";$/gm)].map(([, id]) => ({ id }));
+  return [...content.matchAll(/^import \w+Role from "@\/domains\/core\/user\/(?:coreRoles|roles)\/([\w-]+)\.role\.json";$/gm)].map(([, id]) => ({ id }));
 }
 
 /** 一覧のファイルの ID の並び（generate --all が使う） */
@@ -402,12 +402,12 @@ function writeRoles(entries) {
   const varOf = ({ id }) => `${toCamelCase(id)}Role`;
   const overrideOf = ({ id }) => requireOverride(readRoleOverride(roleFileOf(id)));
   const content = [
-    generatedHeader("src/features/core/user/extensionPoints.ts"),
-    "// src/features/core/user/extensions/roles.ts",
+    generatedHeader("src/domains/core/user/extensionPoints.ts"),
+    "// src/domains/core/user/extensions/roles.ts",
     "",
-    'import type { RoleConfig } from "@/features/core/user/types";',
+    'import type { RoleConfig } from "@/domains/core/user/types";',
     "",
-    ...entries.map((e) => `import ${varOf(e)} from "@/features/core/user/${isCoreRole(e.id) ? "coreRoles" : "roles"}/${e.id}.role.json";`),
+    ...entries.map((e) => `import ${varOf(e)} from "@/domains/core/user/${isCoreRole(e.id) ? "coreRoles" : "roles"}/${e.id}.role.json";`),
     "",
     "export const roles: readonly RoleConfig[] = [",
     ...entries.map((e) => `  ${withOverride(varOf(e), overrideOf(e))} as RoleConfig,`),

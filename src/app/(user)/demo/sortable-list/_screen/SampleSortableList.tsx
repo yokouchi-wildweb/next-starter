@@ -8,7 +8,7 @@ import {
   type ReorderResult,
   type SortableListColumn,
 } from "@/lib/sortableList";
-import type { Sample } from "@/features/sample/entities/model";
+import type { Sample } from "@/domains/sample/entities/model";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { AppImage } from "@/components/Media/AppImage";
@@ -16,7 +16,7 @@ import { Block } from "@/components/Layout/Block";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
-import { sampleClient } from "@/features/sample/services/client/sampleClient";
+import { sampleClient } from "@/domains/sample/services/client/sampleClient";
 
 type Props = {
   initialSamples: Sample[];

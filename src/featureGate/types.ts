@@ -22,7 +22,7 @@ export type FeatureGateRule = {
    */
   pathPatterns: string[];
   /**
-   * この機能が使うドメインのフォルダ(src/features からの相対、例 "core/wallet"・"sample")。D33 で features: から改名(古い名前は生成器が止める)。
+   * この機能が使うドメインのフォルダ(src/domains からの相対、例 "core/wallet"・"sample")。D33 で features: から改名(古い名前は生成器が止める)。
    * 文字列リテラルの配列で書く(生成器が字面で読む)。ドメインは持つ機能のどれかが開なら開(D24)、閉なら表・汎用 API・cron が閉じる。
    * フォルダの下の全 pgTable が対象(fork が上流のフォルダに足した表も入る)。1 つのドメインを複数の機能に書いてよい。enum は外さない
    */
@@ -74,7 +74,7 @@ export type GeneratedFeatureRule = FeatureGateRule & {
  * 表(db:push・seed・pnpm ops db clear)と汎用 API の住所(apiPaths = /api/<domainEntry のキー>)はこの開閉で決まる
  */
 export type GatedDomain = {
-  /** src/features からの相対("core/wallet"・"sample") */
+  /** src/domains からの相対("core/wallet"・"sample") */
   folder: string;
   tables: string[];
   apiPaths: string[];

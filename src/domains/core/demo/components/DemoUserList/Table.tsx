@@ -1,0 +1,159 @@
+// src/domains/core/demo/components/DemoUserList/Table.tsx
+
+"use client";
+
+import { useCallback, useMemo, useState } from "react";
+
+import { BulkActionItems, DataTable, RecordSelectionTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
+import { useUserAdminBulkActions } from "@/domains/core/user/hooks/useUserAdminBulkActions";
+import { HardDeleteButton } from "@/lib/crud";
+import { Button } from "@/components/Button/Button";
+import type { User } from "@/domains/core/user/entities";
+import { adminConfig } from "@/domains/admin/config";
+import presenters from "@/domains/core/user/presenters";
+import AdminWalletAdjustModal from "@/domains/core/wallet/components/AdminWalletAdjustModal";
+import { UserAdminMemoCell } from "@/domains/core/user/components/common/UserAdminMemoCell";
+import { userConfig } from "@/domains/user/config";
+import { walletConfig } from "@/domains/wallet/config";
+import { useGate } from "@/featureGate/client";
+import { demoConfig } from "@/domains/core/demo/config";
+import { domainDisplay as userDisplay } from "@/domains/core/user/entities/display";
+
+type Props = {
+  users: User[];
+};
+
+const { dataTable } = adminConfig;
+const adminDataTableFallback = dataTable.emptyFieldFallback ?? "(未設定)";
+
+const createColumns = (
+  onAdjust: (user: User) => void,
+  enableWalletAdjust: boolean,
+  enableUserMemo: boolean,
+): DataTableColumn<User>[] => {
+  const columns: DataTableColumn<User>[] = [
+    {
+      header: "ステータス",
+      render: (user) =>
+        presenters.status({
+          value: user.status,
+          field: "status",
+          record: user,
+        }),
+    },
+    {
+      header: "ロール",
+      render: (user) =>
+        presenters.role({
+          value: user.role,
+          field: "role",
+          record: user,
+        }),
+    },
+    {
+      header: "表示名",
+      render: (user) =>
+        presenters.name({
+          value: user.name,
+          field: "name",
+          record: user,
+        }),
+    },
+    {
+      header: "メールアドレス",
+      render: (user) =>
+        presenters.email({
+          value: user.email,
+          field: "email",
+          record: user,
+        }),
+    },
+    {
+      header: "登録日",
+      render: (user) =>
+        presenters.createdAt({
+          value: user.createdAt,
+          field: "createdAt",
+          record: user,
+        }),
+    },
+  ];
+
+  if (enableUserMemo) {
+    columns.push({
+      header: "メモ",
+      render: (user) => <UserAdminMemoCell userId={user.id} memo={user.adminMemo} />,
+    });
+  }
+
+  columns.push({
+    header: "操作",
+    render: (user) => (
+      <TableCellAction>
+        {enableWalletAdjust ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => onAdjust(user)}
+          >
+            ポイント操作
+          </Button>
+        ) : null}
+        <HardDeleteButton domain={userDisplay} id={user.id} title="デモユーザー削除" label="削除" description="デモユーザーを削除します。よろしいですか？" confirmLabel="削除する" />
+      </TableCellAction>
+    ),
+  });
+
+  return columns;
+};
+
+export default function DemoUserListTable({ users }: Props) {
+  const [adjustTarget, setAdjustTarget] = useState<User | null>(null);
+  const enableWalletAdjust = useGate().enabled("wallet") && walletConfig.enableAdminBalanceAdjust;
+  const enableUserMemo = userConfig.enableUserMemo;
+  const { selectionBehavior, selectionMode } = userConfig.userListPage;
+  // デモ利用者の一覧の選択のテーブルは demo の設定(設定 D112)。画面は機能 adminDemoUsers の住所なので閉なら出ない
+  const useSelectionTable = useGate().enabled("adminDemoUsers") && demoConfig.adminList.selectionTable;
+  // 一括操作: 受け口 adminBulkActions の項目(上流の既定 + fork の項目。D149)
+  const bulkActionItems = useUserAdminBulkActions("demo");
+
+  const handleOpenAdjust = useCallback((user: User) => {
+    setAdjustTarget(user);
+  }, []);
+
+  const handleCloseAdjust = useCallback(() => {
+    setAdjustTarget(null);
+  }, []);
+
+  const columns = useMemo(
+    () => createColumns(handleOpenAdjust, enableWalletAdjust, enableUserMemo),
+    [handleOpenAdjust, enableWalletAdjust, enableUserMemo],
+  );
+
+  return (
+    <>
+      {useSelectionTable ? (
+        <RecordSelectionTable
+          items={users}
+          columns={columns}
+          getKey={(user) => user.id}
+          emptyValueFallback={adminDataTableFallback}
+          selectionBehavior={selectionBehavior}
+          selectionMode={selectionMode}
+          bulkActions={(selection) => <BulkActionItems items={bulkActionItems} selection={selection} />}
+        />
+      ) : (
+        <DataTable
+          items={users}
+          columns={columns}
+          getKey={(user) => user.id}
+          emptyValueFallback={adminDataTableFallback}
+        />
+      )}
+      {enableWalletAdjust ? (
+        <AdminWalletAdjustModal open={Boolean(adjustTarget)} user={adjustTarget} onClose={handleCloseAdjust} />
+      ) : null}
+    </>
+  );
+}

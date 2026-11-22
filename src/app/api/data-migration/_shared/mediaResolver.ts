@@ -8,11 +8,11 @@
 
 import "server-only";
 
-import type { SessionUser } from "@/features/core/auth/entities/session";
+import type { SessionUser } from "@/domains/core/auth/entities/session";
 import {
   storageObjectService,
   type StorageObjectService,
-} from "@/features/core/storageObject/services/server/storageObjectService";
+} from "@/domains/core/storageObject/services/server/storageObjectService";
 import type { DataMigrationMediaResolver } from "@/lib/dataMigration/server";
 import { parseStorageRef, resolveStorageSrc } from "@/lib/storage";
 

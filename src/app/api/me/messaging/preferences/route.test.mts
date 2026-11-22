@@ -40,7 +40,7 @@ mock.module("@/featureGate", {
 
 const calls: { fn: string; userId: string; input?: unknown; options?: unknown }[] = [];
 const grid = { allOptedOut: false, categories: [], kinds: [], channels: [] };
-mock.module("@/features/core/messaging/services/server", {
+mock.module("@/domains/core/messaging/services/server", {
   namedExports: {
     messagingService: {
       getMessagePreferences: async (userId: string) => {

@@ -17,20 +17,20 @@ test("unitName: 最後の拡張子と末尾の /index を除き、.replace / .ov
 const spec = (/** @type {string} */ dir) => `{ dir: "${dir}", export: "x", type: { from: "@/t", name: "T" }, side: "server" }`;
 
 test("unitPlaces / placeUnitOf: 受け口・wiring・scripts は直下の項目だけ、route の隣はその下全部、それ以外は対象外", () => {
-  const files = ["src/features/core/user/extensionPoints.ts", "src/proxies/extensionPoints.ts"];
+  const files = ["src/domains/core/user/extensionPoints.ts", "src/proxies/extensionPoints.ts"];
   /** @type {Record<string, string>} */
   const texts = {
-    "src/features/core/user/extensionPoints.ts": `export const extensionPoints = {\n  // b: ${spec("commented")},\n  a: ${spec("cleanup")},\n};\n`,
+    "src/domains/core/user/extensionPoints.ts": `export const extensionPoints = {\n  // b: ${spec("commented")},\n  a: ${spec("cleanup")},\n};\n`,
     "src/proxies/extensionPoints.ts": `export const extensionPoints = { h: ${spec(".")}, r: ${spec("featureGateRules")} };\n`,
   };
   const places = unitPlaces(files, (p) => texts[p] ?? null);
-  assert.ok(places.direct.has("src/features/core/user/cleanup"));
+  assert.ok(places.direct.has("src/domains/core/user/cleanup"));
   assert.ok(places.direct.has("src/proxies"));
   assert.ok(places.direct.has("src/proxies/featureGateRules"));
-  assert.ok(!places.direct.has("src/features/core/user/commented"));
-  assert.equal(placeUnitOf("src/features/core/user/cleanup/foo.tsx", places), "src/features/core/user/cleanup/foo");
-  assert.equal(placeUnitOf("src/features/core/user/cleanup/foo/index.ts", places), "src/features/core/user/cleanup/foo");
-  assert.equal(placeUnitOf("src/features/core/user/cleanup/foo/part.ts", places), null, "項目のフォルダの中の部品は見ない");
+  assert.ok(!places.direct.has("src/domains/core/user/commented"));
+  assert.equal(placeUnitOf("src/domains/core/user/cleanup/foo.tsx", places), "src/domains/core/user/cleanup/foo");
+  assert.equal(placeUnitOf("src/domains/core/user/cleanup/foo/index.ts", places), "src/domains/core/user/cleanup/foo");
+  assert.equal(placeUnitOf("src/domains/core/user/cleanup/foo/part.ts", places), null, "項目のフォルダの中の部品は見ない");
   assert.equal(placeUnitOf("src/wiring/x.ts", places), "src/wiring/x");
   assert.equal(placeUnitOf("scripts/proxies/alwaysOnExceptions/x.mjs", places), null, "旧い例外の置き場は場所でない(門番の受け口へ移った)");
   assert.equal(placeUnitOf("scripts/foo.mjs", places), "scripts/foo");
@@ -70,8 +70,8 @@ test("部品の棚: 基準の分類・hooks・utils・src/lib の直下が単位
 test("unitPlaces: 形の誤りのある宣言は点 0(止めるのは pnpm check extensions)・overrideTargetUnit・unitIndex", () => {
   const places = unitPlaces(["src/x/extensionPoints.ts"], () => 'export const extensionPoints = { a: { dir: DIR } };\n');
   assert.ok(![...places.direct].some((d) => d.startsWith("src/x")));
-  assert.equal(overrideTargetUnit("src/features/core/setting/fields/a.override.ts"), "src/features/core/setting/fields/a");
-  assert.equal(overrideTargetUnit("src/features/core/user/roles/coreRoles/user.role.override.ts"), "src/features/core/user/roles/coreRoles/user.role");
+  assert.equal(overrideTargetUnit("src/domains/core/setting/fields/a.override.ts"), "src/domains/core/setting/fields/a");
+  assert.equal(overrideTargetUnit("src/domains/core/user/roles/coreRoles/user.role.override.ts"), "src/domains/core/user/roles/coreRoles/user.role");
   assert.equal(overrideTargetUnit("src/app/api/cron/x/task.override.ts"), "src/app/api/cron/x/task");
   assert.equal(overrideTargetUnit("src/app/api/cron/x/override.ts"), null, "旧名の素の override.ts は対象を持たない");
   assert.equal(overrideTargetUnit("src/x/a.ts"), null);

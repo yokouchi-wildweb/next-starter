@@ -32,7 +32,7 @@
 
 ### custom の欄
 
-`formInput: "custom"` の欄は自動で描かない(スキーマには含まれる)。`beforeField` / `afterField` で独自の部品を入れる(例: `src/features/README.md`「custom の使い方」)。
+`formInput: "custom"` の欄は自動で描かない(スキーマには含まれる)。`beforeField` / `afterField` で独自の部品を入れる(例: `src/domains/README.md`「custom の使い方」)。
 
 ### 登録された入力部品
 
@@ -77,7 +77,7 @@
 
 ### fieldGroups(セクション分け)
 
-`FieldGroup[]` を渡すと、欄が `<fieldset>` のセクション(`FieldGroupSection`)に分かれて描かれる。domain.json のトップレベル `fieldGroups` でも宣言でき、生成の `XxxFields` が自動で読む(スキーマ定義: `src/features/README.md`「FieldGroup（フィールドグループ）」)。
+`FieldGroup[]` を渡すと、欄が `<fieldset>` のセクション(`FieldGroupSection`)に分かれて描かれる。domain.json のトップレベル `fieldGroups` でも宣言でき、生成の `XxxFields` が自動で読む(スキーマ定義: `src/domains/README.md`「FieldGroup（フィールドグループ）」)。
 
 | プロパティ | 型 | 説明 |
 |---|---|---|
@@ -129,6 +129,6 @@
 ## Related
 
 - フォームの部品一式: `../README.md`
-- domain.json の欄・fieldGroups・custom: `src/features/README.md`
+- domain.json の欄・fieldGroups・custom: `src/domains/README.md`
 - 登録する入力部品: `src/wiring/formInputs/inputs/README.md`
 - メディアの入力: `src/lib/mediaInputSuite/README.md`

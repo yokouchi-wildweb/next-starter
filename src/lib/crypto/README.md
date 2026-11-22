@@ -82,6 +82,6 @@ v1:iv:authTag:ciphertext
 
 ## Related
 
-- `src/features/core/userXProfile/` — X OAuth トークンの暗号化保存
-- `src/features/core/pairedDevice/` — 端末トークン・ペアリングコード(secretToken.ts)
+- `src/domains/core/userXProfile/` — X OAuth トークンの暗号化保存
+- `src/domains/core/pairedDevice/` — 端末トークン・ペアリングコード(secretToken.ts)
 - `src/utils/hash.ts` — パスワードの不可逆ハッシュ(scrypt)

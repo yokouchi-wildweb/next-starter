@@ -2,12 +2,12 @@
 //
 // 生成器は全体で「フォルダ名 = camel(singular)」を前提にパス（生成先・import・レジストリ登録・他ドメインからの
 // リレーション import）を組み立てる。フォルダ名を手で変えたドメインを生成すると、存在しない
-// `@/features/<camel(singular)>/...` への参照や別フォルダへの生成物が黙って書き出されるため、生成前に止める。
+// `@/domains/<camel(singular)>/...` への参照や別フォルダへの生成物が黙って書き出されるため、生成前に止める。
 
 import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
 
 /**
- * @param {string} folder src/features/ 直下のフォルダ名
+ * @param {string} folder src/domains/ 直下のフォルダ名
  * @param {{ singular?: string }} config domain.json の内容
  * @returns {string | null} 不一致ならエラーメッセージ、一致（または singular 未宣言）なら null
  */

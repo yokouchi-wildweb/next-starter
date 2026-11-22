@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/features/core/pairedDevice/**"
-  - "src/config/features/pairedDevice.config.ts"
+  - "src/domains/core/pairedDevice/**"
+  - "src/config/domains/pairedDevice.config.ts"
 ---
-# features/pairedDevice
-what: shared devices (store tablets, kiosks) registered as a principal apart from user accounts, authenticated by a long-lived device token cookie; routes createDeviceRoute (@/wiring/apiRoute), pages deviceGuard / principalGuard (services/server/session), hooks @/features/pairedDevice/hooks
+# domains/pairedDevice
+what: shared devices (store tablets, kiosks) registered as a principal apart from user accounts, authenticated by a long-lived device token cookie; routes createDeviceRoute (@/wiring/apiRoute), pages deviceGuard / principalGuard (services/server/session), hooks @/domains/pairedDevice/hooks
 use: pairedDevice
-change: add = a device kind in kinds/ (kinds, extensionPoints.ts) | placement = src/config/features/pairedDevice.config.ts
+change: add = a device kind in kinds/ (kinds, extensionPoints.ts) | placement = src/config/domains/pairedDevice.config.ts
 rules:
 using:
 - scope_from_device: store / table ids come from device.scope on the server, never from the body or a client id

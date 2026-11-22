@@ -11,7 +11,7 @@
 ### CRUD サービスで使う
 
 ```ts
-// features/<domain>/services/server/drizzleBase.ts
+// domains/<domain>/services/server/drizzleBase.ts
 export const base = createCrudService(SomeTable, {
   requestMemo: true, // get のメモ化 + 全書き込みメソッドの自動 invalidate
 });
@@ -72,4 +72,4 @@ memo.invalidate("some-id"); // または memo.invalidateAll()
 ## Related
 
 - CRUD サービス(システム更新・一括更新): `src/lib/crud/README.md`
-- リクエストをまたぐキャッシュ: `src/features/core/analytics/README.md`
+- リクエストをまたぐキャッシュ: `src/domains/core/analytics/README.md`

@@ -11,7 +11,7 @@
 
 import { gate } from "@/featureGate";
 import { createApiRoute } from "@/wiring/apiRoute";
-import { INVITE_LINK_COOKIE_NAME } from "@/features/core/referral/lib/inviteLinkCookie";
+import { INVITE_LINK_COOKIE_NAME } from "@/domains/core/referral/lib/inviteLinkCookie";
 
 export const GET = createApiRoute(
   {

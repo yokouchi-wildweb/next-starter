@@ -20,8 +20,8 @@ env:
 
 発火ポイント(core):
 
-- サインアップ完了 `features/core/auth/hooks/useSignupComplete`(/signup/complete の公開 hook): `useTransitionGuard` の正当遷移時のみ `fire("signup")`
-- コイン購入完了 `features/core/purchaseRequest/components/PurchaseComplete`: `status==="completed"` で `fire("coinPurchase", { value, currency:"JPY", transactionId })`
+- サインアップ完了 `domains/core/auth/hooks/useSignupComplete`(/signup/complete の公開 hook): `useTransitionGuard` の正当遷移時のみ `fire("signup")`
+- コイン購入完了 `domains/core/purchaseRequest/components/PurchaseComplete`: `status==="completed"` で `fire("coinPurchase", { value, currency:"JPY", transactionId })`
 
 リファラー無視の追加(downstream): root layout で `@/wiring/GoogleTag` の `<GoogleTag ignoreReferrerPaths={[/^\/your\/return\/path/]} ignoreReferrerDomains={["your-psp.example"]} />`
 

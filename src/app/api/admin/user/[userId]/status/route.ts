@@ -4,8 +4,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { userService } from "@/features/core/user/services/server/userService";
-import { USER_STATUSES } from "@/features/core/user/constants/status";
+import { userService } from "@/domains/core/user/services/server/userService";
+import { USER_STATUSES } from "@/domains/core/user/constants/status";
 
 const ChangeStatusPayloadSchema = z.object({
   status: z.enum(USER_STATUSES),

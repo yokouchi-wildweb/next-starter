@@ -1,0 +1,25 @@
+// src/domains/userLineProfile/services/server/wrappers/unlinkLineAccount.ts
+
+import { eq } from "drizzle-orm";
+
+import { UserLineProfileTable } from "@/domains/core/userLineProfile/entities/drizzle";
+import { db } from "@/lib/drizzle";
+import { DomainError } from "@/lib/errors";
+
+/**
+ * ユーザーから LINE 連携を解除する。
+ * user_line_profiles レコードを物理削除する。
+ */
+export async function unlinkLineAccount(userId: string): Promise<void> {
+  const [existing] = await db
+    .select()
+    .from(UserLineProfileTable)
+    .where(eq(UserLineProfileTable.userId, userId))
+    .limit(1);
+
+  if (!existing) {
+    throw new DomainError("LINE 連携されていません", { status: 400 });
+  }
+
+  await db.delete(UserLineProfileTable).where(eq(UserLineProfileTable.id, existing.id));
+}

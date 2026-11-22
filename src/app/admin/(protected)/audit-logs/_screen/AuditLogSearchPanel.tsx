@@ -20,11 +20,11 @@ import {
   formatActorTypeLabel,
   formatAuditDate,
   type AuditLog,
-} from "@/features/core/auditLog";
-import { useAuditLogSearch } from "@/features/core/auditLog/hooks/useAuditLogSearch";
-import { useAuditLogSearchFilters } from "@/features/core/auditLog/hooks/useAuditLogSearchFilters";
+} from "@/domains/core/auditLog";
+import { useAuditLogSearch } from "@/domains/core/auditLog/hooks/useAuditLogSearch";
+import { useAuditLogSearchFilters } from "@/domains/core/auditLog/hooks/useAuditLogSearchFilters";
 
-import { DiffView } from "@/features/core/auditLog/components/common/AuditTimeline";
+import { DiffView } from "@/domains/core/auditLog/components/common/AuditTimeline";
 
 const PAGE_SIZE = 100;
 

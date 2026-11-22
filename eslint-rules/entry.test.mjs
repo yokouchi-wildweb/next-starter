@@ -23,7 +23,7 @@ function write(rel, content) {
   writeFileSync(file, typeof content === "string" ? content : JSON.stringify(content, null, 2));
 }
 
-write("tsconfig.json", { compilerOptions: { paths: { "@/*": ["./src/*"], "@/features/wallet/*": ["./src/features/core/wallet/*"] } } });
+write("tsconfig.json", { compilerOptions: { paths: { "@/*": ["./src/*"], "@/domains/wallet/*": ["./src/domains/core/wallet/*"] } } });
 // toastlike: 宣言済み(入口 . と ./client)。cn を読み、棚 components を peer に持つ
 write("src/lib/toastlike/package.json", {
   exports: { ".": "./index.ts", "./client": "./client.ts" },
@@ -41,7 +41,7 @@ write("src/lib/other/index.ts", "export {};\n");
 
 const at = (rel) => path.join(root, rel);
 const options = [{ root }];
-const outside = at("src/features/x/components/A.tsx");
+const outside = at("src/domains/x/components/A.tsx");
 const inToast = at("src/lib/toastlike/inner/store.ts");
 const inPlain = at("src/lib/plain/index.ts");
 
@@ -106,7 +106,7 @@ test("entry/only-entries(lib): 宣言済みの lib は宣言した lib の入口
       { code: `import type { X } from "../../other";`, filename: inToast, options, errors: [{ messageId: "undeclaredLib" }] },
       { code: `import { x } from "@/lib/cn/groups";`, filename: inToast, options, errors: [{ messageId: "libInner" }] },
       { code: `import { x } from "@/hooks/useIsClient";`, filename: inToast, options, errors: [{ messageId: "undeclaredPath" }] },
-      { code: `import { x } from "@/features/user/hooks";`, filename: inToast, options, errors: [{ messageId: "undeclaredPath" }] },
+      { code: `import { x } from "@/domains/user/hooks";`, filename: inToast, options, errors: [{ messageId: "undeclaredPath" }] },
       { code: `import { x } from "@/config/ui/fonts.config";`, filename: inToast, options, errors: [{ messageId: "undeclaredPath" }] },
       { code: `import c from "@/config/lib/toastlike.config";`, filename: inToast, options, errors: [{ messageId: "undeclaredPath" }] },
       { code: `import c from "src/config/lib/toastlike.config";`, filename: inToast, options, errors: [{ messageId: "undeclaredPath" }] },
@@ -135,7 +135,7 @@ test("rule lib-self-relative: 宣言済みの lib の中で自分を別名で読
   });
 });
 
-const C = "src/features/core/wallet/components";
+const C = "src/domains/core/wallet/components";
 
 test("corePartFolderOf: 入口は null、中身は部品のフォルダ", () => {
   assert.equal(corePartFolderOf(`${C}/WalletBalance`), null);
@@ -147,8 +147,8 @@ test("corePartFolderOf: 入口は null、中身は部品のフォルダ", () => 
   assert.equal(corePartFolderOf(`${C}/WalletBalance/Card`), `${C}/WalletBalance`);
   assert.equal(corePartFolderOf(`${C}/WalletBalance/a/b`), `${C}/WalletBalance`);
   assert.equal(corePartFolderOf(`${C}/common/Row/Cell`), `${C}/common/Row`);
-  assert.equal(corePartFolderOf("src/features/core/wallet/hooks/useX"), null);
-  assert.equal(corePartFolderOf("src/features/gacha/components/A/B"), null);
+  assert.equal(corePartFolderOf("src/domains/core/wallet/hooks/useX"), null);
+  assert.equal(corePartFolderOf("src/domains/gacha/components/A/B"), null);
   assert.equal(corePartFolderOf(null), null);
 });
 
@@ -191,22 +191,22 @@ test("entry/only-entries(core の部品): 入口だけ。値も型も、core/ �
   const screen = at("src/app/x/_components/A.tsx");
   ruleTester.run("entry/only-entries", entryPlugin.rules["only-entries"], {
     valid: [
-      { code: 'import { WalletBalance } from "@/features/core/wallet/components/WalletBalance";', filename: screen, options },
-      { code: 'import { WalletBalance } from "@/features/wallet/components/WalletBalance";', filename: screen, options },
-      { code: 'import { Row } from "@/features/core/wallet/components/common/Row";', filename: screen, options },
+      { code: 'import { WalletBalance } from "@/domains/core/wallet/components/WalletBalance";', filename: screen, options },
+      { code: 'import { WalletBalance } from "@/domains/wallet/components/WalletBalance";', filename: screen, options },
+      { code: 'import { Row } from "@/domains/core/wallet/components/common/Row";', filename: screen, options },
       { code: 'import { Card } from "./Card";', filename: at(`${C}/WalletBalance/index.tsx`), options },
       { code: 'import { Card } from "../Card";', filename: at(`${C}/WalletBalance/a/b.tsx`), options },
-      { code: 'import { renderer } from "@/features/core/milestone/components/renderers/x.child";', filename: at("src/features/core/milestone/extensions/renderers.ts"), options, name: "生成された一覧" },
-      { code: 'import { B } from "@/features/gacha/components/A/B";', filename: screen, options, name: "core の外" },
+      { code: 'import { renderer } from "@/domains/core/milestone/components/renderers/x.child";', filename: at("src/domains/core/milestone/extensions/renderers.ts"), options, name: "生成された一覧" },
+      { code: 'import { B } from "@/domains/gacha/components/A/B";', filename: screen, options, name: "core の外" },
     ],
     invalid: [
-      { code: 'import { Card } from "@/features/core/wallet/components/WalletBalance/Card";', filename: screen, options, errors: [{ messageId: "coreInner" }] },
-      { code: 'import type { Props } from "@/features/core/wallet/components/WalletBalance/Card";', filename: screen, options, errors: [{ messageId: "coreInner" }], name: "型も" },
-      { code: 'import { Card } from "@/features/wallet/components/WalletBalance/Card";', filename: screen, options, errors: [{ messageId: "coreInner" }] },
-      { code: 'import { Cell } from "@/features/wallet/components/common/Row/Cell";', filename: screen, options, errors: [{ messageId: "coreInner" }] },
+      { code: 'import { Card } from "@/domains/core/wallet/components/WalletBalance/Card";', filename: screen, options, errors: [{ messageId: "coreInner" }] },
+      { code: 'import type { Props } from "@/domains/core/wallet/components/WalletBalance/Card";', filename: screen, options, errors: [{ messageId: "coreInner" }], name: "型も" },
+      { code: 'import { Card } from "@/domains/wallet/components/WalletBalance/Card";', filename: screen, options, errors: [{ messageId: "coreInner" }] },
+      { code: 'import { Cell } from "@/domains/wallet/components/common/Row/Cell";', filename: screen, options, errors: [{ messageId: "coreInner" }] },
       { code: 'import { Card } from "../WalletBalance/Card";', filename: at(`${C}/WalletPurchase/index.tsx`), options, errors: [{ messageId: "coreInner" }] },
-      { code: 'export * from "@/features/wallet/components/WalletBalance/Card";', filename: at("src/app/x/_components/barrel.ts"), options, errors: [{ messageId: "coreInner" }] },
-      { code: 'const X = () => import("@/features/wallet/components/WalletBalance/Card");', filename: screen, options, errors: [{ messageId: "coreInner" }] },
+      { code: 'export * from "@/domains/wallet/components/WalletBalance/Card";', filename: at("src/app/x/_components/barrel.ts"), options, errors: [{ messageId: "coreInner" }] },
+      { code: 'const X = () => import("@/domains/wallet/components/WalletBalance/Card");', filename: screen, options, errors: [{ messageId: "coreInner" }] },
     ],
   });
 });

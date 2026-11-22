@@ -15,14 +15,14 @@ src/registry の α(serviceRegistry など)は `pnpm generate registry` / `pnpm 
 
 ### 宣言(extensionPoints.ts)
 
-持ち主のフォルダの直下に手書きで 1 つ置く(そのフォルダの全拡張点の目次。1 フォルダ 1 宣言)。読み手は `src/lib/districtMap/declarations.mjs` の 1 か所で、生成器・所有の検査の単位名・`src/wiring` の配線テスト・ロールの上書きが同じものを使う。持ち主 = ドメイン(`src/features/**/<domain>/`)、画面側の点は持ち主の route の `_layout/` `_screen/`、proxy は `src/proxies/`、lib が持ち主の点は `src/lib/<lib>/`。宣言は src の下のどこに置いても読まれる(node_modules・`extensions/` の中は見ない)。
+持ち主のフォルダの直下に手書きで 1 つ置く(そのフォルダの全拡張点の目次。1 フォルダ 1 宣言)。読み手は `src/lib/districtMap/declarations.mjs` の 1 か所で、生成器・所有の検査の単位名・`src/wiring` の配線テスト・ロールの上書きが同じものを使う。持ち主 = ドメイン(`src/domains/**/<domain>/`)、画面側の点は持ち主の route の `_layout/` `_screen/`、proxy は `src/proxies/`、lib が持ち主の点は `src/lib/<lib>/`。宣言は src の下のどこに置いても読まれる(node_modules・`extensions/` の中は見ない)。
 
 ```ts
 export const extensionPoints = {
   definitions: {
     dir: "milestones",                                              // 受け口(持ち主のフォルダからの相対、"." = 直下)
     export: "milestone",                                            // 項目が export する名前(印)
-    type: { from: "@/features/milestone/types", name: "MilestoneDefinition" }, // 一覧の要素の型
+    type: { from: "@/domains/milestone/types", name: "MilestoneDefinition" }, // 一覧の要素の型
     side: "server",                                                 // server | client | shared(読み手の側。今は記録だけ)
   },
 };
@@ -168,7 +168,7 @@ fork が上流(親の Tier)の物を変える方法はこの 4 つだけ。印�
 5. 上書きの対象の点(`overrides`): 隣の上書き `edit <glob の最後の拡張子を .override.ts に>`(多段で下の Tier が親の上書きを書き換える)、`addable` の点は対象そのものも `add <glob>`
 6. route の隣の置き換え: `_layout` / `_screen` の下の `*.replace.{ts,tsx}`・下のリポの枠の宣言 `frame.override.ts`
 7. 生成器: 各 `gate.json` の `regions` = `region`、`outputs` = `generated`(最後: 同じファイルなら生成物が効く。`scripts/runner/gates/README.md`)
-- scripts の受け口: なし(ドメインのタスク・移行は fork 自身のドメインの `src/features/<ドメイン>/scripts/{tasks,migrations}/`、`src/lib/task/README.md`。常時実行の例外は門番の受け口 src/featureGate/alwaysOnExceptions/ に移った)
+- scripts の受け口: なし(ドメインのタスク・移行は fork 自身のドメインの `src/domains/<ドメイン>/scripts/{tasks,migrations}/`、`src/lib/task/README.md`。常時実行の例外は門番の受け口 src/featureGate/alwaysOnExceptions/ に移った)
 
 区画は生成器の区画なので、fork が自分の受け口の行を足して作り直しても `pnpm workflow ownership check` は通る(検査は基準の区画を読む)。区画の外の行は手書き。一覧の数(`一覧 N`)には数えない。
 

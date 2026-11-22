@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useMaintenanceAutoRedirect } from "@/features/core/setting/hooks/useMaintenanceAutoRedirect";
+import { useMaintenanceAutoRedirect } from "@/domains/core/setting/hooks/useMaintenanceAutoRedirect";
 
 type Props = {
   /** メンテナンス終了時刻（ISO8601形式） */

@@ -1,6 +1,6 @@
 // eslint-rules/realtime-room-purity.mjs
 //
-// ルームロジック (src/features/**/room/**) の純度制約を強制するローカル ESLint プラグイン。
+// ルームロジック (src/domains/**/room/**) の純度制約を強制するローカル ESLint プラグイン。
 //
 // 背景:
 //   ルーム reducer は servers/room (Cloudflare Workers ランタイム) にバンドルされる。
@@ -20,7 +20,7 @@ const purityRule = {
   meta: {
     type: "problem",
     docs: {
-      description: "ルームロジック (features/**/room/**) の import を純粋な依存に限定する",
+      description: "ルームロジック (domains/**/room/**) の import を純粋な依存に限定する",
     },
     messages: {
       forbiddenImport:

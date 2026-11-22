@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/features/core/couponAttributionReward/**"
-  - "src/config/features/couponAttributionReward.config.ts"
+  - "src/domains/core/couponAttributionReward/**"
+  - "src/config/domains/couponAttributionReward.config.ts"
 ---
-# features/couponAttributionReward
+# domains/couponAttributionReward
 what: pays the attribution user of a redeemed coupon a wallet reward once per redemption and keeps the ledger coupon_attribution_rewards | server couponAttributionRewardService, client hooks/useMyAttributionRewards
 use: couponAttributionReward (dependsOn wallet)
-change: placement = src/config/features/couponAttributionReward.config.ts (recipientVisibleMetadataKeys) | the payout itself = a downstream coupon category handler calling grant
+change: placement = src/config/domains/couponAttributionReward.config.ts (recipientVisibleMetadataKeys) | the payout itself = a downstream coupon category handler calling grant
 rules:
 using:
 - amount_by_handler: amount, currency and rate are decided by the downstream coupon category handler

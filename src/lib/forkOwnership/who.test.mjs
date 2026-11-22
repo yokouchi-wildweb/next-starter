@@ -65,9 +65,9 @@ const INTAKE = [
   "edit .claude/rules/project.md  # 概要",
   "edit repo.json  # 名前と段",
   "add src/app/**/_screen/**/*.replace.{ts,tsx}  # Screen の丸ごと置き換え",
-  "edit src/features/**/services/server/domainEntry.override.ts  # access の上書き",
+  "edit src/domains/**/services/server/domainEntry.override.ts  # access の上書き",
   "generated src/registry/district-map.jsonl  # pnpm generate district-map",
-  "debt src/features/core/user/debt.ts  # 案内 → 20260101-000000-debt-intake",
+  "debt src/domains/core/user/debt.ts  # 案内 → 20260101-000000-debt-intake",
   "",
 ].join("\n");
 
@@ -84,9 +84,9 @@ function makeTier1() {
   write(root, "src/lib/crud/index.ts", "export const crud = 1;\n");
   write(root, "src/config/app.config.ts", "export const app = { name: 'base' };\n");
   write(root, "src/config/ui.config.ts", "export const ui = 1;\n");
-  write(root, "src/features/core/user/user.ts", "export const user = 1;\n");
-  write(root, "src/features/core/user/debt.ts", "export const debt = 1;\n");
-  write(root, "src/features/core/user/services/server/domainEntry.ts", "export const entry = 1;\n");
+  write(root, "src/domains/core/user/user.ts", "export const user = 1;\n");
+  write(root, "src/domains/core/user/debt.ts", "export const debt = 1;\n");
+  write(root, "src/domains/core/user/services/server/domainEntry.ts", "export const entry = 1;\n");
   write(root, "src/registry/district-map.jsonl", "{}\n");
   write(root, "src/app/admin/_screen/HomeScreen.tsx", "export const HomeScreen = 1;\n");
   write(root, ".notices/README.md", "# notices\n");
@@ -134,12 +134,12 @@ describe("pnpm workflow ownership who", () => {
     const root = makeTier1();
     const answer = whoOwns(root, [
       "src/config/app.config.ts",
-      "src/features/core/user/user.ts",
-      "src/features/core/user/debt.ts",
+      "src/domains/core/user/user.ts",
+      "src/domains/core/user/debt.ts",
       "src/app/admin/_screen/HomeScreen.tsx",
-      "src/features/core/user/services/server/domainEntry.ts",
+      "src/domains/core/user/services/server/domainEntry.ts",
       "src/registry/district-map.jsonl",
-      "src/features/game/game.ts",
+      "src/domains/game/game.ts",
       "src/lib/crud/extra.ts",
     ]);
     assert.equal(answer.status, "tier1");
@@ -148,21 +148,21 @@ describe("pnpm workflow ownership who", () => {
     assert.deepEqual(actions(config), ["edit"]);
     assert.equal(config.evidence.intake?.glob, "src/config/**");
 
-    const core = resultOf(answer, "src/features/core/user/user.ts");
+    const core = resultOf(answer, "src/domains/core/user/user.ts");
     assert.deepEqual(actions(core), ["none"]);
     assert.deepEqual(core.blocked, [{ action: "edit", reason: "outside-intake" }]);
-    assert.deepEqual(resultOf(answer, "src/features/core/user/debt.ts").blocked, [{ action: "edit", reason: "debt" }]);
+    assert.deepEqual(resultOf(answer, "src/domains/core/user/debt.ts").blocked, [{ action: "edit", reason: "debt" }]);
 
     const screen = resultOf(answer, "src/app/admin/_screen/HomeScreen.tsx");
     assert.deepEqual(actions(screen), ["replace"]);
     assert.equal(screen.allowed[0].path, "src/app/admin/_screen/HomeScreen.replace.tsx");
-    assert.deepEqual(actions(resultOf(answer, "src/features/core/user/services/server/domainEntry.ts")), ["override"]);
+    assert.deepEqual(actions(resultOf(answer, "src/domains/core/user/services/server/domainEntry.ts")), ["override"]);
 
     const map = resultOf(answer, "src/registry/district-map.jsonl");
     assert.equal(map.owner.kind, "generated");
     assert.equal(map.owner.tier, "tier1");
 
-    const missing = resultOf(answer, "src/features/game/game.ts");
+    const missing = resultOf(answer, "src/domains/game/game.ts");
     assert.equal(missing.owner.kind, "missing");
     assert.deepEqual(actions(missing), ["add"]);
     assert.deepEqual(resultOf(answer, "src/lib/crud/extra.ts").blocked, [{ action: "add", reason: "inside-unit-add" }]);
@@ -175,10 +175,10 @@ describe("pnpm workflow ownership who", () => {
   test("fork: 今の差分(受け口の中・違反と許可の下書き)、fork の物、フォルダは中のファイルに広げる", () => {
     const fork = makeFork(makeTier1(), "child");
     write(fork, "src/config/app.config.ts", "export const app = { name: 'child' };\n");
-    write(fork, "src/features/core/user/user.ts", "export const user = 2;\n");
-    write(fork, "src/features/game/game.ts", "export const game = 1;\n");
+    write(fork, "src/domains/core/user/user.ts", "export const user = 2;\n");
+    write(fork, "src/domains/game/game.ts", "export const game = 1;\n");
     commitAll(fork, "fork edits");
-    const answer = whoOwns(fork, ["src/config", "src/features/core/user/user.ts", "src/features/game/game.ts"], { fetch: false });
+    const answer = whoOwns(fork, ["src/config", "src/domains/core/user/user.ts", "src/domains/game/game.ts"], { fetch: false });
     assert.equal(answer.status, "ok");
     assert.equal(answer.ownerId, "child");
     assert.equal(answer.base, git(fork, "rev-parse", "upstream/main").trim());
@@ -191,19 +191,19 @@ describe("pnpm workflow ownership who", () => {
     assert.deepEqual(config.evidence.current, { status: "M", reason: "intake", verdict: "ok" });
     assert.equal(resultOf(answer, "src/config/ui.config.ts").evidence.current, null);
 
-    const core = resultOf(answer, "src/features/core/user/user.ts");
+    const core = resultOf(answer, "src/domains/core/user/user.ts");
     assert.equal(core.owner.kind, "tier1");
     assert.equal(core.evidence.current?.reason, "outside-intake");
-    assert.match(core.evidence.current?.permitDraft ?? "", /^src\/features\/core\/user\/user\.ts upreq:/);
+    assert.match(core.evidence.current?.permitDraft ?? "", /^src\/domains\/core\/user\/user\.ts upreq:/);
 
-    const own = resultOf(answer, "src/features/game/game.ts");
+    const own = resultOf(answer, "src/domains/game/game.ts");
     assert.equal(own.owner.kind, "fork");
     assert.deepEqual(actions(own), ["edit"]);
     assert.equal(own.evidence.current?.reason, "added");
     // 型: fork の物 = own(置くファイル = そのパス)、変える口の無い親の物 = none(/order <直接の親>)
-    assert.deepEqual([own.type, own.write], ["own", "src/features/game/game.ts"]);
+    assert.deepEqual([own.type, own.write], ["own", "src/domains/game/game.ts"]);
     assert.deepEqual([core.type, core.order], ["none", "/order parent"]);
-    const text = cli(fork, "--no-fetch", "src/features/core/user/user.ts");
+    const text = cli(fork, "--no-fetch", "src/domains/core/user/user.ts");
     assert.equal(text.status, 0);
     assert.match(text.stdout, /型: 変えられない/);
     assert.match(text.stdout, /依頼: \/order parent/);
@@ -211,7 +211,7 @@ describe("pnpm workflow ownership who", () => {
 
   test("fork: 一時許可の行を根拠に出す(valid)", () => {
     const fork = makeFork(makeTier1(), "child");
-    const path = "src/features/core/user/user.ts";
+    const path = "src/domains/core/user/user.ts";
     const base = readFileSync(join(fork, path), "utf8");
     const head = "export const user = 3;\n";
     write(fork, path, head);
@@ -225,16 +225,16 @@ describe("pnpm workflow ownership who", () => {
   test("多段: 中間 Tier が足したファイルは中間 Tier <fork_id> の物(書き換え可)", () => {
     const tier1 = makeTier1();
     const middle = makeFork(tier1, "mid");
-    write(middle, "src/features/shop/shop.ts", "export const shop = 1;\n");
+    write(middle, "src/domains/shop/shop.ts", "export const shop = 1;\n");
     commitAll(middle, "mid adds shop");
     const child = makeFork(middle, "child");
-    const answer = whoOwns(child, ["src/features/shop/shop.ts", "src/config/app.config.ts"], { fetch: false });
+    const answer = whoOwns(child, ["src/domains/shop/shop.ts", "src/config/app.config.ts"], { fetch: false });
     assert.equal(answer.status, "ok");
     assert.deepEqual(
       answer.tier1.chain.map((step) => step.name),
       ["mid"],
     );
-    const shop = resultOf(answer, "src/features/shop/shop.ts");
+    const shop = resultOf(answer, "src/domains/shop/shop.ts");
     assert.equal(shop.owner.kind, "middle");
     assert.equal(shop.owner.forkId, "mid");
     assert.deepEqual(actions(shop), ["edit"]);
@@ -274,8 +274,8 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     "scripts/structure/domain/gate.json": real("scripts/structure/domain/gate.json"),
     "src/registry/district-map.jsonl": "{}\n",
     // 1 行スイッチ
-    "src/features/core/demo/services/server/onDemoUserCreated.default.ts": "export const onDemoUserCreated = 1;\n",
-    "src/features/core/demo/services/server/onDemoUserCreated.ts": 'export * from "./onDemoUserCreated.default";\n',
+    "src/domains/core/demo/services/server/onDemoUserCreated.default.ts": "export const onDemoUserCreated = 1;\n",
+    "src/domains/core/demo/services/server/onDemoUserCreated.ts": 'export * from "./onDemoUserCreated.default";\n',
     // 画面と枠のスイッチ
     "src/app/(user)/layout.tsx": 'export { UserLayout as default } from "./_layout/UserLayout";\n',
     "src/app/(user)/_layout/UserLayout.tsx": "export function UserLayout() {}\n",
@@ -288,20 +288,20 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     "src/app/(user)/about/page.tsx": 'export { AboutScreen as default } from "./_screen/AboutScreen";\n',
     "src/app/(user)/about/_screen/AboutScreen.tsx": "export function AboutScreen() {}\n",
     // 受け口と上書きの対象の点(宣言は本物)
-    "src/features/core/admin/extensionPoints.ts": real("src/features/core/admin/extensionPoints.ts"),
-    "src/features/core/admin/menu/items/users.ts": "export const item = {};\n",
-    "src/features/core/user/extensionPoints.ts": real("src/features/core/user/extensionPoints.ts"),
-    "src/features/core/user/roles/editor.role.json": "{}\n",
-    "src/features/core/user/user.ts": "export const user = 1;\n",
+    "src/domains/core/admin/extensionPoints.ts": real("src/domains/core/admin/extensionPoints.ts"),
+    "src/domains/core/admin/menu/items/users.ts": "export const item = {};\n",
+    "src/domains/core/user/extensionPoints.ts": real("src/domains/core/user/extensionPoints.ts"),
+    "src/domains/core/user/roles/editor.role.json": "{}\n",
+    "src/domains/core/user/user.ts": "export const user = 1;\n",
     "src/lib/cron/extensionPoints.ts": real("src/lib/cron/extensionPoints.ts"),
     "src/lib/cron/config.ts": "export const config = {};\n",
     "src/app/api/cron/sweep/task.ts": "export const task = {};\n",
     "src/app/api/cron/sweep/route.ts": "export const GET = 1;\n",
     "src/lib/domain/extensionPoints.ts": real("src/lib/domain/extensionPoints.ts"),
-    "src/features/core/user/services/server/domainEntry.ts": "export const entry = 1;\n",
-    "src/features/core/user/services/server/userService.ts": "export const userService = 1;\n",
-    "src/features/core/userProfile/extensionPoints.ts": real("src/features/core/userProfile/extensionPoints.ts"),
-    "src/features/core/userProfile/profiles/shop.profile.json": "{}\n",
+    "src/domains/core/user/services/server/domainEntry.ts": "export const entry = 1;\n",
+    "src/domains/core/user/services/server/userService.ts": "export const userService = 1;\n",
+    "src/domains/core/userProfile/extensionPoints.ts": real("src/domains/core/userProfile/extensionPoints.ts"),
+    "src/domains/core/userProfile/profiles/shop.profile.json": "{}\n",
     // 置き場
     "src/styles/core/extensionPoints.ts": real("src/styles/core/extensionPoints.ts"),
     "src/styles/core/palette.css": ":root {}\n",
@@ -310,13 +310,13 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     "src/lib/districtMap/extensionPoints.ts": real("src/lib/districtMap/extensionPoints.ts"),
     "src/config/app/site.config.ts": "export const site = {};\n",
     // pnpm generate domain の物(generate: true / false)
-    "src/features/sample/domain.json": JSON.stringify({ plural: "samples" }),
-    "src/features/sample/entities/drizzle.ts": "export const t = 1;\n",
-    "src/features/sample/services/server/drizzleBase.ts": "export const b = 1;\n",
-    "src/features/sample/seed.ts": "export default 1;\n",
+    "src/domains/sample/domain.json": JSON.stringify({ plural: "samples" }),
+    "src/domains/sample/entities/drizzle.ts": "export const t = 1;\n",
+    "src/domains/sample/services/server/drizzleBase.ts": "export const b = 1;\n",
+    "src/domains/sample/seed.ts": "export default 1;\n",
     "src/app/admin/(protected)/samples/_screen/loader.ts": "export const loader = 1;\n",
-    "src/features/hand/domain.json": JSON.stringify({ generate: false }),
-    "src/features/hand/entities/drizzle.ts": "export const t = 1;\n",
+    "src/domains/hand/domain.json": JSON.stringify({ generate: false }),
+    "src/domains/hand/entities/drizzle.ts": "export const t = 1;\n",
   };
   const view = explainView({ files: Object.keys(tree), read: (path) => tree[path] ?? null, intake: parseIntake(tree["src/lib/forkOwnership/intake.txt"]).rules });
   const explain = (/** @type {string} */ path, /** @type {ExplainTier} */ tier = "tier1", addable = false) => explainPath(path, view, { tier, addable, parent: "parent" });
@@ -325,8 +325,8 @@ describe("型の答え(パスの表、explain.mjs)", () => {
   /** @type {[string, string, object][]} */
   const ROWS = [
     // 型 1
-    ["1 行スイッチ(素の名前)", "src/features/core/demo/services/server/onDemoUserCreated.ts", { type: "1", write: "src/features/core/demo/services/server/onDemoUserCreated.replace.ts", keys: null, source: "src/features/core/demo/services/server/onDemoUserCreated.ts" }],
-    ["1 行スイッチ(既定)", "src/features/core/demo/services/server/onDemoUserCreated.default.ts", { type: "1", write: "src/features/core/demo/services/server/onDemoUserCreated.replace.ts", keys: null, source: "src/features/core/demo/services/server/onDemoUserCreated.ts" }],
+    ["1 行スイッチ(素の名前)", "src/domains/core/demo/services/server/onDemoUserCreated.ts", { type: "1", write: "src/domains/core/demo/services/server/onDemoUserCreated.replace.ts", keys: null, source: "src/domains/core/demo/services/server/onDemoUserCreated.ts" }],
+    ["1 行スイッチ(既定)", "src/domains/core/demo/services/server/onDemoUserCreated.default.ts", { type: "1", write: "src/domains/core/demo/services/server/onDemoUserCreated.replace.ts", keys: null, source: "src/domains/core/demo/services/server/onDemoUserCreated.ts" }],
     ["画面の page.tsx", "src/app/(user)/about/page.tsx", { type: "1", write: "src/app/(user)/about/_components/", keys: null, source: "src/app/(user)/about/page.tsx" }],
     ["_screen の部品 → page.tsx", "src/app/(user)/about/_screen/AboutScreen.tsx", { type: "1", write: "src/app/(user)/about/_components/", keys: null, source: "src/app/(user)/about/page.tsx" }],
     ["枠の layout.tsx → 既定の隣の .replace", "src/app/(user)/layout.tsx", { type: "1", write: "src/app/(user)/_layout/UserLayout.replace.tsx", keys: null, source: "src/app/(user)/layout.tsx" }],
@@ -334,32 +334,32 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     ["枠のスイッチが既に .replace を指す(同じファイル)", "src/app/admin/layout.tsx", { type: "1", write: "src/app/admin/_layout/AdminLayout.replace.tsx", keys: null, source: "src/app/admin/layout.tsx" }],
     ["既に置き換えた枠の既定の部品", "src/app/admin/_layout/AdminLayout.tsx", { type: "1", write: "src/app/admin/_layout/AdminLayout.replace.tsx", keys: null, source: "src/app/admin/layout.tsx" }],
     // 型 2
-    ["受け口の項目の上書き(overrideOf の鍵)", "src/features/core/admin/menu/items/users.ts", { type: "2", write: "src/features/core/admin/menu/items/users.override.ts", keys: ["hidden", "label", "icon", "allowRoles", "order", "category"], source: "src/features/core/admin/extensionPoints.ts menuItems" }],
-    ["ロール", "src/features/core/user/roles/editor.role.json", { type: "2", write: "src/features/core/user/roles/editor.role.override.ts", keys: ["label", "hasProfile", "enabled"], source: "src/features/core/user/extensionPoints.ts roleDefinitions" }],
-    ["プロフィール", "src/features/core/userProfile/profiles/shop.profile.json", { type: "2", write: "src/features/core/userProfile/profiles/shop.profile.override.ts", keys: ["tags", "searchFields", "audit"], source: "src/features/core/userProfile/extensionPoints.ts profileDefinitions" }],
+    ["受け口の項目の上書き(overrideOf の鍵)", "src/domains/core/admin/menu/items/users.ts", { type: "2", write: "src/domains/core/admin/menu/items/users.override.ts", keys: ["hidden", "label", "icon", "allowRoles", "order", "category"], source: "src/domains/core/admin/extensionPoints.ts menuItems" }],
+    ["ロール", "src/domains/core/user/roles/editor.role.json", { type: "2", write: "src/domains/core/user/roles/editor.role.override.ts", keys: ["label", "hasProfile", "enabled"], source: "src/domains/core/user/extensionPoints.ts roleDefinitions" }],
+    ["プロフィール", "src/domains/core/userProfile/profiles/shop.profile.json", { type: "2", write: "src/domains/core/userProfile/profiles/shop.profile.override.ts", keys: ["tags", "searchFields", "audit"], source: "src/domains/core/userProfile/extensionPoints.ts profileDefinitions" }],
     ["cron の task.ts", "src/app/api/cron/sweep/task.ts", { type: "2", write: "src/app/api/cron/sweep/task.override.ts", keys: ["schedule", "disabled"], source: "src/lib/cron/extensionPoints.ts cronTasks" }],
     ["cron(フォルダのどのファイルも task.override.ts)", "src/app/api/cron/sweep/route.ts", { type: "2", write: "src/app/api/cron/sweep/task.override.ts", keys: ["schedule", "disabled"], source: "src/lib/cron/extensionPoints.ts cronTasks" }],
-    ["domainEntry", "src/features/core/user/services/server/domainEntry.ts", { type: "2", write: "src/features/core/user/services/server/domainEntry.override.ts", keys: ["access"], source: "src/lib/domain/extensionPoints.ts domainEntries" }],
+    ["domainEntry", "src/domains/core/user/services/server/domainEntry.ts", { type: "2", write: "src/domains/core/user/services/server/domainEntry.override.ts", keys: ["access"], source: "src/lib/domain/extensionPoints.ts domainEntries" }],
     ["枠の宣言(作ったリポの frame.ts がある)", "src/app/(user)/frame.ts", { type: "2", write: "src/app/(user)/frame.override.ts", keys: ["layout", "page"], source: "src/app/(user)/frame.ts" }],
     ["枠の宣言(frame.ts が無い route = 空の基準)", "src/app/(user)/about/frame.ts", { type: "2", write: "src/app/(user)/about/frame.override.ts", keys: ["layout", "page"] }],
     // 型 3
-    ["受け口に足す", "src/features/core/admin/menu/categories/shop.ts", { type: "3", write: "src/features/core/admin/menu/categories/shop.ts", keys: null, source: "src/features/core/admin/extensionPoints.ts menuCategories" }],
+    ["受け口に足す", "src/domains/core/admin/menu/categories/shop.ts", { type: "3", write: "src/domains/core/admin/menu/categories/shop.ts", keys: null, source: "src/domains/core/admin/extensionPoints.ts menuCategories" }],
     // 型 4
     ["core/<名前>.css ↔ 直下", "src/styles/core/palette.css", { type: "4", write: "src/styles/palette.css", keys: null, source: "src/styles/core/extensionPoints.ts rootStyles" }],
     ["閉じた lib の config", "src/lib/cron/config.ts", { type: "4", write: "src/config/lib/cron.config.ts", keys: null, source: "lib cron" }],
     ["src/config のファイル", "src/config/app/site.config.ts", { type: "4", write: "src/config/app/site.config.ts", keys: null, source: "src/lib/districtMap/extensionPoints.ts configValues" }],
     // 生成物
     ["生成器の出力(gate.json)", "src/registry/district-map.jsonl", { type: "generated", write: null, keys: null, source: "pnpm generate district-map" }],
-    ["pnpm generate domain が毎回書く(直す元 = domain.json)", "src/features/sample/entities/drizzle.ts", { type: "generated", write: "src/features/sample/domain.json", keys: null, source: "pnpm generate domain" }],
-    ["pnpm generate domain が毎回書く(直す元 = wrappers/)", "src/features/sample/services/server/drizzleBase.ts", { type: "generated", write: "src/features/sample/services/server/wrappers/", keys: null, source: "pnpm generate domain" }],
-    ["管理画面の生成物(ルートのフォルダ → ドメイン)", "src/app/admin/(protected)/samples/_screen/loader.ts", { type: "generated", write: "src/features/sample/domain.json", keys: null, source: "pnpm generate domain" }],
+    ["pnpm generate domain が毎回書く(直す元 = domain.json)", "src/domains/sample/entities/drizzle.ts", { type: "generated", write: "src/domains/sample/domain.json", keys: null, source: "pnpm generate domain" }],
+    ["pnpm generate domain が毎回書く(直す元 = wrappers/)", "src/domains/sample/services/server/drizzleBase.ts", { type: "generated", write: "src/domains/sample/services/server/wrappers/", keys: null, source: "pnpm generate domain" }],
+    ["管理画面の生成物(ルートのフォルダ → ドメイン)", "src/app/admin/(protected)/samples/_screen/loader.ts", { type: "generated", write: "src/domains/sample/domain.json", keys: null, source: "pnpm generate domain" }],
     // 型 5
     ["自分の版(self の行)", "repo.json", { type: "5", write: "repo.json", keys: null }],
     // どれでもない
-    ["無いときだけ書く(上流の物)", "src/features/sample/seed.ts", { type: "none", write: null, keys: null, order: "/order parent" }],
-    ["generate: false のドメイン(上流の物)", "src/features/hand/entities/drizzle.ts", { type: "none", write: null, keys: null, order: "/order parent" }],
-    ["変える口が無い", "src/features/core/user/user.ts", { type: "none", write: null, keys: null, order: "/order parent" }],
-    ["domainEntry.ts の隣のファイル(フォルダは単位でない)", "src/features/core/user/services/server/userService.ts", { type: "none", write: null, keys: null, order: "/order parent" }],
+    ["無いときだけ書く(上流の物)", "src/domains/sample/seed.ts", { type: "none", write: null, keys: null, order: "/order parent" }],
+    ["generate: false のドメイン(上流の物)", "src/domains/hand/entities/drizzle.ts", { type: "none", write: null, keys: null, order: "/order parent" }],
+    ["変える口が無い", "src/domains/core/user/user.ts", { type: "none", write: null, keys: null, order: "/order parent" }],
+    ["domainEntry.ts の隣のファイル(フォルダは単位でない)", "src/domains/core/user/services/server/userService.ts", { type: "none", write: null, keys: null, order: "/order parent" }],
     ["置き場の宣言のフォルダでも直下に対が無い", "src/styles/core/theme.css", { type: "none", write: null, keys: null, order: "/order parent" }],
   ];
   for (const [label, path, expected] of ROWS) {
@@ -367,11 +367,11 @@ describe("型の答え(パスの表、explain.mjs)", () => {
   }
 
   test("own: fork・中間 Tier の物と足してよい新しいパス(generated は own より先)", () => {
-    assert.deepEqual(pick(explain("src/features/sample/seed.ts", "fork")), { type: "own", write: "src/features/sample/seed.ts", keys: null });
-    assert.deepEqual(pick(explain("src/features/hand/entities/drizzle.ts", "middle")), { type: "own", write: "src/features/hand/entities/drizzle.ts", keys: null });
-    assert.equal(explain("src/features/sample/entities/drizzle.ts", "fork").type, "generated");
-    assert.deepEqual(pick(explain("src/features/game/game.ts", "missing", true)), { type: "own", write: "src/features/game/game.ts", keys: null });
-    assert.equal(explain("src/features/core/user/new.ts", "missing", false).type, "none");
+    assert.deepEqual(pick(explain("src/domains/sample/seed.ts", "fork")), { type: "own", write: "src/domains/sample/seed.ts", keys: null });
+    assert.deepEqual(pick(explain("src/domains/hand/entities/drizzle.ts", "middle")), { type: "own", write: "src/domains/hand/entities/drizzle.ts", keys: null });
+    assert.equal(explain("src/domains/sample/entities/drizzle.ts", "fork").type, "generated");
+    assert.deepEqual(pick(explain("src/domains/game/game.ts", "missing", true)), { type: "own", write: "src/domains/game/game.ts", keys: null });
+    assert.equal(explain("src/domains/core/user/new.ts", "missing", false).type, "none");
   });
 
   // このリポの木そのものの答え = Tier1 だけ(fork の status は tier1 にならない。仕組みは上の作り物の木で確かめる)
@@ -386,11 +386,11 @@ describe("型の答え(パスの表、explain.mjs)", () => {
       "src/app/admin/layout.tsx",
       "src/styles/core/palette.css",
       "src/lib/cron/config.ts",
-      "src/features/core/user/coreRoles/admin.role.json",
+      "src/domains/core/user/coreRoles/admin.role.json",
       "src/app/(user)/frame.ts",
       "src/app/(user)/(protected)/mypage/_screen/MyPageScreen.tsx",
-      "src/features/sample/entities/drizzle.ts",
-      "src/features/core/user/services/server/userService.ts",
+      "src/domains/sample/entities/drizzle.ts",
+      "src/domains/core/user/services/server/userService.ts",
     ]);
     assert.equal(answer.status, "tier1");
     const typeOf = (/** @type {string} */ path) => {
@@ -402,10 +402,10 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     assert.deepEqual(typeOf("src/app/admin/layout.tsx"), ["1", "src/app/admin/_layout/AdminLayout.replace.tsx"]);
     assert.deepEqual(typeOf("src/styles/core/palette.css"), ["4", "src/styles/palette.css"]);
     assert.deepEqual(typeOf("src/lib/cron/config.ts"), ["4", "src/config/lib/cron.config.ts"]);
-    assert.deepEqual(typeOf("src/features/core/user/coreRoles/admin.role.json"), ["2", "src/features/core/user/coreRoles/admin.role.override.ts"]);
+    assert.deepEqual(typeOf("src/domains/core/user/coreRoles/admin.role.json"), ["2", "src/domains/core/user/coreRoles/admin.role.override.ts"]);
     assert.deepEqual(typeOf("src/app/(user)/frame.ts"), ["2", "src/app/(user)/frame.override.ts"]);
     assert.deepEqual(typeOf("src/app/(user)/(protected)/mypage/_screen/MyPageScreen.tsx"), ["1", "src/app/(user)/(protected)/mypage/_components/"]);
-    assert.deepEqual(typeOf("src/features/sample/entities/drizzle.ts"), ["generated", "src/features/sample/domain.json"]);
-    assert.deepEqual(typeOf("src/features/core/user/services/server/userService.ts"), ["none", null]);
+    assert.deepEqual(typeOf("src/domains/sample/entities/drizzle.ts"), ["generated", "src/domains/sample/domain.json"]);
+    assert.deepEqual(typeOf("src/domains/core/user/services/server/userService.ts"), ["none", null]);
   });
 });

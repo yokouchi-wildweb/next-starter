@@ -11,9 +11,9 @@ import "server-only";
 import { gate } from "@/featureGate";
 import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens";
-import { referralService } from "@/features/core/referral/services/server/referralService";
-import type { InviteCodeWithCount } from "@/features/core/referral/services/server/wrappers/getInviteCodeListWithCounts";
-import { settingService } from "@/features/core/setting/services/server/settingService";
+import { referralService } from "@/domains/core/referral/services/server/referralService";
+import type { InviteCodeWithCount } from "@/domains/core/referral/services/server/wrappers/getInviteCodeListWithCounts";
+import { settingService } from "@/domains/core/setting/services/server/settingService";
 import { createLoader } from "@/app/admin/(protected)/guard";
 
 export type AdminCouponInviteListScreenData =

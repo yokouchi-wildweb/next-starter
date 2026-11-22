@@ -23,7 +23,7 @@
 ```tsx
 // src/app/_providers/ForkProviders.replace.tsx
 import type { ForkProvidersProps } from "./ForkProviders.default";
-import { ThemeProvider } from "@/features/myTheme/components/ThemeProvider";
+import { ThemeProvider } from "@/domains/myTheme/components/ThemeProvider";
 
 export function ForkProviders({ children }: ForkProvidersProps) {
   return <ThemeProvider>{children}</ThemeProvider>;

@@ -58,7 +58,7 @@ export type RoomReducer<S extends RoomStateBase, A extends RoomActionBase> = (
 
 /**
  * namespace 1 つ分のルーム定義。servers/room/src/registry.ts に登録する。
- * 実装は src/features/<domain>/room/ に置く (純度制約は ESLint で強制される)。
+ * 実装は src/domains/<domain>/room/ に置く (純度制約は ESLint で強制される)。
  */
 export type RoomDefinition<
   S extends RoomStateBase = RoomStateBase,

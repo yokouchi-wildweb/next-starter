@@ -34,7 +34,7 @@ test("実リポ: 走査の表の集合 = schemaRegistry の全 pgTable", () => {
   assert.deepEqual(
     scanned.filter((name) => !registered.includes(name)),
     [],
-    "src/features にあるが schemaRegistry から届かない表(登録漏れ)",
+    "src/domains にあるが schemaRegistry から届かない表(登録漏れ)",
   );
   assert.deepEqual(
     registered.filter((name) => !scanned.includes(name)),
@@ -46,7 +46,7 @@ test("実リポ: 走査の表の集合 = schemaRegistry の全 pgTable", () => {
 
 test("走査: 改行をはさむ呼び出し・フォルダの下の全ファイルを拾い、字面で読めない名前は problems", () => {
   const root = mkdtempSync(join(tmpdir(), "table-scan-"));
-  const dir = join(root, "src/features/core/foo");
+  const dir = join(root, "src/domains/core/foo");
   mkdirSync(join(dir, "entities"), { recursive: true });
   mkdirSync(join(dir, "generated/x"), { recursive: true });
   writeFileSync(join(dir, "entities/drizzle.ts"), 'import { pgTable } from "drizzle-orm/pg-core";\nexport const A = pgTable("foos", {});\nexport const B = pgTable(\n  "foo_items",\n  {},\n);\n');
@@ -54,8 +54,8 @@ test("走査: 改行をはさむ呼び出し・フォルダの下の全ファイ
   writeFileSync(join(dir, "types.ts"), '/**\n * @example\n * export const T = pgTable("example_only", {});\n */\n// pgTable("line_comment", {})\nexport type X = 1;\n');
   writeFileSync(join(dir, "entities/bad.ts"), "const NAME = \"z\";\nexport const D = pgTable(NAME, {});\n");
   writeFileSync(join(dir, "entities/drizzle.test.ts"), 'export const E = pgTable("ignored", {});\n');
-  mkdirSync(join(root, "src/features/core/fooBar"), { recursive: true });
-  writeFileSync(join(root, "src/features/core/fooBar/drizzle.ts"), 'export const F = pgTable("foo_bars", {});\n');
+  mkdirSync(join(root, "src/domains/core/fooBar"), { recursive: true });
+  writeFileSync(join(root, "src/domains/core/fooBar/drizzle.ts"), 'export const F = pgTable("foo_bars", {});\n');
 
   const { tables, problems } = scanFeatureTables(root);
   assert.deepEqual(tablesOfFolder(tables, "core/foo").sort(), ["foo_items", "foo_x", "foos"]);

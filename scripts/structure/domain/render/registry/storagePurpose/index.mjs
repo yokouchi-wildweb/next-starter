@@ -23,7 +23,7 @@ export function renderStoragePurposesContent(rel, entries) {
     "",
     'import "server-only";',
     "",
-    ...(lines.some((line) => /\bstorageObjectConfig\./.test(line)) ? ['import { storageObjectConfig } from "@/features/storageObject/config";'] : []),
+    ...(lines.some((line) => /\bstorageObjectConfig\./.test(line)) ? ['import { storageObjectConfig } from "@/domains/storageObject/config";'] : []),
     'import type { StoragePurposeMap } from "@/lib/storage";',
     "",
     "export const purposes = {",

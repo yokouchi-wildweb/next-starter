@@ -8,7 +8,7 @@ import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Flex } from "@/components/Layout/Flex";
-import { ForgotPassword } from "@/features/core/auth/components/ForgotPassword";
+import { ForgotPassword } from "@/domains/core/auth/components/ForgotPassword";
 
 import { loadForgotPasswordScreen } from "./loader";
 

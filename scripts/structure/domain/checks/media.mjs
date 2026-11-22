@@ -1,7 +1,7 @@
 // 検査: メディア項目（accept・mediaTypePreset・metadataBinding）。
 // accept が空だと生成（ファイル用途の登録）が止まり、lib は「何でも受ける」"*/*" を受けない。preset の綴り違いは
 // 黙って "all" の上限になり、metadataBinding の綴り違いや書き先の無い項目は黙って捨てられるので、生成前に止める。
-// 規則の正: src/features/README.md「MediaUploader フィールド追加プロパティ」・「ファイルの保存（storage）」
+// 規則の正: src/domains/README.md「MediaUploader フィールド追加プロパティ」・「ファイルの保存（storage）」
 
 import { MEDIA_FIELD_TYPES } from "../spec/fieldTypes.mjs";
 

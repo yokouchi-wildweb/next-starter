@@ -1,5 +1,5 @@
 // domain.json のメディア項目 → ファイル用途のエントリ（`<domain>.<field>`: { visibility, maxBytes, contentTypes, metadata, image, upload, read }）。
-// 導出の規則: src/features/README.md「ファイルの保存（storage）」。ファイルには触れない
+// 導出の規則: src/domains/README.md「ファイルの保存（storage）」。ファイルには触れない
 
 import { MEDIA_FIELD_TYPES } from "../../../spec/fieldTypes.mjs";
 import { allowsGeneralUser, isValidRule, resolveOperationRule, serializeRule, serializeStringArray, unionUploadRules } from "./rules.mjs";
@@ -25,7 +25,7 @@ function resolveMaxBytes(id, field, warnings) {
   if (Number.isInteger(declaredMax) && declaredMax > 0) return String(declaredMax);
   const preset = PRESETS.has(field.mediaTypePreset) ? field.mediaTypePreset : "all";
   const maxBytes = `storageObjectConfig.defaultMaxBytesByPreset.${preset}`;
-  warnings.push(`${id}: validationRule.maxSizeBytes が無いため、既定の上限 ${maxBytes}（src/features/core/storageObject/config.ts）を使います`);
+  warnings.push(`${id}: validationRule.maxSizeBytes が無いため、既定の上限 ${maxBytes}（src/domains/core/storageObject/config.ts）を使います`);
   return maxBytes;
 }
 

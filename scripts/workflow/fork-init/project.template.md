@@ -13,7 +13,7 @@ this_repo: tier {{tier}} in repo.json, direct fork of {{parent}}
 - rule: generic / foundational capabilities live in Tier1, never hardcoded here → /order <the repo that owns it> | this repo's own business lives HERE
 - backend_status: TBD (firebase / neon configured or not, and what is inactive until then)
 - architecture_delta: TBD (only where this repo differs from upstream CLAUDE.md, never restate it)
-- domains: TBD (priority order, one folder each under src/features/)
+- domains: TBD (priority order, one folder each under src/domains/)
 
 ## maker
 - TBD (what this tier promises to its downstream forks; a leaf may leave TBD)

@@ -42,7 +42,7 @@ function relationTypeImports(belongsTo, belongsToMany) {
   for (const rel of [...belongsTo, ...belongsToMany]) {
     if (addedDomains.has(rel.domain)) continue;
     addedDomains.add(rel.domain);
-    imports.push(`import type { ${toPascalCase(rel.domain)} } from "@/features/${toCamelCase(rel.domain)}/entities/model";`);
+    imports.push(`import type { ${toPascalCase(rel.domain)} } from "@/domains/${toCamelCase(rel.domain)}/entities/model";`);
   }
   return imports.join("\n");
 }

@@ -11,10 +11,10 @@
 - `pnpm db:push:check`: schemaRegistry(スキーマゲート適用後)と実 DB を drizzle-kit の push モードで比較し、提案される SQL を表示する。1 文でもあれば exit 1。DB 接続が要る・読み取り専用
 - `pnpm generate registry` / `pnpm check registry`: `src/registry` の α 6 本(α = `alpha/` などの生成器が手書きの区画なしで丸ごと書く一覧)を丸ごと生成・検査する(build の冒頭)。DB 不要。手書きの区画は無い。生成の部品は `alpha/`
   - `serviceRegistry`: 各ドメインの `domainEntry.ts` から(`serviceRegistry/`、仕組みは `src/lib/domain/README.md`)。`domainEntry.ts` の静的 import は型はどこからでも・値は値だけのファイルからだけ(中身で推移的に判定、`serviceRegistry/discover.mjs` の `checkEntryStaticImports`)
-  - `schemaRegistry`: `src/features/**` の pgTable を持つ全ファイル(プロフィールの `entities/profiles/<名前>/drizzle.ts` も)
+  - `schemaRegistry`: `src/domains/**` の pgTable を持つ全ファイル(プロフィールの `entities/profiles/<名前>/drizzle.ts` も)
   - `domainConfigRegistry`: 全 `domain.json`(キーはフォルダ名の snake_case)
   - `storagePurposeRegistry`: 全 `services/server/storagePurposes.ts`
-  - `adminDomains`: 管理一覧の画面 `src/app/admin/(protected)/<kebab 複数形>/page.tsx` を持つ全ドメイン(`generate: false` も)。キー = フォルダ名 → 題名・住所・`addToAdminDataMenu`。管理メニューの項目 `domain:` と出どころ `dataMenu` が読む(`src/features/core/admin/menu/`)。管理メニューの行は受け口 `src/features/core/admin/menu/`、ドメインを「データ管理」から外す = `domain.json` の `addToAdminDataMenu: false`
+  - `adminDomains`: 管理一覧の画面 `src/app/admin/(protected)/<kebab 複数形>/page.tsx` を持つ全ドメイン(`generate: false` も)。キー = フォルダ名 → 題名・住所・`addToAdminDataMenu`。管理メニューの項目 `domain:` と出どころ `dataMenu` が読む(`src/domains/core/admin/menu/`)。管理メニューの行は受け口 `src/domains/core/admin/menu/`、ドメインを「データ管理」から外す = `domain.json` の `addToAdminDataMenu: false`
   - `messageRegistry`: 全ドメインの `messages/<名前>.ts` の連絡の定義(鍵 = `<フォルダ名>.<ファイル名>` → 定義・隣の `.override.ts`・`views/<名前>.tsx` の遅延 import。key のずれ・重なり・定義の無い描き方は止める。`alpha/messageRegistry.mjs`、決まりは `src/lib/messaging/README.md`)
   - `recordTargetRegistry`: 全ドメインの `recordTargets/<名前>.ts` の記録の宛先(鍵 = `<フォルダ名>.<ファイル名>` → ドメイン・項目の遅延 import。絞らない = 閉じたドメインは使う時に門番 `recordTargetOpen` が落とす。key のずれ・重なりは止める。`alpha/recordTargetRegistry.mjs`、決まりは `src/lib/messaging/README.md`「記録の宛先」)
 

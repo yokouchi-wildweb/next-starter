@@ -12,7 +12,7 @@ import { Button } from "@/components/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { AppImage } from "@/components/Media/AppImage";
-import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
+import { useAuthSession } from "@/domains/core/auth/hooks/useAuthSession";
 import { useDarkModeSwitch } from "@/lib/siteTheme";
 import { business } from "@/business";
 import { logoPath } from "@/utils/assets";

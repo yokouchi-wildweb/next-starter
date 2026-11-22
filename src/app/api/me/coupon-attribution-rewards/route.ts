@@ -8,12 +8,12 @@
 import { NextResponse } from "next/server";
 
 import { createMeRoute, ownerWhere } from "@/wiring/apiRoute";
-import { couponAttributionRewardBase } from "@/features/core/couponAttributionReward/services/server";
+import { couponAttributionRewardBase } from "@/domains/core/couponAttributionReward/services/server";
 import {
   toCouponAttributionRewardForRecipient,
   type CouponAttributionRewardForRecipient,
-} from "@/features/core/couponAttributionReward/entities/model";
-import { couponAttributionRewardConfig } from "@/features/couponAttributionReward/config";
+} from "@/domains/core/couponAttributionReward/entities/model";
+import { couponAttributionRewardConfig } from "@/domains/couponAttributionReward/config";
 import type { PaginatedResult, SearchParams } from "@/lib/crud";
 import { BadRequestError, parsePositiveInteger } from "@/app/api/[domain]/search/utils";
 

@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/features/core/wallet/**"
-  - "src/config/features/wallet.config.ts"
+  - "src/domains/core/wallet/**"
+  - "src/config/domains/wallet.config.ts"
 ---
-# features/wallet
-what: per-user in-app currencies: balance, reservation, history, expiry lots | entry walletService (services/server/walletService), types @/features/core/wallet
+# domains/wallet
+what: per-user in-app currencies: balance, reservation, history, expiry lots | entry walletService (services/server/walletService), types @/domains/core/wallet
 use: wallet
-change: add = a purchase bonus display in purchaseBonuses/ (extensionPoints.ts) | overlay = purchaseBonuses/<key>.override.ts (enabled, order) | placement = src/config/features/wallet.config.ts, wallet.ui.config.ts
+change: add = a purchase bonus display in purchaseBonuses/ (extensionPoints.ts) | overlay = purchaseBonuses/<key>.override.ts (enabled, order) | placement = src/config/domains/wallet.config.ts, wallet.ui.config.ts
 rules:
 using:
 - reason_key: a grant names its kind with reasonKey, never reason text or meta
@@ -24,4 +24,4 @@ using:
 - reason_category_from_key: with reasonKey the history's reason_category comes from that kind's category; never pass a reasonCategory that disagrees
 editing:
 - audit_intervention_only: audit_logs only for intervention (admin-callable) ops, bulk as aggregate; business ops (consume, debit, reserve) stay in wallet_histories only
-read: operate balances → Usage | currencies, bonuses, expiry setup → src/features/core/wallet/Extension.md Extension | methods, tables → src/features/core/wallet/API.md API | locks, lots, notices, audit → src/features/core/wallet/Internals.md Internals
+read: operate balances → Usage | currencies, bonuses, expiry setup → src/domains/core/wallet/Extension.md Extension | methods, tables → src/domains/core/wallet/API.md API | locks, lots, notices, audit → src/domains/core/wallet/Internals.md Internals

@@ -9,7 +9,7 @@ export const cronTask: CronTaskDefinition = {
   description: "保持期限を過ぎた userCounter の日次行を削除する（累計は残る）",
   schedule: "25 18 * * *", // 毎日 03:25 JST
   run: async () => {
-    const { pruneExpiredUserDailyCounters } = await import("@/features/core/userCounter/services/server/pruning");
+    const { pruneExpiredUserDailyCounters } = await import("@/domains/core/userCounter/services/server/pruning");
     return await pruneExpiredUserDailyCounters();
   },
 };

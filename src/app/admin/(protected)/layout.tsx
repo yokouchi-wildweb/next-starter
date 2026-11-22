@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { clientGateState } from "@/featureGate";
-import { AdminCommandGateBridge } from "@/features/core/adminCommand";
+import { AdminCommandGateBridge } from "@/domains/core/adminCommand";
 import { GateProvider } from "@/featureGate/client";
 
 import { AdminProtectedLayout } from "./_layout/AdminProtectedLayout";

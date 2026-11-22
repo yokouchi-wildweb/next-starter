@@ -47,17 +47,17 @@ function importSources(text) {
 }
 
 /**
- * from 先が消すドメインのフォルダを指すか。@/features/<folder>・@/features/core/<folder>（core は core/ を省いて書く）と、
+ * from 先が消すドメインのフォルダを指すか。@/domains/<folder>・@/domains/core/<folder>（core は core/ を省いて書く）と、
  * 解決するとそのフォルダに入る相対パス
  * @param {string} file リポジトリ相対（posix）
  * @param {string} source
- * @param {string} featureRel 消すドメインのフォルダ（リポジトリ相対の posix。例 src/features/coupon・src/features/core/coupon）
+ * @param {string} featureRel 消すドメインのフォルダ（リポジトリ相対の posix。例 src/domains/coupon・src/domains/core/coupon）
  */
 function pointsAt(file, source, featureRel) {
   const folder = path.posix.basename(featureRel);
   if (source.startsWith("@/")) {
     const target = `src/${source.slice(2)}`;
-    return [featureRel, `src/features/${folder}`].some((dir) => target === dir || target.startsWith(`${dir}/`));
+    return [featureRel, `src/domains/${folder}`].some((dir) => target === dir || target.startsWith(`${dir}/`));
   }
   if (!source.startsWith(".")) return false;
   const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), source));

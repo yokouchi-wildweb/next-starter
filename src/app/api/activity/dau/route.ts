@@ -2,7 +2,7 @@
 // DAU記録エンドポイント — 認証済みユーザーの日次アクティビティを記録
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { recordDailyActivity } from "@/features/core/analytics/services/server/dauService";
+import { recordDailyActivity } from "@/domains/core/analytics/services/server/dauService";
 
 export const POST = createApiRoute(
   {

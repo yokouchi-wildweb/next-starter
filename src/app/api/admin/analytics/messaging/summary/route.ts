@@ -2,11 +2,11 @@
 // 連絡の集計の summary(管理者だけ。住所は規則 messagingAnalytics が閉じる)
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { parseDateRangeParams } from "@/features/core/analytics/services/server/utils/dateRange";
+import { parseDateRangeParams } from "@/domains/core/analytics/services/server/utils/dateRange";
 import {
   getMessagingSummary,
   parseMessagingFilterParams,
-} from "@/features/core/analytics/services/server/messagingAnalytics";
+} from "@/domains/core/analytics/services/server/messagingAnalytics";
 
 export const GET = createApiRoute(
   {

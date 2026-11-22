@@ -1,12 +1,12 @@
 // src/app/api/admin/analytics/referral/summary/route.ts
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { parseDateRangeParams } from "@/features/core/analytics/services/server/utils/dateRange";
-import { parseUserFilterParams } from "@/features/core/analytics/services/server/utils/userFilter";
+import { parseDateRangeParams } from "@/domains/core/analytics/services/server/utils/dateRange";
+import { parseUserFilterParams } from "@/domains/core/analytics/services/server/utils/userFilter";
 import {
   getReferralSummary,
   type ReferralStatus,
-} from "@/features/core/analytics/services/server/referralAnalytics";
+} from "@/domains/core/analytics/services/server/referralAnalytics";
 
 const VALID_REFERRAL_STATUSES = ["active", "cancelled"] as const satisfies readonly ReferralStatus[];
 

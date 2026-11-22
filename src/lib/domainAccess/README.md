@@ -9,7 +9,7 @@
 ## Usage
 
 ```ts
-// src/features/<domain>/services/server/domainEntry.ts
+// src/domains/<domain>/services/server/domainEntry.ts
 import type { DomainEntries } from "@/lib/domain";
 import { ADMIN_ONLY, ADMIN_RULE } from "@/lib/domainAccess";
 ```

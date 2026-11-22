@@ -1,7 +1,7 @@
 // 検査: リレーション（Firestore で使えない種類・外部キーの名前と型）。
 // 生成器は Firestore の hasMany / belongsToMany を黙って無視し、fieldName の無い外部キーは列名 undefined、
 // pg-core に無い型（number など）は存在しない列関数を出すので、生成前に止める。
-// 規則の正: src/features/README.md「Relation」
+// 規則の正: src/domains/README.md「Relation」
 
 /** Firestore で使えないリレーション（生成器が何も出さない） */
 const FIRESTORE_UNSUPPORTED = new Set(["hasMany", "belongsToMany"]);

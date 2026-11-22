@@ -17,9 +17,9 @@ import { Para } from "@/components/TextBlocks/Para";
 import { Button } from "@/components/Button/Button";
 import Pagination from "@/components/Navigation/Pagination";
 import SearchBox from "@/components/Admin/SearchBox";
-import type { BankTransferReviewStatus } from "@/features/core/bankTransferReview";
-import { useAdminBankTransferReviewList } from "@/features/core/bankTransferReview/hooks/useAdminBankTransferReviewList";
-import { useAdminBankTransferReviewMemo } from "@/features/core/bankTransferReview/hooks/useAdminBankTransferReviewMemo";
+import type { BankTransferReviewStatus } from "@/domains/core/bankTransferReview";
+import { useAdminBankTransferReviewList } from "@/domains/core/bankTransferReview/hooks/useAdminBankTransferReviewList";
+import { useAdminBankTransferReviewMemo } from "@/domains/core/bankTransferReview/hooks/useAdminBankTransferReviewMemo";
 import { err } from "@/lib/errors";
 
 import { BankTransferReviewTable } from "./BankTransferReviewTable";

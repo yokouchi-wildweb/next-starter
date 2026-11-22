@@ -7,7 +7,7 @@
 
 import { gate } from "@/featureGate";
 import { createApiRoute } from "@/wiring/apiRoute";
-import { userGroupAdmin } from "@/features/core/userGroup/services/server/admin";
+import { userGroupAdmin } from "@/domains/core/userGroup/services/server/admin";
 
 /** 静的グループへ書く 1 回の要求(予算 admin.freezeBudgetMs 50 秒の外側) */
 export const maxDuration = 60;

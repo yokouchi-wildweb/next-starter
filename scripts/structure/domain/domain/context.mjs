@@ -21,9 +21,9 @@ import { toPlural } from "./plural.mjs";
  * @property {string} pluralRaw  domain.json の plural そのまま（Firestore のコレクション名）
  * @property {string} dbEngine   "Neon" | "Firestore" | ""
  * @property {object | null} config domain.json（無ければ null）
- * @property {"business" | "core"} kind business = src/features/<camel>、core = src/features/core/<camel>（違いはフォルダだけ）
+ * @property {"business" | "core"} kind business = src/domains/<camel>、core = src/domains/core/<camel>（違いはフォルダだけ）
  * @property {string} dir        ドメインのフォルダの絶対パス
- * @property {string} rel        ドメインのフォルダのリポジトリ相対（生成物の頭のコメントのパス。例: src/features/core/user）
+ * @property {string} rel        ドメインのフォルダのリポジトリ相対（生成物の頭のコメントのパス。例: src/domains/core/user）
  * @property {string} configPath domain.json の絶対パス
  */
 
@@ -74,4 +74,4 @@ export function requireConfig(ctx) {
 }
 
 /** 生成物の頭のコメントに書くドメインのフォルダ（リポジトリ相対）。rel を持たない ctx（テストの手組み）は business の位置 */
-export const featureRel = (ctx) => ctx.rel ?? `src/features/${ctx.camel}`;
+export const featureRel = (ctx) => ctx.rel ?? `src/domains/${ctx.camel}`;

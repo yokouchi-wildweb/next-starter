@@ -39,7 +39,7 @@ mock.module("@/featureGate", {
 
 let calls = 0;
 const OPTIONS = { channels: [{ key: "email", label: "メール" }], categories: [], baseAllowedKeys: ["serviceName"] };
-mock.module("@/features/core/messaging/services/server/templates", {
+mock.module("@/domains/core/messaging/services/server/templates", {
   namedExports: {
     getMessageTemplateOptions: async () => {
       calls += 1;

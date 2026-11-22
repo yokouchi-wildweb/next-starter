@@ -7,7 +7,7 @@
 
 import type { ScreenProps } from "@/lib/screens";
 import { loadAdminChatRoomCreateScreen } from "./loader";
-import AdminChatRoomCreate from "@/features/core/chatRoom/components/AdminChatRoomCreate";
+import AdminChatRoomCreate from "@/domains/core/chatRoom/components/AdminChatRoomCreate";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 
 export const metadata = {

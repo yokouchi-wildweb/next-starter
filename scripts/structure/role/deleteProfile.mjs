@@ -16,7 +16,7 @@ import { removeOverride } from "./overrides.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "../../..");
-const PROFILES_DIR = path.join(ROOT_DIR, "src/features/core/userProfile/profiles");
+const PROFILES_DIR = path.join(ROOT_DIR, "src/domains/core/userProfile/profiles");
 
 const prompt = inquirer.createPromptModule();
 const USAGE = "pnpm generate role -- --delete-profile <roleId> --confirm <roleId> [--keep-generated] [--remove-json] [-i]";

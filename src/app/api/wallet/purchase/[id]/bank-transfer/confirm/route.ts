@@ -19,9 +19,9 @@ import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { storageMediaValueSchema } from "@/lib/storage";
-import { bankTransferReviewService } from "@/features/bankTransferReview/services/server/bankTransferReviewService";
-import { purchaseRequestService } from "@/features/purchaseRequest/services/server/purchaseRequestService";
-import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
+import { bankTransferReviewService } from "@/domains/bankTransferReview/services/server/bankTransferReviewService";
+import { purchaseRequestService } from "@/domains/purchaseRequest/services/server/purchaseRequestService";
+import { getSlugByWalletType, type WalletType } from "@/domains/core/wallet";
 
 type Params = { id: string };
 

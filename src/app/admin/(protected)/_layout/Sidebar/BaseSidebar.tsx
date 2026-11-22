@@ -10,12 +10,12 @@ import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks/Span";
-import { useLogout } from "@/features/core/auth/hooks/useLogout";
+import { useLogout } from "@/domains/core/auth/hooks/useLogout";
 import { cn } from "@/lib/cn";
 import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
 
-import { useAdminMenu } from "@/features/core/admin/hooks/useAdminMenu";
+import { useAdminMenu } from "@/domains/core/admin/hooks/useAdminMenu";
 import { adminLayoutConfig } from "@/app/admin/_layout/config";
 import { MenuButton, adminSidebarButtonClassName } from "@/app/admin/_layout/Sidebar/MenuButton";
 

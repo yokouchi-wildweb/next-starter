@@ -17,15 +17,15 @@
 import "server-only";
 import { notFound, redirect } from "next/navigation";
 
-import { getBankTransferConfig } from "@/features/purchaseRequest/utils/paymentMethods";
-import type { BankTransferConfig } from "@/features/purchaseRequest/config";
+import { getBankTransferConfig } from "@/domains/purchaseRequest/utils/paymentMethods";
+import type { BankTransferConfig } from "@/domains/purchaseRequest/config";
 import type { ScreenProps } from "@/lib/screens";
 import {
   INHOUSE_BANK_TRANSFER_METHOD_ID,
   INHOUSE_PROVIDER_NAME,
-} from "@/features/core/purchaseRequest/services/server/payment/inhouse";
-import { purchaseRequestService } from "@/features/core/purchaseRequest/services/server/purchaseRequestService";
-import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
+} from "@/domains/core/purchaseRequest/services/server/payment/inhouse";
+import { purchaseRequestService } from "@/domains/core/purchaseRequest/services/server/purchaseRequestService";
+import { getCurrencyConfigBySlug } from "@/domains/core/wallet/utils/currency";
 import { createLoader } from "@/app/(user)/(protected)/guard";
 
 export type WalletPurchaseBankTransferScreenParams = { slug: string; requestId: string };

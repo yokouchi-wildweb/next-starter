@@ -31,7 +31,7 @@
 # domain-rules
 
 ## payment
-- handler: src/features/payment/
+- handler: src/domains/payment/
 - external_api: Stripe
 - webhook_path: /api/webhook/stripe
 

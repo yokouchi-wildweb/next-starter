@@ -3,14 +3,14 @@
 // 管理者向け: チャレンジ発行 API。
 // 生トークンはこのレスポンスでのみ取得できる (DB には SHA-256 のみ保存)。
 // downstream のフォームページ URL にトークンを埋めてユーザーへ案内する
-// (レシピ: src/features/core/fingerprintChallenge/README.md)。
+// (レシピ: src/domains/core/fingerprintChallenge/README.md)。
 // 一覧・検索は serviceRegistry (fingerprintChallenge, ADMIN_ONLY) の汎用 API を使う。
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
-import { IssueChallengeSchema } from "@/features/core/fingerprintChallenge/entities/schema";
-import { issueChallenge } from "@/features/core/fingerprintChallenge/services/server";
-import { userService } from "@/features/core/user/services/server/userService";
+import { IssueChallengeSchema } from "@/domains/core/fingerprintChallenge/entities/schema";
+import { issueChallenge } from "@/domains/core/fingerprintChallenge/services/server";
+import { userService } from "@/domains/core/user/services/server/userService";
 
 export const POST = createApiRoute(
   {

@@ -13,7 +13,7 @@ const resolveField = (name: string) => toCamelCase(name) || name;
  * Drizzle/Neon ドメインの場合はそのまま返す（no-op）。
  *
  * @example
- * import rawConfig from "@/features/core/chatRoom/domain.json";
+ * import rawConfig from "@/domains/core/chatRoom/domain.json";
  * const domainConfig = normalizeDomainJsonConfig(rawConfig);
  */
 export function normalizeDomainJsonConfig<T extends RawDomainConfig>(config: T): T {

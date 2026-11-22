@@ -2,7 +2,7 @@
 //
 // ページの守り(guard.ts の guard()・createLoader・extend)の汎用版の型。
 // lib/pageGuard は利用者の解き方・access の評価・現在パス・前提の判定を自分で import せず、ここで決めた形で受け取る。
-// 束を作るのは持ち主のドメイン(利用者 = features/core/auth)、結ぶのは src/wiring/pageGuard.ts。
+// 束を作るのは持ち主のドメイン(利用者 = domains/core/auth)、結ぶのは src/wiring/pageGuard.ts。
 
 import type { DomainApiAccessRule } from "@/lib/domainAccess";
 

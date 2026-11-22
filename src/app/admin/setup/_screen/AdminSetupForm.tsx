@@ -3,9 +3,9 @@
 
 "use client";
 
-import { AdminManagerialUserCreateForm as ManagerialUserCreateForm } from "@/features/user/components/forms";
+import { AdminManagerialUserCreateForm as ManagerialUserCreateForm } from "@/domains/user/components/forms";
 
-import { ADMIN_SETUP_REDIRECT_PATH, useAdminSetup } from "@/features/core/setting/hooks/useAdminSetup";
+import { ADMIN_SETUP_REDIRECT_PATH, useAdminSetup } from "@/domains/core/setting/hooks/useAdminSetup";
 
 export default function AdminSetupForm() {
   const { submit, isMutating } = useAdminSetup();

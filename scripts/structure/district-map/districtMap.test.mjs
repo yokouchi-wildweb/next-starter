@@ -18,13 +18,13 @@ import { buildDistrictMap, checkDistrictMap, generateDistrictMap, repoRoot } fro
 
 const { districts, problems } = readDistrictMapAt(repoRoot);
 const features = districts.filter((d) => d.kind === "features");
-const folderOf = (d) => d.dir.slice("src/features/".length);
+const folderOf = (d) => d.dir.slice("src/domains/".length);
 
 test("今の木に問題が無い", () => {
   assert.deepEqual(problems, []);
 });
 
-test("features = src/features と core の直下の _ でないフォルダ(登録表の走査と同じ集合)、lib = src/lib 直下、proxies = テーマのフォルダ(上流は持たない、D113)、枠 = frame: の宣言", () => {
+test("features = src/domains と core の直下の _ でないフォルダ(登録表の走査と同じ集合)、lib = src/lib 直下、proxies = テーマのフォルダ(上流は持たない、D113)、枠 = frame: の宣言", () => {
   assert.deepEqual(features.map(folderOf).sort(), listDomainDirs(repoRoot));
   assert.ok(!features.some((d) => d.name.startsWith("_")));
   const libs = readdirSync(join(repoRoot, "src/lib"), { withFileTypes: true }).filter((e) => e.isDirectory() && !e.name.startsWith(".")).map((e) => e.name).sort();
@@ -53,7 +53,7 @@ test("apiKeys = 各ドメインの domainEntry.ts のキー(登録表の生成�
 
 test("tables = schemaRegistry の元の表の全部を features の地区に 1 回ずつ割り振る(雛形 _template の外に漏れなし・二重なし)", () => {
   const { tables } = scanFeatureTables(repoRoot);
-  const expected = tables.filter((t) => !t.file.startsWith("src/features/_")).map((t) => t.name).sort();
+  const expected = tables.filter((t) => !t.file.startsWith("src/domains/_")).map((t) => t.name).sort();
   const mapped = features.flatMap((d) => d.tables).sort();
   assert.deepEqual(mapped, expected);
   assert.equal(new Set(mapped).size, mapped.length);
@@ -120,7 +120,7 @@ test("生成器と検査器: 作る → 一致、手で直す・無い → 失�
     writeFileSync(join(root, rel), text);
   };
   try {
-    put("src/features/core/wallet/index.ts", "");
+    put("src/domains/core/wallet/index.ts", "");
     put("src/lib/crud/index.ts", "");
     mkdirSync(join(root, "src/registry"), { recursive: true });
     assert.equal(checkDistrictMap(root).ok, false); // 無い
@@ -131,7 +131,7 @@ test("生成器と検査器: 作る → 一致、手で直す・無い → 失�
     const stale = checkDistrictMap(root);
     assert.equal(stale.ok, false);
     assert.match(stale.lines[0], /pnpm generate district-map/);
-    put("src/features/wallet/index.ts", ""); // core と業務の同名
+    put("src/domains/wallet/index.ts", ""); // core と業務の同名
     writeFileSync(path, "keep\n");
     assert.equal(generateDistrictMap(root).ok, false);
     assert.equal(readFileSync(path, "utf8"), "keep\n");

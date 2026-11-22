@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/features/core/userGroup/**"
-  - "src/config/features/userGroup.config.ts"
+  - "src/domains/core/userGroup/**"
+  - "src/config/domains/userGroup.config.ts"
 ---
-# features/userGroup
+# domains/userGroup
 what: named, reusable sets of users (kind dynamic / scheduled / static) | entry services/server: userGroupEvaluator, staticMemberWriter
 use: userGroups
-change: add = criteria/<name>.ts (receptacle criteria) | overlay = criteria/<name>.override.ts (enabled, label, description) | placement = src/config/features/userGroup.config.ts
+change: add = criteria/<name>.ts (receptacle criteria) | overlay = criteria/<name>.override.ts (enabled, label, description) | placement = src/config/domains/userGroup.config.ts
 rules:
 using:
 - not_event_recipients: event recipients (followers etc.) are no group → the feature picks users itself, sends as sendMessageToMany `recipients`
@@ -22,4 +22,4 @@ using:
 editing:
 - writer_no_audit: staticMemberWriter writes no audit rows, even for a fork task (the admin API records)
 - internal_only: domainEntry access stays INTERNAL_ONLY
-read: kinds, limits → Overview | use a group → Usage | evaluator, writer, admin API → src/features/core/userGroup/API.md API | criteria, config, gate → Extension | tables, recompute → src/features/core/userGroup/Internals.md Internals
+read: kinds, limits → Overview | use a group → Usage | evaluator, writer, admin API → src/domains/core/userGroup/API.md API | criteria, config, gate → Extension | tables, recompute → src/domains/core/userGroup/Internals.md Internals

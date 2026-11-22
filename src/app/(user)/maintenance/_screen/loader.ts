@@ -8,8 +8,8 @@
 
 import "server-only";
 
-import { settingConfig } from "@/features/setting/config";
-import { settingService } from "@/features/core/setting/services/server/settingService";
+import { settingConfig } from "@/domains/setting/config";
+import { settingService } from "@/domains/core/setting/services/server/settingService";
 import { createLoader } from "@/app/guard";
 
 export type MaintenanceScreenData = {

@@ -31,7 +31,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 1. **fix the range**:
    - `git status --short` and `git diff --cached --name-only` | other sessions may have staged in the same work tree | ship only the files you changed in this conversation (match them against the files touched in the conversation) | any file you cannot tell → STOP
    - range empty → HEAD has commits the push target lacks (COMMITTED RANGE below) → ship those | none → plain or `--safe`: SHIPPED TIP below | `--quick`: report only `出荷するものなし` (nothing to ship) and end (no commit, no push)
-   - **never put migrations kept out of git `src/features/**/scripts/migrations/*.local.ts` in the range** (emergency data fixes not sent downstream; one `.gitignore` line) | staged or tracked → STOP (gate ship's `pnpm check local-migrations` fails too; remove with `git rm --cached <path>`; needed downstream too → drop `.local` and make it a normal migration with `notice:`)
+   - **never put migrations kept out of git `src/domains/**/scripts/migrations/*.local.ts` in the range** (emergency data fixes not sent downstream; one `.gitignore` line) | staged or tracked → STOP (gate ship's `pnpm check local-migrations` fails too; remove with `git rm --cached <path>`; needed downstream too → drop `.local` and make it a normal migration with `notice:`)
    - list deletions and renames: the `D` / `R` lines of `git status --short` and files deleted in the work tree | used by the judgment of step 3 and by `moved:`
    - **check for overlap with other sessions' commits**:
      - base = the HEAD at the start of the conversation (latest commit of the environment's gitStatus; none → the HEAD you saw when starting the work)
@@ -214,7 +214,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    ```
    - `<slug>` = a short English kebab from change | saved at `.notices/<ts>-<slug>.md`
    - never write `pick:` yourself (step 6's pick-check writes it in the body)
-   - **`uses:`**: list the migrations (`src/features/<domain>/scripts/migrations/`) and codemods (`.notices/<id>.<名前>.mjs`) required_actions run, and put them in the same commit | a notice with `uses:` makes `checkpoint:` a label (`-` not allowed) | `pnpm check notices` checks they exist and the checkpoint (`.notices/README.md` section `使う移行・codemod の欄`)
+   - **`uses:`**: list the migrations (`src/domains/<domain>/scripts/migrations/`) and codemods (`.notices/<id>.<名前>.mjs`) required_actions run, and put them in the same commit | a notice with `uses:` makes `checkpoint:` a label (`-` not allowed) | `pnpm check notices` checks they exist and the checkpoint (`.notices/README.md` section `使う移行・codemod の欄`)
    - **`skip_checkpoint:`**: only when the `fixes:` origin's checkpoint does not work (the fork's checks fail there) and step 6's pick-check gives `-` → write the origin's id (each id must be in `fixes:`; the fix notice itself is a labeled checkpoint) | the origin has `uses:` → cannot be skipped
      - added to the body after the pick-check → `git commit --amend --no-edit -- .notices/<id>.md` → `pnpm check notices` (`.notices/README.md` section `区切りを外す欄`)
    - required_actions, verify and refs of a `fixes:` notice never name paths / scripts missing from the broken point's tree (tools added later etc.) (the fork takes it right after the broken point, so the pick-check's prerequisite check makes it `-`) | to mention later tools, write them in notes (the prerequisite check does not read notes)
@@ -226,7 +226,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - split only what cannot be automated into `manual_steps` (fail-auto)
    - **a change that acts on the whole admin** (changing admin shared parts, the admin layout / guard / loader set, the Screen-building API, etc.): never end its notice with regenerating the generated admin (`pnpm generate domain`)
      - forks have hand-written admin pages of domains with `"adminRoutes": false` and `_components/` copied from the generated ones | write the following into required_actions as is:
-     - (a) list domains with hand-written admin pages: `git grep -l '"adminRoutes": *false' -- 'src/features/**/domain.json'`
+     - (a) list domains with hand-written admin pages: `git grep -l '"adminRoutes": *false' -- 'src/domains/**/domain.json'`
      - (b) list admin files using the changed API: `git grep -l -E '<変えた API の名前>' -- 'src/app/admin/**'` | drop those whose head says `このファイルは pnpm generate domain が生成する` (regeneration fixes them) and those equal to upstream (`git diff --quiet <upstream>/<branch> -- <file>` shows no diff = merge fixes them); the rest = the fork's hand-written ones
      - (c) the steps to align each remaining file to the new form | verify holds `pnpm typecheck` and "the rest of (b) is 0 files, or all aligned"
    - **a notice that has forks add config keys also writes the steps for when the fork already has the same key**: the steps to drop the fork's part and align to upstream's line, and the `git grep` to find it | when fork and upstream add at different spots, git takes both without conflict, so "on conflict" / "add if missing" is not enough (`.notices/README.md`)

@@ -1,7 +1,7 @@
 // src/app/api/admin/analytics/purchase/status-overview/route.ts
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { getPurchaseStatusOverview } from "@/features/core/analytics/services/server/purchaseAnalytics";
+import { getPurchaseStatusOverview } from "@/domains/core/analytics/services/server/purchaseAnalytics";
 
 export const GET = createApiRoute(
   {

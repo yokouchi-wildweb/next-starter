@@ -1,7 +1,7 @@
 // src/app/api/admin/analytics/user/status-overview/route.ts
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { getUserStatusOverview } from "@/features/core/analytics/services/server/userAnalytics";
+import { getUserStatusOverview } from "@/domains/core/analytics/services/server/userAnalytics";
 
 export const GET = createApiRoute(
   {

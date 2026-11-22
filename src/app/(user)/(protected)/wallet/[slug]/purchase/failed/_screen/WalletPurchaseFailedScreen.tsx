@@ -7,7 +7,7 @@ import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
 import type { ScreenProps } from "@/lib/screens";
-import { PurchaseFailed } from "@/features/core/purchaseRequest/components/PurchaseFailed";
+import { PurchaseFailed } from "@/domains/core/purchaseRequest/components/PurchaseFailed";
 
 import { loadWalletPurchaseFailedScreen, type WalletPurchaseFailedScreenParams } from "./loader";
 

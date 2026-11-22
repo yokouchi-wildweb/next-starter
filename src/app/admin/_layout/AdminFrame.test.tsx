@@ -27,7 +27,7 @@ const TABLE = [
 const here = (path: string) => pathToFileURL(join(__dirname, path)).href;
 mock.module(here("./extensions/frameTable.ts"), { namedExports: { frameTable: TABLE } });
 mock.module("@/lib/siteTheme", { namedExports: { useDarkModeSwitch: () => ({ isDark: false, switchable: false, toggle: () => {} }) } });
-mock.module("@/features/core/auth/hooks/useAuthSession", { namedExports: { useAuthSession: () => ({ isAuthenticated: false }) } });
+mock.module("@/domains/core/auth/hooks/useAuthSession", { namedExports: { useAuthSession: () => ({ isAuthenticated: false }) } });
 
 const repo = join(__dirname, "../../../..");
 const read = (path: string) => readFileSync(join(repo, path), "utf8");
@@ -261,7 +261,7 @@ test("上流(src)に AdminHeaderPortal・HeaderSlots・受け口の id とその
   for (const gone of ["src/app/admin/_layout/PageTitle.tsx", "src/app/admin/_layout/Header.tsx", "src/app/admin/_layout/HeaderSlots.tsx", "src/app/admin/_layout/AdminHeaderContext.tsx"]) {
     assert.throws(() => read(gone), `${gone} が残っている`);
   }
-  assert.equal(/placement/.test(read("src/features/core/coupon/components/AdminCouponSectionTabs/index.tsx")), false);
+  assert.equal(/placement/.test(read("src/domains/core/coupon/components/AdminCouponSectionTabs/index.tsx")), false);
 });
 // ---- 前後の項目へ移る(指令 16) ----
 

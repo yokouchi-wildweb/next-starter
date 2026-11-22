@@ -6,7 +6,7 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { auditLogBase } from "@/features/core/auditLog/services/server";
+import { auditLogBase } from "@/domains/core/auditLog/services/server";
 import type { SearchParams } from "@/lib/crud";
 
 import {

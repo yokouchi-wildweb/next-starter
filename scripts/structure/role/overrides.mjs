@@ -5,7 +5,7 @@
 //   export const override: RoleOverride = { hasProfile: true };
 // 不在と空（空白とコメントだけ）は上書きなし（下の Tier が親の上書きを空にしてよい）。
 // 書けるキーは宣言(user の coreRoleDefinitions / roleDefinitions・userProfile の profileDefinitions の overrideOf)。
-// core ロールの enabled・表の形を変える fields は宣言に無いので書けない。上書きの正: src/features/core/user/README.md
+// core ロールの enabled・表の形を変える fields は宣言に無いので書けない。上書きの正: src/domains/core/user/README.md
 
 import fs from "fs";
 import path from "path";
@@ -31,8 +31,8 @@ const VALUE_CHECKS = {
   audit: { check: (value) => typeof value === "object" && value !== null && !Array.isArray(value), expected: "{ targetType, actionPrefix, ... }" },
 };
 
-const USER_DECLARATION = "src/features/core/user/extensionPoints.ts";
-const PROFILE_DECLARATION = "src/features/core/userProfile/extensionPoints.ts";
+const USER_DECLARATION = "src/domains/core/user/extensionPoints.ts";
+const PROFILE_DECLARATION = "src/domains/core/userProfile/extensionPoints.ts";
 
 /**
  * 宣言の鍵 → { 鍵: 値の検査 }。値の検査の無い鍵を宣言が開けたら止める(検査されない値を通さない)

@@ -33,15 +33,15 @@ test("実リポ: 4 本が走査の生成結果と一致する(ずれたら pnpm 
 
 test("生成: 表の入口・ドメイン設定", () => {
   const root = fixture({
-    "src/features/core/wallet/entities/drizzle.ts": 'export const A = pgTable("wallets", {});\n',
-    "src/features/core/wallet/entities/lots.ts": 'export const B = pgTable("wallet_lots", {});\n',
-    "src/features/core/wallet/types.ts": "export type X = 1;\n",
-    "src/features/core/userProfile/entities/profiles/user/drizzle.ts": 'export const C = pgTable("user_profiles", {});\n',
-    "src/features/sample/entities/drizzle.ts": 'export const D = pgTable("samples", {});\n',
-    "src/features/core/chatRoom/domain.json": '{ "label": "チャット", "plural": "chat_rooms", "addToAdminDataMenu": false }',
-    "src/features/sample/domain.json": '{ "label": "サンプル", "plural": "samples", "addToAdminDataMenu": true }',
-    "src/features/sampleCategory/domain.json": '{ "label": "カテゴリ", "plural": "sample_categories", "addToAdminDataMenu": true }',
-    "src/features/sampleImage/domain.json": '{ "label": "画像", "plural": "sample_images" }',
+    "src/domains/core/wallet/entities/drizzle.ts": 'export const A = pgTable("wallets", {});\n',
+    "src/domains/core/wallet/entities/lots.ts": 'export const B = pgTable("wallet_lots", {});\n',
+    "src/domains/core/wallet/types.ts": "export type X = 1;\n",
+    "src/domains/core/userProfile/entities/profiles/user/drizzle.ts": 'export const C = pgTable("user_profiles", {});\n',
+    "src/domains/sample/entities/drizzle.ts": 'export const D = pgTable("samples", {});\n',
+    "src/domains/core/chatRoom/domain.json": '{ "label": "チャット", "plural": "chat_rooms", "addToAdminDataMenu": false }',
+    "src/domains/sample/domain.json": '{ "label": "サンプル", "plural": "samples", "addToAdminDataMenu": true }',
+    "src/domains/sampleCategory/domain.json": '{ "label": "カテゴリ", "plural": "sample_categories", "addToAdminDataMenu": true }',
+    "src/domains/sampleImage/domain.json": '{ "label": "画像", "plural": "sample_images" }',
   });
   const { outputs, problems } = buildAlphaRegistries(root);
   assert.deepEqual(problems, []);
@@ -50,39 +50,39 @@ test("生成: 表の入口・ドメイン設定", () => {
   assert.deepEqual(
     schema.split("\n").filter((l) => l.startsWith("export *")),
     [
-      'export * from "@/features/core/userProfile/entities/profiles/user/drizzle";',
-      'export * from "@/features/core/wallet/entities/drizzle";',
-      'export * from "@/features/core/wallet/entities/lots";',
-      'export * from "@/features/sample/entities/drizzle";',
+      'export * from "@/domains/core/userProfile/entities/profiles/user/drizzle";',
+      'export * from "@/domains/core/wallet/entities/drizzle";',
+      'export * from "@/domains/core/wallet/entities/lots";',
+      'export * from "@/domains/sample/entities/drizzle";',
     ],
   );
   assert.match(schema, /\nexport \{\};\n$/);
   const config = outputs[DOMAIN_CONFIG_REGISTRY_FILE];
-  assert.match(config, /import chatRoomConfig from "@\/features\/core\/chatRoom\/domain\.json";/);
-  assert.match(config, /import sampleConfig from "@\/features\/sample\/domain\.json";/);
+  assert.match(config, /import chatRoomConfig from "@\/domains\/core\/chatRoom\/domain\.json";/);
+  assert.match(config, /import sampleConfig from "@\/domains\/sample\/domain\.json";/);
   assert.match(config, /\n  chat_room: chatRoomConfig,\n  sample: sampleConfig,\n  sample_category: sampleCategoryConfig,\n  sample_image: sampleImageConfig,\n\} as const;/);
 });
 
 test("生成: ファイル用途の一覧は services/server/storagePurposes.ts を path 順に並べる(core も同じ)", () => {
   const root = mkdtempSync(join(tmpdir(), "alpha-purposes-"));
-  for (const dir of ["src/features/album", "src/features/core/coupon"]) {
+  for (const dir of ["src/domains/album", "src/domains/core/coupon"]) {
     mkdirSync(join(root, dir, "services/server"), { recursive: true });
     writeFileSync(join(root, dir, "services/server/storagePurposes.ts"), "export const purposes = {};\n");
   }
   const text = buildAlphaRegistries(root).outputs[STORAGE_PURPOSE_REGISTRY_FILE];
   rmSync(root, { recursive: true, force: true });
-  assert.match(text, /import \{ purposes as albumPurposes \} from "@\/features\/album\/services\/server\/storagePurposes";/);
-  assert.match(text, /import \{ purposes as couponPurposes \} from "@\/features\/core\/coupon\/services\/server\/storagePurposes";/);
+  assert.match(text, /import \{ purposes as albumPurposes \} from "@\/domains\/album\/services\/server\/storagePurposes";/);
+  assert.match(text, /import \{ purposes as couponPurposes \} from "@\/domains\/core\/coupon\/services\/server\/storagePurposes";/);
   assert.match(text, /storagePurposeRegistry: StoragePurposeMap\[\] = \[\n  albumPurposes,\n  couponPurposes,\n\];/);
 });
 
 test("problems: 字面で読めない pgTable・読めない domain.json・フォルダ名の重なり", () => {
   const { problems } = buildAlphaRegistries(
     fixture({
-      "src/features/a/entities/drizzle.ts": "export const A = pgTable(NAME, {});\n",
-      "src/features/b/domain.json": "{ nope",
-      "src/features/foo/domain.json": "{}",
-      "src/features/core/foo/domain.json": "{}",
+      "src/domains/a/entities/drizzle.ts": "export const A = pgTable(NAME, {});\n",
+      "src/domains/b/domain.json": "{ nope",
+      "src/domains/foo/domain.json": "{}",
+      "src/domains/core/foo/domain.json": "{}",
     }),
   );
   assert.equal(problems.length, 3, problems.join("\n"));
@@ -93,10 +93,10 @@ test("problems: 字面で読めない pgTable・読めない domain.json・フ�
 
 test("管理一覧の一覧: 一覧の画面があるドメインだけ(generate: false も)、キー = フォルダ名、印の無い addToAdminDataMenu は false", () => {
   const root = fixture({
-    "src/features/core/chatRoom/domain.json": '{ "generate": false, "label": "チャット", "plural": "chat_rooms" }',
-    "src/features/sample/domain.json": '{ "label": "サンプル", "plural": "samples", "addToAdminDataMenu": true }',
-    "src/features/sampleImage/domain.json": '{ "label": "画像", "plural": "sample_images", "addToAdminDataMenu": true }',
-    "src/features/core/coupon/domain.json": '{ "generate": false, "label": "クーポン", "plural": "coupons" }',
+    "src/domains/core/chatRoom/domain.json": '{ "generate": false, "label": "チャット", "plural": "chat_rooms" }',
+    "src/domains/sample/domain.json": '{ "label": "サンプル", "plural": "samples", "addToAdminDataMenu": true }',
+    "src/domains/sampleImage/domain.json": '{ "label": "画像", "plural": "sample_images", "addToAdminDataMenu": true }',
+    "src/domains/core/coupon/domain.json": '{ "generate": false, "label": "クーポン", "plural": "coupons" }',
     "src/app/admin/(protected)/chat-rooms/page.tsx": "export {};\n",
     "src/app/admin/(protected)/samples/page.tsx": "export {};\n",
     "src/app/admin/(protected)/coupons/official/page.tsx": "export {};\n",

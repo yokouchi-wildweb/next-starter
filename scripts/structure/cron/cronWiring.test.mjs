@@ -75,7 +75,7 @@ export function gateImportsIn(text) {
 test("gateImportsIn: 門番の import を拾い、コメントと他の import は拾わない", () => {
   assert.deepEqual(gateImportsIn(`import { gate } from "@/featureGate";\nimport type { X } from "@/lib/cron";`), ["@/featureGate"]);
   assert.deepEqual(gateImportsIn(`// import { gate } from "@/featureGate";\nconst x = await import("@/featureGate/node");`), ["@/featureGate/node"]);
-  assert.deepEqual(gateImportsIn(`import { a } from "@/features/core/wallet";`), []);
+  assert.deepEqual(gateImportsIn(`import { a } from "@/domains/core/wallet";`), []);
 });
 
 test("task.ts は機能の入切を書かない(門番を読まない。住所 /api/cron/<name> を規則の pathPatterns に書けば自動): Tier1 は失敗、fork は一覧だけ", (t) => {

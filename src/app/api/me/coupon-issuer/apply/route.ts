@@ -4,9 +4,9 @@
 
 import { createMeRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
-import { applyGrant } from "@/features/core/couponIssuerGrant/services/server";
-import { ApplyCouponIssuerGrantSchema } from "@/features/core/couponIssuerGrant/entities/schema";
-import { toCouponIssuerGrantForUser } from "@/features/core/couponIssuerGrant/entities/model";
+import { applyGrant } from "@/domains/core/couponIssuerGrant/services/server";
+import { ApplyCouponIssuerGrantSchema } from "@/domains/core/couponIssuerGrant/entities/schema";
+import { toCouponIssuerGrantForUser } from "@/domains/core/couponIssuerGrant/entities/model";
 
 export const POST = createMeRoute(
   {

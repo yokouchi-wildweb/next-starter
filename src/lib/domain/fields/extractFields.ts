@@ -8,7 +8,7 @@ import type { DomainFieldInfo, DomainFieldOption } from "../types";
  * ドメイン設定から指定フィールドを取得
  *
  * @example
- * import { domainDisplay as config } from "@/features/sample/entities/display";
+ * import { domainDisplay as config } from "@/domains/sample/entities/display";
  * const field = getField(config, "select");
  * // { name: "select", label: "セレクトボックス", fieldType: "enum", options: [...] }
  */
@@ -21,7 +21,7 @@ export function getField<TField extends { name: string }>(config: { fields: read
  * enumやselect/multiSelectフィールドの選択肢を取得する
  *
  * @example
- * import { domainDisplay as config } from "@/features/sample/entities/display";
+ * import { domainDisplay as config } from "@/domains/sample/entities/display";
  * const options = getFieldOptions(config, "select");
  * // [{ value: "apple", label: "りんご" }, ...]
  */
@@ -53,7 +53,7 @@ export function getFieldLabel(config: { fields: readonly { name: string; label?:
  * システムフィールド（id, createdAt, updatedAt, deletedAt）も含む
  *
  * @example
- * import { domainDisplay as config } from "@/features/sample/entities/display";
+ * import { domainDisplay as config } from "@/domains/sample/entities/display";
  * const fields = extractFields(config);
  * // [{ name: "id", label: "ID", fieldType: "uuid" }, ...]
  */

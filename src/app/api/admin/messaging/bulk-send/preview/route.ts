@@ -7,7 +7,7 @@
 // POST /api/admin/messaging/bulk-send/preview
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { messagingService } from "@/features/core/messaging/services/server/messagingService";
+import { messagingService } from "@/domains/core/messaging/services/server/messagingService";
 
 export const POST = createApiRoute(
   {

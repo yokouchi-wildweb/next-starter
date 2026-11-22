@@ -13,9 +13,9 @@ import { NextRequest } from "next/server";
 type Handler = (req: NextRequest) => Promise<Response>;
 mock.module("@/wiring/apiRoute", { namedExports: { createApiRoute: (_options: unknown, handler: Handler) => handler } });
 
-const tokenModule = await import("@/features/core/messaging/services/server/unsubscribe/token");
+const tokenModule = await import("@/domains/core/messaging/services/server/unsubscribe/token");
 const recorded: unknown[] = [];
-mock.module("@/features/core/messaging/services/server/unsubscribe", {
+mock.module("@/domains/core/messaging/services/server/unsubscribe", {
   namedExports: {
     UNSUBSCRIBE_TOKEN_PARAM: tokenModule.UNSUBSCRIBE_TOKEN_PARAM,
     verifyUnsubscribeToken: tokenModule.verifyUnsubscribeToken,

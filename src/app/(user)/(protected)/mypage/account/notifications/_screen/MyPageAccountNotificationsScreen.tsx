@@ -5,7 +5,7 @@
 
 import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
-import { MessagePreferences } from "@/features/core/messaging/components/MessagePreferences";
+import { MessagePreferences } from "@/domains/core/messaging/components/MessagePreferences";
 
 import { loadMyPageAccountNotificationsScreen } from "./loader";
 

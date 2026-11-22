@@ -5,7 +5,7 @@
 
 import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
-import { InviteCode } from "@/features/core/referral/components/InviteCode";
+import { InviteCode } from "@/domains/core/referral/components/InviteCode";
 
 import { loadMyPageInviteScreen } from "./loader";
 

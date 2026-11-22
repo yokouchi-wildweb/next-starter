@@ -1,0 +1,123 @@
+// src/domains/core/purchaseRequest/components/PurchaseAwaitingReview/index.tsx
+//
+// 銀行振込の申告後、通貨が未付与のまま運営の確認を待っている状態の案内画面。
+// 以下の両ケースで confirm API の redirectUrl からここに誘導される:
+//   - mode=approval_required の通常申告（管理者のレビュー待ち）
+//   - AI 判定不承認のままの申告（needs_check / 運営による入金確認待ち）
+// 申告済みであることと「確認後に付与される」ことを伝え、購入情報を再掲する。
+// 万一通貨付与まで完了していた場合（リロードや古いリンクからの再訪）は完了画面へ誘導する。
+// セクションコンテナ。HTTP は usePurchaseStatus 経由(client service を直接呼ばない)
+
+"use client";
+
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "@/lib/unsavedGuard";
+import { Clock } from "lucide-react";
+import { Stack } from "@/components/Layout/Stack";
+import { Flex } from "@/components/Layout/Flex";
+import { Para } from "@/components/TextBlocks/Para";
+import { LinkButton } from "@/components/Button/LinkButton";
+import { InlineLoader } from "@/components/Overlays/Loading";
+import { usePurchaseStatus } from "@/domains/core/purchaseRequest/hooks/usePurchaseStatus";
+import { CurrencyDisplay, getCurrencyConfigBySlug } from "@/domains/core/wallet";
+
+export type PurchaseAwaitingReviewProps = {
+  /** URLスラッグ */
+  slug: string;
+};
+
+export function PurchaseAwaitingReview({ slug }: PurchaseAwaitingReviewProps) {
+  const currencyConfig = getCurrencyConfigBySlug(slug);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestId = searchParams.get("request_id");
+
+  const { data: purchaseInfo, error: fetchError, isLoading } = usePurchaseStatus(requestId);
+  // 既に付与済み（確認が完了した後の再訪等）なら完了画面に差し替える
+  const completed = purchaseInfo?.status === "completed";
+  // requestId 欠落は描画時に導出する(取得は行わない)
+  const error = !requestId
+    ? "リクエストIDが指定されていません。"
+    : fetchError
+      ? "購入情報の取得に失敗しました。"
+      : null;
+  // 完了画面へ遷移する場合は、遷移までスピナーを出し続ける
+  const loading = requestId !== null && (isLoading || completed);
+
+  useEffect(() => {
+    if (!requestId || !completed) return;
+    router.replace(`/wallet/${slug}/purchase/complete?request_id=${requestId}`);
+  }, [completed, requestId, router, slug]);
+
+  if (loading) {
+    return (
+      <InlineLoader size="lg" />
+    );
+  }
+
+  if (error) {
+    return (
+      <Stack gap="xl">
+        <Para tone="destructive" align="center">
+          {error}
+        </Para>
+        <Flex justify="center">
+          <LinkButton href={`/wallet/${slug}`} variant="outline">
+            {currencyConfig?.label ?? "ウォレット"}管理ページへ戻る
+          </LinkButton>
+        </Flex>
+      </Stack>
+    );
+  }
+
+  return (
+    <Stack gap="xl">
+      <Flex direction="column" align="center" gap="lg">
+        <Clock className="h-16 w-16 text-warning-text" />
+
+        <Para align="center" size="lg" weight="bold">
+          振込完了の申告を受け付けました
+        </Para>
+
+        {purchaseInfo && (
+          <Stack appearance="surface" padding={{ base: "sm", sm: "md" }} gap="md" className="rounded-lg">
+            <Flex direction="column" gap="xs">
+              <Flex justify="between" gap="lg" align="center">
+                <Para tone="muted" size="sm">購入数量</Para>
+                {currencyConfig && (
+                  <CurrencyDisplay
+                    walletType={currencyConfig.walletType}
+                    amount={purchaseInfo.amount}
+                    size="sm"
+                    showUnit
+                    bold
+                  />
+                )}
+              </Flex>
+              <Flex justify="between" gap="lg">
+                <Para tone="muted" size="sm">お支払い金額</Para>
+                <Para size="sm" weight="bold">
+                  {purchaseInfo.paymentAmount.toLocaleString()} 円
+                </Para>
+              </Flex>
+            </Flex>
+          </Stack>
+        )}
+
+        <Para align="center" tone="muted" size="sm">
+          運営にてご入金の確認が完了すると、
+          {currencyConfig?.label ?? "通貨"}が付与されます。
+          <br />
+          確認にはお時間をいただく場合がございます。
+        </Para>
+
+        <Flex justify="center">
+          <LinkButton href={`/wallet/${slug}`} variant="default">
+            {currencyConfig?.label ?? "ウォレット"}管理へ戻る
+          </LinkButton>
+        </Flex>
+      </Flex>
+    </Stack>
+  );
+}

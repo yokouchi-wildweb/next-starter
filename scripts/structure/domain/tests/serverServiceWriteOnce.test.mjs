@@ -67,7 +67,7 @@ test("メディア列があれば drizzleBase に storage binding を出し、st
   run(root, "sample");
   run(root, "sampleTag");
   const base = fs.readFileSync(path.join(serverDir(root, "sample"), "drizzleBase.ts"), "utf8");
-  assert.match(base, /import \{ storageBindingFor \} from "@\/features\/core\/storageObject\/services\/server\/crudBinding";/);
+  assert.match(base, /import \{ storageBindingFor \} from "@\/domains\/core\/storageObject\/services\/server\/crudBinding";/);
   assert.match(base, /storage: storageBindingFor\("sample", \[/);
   assert.match(base, /\{ name: "main_image", purpose: "sample\.main_image", multi: false \}/);
   assert.match(base, /\{ name: "sub_image", purpose: "sample\.sub_image", multi: false \}/);
@@ -116,6 +116,6 @@ test("domain.json の audit: drizzleBase に audit と recorder が入り再生�
   run(on, "note");
   run(on, "note");
   const base = fs.readFileSync(basePath(on), "utf8");
-  assert.match(base, /import \{ auditLogger \} from "@\/features\/core\/auditLog\/services\/server";/);
+  assert.match(base, /import \{ auditLogger \} from "@\/domains\/core\/auditLog\/services\/server";/);
   assert.match(base, /audit: \{ enabled: true, targetType: "note", actionPrefix: "note", trackedFields: \["title"\], retentionDays: 730, recorder: auditLogger \},/);
 });

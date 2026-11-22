@@ -5,7 +5,7 @@
 //   MessageLayoutContent(題・レイアウト・段・欄の中身・要約)を渡し、送信チャンネルが送る時に描く
 // - それ以外の送信チャンネルは汎用の描き方か要約から描いた物を中身にする(content があればそれ、無ければ html / text)
 // - どの段でも描けない・要約を作れない → { cannotRender: 理由 }(呼び手が送る前に止める)
-// 送る口の組み立て(features/messaging の sendMessage/content.ts)がこの関数を送信チャンネルごとに呼ぶ。純粋な関数(差し込みは呼び手)。
+// 送る口の組み立て(domains/messaging の sendMessage/content.ts)がこの関数を送信チャンネルごとに呼ぶ。純粋な関数(差し込みは呼び手)。
 
 import type { ChannelRendered } from "../receptacles/types";
 import { resolveRendering, type MessageChannelRendering } from "./rendering";

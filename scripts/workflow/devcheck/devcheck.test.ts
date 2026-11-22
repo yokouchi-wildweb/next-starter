@@ -112,7 +112,7 @@ test("fork の項目: このリポの入口だけを候補にし、知らない�
   const items = path.join(repo, "items");
   mkdirSync(items);
   const put = (file: string, data: unknown) => writeFileSync(path.join(items, file), typeof data === "string" ? data : JSON.stringify(data));
-  put("a-ok-script.json", { name: "orders-seed", kind: "db-write", command: "pnpm seed src/features/order", what: "注文の確かめのデータ" });
+  put("a-ok-script.json", { name: "orders-seed", kind: "db-write", command: "pnpm seed src/domains/order", what: "注文の確かめのデータ" });
   put("b-ok-workflow.json", { name: "orders-smoke", kind: "login", command: "pnpm workflow orders smoke" });
   put("c-kind.json", { name: "x", kind: "deploy", command: "pnpm test" });
   put("d-foreign.json", { name: "x", kind: "login", command: "npx vitest" });
@@ -123,12 +123,12 @@ test("fork の項目: このリポの入口だけを候補にし、知らない�
   put("i-broken.json", "{ not json");
   put("j-name.json", { name: "Bad Name", kind: "test", command: "pnpm test" });
   put("k-test-kind.json", { name: "x", kind: "test", command: "pnpm workflow orders smoke" });
-  put("l-check-command.json", { name: "x", kind: "db-write", command: "pnpm test src/features/order" });
+  put("l-check-command.json", { name: "x", kind: "db-write", command: "pnpm test src/domains/order" });
   const scanned = scanItems(items, repo, { test: "node run.mjs", seed: "node seed.mjs" });
   assert.deepEqual(
     scanned.items.map((i) => [i.name, i.kind, i.command]),
     [
-      ["orders-seed", "db-write", "pnpm seed src/features/order"],
+      ["orders-seed", "db-write", "pnpm seed src/domains/order"],
       ["orders-smoke", "login", "pnpm workflow orders smoke"],
     ],
   );
@@ -200,7 +200,7 @@ test("計画: 上流の種類 + fork の項目、最後はいつも片付け。�
     checkout: "/repo",
     context: { ...STANDALONE, file: "/ctx", server: "background" as const, devMax: 2 },
     policy: { ...ALL_AUTO, "env-add": "off" as const, "db-write": "manual" as const },
-    items: [{ name: "orders-test", kind: "db-write" as const, command: "pnpm seed src/features/order", what: "", file: "a.json" }],
+    items: [{ name: "orders-test", kind: "db-write" as const, command: "pnpm seed src/domains/order", what: "", file: "a.json" }],
     rejected: [{ file: "e.json", reason: "シェルの記号" }],
     state: { server: null, liveServers: 1, admin: { present: false } },
   };

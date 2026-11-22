@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/features/core/auth/**"
-  - "src/config/features/auth.config.ts"
+  - "src/domains/core/auth/**"
+  - "src/config/domains/auth.config.ts"
 ---
-# features/auth
-what: sign-in, registration (pre → full), JWT session, user deps of the page / API guards (@/features/auth/<path>, no barrel) | users, status, roles = user
+# domains/auth
+what: sign-in, registration (pre → full), JWT session, user deps of the page / API guards (@/domains/auth/<path>, no barrel) | users, status, roles = user
 use: always | signup: the gate rule signup
-change: placement = src/config/features/auth.config.ts | screens: _components/ calling the public hooks
+change: placement = src/config/domains/auth.config.ts | screens: _components/ calling the public hooks
 rules:
 using:
 - one_account_per_provider: identity = (provider_type, provider_uid), never merge by email | admins and users share one users table
@@ -25,4 +25,4 @@ editing:
 - hook_contract: hook names, args, returns, form fields = contract, change → notice
 - no_consent_default: upstream has no marketing checkbox and no consent default
 - referral_param: invite params in mails only while referral is open (route+service)
-read: accounts → Overview | flows, new sign-in → Usage | endpoints, mails → API | hooks, means → src/features/core/auth/API.md API | config → Extension | session, guards → Internals
+read: accounts → Overview | flows, new sign-in → Usage | endpoints, mails → API | hooks, means → src/domains/core/auth/API.md API | config → Extension | session, guards → Internals

@@ -5,7 +5,7 @@
 - `/api/cron/*` 配下の定期タスク用 API ルートと、CLI からも同じタスクを呼ぶための共通基盤
 - 1 タスク = 1 フォルダ `src/app/api/cron/<name>/`。一覧ファイル（レジストリ）は持たない。API ルート・CLI（`pnpm task`）・`vercel.json` の生成は、どれもこのフォルダを走査して同じ定義を読む
 - upstream / fork / さらに下流の Tier も、タスクを足すときはフォルダを 1 つ足すだけで、共有ファイルを編集しない
-- CLI 側のランナーは `pnpm task <task-name>`（`scripts/runner/task/run.ts`）。定期タスクに加えて、バックフィル・データ移行などのワンショット運用タスクも扱う（置き場は持ち主のドメインの `src/features/<ドメイン>/scripts/{tasks,migrations}/<名前>.ts`、名前 `<ドメイン>:<名前>`、`src/lib/task/README.md`）
+- CLI 側のランナーは `pnpm task <task-name>`（`scripts/runner/task/run.ts`）。定期タスクに加えて、バックフィル・データ移行などのワンショット運用タスクも扱う（置き場は持ち主のドメインの `src/domains/<ドメイン>/scripts/{tasks,migrations}/<名前>.ts`、名前 `<ドメイン>:<名前>`、`src/lib/task/README.md`）
 - 決まり（task.ts の役目・動的 import・門番を読まない・enabled・wiring・二重処理・ワンショットの置き場・個人情報の prune・上書き後の再生成）は札 `.claude/rules/items/lib/cron.md`。1 タスク 1 フォルダと vercel.json の生成は CLAUDE.md FEATURES cron_wiring、時間予算付きバッチは budgeted_cron
 
 ## Usage
@@ -19,7 +19,7 @@
 ```ts
 // src/app/api/cron/my-task/task.ts
 import type { CronTaskDefinition } from "@/lib/cron";
-import { myDomainConfig } from "@/features/myDomain/config"; // 値の既定はドメインの config.ts、fork の上書きは src/config/features/
+import { myDomainConfig } from "@/domains/myDomain/config"; // 値の既定はドメインの config.ts、fork の上書きは src/config/domains/
 
 export const cronTask: CronTaskDefinition = {
   name: "my-task", // フォルダ名と同じ
@@ -28,7 +28,7 @@ export const cronTask: CronTaskDefinition = {
   // 任意。機能以外の追加条件だけ（機能の入切は書かない: 機能のフォルダを import すれば門が付く。下の「機能の門（自動）」）。config だけを見る
   enabled: () => myDomainConfig.reminders.length > 0,
   run: async () => {
-    const { runMyTask } = await import("@/features/myDomain/services/server/myTask");
+    const { runMyTask } = await import("@/domains/myDomain/services/server/myTask");
     return await runMyTask();
   },
 };
@@ -73,9 +73,9 @@ serverless では 1 回の実行が maxDuration（Vercel 既定 300s）で途中
 - `createDeadline(budgetMs)` — `budgetMs` は maxDuration そのものではなく
   「maxDuration − 1 チャンクの最大所要時間 − 余裕」（300s なら 240_000 程度）
 
-進捗の永続化先は `@/features/cronCheckpoint/services/server`（`getCheckpoint` / `advanceCheckpoint`、単調前進）。
+進捗の永続化先は `@/domains/cronCheckpoint/services/server`（`getCheckpoint` / `advanceCheckpoint`、単調前進）。
 「ソースの `updated_at` から read-model を差分更新する」典型パターンは、これらを合成済みの
-`@/features/incrementalRefresh/services/server`（`createIncrementalRefresh`）を使う。
+`@/domains/incrementalRefresh/services/server`（`createIncrementalRefresh`）を使う。
 
 ### スケジュールのセットアップ
 
@@ -118,21 +118,21 @@ env ファイルを置かずホストの環境変数で動かすときは、`APP
 
 ドメインの `scripts/tasks/` か `scripts/migrations/` にだけあり、`src/app/api/cron/` にフォルダが無いタスク（vercel.json に載らない = 定期実行されない）。
 
-- `user:bulk-change-status -- --to <状態> (--users <id>[,...] | --file <path>) --reason "<理由>" [--from <状態>] [--dry-run]` — 運用コマンド: ユーザーの状態の一括変更(1 人ずつ changeStatus と同じ道、打ち直すと変わった人を飛ばす)。詳細: `src/features/core/user/README.md` の「状態をまとめて変える」
-- `wallet:bulk-grant -- --wallet-type <通貨> --kind grant|compensation (--users <id>[,...] --amount <n> | --file <path>) --reason "<理由>" [--notify] [--dry-run]` — 運用コマンド: 一括付与と補填(1 transaction、中身から作る止める鍵で二度付けない)。詳細: `src/features/core/wallet/README.md` の「一括付与と補填」
-- `wallet:reverse-history -- --history <id>[,<id>...] | --batch <request_batch_id> --reason "<理由>" [--dry-run]` — 運用コマンド: 間違えた取引を逆向きの調整で打ち消す(行ごとの止める鍵で二度取り消さない)。詳細: `src/features/core/wallet/README.md` の「取引の取り消し」
-- `purchaseQuota:cleanup` — 90 日より古い購入クォータ台帳を物理削除する定期メンテナンス（任意）。定期実行したい fork は `src/app/api/cron/<別名>/` に task.ts と route.ts を足す（定期タスクは平らな名前、ドメインのタスクは `<ドメイン>:<名前>` なので重ならない）。詳細: `src/features/core/purchaseQuota/README.md` の「cron」
+- `user:bulk-change-status -- --to <状態> (--users <id>[,...] | --file <path>) --reason "<理由>" [--from <状態>] [--dry-run]` — 運用コマンド: ユーザーの状態の一括変更(1 人ずつ changeStatus と同じ道、打ち直すと変わった人を飛ばす)。詳細: `src/domains/core/user/README.md` の「状態をまとめて変える」
+- `wallet:bulk-grant -- --wallet-type <通貨> --kind grant|compensation (--users <id>[,...] --amount <n> | --file <path>) --reason "<理由>" [--notify] [--dry-run]` — 運用コマンド: 一括付与と補填(1 transaction、中身から作る止める鍵で二度付けない)。詳細: `src/domains/core/wallet/README.md` の「一括付与と補填」
+- `wallet:reverse-history -- --history <id>[,<id>...] | --batch <request_batch_id> --reason "<理由>" [--dry-run]` — 運用コマンド: 間違えた取引を逆向きの調整で打ち消す(行ごとの止める鍵で二度取り消さない)。詳細: `src/domains/core/wallet/README.md` の「取引の取り消し」
+- `purchaseQuota:cleanup` — 90 日より古い購入クォータ台帳を物理削除する定期メンテナンス（任意）。定期実行したい fork は `src/app/api/cron/<別名>/` に task.ts と route.ts を足す（定期タスクは平らな名前、ドメインのタスクは `<ドメイン>:<名前>` なので重ならない）。詳細: `src/domains/core/purchaseQuota/README.md` の「cron」
 - ワンショット（**定期実行してはいけない**。導入時などに手動で 1 回だけ実行する）:
   - `wallet:lots-init` — ウォレット有効期限の導入時のデータ移行。対象通貨の指定が必須（`-- --wallet-type <通貨>` か `-- --all`）。再実行は対象通貨の全ユーザーの失効カウントをリセットする
-  - `wallet:lots-init-from-history` — `wallet:lots-init` の代替（導入時に**どちらか一方だけ**実行）。付与履歴から実際の付与日でロットを復元し、既に期限を過ぎた分は次回の `wallet-expire-lots` で没収される。対象通貨の指定は `wallet:lots-init` と同じく必須。`--dry-run` で対象件数と没収見込み額を事前確認できる。詳細: `src/features/core/wallet/README.md` の「導入手順（ダウンストリーム）」
-  - `user:name-dedup` — 表示名の一意性（`userConfig.name.unique`）有効化時に既存の重複表示名へサフィックスを付けて解消する。冪等。`-- --dry-run` で事前確認。詳細: `src/features/core/user/README.md` の「表示名 = ユーザー名（バリデーションと一意性）」
-  - `user:status-history-backfill` — `user_status_histories` の過去分を retention 内の `audit_logs` から復元する。冪等。詳細: `src/features/core/user/README.md` の「ステータス遷移履歴」
-  - `analytics:rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]` — 日次ロールアップの過去分を再計算する（遡及修正の再計算経路を兼ねる）。詳細: `src/features/core/analytics/README.md`
+  - `wallet:lots-init-from-history` — `wallet:lots-init` の代替（導入時に**どちらか一方だけ**実行）。付与履歴から実際の付与日でロットを復元し、既に期限を過ぎた分は次回の `wallet-expire-lots` で没収される。対象通貨の指定は `wallet:lots-init` と同じく必須。`--dry-run` で対象件数と没収見込み額を事前確認できる。詳細: `src/domains/core/wallet/README.md` の「導入手順（ダウンストリーム）」
+  - `user:name-dedup` — 表示名の一意性（`userConfig.name.unique`）有効化時に既存の重複表示名へサフィックスを付けて解消する。冪等。`-- --dry-run` で事前確認。詳細: `src/domains/core/user/README.md` の「表示名 = ユーザー名（バリデーションと一意性）」
+  - `user:status-history-backfill` — `user_status_histories` の過去分を retention 内の `audit_logs` から復元する。冪等。詳細: `src/domains/core/user/README.md` の「ステータス遷移履歴」
+  - `analytics:rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]` — 日次ロールアップの過去分を再計算する（遡及修正の再計算経路を兼ねる）。詳細: `src/domains/core/analytics/README.md`
 
 ### タスク一覧
 
 `pnpm task --list` が `src/app/api/cron/*/task.ts` から一覧（schedule・有効/無効・説明）を出す。各タスクの詳細と運用上の注意は、
-処理本体があるドメインの README（`src/features/core/{auditLog,userLoginEvent,deviceFingerprint,fingerprintChallenge,interactionTracking,userCounter,analytics,purchaseRequest,wallet}/README.md`）を見る。
+処理本体があるドメインの README（`src/domains/core/{auditLog,userLoginEvent,deviceFingerprint,fingerprintChallenge,interactionTracking,userCounter,analytics,purchaseRequest,wallet}/README.md`）を見る。
 
 ## API
 
@@ -202,7 +202,7 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
   vercel.json にはそのまま入る。upstream の日次タスクは 18:00 UTC（03:00 JST）から 5 分ずつずらしてある
 - **fork による上書き**: upstream のタスクの時刻を変える・外すときは、同じフォルダに fork が `task.override.ts` を置く（下記「upstream のタスクを外す・時刻を変える」）。
   upstream の task.ts は編集しない（merge で衝突する）
-- **期限つきのものを片付けるタスク**: `--plan hobby` では 1 日 1 回になる（説明の言い方は札 cleanup_wording。例: `storage-sweep`。ファイルのアップロード権はアプリの期限後も cloud 側でしばらく生きうる。src/features/core/storageObject/README.md「掃除」）
+- **期限つきのものを片付けるタスク**: `--plan hobby` では 1 日 1 回になる（説明の言い方は札 cleanup_wording。例: `storage-sweep`。ファイルのアップロード権はアプリの期限後も cloud 側でしばらく生きうる。src/domains/core/storageObject/README.md「掃除」）
 
 - **毎分など短い間隔のタスク**: 実行中（最大 maxDuration）に次の回が始まりうる（二重処理を避ける作りは札 no_double_work）。1 分より短い間隔は Vercel Cron では書けない（realtimeRoom 等の領域）
 

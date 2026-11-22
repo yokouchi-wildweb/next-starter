@@ -1,8 +1,8 @@
 // src/lib/fingerprint/index.ts
 //
 // ブラウザフィンガープリント収集ライブラリの公開エントリーポイント。
-// ドメイン非依存（DB / HTTP を持たない）。蓄積・照合は features/core/deviceFingerprint、
-// チャレンジは features/core/fingerprintChallenge を参照。
+// ドメイン非依存（DB / HTTP を持たない）。蓄積・照合は domains/core/deviceFingerprint、
+// チャレンジは domains/core/fingerprintChallenge を参照。
 //
 // collect 系はブラウザ専用 API を使うため client コンポーネント / フックから呼ぶこと
 // （SSR 文脈では全成分 null の骨格が返る）。

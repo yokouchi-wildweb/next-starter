@@ -1,5 +1,5 @@
 // src/app/admin/(protected)/_layout/Sidebar/frameValues.ts
-// 管理のサイドバーの枠の値(メニューの中身ではない: 中身は src/features/core/admin/menu/)。
+// 管理のサイドバーの枠の値(メニューの中身ではない: 中身は src/domains/core/admin/menu/)。
 // 値だけ。置き場は仮(設定の議会 D75 の枠の設定の置き場ができたら移す)
 
 import { ExternalLink, Home, LogOut } from "lucide-react";

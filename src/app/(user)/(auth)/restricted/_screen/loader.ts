@@ -13,8 +13,8 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 
-import { USER_STATUSES } from "@/features/core/user/constants";
-import type { UserStatus } from "@/features/core/user/types";
+import { USER_STATUSES } from "@/domains/core/user/constants";
+import type { UserStatus } from "@/domains/core/user/types";
 import { createLoader } from "@/app/guard";
 
 /** 未ログインのときの行き先 */

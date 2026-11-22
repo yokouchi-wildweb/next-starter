@@ -32,9 +32,9 @@ import { InfoPopover } from "@/components/Overlays/Popover";
 import { useConfirm } from "@/components/Overlays/Confirm";
 import { useToast } from "@/lib/toast";
 import { cn } from "@/lib/cn";
-import type { Sample } from "@/features/sample/entities";
-import { useSampleList } from "@/features/sample/hooks/useSampleList";
-import { sampleClient } from "@/features/sample/services/client/sampleClient";
+import type { Sample } from "@/domains/sample/entities";
+import { useSampleList } from "@/domains/sample/hooks/useSampleList";
+import { sampleClient } from "@/domains/sample/services/client/sampleClient";
 import { resolveErrorMessage } from "@/lib/errors";
 
 type SelectionBehavior = NonNullable<RecordSelectionTableProps<Sample>["selectionBehavior"]>;

@@ -1,11 +1,11 @@
 // 管理者用: 指定ユーザーの紹介一覧を取得
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { referralService } from "@/features/core/referral/services/server/referralService";
-import { referralRewardService } from "@/features/core/referralReward/services/server/referralRewardService";
-import { REFERRAL_REWARD_DEFINITIONS } from "@/features/core/referralReward/rewardDefinitions";
-import { getRewardGroupKey } from "@/features/core/referralReward/utils/rewardDefinitionLookup";
-import { userService } from "@/features/core/user/services/server/userService";
+import { referralService } from "@/domains/core/referral/services/server/referralService";
+import { referralRewardService } from "@/domains/core/referralReward/services/server/referralRewardService";
+import { REFERRAL_REWARD_DEFINITIONS } from "@/domains/core/referralReward/rewardDefinitions";
+import { getRewardGroupKey } from "@/domains/core/referralReward/utils/rewardDefinitionLookup";
+import { userService } from "@/domains/core/user/services/server/userService";
 
 type RouteParams = { userId: string };
 

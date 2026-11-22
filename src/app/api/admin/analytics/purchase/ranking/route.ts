@@ -1,12 +1,12 @@
 // src/app/api/admin/analytics/purchase/ranking/route.ts
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { parseDateRangeParams } from "@/features/core/analytics/services/server/utils/dateRange";
-import { parseUserFilterParams } from "@/features/core/analytics/services/server/utils/userFilter";
+import { parseDateRangeParams } from "@/domains/core/analytics/services/server/utils/dateRange";
+import { parseUserFilterParams } from "@/domains/core/analytics/services/server/utils/userFilter";
 import {
   getPurchaseRanking,
   type PurchaseRankingSortBy,
-} from "@/features/core/analytics/services/server/purchaseRankingAnalytics";
+} from "@/domains/core/analytics/services/server/purchaseRankingAnalytics";
 
 const VALID_SORT_BY: PurchaseRankingSortBy[] = [
   "totalCoinAmount",

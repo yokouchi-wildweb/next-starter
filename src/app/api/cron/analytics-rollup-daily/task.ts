@@ -9,7 +9,7 @@ export const cronTask: CronTaskDefinition = {
   description: "登録済みメトリクスの日次ロールアップを直近数日ぶん(メトリクスの lookbackDays が長ければその日数)冪等に再計算する",
   schedule: "0 18 * * *", // 毎日 03:00 JST
   run: async () => {
-    const { runDailyRollup } = await import("@/features/core/analytics/services/server/rollup");
+    const { runDailyRollup } = await import("@/domains/core/analytics/services/server/rollup");
     return await runDailyRollup();
   },
 };

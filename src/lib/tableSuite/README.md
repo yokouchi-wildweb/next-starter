@@ -536,21 +536,21 @@ const { items, total, isFetchingMore, hasMore, sentinelRef } = useMyRows({ obser
 - 汎用の一括ボタンは**副作用の無い列だけ**。記録が必須の操作（状態の一括変更など）は上流が専用のサービス・API と作成関数で出す
 
 ```tsx
-// src/features/core/user/adminBulkActions/userTags.tsx（上流の既定の項目）
+// src/domains/core/user/adminBulkActions/userTags.tsx（上流の既定の項目）
 export const bulkAction: UserAdminBulkActionItem = bulkRelationAction(
   { key: "userTags", lists: ["general"], order: 10 },
   { domain: userDisplay, relation: "userTag", mode: "replace", icon: Tags, label: "タグ設定" },
 );
 
-// fork: src/features/core/user/adminBulkActions/userTags.override.ts（上流の項目を外す・並べ替える。書けるのは enabled・order）
+// fork: src/domains/core/user/adminBulkActions/userTags.override.ts（上流の項目を外す・並べ替える。書けるのは enabled・order）
 export const override = { enabled: false };
 ```
 
 - 受け口のある一覧:
-  - user の 3 一覧(`src/features/core/user/adminBulkActions/`)
-  - 振込審査(`src/features/core/bankTransferReview/adminBulkActions/`、既定 = メール一斉送信)
-  - 送信一覧(`src/features/core/messaging/adminBulkActions/`、既定 = 削除、RecordSelectionList)
-  - pnpm generate domain で作るドメインの一覧(`src/features/<domain>/adminBulkActions/`。受け口の宣言 `extensionPoints.ts` と型は生成器が書く。項目が無ければ選択の無い素の表)
+  - user の 3 一覧(`src/domains/core/user/adminBulkActions/`)
+  - 振込審査(`src/domains/core/bankTransferReview/adminBulkActions/`、既定 = メール一斉送信)
+  - 送信一覧(`src/domains/core/messaging/adminBulkActions/`、既定 = 削除、RecordSelectionList)
+  - pnpm generate domain で作るドメインの一覧(`src/domains/<domain>/adminBulkActions/`。受け口の宣言 `extensionPoints.ts` と型は生成器が書く。項目が無ければ選択の無い素の表)
 - 項目を置いた・消したら `pnpm generate extensions`（一覧 `extensions/adminBulkActions.ts` を作り直す）。書式: `scripts/structure/extensions/README.md`
 
 ## Internals

@@ -1,6 +1,6 @@
 // scripts/runner/seed/run.ts — pnpm ops db seed [--all] の本体(入口は scripts/operations/db/seed.ts)
 //
-// ドメインのシード src/features/<ドメイン>/seed.ts(defineSeed、src/lib/seed)を走査し、after の順に各ドメインのサービスで入れる。
+// ドメインのシード src/domains/<ドメイン>/seed.ts(defineSeed、src/lib/seed)を走査し、after の順に各ドメインのサービスで入れる。
 // - 既定は対話でドメインを選ぶ(選んだドメインが after で指すドメインは自動で足す)、--all で全部
 // - 閉じた機能のドメイン(そのフォルダを features に持つ規則が閉じている。スイッチを通した rules)は飛ばして名前を出し、
 //   それを after に持つシードは理由を出して止める

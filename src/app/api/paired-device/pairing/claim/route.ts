@@ -4,16 +4,16 @@
 
 import { NextResponse } from "next/server";
 
-import { ClaimPairingCodeSchema } from "@/features/pairedDevice/entities/schema";
+import { ClaimPairingCodeSchema } from "@/domains/pairedDevice/entities/schema";
 import {
   claimPairingCode,
   rejectCrossSiteRequest,
   withPairedDeviceErrors,
-} from "@/features/pairedDevice/services/server";
+} from "@/domains/pairedDevice/services/server";
 import {
   readDeviceRequestInfo,
   setPairedDeviceCookie,
-} from "@/features/pairedDevice/services/server/session";
+} from "@/domains/pairedDevice/services/server/session";
 import { DomainError } from "@/lib/errors";
 import { createApiRoute } from "@/wiring/apiRoute";
 

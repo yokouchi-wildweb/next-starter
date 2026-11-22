@@ -1,6 +1,6 @@
 // src/app/admin/_layout/config.ts — 管理の枠の設定(既定 + 上書き)。設定の議会 D100
 // 上書きは src/config/layout/admin.config.ts(このファイルだけが読む)。置き方: src/config/README.md。合成: @/lib/defineConfig
-// 管理の中身(ダッシュボード・一覧の表)の値は src/features/core/admin/config.ts
+// 管理の中身(ダッシュボード・一覧の表)の値は src/domains/core/admin/config.ts
 
 import override from "@/config/layout/admin.config";
 import { defineConfig, type OverrideOf } from "@/lib/defineConfig";

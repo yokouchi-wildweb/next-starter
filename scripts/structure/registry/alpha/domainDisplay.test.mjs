@@ -62,8 +62,8 @@ test("関連先の searchFields は非同期の関連にだけ、関連先の名
 
 test("実物: 写しの searchFields は getDomainConfig が返していた関連先の値と同じ", () => {
   const { outputs } = buildAlphaRegistries(process.cwd());
-  const display = JSON.parse(/: DomainDisplay = (\{[\s\S]*\});/.exec(outputs["src/features/sample/entities/display.ts"])[1]);
-  const tag = JSON.parse(readFileSync("src/features/sampleTag/domain.json", "utf8"));
+  const display = JSON.parse(/: DomainDisplay = (\{[\s\S]*\});/.exec(outputs["src/domains/sample/entities/display.ts"])[1]);
+  const tag = JSON.parse(readFileSync("src/domains/sampleTag/domain.json", "utf8"));
   const relation = display.relations.find((r) => r.domain === "sample_tag");
   assert.deepEqual(relation.searchFields, tag.searchFields);
   assert.equal(display.relations.find((r) => r.domain === "sample_category").searchFields, undefined);
@@ -76,7 +76,7 @@ test("hiddenColumns の列は fields と searchFields に出ない", () => {
 });
 
 test("実物: user の写しに local_password が無い", () => {
-  assert.doesNotMatch(readFileSync("src/features/core/user/entities/display.ts", "utf8"), /local_password|localPassword/);
+  assert.doesNotMatch(readFileSync("src/domains/core/user/entities/display.ts", "utf8"), /local_password|localPassword/);
 });
 
 test("全ドメイン: domain.json の hiddenColumns と entities の defineHiddenColumns の列が一致する", () => {
@@ -91,7 +91,7 @@ test("全ドメイン: domain.json の hiddenColumns と entities の defineHidd
     assert.deepEqual([...(config.hiddenColumns ?? [])].sort(), declared.sort(), path);
     checked.push(path);
   }
-  assert.ok(checked.includes("src/features/core/user/entities/display.ts"));
+  assert.ok(checked.includes("src/domains/core/user/entities/display.ts"));
 });
 
 test("Firestore は名前を camelCase に", () => {
@@ -164,8 +164,8 @@ test("hiddenColumns の列は列名のキーのどれにも出ない", () => {
 
 test("実物 chatRoom: 写しの列名は normalizeDomainJsonConfig の結果と同じ", () => {
   const { outputs } = buildAlphaRegistries(process.cwd());
-  const display = JSON.parse(/: DomainDisplay = (\{[\s\S]*\});/.exec(outputs["src/features/core/chatRoom/entities/display.ts"])[1]);
-  const config = JSON.parse(readFileSync("src/features/core/chatRoom/domain.json", "utf8"));
+  const display = JSON.parse(/: DomainDisplay = (\{[\s\S]*\});/.exec(outputs["src/domains/core/chatRoom/entities/display.ts"])[1]);
+  const config = JSON.parse(readFileSync("src/domains/core/chatRoom/domain.json", "utf8"));
   const camel = (name) => toCamelCase(name) || name;
   assert.deepEqual(display.fields.map((f) => f.name), config.fields.map((f) => camel(f.name)));
   assert.deepEqual(display.tableFields, config.tableFields.map(camel));
@@ -198,10 +198,10 @@ test("全ドメイン: 部品が読む項目の値は domain.json(Firestore は�
 test("registry の検査: 写しがずれると stale", () => {
   const dir = mkdtempSync(join(tmpdir(), "display-"));
   try {
-    const file = "src/features/foo/domain.json";
+    const file = "src/domains/foo/domain.json";
     const config = { singular: "foo", plural: "foos", label: "F", dbEngine: "Neon", fields: [] };
-    mkdirSync(join(dir, "src/features/foo/entities"), { recursive: true });
-    const path = "src/features/foo/entities/display.ts";
+    mkdirSync(join(dir, "src/domains/foo/entities"), { recursive: true });
+    const path = "src/domains/foo/entities/display.ts";
     const text = renderDomainDisplay(file, config);
     writeFileSync(join(dir, path), text);
     assert.deepEqual(staleAlphaRegistries(dir, { [path]: text }), []);

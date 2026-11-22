@@ -12,8 +12,8 @@
 // skipForDemo / allowStatuses はトークン経路と同じ。
 
 import { createMeRoute } from "@/wiring/apiRoute";
-import { fingerprintChallengeConfig } from "@/features/fingerprintChallenge/config";
-import { submitChallenge } from "@/features/core/fingerprintChallenge/services/server";
+import { fingerprintChallengeConfig } from "@/domains/fingerprintChallenge/config";
+import { submitChallenge } from "@/domains/core/fingerprintChallenge/services/server";
 
 type Params = { id: string };
 

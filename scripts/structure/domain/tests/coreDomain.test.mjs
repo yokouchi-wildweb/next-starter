@@ -1,4 +1,4 @@
-// core のドメイン（src/features/core/<domain>/domain.json）を business と同じに扱う契約テスト（D41）と、
+// core のドメイン（src/domains/core/<domain>/domain.json）を business と同じに扱う契約テスト（D41）と、
 // 手で管理（generate: false）のドメインはどんな実行でも生成器を通さない契約（人の決定。検査もしない・何も書かない）。
 // 実行: pnpm test scripts/structure/domain/tests/coreDomain.test.mjs
 import { after, test } from "node:test";
@@ -19,7 +19,7 @@ const capture = () => {
   return { lines, io: { log: (m) => lines.log.push(m), warn: (m) => lines.warn.push(m) } };
 };
 const MEMO = { singular: "memo", plural: "memos", label: "メモ", dbEngine: "Neon", idType: "uuid", useCreatedAt: true, useUpdatedAt: true, fields: [{ name: "title", label: "題", fieldType: "string", formInput: "textInput" }] };
-const ALIAS = { compilerOptions: { paths: { "@/features/memo/*": ["./src/features/core/memo/*"] } } };
+const ALIAS = { compilerOptions: { paths: { "@/domains/memo/*": ["./src/domains/core/memo/*"] } } };
 
 function project(configs, { alias = true } = {}) {
   const root = makeProject({ configs, cleanup });
@@ -33,16 +33,16 @@ test("所在: core の domain.json は core のフォルダ、一覧は business
   assert.deepEqual(workspace.listDomains(), ["alpha", "memo"]);
   const ctx = createDomainContext(workspace, "memo");
   assert.equal(ctx.kind, "core");
-  assert.equal(ctx.rel, "src/features/core/memo");
-  assert.equal(ctx.configPath, path.join(root, "src/features/core/memo/domain.json"));
+  assert.equal(ctx.rel, "src/domains/core/memo");
+  assert.equal(ctx.configPath, path.join(root, "src/domains/core/memo/domain.json"));
   assert.equal(createDomainContext(workspace, "alpha").kind, "business");
 
-  fs.mkdirSync(path.join(root, "src/features/memo"));
-  fs.writeFileSync(path.join(root, "src/features/memo/domain.json"), JSON.stringify(MEMO));
+  fs.mkdirSync(path.join(root, "src/domains/memo"));
+  fs.writeFileSync(path.join(root, "src/domains/memo/domain.json"), JSON.stringify(MEMO));
   assert.throws(() => workspace.listDomains(), /両方にあります/);
 });
 
-test("生成物: core のフォルダに書き、頭のコメントは src/features/core/<d>、src/registry には書かない（domainEntry.ts は書く）", () => {
+test("生成物: core のフォルダに書き、頭のコメントは src/domains/core/<d>、src/registry には書かない（domainEntry.ts は書く）", () => {
   const root = project({ "core/memo": MEMO });
   const workspace = createWorkspace(root);
   const { lines, io } = capture();
@@ -51,18 +51,18 @@ test("生成物: core のフォルダに書き、頭のコメントは src/featu
   const outputs = planDomain(ctx, workspace, gen);
   const paths = outputs.map((o) => path.relative(root, o.path));
   assert.ok(paths.length > 0);
-  assert.ok(paths.every((p) => p.startsWith("src/features/core/memo/")), paths.join(", "));
-  assert.ok(paths.includes("src/features/core/memo/services/server/domainEntry.ts"));
+  assert.ok(paths.every((p) => p.startsWith("src/domains/core/memo/")), paths.join(", "));
+  assert.ok(paths.includes("src/domains/core/memo/services/server/domainEntry.ts"));
   const drizzle = outputs.find((o) => o.path.endsWith("entities/drizzle.ts"));
-  assert.match(drizzle.content, /^\/\/ src\/features\/core\/memo\/entities\/drizzle\.ts/);
-  assert.match(outputs.find((o) => o.path.endsWith("domainEntry.ts")).content, /^\/\/ src\/features\/core\/memo\/services\/server\/domainEntry\.ts/);
+  assert.match(drizzle.content, /^\/\/ src\/domains\/core\/memo\/entities\/drizzle\.ts/);
+  assert.match(outputs.find((o) => o.path.endsWith("domainEntry.ts")).content, /^\/\/ src\/domains\/core\/memo\/services\/server\/domainEntry\.ts/);
 });
 
-test("core: tsconfig.json に @/features/<d>/* の別名が無ければ生成前に止める（手で管理なら検査しない）", () => {
+test("core: tsconfig.json に @/domains/<d>/* の別名が無ければ生成前に止める（手で管理なら検査しない）", () => {
   const root = project({ "core/memo": MEMO }, { alias: false });
   const workspace = createWorkspace(root);
   assert.throws(() => loadDomainForGenerate(workspace, "memo", capture().io), /tsconfig\.json の compilerOptions\.paths/);
-  fs.writeFileSync(path.join(root, "src/features/core/memo/domain.json"), JSON.stringify({ ...MEMO, generate: false }));
+  fs.writeFileSync(path.join(root, "src/domains/core/memo/domain.json"), JSON.stringify({ ...MEMO, generate: false }));
   const { lines, io } = capture();
   assert.doesNotThrow(() => loadDomainForGenerate(workspace, "memo", io));
   assert.deepEqual(lines.warn, []);

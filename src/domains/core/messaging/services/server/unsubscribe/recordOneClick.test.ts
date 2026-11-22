@@ -1,0 +1,65 @@
+// ワンクリックの配信停止の記録の検査(DB は偽物)
+// - user:<id> → 好みの行(カテゴリー × 送信チャンネル、source one_click)。何度届いても 1 行。利用者がいなければ何もしない
+// - addr:<hash> → 宛先の停止(reason one_click、scope = カテゴリー)
+// 実行: pnpm test src/domains/core/messaging/services/server/unsubscribe
+import { test } from "node:test";
+import assert from "node:assert/strict";
+
+import { recordOneClickUnsubscribe, type OneClickStore } from "./recordOneClick";
+
+function memory(users: string[]) {
+  const preferences = new Set<string>();
+  const suppressions = new Set<string>();
+  const origins: { sourceMessageKey: string | null; sourceDispatchId: string | null }[] = [];
+  const store: OneClickStore = {
+    async addPreference({ userId, category, channel, source, sourceMessageKey, sourceDispatchId }) {
+      if (!users.includes(userId)) return false;
+      preferences.add(`${userId}|${category}|${channel}|${source}`);
+      origins.push({ sourceMessageKey, sourceDispatchId });
+      return true;
+    },
+    async addSuppression({ channel, addressHash, scope, source, sourceMessageKey, sourceDispatchId }) {
+      suppressions.add(`${channel}|${addressHash}|${scope}|${source}`);
+      origins.push({ sourceMessageKey, sourceDispatchId });
+    },
+  };
+  return { store, preferences, suppressions, origins };
+}
+
+test("利用者は好みの行を 1 つ(何度届いても同じ)", async () => {
+  const { store, preferences, suppressions } = memory(["u-1"]);
+  const payload = { recipientKey: "user:u-1", category: "marketing", channel: "email" };
+  assert.deepEqual(await recordOneClickUnsubscribe(store, payload), { recorded: "preference" });
+  await recordOneClickUnsubscribe(store, payload);
+  assert.deepEqual([...preferences], ["u-1|marketing|email|one_click"]);
+  assert.equal(suppressions.size, 0);
+});
+
+test("利用者がいなければ何もしない", async () => {
+  const { store, preferences } = memory([]);
+  assert.deepEqual(await recordOneClickUnsubscribe(store, { recipientKey: "user:gone", category: "marketing", channel: "email" }), {
+    recorded: "none",
+  });
+  assert.equal(preferences.size, 0);
+});
+
+test("宛先だけの受信者は宛先の停止(scope = カテゴリー)", async () => {
+  const { store, suppressions } = memory([]);
+  const hash = "b".repeat(64);
+  await recordOneClickUnsubscribe(store, { recipientKey: `addr:${hash}`, category: "activity", channel: "email", addressHash: hash });
+  assert.deepEqual([...suppressions], [`email|${hash}|activity|one_click`]);
+});
+
+test("停止の行に連絡の鍵と送信の id を残す(前のトークンは null)", async () => {
+  const { store, origins } = memory(["u-1"]);
+  const dispatchId = "0b8e2c1d-3f4a-4b5c-9d6e-7f8a9b0c1d2e";
+  await recordOneClickUnsubscribe(store, { recipientKey: "user:u-1", category: "marketing", channel: "email", messageKey: "shop.notice", dispatchId });
+  const hash = "c".repeat(64);
+  await recordOneClickUnsubscribe(store, { recipientKey: `addr:${hash}`, category: "activity", channel: "email", addressHash: hash, messageKey: "shop.notice", dispatchId });
+  await recordOneClickUnsubscribe(store, { recipientKey: "user:u-1", category: "news", channel: "email" });
+  assert.deepEqual(origins, [
+    { sourceMessageKey: "shop.notice", sourceDispatchId: dispatchId },
+    { sourceMessageKey: "shop.notice", sourceDispatchId: dispatchId },
+    { sourceMessageKey: null, sourceDispatchId: null },
+  ]);
+});

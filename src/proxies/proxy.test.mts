@@ -14,7 +14,7 @@ import { pathToFileURL } from "node:url";
 
 import { NextRequest } from "next/server";
 
-import type { SessionUser } from "@/features/core/auth/entities/session";
+import type { SessionUser } from "@/domains/core/auth/entities/session";
 
 import type { ProxyContext, ProxyHandler } from "./types";
 
@@ -22,7 +22,7 @@ const srcUrl = (rel: string) => pathToFileURL(join(process.cwd(), "src", rel)).h
 
 let maintenanceActive = true;
 let maintenanceReads = 0;
-mock.module(srcUrl("features/core/setting/services/server/settingService.ts"), {
+mock.module(srcUrl("domains/core/setting/services/server/settingService.ts"), {
   namedExports: {
     settingService: {
       isMaintenanceActive: async () => {
@@ -32,7 +32,7 @@ mock.module(srcUrl("features/core/setting/services/server/settingService.ts"), {
     },
   },
 });
-mock.module(srcUrl("features/core/demo/config.ts"), {
+mock.module(srcUrl("domains/core/demo/config.ts"), {
   namedExports: {
     demoConfig: { mode: { enabled: true, allowedPaths: ["/demo"], allowedPrefixes: ["/_next", "/api"], redirectTo: "/demo" } },
   },
@@ -74,12 +74,12 @@ mock.module(srcUrl("proxies/extensions/decorators.ts"), {
   },
 });
 
-let createProxyUser: typeof import("@/features/core/auth/services/server/proxyUserDeps").createProxyUser;
+let createProxyUser: typeof import("@/domains/core/auth/services/server/proxyUserDeps").createProxyUser;
 let maintenanceProxy: ProxyHandler;
 let demoModeProxy: ProxyHandler;
 let redirectProxy: ProxyHandler;
 before(async () => {
-  ({ createProxyUser } = await import("@/features/core/auth/services/server/proxyUserDeps"));
+  ({ createProxyUser } = await import("@/domains/core/auth/services/server/proxyUserDeps"));
   ({ maintenanceProxy } = await import("./maintenance"));
   ({ demoModeProxy } = await import("./demoMode"));
   ({ redirectProxy } = await import("./redirect"));

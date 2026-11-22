@@ -8,8 +8,8 @@
 
 import "server-only";
 
-import { USER_PROVIDER_TYPES } from "@/features/core/user/constants";
-import type { UserProviderType } from "@/features/core/user/types";
+import { USER_PROVIDER_TYPES } from "@/domains/core/user/constants";
+import type { UserProviderType } from "@/domains/core/user/types";
 import { sanitizeRedirectPath } from "@/lib/url";
 import type { ScreenProps } from "@/lib/screens";
 import { createLoader } from "@/app/guard";

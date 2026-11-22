@@ -59,15 +59,15 @@ test("表の定義の hash: 増えた・消えた・変わったファイルを�
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "forge-test-"));
   tmpDirs.push(root);
   const table = (name) => `export const T = pgTable("${name}", {});\n`;
-  const drizzle = (dir) => path.join(root, "src/features", dir, "drizzle.ts");
+  const drizzle = (dir) => path.join(root, "src/domains", dir, "drizzle.ts");
   for (const dir of ["a/entities", "b/entities", "core/userProfile/entities/profiles/x", "core/c/entities"]) {
     fs.mkdirSync(path.dirname(drizzle(dir)), { recursive: true });
     fs.writeFileSync(drizzle(dir), table(dir.replace(/\W/g, "_")));
   }
   // drizzle.ts でないファイルの表も見る。表の無いファイルは見ない
-  const other = path.join(root, "src/features/core/c/entities/read.ts");
+  const other = path.join(root, "src/domains/core/c/entities/read.ts");
   fs.writeFileSync(other, table("read"));
-  fs.writeFileSync(path.join(root, "src/features/core/c/entities/plain.ts"), "export const x = 1;\n");
+  fs.writeFileSync(path.join(root, "src/domains/core/c/entities/plain.ts"), "export const x = 1;\n");
   const before = snapshotTables(root);
   assert.equal(before.size, 5);
   assert.deepEqual(changedTables(before, snapshotTables(root)), []);
@@ -76,7 +76,7 @@ test("表の定義の hash: 増えた・消えた・変わったファイルを�
   fs.rmSync(drizzle("b/entities"));
   fs.mkdirSync(path.dirname(drizzle("c/entities")), { recursive: true });
   fs.writeFileSync(drizzle("c/entities"), table("new"));
-  assert.deepEqual(changedTables(before, snapshotTables(root)), ["src/features/a/entities/drizzle.ts", "src/features/b/entities/drizzle.ts", "src/features/c/entities/drizzle.ts", "src/features/core/c/entities/read.ts"]);
+  assert.deepEqual(changedTables(before, snapshotTables(root)), ["src/domains/a/entities/drizzle.ts", "src/domains/b/entities/drizzle.ts", "src/domains/c/entities/drizzle.ts", "src/domains/core/c/entities/read.ts"]);
 });
 
 test("引数: --lint だけ受け付ける", () => {

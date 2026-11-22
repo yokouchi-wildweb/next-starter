@@ -18,21 +18,21 @@
 
 import { NextResponse } from "next/server";
 
-import { getBankTransferConfig } from "@/features/purchaseRequest/utils/paymentMethods";
+import { getBankTransferConfig } from "@/domains/purchaseRequest/utils/paymentMethods";
 import {
   checkBankTransferReceipt,
   type SupportedImageMediaType,
 } from "@/lib/aiVision";
 import { createApiRoute } from "@/wiring/apiRoute";
-import { isBankTransferJudgmentPassed } from "@/features/core/purchaseRequest/constants/bankTransferJudgment";
-import { purchaseRequestService } from "@/features/core/purchaseRequest/services/server/purchaseRequestService";
+import { isBankTransferJudgmentPassed } from "@/domains/core/purchaseRequest/constants/bankTransferJudgment";
+import { purchaseRequestService } from "@/domains/core/purchaseRequest/services/server/purchaseRequestService";
 import {
   checkJudgmentRateLimit,
   getJudgmentRateLimitStatus,
   recordAttempt,
   recordFailure,
   type JudgmentRateLimitStatus,
-} from "@/features/core/rateLimit/services/server/wrappers/judgmentRateLimit";
+} from "@/domains/core/rateLimit/services/server/wrappers/judgmentRateLimit";
 
 type Params = { id: string };
 

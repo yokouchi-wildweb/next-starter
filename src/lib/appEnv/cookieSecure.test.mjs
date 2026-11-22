@@ -24,9 +24,9 @@ const CLEAR = "clientClear"; // ブラウザ側で消すだけ(max-age=0、値�
  * @type {Record<string, string>}
  */
 const COOKIE_WRITERS = {
-  "src/features/core/auth/services/server/session/issueSessionCookie.ts": ALWAYS, // ログインのセッション
-  "src/features/core/auth/services/server/session/clearSessionCookie.ts": ALWAYS,
-  "src/features/core/pairedDevice/services/server/session/cookies.ts": ALWAYS, // 端末トークン・ペアリング待ち
+  "src/domains/core/auth/services/server/session/issueSessionCookie.ts": ALWAYS, // ログインのセッション
+  "src/domains/core/auth/services/server/session/clearSessionCookie.ts": ALWAYS,
+  "src/domains/core/pairedDevice/services/server/session/cookies.ts": ALWAYS, // 端末トークン・ペアリング待ち
   "src/lib/line/oauthState.ts": NOT_DEV, // LINE OAuth の nonce
   "src/app/api/auth/x/login/route.ts": NOT_DEV, // X OAuth の state / code verifier
   "src/proxies/attribution.ts": NOT_DEV, // 流入元
@@ -103,7 +103,7 @@ test("一覧に無い cookie を書く場所も判定を持つ: secure: !isDevel
 });
 
 test("判定の形: 常に secure(セッションの共通オプション)か !isDevelopment()(@/lib/appEnv)。NODE_ENV は使わない", () => {
-  assert.match(read("src/features/core/auth/constants/session.ts"), /secure: true,/);
+  assert.match(read("src/domains/core/auth/constants/session.ts"), /secure: true,/);
   for (const [rel, judgment] of Object.entries(COOKIE_WRITERS)) {
     const text = read(rel);
     assert.doesNotMatch(text, /NODE_ENV/, rel);

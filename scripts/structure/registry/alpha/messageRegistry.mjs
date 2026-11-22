@@ -100,7 +100,7 @@ export function renderMessageRegistry(repoRoot) {
     "  },",
   ]);
   const text = [
-    "// 生成物・編集不可: pnpm generate registry が src/features/**/messages/*.ts・*.override.ts から生成する",
+    "// 生成物・編集不可: pnpm generate registry が src/domains/**/messages/*.ts・*.override.ts から生成する",
     `// ${MESSAGE_REGISTRY_FILE}`,
     "//",
     "// 連絡の一覧(鍵 = <ドメインのフォルダ名>.<ファイル名> → 定義・上書きの遅延 import)。送る口・管理画面・プレビューが読む。型と決まり: src/lib/messaging/README.md",

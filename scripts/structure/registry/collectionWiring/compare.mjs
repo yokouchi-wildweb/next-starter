@@ -8,7 +8,7 @@ import path from "node:path";
 const NOT_DOMAIN_DIRS = new Set(["_template", "core"]);
 
 /**
- * src/features/<domain>/domain.json の集まりの項目名（Neon の項目名は domain.json に書いたまま = レコードのキー）
+ * src/domains/<domain>/domain.json の集まりの項目名（Neon の項目名は domain.json に書いたまま = レコードのキー）
  * @param {string} repoRoot
  * @returns {Map<string, string[]>} フォルダ名（= serviceRegistry のキー）→ 項目名。集まりを持つ主だけ
  */

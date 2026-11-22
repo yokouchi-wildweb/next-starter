@@ -4,7 +4,7 @@
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
-import { getIssuerStatsByGrantId } from "@/features/core/couponIssuerGrant/services/server";
+import { getIssuerStatsByGrantId } from "@/domains/core/couponIssuerGrant/services/server";
 
 type Params = { id: string };
 

@@ -1,7 +1,7 @@
 // scripts/structure/extensions/derive/settingRoles.mjs
 // setting の上書きは権限を絞るだけ(広げない)。管理メニューの上書きと同じ決まり(scripts/structure/admin-menu/inspect.ts の widens)。
 // キーの実効の権限 = キーの allowRoles → 所属セクション(ui.section)の allowRoles → どちらも無ければ管理カテゴリ全員
-// (src/features/core/setting/services/server/access.ts と同じ解決)。上書きを重ねる前(項目のファイルの値)と後
+// (src/domains/core/setting/services/server/access.ts と同じ解決)。上書きを重ねる前(項目のファイルの値)と後
 // ({ ...項目, ...上書き } と同じ重ね方)で実効の権限を比べ、上書きの前に絞りがあったのに外のロールが入る・空になる・
 // 絞りが消える(allowRoles を外す・絞りの無いセクションへ移す)と止める。セクションの上書きそのものの allowRoles も同じ。
 // groups は画面の中の並びだけで、権限の解決(ui.section)に入らないので見ない。

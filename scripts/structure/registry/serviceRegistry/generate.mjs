@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // scripts/structure/registry/serviceRegistry/generate.mjs
-// src/registry/serviceRegistry.ts を src/features/**/services/server/domainEntry.ts（+ domainEntry.override.ts）から丸ごと生成する
+// src/registry/serviceRegistry.ts を src/domains/**/services/server/domainEntry.ts（+ domainEntry.override.ts）から丸ごと生成する
 //
 // 使い方:
 //   pnpm generate registry            # 生成して書き出す（pnpm generate domain / pnpm generate domain -- --delete の最後にも自動で走る）
@@ -36,20 +36,20 @@ function legacyKeyHint(repoRoot, key, serviceImports) {
   const features = path.join(repoRoot, "src", "features");
   // 旧 import の変数名（xService / xBase）からドメインのディレクトリを引く
   const importedDir = [...serviceImports.entries()].find(([name]) => name.toLowerCase().startsWith(key.toLowerCase()))?.[1];
-  // 旧 import は tsconfig の別名（@/features/user = core/user）で書かれていることがあるので core/ も探す
+  // 旧 import は tsconfig の別名（@/domains/user = core/user）で書かれていることがあるので core/ も探す
   const candidates = [importedDir, importedDir && `core/${importedDir}`, key, `core/${key}`].filter(Boolean);
   const dir = candidates.find((candidate) => fs.existsSync(path.join(features, candidate))) ?? key;
   if (!fs.existsSync(path.join(features, dir))) {
-    return `対応するドメインが見つからない。fork が core パスに作ったドメインなら src/features/core/<domain>/services/server/${ENTRY_FILE} を手書きする（access を変えるだけなら ${OVERRIDE_FILE}）`;
+    return `対応するドメインが見つからない。fork が core パスに作ったドメインなら src/domains/core/<domain>/services/server/${ENTRY_FILE} を手書きする（access を変えるだけなら ${OVERRIDE_FILE}）`;
   }
   const domainJson = path.join(features, dir, "domain.json");
   if (!dir.startsWith("core/") && fs.existsSync(domainJson) && readHandManaged(diskView, domainJson)) {
-    return `domain.json が "generate": false なので pnpm generate domain は書かない → src/features/${dir}/services/server/${ENTRY_FILE} を手書きし、access をそこへ移す（形: src/lib/domain/README.md「generate: false の業務ドメイン」）`;
+    return `domain.json が "generate": false なので pnpm generate domain は書かない → src/domains/${dir}/services/server/${ENTRY_FILE} を手書きし、access をそこへ移す（形: src/lib/domain/README.md「generate: false の業務ドメイン」）`;
   }
   if (!dir.startsWith("core/") && fs.existsSync(domainJson)) {
-    return `access は domain.json の apiAccess に移し、pnpm generate domain -- ${key} --yes --only registry で src/features/${dir}/services/server/${ENTRY_FILE} を生成する`;
+    return `access は domain.json の apiAccess に移し、pnpm generate domain -- ${key} --yes --only registry で src/domains/${dir}/services/server/${ENTRY_FILE} を生成する`;
   }
-  return `src/features/${dir}/services/server/${ENTRY_FILE} を手書きする（core の access を fork で変えるなら隣に ${OVERRIDE_FILE}）`;
+  return `src/domains/${dir}/services/server/${ENTRY_FILE} を手書きする（core の access を fork で変えるなら隣に ${OVERRIDE_FILE}）`;
 }
 
 /**
@@ -68,7 +68,7 @@ export function buildServiceRegistry(repoRoot, { view } = {}) {
     errors.push(...domain.entryErrors, ...domain.overrideErrors);
     if (!domain.entryPath && domain.hasBase && !(domain.dir in ENTRY_EXCEPTIONS)) {
       errors.push(
-        `src/features/${domain.dir}/services/server に drizzleBase.ts / firestoreBase.ts があるのに ${ENTRY_FILE} が無い` +
+        `src/domains/${domain.dir}/services/server に drizzleBase.ts / firestoreBase.ts があるのに ${ENTRY_FILE} が無い` +
           (domain.hasDomainJson && !domain.isCore && !domain.handManaged
             ? `（pnpm generate domain -- ${domain.camel} --yes --only registry で生成する）`
             : domain.hasDomainJson && !domain.isCore

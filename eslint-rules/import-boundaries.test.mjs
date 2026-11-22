@@ -39,13 +39,13 @@ test("resolveImport: エイリアス・core の別名・相対・baseUrl を同�
   assert.equal(resolveImport("@/lib/routeFactory/createApiRoute", route, repoRoot), "src/lib/routeFactory/createApiRoute");
   assert.equal(resolveImport("src/lib/routeFactory", route, repoRoot), "src/lib/routeFactory");
   assert.equal(resolveImport("../../../lib/routeFactory", route, repoRoot), "src/lib/routeFactory");
-  assert.equal(resolveImport("@/features/auth/entities/session", route, repoRoot), "src/features/core/auth/entities/session");
+  assert.equal(resolveImport("@/domains/auth/entities/session", route, repoRoot), "src/domains/core/auth/entities/session");
   assert.equal(resolveImport("next/server", route, repoRoot), null);
 });
 
 test("classify: routeFactory の値 import は wiring と routeFactory 自身だけ、型は誰でも", () => {
   assert.equal(classifyRouteFactoryImport("src/app/api/foo/route.ts", "src/lib/routeFactory", false), "routeFactory");
-  assert.equal(classifyRouteFactoryImport("src/features/x/services/server/a.ts", "src/lib/routeFactory/enforceAccess", false), "routeFactory");
+  assert.equal(classifyRouteFactoryImport("src/domains/x/services/server/a.ts", "src/lib/routeFactory/enforceAccess", false), "routeFactory");
   assert.equal(classifyRouteFactoryImport("src/app/api/foo/route.ts", "src/lib/routeFactory", true), null);
   assert.equal(classifyRouteFactoryImport("src/wiring/apiRoute.ts", "src/lib/routeFactory", false), null);
   assert.equal(classifyRouteFactoryImport("src/wiring/apiRoute.acme.ts", "src/lib/routeFactory", false), null);
@@ -56,7 +56,7 @@ test("classify: routeFactory の値 import は wiring と routeFactory 自身だ
 
 test("classify: lib → registry は値も型も禁止(例外の一覧は無い)", () => {
   assert.equal(classifyLibRegistryImport("src/lib/a/index.ts", "src/registry/fooRegistry"), "libRegistry");
-  assert.equal(classifyLibRegistryImport("src/features/x/a.ts", "src/registry/fooRegistry"), null, "lib の外は対象外");
+  assert.equal(classifyLibRegistryImport("src/domains/x/a.ts", "src/registry/fooRegistry"), null, "lib の外は対象外");
   assert.equal(classifyLibRegistryImport("src/lib/b/index.ts", "src/lib/domain"), null);
 });
 
@@ -80,7 +80,7 @@ test("rule route-factory-via-wiring: エイリアス・相対・baseUrl・サブ
       { code: `import { ownerWhere } from "src/lib/routeFactory";`, filename: route, errors: [{ messageId: "routeFactory" }] },
       { code: `import { x } from "../../../lib/routeFactory/enforceAccess";`, filename: route, errors: [{ messageId: "routeFactory" }] },
       { code: `const m = await import("@/lib/routeFactory");`, filename: route, errors: [{ messageId: "routeFactory" }] },
-      { code: `export { ownerWhere } from "@/lib/routeFactory";`, filename: at("src/features/x/index.ts"), errors: [{ messageId: "routeFactory" }] },
+      { code: `export { ownerWhere } from "@/lib/routeFactory";`, filename: at("src/domains/x/index.ts"), errors: [{ messageId: "routeFactory" }] },
     ],
   });
 });
@@ -99,58 +99,58 @@ test("rule lib-no-registry: 値も型も止める", () => {
   });
 });
 
-test("rule lib-no-features: 値も型も、別名も相対も止める。lib の外は通す", () => {
-  ruleTester.run("lib-no-features", plugin.rules["lib-no-features"], {
+test("rule lib-no-domains: 値も型も、別名も相対も止める。lib の外は通す", () => {
+  ruleTester.run("lib-no-domains", plugin.rules["lib-no-domains"], {
     valid: [
       { code: `import { x } from "@/lib/domain";`, filename: at("src/lib/foo/index.ts") },
-      { code: `import { x } from "@/features/core/user/types";`, filename: at("src/wiring/apiRoute.ts") },
+      { code: `import { x } from "@/domains/core/user/types";`, filename: at("src/wiring/apiRoute.ts") },
     ],
     invalid: [
-      { code: `import { x } from "@/features/core/auth/services/server/foo";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
-      { code: `import type { X } from "@/features/core/user/types";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
-      { code: `import { x } from "@/features/user/types";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
+      { code: `import { x } from "@/domains/core/auth/services/server/foo";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
+      { code: `import type { X } from "@/domains/core/user/types";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
+      { code: `import { x } from "@/domains/user/types";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
       { code: `import { x } from "../../features/sample/entities";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
-      { code: `const m = await import("@/features/sample/entities");`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
+      { code: `const m = await import("@/domains/sample/entities");`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
     ],
   });
 });
 
 test("isClientCodeFile: use client と場所で決め、差し替えの server の Screen・loader とテストは外す", () => {
   const client = '// コメント\n\n"use client";\n';
-  assert.equal(isClientCodeFile("src/features/x/lib/a.ts", client), true);
+  assert.equal(isClientCodeFile("src/domains/x/lib/a.ts", client), true);
   assert.equal(isClientCodeFile("src/app/a/_screen/AScreen.tsx", client), true);
-  assert.equal(isClientCodeFile("src/features/x/components/A.tsx", ""), true);
-  assert.equal(isClientCodeFile("src/features/x/hooks/useA.ts", ""), true);
+  assert.equal(isClientCodeFile("src/domains/x/components/A.tsx", ""), true);
+  assert.equal(isClientCodeFile("src/domains/x/hooks/useA.ts", ""), true);
   assert.equal(isClientCodeFile("src/app/a/_components/Part.tsx", ""), true);
-  assert.equal(isClientCodeFile("src/features/x/components/AScreen.tsx", ""), true, "components/ に例外なし");
-  assert.equal(isClientCodeFile("src/features/x/components/loader.ts", ""), true, "components/ に例外なし");
+  assert.equal(isClientCodeFile("src/domains/x/components/AScreen.tsx", ""), true, "components/ に例外なし");
+  assert.equal(isClientCodeFile("src/domains/x/components/loader.ts", ""), true, "components/ に例外なし");
   assert.equal(isClientCodeFile("src/app/(user)/a/_components/AScreen.tsx", client), true, "use client があれば Screen でも");
   assert.equal(isClientCodeFile("src/app/a/_components/AScreen.tsx", ""), false);
   assert.equal(isClientCodeFile("src/app/admin/(protected)/users/general/_components/loader.ts", ""), false);
   assert.equal(isClientCodeFile("src/app/a/_screen/loader.ts", ""), false);
-  assert.equal(isClientCodeFile("src/features/x/services/server/a.ts", ""), false);
+  assert.equal(isClientCodeFile("src/domains/x/services/server/a.ts", ""), false);
   assert.equal(isClientCodeFile("src/components/Form/a.test.ts", ""), false);
   assert.equal(isClientCodeFile("scripts/components/a.ts", ""), false);
-  assert.equal(isClientCodeFile("src/features/x/a.ts", '// "use client"\nconst a = 1;\n'), false, "コメントの中は数えない");
+  assert.equal(isClientCodeFile("src/domains/x/a.ts", '// "use client"\nconst a = 1;\n'), false, "コメントの中は数えない");
 });
 
 test("rule client-no-domain-json: import・型・import()・export from を止め、server は通す", () => {
-  const part = at("src/features/x/components/A.tsx");
-  const json = "@/features/x/domain.json";
+  const part = at("src/domains/x/components/A.tsx");
+  const json = "@/domains/x/domain.json";
   ruleTester.run("client-no-domain-json", plugin.rules["client-no-domain-json"], {
     valid: [
-      { code: `import { domainDisplay } from "@/features/x/entities/display";`, filename: part },
-      { code: `import c from "${json}";`, filename: at("src/features/x/services/server/drizzleBase.ts") },
+      { code: `import { domainDisplay } from "@/domains/x/entities/display";`, filename: part },
+      { code: `import c from "${json}";`, filename: at("src/domains/x/services/server/drizzleBase.ts") },
       { code: `import c from "${json}";`, filename: at("src/app/admin/samples/new/_screen/loader.ts") },
       { code: `import c from "${json}";`, filename: at("src/app/admin/(protected)/users/general/_components/loader.ts") },
       { code: `import c from "${json}";`, filename: at("src/app/admin/x/_components/XScreen.tsx") },
-      { code: `import c from "${json}";`, filename: at("src/features/x/components/A.test.ts") },
+      { code: `import c from "${json}";`, filename: at("src/domains/x/components/A.test.ts") },
     ],
     invalid: [
       { code: `import c from "${json}";`, filename: part, errors: [{ messageId: "clientDomainJson" }] },
       { code: `import type c from "${json}";`, filename: part, errors: [{ messageId: "clientDomainJson" }] },
       { code: `import c from "../domain.json";`, filename: part, errors: [{ messageId: "clientDomainJson" }] },
-      { code: `import c from "@/features/user/domain.json";`, filename: at("src/features/x/hooks/useA.ts"), errors: [{ messageId: "clientDomainJson" }] },
+      { code: `import c from "@/domains/user/domain.json";`, filename: at("src/domains/x/hooks/useA.ts"), errors: [{ messageId: "clientDomainJson" }] },
       { code: `const c = await import("${json}");`, filename: part, errors: [{ messageId: "clientDomainJson" }] },
       { code: `export { default } from "${json}";`, filename: part, errors: [{ messageId: "clientDomainJson" }] },
       { code: `"use client";\nimport c from "${json}";`, filename: at("src/app/a/_screen/Part.tsx"), errors: [{ messageId: "clientDomainJson" }] },
@@ -171,34 +171,34 @@ test("config: route・features・scripts で routeFactory の値 import は erro
   const RF = `import { createRouteFactories } from "@/lib/routeFactory";\nexport const x = createRouteFactories;\n`;
   const REG = `import { serviceRegistry } from "@/registry/serviceRegistry";\nexport const x = serviceRegistry;\n`;
   assert.deepEqual(await lintAt("src/app/api/foo/route.ts", RF), ["import-boundaries/route-factory-via-wiring:2"]);
-  assert.deepEqual(await lintAt("src/features/sample/services/server/foo.ts", RF), ["import-boundaries/route-factory-via-wiring:2"]);
+  assert.deepEqual(await lintAt("src/domains/sample/services/server/foo.ts", RF), ["import-boundaries/route-factory-via-wiring:2"]);
   assert.deepEqual(await lintAt("scripts/foo/run.ts", RF), ["import-boundaries/route-factory-via-wiring:2"]);
   assert.deepEqual(await lintAt("src/wiring/apiRoute.acme.ts", RF), []);
   assert.deepEqual(await lintAt("src/lib/foo/index.ts", REG), ["import-boundaries/lib-no-registry:2"]);
   assert.deepEqual(await lintAt("src/lib/foo/foo.test.mjs", REG), []);
-  const FEAT = `import type { X } from "@/features/core/user/types";\nexport type Y = X;\n`;
-  assert.deepEqual(await lintAt("src/lib/foo/index.ts", FEAT), ["import-boundaries/lib-no-features:2"]);
+  const FEAT = `import type { X } from "@/domains/core/user/types";\nexport type Y = X;\n`;
+  assert.deepEqual(await lintAt("src/lib/foo/index.ts", FEAT), ["import-boundaries/lib-no-domains:2"]);
   assert.deepEqual(await lintAt("src/lib/foo/foo.test.mjs", FEAT), []);
-  assert.deepEqual(await lintAt("src/features/sample/services/server/foo.ts", REG), []);
+  assert.deepEqual(await lintAt("src/domains/sample/services/server/foo.ts", REG), []);
 });
 
 test("classify: pageGuard の値 import は wiring と pageGuard 自身だけ、型は誰でも(L1.18)", () => {
   assert.equal(classifyPageGuardImport("src/app/guard.ts", "src/lib/pageGuard", false), "pageGuard");
-  assert.equal(classifyPageGuardImport("src/features/core/auth/services/server/pageGuardUserDeps.ts", "src/lib/pageGuard", false), "pageGuard");
-  assert.equal(classifyPageGuardImport("src/features/core/auth/services/server/pageGuardUserDeps.ts", "src/lib/pageGuard", true), null);
+  assert.equal(classifyPageGuardImport("src/domains/core/auth/services/server/pageGuardUserDeps.ts", "src/lib/pageGuard", false), "pageGuard");
+  assert.equal(classifyPageGuardImport("src/domains/core/auth/services/server/pageGuardUserDeps.ts", "src/lib/pageGuard", true), null);
   assert.equal(classifyPageGuardImport("src/wiring/pageGuard.ts", "src/lib/pageGuard", false), null);
   assert.equal(classifyPageGuardImport("src/wiring/pageGuard.acme.ts", "src/lib/pageGuard", false), null);
   assert.equal(classifyPageGuardImport("src/lib/pageGuard/index.ts", "src/lib/pageGuard/createPageGuard", false), null);
 });
 
 test("classify: features の index.ts は services/server を値で再 export しない(D73 K5)", () => {
-  const server = "src/features/core/user/services/server/userService";
-  assert.equal(classifyFeaturesIndexReexport("src/features/core/user/index.ts", server, false, true), "serverReexport");
-  assert.equal(classifyFeaturesIndexReexport("src/features/sample/index.tsx", server, false, true), "serverReexport");
-  assert.equal(classifyFeaturesIndexReexport("src/features/core/user/index.ts", server, true, true), null, "型だけは可");
-  assert.equal(classifyFeaturesIndexReexport("src/features/core/user/services/server/index.ts", server, false, true), null, "services/server の中の barrel は対象外");
-  assert.equal(classifyFeaturesIndexReexport("src/features/core/user/index.ts", "src/features/core/user/hooks/useUser", false, true), null);
-  assert.equal(classifyFeaturesIndexReexport("src/features/core/user/index.ts", server, false, false), null, "再 export でない import は対象外");
+  const server = "src/domains/core/user/services/server/userService";
+  assert.equal(classifyFeaturesIndexReexport("src/domains/core/user/index.ts", server, false, true), "serverReexport");
+  assert.equal(classifyFeaturesIndexReexport("src/domains/sample/index.tsx", server, false, true), "serverReexport");
+  assert.equal(classifyFeaturesIndexReexport("src/domains/core/user/index.ts", server, true, true), null, "型だけは可");
+  assert.equal(classifyFeaturesIndexReexport("src/domains/core/user/services/server/index.ts", server, false, true), null, "services/server の中の barrel は対象外");
+  assert.equal(classifyFeaturesIndexReexport("src/domains/core/user/index.ts", "src/domains/core/user/hooks/useUser", false, true), null);
+  assert.equal(classifyFeaturesIndexReexport("src/domains/core/user/index.ts", server, false, false), null, "再 export でない import は対象外");
 });
 
 test("classifyCronFactoryImport: cron の作り手の値 import は wiring と lib/cron の中だけ、型と他の名前は誰でも", () => {
@@ -208,7 +208,7 @@ test("classifyCronFactoryImport: cron の作り手の値 import は wiring と l
   assert.equal(classifyCronFactoryImport(route, "src/lib/cron/createCronRoute.ts", false, value("createCronRoute")), "createCronRoute");
   assert.equal(classifyCronFactoryImport(route, "src/lib/cron", false, null), "*", "名前を問わない形は止める");
   assert.equal(classifyCronFactoryImport(route, "src/lib/cron", true, value("createCronTaskRoute")), null, "型だけは可");
-  assert.equal(classifyCronFactoryImport("src/features/x/sweep.ts", "src/lib/cron", false, value("runBudgetedBatches")), null, "他の名前は可");
+  assert.equal(classifyCronFactoryImport("src/domains/x/sweep.ts", "src/lib/cron", false, value("runBudgetedBatches")), null, "他の名前は可");
   assert.equal(classifyCronFactoryImport(route, "src/lib/cron", false, [{ name: "createCronTaskRoute", typeOnly: true }]), null);
   assert.equal(classifyCronFactoryImport("src/wiring/cronRoute.ts", "src/lib/cron", false, value("createCronTaskRoute")), null);
   assert.equal(classifyCronFactoryImport("src/lib/cron/index.ts", "src/lib/cron/createCronRoute", false, value("createCronTaskRoute")), null);
@@ -222,7 +222,7 @@ test("rule cron-route-via-wiring: cron の route は @/wiring/cronRoute、@/lib/
     valid: [
       { code: `import { createCronTaskRoute } from "@/wiring/cronRoute";`, filename: route },
       { code: `import type { CronTaskDefinition } from "@/lib/cron";`, filename: at("src/app/api/cron/x/task.ts") },
-      { code: `import { runBudgetedBatches, createDeadline } from "@/lib/cron";`, filename: at("src/features/core/auditLog/services/server/prune.ts") },
+      { code: `import { runBudgetedBatches, createDeadline } from "@/lib/cron";`, filename: at("src/domains/core/auditLog/services/server/prune.ts") },
       { code: `import { createCronTaskRoute } from "@/lib/cron";`, filename: at("src/wiring/cronRoute.ts") },
     ],
     invalid: [
@@ -238,7 +238,7 @@ test("rule page-guard-via-wiring / features-index-no-server-reexport: 値は止�
   ruleTester.run("page-guard-via-wiring", plugin.rules["page-guard-via-wiring"], {
     valid: [
       { code: `import { defineRootGuard } from "@/wiring/pageGuard";`, filename: guard },
-      { code: `import type { PageGuardDeps } from "@/lib/pageGuard";`, filename: at("src/features/core/auth/services/server/pageGuardUserDeps.ts") },
+      { code: `import type { PageGuardDeps } from "@/lib/pageGuard";`, filename: at("src/domains/core/auth/services/server/pageGuardUserDeps.ts") },
       { code: `import { createPageGuard } from "@/lib/pageGuard";`, filename: at("src/wiring/pageGuard.ts") },
     ],
     invalid: [
@@ -246,7 +246,7 @@ test("rule page-guard-via-wiring / features-index-no-server-reexport: 値は止�
       { code: `import { createPageGuard } from "src/lib/pageGuard/createPageGuard";`, filename: guard, errors: [{ messageId: "pageGuard" }] },
     ],
   });
-  const index = at("src/features/core/user/index.ts");
+  const index = at("src/domains/core/user/index.ts");
   ruleTester.run("features-index-no-server-reexport", plugin.rules["features-index-no-server-reexport"], {
     valid: [
       { code: `export type { User } from "./services/server/userService";`, filename: index },
@@ -255,7 +255,7 @@ test("rule page-guard-via-wiring / features-index-no-server-reexport: 値は止�
     ],
     invalid: [
       { code: `export { userService } from "./services/server/userService";`, filename: index, errors: [{ messageId: "serverReexport" }] },
-      { code: `export * from "@/features/core/user/services/server/userService";`, filename: index, errors: [{ messageId: "serverReexport" }] },
+      { code: `export * from "@/domains/core/user/services/server/userService";`, filename: index, errors: [{ messageId: "serverReexport" }] },
     ],
   });
 });
@@ -264,15 +264,15 @@ test("config: pageGuard の値 import は wiring の外で error、features の 
   const PG = `import { createPageGuard } from "@/lib/pageGuard";\nexport const x = createPageGuard;\n`;
   assert.deepEqual(await lintAt("src/app/x/guard.ts", PG), ["import-boundaries/page-guard-via-wiring:2"]);
   assert.deepEqual(await lintAt("src/wiring/pageGuard.acme.ts", PG), []);
-  const RE = `export { userService } from "@/features/core/user/services/server/userService";\n`;
-  assert.deepEqual(await lintAt("src/features/core/user/index.ts", RE), ["import-boundaries/features-index-no-server-reexport:2"]);
-  assert.deepEqual(await lintAt("src/features/core/user/services/server/index.ts", RE), []);
+  const RE = `export { userService } from "@/domains/core/user/services/server/userService";\n`;
+  assert.deepEqual(await lintAt("src/domains/core/user/index.ts", RE), ["import-boundaries/features-index-no-server-reexport:2"]);
+  assert.deepEqual(await lintAt("src/domains/core/user/services/server/index.ts", RE), []);
 });
 
 test("eslint.config: client-no-domain-json は src の client のコードに error で当たる", async () => {
-  const code = `import c from "@/features/sample/domain.json";\nexport default c;\n`;
-  assert.ok((await lintAt("src/features/sample/components/Probe.tsx", code)).includes("import-boundaries/client-no-domain-json:2"));
-  assert.ok(!(await lintAt("src/features/sample/services/server/probe.ts", code)).includes("import-boundaries/client-no-domain-json:2"));
+  const code = `import c from "@/domains/sample/domain.json";\nexport default c;\n`;
+  assert.ok((await lintAt("src/domains/sample/components/Probe.tsx", code)).includes("import-boundaries/client-no-domain-json:2"));
+  assert.ok(!(await lintAt("src/domains/sample/services/server/probe.ts", code)).includes("import-boundaries/client-no-domain-json:2"));
 });
 
 test("classify: 門番の外からは入口 3 つだけ、lib は読まない、node.ts は scripts とテストだけ(D7・L1.3)", () => {
@@ -340,7 +340,7 @@ test("rule link-via-shelf: 既定は棚の Link の外の next/link を全部止
     ],
     invalid: [
       { code: `import Link from "next/link";\nconst a = "/somewhere";`, filename: at("src/app/x/page.tsx"), errors: [{ messageId: "rawNextLink" }] },
-      { code: `import NextLink from "next/link";`, filename: at("src/features/core/user/components/X.tsx"), errors: [{ messageId: "rawNextLink" }] },
+      { code: `import NextLink from "next/link";`, filename: at("src/domains/core/user/components/X.tsx"), errors: [{ messageId: "rawNextLink" }] },
     ],
   });
 });
@@ -412,7 +412,7 @@ test("config: @radix-ui/* は Primitives の中なら radix-unified(Tier1 error�
   const RAW = `import * as LabelPrimitive from "@radix-ui/react-label";\nexport const x = LabelPrimitive;\n`;
   const severity = readForkIdentity(repoRoot).isTier1 ? 2 : 1;
   assert.deepEqual(await lintAt("src/components/Primitives/Label/Label.tsx", RAW), [`import-boundaries/radix-unified:${severity}`]);
-  for (const file of ["src/app/foo/_components/Part.tsx", "src/features/core/user/components/X.tsx"]) {
+  for (const file of ["src/app/foo/_components/Part.tsx", "src/domains/core/user/components/X.tsx"]) {
     assert.deepEqual(await lintAt(file, RAW), ["import-boundaries/ui-libs-in-primitives:2"], file);
   }
   assert.deepEqual(await lintAt("src/components/Primitives/Label/Label.tsx", `import { Label } from "radix-ui";\nexport const x = Label;\n`), []);
@@ -430,7 +430,7 @@ test("isUiLibSource: radix-ui・@radix-ui/*・cmdk・react-day-picker・embla-ca
 test("rule ui-libs-in-primitives: Primitives の外の値の import・再輸出・副作用・dynamic・require を止め、型だけと Primitives の中は通す", () => {
   const app = at("src/components/Overlays/Sheet/Sheet.tsx");
   const lib = at("src/lib/x/thing.ts");
-  const spec = at("src/features/core/user/components/X.test.tsx");
+  const spec = at("src/domains/core/user/components/X.test.tsx");
   const err = (source) => [{ messageId: "uiLibOutsidePrimitives", data: { source } }];
   ruleTester.run("ui-libs-in-primitives", plugin.rules["ui-libs-in-primitives"], {
     valid: [
@@ -461,7 +461,7 @@ test("rule ui-libs-in-primitives: Primitives の外の値の import・再輸出�
 
 test("config: ui-libs-in-primitives は src の全部(lib・テストも)で Tier1 も fork も error、Primitives の中は通す", async () => {
   const RAW = `import { Command } from "cmdk";\nexport const x = Command;\n`;
-  for (const file of ["src/app/foo/_components/Part.tsx", "src/lib/x/thing.ts", "src/features/core/user/components/X.test.tsx", "src/lib/x/thing.mjs"]) {
+  for (const file of ["src/app/foo/_components/Part.tsx", "src/lib/x/thing.ts", "src/domains/core/user/components/X.test.tsx", "src/lib/x/thing.mjs"]) {
     assert.deepEqual(await lintAt(file, RAW), ["import-boundaries/ui-libs-in-primitives:2"], file);
   }
   assert.deepEqual(await lintAt("src/components/Primitives/Command/Command.tsx", RAW), []);
@@ -472,11 +472,11 @@ test("rule router-via-guard: next/navigation の useRouter を止め(別名・�
     valid: [
       { code: `import { useRouter, usePathname } from "next/navigation";`, filename: at("src/lib/unsavedGuard/UnsavedGuardProvider.tsx") },
       { code: `import { usePathname, useSearchParams, redirect } from "next/navigation";`, filename: at("src/app/x/page.tsx") },
-      { code: `import { useRouter } from "@/lib/unsavedGuard";`, filename: at("src/features/core/user/components/X.tsx") },
+      { code: `import { useRouter } from "@/lib/unsavedGuard";`, filename: at("src/domains/core/user/components/X.tsx") },
       { code: `import type { useRouter } from "next/navigation";`, filename: at("src/app/x/page.tsx") },
     ],
     invalid: [
-      { code: `import { useRouter } from "next/navigation";`, filename: at("src/features/core/user/components/X.tsx"), errors: [{ messageId: "rawUseRouter" }] },
+      { code: `import { useRouter } from "next/navigation";`, filename: at("src/domains/core/user/components/X.tsx"), errors: [{ messageId: "rawUseRouter" }] },
       { code: `import { usePathname, useRouter as useNav } from "next/navigation";`, filename: at("src/components/AppFrames/X.tsx"), errors: [{ messageId: "rawUseRouter" }] },
       { code: `import { useRouter } from "next/navigation";`, filename: at("src/lib/crud/hooks/x.ts"), errors: [{ messageId: "rawUseRouter" }] },
     ],
@@ -508,51 +508,51 @@ test("rule src-no-district-map: src(テストも)から district-map.jsonl を i
     invalid: [
       { code: `import map from "@/registry/district-map.jsonl";`, filename: at("src/wiring/a.ts"), errors: [{ messageId: "srcDistrictMap" }] },
       { code: `import map from "../../registry/district-map.jsonl";`, filename: at("src/lib/x/a.test.mjs"), errors: [{ messageId: "srcDistrictMap" }] },
-      { code: `const m = await import("@/registry/district-map.jsonl");`, filename: at("src/features/sample/a.ts"), errors: [{ messageId: "srcDistrictMap" }] },
+      { code: `const m = await import("@/registry/district-map.jsonl");`, filename: at("src/domains/sample/a.ts"), errors: [{ messageId: "srcDistrictMap" }] },
       { code: `const m = require("../registry/district-map.jsonl");`, filename: at("src/lib/x.ts"), errors: [{ messageId: "srcDistrictMap" }] },
     ],
   });
 });
 
 test("rule scripts-no-static-wiring: 道具から wiring の静的 import(別名も相対も、型も)を止め、import()・require と道具の外は通す(D79)", () => {
-  assert.ok(isToolFile("scripts/a.ts") && isToolFile("src/features/sample/scripts/tasks/x.ts") && isToolFile(".notices/20260101-000000-a.tool.mjs"));
-  assert.ok(!isToolFile("src/wiring/a.ts") && !isToolFile(".notices/README.md") && !isToolFile("src/features/sample/services/server/a.ts"));
+  assert.ok(isToolFile("scripts/a.ts") && isToolFile("src/domains/sample/scripts/tasks/x.ts") && isToolFile(".notices/20260101-000000-a.tool.mjs"));
+  assert.ok(!isToolFile("src/wiring/a.ts") && !isToolFile(".notices/README.md") && !isToolFile("src/domains/sample/services/server/a.ts"));
   ruleTester.run("scripts-no-static-wiring", plugin.rules["scripts-no-static-wiring"], {
     valid: [
       { code: `const { getService } = await import("@/wiring/domainRegistry");`, filename: at("scripts/runner/task/a.ts") },
       { code: `const w = require("@/wiring/domainRegistry");`, filename: at("scripts/runner/task/a.ts") },
       { code: `const s = 'import { x } from "@/wiring/domains";';`, filename: at(".notices/20260101-000000-a.tool.test.mjs") },
-      { code: `import { x } from "@/wiring/domainRegistry";`, filename: at("src/features/sample/services/server/a.ts") },
+      { code: `import { x } from "@/wiring/domainRegistry";`, filename: at("src/domains/sample/services/server/a.ts") },
     ],
     invalid: [
       { code: `import { getService } from "@/wiring/domainRegistry";`, filename: at("scripts/runner/task/a.ts"), errors: [{ messageId: "toolWiring" }] },
       { code: `import type { X } from "../../src/wiring/apiRoute";`, filename: at("scripts/operations/a.ts"), errors: [{ messageId: "toolWiring" }] },
-      { code: `export { x } from "@/wiring/cronRoute";`, filename: at("src/features/sample/scripts/tasks/a.ts"), errors: [{ messageId: "toolWiring" }] },
+      { code: `export { x } from "@/wiring/cronRoute";`, filename: at("src/domains/sample/scripts/tasks/a.ts"), errors: [{ messageId: "toolWiring" }] },
       { code: `import { x } from "../src/wiring/domainRegistry.ts";`, filename: at(".notices/20260101-000000-a.tool.mjs"), errors: [{ messageId: "toolWiring" }] },
     ],
   });
 });
 
 test("rule tools-no-db-write: ドメインのタスク・operations(db を除く)・seed.ts で db・表の定義・生 SQL・ドライバを止め、移行・operations/db・型・サービスは通す(D75・D90)", () => {
-  assert.ok(isDbWriteGuardedFile("src/features/sample/scripts/tasks/x.ts") && isDbWriteGuardedFile("scripts/operations/features/set.ts") && isDbWriteGuardedFile("src/features/sample/seed.ts") && isDbWriteGuardedFile("scripts/workflow/dev-admin/run.ts"));
-  assert.ok(!isDbWriteGuardedFile("src/features/sample/scripts/migrations/001.ts") && !isDbWriteGuardedFile("src/features/sample/scripts/migrations/001.local.ts"));
+  assert.ok(isDbWriteGuardedFile("src/domains/sample/scripts/tasks/x.ts") && isDbWriteGuardedFile("scripts/operations/features/set.ts") && isDbWriteGuardedFile("src/domains/sample/seed.ts") && isDbWriteGuardedFile("scripts/workflow/dev-admin/run.ts"));
+  assert.ok(!isDbWriteGuardedFile("src/domains/sample/scripts/migrations/001.ts") && !isDbWriteGuardedFile("src/domains/sample/scripts/migrations/001.local.ts"));
   assert.ok(!isDbWriteGuardedFile("scripts/operations/db/push.ts") && !isDbWriteGuardedFile("scripts/workflow/dev-tab/run.ts") && !isDbWriteGuardedFile("scripts/runner/seed/run.ts"));
   ruleTester.run("tools-no-db-write", plugin.rules["tools-no-db-write"], {
     valid: [
-      { code: `import { sampleService } from "@/features/sample/services/server/sampleService";`, filename: at("src/features/sample/scripts/tasks/x.ts") },
+      { code: `import { sampleService } from "@/domains/sample/services/server/sampleService";`, filename: at("src/domains/sample/scripts/tasks/x.ts") },
       { code: `import { eq, type SQL } from "drizzle-orm";`, filename: at("scripts/operations/x/a.ts") },
       { code: `import { db } from "@/lib/drizzle";
-import { sql } from "drizzle-orm";`, filename: at("src/features/sample/scripts/migrations/001.ts") },
+import { sql } from "drizzle-orm";`, filename: at("src/domains/sample/scripts/migrations/001.ts") },
       { code: `import { db } from "@/lib/drizzle";`, filename: at("scripts/operations/db/clear.ts") },
     ],
     invalid: [
-      { code: `import { db } from "@/lib/drizzle";`, filename: at("src/features/sample/scripts/tasks/x.ts"), errors: [{ messageId: "dbWrite" }] },
+      { code: `import { db } from "@/lib/drizzle";`, filename: at("src/domains/sample/scripts/tasks/x.ts"), errors: [{ messageId: "dbWrite" }] },
       { code: `const { db } = await import("@/lib/drizzle");`, filename: at("scripts/operations/x/a.ts"), errors: [{ messageId: "dbWrite" }] },
-      { code: `import { SampleTable } from "@/features/sample/entities/drizzle";`, filename: at("src/features/sample/seed.ts"), errors: [{ messageId: "dbWrite" }] },
-      { code: `import { sql } from "drizzle-orm";`, filename: at("src/features/sample/seed.ts"), errors: [{ messageId: "dbWrite" }] },
+      { code: `import { SampleTable } from "@/domains/sample/entities/drizzle";`, filename: at("src/domains/sample/seed.ts"), errors: [{ messageId: "dbWrite" }] },
+      { code: `import { sql } from "drizzle-orm";`, filename: at("src/domains/sample/seed.ts"), errors: [{ messageId: "dbWrite" }] },
       { code: `import * as orm from "drizzle-orm";`, filename: at("scripts/operations/x/a.ts"), errors: [{ messageId: "dbWrite" }] },
       { code: `import postgres from "postgres";`, filename: at("scripts/operations/x/a.ts"), errors: [{ messageId: "dbWrite" }] },
-      { code: `const m = await import("drizzle-orm/postgres-js");`, filename: at("src/features/sample/scripts/tasks/x.ts"), errors: [{ messageId: "dbWrite" }] },
+      { code: `const m = await import("drizzle-orm/postgres-js");`, filename: at("src/domains/sample/scripts/tasks/x.ts"), errors: [{ messageId: "dbWrite" }] },
     ],
   });
 });
@@ -560,15 +560,15 @@ import { sql } from "drizzle-orm";`, filename: at("src/features/sample/scripts/m
 test("rule seed-reader: ドメインのシード seed.ts を読むのはシードのランナーだけ(静的・動的とも、D52)", () => {
   ruleTester.run("seed-reader", plugin.rules["seed-reader"], {
     valid: [
-      { code: `const m = await import("../../../src/features/sample/seed");`, filename: at("scripts/runner/seed/run.ts") },
-      { code: `import { seed } from "@/features/sample/seed";`, filename: at("scripts/runner/seed/seed.test.ts") },
-      { code: `import { sampleService } from "@/features/sample/services/server/sampleService";`, filename: at("src/features/sample/components/x.tsx") },
-      { code: `import { x } from "@/features/sample/seedHelpers";`, filename: at("src/features/sample/components/x.tsx") },
+      { code: `const m = await import("../../../src/domains/sample/seed");`, filename: at("scripts/runner/seed/run.ts") },
+      { code: `import { seed } from "@/domains/sample/seed";`, filename: at("scripts/runner/seed/seed.test.ts") },
+      { code: `import { sampleService } from "@/domains/sample/services/server/sampleService";`, filename: at("src/domains/sample/components/x.tsx") },
+      { code: `import { x } from "@/domains/sample/seedHelpers";`, filename: at("src/domains/sample/components/x.tsx") },
     ],
     invalid: [
-      { code: `import { seed } from "@/features/sample/seed";`, filename: at("src/features/sample/components/x.tsx"), errors: [{ messageId: "seedReader" }] },
-      { code: `const m = await import("@/features/core/user/seed");`, filename: at("scripts/operations/db/clear.ts"), errors: [{ messageId: "seedReader" }] },
-      { code: `import { seed } from "./seed";`, filename: at("src/features/sample/index.ts"), errors: [{ messageId: "seedReader" }] },
+      { code: `import { seed } from "@/domains/sample/seed";`, filename: at("src/domains/sample/components/x.tsx"), errors: [{ messageId: "seedReader" }] },
+      { code: `const m = await import("@/domains/core/user/seed");`, filename: at("scripts/operations/db/clear.ts"), errors: [{ messageId: "seedReader" }] },
+      { code: `import { seed } from "./seed";`, filename: at("src/domains/sample/index.ts"), errors: [{ messageId: "seedReader" }] },
     ],
   });
 });
@@ -590,30 +590,30 @@ export const y = db;
 
 test("classify: axios の値 import は src/lib と services/client だけ、型は誰でも", () => {
   assert.equal(classifyAxiosImport("src/lib/http/client.ts", "axios", false), null);
-  assert.equal(classifyAxiosImport("src/features/core/auth/services/client/session.ts", "axios", false), null);
-  assert.equal(classifyAxiosImport("src/features/core/auth/hooks/useX.ts", "axios", true), null);
-  assert.equal(classifyAxiosImport("src/features/core/auth/hooks/useX.ts", "lodash", false), null);
-  assert.equal(classifyAxiosImport("src/features/core/auth/hooks/useX.ts", "axios", false), "axiosOutsideClient");
+  assert.equal(classifyAxiosImport("src/domains/core/auth/services/client/session.ts", "axios", false), null);
+  assert.equal(classifyAxiosImport("src/domains/core/auth/hooks/useX.ts", "axios", true), null);
+  assert.equal(classifyAxiosImport("src/domains/core/auth/hooks/useX.ts", "lodash", false), null);
+  assert.equal(classifyAxiosImport("src/domains/core/auth/hooks/useX.ts", "axios", false), "axiosOutsideClient");
   assert.equal(classifyAxiosImport("src/app/(user)/demo/x/Demo.tsx", "axios/unsafe/core/AxiosError.js", false), "axiosOutsideClient");
 });
 
 test("classify: lib/mail の send は送り口と lib/mail 自身だけ、部品・型・名前を問わない形", () => {
   const mail = "src/lib/mail";
   const named = (...names) => names.map((name) => ({ name, typeOnly: false }));
-  assert.equal(classifyMailSendImport("src/features/core/messaging/channels/email/index.tsx", mail, false, named("send")), null);
+  assert.equal(classifyMailSendImport("src/domains/core/messaging/channels/email/index.tsx", mail, false, named("send")), null);
   assert.equal(classifyMailSendImport("src/lib/mail/resend.ts", "src/lib/mail/send", false, named("send")), null);
-  assert.equal(classifyMailSendImport("src/features/core/user/messages/messages.test.ts", mail, false, named("MAIL_THEME_COLORS")), null);
-  assert.equal(classifyMailSendImport("src/features/foo/x.ts", mail, false, [{ name: "send", typeOnly: true }]), null);
-  assert.equal(classifyMailSendImport("src/features/foo/x.ts", mail, true, null), null);
-  assert.equal(classifyMailSendImport("src/features/foo/x.ts", mail, false, named("MailFrame", "send")), "send");
-  assert.equal(classifyMailSendImport("src/features/foo/x.ts", mail, false, null), "*");
-  assert.equal(classifyMailSendImport("src/features/foo/x.ts", "src/lib/other", false, null), null);
+  assert.equal(classifyMailSendImport("src/domains/core/user/messages/messages.test.ts", mail, false, named("MAIL_THEME_COLORS")), null);
+  assert.equal(classifyMailSendImport("src/domains/foo/x.ts", mail, false, [{ name: "send", typeOnly: true }]), null);
+  assert.equal(classifyMailSendImport("src/domains/foo/x.ts", mail, true, null), null);
+  assert.equal(classifyMailSendImport("src/domains/foo/x.ts", mail, false, named("MailFrame", "send")), "send");
+  assert.equal(classifyMailSendImport("src/domains/foo/x.ts", mail, false, null), "*");
+  assert.equal(classifyMailSendImport("src/domains/foo/x.ts", "src/lib/other", false, null), null);
 });
 
 test("rule axios-in-client-layer / mail-send-via-messaging: 実際の書き方で止め、許す形は通す", () => {
   const ruleTester = new RuleTester({ languageOptions: { parser: tsParser, ecmaVersion: "latest", sourceType: "module" } });
-  const hook = at("src/features/core/auth/hooks/useX.ts");
-  const client = at("src/features/core/auth/services/client/x.ts");
+  const hook = at("src/domains/core/auth/hooks/useX.ts");
+  const client = at("src/domains/core/auth/services/client/x.ts");
   ruleTester.run("axios-in-client-layer", plugin.rules["axios-in-client-layer"], {
     valid: [
       { code: `import axios from "axios";`, filename: client },
@@ -624,10 +624,10 @@ test("rule axios-in-client-layer / mail-send-via-messaging: 実際の書き方�
       { code: `const a = await import("axios");`, filename: hook, errors: [{ messageId: "axiosOutsideClient" }] },
     ],
   });
-  const other = at("src/features/foo/services/server/notify.ts");
+  const other = at("src/domains/foo/services/server/notify.ts");
   ruleTester.run("mail-send-via-messaging", plugin.rules["mail-send-via-messaging"], {
     valid: [
-      { code: `import { send } from "@/lib/mail";`, filename: at("src/features/core/messaging/channels/email/index.tsx") },
+      { code: `import { send } from "@/lib/mail";`, filename: at("src/domains/core/messaging/channels/email/index.tsx") },
       { code: `import { MailFrame, type MailTheme } from "@/lib/mail";`, filename: other },
       { code: `async function f() { const { MAIL_THEME_COLORS } = await import("@/lib/mail"); }`, filename: other },
     ],
@@ -650,13 +650,13 @@ test("rule shelf-purity: 棚の値の import の禁止(場所・フォームと�
       { code: `import { type SearchParams } from "@/lib/crud";`, filename: part },
       { code: `import type { UseFormReturn } from "react-hook-form";`, filename: part },
       { code: `import type { DomainDisplay } from "@/lib/domain";`, filename: part },
-      { code: `import type { User } from "@/features/user/entities";`, filename: part },
+      { code: `import type { User } from "@/domains/user/entities";`, filename: part },
       { code: `import { trackPageView } from "@/lib/firebase/client";`, filename: at("src/app/_mounts/FirebaseAnalytics.tsx") },
       { code: `const r = await fetch("/x");`, filename: at("src/lib/x/thing.ts") },
       { code: `const r = await client.fetch("/x");`, filename: part },
     ],
     invalid: [
-      { code: `import { useUser } from "@/features/user/hooks/useUser";`, filename: part, errors: err("place", "@/features/user/hooks/useUser") },
+      { code: `import { useUser } from "@/domains/user/hooks/useUser";`, filename: part, errors: err("place", "@/domains/user/hooks/useUser") },
       { code: `import { thing } from "../../app/_layout/config";`, filename: part, errors: err("place", "../../app/_layout/config") },
       { code: `import { AppProviders } from "@/wiring/AppProviders";`, filename: part, errors: err("place", "@/wiring/AppProviders") },
       { code: `import { serviceRegistry } from "@/registry/serviceRegistry";`, filename: part, errors: err("place", "@/registry/serviceRegistry") },
@@ -704,28 +704,28 @@ test("config: shelf-purity は src/components(テストを除く)で error、棚
   assert.deepEqual(await lintAt("src/app/_mounts/X.tsx", RAW), []);
 });
 
-test("rule hooks-utils-no-features: src/hooks・src/utils から features を値も型も(別名・相対)止め、ほかの場所と features 以外は通す", () => {
+test("rule hooks-utils-no-domains: src/hooks・src/utils から features を値も型も(別名・相対)止め、ほかの場所と features 以外は通す", () => {
   const hook = at("src/hooks/useThing.ts");
   const util = at("src/utils/thing.ts");
   const err = (source) => [{ messageId: "hooksUtilsFeatures", data: { source } }];
-  ruleTester.run("hooks-utils-no-features", plugin.rules["hooks-utils-no-features"], {
+  ruleTester.run("hooks-utils-no-domains", plugin.rules["hooks-utils-no-domains"], {
     valid: [
       { code: `import { cn } from "@/lib/cn";`, filename: hook },
       { code: `import { formatDateJa } from "./date";`, filename: util },
-      { code: `import { useUser } from "@/features/user/hooks/useUser";`, filename: at("src/features/shop/hooks/useShop.ts") },
+      { code: `import { useUser } from "@/domains/user/hooks/useUser";`, filename: at("src/domains/shop/hooks/useShop.ts") },
     ],
     invalid: [
-      { code: `import { useUser } from "@/features/user/hooks/useUser";`, filename: hook, errors: err("@/features/user/hooks/useUser") },
-      { code: `import type { User } from "@/features/core/user/entities";`, filename: util, errors: err("@/features/core/user/entities") },
+      { code: `import { useUser } from "@/domains/user/hooks/useUser";`, filename: hook, errors: err("@/domains/user/hooks/useUser") },
+      { code: `import type { User } from "@/domains/core/user/entities";`, filename: util, errors: err("@/domains/core/user/entities") },
       { code: `import { x } from "../features/sample/x";`, filename: util, errors: err("../features/sample/x") },
-      { code: `export * from "@/features/sample";`, filename: hook, errors: err("@/features/sample") },
+      { code: `export * from "@/domains/sample";`, filename: hook, errors: err("@/domains/sample") },
     ],
   });
 });
 
-test("config: hooks-utils-no-features は src/hooks・src/utils で error、テストは対象外", async () => {
-  const RAW = `import type { User } from "@/features/core/user/entities";\nexport type X = User;\n`;
-  assert.deepEqual(await lintAt("src/hooks/useThing.ts", RAW), ["import-boundaries/hooks-utils-no-features:2"]);
-  assert.deepEqual(await lintAt("src/utils/thing.ts", RAW), ["import-boundaries/hooks-utils-no-features:2"]);
+test("config: hooks-utils-no-domains は src/hooks・src/utils で error、テストは対象外", async () => {
+  const RAW = `import type { User } from "@/domains/core/user/entities";\nexport type X = User;\n`;
+  assert.deepEqual(await lintAt("src/hooks/useThing.ts", RAW), ["import-boundaries/hooks-utils-no-domains:2"]);
+  assert.deepEqual(await lintAt("src/utils/thing.ts", RAW), ["import-boundaries/hooks-utils-no-domains:2"]);
   assert.deepEqual(await lintAt("src/utils/thing.test.ts", RAW), []);
 });

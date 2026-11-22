@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { purchaseRequestService } from "@/features/core/purchaseRequest/services/server/purchaseRequestService";
+import { purchaseRequestService } from "@/domains/core/purchaseRequest/services/server/purchaseRequestService";
 
 type Params = { id: string };
 

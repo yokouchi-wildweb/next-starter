@@ -46,7 +46,7 @@ const record =
     calls.push([name, ...args]);
     return name === "listMessageTemplateVersions" ? [] : { ok: name };
   };
-mock.module("@/features/core/messaging/services/server/messagingService", {
+mock.module("@/domains/core/messaging/services/server/messagingService", {
   namedExports: {
     messagingService: Object.fromEntries(
       [

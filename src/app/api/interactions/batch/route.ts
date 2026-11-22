@@ -12,9 +12,9 @@
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
-import { InteractionBatchIngestSchema } from "@/features/core/interactionTracking/entities/schema";
-import { recordBatch, type RecordBatchEntry } from "@/features/core/interactionTracking/services/server";
-import { targetRules } from "@/features/core/interactionTracking/extensions/targetRules";
+import { InteractionBatchIngestSchema } from "@/domains/core/interactionTracking/entities/schema";
+import { recordBatch, type RecordBatchEntry } from "@/domains/core/interactionTracking/services/server";
+import { targetRules } from "@/domains/core/interactionTracking/extensions/targetRules";
 
 export const POST = createApiRoute(
   {

@@ -10,14 +10,14 @@ import {
   pollDevicePairing,
   rejectCrossSiteRequest,
   withPairedDeviceErrors,
-} from "@/features/pairedDevice/services/server";
+} from "@/domains/pairedDevice/services/server";
 import { hashSecretToken } from "@/lib/crypto";
 import {
   clearPendingPairingCookie,
   readDeviceRequestInfo,
   readPendingPairingToken,
   setPairedDeviceCookie,
-} from "@/features/pairedDevice/services/server/session";
+} from "@/domains/pairedDevice/services/server/session";
 import { createApiRoute } from "@/wiring/apiRoute";
 
 export const POST = createApiRoute(

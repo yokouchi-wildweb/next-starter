@@ -47,7 +47,7 @@ let pauseEnabled = true;
 mock.module("@/featureGate", {
   namedExports: { gate: { enabled: (name: string) => (name === "pause" ? pauseEnabled : true) } },
 });
-mock.module("@/features/core/user/constants", { namedExports: { USER_STATUSES: ["active", "inactive"] } });
+mock.module("@/domains/core/user/constants", { namedExports: { USER_STATUSES: ["active", "inactive"] } });
 
 let load: typeof import("./loader").loadReactivateScreen;
 before(async () => {

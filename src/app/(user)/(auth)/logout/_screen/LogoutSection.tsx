@@ -6,8 +6,8 @@
 "use client";
 
 import { Para } from "@/components/TextBlocks/Para";
-import { LogoutButton } from "@/features/core/auth/components/common/LogoutButton";
-import { useAutoLogout } from "@/features/core/auth/hooks/useAutoLogout";
+import { LogoutButton } from "@/domains/core/auth/components/common/LogoutButton";
+import { useAutoLogout } from "@/domains/core/auth/hooks/useAutoLogout";
 
 type Props = {
   /** ログアウト後の遷移先(loader が内部パスに限定済み) */

@@ -4,7 +4,7 @@
 // 画面を変えるときは _components/ にコピーして page.tsx の import 先を向ける。
 
 import type { ScreenProps } from "@/lib/screens";
-import AdminSampleCategoryCreate from "@/features/sampleCategory/components/AdminSampleCategoryCreate";
+import AdminSampleCategoryCreate from "@/domains/sampleCategory/components/AdminSampleCategoryCreate";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 
 import { loadAdminSampleCategoryCreateScreen } from "./loader";

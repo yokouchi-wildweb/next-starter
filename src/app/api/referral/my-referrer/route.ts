@@ -1,7 +1,7 @@
 // src/app/api/referral/my-referrer/route.ts
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { referralService } from "@/features/core/referral/services/server/referralService";
+import { referralService } from "@/domains/core/referral/services/server/referralService";
 
 /**
  * GET /api/referral/my-referrer

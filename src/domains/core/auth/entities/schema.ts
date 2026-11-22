@@ -1,0 +1,54 @@
+// src/domains/auth/entities/schema.ts
+
+import { USER_PROVIDER_TYPES } from "@/domains/core/user/constants";
+import { UserNameSchema } from "@/domains/core/user/entities/userName";
+import { z } from "zod";
+
+const IdTokenSchema = z
+  .string({ required_error: "認証トークンが不足しています" })
+  .trim()
+  .min(1, { message: "認証トークンが不足しています" });
+
+const PasswordSchema = z
+  .string()
+  .min(8, { message: "パスワードは8文字以上で入力してください" })
+  .max(128, { message: "パスワードは128文字以内で入力してください" });
+
+const ProviderUidSchema = z
+  .string({ required_error: "プロバイダー UID が不足しています" })
+  .trim()
+  .min(1, { message: "プロバイダー UID が不足しています" });
+
+const EmailSchema = z
+  .string()
+  .trim()
+  .email({ message: "メールアドレスの形式が不正です" });
+
+const OptionalEmailSchema = EmailSchema.optional();
+
+// 仮登録用のスキーマ
+export const PreRegistrationSchema = z.object({
+  providerType: z.enum(USER_PROVIDER_TYPES),
+  providerUid: ProviderUidSchema,
+  email: OptionalEmailSchema,
+  idToken: IdTokenSchema,
+});
+
+// 本登録用のスキーマ
+export const RegistrationSchema = z.object({
+  providerType: z.enum(USER_PROVIDER_TYPES),
+  providerUid: ProviderUidSchema,
+  email: EmailSchema,
+  name: UserNameSchema,
+  idToken: IdTokenSchema,
+  password: PasswordSchema.optional(),
+  /** ロール（指定がない場合は authConfig の defaultRole を使用） */
+  role: z.string().optional(),
+  /** ロール別プロフィールデータ（hasProfile: true のロールの場合） */
+  profileData: z.record(z.unknown()).optional(),
+  /** 招待コード（任意） */
+  inviteCode: z.string().trim().optional(),
+  /** 宣伝の同意（任意。false = 宣伝の種別まるごとの停止を書く、省略 = 何もしない。上流の画面は送らない、D88） */
+  marketingConsent: z.boolean().optional(),
+});
+

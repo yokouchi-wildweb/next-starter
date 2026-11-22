@@ -4,7 +4,7 @@
 
 import "server-only";
 
-import type { UserTag } from "@/features/core/userTag/entities/model";
+import type { UserTag } from "@/domains/core/userTag/entities/model";
 import { createLoader } from "@/app/admin/(protected)/guard";
 import { adminEditParts } from "@/wiring/adminScreenParts";
 

@@ -7,8 +7,8 @@ import {
   checkPairedDeviceRateLimit,
   getDevicePairingRequest,
   withPairedDeviceErrors,
-} from "@/features/pairedDevice/services/server";
-import { readDeviceRequestInfo } from "@/features/pairedDevice/services/server/session";
+} from "@/domains/pairedDevice/services/server";
+import { readDeviceRequestInfo } from "@/domains/pairedDevice/services/server/session";
 import { DomainError } from "@/lib/errors";
 import { createApiRoute } from "@/wiring/apiRoute";
 

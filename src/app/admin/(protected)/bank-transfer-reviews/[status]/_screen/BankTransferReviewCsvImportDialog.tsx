@@ -30,10 +30,10 @@ import { Block } from "@/components/Layout/Block";
 import { Label } from "@/components/Input/Label";
 import { SolidBadge } from "@/components/Badge/SolidBadge";
 import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
-import type { BankTransferReviewImportRowDto } from "@/features/core/bankTransferReview";
-import { useAdminBankTransferReviewCsvImport } from "@/features/core/bankTransferReview/hooks/useAdminBankTransferReviewCsvImport";
+import type { BankTransferReviewImportRowDto } from "@/domains/core/bankTransferReview";
+import { useAdminBankTransferReviewCsvImport } from "@/domains/core/bankTransferReview/hooks/useAdminBankTransferReviewCsvImport";
 
-import { formatJpyAmount } from "@/features/core/bankTransferReview/presenters";
+import { formatJpyAmount } from "@/domains/core/bankTransferReview/presenters";
 
 type Props = {
   open: boolean;

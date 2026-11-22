@@ -12,7 +12,7 @@ import { CORE_UI_GUARDS_ALLOW } from "./core-ui-guards.allow.mjs";
 const tsParser = createRequire(import.meta.resolve("eslint-config-next"))("@typescript-eslint/parser");
 const root = process.cwd();
 const at = (rel) => `${root}/${rel}`;
-const PART = at("src/features/core/auth/components/X/index.tsx");
+const PART = at("src/domains/core/auth/components/X/index.tsx");
 const SCREEN_PART = at("src/app/(user)/(auth)/x/_screen/XSection.tsx");
 
 const tester = new RuleTester({
@@ -27,9 +27,9 @@ const tester = new RuleTester({
 tester.run("core-ui-guards/no-guard-in-part", plugin.rules["no-guard-in-part"], {
   valid: [
     // 公開 hook を呼ぶだけ
-    { filename: PART, code: 'import { useEmailRegistrationForm } from "@/features/core/auth/hooks/useEmailRegistrationForm";' },
+    { filename: PART, code: 'import { useEmailRegistrationForm } from "@/domains/core/auth/hooks/useEmailRegistrationForm";' },
     // 既定 Screen の部品も公開 hook を呼ぶだけなら当たらない
-    { filename: SCREEN_PART, code: 'import { useSignupComplete } from "@/features/core/auth/hooks/useSignupComplete";' },
+    { filename: SCREEN_PART, code: 'import { useSignupComplete } from "@/domains/core/auth/hooks/useSignupComplete";' },
     // 遷移の守り・計測の lib から型・他の名前だけを読むのは対象外
     { filename: PART, code: 'import { issueToken, type UseTransitionGuardResult } from "@/lib/transitionGuard";' },
     { filename: PART, code: 'import { GoogleTag } from "@/lib/googleTag";' },
@@ -47,18 +47,18 @@ tester.run("core-ui-guards/no-guard-in-part", plugin.rules["no-guard-in-part"], 
     // ドメインのまとめから表示整形・定数・型を読むのは当たらない(services/client から再 export していない名前)
     {
       filename: SCREEN_PART,
-      code: 'import { formatJpyAmount, STATUS_SLUG_BY_VALUE, type AdminBankTransferReviewListItem } from "@/features/core/bankTransferReview";',
+      code: 'import { formatJpyAmount, STATUS_SLUG_BY_VALUE, type AdminBankTransferReviewListItem } from "@/domains/core/bankTransferReview";',
     },
     // まとめが services/client から再 export する名前でも型だけなら当たらない
-    { filename: PART, code: 'import { type AdminBankTransferReviewListResponse } from "@/features/core/bankTransferReview";' },
-    { filename: PART, code: 'import type { ReferralByInviterItem } from "@/features/core/referral/services/client/referralsByInviter";' },
+    { filename: PART, code: 'import { type AdminBankTransferReviewListResponse } from "@/domains/core/bankTransferReview";' },
+    { filename: PART, code: 'import type { ReferralByInviterItem } from "@/domains/core/referral/services/client/referralsByInviter";' },
     // 公開 hook は当たらない
-    { filename: SCREEN_PART, code: 'import { useAdminBankTransferReviewList } from "@/features/core/bankTransferReview/hooks/useAdminBankTransferReviewList";' },
+    { filename: SCREEN_PART, code: 'import { useAdminBankTransferReviewList } from "@/domains/core/bankTransferReview/hooks/useAdminBankTransferReviewList";' },
     // 許可一覧のファイル
     {
-      filename: at("src/features/core/user/components/EditProfile.tsx"),
+      filename: at("src/domains/core/user/components/EditProfile.tsx"),
       code: 'import { useForm } from "react-hook-form";',
-      options: [{ allow: ["src/features/core/user/components/EditProfile.tsx"] }],
+      options: [{ allow: ["src/domains/core/user/components/EditProfile.tsx"] }],
     },
   ],
   invalid: [
@@ -87,20 +87,20 @@ tester.run("core-ui-guards/no-guard-in-part", plugin.rules["no-guard-in-part"], 
     { filename: PART, code: 'import useSWRMutation from "swr/mutation";', errors: [{ messageId: "guarded" }] },
     { filename: PART, code: 'import useSWRInfinite from "swr/infinite";', errors: [{ messageId: "guarded" }] },
     // client 関数: services/client のパス(絶対・相対)・まとめの *Client
-    { filename: PART, code: 'import { fetchSession } from "@/features/core/auth/services/client/session";', errors: [{ messageId: "guarded" }] },
+    { filename: PART, code: 'import { fetchSession } from "@/domains/core/auth/services/client/session";', errors: [{ messageId: "guarded" }] },
     { filename: PART, code: 'import { fetchSession } from "../../services/client/session";', errors: [{ messageId: "guarded" }] },
-    { filename: PART, code: 'import { auditLogClient } from "@/features/core/auditLog";', errors: [{ messageId: "guarded" }] },
+    { filename: PART, code: 'import { auditLogClient } from "@/domains/core/auditLog";', errors: [{ messageId: "guarded" }] },
     // まとめが services/client から再 export する名前(*Client でなくても当たる。名前ごとに 1 件)
     {
       filename: SCREEN_PART,
-      code: 'import { adminListBankTransferReviews, adminUpdateBankTransferReviewAdminMemo, formatJpyAmount } from "@/features/core/bankTransferReview";',
+      code: 'import { adminListBankTransferReviews, adminUpdateBankTransferReviewAdminMemo, formatJpyAmount } from "@/domains/core/bankTransferReview";',
       errors: [{ messageId: "guarded" }, { messageId: "guarded" }],
     },
     // 許可一覧は別ファイルには効かない
     {
       filename: PART,
       code: 'import { useForm } from "react-hook-form";',
-      options: [{ allow: ["src/features/core/user/components/EditProfile.tsx"] }],
+      options: [{ allow: ["src/domains/core/user/components/EditProfile.tsx"] }],
       errors: [{ messageId: "guarded" }],
     },
   ],
@@ -125,7 +125,7 @@ test("許可一覧: 各行が core の部品か既定 Screen の部品で、今�
   for (const rel of CORE_UI_GUARDS_ALLOW) {
     assert.match(
       rel,
-      /^(src\/features\/core\/[^/]+\/components\/.+|src\/app\/.+\/_screen\/.+)\.tsx$/,
+      /^(src\/domains\/core\/[^/]+\/components\/.+|src\/app\/.+\/_screen\/.+)\.tsx$/,
       `core の部品・既定 Screen の部品ではない: ${rel}`,
     );
     const code = readFileSync(at(rel), "utf8");
@@ -140,11 +140,11 @@ test("許可一覧: 各行が core の部品か既定 Screen の部品で、今�
 
 test("01〜03 で hook 化した部品は許可一覧に無い", () => {
   for (const rel of [
-    "src/features/core/auth/components/Registration/Email/index.tsx",
-    "src/features/core/auth/components/Registration/OAuth/index.tsx",
-    "src/features/core/auth/components/Signup/EmailVarification/sendForm.tsx",
-    "src/features/core/auth/components/Signup/EarlyRegistration/SendForm.tsx",
-    "src/features/core/auth/components/OAuth/index.tsx",
+    "src/domains/core/auth/components/Registration/Email/index.tsx",
+    "src/domains/core/auth/components/Registration/OAuth/index.tsx",
+    "src/domains/core/auth/components/Signup/EmailVarification/sendForm.tsx",
+    "src/domains/core/auth/components/Signup/EarlyRegistration/SendForm.tsx",
+    "src/domains/core/auth/components/OAuth/index.tsx",
   ]) {
     assert.ok(!CORE_UI_GUARDS_ALLOW.includes(rel), rel);
   }
@@ -162,14 +162,14 @@ test("l2 指令 22 で hook 化した既定 Screen の部品は許可一覧に�
 });
 
 test("まとめの再 export: services/client から再 export する値の名前だけを集める(型・他のフォルダの名前は入らない)", () => {
-  const names = barrelClientNames("src/features/core/bankTransferReview", root);
+  const names = barrelClientNames("src/domains/core/bankTransferReview", root);
   assert.ok(names.has("adminListBankTransferReviews"));
   assert.ok(names.has("adminUpdateBankTransferReviewAdminMemo"));
   assert.ok(names.has("BANK_TRANSFER_REVIEW_IMPORT_HEADERS"), "services/client の値の定数も client の側");
   assert.ok(!names.has("AdminBankTransferReviewListResponse"), "型は入らない");
   assert.ok(!names.has("formatJpyAmount"), "presenters は入らない");
   assert.ok(!names.has("STATUS_SLUG_BY_VALUE"), "constants は入らない");
-  assert.equal(barrelClientNames("src/features/core/__none__", root).size, 0);
+  assert.equal(barrelClientNames("src/domains/core/__none__", root).size, 0);
 });
 
 test("l2 計画書 07 で hook 化した管理の既定 Screen の部品は許可一覧に無く、規則に当たらない", () => {

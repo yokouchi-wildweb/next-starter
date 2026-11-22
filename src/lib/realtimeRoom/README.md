@@ -12,9 +12,9 @@
 ### サーバーから dispatch する (権威アクションの正規経路)
 
 ```ts
-// src/features/<domain>/services/server/ 内 (ServerService)
+// src/domains/<domain>/services/server/ 内 (ServerService)
 import { createRoomClient } from "@/lib/realtimeRoom/server";
-import type { RaidAction, RaidState } from "@/features/<domain>/room/definition";
+import type { RaidAction, RaidState } from "@/domains/<domain>/room/definition";
 
 const raidRooms = createRoomClient<RaidState, RaidAction>("raid");
 
@@ -97,5 +97,5 @@ import { realtimeRoomConfig } from "@/lib/realtimeRoom";
 
 ## Related
 
-reducer (`RoomDefinition`) は `src/features/<domain>/room/` に置く (純度制約 ESLint 付き)。
+reducer (`RoomDefinition`) は `src/domains/<domain>/room/` に置く (純度制約 ESLint 付き)。
 登録は `servers/room/src/registry.ts`。手順: `servers/room/README.md` の「新しいルームの追加手順」。

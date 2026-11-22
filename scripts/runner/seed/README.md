@@ -2,7 +2,7 @@
 
 ## Overview
 
-- 各ドメインのシード `src/features/<ドメイン>/seed.ts`(書き方: `src/lib/seed/README.md`)を走査し、`after` の順に各ドメインのサービスで入れる
+- 各ドメインのシード `src/domains/<ドメイン>/seed.ts`(書き方: `src/lib/seed/README.md`)を走査し、`after` の順に各ドメインのサービスで入れる
 - 一覧ファイル・登録表は持たない
 
 ## Usage

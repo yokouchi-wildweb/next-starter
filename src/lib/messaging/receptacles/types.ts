@@ -1,6 +1,6 @@
 // src/lib/messaging/receptacles/types.ts
 //
-// messaging の受け口(src/features/core/messaging/extensionPoints.ts)の項目の型。
+// messaging の受け口(src/domains/core/messaging/extensionPoints.ts)の項目の型。
 // 項目は messaging/<受け口>/<名前>.ts に export const <単数> = { … } で置き、pnpm generate extensions が一覧にする。
 // 送る口・記録・購読の cron(読み手)は連絡のドメインの作り直しの切り替えの区切りで作る。ここは項目の形の約束だけ。
 

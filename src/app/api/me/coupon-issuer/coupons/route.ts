@@ -6,7 +6,7 @@
 import { NextResponse } from "next/server";
 
 import { createMeRoute } from "@/wiring/apiRoute";
-import { couponService } from "@/features/core/coupon/services/server/couponService";
+import { couponService } from "@/domains/core/coupon/services/server/couponService";
 import { BadRequestError, parsePositiveInteger } from "@/app/api/[domain]/search/utils";
 
 const DEFAULT_LIMIT = 24;

@@ -12,7 +12,7 @@ export const extensionPoints = {
   // 止められない連絡(required)・上流の functional の守りは pnpm check extensions が字面で見る(scripts/structure/extensions/derive/messageGuards.mjs)。
   // 欄・{{鍵}} など値の検査は validateMessageDefinition(./definition/validate.ts)
   messages: {
-    overrides: "src/features/**/messages/*.ts",
+    overrides: "src/domains/**/messages/*.ts",
     export: "messageOverride",
     side: "server",
     overrideOf: ["label", "values", "extras", "enabled", "adminEditableOnly", "record", "throttle", "category", "channelModes", "adminText"],
@@ -21,7 +21,7 @@ export const extensionPoints = {
   // fork は隣の <名前>.override.ts(export const recordTargetOverride = { … } satisfies MessageRecordTargetOverride)で
   // messages(この項目で送れる連絡定義の並び)だけを丸ごと差し替える(D217)。名指しの先の実在と adminTargets の records は生成器が確かめる
   recordTargets: {
-    overrides: "src/features/**/recordTargets/*.ts",
+    overrides: "src/domains/**/recordTargets/*.ts",
     export: "recordTargetOverride",
     side: "server",
     overrideOf: ["messages"],

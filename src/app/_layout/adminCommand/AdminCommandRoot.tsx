@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 
 import { categories } from "./extensions/categories";
 import { plugins } from "./extensions/plugins";
-import { AdminCommandProvider } from "@/features/core/adminCommand";
+import { AdminCommandProvider } from "@/domains/core/adminCommand";
 
 export function AdminCommandRoot({ children }: Readonly<{ children: ReactNode }>) {
   return (

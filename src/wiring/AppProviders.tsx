@@ -13,7 +13,7 @@ import { RecaptchaProvider } from "@/lib/recaptcha";
 import { ImageViewerProvider } from "@/components/Overlays/ImageViewer";
 import { AdminCommandRoot } from "@/app/_layout/adminCommand/AdminCommandRoot";
 import { UnsavedGuardRoot } from "@/app/_layout/unsavedGuard/UnsavedGuardRoot";
-import { AuthSessionProvider } from "@/features/core/auth/components/AuthSessionProvider";
+import { AuthSessionProvider } from "@/domains/core/auth/components/AuthSessionProvider";
 import { ForkProviders } from "@/app/_providers/ForkProviders";
 import { FormInputsRoot } from "@/wiring/formInputs/FormInputsRoot";
 import { GateProvider, type ClientGateState } from "@/featureGate/client";

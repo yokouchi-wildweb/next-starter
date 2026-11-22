@@ -14,8 +14,8 @@ import { rules as generatedRules } from "@/featureGate/extensions/rules";
 import { derivedPaths, rules } from "@/featureGate/node";
 import { coveredPatternsOf, overrideSwitches } from "@/featureGate/ruleList";
 import type { DerivedPath } from "@/featureGate/ruleList";
-import { menuItems } from "@/features/core/admin/extensions/menuItems";
-import { buildAdminMenu } from "@/features/core/admin/menu/buildAdminMenu";
+import { menuItems } from "@/domains/core/admin/extensions/menuItems";
+import { buildAdminMenu } from "@/domains/core/admin/menu/buildAdminMenu";
 import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 import { matchesPath } from "@/lib/pathPattern/index.mjs";
 
@@ -138,8 +138,8 @@ test("/demo: sampleDomain を閉じると sample のデモが一覧と数から�
 });
 
 test("設定の節(L1.17・D34 K4): 節の feature が名指す機能が閉じると節の住所(/admin/settings/<key>)が閉じ、サイドバーの行が消え、既定の節は次の開いた節", async () => {
-  const { sections } = await import("@/features/core/setting/extensions/sections");
-  const { firstOpenSection, settingSectionHref } = await import("@/features/core/setting/utils/sectionForm");
+  const { sections } = await import("@/domains/core/setting/extensions/sections");
+  const { firstOpenSection, settingSectionHref } = await import("@/domains/core/setting/utils/sectionForm");
   const sample = rules.find((r) => r.name === "sampleDomain");
   assert.ok(sample);
   // fixture: general 節が feature: "sampleDomain" を持つときの導出の住所(生成一覧の settingSections から ruleList が作る項目)を一時的に足す

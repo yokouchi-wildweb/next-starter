@@ -7,7 +7,7 @@
 
 import { gate } from "@/featureGate";
 import { createApiRoute } from "@/wiring/apiRoute";
-import { messagingService } from "@/features/core/messaging/services/server/messagingService";
+import { messagingService } from "@/domains/core/messaging/services/server/messagingService";
 
 export const GET = createApiRoute(
   {

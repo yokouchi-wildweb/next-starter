@@ -34,9 +34,9 @@ src/app/(user)/(protected)/wallet/[slug]/
 | 範囲の方針 | `src/app/<range>/guard.ts`（layout.tsx の隣、root は `src/app/guard.ts`） | 範囲を作った側 | 配下の全ページに掛かる方針（親の `extend` で狭めるだけ）。layout は `await guard()` の 1 行（API の「範囲（guard.ts）と loader の書き方」） |
 | 既定 Screen 専用の部品 | `src/app/<route>/_screen/<Part>.tsx` または `_screen/<dir>/` | ルートを作った側 | 契約外。そのルートの既定 Screen だけが使う部品（例: `(user)/_screen/StarterHome/`、`(marketing)/entry/_screen/CampaignSection.tsx`、`maintenance/_screen/MaintenanceAutoRedirect.tsx`）。Screen からは相対 import。テストは Screen と `loader.ts` 以外を検査しない。複数ルートで使う部品はドメインの `components/` へ |
 | 下流の画面・page 専用部品 | `src/app/<route>/_components/` | 下流 | 下の「fork の物は `_components/`」。差し替え画面は `<Name>Screen.tsx` と命名する（部品の命名は自由。既存の部品を改名する必要はない） |
-| 管理画面の取得本体 | `src/features/core/admin/services/server/screenData/` | 上流 | pnpm generate domain の管理画面が共有する取得の本体（service は外から受ける）。各ルートの `_screen/loader.ts` が `src/wiring/adminScreenParts.ts` の共通部品の組を通して使う |
-| セクションコンテナ / 部品 | `src/features/<domain>/components/` | ドメインの所有者 | 既存どおり |
-| hook / client service | `src/features/<domain>/hooks/`、`services/client/` | ドメインの所有者 | **契約**（既存） |
+| 管理画面の取得本体 | `src/domains/core/admin/services/server/screenData/` | 上流 | pnpm generate domain の管理画面が共有する取得の本体（service は外から受ける）。各ルートの `_screen/loader.ts` が `src/wiring/adminScreenParts.ts` の共通部品の組を通して使う |
+| セクションコンテナ / 部品 | `src/domains/<domain>/components/` | ドメインの所有者 | 既存どおり |
+| hook / client service | `src/domains/<domain>/hooks/`、`services/client/` | ドメインの所有者 | **契約**（既存） |
 
 #### fork の物は `_components/`（画面の差し替えの規則はここ 1 か所）
 
@@ -67,7 +67,7 @@ src/app/(user)/
 ### 既存の UI レイヤーとの対応
 
 - page / ページ — 実体: `page.tsx`（1 行スイッチ）+ `_screen/<Name>Screen.tsx`（本体）; 補足: 「SSR の入口、最小限のタグ、hook なし」は不変。ServerService 呼び出しは loader 経由。hook が要る部分は `_screen/` の `"use client"` 部品へ
-- section_container / セクションコンテナ — 実体: **Screen が直接配置するコンポーネント**。`features/<domain>/components/<Name>`（部品を持つなら `<Name>/index.tsx`、無ければ `<Name>.tsx`）; 補足: 役割で定義（タグやフォルダでは決めない）。名前は接尾辞なし（`*Page` は付けない）。hook はここで呼ぶ。client service の直叩きは禁止（hook に昇格）
+- section_container / セクションコンテナ — 実体: **Screen が直接配置するコンポーネント**。`domains/<domain>/components/<Name>`（部品を持つなら `<Name>/index.tsx`、無ければ `<Name>.tsx`）; 補足: 役割で定義（タグやフォルダでは決めない）。名前は接尾辞なし（`*Page` は付けない）。hook はここで呼ぶ。client service の直叩きは禁止（hook に昇格）
   - Screen はコンテナ自体を import し、内側は読まない（`pnpm test scripts/structure/routes/screens.test.mjs` が検査。API の「セクションコンテナの条件（契約 D）」）
 - part / 部品 — 実体: コンテナの内側の要素（例: `BalanceCard`、`CouponInput`）。ドメイン共有なら `common/`; 補足: 契約外。表示専用でも自己完結した操作付きでもよい。hook を呼ぶのは自己完結するときだけ
 - （新規）loader — 実体: `src/app/<route>/_screen/loader.ts`; 補足: page 層が呼ぶサーバー側ロジック。レイヤーではなく page 層の付属物（業務ロジックは ServerService に置き、loader はそれを呼んで組み立てる）。初回描画に見えるデータは loader が取り `initial<Name>` props で渡す（API の「契約（公開 API）と変更規則」）
@@ -100,7 +100,7 @@ src/app/(user)/(protected)/points/
    export { WalletBalanceScreen as default } from "./_components/WalletBalanceScreen";
    ```
 4. コピーした Screen の中を変える。loader（`load<Name>Screen`）はそのまま呼ぶ
-   - レイアウトやタイトルだけ → セクションコンテナ（`features/<domain>/components/<Name>`）はそのまま描く
+   - レイアウトやタイトルだけ → セクションコンテナ（`domains/<domain>/components/<Name>`）はそのまま描く
    - 部品の並びや一部の部品 → 付いてくるのが見た目と並べ方だけなら、セクションコンテナも `_components/` にコピーし、部品と hook は core から import する。フォームの state や送信が付いてくるなら `/order`
    - 見た目を全部作り直す → hook だけ使って自作
    - 上流の loader に無いサーバー側データが要る → `_components/loader.ts` に自分の loader を書く（同じ最寄りの guard.ts の `createLoader` で作る。上流の `_screen/loader.ts` は編集しない。両方呼んでよい）
@@ -118,11 +118,11 @@ src/app/(user)/(protected)/points/
 
 #### やってはいけないこと
 
-- 上流のルートの `_screen/`（Screen も loader も）と `features/core` のコンポーネントを編集しない
+- 上流のルートの `_screen/`（Screen も loader も）と `domains/core` のコンポーネントを編集しない
 - `_screen/` に fork のファイルを足さない（部品も Screen の置き換えも `_components/` へ。「ルートの構造と所有権」）
 - loader を try/catch しない / client component から import しない
 - Screen に `"use client"` を付けない（hook はセクションコンテナへ）
-- loader を `features/<domain>/` に置かない（ルートの `_screen/loader.ts` へ。エンティティの無い「loader 置き場ドメイン」を作らない）
+- loader を `domains/<domain>/` に置かない（ルートの `_screen/loader.ts` へ。エンティティの無い「loader 置き場ドメイン」を作らない）
 
 #### それでも core を編集したとき（上流の呼び出し側と互換を保つ）
 
@@ -131,7 +131,7 @@ core の編集は受け口の外なので、直接の親への依頼と一時許
 page.tsx を `_components/` に向けて上流の既定 Screen を使っていなくても、`_screen/*` のファイルは残るので **fork の `tsc` の検査対象のまま**になる。core のコンポーネント・hook・service を非互換に変えると、上流がそれを呼ぶ Screen を足したり切り替えたりした merge で `tsc` が落ちる。
 
 - fork が core に足した props / 引数は**省略可能**にし、空の既定値を持たせる（例: `GeneralUserList` に足した集計 map は `= {}`、`AdminInviteList` に足した合計値は省略時 0）
-- 使わない core のコードは**削除しない**（使わないまま残す）。例: 管理画面ダッシュボードを自作に差し替えても `features/core/admin/dashboard` は消さない。上流の `_screen/AdminHomeScreen` が import している
+- 使わない core のコードは**削除しない**（使わないまま残す）。例: 管理画面ダッシュボードを自作に差し替えても `domains/core/admin/dashboard` は消さない。上流の `_screen/AdminHomeScreen` が import している
 - 名前や引数の形は変えない。変える必要があれば直接の親へ依頼する(`/order <direct parent>`)。親が上の「契約（公開 API）と変更規則」の形で変える
 - merge 後に、使っていない上流の `_screen/*` で `tsc` が落ちたら、それは fork 側の core 編集の非互換。直すのは core 側（props を省略可能に戻す・消したものを上流から戻す）で、上流の Screen は編集しない
 
@@ -150,7 +150,7 @@ import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
 import type { ScreenProps } from "@/lib/screens";
-import { WalletBalance } from "@/features/core/wallet/components/WalletBalance";
+import { WalletBalance } from "@/domains/core/wallet/components/WalletBalance";
 
 import { loadWalletBalanceScreen, type WalletBalanceScreenParams } from "../_screen/loader"; // 上流の loader をそのまま呼ぶ
 
@@ -176,11 +176,11 @@ export { WalletBalanceScreen as default } from "./_components/WalletBalanceScree
 
 コンテナに付いてくるのが見た目と並べ方だけのときの例（変えない処理や守りが入っていれば、コピーせず `/order`。`.claude/rules/core/extensions.md`）。
 
-`src/features/core/wallet/components/WalletBalance/index.tsx` を `src/app/(user)/(protected)/wallet/[slug]/_components/WalletBalance.tsx` にコピーし、先頭に `// copied-from: <元のパス>` を書いて、差し替えたい部品の import だけを自分のものに変える。残りの部品と hook は core から絶対パスで import されたまま動く。
+`src/domains/core/wallet/components/WalletBalance/index.tsx` を `src/app/(user)/(protected)/wallet/[slug]/_components/WalletBalance.tsx` にコピーし、先頭に `// copied-from: <元のパス>` を書いて、差し替えたい部品の import だけを自分のものに変える。残りの部品と hook は core から絶対パスで import されたまま動く。
 
 ```tsx
 // 変更前(core からそのまま)
-import { BalanceCard } from "@/features/core/wallet/components/WalletBalance/BalanceCard";
+import { BalanceCard } from "@/domains/core/wallet/components/WalletBalance/BalanceCard";
 // 変更後(自作の残高カード)
 import { BalanceCard } from "./BalanceCard";
 ```
@@ -197,7 +197,7 @@ import { BalanceCard } from "./BalanceCard";
 |---|---|---|
 | A. Screen の入口 | `_screen/<Name>Screen.tsx` のファイル名と named export `<Name>Screen`、受け取る props（`ScreenProps`） | page.tsx が下流所有になった瞬間、上流は変えられない |
 | B. loader | `_screen/loader.ts` の `load<Name>Screen(props)` の名前・引数・返り値型・redirect / notFound 条件。入力型 `<Name>ScreenParams` / `<Name>ScreenSearchParams` と返り値型 `<Name>ScreenData` は loader が定義して export する | 下流の Screen が直接呼ぶ。型の所有者が契約の所有者 |
-| C. hook | `features/<domain>/hooks/` の export | 下流のセクションコンテナが直接呼ぶ |
+| C. hook | `domains/<domain>/hooks/` の export | 下流のセクションコンテナが直接呼ぶ |
 | D. セクションコンテナのトップレベル props | 例: `WalletBalance` の `slug / phoneVerifiedAt / currentPhoneNumber` | 下流の Screen が既定のセクションコンテナを描く |
 
 契約外: 部品の props とファイル配置、Screen の中身、セクションコンテナの内部構造。
@@ -245,7 +245,7 @@ export const { guard, createLoader, extend } = extendRoot({
 import "server-only";
 import { notFound } from "next/navigation";
 import type { ScreenProps } from "@/lib/screens";
-import { requireUserRecord } from "@/features/core/user/services/server/userService";
+import { requireUserRecord } from "@/domains/core/user/services/server/userService";
 import { createLoader } from "@/app/(user)/(protected)/guard";
 
 /** URL の形。Screen も同じ型を import して署名に使う */
@@ -271,7 +271,7 @@ export const loadWalletBalanceScreen = createLoader({
 - 作り方は**最寄りの guard.ts の `createLoader`** だけ（ページの dir から上へ最初の guard.ts。ルート地図が確かめる）。`access` は必須で `public` / `authenticated` / `{ roles, roleCategories }` / `none`（`custom` は無い）。範囲の方針とページの `access` を取得前に評価し、拒否なら `load` を呼ばない（未認証 → 範囲の `redirectTo`、権限不足 → `forbiddenRedirectTo`、行き先が無い・`none` → notFound）
 - データの無い Screen にも access だけの loader を置く（`load: async (): Promise<void> => {}`）。地図の鎖は loader を通って範囲に届く
 - `key(props)` は params / searchParams から cache のキーのプリミティブを取り出す（データは取らない）。返り値の型は `Promise<[...]>` で明示する。キーの要らない loader は `key` を省く（呼び出しは `loadXScreen(props)`）
-- 主体は `load({ user, allows }, ...key)` の `user`（DB 同期の利用者、リクエスト内 1 回）。`access: "public"` では Cookie があり利用可能な status のときだけ非 null。利用できない status の利用者を案内するページ（`/restricted`・`/reactivate`）は `allowStatuses` にその status を書く。本人の列（email・電話番号等）が要るなら `requireUserRecord(user, redirectTo)`（`@/features/core/user/services/server/userService`）
+- 主体は `load({ user, allows }, ...key)` の `user`（DB 同期の利用者、リクエスト内 1 回）。`access: "public"` では Cookie があり利用可能な status のときだけ非 null。利用できない status の利用者を案内するページ（`/restricted`・`/reactivate`）は `allowStatuses` にその status を書く。本人の列（email・電話番号等）が要るなら `requireUserRecord(user, redirectTo)`（`@/domains/core/user/services/server/userService`）
 - `allows(rule)` は別の access を同じ利用者で評価する（取得前の追加の判定。例: 管理画面の関連先ごとの list の access、設定のセクション単位のロール）
 - セッション・ガード API（`getSessionUser`・`getTokenOnlySession` 等）は loader でも import しない（lint `page-authz/session-api-callsite`、全 Tier error）。ページ層でセッションを読むのは guard.ts の作り手だけ
 - **DTO 型は loader が所有する**: 返り値型 `<Name>ScreenData`、入力型 `<Name>ScreenParams` / `<Name>ScreenSearchParams` は loader で定義して export し、Screen も部品も loader から `import type` する（`./loader` / `../_screen/loader`。client 部品から server-only モジュールを `import type` するのはコンパイル時に消えるので問題ない）。**loader は `_components/` や Screen から import しない**（型だけでも不可。契約の返り値型を契約外の部品が決める逆転になる）。`checkLoaderFile` が検査する
@@ -320,7 +320,7 @@ export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
 
 - Screen が import するのはコンテナ自体（`<Name>/index.tsx` または `<Name>.tsx`）。内側の `<Name>/<Part>` は部品なので Screen から読まない（`pnpm test scripts/structure/routes/screens.test.mjs` の `checkScreenImports` が検査）。判定 = `index.tsx` を持つディレクトリがコンテナで、import 先の途中にあれば違反。`index.tsx` を持たないディレクトリ（`Admin/` `Mobile/` `common/` などのグループ分け、`index.ts` だけの barrel）は名前空間として通す。上流の配置は平たい `components/<Name>` + 共有部品は `common/`（慣習）
   - fork が `components/Admin/<Name>` のようにグループ分けするのは自由
-- 内部の部品 import は絶対パス（`@/features/core/wallet/components/WalletBalance/BalanceCard`）。`index.tsx` から部品を barrel export する。下流が `index.tsx` を複製しても import を触らずに動く
+- 内部の部品 import は絶対パス（`@/domains/core/wallet/components/WalletBalance/BalanceCard`）。`index.tsx` から部品を barrel export する。下流が `index.tsx` を複製しても import を触らずに動く
 - `index.tsx` が `"use client"` のとき、barrel 経由の部品は client 境界になる（Server Component から使いたい部品は部品ファイルを直接 import する）
 - `"use client"` のファイルからは関数（コンポーネント・hook）だけを export する。定数やオブジェクトを Screen・loader（server）から import すると client reference になり undefined で届く（型検査も lint も通る。例: スラッグ表が undefined で常に `notFound()`）。server と共有する値は `"use client"` の無い中立ファイルに置く
 - client service の直叩きは hook に昇格する
@@ -343,7 +343,7 @@ export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
 - page.tsx を太らせない — 検査: `parseSwitchPage`: `./_screen/<X>` または `./_components/<X>`（`<X>` は印なしの既定か丸ごと置き換えの `<X>.replace` だけ。旧い fork の印は失敗
   - `_screen/<X>.replace` はファイルが下の「route の隣の点つきの名前」で失敗する）からの re-export 1 つ（default + `metadata` / `generateMetadata` / `viewport` / `generateViewport` のみ）+ 任意の設定 export + `generateMetadata` + それらに必要な import（`next` / `@/lib/*` / `@/config/*` / `./_screen/loader` / `./_components/loader`）。JSX・セクションコンテナ・hook・`next/navigation` の import は不可; 結果: スイッチ形でなければ**失敗**（例外リストにあれば skip）
 - Screen の欠落・形 — 検査: `checkScreenFile`: 参照先（`<X>.tsx` → `<X>/index.tsx` → barrel 1 段）が存在し、名前を named export、default export と `"use client"` を持たない; 結果: 失敗
-- Screen が部品を直接読まない — 検査: `checkScreenImports`: `@/features/**/components/` の import 先の途中に `index.tsx` を持つディレクトリ（= コンテナ）があれば違反（API の「セクションコンテナの条件（契約 D）」）。ファイルの有無は test 側の `isContainerDir` が見て、checker には述語で渡す; 結果: 失敗
+- Screen が部品を直接読まない — 検査: `checkScreenImports`: `@/domains/**/components/` の import 先の途中に `index.tsx` を持つディレクトリ（= コンテナ）があれば違反（API の「セクションコンテナの条件（契約 D）」）。ファイルの有無は test 側の `isContainerDir` が見て、checker には述語で渡す; 結果: 失敗
 - loader の規律 — 検査: `checkLoaderFile`: `import "server-only"`、`createLoader(`（か `cache(`）、`load<Xxx>` の export、`_components/` / Screen からの import 無し（型含む）。最寄りの guard.ts の createLoader かは地図（「ルート地図（`src/app/route-map.jsonl`）」）が見る。補助関数は `utils/` へ; 結果: 失敗
 - Screen → loader — 検査: `checkScreenLoaderCall`: 同じルートの loader を import し、本体の最上位（最初の `return` より前）で await する; 結果: 失敗
 - 管理のページは AdminPage を描く — 検査: `checkAdminPageScreen`: `src/app/admin` の下の全ページの Screen が `AdminPage`(`@/app/admin/_layout/AdminPage` か相対の `…/_layout/AdminPage`)を import して `<AdminPage …>` を描く。管理のヘッダーの行は AdminPage が描くので、描かないページにはヘッダーが出ない。字面で Screen のファイル自身を読む: 子の部品の中で AdminPage を描く形は読まずに止める(Screen が AdminPage を描き、子はその中に置く)
@@ -392,7 +392,7 @@ src/app/admin/(protected)/samples/
 | 生成物（編集しない） | `_screen/<Name>Screen.tsx`・`_screen/loader.ts` | 毎回上書き |
 | fork | `_components/` | 触らない |
 
-- `_screen/loader.ts` は最寄りの guard.ts（`admin/(protected)/guard.ts`）の `createLoader` に `src/wiring/adminScreenParts.ts` の共通部品の組（`adminListParts` / `adminEditParts` / `adminCreateParts` / `adminSortParts`）を渡す 1 行。access は serviceRegistry の entry から汎用 API と同じ解き方で操作ごとに解き、範囲の方針と合わせて取得前に評価する。取得本体と規則は `src/features/core/admin/services/server/screenData/README.md`
+- `_screen/loader.ts` は最寄りの guard.ts（`admin/(protected)/guard.ts`）の `createLoader` に `src/wiring/adminScreenParts.ts` の共通部品の組（`adminListParts` / `adminEditParts` / `adminCreateParts` / `adminSortParts`）を渡す 1 行。access は serviceRegistry の entry から汎用 API と同じ解き方で操作ごとに解き、範囲の方針と合わせて取得前に評価する。取得本体と規則は `src/domains/core/admin/services/server/screenData/README.md`
 - 生成された管理画面を変えたい fork: `_screen/` を `_components/` にコピーして page.tsx を向ける。以後の `pnpm generate domain` は `_screen/` を更新し続け、page.tsx と `_components/` は保持される。ドメイン固有のサーバー側判定が要るなら `_components/loader.ts` に書く（同じ guard.ts の `createLoader` で作る）
 - 生成ルートも `pnpm test scripts/structure/routes/screens.test.mjs` が自動検出して検査する（domain.json から導出）
 

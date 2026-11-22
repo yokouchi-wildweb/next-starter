@@ -62,7 +62,7 @@ test(`CLAUDE.md と ${coreDir}/design.md の地図が参照する ${coreDir}/*.m
 });
 
 test("staticPrefix / parsePaths の部品", () => {
-  assert.equal(staticPrefix("src/features/*/room/**"), "src/features");
+  assert.equal(staticPrefix("src/domains/*/room/**"), "src/domains");
   assert.equal(staticPrefix("**/stores/**"), "");
   assert.equal(staticPrefix("src/proxy.ts"), null);
   assert.deepEqual(parsePaths('---\npaths:\n  - "a/**"\n  - "b.ts"\n---\n# x\n'), ["a/**", "b.ts"]);
@@ -70,9 +70,9 @@ test("staticPrefix / parsePaths の部品", () => {
 });
 
 test("nestedBrace: 入れ子の波かっこだけを見分ける(Claude Code の paths は入れ子を当てない)", () => {
-  assert.equal(nestedBrace("src/features/*/{*.ts,{components,hooks}/**}"), true);
+  assert.equal(nestedBrace("src/domains/*/{*.ts,{components,hooks}/**}"), true);
   assert.equal(nestedBrace("src/{a,{b,c}}/**"), true);
-  assert.equal(nestedBrace("src/features/**/{domain.json,entities/**,messages/*.ts}"), false);
+  assert.equal(nestedBrace("src/domains/**/{domain.json,entities/**,messages/*.ts}"), false);
   assert.equal(nestedBrace("src/styles/{**/gradient,z-layer}.css"), false);
   assert.equal(nestedBrace("src/{a,b}/{c,d}.ts"), false);
   assert.equal(nestedBrace("src/**/*.tsx"), false);

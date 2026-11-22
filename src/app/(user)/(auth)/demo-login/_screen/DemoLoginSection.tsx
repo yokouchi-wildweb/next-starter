@@ -8,7 +8,7 @@ import { Button } from "@/components/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { Para } from "@/components/TextBlocks/Para";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
-import { useDemoLogin } from "@/features/core/demo/hooks/useDemoLogin";
+import { useDemoLogin } from "@/domains/core/demo/hooks/useDemoLogin";
 import { err } from "@/lib/errors";
 
 type Props = {

@@ -3,7 +3,7 @@
 ## Overview
 
 - 法務の文書(利用規約など)が上流の例文のまま本番でビルドされるのを止める検査
-- 判定は `src/features/core/legal` の `checkLegalRelease`(事業の素性の検査と同じ部品 `@/lib/business` の `sampleReleaseLevel`)
+- 判定は `src/domains/core/legal` の `checkLegalRelease`(事業の素性の検査と同じ部品 `@/lib/business` の `sampleReleaseLevel`)
 
 ## Usage
 
@@ -11,14 +11,14 @@
 pnpm check legal        # 門 build
 ```
 
-- 直し方と決まり: `src/features/core/legal/README.md`
+- 直し方と決まり: `src/domains/core/legal/README.md`
 
 ## Internals
 
-- 見る物: `src/config/features/legal.config.ts` の `documents.<kind>`。`{ source: "sample" }`(省略も同じ、上流の例文を表示)の文書が 1 つでもあれば例文のまま
+- 見る物: `src/config/domains/legal.config.ts` の `documents.<kind>`。`{ source: "sample" }`(省略も同じ、上流の例文を表示)の文書が 1 つでもあれば例文のまま
 - 段階が本番(`@/lib/appEnv` の `isProduction`)で例文のままなら exit 1。Tier1(`repo.json` の `tier: root`、`readForkIdentity` の isTier1)は警告だけで exit 0
 - 全部 own・開発・staging は通す
 
 ## Related
 
-- 法務のドメイン: `src/features/core/legal/README.md`
+- 法務のドメイン: `src/domains/core/legal/README.md`

@@ -13,34 +13,34 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
 
-import { onDemoUserCreated } from "@/features/core/demo/services/server/onDemoUserCreated";
-import { getCouponIssuerProgram, isCouponIssuerProgramEnabled } from "@/features/core/couponIssuerGrant/services/server/program";
-import { getPaymentSessionEnricher } from "@/features/core/purchaseRequest/services/server/payment/getSessionEnricher";
-import { getAllCoinIssuanceLabels, getCoinIssuanceLabel } from "@/features/core/analytics/services/server/coinIssuance/labels";
-import { formatActionLabel } from "@/features/core/auditLog/presenters";
-import { buildCouponAdminSectionTabs } from "@/features/core/coupon/lib/adminSectionTabs";
-import { activeCoinIssuanceSources } from "@/features/core/analytics/services/server/coinIssuance/activeSources";
-import type { CoinIssuanceSource } from "@/features/core/analytics/services/server/coinIssuance/types";
-import { runCleanupItems } from "@/features/core/user/services/server/cleanup";
+import { onDemoUserCreated } from "@/domains/core/demo/services/server/onDemoUserCreated";
+import { getCouponIssuerProgram, isCouponIssuerProgramEnabled } from "@/domains/core/couponIssuerGrant/services/server/program";
+import { getPaymentSessionEnricher } from "@/domains/core/purchaseRequest/services/server/payment/getSessionEnricher";
+import { getAllCoinIssuanceLabels, getCoinIssuanceLabel } from "@/domains/core/analytics/services/server/coinIssuance/labels";
+import { formatActionLabel } from "@/domains/core/auditLog/presenters";
+import { buildCouponAdminSectionTabs } from "@/domains/core/coupon/lib/adminSectionTabs";
+import { activeCoinIssuanceSources } from "@/domains/core/analytics/services/server/coinIssuance/activeSources";
+import type { CoinIssuanceSource } from "@/domains/core/analytics/services/server/coinIssuance/types";
+import { runCleanupItems } from "@/domains/core/user/services/server/cleanup";
 
-import { webhookHandlers } from "@/features/core/userLineProfile/extensions/webhookHandlers";
-import { dispatchWebhookEvents } from "@/features/core/userLineProfile/services/server/dispatchWebhookEvents";
+import { webhookHandlers } from "@/domains/core/userLineProfile/extensions/webhookHandlers";
+import { dispatchWebhookEvents } from "@/domains/core/userLineProfile/services/server/dispatchWebhookEvents";
 
 import { categories } from "@/app/_layout/adminCommand/extensions/categories";
 import { plugins } from "@/app/_layout/adminCommand/extensions/plugins";
 import { DEMO_CATEGORIES, groupDemoPagesByCategory, openDemoPages } from "@/app/(user)/demo/_data/demoPages";
 import { demoPages } from "@/app/(user)/demo/extensions/demoPages";
-import { chatRoomConfig } from "@/features/chatRoom/config";
-import { loadForAdmin } from "@/features/core/adminCommand/base/loadForAdmin";
-import { navigationItems } from "@/features/core/adminCommand/definitions/navigation/items";
-import { validateChatFile } from "@/features/core/chatRoom/utils/validation";
-import { renderers } from "@/features/core/milestone/extensions/renderers";
-import { buildStrategyMap } from "@/features/core/purchaseRequest/services/server/completion/strategyRegistry";
-import { buildRewardHandlerMap } from "@/features/core/referralReward/services/server/rewardHandlerRegistry";
+import { chatRoomConfig } from "@/domains/chatRoom/config";
+import { loadForAdmin } from "@/domains/core/adminCommand/base/loadForAdmin";
+import { navigationItems } from "@/domains/core/adminCommand/definitions/navigation/items";
+import { validateChatFile } from "@/domains/core/chatRoom/utils/validation";
+import { renderers } from "@/domains/core/milestone/extensions/renderers";
+import { buildStrategyMap } from "@/domains/core/purchaseRequest/services/server/completion/strategyRegistry";
+import { buildRewardHandlerMap } from "@/domains/core/referralReward/services/server/rewardHandlerRegistry";
 import { ROOT_LAYOUT_CONFIG } from "@/app/_layout/config";
 import { EXAMPLE_BUSINESS } from "@/lib/business";
 import { messageRegistry } from "@/registry/messageRegistry";
-import { layouts } from "@/features/core/messaging/extensions/layouts";
+import { layouts } from "@/domains/core/messaging/extensions/layouts";
 import { configEnabled } from "@/featureGate/node";
 import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 import { listOneShotTasks, loadOneShotTask } from "../../runner/task/discover";
@@ -106,18 +106,18 @@ test("上流の項目の組: 宣言と受け口がそろい、機能に閉じる
   const plan = planExtensions(ROOT);
   assert.deepEqual(plan.problems, [], plan.problems.join("\n"));
   const names = (owner: string, point: string) => itemsOf(plan, owner, point).map((i: { name: string }) => i.name);
-  assertUpstreamItems(names("src/features/core/user", "cleanupHandlers"), ["messagingEndpoints", "messagingPreferences", "purchaseRequest", "wallet"]);
-  assertUpstreamItems(names("src/features/core/analytics", "coinIssuanceSources"), ["purchaseBonusGap", "walletBonusGrant"]);
-  assertUpstreamItems(names("src/features/core/analytics", "rollupMetrics"), [
+  assertUpstreamItems(names("src/domains/core/user", "cleanupHandlers"), ["messagingEndpoints", "messagingPreferences", "purchaseRequest", "wallet"]);
+  assertUpstreamItems(names("src/domains/core/analytics", "coinIssuanceSources"), ["purchaseBonusGap", "walletBonusGrant"]);
+  assertUpstreamItems(names("src/domains/core/analytics", "rollupMetrics"), [
     "messagingBounced", "messagingClicked", "messagingComplained", "messagingDelivered", "messagingFailed", "messagingOpened",
     "messagingRead", "messagingSent", "messagingSuppressed", "messagingTargeted", "messagingUnsubscribed",
   ]);
-  assertUpstreamItems(names("src/features/core/analytics", "exclusionProviders"), []);
-  assertUpstreamItems(names("src/features/core/walletHistory", "reasonKeys"), ["adminAdjustment", "compensation", "couponAttributionReward"]);
-  assertUpstreamItems(names("src/features/core/user", "reservedNames"), []);
-  assertUpstreamItems(names("src/features/core/purchaseRequest", "completionStrategies"), ["walletTopup"]);
-  assertUpstreamItems(names("src/features/core/batchJob", "jobHandlers"), ["walletBulkAdjust"]);
-  assertUpstreamItems(names("src/features/core/messaging", "enrichers"), ["displayName"]);
+  assertUpstreamItems(names("src/domains/core/analytics", "exclusionProviders"), []);
+  assertUpstreamItems(names("src/domains/core/walletHistory", "reasonKeys"), ["adminAdjustment", "compensation", "couponAttributionReward"]);
+  assertUpstreamItems(names("src/domains/core/user", "reservedNames"), []);
+  assertUpstreamItems(names("src/domains/core/purchaseRequest", "completionStrategies"), ["walletTopup"]);
+  assertUpstreamItems(names("src/domains/core/batchJob", "jobHandlers"), ["walletBulkAdjust"]);
+  assertUpstreamItems(names("src/domains/core/messaging", "enrichers"), ["displayName"]);
 });
 
 test("1 行スイッチの既定: 何も足さない状態で今までと同じ(エンリッチャーなし・プログラムなし・フックは何もしない)", tier1Only, async () => {
@@ -166,15 +166,15 @@ test("config へ移した値の読み手: 既定の表示と未定義のとき�
 });
 
 const ENTRIES = [
-  ["src/features/core/purchaseRequest/services/server/completion/index.ts", "getPurchaseCompletionStrategy", "wallet_topup"],
-  ["src/features/core/purchaseRequest/services/server/completion/strategies/walletTopup.ts", null, null],
-  ["src/features/core/purchaseRequest/services/server/wrappers/purchaseService.ts", null, null],
-  ["src/features/core/batchJob/services/server/index.ts", "getHandler", "wallet_bulk_adjust"],
-  ["src/features/core/batchJob/jobHandlers/walletBulkAdjust.ts", null, null],
-  ["src/features/core/wallet/services/server/handlers/walletBulkAdjustHandler.ts", null, null],
-  ["src/features/core/wallet/services/server/walletService.ts", null, null],
-  ["src/features/core/milestone/services/server/wrappers/evaluateMilestones.ts", null, null],
-  ["src/features/core/referralReward/services/server/referralRewardService.ts", null, null],
+  ["src/domains/core/purchaseRequest/services/server/completion/index.ts", "getPurchaseCompletionStrategy", "wallet_topup"],
+  ["src/domains/core/purchaseRequest/services/server/completion/strategies/walletTopup.ts", null, null],
+  ["src/domains/core/purchaseRequest/services/server/wrappers/purchaseService.ts", null, null],
+  ["src/domains/core/batchJob/services/server/index.ts", "getHandler", "wallet_bulk_adjust"],
+  ["src/domains/core/batchJob/jobHandlers/walletBulkAdjust.ts", null, null],
+  ["src/domains/core/wallet/services/server/handlers/walletBulkAdjustHandler.ts", null, null],
+  ["src/domains/core/wallet/services/server/walletService.ts", null, null],
+  ["src/domains/core/milestone/services/server/wrappers/evaluateMilestones.ts", null, null],
+  ["src/domains/core/referralReward/services/server/referralRewardService.ts", null, null],
 ] as const;
 
 for (const [entry, rawFn, arg] of ENTRIES) {
@@ -209,7 +209,7 @@ test("LINE Webhook: 一致する項目を順に全部呼ぶ、失敗は続行、
 });
 
 test("タスクの走査: 上流のドメインのタスク・移行 15 本、名前の一致と読み込み(置き方の誤りの形は scripts/runner/task/discover.test.ts)", async () => {
-  const tasks = listOneShotTasks(ROOT).filter((t) => t.file.startsWith("src/features/core/"));
+  const tasks = listOneShotTasks(ROOT).filter((t) => t.file.startsWith("src/domains/core/"));
   assert.deepEqual(tasks.map((t) => t.name), [
     "analytics:rollup-backfill",
     "messaging:merge-dispatch-vars",

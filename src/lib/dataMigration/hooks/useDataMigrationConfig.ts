@@ -12,7 +12,7 @@ import { buildExportFields } from "../configUtils";
  * DataMigration 用の設定を生成するフック
  *
  * @example
- * import { domainDisplay } from "@/features/sample/entities/display";
+ * import { domainDisplay } from "@/domains/sample/entities/display";
  * const { exportFields, hasRelations, hasManyDomains } = useDataMigrationConfig(domainDisplay);
  */
 export function useDataMigrationConfig(config: DomainDisplay) {

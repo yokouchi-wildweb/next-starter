@@ -1,9 +1,9 @@
 // src/app/api/admin/analytics/user/registration/summary/route.ts
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { parseDateRangeParams } from "@/features/core/analytics/services/server/utils/dateRange";
-import { parseUserFilterParams } from "@/features/core/analytics/services/server/utils/userFilter";
-import { getUserRegistrationSummary } from "@/features/core/analytics/services/server/userAnalytics";
+import { parseDateRangeParams } from "@/domains/core/analytics/services/server/utils/dateRange";
+import { parseUserFilterParams } from "@/domains/core/analytics/services/server/utils/userFilter";
+import { getUserRegistrationSummary } from "@/domains/core/analytics/services/server/userAnalytics";
 
 export const GET = createApiRoute(
   {

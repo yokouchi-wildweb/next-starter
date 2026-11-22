@@ -8,8 +8,8 @@ import {
   getCurrentPeriodCoupon,
   getGrantByUser,
   isCouponIssuerProgramEnabled,
-} from "@/features/core/couponIssuerGrant/services/server";
-import { toCouponIssuerGrantForUser } from "@/features/core/couponIssuerGrant/entities/model";
+} from "@/domains/core/couponIssuerGrant/services/server";
+import { toCouponIssuerGrantForUser } from "@/domains/core/couponIssuerGrant/entities/model";
 
 export const GET = createMeRoute(
   {

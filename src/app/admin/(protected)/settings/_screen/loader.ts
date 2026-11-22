@@ -9,8 +9,8 @@ import "server-only";
 import { redirect } from "next/navigation";
 
 import { gate } from "@/featureGate";
-import { sections } from "@/features/core/setting/extensions/sections";
-import { firstOpenSection, settingSectionHref } from "@/features/core/setting/utils/sectionForm";
+import { sections } from "@/domains/core/setting/extensions/sections";
+import { firstOpenSection, settingSectionHref } from "@/domains/core/setting/utils/sectionForm";
 import { createLoader } from "@/app/admin/(protected)/guard";
 
 export const loadAdminSettingIndexScreen = createLoader({

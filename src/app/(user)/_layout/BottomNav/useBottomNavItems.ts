@@ -9,7 +9,7 @@
 
 import { useMemo } from "react";
 
-import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
+import { useAuthSession } from "@/domains/core/auth/hooks/useAuthSession";
 
 import { userLayoutConfig } from "../config";
 import { userLayoutUiConfig } from "../config.ui";

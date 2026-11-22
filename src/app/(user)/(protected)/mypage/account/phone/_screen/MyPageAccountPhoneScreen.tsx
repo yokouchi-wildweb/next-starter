@@ -5,7 +5,7 @@
 
 import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
-import { EditPhone } from "@/features/core/user/components/EditPhone";
+import { EditPhone } from "@/domains/core/user/components/EditPhone";
 
 import { loadMyPageAccountPhoneScreen } from "./loader";
 

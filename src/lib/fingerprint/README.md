@@ -57,5 +57,5 @@ behavior.reset();
 
 ## Related
 
-- 蓄積・照合: [`features/core/deviceFingerprint`](../../features/core/deviceFingerprint/README.md)
-- 回答チャレンジ: [`features/core/fingerprintChallenge`](../../features/core/fingerprintChallenge/README.md)
+- 蓄積・照合: [`domains/core/deviceFingerprint`](../../domains/core/deviceFingerprint/README.md)
+- 回答チャレンジ: [`domains/core/fingerprintChallenge`](../../domains/core/fingerprintChallenge/README.md)

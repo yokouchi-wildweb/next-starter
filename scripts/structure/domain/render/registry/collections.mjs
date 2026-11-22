@@ -33,7 +33,7 @@ function entryLines(ownerConfig, field, child) {
   return [
     "  {",
     `    fieldName: "${resolveFieldName(field.name, "Neon")}",`,
-    `    service: () => import("@/features/${childCamel}/services/server/${childCamel}Service").then((m) => m.${childCamel}Service),`,
+    `    service: () => import("@/domains/${childCamel}/services/server/${childCamel}Service").then((m) => m.${childCamel}Service),`,
     `    parentColumn: ${table}.${columns.parent},`,
     `    valueColumn: ${table}.${columns.value},`,
     `    sortColumn: ${table}.${columns.sort},`,
@@ -63,7 +63,7 @@ export function renderCollectionsOutput(ctx, workspace) {
     "// 詳細: src/lib/crud/collections/README.md",
     "",
     'import type { CrudCollectionConfig } from "@/lib/crud/server";',
-    ...tables.map((child) => `import { ${toPascalCase(child)}Table } from "@/features/${child}/entities/drizzle";`),
+    ...tables.map((child) => `import { ${toPascalCase(child)}Table } from "@/domains/${child}/entities/drizzle";`),
     "",
     "export const collections: CrudCollectionConfig[] = [",
     ...fields.flatMap((field) => entryLines(config, field, children.get(field.name))),

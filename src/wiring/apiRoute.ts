@@ -4,15 +4,15 @@
 // 登録表（serviceRegistry）・門番（@/featureGate の gate.path）を結ぶ。src/app/**/route.ts とその補助ファイルはここから import する
 // （@/lib/routeFactory の値 import は wiring だけ）。設計: src/wiring/README.md, src/lib/routeFactory/README.md
 
-import type { SessionUser } from "@/features/core/auth/entities/session";
-import { apiRouteUserDeps } from "@/features/core/auth/services/server/apiRouteUserDeps";
-import { apiRouteDeviceDeps } from "@/features/pairedDevice/services/server/apiRouteDeviceDeps";
-import type { AuthenticatedDevice } from "@/features/pairedDevice/services/server/deviceToken";
-import type { SessionDeviceOf } from "@/features/pairedDevice/services/server/session";
-import type { PairedDeviceKind } from "@/features/pairedDevice/types/kinds";
-import { apiRouteRateLimitDeps } from "@/features/core/rateLimit/services/server/apiRouteRateLimitDeps";
-import type { RateLimitCategory } from "@/features/rateLimit/config";
-import type { UserStatus } from "@/features/core/user/types";
+import type { SessionUser } from "@/domains/core/auth/entities/session";
+import { apiRouteUserDeps } from "@/domains/core/auth/services/server/apiRouteUserDeps";
+import { apiRouteDeviceDeps } from "@/domains/pairedDevice/services/server/apiRouteDeviceDeps";
+import type { AuthenticatedDevice } from "@/domains/pairedDevice/services/server/deviceToken";
+import type { SessionDeviceOf } from "@/domains/pairedDevice/services/server/session";
+import type { PairedDeviceKind } from "@/domains/pairedDevice/types/kinds";
+import { apiRouteRateLimitDeps } from "@/domains/core/rateLimit/services/server/apiRouteRateLimitDeps";
+import type { RateLimitCategory } from "@/domains/rateLimit/config";
+import type { UserStatus } from "@/domains/core/user/types";
 import { gate } from "@/featureGate";
 import { createRouteFactories } from "@/lib/routeFactory";
 import { serverErrorReport } from "@/wiring/serverErrors";
@@ -57,7 +57,7 @@ export function gateDeviceDeps<T extends RouteAuthenticatedDevice, C extends str
   };
 }
 
-// レート制限のカテゴリの名前は持ち主 features/core/rateLimit の型を渡す(lib は features の型を読まない、L1.25)
+// レート制限のカテゴリの名前は持ち主 domains/core/rateLimit の型を渡す(lib は features の型を読まない、L1.25)
 const factories = createRouteFactories<DevicesByKind, SessionUser, UserStatus, AuthenticatedDevice, RateLimitCategory>({
   user: apiRouteUserDeps,
   // 端末の機能(pairedDevice)が閉じている間は端末を認証しない(門番の依存の検査: 結線が閉じられる機能を確かめてから使う)

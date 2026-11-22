@@ -34,7 +34,7 @@
 import type { FieldPath } from "react-hook-form";
 import { FieldRenderer, type FieldConfig, type MediaFieldConfig, type MediaState } from "@/lib/formSuite";
 import { useMediaMetadataBinding } from "@/lib/mediaInputSuite";
-import { domainDisplay } from "@/features/foo/entities/display";
+import { domainDisplay } from "@/domains/foo/entities/display";
 
 export function FooFields({ methods, onMediaStateChange }) {
   const baseFields = domainDisplay.fields as FieldConfig[];

@@ -42,7 +42,7 @@ const comparable = (row: Row | undefined) => {
 
 describe("pnpm ops data(実 DB の往復)", { skip }, () => {
   before(async () => {
-    sampleService = (await import("@/features/sample/services/server/sampleService")).sampleService as never;
+    sampleService = (await import("@/domains/sample/services/server/sampleService")).sampleService as never;
     const created = await sampleService.create({
       name: NAME,
       number: 7,

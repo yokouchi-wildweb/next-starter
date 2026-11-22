@@ -7,8 +7,8 @@
 // fingerprintChallengeConfig.challenge.answerableStatuses (既定 active + suspended) を通す。
 
 import { createMeRoute } from "@/wiring/apiRoute";
-import { fingerprintChallengeConfig } from "@/features/fingerprintChallenge/config";
-import { getChallengeForUser } from "@/features/core/fingerprintChallenge/services/server";
+import { fingerprintChallengeConfig } from "@/domains/fingerprintChallenge/config";
+import { getChallengeForUser } from "@/domains/core/fingerprintChallenge/services/server";
 
 type Params = { token: string };
 

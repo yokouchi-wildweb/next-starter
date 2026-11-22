@@ -54,7 +54,7 @@ const NAMES = [
   "listStaticMembers",
   "listExceptionMembers",
 ];
-mock.module("@/features/core/userGroup/services/server/admin", {
+mock.module("@/domains/core/userGroup/services/server/admin", {
   namedExports: {
     userGroupAdmin: Object.fromEntries(
       NAMES.map((name) => [

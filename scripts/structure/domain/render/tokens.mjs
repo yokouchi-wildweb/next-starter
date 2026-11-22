@@ -1,4 +1,4 @@
-// テンプレート（src/features/_template、src/app/admin/_template）のドメイン名トークンの置換。
+// テンプレート（src/domains/_template、src/app/admin/_template）のドメイン名トークンの置換。
 // ファイル名にも本文にも同じ関数を使う。__domainSlug__ / __domainsSlug__ / __DomainLabel__ は大文字小文字を区別しない
 
 /**
@@ -8,8 +8,8 @@
 export function replaceDomainTokens(content, ctx) {
   const { camel, pascal, camelPlural, pascalPlural, kebab, kebabPlural, label, rel } = ctx;
   return content
-    // 頭のコメントのパス（core のドメインは src/features/core/<camel>/。import は @/features/<camel> の別名のまま）
-    .replace(/src\/features\/__domain__\//g, `${rel ?? `src/features/${camel}`}/`)
+    // 頭のコメントのパス（core のドメインは src/domains/core/<camel>/。import は @/domains/<camel> の別名のまま）
+    .replace(/src\/domains\/__domain__\//g, `${rel ?? `src/domains/${camel}`}/`)
     .replace(/__domain__/g, camel)
     .replace(/__Domain__/g, pascal)
     .replace(/__domains__/g, camelPlural)

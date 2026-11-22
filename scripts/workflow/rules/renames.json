@@ -181,14 +181,14 @@
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/README.md「メディア項目」",
-  "new": "src/features/README.md「MediaUploader フィールド追加プロパティ」",
+  "old": "src/domains/README.md「メディア項目」",
+  "new": "src/domains/README.md「MediaUploader フィールド追加プロパティ」",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/README.md「domain.json スキーマ定義」",
-  "new": "src/features/README.md「API」",
+  "old": "src/domains/README.md「domain.json スキーマ定義」",
+  "new": "src/domains/README.md「API」",
   "order": 65
  },
  {
@@ -211,14 +211,14 @@
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/messaging/README.md「cron」",
-  "new": "src/features/core/messaging/README.md「Internals」",
+  "old": "src/domains/core/messaging/README.md「cron」",
+  "new": "src/domains/core/messaging/README.md「Internals」",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/messaging/README.md「端末の帳簿」",
-  "new": "src/features/core/messaging/services/server/endpoints/README.md",
+  "old": "src/domains/core/messaging/README.md「端末の帳簿」",
+  "new": "src/domains/core/messaging/services/server/endpoints/README.md",
   "order": 65
  },
  {
@@ -241,74 +241,74 @@
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/wallet/README.md「付与の種類」",
-  "new": "src/features/core/wallet/Extension.md「付与の種類（reason key）」",
+  "old": "src/domains/core/wallet/README.md「付与の種類」",
+  "new": "src/domains/core/wallet/Extension.md「付与の種類（reason key）」",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/walletHistory/README.md「付与の種類(reason key)」",
-  "new": "src/features/core/wallet/Extension.md「付与の種類（reason key）」",
+  "old": "src/domains/core/walletHistory/README.md「付与の種類(reason key)」",
+  "new": "src/domains/core/wallet/Extension.md「付与の種類（reason key）」",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/analytics/services/server/coinIssuance/README.md「分析の除外条件」",
-  "new": "src/features/core/analytics/services/server/exclusion/README.md",
+  "old": "src/domains/core/analytics/services/server/coinIssuance/README.md「分析の除外条件」",
+  "new": "src/domains/core/analytics/services/server/exclusion/README.md",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/analytics/README.md「分析の除外条件」",
-  "new": "src/features/core/analytics/services/server/exclusion/README.md",
+  "old": "src/domains/core/analytics/README.md「分析の除外条件」",
+  "new": "src/domains/core/analytics/services/server/exclusion/README.md",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/milestone/README.md「統合ポイント一覧」",
-  "new": "src/features/core/milestone/API.md「統合ポイント」",
+  "old": "src/domains/core/milestone/README.md「統合ポイント一覧」",
+  "new": "src/domains/core/milestone/API.md「統合ポイント」",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/chatRoom/hooks/firestore/README.md「ファイル添付」",
-  "new": "src/features/core/chatRoom/README.md「ファイル添付」",
+  "old": "src/domains/core/chatRoom/hooks/firestore/README.md「ファイル添付」",
+  "new": "src/domains/core/chatRoom/README.md「ファイル添付」",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/messaging/README.md「管理一覧の一括送信の作成関数」",
-  "new": "src/features/core/messaging/components/README.md「管理一覧の一括送信（AdminBulkSend）」",
+  "old": "src/domains/core/messaging/README.md「管理一覧の一括送信の作成関数」",
+  "new": "src/domains/core/messaging/components/README.md「管理一覧の一括送信（AdminBulkSend）」",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/messaging/services/server/admin/README.md「管理の送信と回の読む口」",
-  "new": "src/features/core/messaging/services/server/admin/README.md「API」",
+  "old": "src/domains/core/messaging/services/server/admin/README.md「管理の送信と回の読む口」",
+  "new": "src/domains/core/messaging/services/server/admin/README.md「API」",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/messaging/README.md「新しい送る口」",
-  "new": "src/features/core/messaging/README.md「送る」",
+  "old": "src/domains/core/messaging/README.md「新しい送る口」",
+  "new": "src/domains/core/messaging/README.md「送る」",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/purchaseRequest/README.md「6.3 metadata」",
-  "new": "src/features/core/purchaseRequest/README.md「metadata(JSONB)」",
+  "old": "src/domains/core/purchaseRequest/README.md「6.3 metadata」",
+  "new": "src/domains/core/purchaseRequest/README.md「metadata(JSONB)」",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/purchaseRequest/README.md「3.2」",
-  "new": "src/features/core/purchaseRequest/README.md「usePurchaseStatusPolling」",
+  "old": "src/domains/core/purchaseRequest/README.md「3.2」",
+  "new": "src/domains/core/purchaseRequest/README.md「usePurchaseStatusPolling」",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/referral/README.md「管理画面の招待コード一覧」",
-  "new": "src/features/core/referral/README.md「招待コード一覧に列を足す」",
+  "old": "src/domains/core/referral/README.md「管理画面の招待コード一覧」",
+  "new": "src/domains/core/referral/README.md「招待コード一覧に列を足す」",
   "order": 65
  },
  {
@@ -319,56 +319,56 @@
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/user/README.md「管理のユーザー管理モーダルのタブ」",
-  "new": "src/features/core/user/adminManageTabs/README.md",
+  "old": "src/domains/core/user/README.md「管理のユーザー管理モーダルのタブ」",
+  "new": "src/domains/core/user/adminManageTabs/README.md",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/user/README.md「マイページのメニュー」",
-  "new": "src/features/core/user/Extension.md「マイページのメニュー(拡張点 mypageMenu)」",
+  "old": "src/domains/core/user/README.md「マイページのメニュー」",
+  "new": "src/domains/core/user/Extension.md「マイページのメニュー(拡張点 mypageMenu)」",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/user/README.md「アバターの変更」",
-  "new": "src/features/core/user/README.md「アバターを自前の見た目で変える」",
+  "old": "src/domains/core/user/README.md「アバターの変更」",
+  "new": "src/domains/core/user/README.md「アバターを自前の見た目で変える」",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/user/README.md「ステータスの一括変更」",
-  "new": "src/features/core/user/README.md「状態をまとめて変える」",
+  "old": "src/domains/core/user/README.md「ステータスの一括変更」",
+  "new": "src/domains/core/user/README.md「状態をまとめて変える」",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/wallet/README.md「設定」",
-  "new": "src/features/core/wallet/API.md「古い定数名との対応」",
+  "old": "src/domains/core/wallet/README.md「設定」",
+  "new": "src/domains/core/wallet/API.md「古い定数名との対応」",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/wallet/README.md「設定ファイル」",
-  "new": "src/features/core/wallet/Extension.md「設定ファイル」",
+  "old": "src/domains/core/wallet/README.md「設定ファイル」",
+  "new": "src/domains/core/wallet/Extension.md「設定ファイル」",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/wallet/README.md「有効期限（ロット管理）」",
-  "new": "src/features/core/wallet/Internals.md「有効期限（ロット管理）」",
+  "old": "src/domains/core/wallet/README.md「有効期限（ロット管理）」",
+  "new": "src/domains/core/wallet/Internals.md「有効期限（ロット管理）」",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/wallet/README.md「送信量の目安」",
-  "new": "src/features/core/wallet/Internals.md「送信量の目安」",
+  "old": "src/domains/core/wallet/README.md「送信量の目安」",
+  "new": "src/domains/core/wallet/Internals.md「送信量の目安」",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/wallet/README.md「購入の特典の表示」",
-  "new": "src/features/core/wallet/Extension.md「購入の特典の表示（拡張点 purchaseBonuses）」",
+  "old": "src/domains/core/wallet/README.md「購入の特典の表示」",
+  "new": "src/domains/core/wallet/Extension.md「購入の特典の表示（拡張点 purchaseBonuses）」",
   "order": 65
  },
  {
@@ -421,14 +421,14 @@
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/user/README.md「外部の認証の身元から作る口」",
-  "new": "src/features/core/user/API.md「外部の認証の身元から作る口(createFromProvider)」",
+  "old": "src/domains/core/user/README.md「外部の認証の身元から作る口」",
+  "new": "src/domains/core/user/API.md「外部の認証の身元から作る口(createFromProvider)」",
   "order": 65
  },
  {
   "kind": "readme-heading",
-  "old": "src/features/core/auth/README.md「公開 hook の契約表」",
-  "new": "src/features/core/auth/API.md「公開 hook」",
+  "old": "src/domains/core/auth/README.md「公開 hook の契約表」",
+  "new": "src/domains/core/auth/API.md「公開 hook」",
   "order": 65
  },
  {

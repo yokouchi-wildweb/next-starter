@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute, enforceAccessRule } from "@/wiring/apiRoute";
-import { verifyCurrentUserPassword } from "@/features/core/auth/services/server/verifyCurrentUserPassword";
+import { verifyCurrentUserPassword } from "@/domains/core/auth/services/server/verifyCurrentUserPassword";
 import { resolveAccessRule } from "@/lib/domain";
 import { getDomainAccess, getInvalidDomainKeys, getServiceOrThrow } from "@/wiring/domainRegistry";
 

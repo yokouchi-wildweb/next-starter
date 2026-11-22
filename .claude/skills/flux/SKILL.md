@@ -295,7 +295,7 @@ a notice (a body added under `.notices/` in the upstream tip's history, read at 
    - the same `resolves:` ids against your provisional rules (a rule you wrote while your order to the parent was open, line ending `(order: <id>)`): `git grep -n -E '\(order: (<id>|<id>…)\)' -- .claude/rules ':!.claude/rules/core' ':!.claude/rules/items'`
      - list each hit in the plan and ask `消す / 残す(理由)` (remove / keep with a reason) | removals go in their own commit after that segment's merge (never inside the merge commit) | none → `仮の決まり: なし`
    - reasoned eslint-disable lines per folder (forks decide whether to ask the parent for a receptacle or a fix; the parent never counts inside forks): `git grep -c -E 'eslint-disable(-next)?-line [^ ]+ -- ' -- src`
-     - sum per folder two levels deep (e.g. `src/features/<domain>`, `src/app/<group>`), show the top 5 with their rule names in the plan once per run (on the last segment) | information only, never a blocker
+     - sum per folder two levels deep (e.g. `src/domains/<domain>`, `src/app/<group>`), show the top 5 with their rule names in the plan once per run (on the last segment) | information only, never a blocker
    - conflict forecast, move-source edits and upstream changes are **only for the next segment** (the 2 sections below)
 
 ## CONFLICT FORECAST (when planning the next segment, read-only)
@@ -308,7 +308,7 @@ list the files likely to conflict at the next segment's merge before approval | 
 
 ## UPSTREAM CHANGE SWEEP (when planning and applying the next segment; with or without notices)
 a notice is the minimum line of follow-up, and upstream may forget one | from the next segment's upstream diff itself, pick "changes that affect how the fork uses things", find the fork's uses and put them in that segment's plan
-1. range: the segment's upstream diff = `git diff <base> <区間の merge 先>` (`base` as CONFLICT FORECAST 1) | targets: shared parts, libs, hooks, utils, core (`src/components/` `src/lib/` `src/hooks/` `src/utils/` `src/features/core/` etc., what the fork imports)
+1. range: the segment's upstream diff = `git diff <base> <区間の merge 先>` (`base` as CONFLICT FORECAST 1) | targets: shared parts, libs, hooks, utils, core (`src/components/` `src/lib/` `src/hooks/` `src/utils/` `src/domains/core/` etc., what the fork imports)
 2. what to pick:
    - deleted / renamed exports, changed types of function arguments, return values, props (new required ones and defaults whose meaning changed included)
    - newly added `@deprecated`, shims kept for compat, alias old names, re-exports of old paths (comments like `互換` / `deprecated` / `legacy` / `旧`, or functions whose body only calls the new name)
@@ -395,7 +395,7 @@ merge and porting carry the fork's edits as they are | when the destination is u
         - sunset: 20261120-122554-notice-history (remove once every fork has taken that notice)
       - generated `src/app/route-map.jsonl` (route map; delete the old `route-map.txt` if it remains): never fix by hand even on conflict
         - take either version, resolve the other conflicts first, finally rebuild with `pnpm generate routes` and `git add` | even without a conflict, rebuild the same way when the segment's upstream diff has this file (the rows of fork-own pages are not in upstream's generated result) | a change inside 5d's allowed set
-      - generated `src/registry/district-map.jsonl` (district map; includes the domain list) is treated the same; rebuild with `pnpm generate district-map` (delete the old `src/features/feature-map.txt` if it remains)
+      - generated `src/registry/district-map.jsonl` (district map; includes the domain list) is treated the same; rebuild with `pnpm generate district-map` (delete the old `src/domains/feature-map.txt` if it remains)
       - a middle Tier's file (not in the Tier1 version; you are a lower Tier and the parent fork added it) that you deleted / rewrote, then the parent changed it and it conflicts: keep your (the lower Tier's) judgment (deleted stays deleted, rewritten stays your version)
         - record in the segment report and the ledger `notes:` that the upstream change was not taken in (D30 K7; the ownership check lists these in its reference list of passes)
    d. **out-of-segment check** (mandatory; after c and porting, before the merge commit; read-only):

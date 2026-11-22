@@ -1,9 +1,9 @@
 ---
 paths:
-  - "src/features/core/userProfile/**"
+  - "src/domains/core/userProfile/**"
 ---
-# features/userProfile
-what: per-role profile tables (one profile.json per role with hasProfile) with one CRUD / search interface; server userProfileService and getProfileBase (utils/profileBaseHelpers), client hooks @/features/core/userProfile/hooks
+# domains/userProfile
+what: per-role profile tables (one profile.json per role with hasProfile) with one CRUD / search interface; server userProfileService and getProfileBase (utils/profileBaseHelpers), client hooks @/domains/core/userProfile/hooks
 use: always
 change: add = a profile JSON profiles/<role>.profile.json (pnpm forge) | overlay = profiles/<role>.profile.override.ts (tags, searchFields, audit; profileDefinitions in extensionPoints.ts)
 rules:
@@ -18,4 +18,4 @@ using:
 - typed_wrapper: role-specific types come from a thin wrapper over the generic hooks, never by retyping the generic layer
 editing:
 - tag_source: profile tags are added or removed only in constants/fieldTags.mjs
-read: write or change a profile JSON → Extension | server / client calls → Usage | ProfileBase, routes, helpers → src/features/core/userProfile/API.md API | generation, checks → Internals
+read: write or change a profile JSON → Extension | server / client calls → Usage | ProfileBase, routes, helpers → src/domains/core/userProfile/API.md API | generation, checks → Internals

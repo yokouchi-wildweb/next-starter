@@ -5,11 +5,11 @@
 
 import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens";
-import AdminInviteList from "@/features/core/referral/components/AdminInviteList";
+import AdminInviteList from "@/domains/core/referral/components/AdminInviteList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Para } from "@/components/TextBlocks/Para";
 
-import { AdminCouponSectionTabs } from "@/features/core/coupon/components/AdminCouponSectionTabs";
+import { AdminCouponSectionTabs } from "@/domains/core/coupon/components/AdminCouponSectionTabs";
 import { loadAdminCouponInviteListScreen } from "./loader";
 
 export const metadata = {

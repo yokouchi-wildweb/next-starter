@@ -1,9 +1,9 @@
 ---
 paths:
-  - "src/features/core/userLoginEvent/**"
+  - "src/domains/core/userLoginEvent/**"
 ---
-# features/userLoginEvent
-what: login / signup successes and explicit logouts stored per IP (table user_login_events, ip = inet) for cross-user IP, subnet and device-handoff searches | entry @/features/userLoginEvent/services/server (server-only)
+# domains/userLoginEvent
+what: login / signup successes and explicit logouts stored per IP (table user_login_events, ip = inet) for cross-user IP, subnet and device-handoff searches | entry @/domains/userLoginEvent/services/server (server-only)
 use: always
 change: none → /order <direct parent> | retention: retentionDays at record time or DEFAULT_LOGIN_EVENT_RETENTION_DAYS
 rules:

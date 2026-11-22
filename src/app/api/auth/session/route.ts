@@ -1,7 +1,7 @@
 // src/app/api/auth/session/route.ts
 
-import { USER_STATUSES } from "@/features/core/user/constants";
-import { refreshSessionResponse } from "@/features/core/auth/services/server/session/refreshSessionResponse";
+import { USER_STATUSES } from "@/domains/core/user/constants";
+import { refreshSessionResponse } from "@/domains/core/auth/services/server/session/refreshSessionResponse";
 import { createApiRoute } from "@/wiring/apiRoute";
 
 export const GET = createApiRoute(

@@ -2,17 +2,17 @@
 
 ## Overview
 
-- 手で書いた `src/features/<domain>/domain.json` から、ドメイン一式（entities / services / hooks / 管理画面 / レジストリ登録）を生成する CLI のリファレンスです。
-- `domain.json` のスキーマ（キー・型・リレーション・`generate` 等）は [`src/features/README.md`](../../../src/features/README.md) が正です。
+- 手で書いた `src/domains/<domain>/domain.json` から、ドメイン一式（entities / services / hooks / 管理画面 / レジストリ登録）を生成する CLI のリファレンスです。
+- `domain.json` のスキーマ（キー・型・リレーション・`generate` 等）は [`src/domains/README.md`](../../../src/domains/README.md) が正です。
 - 普段はこれを直接打たず、`pnpm forge`（[`scripts/structure/forge/README.md`](../forge/README.md)。検査 → ロールとドメインの生成 → ルートの地図 → 事後検査）で回す。
-- 対象: `domain.json` を持つドメインのフォルダ。business = `src/features/<domain>/`、core = `src/features/core/<domain>/`。違いはフォルダだけで、生成・検査・`generate` の旗は同じ扱い（同じ名前が両方にあれば止まる）。`domain.json` の無い core は対象外（手で保守）
+- 対象: `domain.json` を持つドメインのフォルダ。business = `src/domains/<domain>/`、core = `src/domains/core/<domain>/`。違いはフォルダだけで、生成・検査・`generate` の旗は同じ扱い（同じ名前が両方にあれば止まる）。`domain.json` の無い core は対象外（手で保守）
 - core の生成の違い:
-  - 生成物は `@/features/<domain>/...` で import するので、`tsconfig.json` の `paths` に `"@/features/<domain>/*": ["./src/features/core/<domain>/*"]` が要る（無ければ何も書かずに止まり、足す 1 行を出す）
+  - 生成物は `@/domains/<domain>/...` で import するので、`tsconfig.json` の `paths` に `"@/domains/<domain>/*": ["./src/domains/core/<domain>/*"]` が要る（無ければ何も書かずに止まり、足す 1 行を出す）
   - `src/registry/` の一覧は core も business も `pnpm generate registry` が走査で作る（生成器は serviceRegistry 以外を書かない）
-  - 手で管理の core のファイル用途は `src/features/core/storageObject/purposes/` に手で。`domainEntry.ts` は書くので `serviceRegistry.ts` には載る（core の手書きの domainEntry.ts と同じ経路）
+  - 手で管理の core のファイル用途は `src/domains/core/storageObject/purposes/` に手で。`domainEntry.ts` は書くので `serviceRegistry.ts` には載る（core の手書きの domainEntry.ts と同じ経路）
 - 今ある core の `domain.json` は `generate: false`（手で管理。生成器は何も書かない）
 - `domain.json` は手で書く（対話で組み立てる入口は無い）。書き方の規則は生成前の検査（`checks/`）が止める・警告する
-- 生成元テンプレート: `src/features/_template/`（ドメイン側）、`src/app/admin/_template/`（管理画面ルート）
+- 生成元テンプレート: `src/domains/_template/`（ドメイン側）、`src/app/admin/_template/`（管理画面ルート）
 - 実行はリポジトリのルートで行う
 - 長さのため分けた文書: `API.md`(生成されるもの・上書きの扱い・出力の種類のデータ)、`Internals.md`(生成の流れ・主と従属の組・生成器の構造・前後比較)
 
@@ -22,7 +22,7 @@
 
 新規ドメイン・項目の追加:
 
-1. `src/features/<camelCase>/domain.json` を手で書く・直す（スキーマと例: [src/features/README.md](../../../src/features/README.md)。`src/features/sample/domain.json` が全機能の例）
+1. `src/domains/<camelCase>/domain.json` を手で書く・直す（スキーマと例: [src/domains/README.md](../../../src/domains/README.md)。`src/domains/sample/domain.json` が全機能の例）
 2. `pnpm forge`（検査で止まったら文のとおりに直してもう一度）
 3. `git status` / `git diff` で生成物を確認
 4. 表が変わったら forge の最後の案内どおり `pnpm db:push`（人が実行）→ `pnpm db:push:check` で差分ゼロ
@@ -47,9 +47,9 @@
 - `--yes`: 受け付けて無視する（以前の「対話なし」の旗。古い手順がそのまま動く）
 
 > **`--` は任意**: `pnpm generate domain -- -- Sample` の単独の `--` はスクリプト側（`cli/args.mjs`）が捨てる。
-> `<Domain>` は snake_case / camelCase / PascalCase のどれでもよい（内部で正規化し、`src/features/<camelCase>/` を見る）。省くと終了コード 1（選んで生成するなら `-i`）。
+> `<Domain>` は snake_case / camelCase / PascalCase のどれでもよい（内部で正規化し、`src/domains/<camelCase>/` を見る）。省くと終了コード 1（選んで生成するなら `-i`）。
 > 失敗（`domain.json` が無い、検査で止まる、テンプレートが無い、登録表が作れないなど）は終了コード 1 になり、**何も書かない**（生成物は全部組み立て、書いた後の状態で `serviceRegistry.ts` が作れることまで確かめてから書く）。
-> **フォルダ名 = `singular` の camelCase**（例: `name_pool_entry` → `src/features/namePoolEntry/`）が全ジェネレーターの前提。ずれているドメインがあると何も書かずに止まる（`checks/domainFolder.mjs`、`:all` は全件を事前検査）。直すときはフォルダを改名する（`singular` を変えるとテーブル名・FK 名が変わる）。
+> **フォルダ名 = `singular` の camelCase**（例: `name_pool_entry` → `src/domains/namePoolEntry/`）が全ジェネレーターの前提。ずれているドメインがあると何も書かずに止まる（`checks/domainFolder.mjs`、`:all` は全件を事前検査）。直すときはフォルダを改名する（`singular` を変えるとテーブル名・FK 名が変わる）。
 
 ### カテゴリの名指し（`--only`）
 
@@ -59,7 +59,7 @@
 - 作成済みの write-once（`<domain>Service.ts`・管理画面の `page.tsx`）をわざと作り直すときは、そのファイルを消してから生成する
 - 不明なカテゴリ名は終了コード 1
 - `--only registry` が書くのは `services/server/` の `domainEntry.ts`・`collections.ts`・`storagePurposes.ts`（ドメイン内）。最後に `serviceRegistry.ts` を丸ごと作り直す（`:all` は全ドメインの domainEntry.ts を書いた後に 1 回だけ）。他の `src/registry/` の一覧は `pnpm generate registry`（forge の段）
-  - storagePurposes.ts には、画像を含むメディア項目の `metadata`（`storage.metadata`、省略 = `"strip"`）が明示値で入る。`storage.image`（画像の縮小の指定）は書いたときだけ入る（形・keep の項目への指定は生成エラー）。strip の項目の accept にサーバーで描き直せない画像の型（`image/heic` など）があると生成エラー（直し方: [src/features/README.md](../../../src/features/README.md)「ファイルの保存（storage）」）
+  - storagePurposes.ts には、画像を含むメディア項目の `metadata`（`storage.metadata`、省略 = `"strip"`）が明示値で入る。`storage.image`（画像の縮小の指定）は書いたときだけ入る（形・keep の項目への指定は生成エラー）。strip の項目の accept にサーバーで描き直せない画像の型（`image/heic` など）があると生成エラー（直し方: [src/domains/README.md](../../../src/domains/README.md)「ファイルの保存（storage）」）
   - private の用途の `read.allow` は `storage.read`（`"public"` も可）、無ければ apiAccess の get の規則。visibility を省いた項目の公開・非公開の導出も同じ規則を使う
 - `.notices` で再生成が要るときは、必要なカテゴリだけを `--only` で指定する（例: レジストリの書き換え → `pnpm generate domain -- --only registry`）。`[user-run]` は付けない
 
@@ -78,7 +78,7 @@
    - 従属: 主が集まりの項目を宣言している間は止まる（残すと次の生成で雛形がまた書き出される）。先に主の項目を外す
    - 参照: 他のドメインの domain.json の `relations` が belongsTo / belongsToMany（`includeRelationTable: false` の逆側を含む）/ hasMany / hasOne で指していれば止まり、参照元のドメインと fieldName を全部出す。先に参照元の関連を外すか、参照元を `--remove-config` 付きで消す
    - 判定は domain.json の宣言だけを見る: domain.json を残した削除（既定）の参照元は宣言が残るので止まり続ける。自己参照と、消すドメイン自身が持つ関連は数えない。domain.json の無いドメイン・読めない domain.json は見えない
-   - import: `src` 配下の消さずに残るコード（`.ts` / `.tsx` / `.mts` / `.mjs` など）が消すドメインのフォルダを import していれば止まり、参照元のファイルと from 先を全部出す（`codeReferences`、純関数）。`@/features/<d>/…`・`@/features/core/<d>/…`（core は `core/` を省いた書き方も）・解決するとフォルダに入る相対パス・動的 `import()`・`require()` を数える。コメントの中は数えない
+   - import: `src` 配下の消さずに残るコード（`.ts` / `.tsx` / `.mts` / `.mjs` など）が消すドメインのフォルダを import していれば止まり、参照元のファイルと from 先を全部出す（`codeReferences`、純関数）。`@/domains/<d>/…`・`@/domains/core/<d>/…`（core は `core/` を省いた書き方も）・解決するとフォルダに入る相対パス・動的 `import()`・`require()` を数える。コメントの中は数えない
      - 数えないもの: 消すフォルダの中、管理画面ルート（一緒に消す）、`--extra` で選んだディレクトリ、閉じられるドメインの門番の規則と上書き（下の 3 の後始末）、`src/registry/`（生成物。消した後に `pnpm generate registry` で作り直す）
      - 追加ディレクトリの候補の中の import は、確認（`--confirm`）の前は数えず、選ばなかった候補だけを確認の後に数えて止める
      - 外部キーを張る列（drizzle の `.references()`）は参照元が相手の表を import するので、ここで止まる
@@ -89,18 +89,18 @@
    - 門番の規則(`src/featureGate/rules/<名前>.ts`)の `features` がこのドメインのフォルダを持てば、何も消さずに規則の名前を出して止める(終了コード 1)。規則の `features` から外す(規則ごと要らなければ規則を消す)→ `pnpm generate extensions` → もう一度削除
 4. `-i` のときは今までの対話（名前の再入力 → 追加ディレクトリの選択 → domain.json を消すか → 確認）
 
-削除するもの: `src/features/<domain>/`（`domainEntry.ts` ごと）、`src/app/admin/(protected)/<domains>/`（`_components/` 含むルートごと）、選んだ追加ディレクトリ。レジストリからは `adminDomains.ts` / `schemaRegistry.ts` / `domainConfigRegistry.ts` の該当行を消し、`serviceRegistry.ts` は残った domainEntry.ts から `pnpm generate registry` で作り直し、地区の地図 `district-map.jsonl` を書き直す。DB のテーブルは消さない。
+削除するもの: `src/domains/<domain>/`（`domainEntry.ts` ごと）、`src/app/admin/(protected)/<domains>/`（`_components/` 含むルートごと）、選んだ追加ディレクトリ。レジストリからは `adminDomains.ts` / `schemaRegistry.ts` / `domainConfigRegistry.ts` の該当行を消し、`serviceRegistry.ts` は残った domainEntry.ts から `pnpm generate registry` で作り直し、地区の地図 `district-map.jsonl` を書き直す。DB のテーブルは消さない。
 
 - `domainConfigMap` のエントリは、オブジェクト直下のキーが完全一致するものだけを複数行ごと消す（`text/objectEntry.mjs` の `removeObjectEntry`）
 - レジストリの更新に失敗してもディレクトリ削除は済んでいるため止めず、最後に手で直すファイルを表示して終了コード 1 で終わる
 
 ### よくある失敗
 
-- 生成が `[<domain>] ...` の文を並べて止まる → domain.json の決まり（必須キー・項目名と従属名の snake_case・外部キーの型・enum の選択肢・既定値・メディアの accept・一覧の設定の名前・廃止した `generateFiles`）に反している。文のとおりに直す（規則の一覧: [src/features/README.md](../../../src/features/README.md)「API」）
+- 生成が `[<domain>] ...` の文を並べて止まる → domain.json の決まり（必須キー・項目名と従属名の snake_case・外部キーの型・enum の選択肢・既定値・メディアの accept・一覧の設定の名前・廃止した `generateFiles`）に反している。文のとおりに直す（規則の一覧: [src/domains/README.md](../../../src/domains/README.md)「API」）
 - `[domain.json] <domain>: ...` の警告が出る → 綴り違いのキー、古いキー（`version` → `domainConfigVersion`、`onDeleteCascade` → `onDelete`）、その DB に無い `fieldType`、知らない `formInput`、表に無い型と入力欄の組、選択肢の要る入力欄に options が無い、など（`checks/vocabulary.mjs` と各検査の `*Warnings`）
   - 生成は止まらないが、未知の `fieldType` は列名としてそのまま出力され、未知の `formInput` はフォームに出ないので直す
   - 知らないキーは同じキーをドメインごとに 1 行（件数と最初の 3 か所）にまとめ、他の警告の後ろに並べる
-  - 開発者のメモは `"$comment"`（どの階層でも通り、生成物にも写しにも出ない。`src/features/README.md`「開発者のメモ（$comment）」）
+  - 開発者のメモは `"$comment"`（どの階層でも通り、生成物にも写しにも出ない。`src/domains/README.md`「開発者のメモ（$comment）」）
 - `domain.json` が壊れている（JSON として読めない） → 直してから再実行
 - `テンプレートのトークンが置換されていません` → 管理画面テンプレートに未対応のトークンが残っている。テンプレートを直す
 - `src/registry/district-map.jsonl` が `pnpm check district-map` で落ちる → `pnpm generate district-map`（または forge）で作り直してコミット

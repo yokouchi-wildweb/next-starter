@@ -5,8 +5,8 @@ import assert from "node:assert/strict";
 import { dir, file, GENERATED_MARK, patch, withGeneratedMark, writeOnce } from "../render/output.mjs";
 
 test("file(): 先頭の // <パス> の行の次に印の 1 行(\"use client\" より前)", () => {
-  const out = file("/repo/src/features/a/hooks/useA.ts", '// src/features/a/hooks/useA.ts\n\n"use client";\n');
-  assert.deepEqual(out.content.split("\n").slice(0, 4), ["// src/features/a/hooks/useA.ts", `// ${GENERATED_MARK}`, "", '"use client";']);
+  const out = file("/repo/src/domains/a/hooks/useA.ts", '// src/domains/a/hooks/useA.ts\n\n"use client";\n');
+  assert.deepEqual(out.content.split("\n").slice(0, 4), ["// src/domains/a/hooks/useA.ts", `// ${GENERATED_MARK}`, "", '"use client";']);
 });
 
 test("file(): パスの行が無ければ先頭、.css は /* */、注釈を持てない形式はそのまま", () => {

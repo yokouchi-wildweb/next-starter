@@ -9,7 +9,7 @@ export const cronTask: CronTaskDefinition = {
   description: "保持期限を過ぎた interactionTracking のイベント明細を削除する（累計・日次集計は残る）",
   schedule: "20 18 * * *", // 毎日 03:20 JST
   run: async () => {
-    const { pruneExpiredInteractionEvents } = await import("@/features/core/interactionTracking/services/server");
+    const { pruneExpiredInteractionEvents } = await import("@/domains/core/interactionTracking/services/server");
     return await pruneExpiredInteractionEvents();
   },
 };

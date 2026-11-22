@@ -5,7 +5,7 @@ paths:
 # lib/messaging
 what: the mechanism side of one-way messages (mail, in-app, LINE, fork channels): definition / override / layout / receptacle item types, definition checks, ChannelError | no tables (records, recipients, opt-outs = domain messaging) | entry @/lib/messaging
 use: always
-change: overlay = features/**/messages/<name>.override.ts (`export const messageOverride`) | add channels, categories, layouts, templates → receptacles of features/core/messaging
+change: overlay = domains/**/messages/<name>.override.ts (`export const messageOverride`) | add channels, categories, layouts, templates → receptacles of domains/core/messaging
 rules:
 using:
 - definition_data_only: one message = `export const message = defineMessage({…})` in the raising domain's messages/<name>.ts, data only | key = `<domain folder>.<file>` as a literal

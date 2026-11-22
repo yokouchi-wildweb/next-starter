@@ -4,7 +4,7 @@
 // "自分が target として記録された" ログ + "自分が actor として実行した" ログを
 // OR で結合してタイムライン順に返す。
 //
-// fail-closed: auditLogConfig.userVisibleActions（上書き src/config/features/auditLog.config.ts）
+// fail-closed: auditLogConfig.userVisibleActions（上書き src/config/domains/auditLog.config.ts）
 // に登録された action のみ返す。監査ログには本人に開示してはならない covert な
 // 管理操作が記録され得るため、未登録 action は本人が target / actor でも返さない。
 // レジストリが空（上流既定）の場合は DB を照会せず常に空結果。
@@ -15,7 +15,7 @@ import { createMeRoute } from "@/wiring/apiRoute";
 import {
   auditLogBase,
   buildUserVisibleActionsWhere,
-} from "@/features/core/auditLog/services/server";
+} from "@/domains/core/auditLog/services/server";
 import type { SearchParams, WhereExpr } from "@/lib/crud";
 
 import {

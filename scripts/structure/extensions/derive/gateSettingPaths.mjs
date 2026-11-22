@@ -1,5 +1,5 @@
 // scripts/structure/extensions/derive/gateSettingPaths.mjs
-// 変換 "featureTables" の一部: 設定の節(src/features/core/setting/sections/<名前>.ts か <名前>/index.ts の export const section)の
+// 変換 "featureTables" の一部: 設定の節(src/domains/core/setting/sections/<名前>.ts か <名前>/index.ts の export const section)の
 // key と feature を字面で読み、規則名 → 閉じる住所 /admin/settings/<key> を導く(L1.17)。
 // 節の住所は節自身の判定(D34 K4): 生成一覧の settingSections(住所・名指す機能)に載り、名指す機能が全部開のときだけ開く(src/featureGate/ruleList.ts)。
 // 規則の生成一覧の項目の settingPaths は説明用(pnpm ops features list)で、pathPatterns には足さない。
@@ -7,7 +7,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-export const SETTING_SECTIONS_DIR = "src/features/core/setting/sections";
+export const SETTING_SECTIONS_DIR = "src/domains/core/setting/sections";
 export const settingSectionHref = (key) => `/admin/settings/${key}`;
 
 const strip = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/[^\n]*$/gm, "");

@@ -9,7 +9,7 @@ import "server-only";
 
 import type { ScreenProps } from "@/lib/screens";
 import { createLoader } from "@/app/guard";
-import { describeUnsubscribeToken } from "@/features/core/messaging/services/server/unsubscribe";
+import { describeUnsubscribeToken } from "@/domains/core/messaging/services/server/unsubscribe";
 
 export type UnsubscribeScreenSearchParams = {
   /** 署名つきトークン(未解釈) */

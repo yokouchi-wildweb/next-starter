@@ -14,8 +14,8 @@ import { AsyncPickerModal } from "@/components/Overlays/AsyncPickerModal";
 import { Para } from "@/components/TextBlocks/Para";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Span } from "@/components/TextBlocks/Span";
-import type { Sample } from "@/features/sample/entities/model";
-import { sampleClient } from "@/features/sample/services/client/sampleClient";
+import type { Sample } from "@/domains/sample/entities/model";
+import { sampleClient } from "@/domains/sample/services/client/sampleClient";
 import { useToast } from "@/lib/toast";
 
 const getOptionFromResult = (item: Sample): Options => ({ value: item.id, label: item.name });

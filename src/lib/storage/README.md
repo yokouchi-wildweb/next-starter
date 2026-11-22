@@ -20,24 +20,24 @@
 - 画像の描き直し（サーバー、sharp）
 - クライアントのアップロード（`uploadToStorage`）と用途の方針の取得
 
-誰がアップロード・読み取り・削除してよいかの判定、台帳、commit の流れ（受け取り領域から本来の位置へ）は、`src/features/core/storageObject` が持つ（[README](../../features/core/storageObject/README.md)）。この lib は features に依存しない。
+誰がアップロード・読み取り・削除してよいかの判定、台帳、commit の流れ（受け取り領域から本来の位置へ）は、`src/domains/core/storageObject` が持つ（[README](../../domains/core/storageObject/README.md)）。この lib は features に依存しない。
 
 > 旧 API（Firebase クライアント SDK の経路・旧アップロード / 削除ルート・createCrudService の旧削除連動オプション）は無い。Firebase Storage のルールはリポ直下の `storage.rules`（全拒否）で、クライアント SDK からは何もできない。
 
 ### 全体の流れ
 
-1. 用途を置く（core と fork は `src/features/core/storageObject/purposes/<名前>.ts` の `export const purposes`、生成するドメインは pnpm generate domain がそのドメインの `services/server/storagePurposes.ts` へ、一覧は `pnpm generate registry`。無い用途は拒否）
+1. 用途を置く（core と fork は `src/domains/core/storageObject/purposes/<名前>.ts` の `export const purposes`、生成するドメインは pnpm generate domain がそのドメインの `services/server/storagePurposes.ts` へ、一覧は `pnpm generate registry`。無い用途は拒否）
 2. サーバーがアップロード権を発行する。台帳に pending の行を作り、上書き不可の署名 PUT か GCS の再開可能セッションを返す
    - **strip の用途の画像**は、本来の保存先ではなく非公開の受け取り領域（priv バケットの `incoming/`）への権利を返す
 3. ブラウザが GCS へ直接送る
 4. commit: サーバーが HEAD で size・申告 MIME・generation を照合し、ready にする
    - keep の用途・画像以外の型は、照合だけで中身は検査しない
    - strip の用途の画像は、照合した世代を読んで描き直し（メタデータ全除去）、処理済みの物だけを本来の位置に書いて、受け取った原本を消す
-5. 業務行の列に `storage://` の ref を保存する。台帳との紐付けは業務保存と同じトランザクションで行う（1 つのファイルは 1 つの業務行にだけ結ぶ。多くの行が同じ画像を指す時は持ち主の行を 1 つ決める。例: お知らせの画像は回が持つ、[storageObject README](../../features/core/storageObject/README.md)「規則」）
+5. 業務行の列に `storage://` の ref を保存する。台帳との紐付けは業務保存と同じトランザクションで行う（1 つのファイルは 1 つの業務行にだけ結ぶ。多くの行が同じ画像を指す時は持ち主の行を 1 つ決める。例: お知らせの画像は回が持つ、[storageObject README](../../domains/core/storageObject/README.md)「規則」）
 6. 業務行の物理削除に連動して実物を削除する。紐付かなかったもの、DB の cascade などアプリを通らずに業務行が消えたもの（照合）は、掃除 cron が消す
-   - 公開の用途の実物は 1 年の immutable で配信するので、消してもブラウザ・CDN のキャッシュには残りうる（[storageObject README](../../features/core/storageObject/README.md)「規則」の「公開の用途の実物とキャッシュ」）
+   - 公開の用途の実物は 1 年の immutable で配信するので、消してもブラウザ・CDN のキャッシュには残りうる（[storageObject README](../../domains/core/storageObject/README.md)「規則」の「公開の用途の実物とキャッシュ」）
 
-このうち 2・4・5・6 は features/core/storageObject と createCrudService の `storage` オプションの役目。この lib はその部品を提供する。
+このうち 2・4・5・6 は domains/core/storageObject と createCrudService の `storage` オプションの役目。この lib はその部品を提供する。
 
 ## Usage
 
@@ -98,7 +98,7 @@ const { cancel } = uploadToStorage(file, {
 - **HTTP**
   - アプリのルートは `storageClient`（axios + `normalizeHttpError`）
   - GCS への直接転送も axios で行う（ブラウザでは XHR になり、`onUploadProgress` で進捗、`AbortSignal` で中止）。アプリの Cookie は送らない（`withCredentials: false`）
-- **ルートの応答の形**（`IssueUploadResponse` / `CommitUploadResponse` / `PurposePolicyResponse`）: features/core/storageObject の `storageObjectService` と揃えて `transferTypes.ts` に持つ（lib は features に依存しない。同一は `transferTypes.check.ts` が型で確かめる）
+- **ルートの応答の形**（`IssueUploadResponse` / `CommitUploadResponse` / `PurposePolicyResponse`）: domains/core/storageObject の `storageObjectService` と揃えて `transferTypes.ts` に持つ（lib は features に依存しない。同一は `transferTypes.check.ts` が型で確かめる）
 - **呼び出す場所**: lib の部品（`MediaUploader` / `MediaUploaderMulti`、lib/mediaInputSuite）と、各ドメインの hook（チャット送信など）。フォームの項目は `MediaUploader` 系の部品（FieldRenderer・MediaHandler 経由を含む）
   - lint（client-service-boundary）はこの lib のアップロードの部品を対象にしない(決まりは札)
 
@@ -151,8 +151,8 @@ ref・表示の関数・配信規則・StoragePort・保存先と env・旧 URL�
 - 画像以外の型（動画・音声・一般ファイル）には効かない。strip の用途でも受け取ったまま保存する
   - 画像と動画が混ざった用途（`image/*,video/*` など）は、宣言なし（strip）のまま同じ欄で、画像だけを描き直す
 - **`user.avatar` は常に strip**。登録表の fork の区画で keep にしても、実行時に strip へ固定される（`storageObject` の `purposeSource.ts` の `FIXED_STRIP_PURPOSES`）。`pnpm test scripts/structure/registry/check-storage-purposes.test.mjs` も keep を問題にする
-- domain.json のメディア項目では `"storage": { "metadata": "strip" | "keep" }`（[src/features/README.md](../../features/README.md)「ファイルの保存（storage）」）。pnpm generate domain が登録表の AUTO に明示値で書き出す
-- core 用途の値（`src/features/core/storageObject/purposes/`）
+- domain.json のメディア項目では `"storage": { "metadata": "strip" | "keep" }`（[src/domains/README.md](../../domains/README.md)「ファイルの保存（storage）」）。pnpm generate domain が登録表の AUTO に明示値で書き出す
+- core 用途の値（`src/domains/core/storageObject/purposes/`）
 
 | 用途 | metadata |
 |---|---|
@@ -207,12 +207,12 @@ ref・表示の関数・配信規則・StoragePort・保存先と env・旧 URL�
   - 保存先と公開 base(env を読む引数なしの関数。lib は使うたびに呼ぶ、読み込み時には読まない。lib の中は env を読まない): `publicBaseUrl`(公開。本体は `process.env.NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL` の字面のまま、client ではビルド時に埋め込まれる)・`stores.pub` / `stores.priv` の `bucket` / `prefix`・`stores.legacy.bucket`(server だけ。`./server` の中でだけ呼ぶ)。上流の上書きが読む env の名前は API.md「保存先（store）と env」。別の env の名前で読みたい fork は自分の上書きの右辺を変える
   - 読み取り署名の TTL: 画像・ファイル 300 秒 / 動画・音声 900 秒 / probe 120 秒
   - `imageStrip`（strip の描き直しの画素数の上限と品質。「位置情報の約束」）
-- 持ち主 `src/features/core/storageObject/config.ts`（`storageObjectConfig`、上書き `src/config/features/storageObject.config.ts`）
+- 持ち主 `src/domains/core/storageObject/config.ts`（`storageObjectConfig`、上書き `src/config/domains/storageObject.config.ts`）
 - 発行期限: PUT 15 分 / セッション 24 時間
   - GCS のセッション URI 自体は約 1 週間生きるので、中止・期限切れではサーバーが URI を DELETE する
 - 未採用の猶予 24 時間 / maxPending の既定 20 / セッションに切り替える閾値 16MiB
 - `defaultMaxBytesByPreset`（maxSizeBytes の無いメディア項目の既定）/ 掃除 cron の予算
-- アップロード権の発行のレート制限は `src/features/core/rateLimit/config.ts` の `storageIssue`
+- アップロード権の発行のレート制限は `src/domains/core/rateLimit/config.ts` の `storageIssue`
 
 ## Internals
 

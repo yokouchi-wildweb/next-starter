@@ -25,7 +25,7 @@ test("diffStats: 足した・消した行、かたまりの数、挿しただけ
 });
 
 test("classifyFile: 未改変・手の変更（挿した行）・古い生成物（消した・置き換えただけ）・新しく作られる・write-once・表の書き直し", () => {
-  const f = (over) => ({ path: "src/features/x/components/A.tsx", current: "a\nb", base: "a\nb", now: "a\nb", baseListed: true, nowListed: true, ...over });
+  const f = (over) => ({ path: "src/domains/x/components/A.tsx", current: "a\nb", base: "a\nb", now: "a\nb", baseListed: true, nowListed: true, ...over });
   assert.equal(classifyFile(f({})).kind, "untouched");
   assert.equal(classifyFile(f({ now: "a\nb\nc" })).upstreamChanges, true);
   assert.equal(classifyFile(f({ current: "a\nmine\nb" })).kind, "hand");
@@ -34,7 +34,7 @@ test("classifyFile: 未改変・手の変更（挿した行）・古い生成物
   assert.equal(classifyFile(f({ current: "a\nmine\nb", nowAction: "保持" })).kind, "keep");
   const created = classifyFile(f({ path: "src/app/admin/(protected)/xs/page.tsx", current: null }));
   assert.deepEqual([created.kind, created.entry], ["new", true]);
-  assert.equal(classifyFile(f({ path: "src/features/x/entities/drizzle.ts", now: "a\nb\nc" })).tableRewrite, true);
+  assert.equal(classifyFile(f({ path: "src/domains/x/entities/drizzle.ts", now: "a\nb\nc" })).tableRewrite, true);
   // base が扱わないファイルは今の出力と比べる
   assert.equal(classifyFile(f({ baseListed: false, base: null, current: "a\nb" })).kind, "untouched");
 });
@@ -77,7 +77,7 @@ test("実地: base で生成 → fork が手を入れる → 分類。generateFi
   // 生成器のコードは入口から import で求める。src(生成の入力と出力の木)と tsconfig(@/ の paths)はデータ
   await copyByImports({ from: repoRoot, to: root, entries: ["scripts/structure/domain/index.mjs"], data: ["src", "tsconfig.json"], nodeModules: true });
   fs.writeFileSync(path.join(root, ".gitignore"), "node_modules\n");
-  const memoDir = path.join(root, "src/features/memo");
+  const memoDir = path.join(root, "src/domains/memo");
   fs.mkdirSync(memoDir, { recursive: true });
   fs.writeFileSync(path.join(memoDir, "domain.json"), JSON.stringify(MEMO, null, 2));
   sh(root, "node", ["scripts/structure/domain/index.mjs", "--generate", "memo"]);
@@ -99,11 +99,11 @@ test("実地: base で生成 → fork が手を入れる → 分類。generateFi
 
   const [memo] = await runCompare(["memo", "--base", base], { repoRoot: root, io: SILENT });
   const kindOf = (rel) => memo.files.find((f) => f.path === rel)?.result.kind;
-  assert.equal(kindOf("src/features/memo/components/common/MemoForm.tsx"), "hand");
-  assert.equal(kindOf("src/features/memo/components/AdminMemoList/Header.tsx"), "stale");
-  assert.equal(kindOf("src/features/memo/hooks/useMemo.ts"), "new");
-  assert.equal(kindOf("src/features/memo/entities/schema.ts"), "untouched");
-  assert.deepEqual(memo.forkFiles, ["src/features/memo/components/MemoExtra.tsx"]);
+  assert.equal(kindOf("src/domains/memo/components/common/MemoForm.tsx"), "hand");
+  assert.equal(kindOf("src/domains/memo/components/AdminMemoList/Header.tsx"), "stale");
+  assert.equal(kindOf("src/domains/memo/hooks/useMemo.ts"), "new");
+  assert.equal(kindOf("src/domains/memo/entities/schema.ts"), "untouched");
+  assert.deepEqual(memo.forkFiles, ["src/domains/memo/components/MemoExtra.tsx"]);
   assert.ok(memo.summary.newEntries.some((p) => p.includes("/memos/_screen/")));
   assert.equal(memo.summary.verdict, "wrappers へ移すか false");
   assert.equal(sh(root, "git", ["status", "--short"]), before);

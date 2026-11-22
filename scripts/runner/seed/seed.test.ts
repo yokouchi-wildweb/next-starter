@@ -18,13 +18,13 @@ const ROOT = path.resolve(import.meta.dirname, "../../..");
 test("走査: core と業務のドメインの seed.ts をドメイン名で集める(名前順)", () => {
   const root = mkdtempSync(path.join(tmpdir(), "seed-scan-"));
   try {
-    for (const rel of ["src/features/core/user/seed.ts", "src/features/shop/seed.ts", "src/features/shop/other.ts", "src/features/empty/README.md"]) {
+    for (const rel of ["src/domains/core/user/seed.ts", "src/domains/shop/seed.ts", "src/domains/shop/other.ts", "src/domains/empty/README.md"]) {
       mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
       writeFileSync(path.join(root, rel), "\n");
     }
     assert.deepEqual(listSeedFiles(root), [
-      { domain: "shop", folder: "shop", file: "src/features/shop/seed.ts" },
-      { domain: "user", folder: "core/user", file: "src/features/core/user/seed.ts" },
+      { domain: "shop", folder: "shop", file: "src/domains/shop/seed.ts" },
+      { domain: "user", folder: "core/user", file: "src/domains/core/user/seed.ts" },
     ]);
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -47,7 +47,7 @@ test("閉じたドメイン: 2 つの規則が持つドメインは片方が開�
   assert.equal(closedByOf([rule("users", false), rule("demoUsers", false)])("core/userTag"), "users");
 });
 
-const entry = (domain: string, seed: ReturnType<typeof defineSeed>, closedBy: string | null = null): SeedEntry => ({ domain, folder: domain, file: `src/features/${domain}/seed.ts`, seed, closedBy });
+const entry = (domain: string, seed: ReturnType<typeof defineSeed>, closedBy: string | null = null): SeedEntry => ({ domain, folder: domain, file: `src/domains/${domain}/seed.ts`, seed, closedBy });
 
 /** 作り物のサービス: 入れた行を覚え、search は where の and/eq だけを見る */
 function fakeServices(opts: { seedCreateFor?: string[]; noService?: string[] } = {}) {

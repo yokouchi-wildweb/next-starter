@@ -11,7 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "../../../..");
 const GENERATED_DIR = path.join(
   ROOT_DIR,
-  "src/features/core/userProfile/entities/profiles"
+  "src/domains/core/userProfile/entities/profiles"
 );
 
 /**
@@ -22,10 +22,10 @@ export function generateProfileForm(roleConfig, profileConfig) {
   const rolePascal = toPascalCase(roleId);
 
   const content = `${profileFileHeader(roleId)}
-// src/features/core/userProfile/entities/profiles/${roleId}/form.ts
+// src/domains/core/userProfile/entities/profiles/${roleId}/form.ts
 // ${roleConfig.label}プロフィールのフォーム型定義
 //
-// 元情報: src/features/core/userProfile/profiles/${roleId}.profile.json
+// 元情報: src/domains/core/userProfile/profiles/${roleId}.profile.json
 // このファイルは pnpm generate role によって自動生成されました
 
 import { z } from "zod";

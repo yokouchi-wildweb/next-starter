@@ -3,17 +3,17 @@
 // 点検(pnpm check admin-menu): 知らないカテゴリー・知らないドメイン・相手の無い上書き・allowRoles を広げる上書き・
 //   route-map に無い住所・定義の key とファイル名の食い違い。ダッシュボードのセクションは後ろの 3 つと定義の形(checkAdminDashboard)
 // 表示(pnpm check admin-menu -- show): ロールごとの木(行ごとに当たる規則か 常時)・重複・隠した物と理由
-// 仕組み: src/features/core/admin/menu/README.md
+// 仕組み: src/domains/core/admin/menu/README.md
 
-import { buildAdminMenu, dataMenuRows } from "@/features/core/admin/menu/buildAdminMenu";
+import { buildAdminMenu, dataMenuRows } from "@/domains/core/admin/menu/buildAdminMenu";
 import type {
   AdminMenuCategoryDefinition,
   AdminMenuDomainEntry,
   AdminMenuItemDefinition,
   AdminMenuRow,
   BuiltAdminMenu,
-} from "@/features/core/admin/menu/types";
-import type { AdminDashboardSectionDefinition } from "@/features/core/admin/dashboard/types";
+} from "@/domains/core/admin/menu/types";
+import type { AdminDashboardSectionDefinition } from "@/domains/core/admin/dashboard/types";
 import { matchesPath } from "@/lib/pathPattern/index.mjs";
 
 /** 受け口の 1 項目(ファイル名 = 名前、定義、隣の上書き) */

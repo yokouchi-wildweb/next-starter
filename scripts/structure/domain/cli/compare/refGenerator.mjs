@@ -2,7 +2,7 @@
 // 生成器 = scripts/structure/domain と scripts/structure/registry。生成器は src の .mjs（型の表 src/lib/domain/fields、src/utils など）も
 // import するので、ref の生成器の import を辿り切って(共有の部品 scripts/runner/test/lib.copyByImports.mjs の辿り方)、
 // それらのフォルダも ref から取り出す（ref に無いフォルダは missing）。
-// テンプレート（src/features/_template・src/app/admin/_template）も生成器の一部として ref から取り出す（parts に入る）。
+// テンプレート（src/domains/_template・src/app/admin/_template）も生成器の一部として ref から取り出す（parts に入る）。
 
 import fs from "node:fs";
 import os from "node:os";
@@ -21,7 +21,7 @@ export function generatorDirIn(scriptsDir, dir) {
 
 /** その版のドメインの生成器の置き場(scripts/ からの相対) */
 export const domainDirIn = (scriptsDir) => generatorDirIn(scriptsDir, "scripts/structure/domain");
-export const TEMPLATE_DIRS = ["src/features/_template", "src/app/admin/_template"];
+export const TEMPLATE_DIRS = ["src/domains/_template", "src/app/admin/_template"];
 /** 生成器が src の外で import してよい所(登録表の検査が指定子を解く部品 eslint-rules/resolve-import.mjs) */
 const OUTSIDE_SRC_IMPORT_DIRS = ["eslint-rules"];
 

@@ -171,7 +171,7 @@ test("watch の glob: ** は何段でも(0 段も)、* は 1 段の中、? は 1
   const m = (g, p) => globToRegExp(g).test(p);
   assert.ok(m(".claude/rules/**", ".claude/rules/core/a.md"));
   assert.ok(m("src/**/domain.json", "src/domain.json"));
-  assert.ok(m("src/**/domain.json", "src/features/a/domain.json"));
+  assert.ok(m("src/**/domain.json", "src/domains/a/domain.json"));
   assert.ok(m("CLAUDE.md", "CLAUDE.md"));
   assert.ok(!m("CLAUDE.md", "CLAUDExmd"));
   assert.ok(!m("CLAUDE.md", "docs/CLAUDE.md"));

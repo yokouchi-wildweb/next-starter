@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/features/core/userAcquisition/**"
-  - "src/config/features/userAcquisition.config.ts"
+  - "src/domains/core/userAcquisition/**"
+  - "src/config/domains/userAcquisition.config.ts"
 ---
-# features/userAcquisition
-what: stores the visit touches before signup (UTM, ad click ids, external referrer) in the service DB for first / last-touch and path analysis | public entry lib/classifyVisit (edge-safe), read API @/features/userAcquisition/services/server
+# domains/userAcquisition
+what: stores the visit touches before signup (UTM, ad click ids, external referrer) in the service DB for first / last-touch and path analysis | public entry lib/classifyVisit (edge-safe), read API @/domains/userAcquisition/services/server
 use: userAcquisition
-change: add = a channel row in channels/ (channels, extensionPoints.ts) | placement = src/config/features/userAcquisition.config.ts (click id rows, invite source / medium, cookie lifetime, touch cap)
+change: add = a channel row in channels/ (channels, extensionPoints.ts) | placement = src/config/domains/userAcquisition.config.ts (click id rows, invite source / medium, cookie lifetime, touch cap)
 rules:
 using:
 - config_inside: userAcquisitionConfig is read only inside this domain; others use the lib/classifyVisit entry

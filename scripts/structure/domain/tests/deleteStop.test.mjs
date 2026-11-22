@@ -146,16 +146,16 @@ test("主の停止は、従属以外の参照元も同じ文面で一度に出�
 test("消す順: 主の項目を外す → 従属を --remove-config で消す → 主を消す。従属の domain.json を残すと主は止まったまま", async () => {
   const root = makeProject({ configs: { album: base("album"), albumPhoto }, cleanup });
   const workspace = createWorkspace(root);
-  const owner = path.join(root, "src/features/album/entities");
+  const owner = path.join(root, "src/domains/album/entities");
   fs.mkdirSync(owner, { recursive: true });
   assert.match(deleteStopMessage(workspace, "album"), /albumPhoto: album_id（belongsTo）/);
 
   await deleteCapturing(workspace, "album_photo", { confirm: "album_photo" });
-  assert.equal(fs.existsSync(path.join(root, "src/features/albumPhoto/domain.json")), true);
+  assert.equal(fs.existsSync(path.join(root, "src/domains/albumPhoto/domain.json")), true);
   assert.match(deleteStopMessage(workspace, "album"), /albumPhoto: album_id（belongsTo）/);
 
   await deleteCapturing(workspace, "album_photo", { confirm: "album_photo", removeConfig: true });
-  assert.equal(fs.existsSync(path.join(root, "src/features/albumPhoto")), false);
+  assert.equal(fs.existsSync(path.join(root, "src/domains/albumPhoto")), false);
   assert.equal(deleteStopMessage(workspace, "album"), null);
   await deleteCapturing(workspace, "album", { confirm: "album" });
   assert.equal(fs.existsSync(owner), false);
@@ -178,33 +178,33 @@ test("--confirm: 無い・違うなら消すものの一覧と打てるコマン
   assert.match(badExtra.stderr, /--extra に候補に無いディレクトリ/);
   assert.deepEqual(snapshot(root), before);
 
-  fs.mkdirSync(path.join(root, "src/features/note/entities"), { recursive: true });
+  fs.mkdirSync(path.join(root, "src/domains/note/entities"), { recursive: true });
   await deleteCapturing(workspace, "note", { confirm: "note" });
-  assert.equal(fs.existsSync(path.join(root, "src/features/note/entities")), false);
-  assert.equal(fs.existsSync(path.join(root, "src/features/note/domain.json")), true);
+  assert.equal(fs.existsSync(path.join(root, "src/domains/note/entities")), false);
+  assert.equal(fs.existsSync(path.join(root, "src/domains/note/domain.json")), true);
   await deleteCapturing(workspace, "note", { confirm: "note", removeConfig: true });
-  assert.equal(fs.existsSync(path.join(root, "src/features/note/domain.json")), false);
+  assert.equal(fs.existsSync(path.join(root, "src/domains/note/domain.json")), false);
 });
 
-test("codeReferences: @/features/<d>・@/features/core/<d>（core/ を省いた書き方も）・相対パスの import を拾い、消すフォルダ・一緒に消すディレクトリ・src/registry は数えない", () => {
+test("codeReferences: @/domains/<d>・@/domains/core/<d>（core/ を省いた書き方も）・相対パスの import を拾い、消すフォルダ・一緒に消すディレクトリ・src/registry は数えない", () => {
   const files = [
-    { path: "src/features/order/services/server/orderService.ts", text: 'import { couponService } from "@/features/coupon/services/server/couponService";\nimport type { X } from "@/features/couponIssuer/types";' },
-    { path: "src/app/api/me/coupon/route.ts", text: 'export { GET } from "@/features/core/coupon/routes";\nconst m = await import("@/features/coupon");' },
-    { path: "src/features/core/wallet/x.ts", text: 'import { a } from "../coupon/utils/a";' },
-    { path: "src/features/core/wallet/y.ts", text: '// import { a } from "@/features/coupon";\n/* import "@/features/coupon"; */' },
-    { path: "src/features/core/coupon/internal.ts", text: 'import { b } from "@/features/coupon/b";' },
-    { path: "src/app/admin/(protected)/coupons/page.tsx", text: 'import { c } from "@/features/coupon/c";' },
-    { path: "src/registry/serviceRegistry.ts", text: 'coupon: () => import("@/features/core/coupon/services/server/domainEntry"),' },
-    { path: "src/features/core/wallet/README.md", text: 'import { a } from "@/features/coupon";' },
+    { path: "src/domains/order/services/server/orderService.ts", text: 'import { couponService } from "@/domains/coupon/services/server/couponService";\nimport type { X } from "@/domains/couponIssuer/types";' },
+    { path: "src/app/api/me/coupon/route.ts", text: 'export { GET } from "@/domains/core/coupon/routes";\nconst m = await import("@/domains/coupon");' },
+    { path: "src/domains/core/wallet/x.ts", text: 'import { a } from "../coupon/utils/a";' },
+    { path: "src/domains/core/wallet/y.ts", text: '// import { a } from "@/domains/coupon";\n/* import "@/domains/coupon"; */' },
+    { path: "src/domains/core/coupon/internal.ts", text: 'import { b } from "@/domains/coupon/b";' },
+    { path: "src/app/admin/(protected)/coupons/page.tsx", text: 'import { c } from "@/domains/coupon/c";' },
+    { path: "src/registry/serviceRegistry.ts", text: 'coupon: () => import("@/domains/core/coupon/services/server/domainEntry"),' },
+    { path: "src/domains/core/wallet/README.md", text: 'import { a } from "@/domains/coupon";' },
   ];
-  assert.deepEqual(codeReferences(files, "src/features/core/coupon", ["src/app/admin/(protected)/coupons"]), [
-    { file: "src/features/order/services/server/orderService.ts", source: "@/features/coupon/services/server/couponService" },
-    { file: "src/app/api/me/coupon/route.ts", source: "@/features/core/coupon/routes" },
-    { file: "src/app/api/me/coupon/route.ts", source: "@/features/coupon" },
-    { file: "src/features/core/wallet/x.ts", source: "../coupon/utils/a" },
+  assert.deepEqual(codeReferences(files, "src/domains/core/coupon", ["src/app/admin/(protected)/coupons"]), [
+    { file: "src/domains/order/services/server/orderService.ts", source: "@/domains/coupon/services/server/couponService" },
+    { file: "src/app/api/me/coupon/route.ts", source: "@/domains/core/coupon/routes" },
+    { file: "src/app/api/me/coupon/route.ts", source: "@/domains/coupon" },
+    { file: "src/domains/core/wallet/x.ts", source: "../coupon/utils/a" },
   ]);
-  // business のドメインは @/features/<d> だけ（名前が前方一致するだけの別ドメインは数えない）
-  assert.deepEqual(codeReferences([files[0]], "src/features/couponIssuer"), [{ file: files[0].path, source: "@/features/couponIssuer/types" }]);
+  // business のドメインは @/domains/<d> だけ（名前が前方一致するだけの別ドメインは数えない）
+  assert.deepEqual(codeReferences([files[0]], "src/domains/couponIssuer"), [{ file: files[0].path, source: "@/domains/couponIssuer/types" }]);
 });
 
 test("残るコードから import されているドメイン: 参照元のファイルと from 先を全部出して止まり、何も消さない。import を外せば消せる", async () => {
@@ -212,40 +212,40 @@ test("残るコードから import されているドメイン: 参照元のフ�
   const memo = base("memo");
   const root = makeProject({ configs: { note, memo }, cleanup });
   const workspace = createWorkspace(root);
-  fs.mkdirSync(path.join(root, "src/features/note/entities"), { recursive: true });
-  fs.writeFileSync(path.join(root, "src/features/note/entities/model.ts"), "export type Note = { id: string };\n");
-  const importer = path.join(root, "src/features/memo/services/server/memoService.ts");
+  fs.mkdirSync(path.join(root, "src/domains/note/entities"), { recursive: true });
+  fs.writeFileSync(path.join(root, "src/domains/note/entities/model.ts"), "export type Note = { id: string };\n");
+  const importer = path.join(root, "src/domains/memo/services/server/memoService.ts");
   fs.mkdirSync(path.dirname(importer), { recursive: true });
-  fs.writeFileSync(importer, 'import type { Note } from "@/features/note/entities/model";\n');
+  fs.writeFileSync(importer, 'import type { Note } from "@/domains/note/entities/model";\n');
   const before = snapshot(root);
   const { stderr, exitCode } = await deleteCapturing(workspace, "note", { confirm: "note" });
   assert.equal(exitCode, 1);
   assert.match(stderr, /note は消さずに残るコードから import されているため削除できません/);
-  assert.match(stderr, /src\/features\/memo\/services\/server\/memoService\.ts: @\/features\/note\/entities\/model/);
+  assert.match(stderr, /src\/domains\/memo\/services\/server\/memoService\.ts: @\/domains\/note\/entities\/model/);
   assert.deepEqual(snapshot(root), before);
 
   fs.writeFileSync(importer, "export const memoService = {};\n");
   await deleteCapturing(workspace, "note", { confirm: "note" });
-  assert.equal(fs.existsSync(path.join(root, "src/features/note/entities")), false);
+  assert.equal(fs.existsSync(path.join(root, "src/domains/note/entities")), false);
 });
 
 test("追加ディレクトリの候補の中の import: --extra で選べば一緒に消え、選ばなければ確認の後に止まる", async () => {
   const note = base("note");
   const root = makeProject({ configs: { note }, cleanup });
   const workspace = createWorkspace(root);
-  fs.mkdirSync(path.join(root, "src/features/note/entities"), { recursive: true });
+  fs.mkdirSync(path.join(root, "src/domains/note/entities"), { recursive: true });
   const extraDir = path.join(root, "src/app/(user)/notes");
   fs.mkdirSync(extraDir, { recursive: true });
-  fs.writeFileSync(path.join(extraDir, "page.tsx"), 'import { x } from "@/features/note/entities/model";\n');
+  fs.writeFileSync(path.join(extraDir, "page.tsx"), 'import { x } from "@/domains/note/entities/model";\n');
   const before = snapshot(root);
   const unchosen = await deleteCapturing(workspace, "note", { confirm: "note" });
   assert.equal(unchosen.exitCode, 1);
-  assert.match(unchosen.stderr, /src\/app\/\(user\)\/notes\/page\.tsx: @\/features\/note\/entities\/model/);
+  assert.match(unchosen.stderr, /src\/app\/\(user\)\/notes\/page\.tsx: @\/domains\/note\/entities\/model/);
   assert.deepEqual(snapshot(root), before);
 
   await deleteCapturing(workspace, "note", { confirm: "note", extras: ["src/app/(user)/notes"] });
   assert.equal(fs.existsSync(extraDir), false);
-  assert.equal(fs.existsSync(path.join(root, "src/features/note/entities")), false);
+  assert.equal(fs.existsSync(path.join(root, "src/domains/note/entities")), false);
 });
 
 /** 門番の規則がドメインのフォルダを domains に持つ fork の状態 */
@@ -272,11 +272,11 @@ test("門番の規則が持たないドメインの削除は規則にも上書�
   const other = gatedProject('["sample"]');
   await deleteCapturing(other.workspace, "shop", { confirm: "shop", removeConfig: true });
   assert.equal(fs.existsSync(other.rule), true);
-  assert.equal(fs.existsSync(path.join(other.root, "src/features/shop")), false);
+  assert.equal(fs.existsSync(path.join(other.root, "src/domains/shop")), false);
   const note = base("note");
   const root = makeProject({ configs: { note }, cleanup });
   const workspace = createWorkspace(root);
-  const stray = path.join(root, "src/config/features/note.config.ts");
+  const stray = path.join(root, "src/config/domains/note.config.ts");
   fs.mkdirSync(path.dirname(stray), { recursive: true });
   fs.writeFileSync(stray, "export default {};\n");
   await deleteCapturing(workspace, "note", { confirm: "note", removeConfig: true });

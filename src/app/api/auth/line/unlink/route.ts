@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { userLineProfileService } from "@/features/core/userLineProfile/services/server/userLineProfileService";
+import { userLineProfileService } from "@/domains/core/userLineProfile/services/server/userLineProfileService";
 
 /**
  * LINE 連携を解除する（本人のみ）。

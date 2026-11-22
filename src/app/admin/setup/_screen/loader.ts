@@ -8,7 +8,7 @@
 import "server-only";
 import { redirect } from "next/navigation";
 
-import { userService } from "@/features/core/user/services/server/userService";
+import { userService } from "@/domains/core/user/services/server/userService";
 import { createLoader } from "@/app/guard";
 
 export const loadAdminSetupScreen = createLoader({

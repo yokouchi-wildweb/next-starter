@@ -1,4 +1,4 @@
-// 生成物・編集不可: pnpm generate registry が src/features/**/messages/*.ts・*.override.ts から生成する
+// 生成物・編集不可: pnpm generate registry が src/domains/**/messages/*.ts・*.override.ts から生成する
 // src/registry/messageRegistry.ts
 //
 // 連絡の一覧(鍵 = <ドメインのフォルダ名>.<ファイル名> → 定義・上書きの遅延 import)。送る口・管理画面・プレビューが読む。型と決まり: src/lib/messaging/README.md
@@ -10,46 +10,46 @@ import type { MessageRegistry } from "@/lib/messaging";
 export const messageRegistry: MessageRegistry = {
   "auth.accountLocked": {
     key: "auth.accountLocked",
-    definition: () => import("@/features/core/auth/messages/accountLocked"),
+    definition: () => import("@/domains/core/auth/messages/accountLocked"),
   },
   "auth.earlyRegistration": {
     key: "auth.earlyRegistration",
-    definition: () => import("@/features/core/auth/messages/earlyRegistration"),
+    definition: () => import("@/domains/core/auth/messages/earlyRegistration"),
   },
   "auth.emailChange": {
     key: "auth.emailChange",
-    definition: () => import("@/features/core/auth/messages/emailChange"),
+    definition: () => import("@/domains/core/auth/messages/emailChange"),
   },
   "auth.passwordReset": {
     key: "auth.passwordReset",
-    definition: () => import("@/features/core/auth/messages/passwordReset"),
+    definition: () => import("@/domains/core/auth/messages/passwordReset"),
   },
   "auth.verification": {
     key: "auth.verification",
-    definition: () => import("@/features/core/auth/messages/verification"),
+    definition: () => import("@/domains/core/auth/messages/verification"),
   },
   "bankTransferReview.transferCheck": {
     key: "bankTransferReview.transferCheck",
-    definition: () => import("@/features/core/bankTransferReview/messages/transferCheck"),
+    definition: () => import("@/domains/core/bankTransferReview/messages/transferCheck"),
   },
   "user.earlyRegistrationComplete": {
     key: "user.earlyRegistrationComplete",
-    definition: () => import("@/features/core/user/messages/earlyRegistrationComplete"),
+    definition: () => import("@/domains/core/user/messages/earlyRegistrationComplete"),
   },
   "user.registrationComplete": {
     key: "user.registrationComplete",
-    definition: () => import("@/features/core/user/messages/registrationComplete"),
+    definition: () => import("@/domains/core/user/messages/registrationComplete"),
   },
   "wallet.adjustmentNotice": {
     key: "wallet.adjustmentNotice",
-    definition: () => import("@/features/core/wallet/messages/adjustmentNotice"),
+    definition: () => import("@/domains/core/wallet/messages/adjustmentNotice"),
   },
   "wallet.expiredNotice": {
     key: "wallet.expiredNotice",
-    definition: () => import("@/features/core/wallet/messages/expiredNotice"),
+    definition: () => import("@/domains/core/wallet/messages/expiredNotice"),
   },
   "wallet.expiringNotice": {
     key: "wallet.expiringNotice",
-    definition: () => import("@/features/core/wallet/messages/expiringNotice"),
+    definition: () => import("@/domains/core/wallet/messages/expiringNotice"),
   },
 };

@@ -31,17 +31,17 @@ function memorySource(files) {
 
 const entry = (/** @type {string} */ body) => `import type { DomainEntries } from "@/lib/domain";\nexport const domainEntries = {\n${body}\n} satisfies DomainEntries;\n`;
 const BASE = {
-  "src/features/README.md": "",
-  "src/features/_template/entities/drizzle.ts": `export const t = pgTable("template_rows", {});`,
-  "src/features/sample/entities/drizzle.ts": `// pgTable("not_this", {})\nexport const s = pgTable("samples", {});`,
-  "src/features/sample/services/server/domainEntry.ts": entry(`  sample: { service: () => import("./s"), table: "samples", idColumn: "id" },`),
-  "src/features/sample/extensionPoints.ts": `export const extensionPoints = { adminBulkActions: { dir: "adminBulkActions", export: "item", type: { from: "@/x", name: "X" }, side: "client" } };`,
-  "src/features/core/README.md": "",
-  "src/features/core/wallet/entities/drizzle.ts": `export const w = pgTable("wallets", {});\nexport const l = pgTable("wallet_lots", {});`,
-  "src/features/core/wallet/entities/drizzle.test.ts": `pgTable("test_only", {})`,
-  "src/features/core/wallet/services/server/domainEntry.ts": entry(`  wallet: { service: () => import("./w"), table: "wallets", idColumn: "id" },`),
-  "src/features/core/wallet/config.ts": `export const WALLET_CONFIG = {};`,
-  "src/features/core/purchaseRequest/services/server/domainEntry.ts": entry(`  purchaseRequest: { service: () => import("./p"), table: null, idColumn: null, requires: ["wallet", "walletHistory"] },\n  purchaseRequestLog: { service: () => import("./q"), table: null, idColumn: null, requires: ["wallet"] },`),
+  "src/domains/README.md": "",
+  "src/domains/_template/entities/drizzle.ts": `export const t = pgTable("template_rows", {});`,
+  "src/domains/sample/entities/drizzle.ts": `// pgTable("not_this", {})\nexport const s = pgTable("samples", {});`,
+  "src/domains/sample/services/server/domainEntry.ts": entry(`  sample: { service: () => import("./s"), table: "samples", idColumn: "id" },`),
+  "src/domains/sample/extensionPoints.ts": `export const extensionPoints = { adminBulkActions: { dir: "adminBulkActions", export: "item", type: { from: "@/x", name: "X" }, side: "client" } };`,
+  "src/domains/core/README.md": "",
+  "src/domains/core/wallet/entities/drizzle.ts": `export const w = pgTable("wallets", {});\nexport const l = pgTable("wallet_lots", {});`,
+  "src/domains/core/wallet/entities/drizzle.test.ts": `pgTable("test_only", {})`,
+  "src/domains/core/wallet/services/server/domainEntry.ts": entry(`  wallet: { service: () => import("./w"), table: "wallets", idColumn: "id" },`),
+  "src/domains/core/wallet/config.ts": `export const WALLET_CONFIG = {};`,
+  "src/domains/core/purchaseRequest/services/server/domainEntry.ts": entry(`  purchaseRequest: { service: () => import("./p"), table: null, idColumn: null, requires: ["wallet", "walletHistory"] },\n  purchaseRequestLog: { service: () => import("./q"), table: null, idColumn: null, requires: ["wallet"] },`),
   "src/featureGate/rules/wallet.ts": `export const rule: FeatureGateRule = { pathPatterns: ["/wallet"], domains: ["core/wallet"], enabled: () => true };`,
   "src/featureGate/rules/signup.ts": `export const rule: FeatureGateRule = { pathPatterns: ["/signup"], enabled: () => true };`,
   "src/featureGate/rules/README.md": "",
@@ -76,8 +76,8 @@ test("4 種を見つけ、種類 → 名前で並べる。_ 始まり・core の
 test("欄: config・上書きのパスと有無、apiKeys・requires・tables・gates・receptacles", () => {
   const by = Object.fromEntries(readDistrictMap(memorySource(BASE)).districts.map((d) => [`${d.kind}:${d.name}`, d]));
   const wallet = by["features:wallet"];
-  assert.deepEqual(wallet.config, { path: "src/features/core/wallet/config.ts", exists: true });
-  assert.deepEqual(wallet.override, { path: "src/config/features/wallet.config.ts", exists: false });
+  assert.deepEqual(wallet.config, { path: "src/domains/core/wallet/config.ts", exists: true });
+  assert.deepEqual(wallet.override, { path: "src/config/domains/wallet.config.ts", exists: false });
   assert.deepEqual(wallet.tables, ["wallets", "wallet_lots"]);
   assert.deepEqual(wallet.gates, ["wallet"]);
   assert.deepEqual(by["features:purchaseRequest"].apiKeys, ["purchaseRequest", "purchaseRequestLog"]);
@@ -95,13 +95,13 @@ test("欄: config・上書きのパスと有無、apiKeys・requires・tables・
 test("欄: 描画専用の config.ui.ts と <名前>.ui.config.ts のパスと有無(L1.18)", () => {
   const files = {
     ...BASE,
-    "src/features/core/wallet/config.ui.ts": "export const WALLET_UI = {};",
-    "src/config/features/wallet.ui.config.ts": "export default {};",
+    "src/domains/core/wallet/config.ui.ts": "export const WALLET_UI = {};",
+    "src/config/domains/wallet.ui.config.ts": "export default {};",
     "src/config/layout/admin.ui.config.ts": "export default {};",
   };
   const by = Object.fromEntries(readDistrictMap(memorySource(files)).districts.map((d) => [`${d.kind}:${d.name}`, d]));
-  assert.deepEqual(by["features:wallet"].uiConfig, { path: "src/features/core/wallet/config.ui.ts", exists: true });
-  assert.deepEqual(by["features:wallet"].uiOverride, { path: "src/config/features/wallet.ui.config.ts", exists: true });
+  assert.deepEqual(by["features:wallet"].uiConfig, { path: "src/domains/core/wallet/config.ui.ts", exists: true });
+  assert.deepEqual(by["features:wallet"].uiOverride, { path: "src/config/domains/wallet.ui.config.ts", exists: true });
   assert.deepEqual(by["frame:admin"].uiConfig, { path: "src/app/admin/_layout/config.ui.ts", exists: false });
   assert.deepEqual(by["frame:admin"].uiOverride, { path: "src/config/layout/admin.ui.config.ts", exists: true });
   assert.deepEqual(by["lib:cron"].uiOverride, { path: "src/config/lib/cron.ui.config.ts", exists: false });
@@ -117,10 +117,10 @@ test("lib の見つけ方は libPackage の listLibsFrom と同じ(src/lib 直�
 });
 
 test("名前の一意: core と業務の同名は業務の側を直す文、枠の frame: の重複は両方のパス", () => {
-  const files = { ...BASE, "src/features/wallet/index.ts": "", "src/app/(marketing)/_layout/config.ts": `export const c = { frame: "user" };` };
+  const files = { ...BASE, "src/domains/wallet/index.ts": "", "src/app/(marketing)/_layout/config.ts": `export const c = { frame: "user" };` };
   const { problems } = readDistrictMap(memorySource(files));
   assert.equal(problems.length, 2, problems.join("\n"));
-  assert.match(problems[0], /features の地区の名前 wallet が重なる: core の src\/features\/core\/wallet と業務の src\/features\/wallet.*業務のドメイン/);
+  assert.match(problems[0], /features の地区の名前 wallet が重なる: core の src\/domains\/core\/wallet と業務の src\/domains\/wallet.*業務のドメイン/);
   assert.match(problems[1], /枠の名前 user が重なる: .*\(marketing\)\/_layout\/config\.ts.*\(user\)\/_layout\/config\.ts/);
 });
 
@@ -129,13 +129,13 @@ test("問題: frame: の無い枠の config・規則の features の行き先な
     ...BASE,
     "src/app/(marketing)/_layout/config.ts": `export const c = { title: "x" };`,
     "src/featureGate/rules/ghost.ts": `export const rule = { pathPatterns: [], domains: ["core/ghost"], enabled: () => true };`,
-    "src/features/sample/services/server/domainEntry.ts": entry(`  wallet: { service: () => import("./s"), table: "samples", idColumn: "id" },`),
-    "src/features/sample/entities/more.ts": `const n = "x"; export const t = pgTable(n, {});`,
+    "src/domains/sample/services/server/domainEntry.ts": entry(`  wallet: { service: () => import("./s"), table: "samples", idColumn: "id" },`),
+    "src/domains/sample/entities/more.ts": `const n = "x"; export const t = pgTable(n, {});`,
   };
   const { problems } = readDistrictMap(memorySource(files));
   assert.ok(problems.some((p) => /\(marketing\)\/_layout\/config\.ts: 枠の config\.ts に frame: "<枠の名前>" が無い/.test(p)), problems.join("\n"));
   assert.ok(problems.some((p) => /ghost\.ts: domains の core\/ghost に当たる features の地区が無い/.test(p)));
-  assert.ok(problems.some((p) => /domainEntry のキー wallet が src\/features\/core\/wallet・src\/features\/sample で重なる/.test(p)));
+  assert.ok(problems.some((p) => /domainEntry のキー wallet が src\/domains\/core\/wallet・src\/domains\/sample で重なる/.test(p)));
   assert.ok(problems.some((p) => /more\.ts: pgTable の表名が文字列リテラルでない/.test(p)));
 });
 
@@ -168,25 +168,25 @@ test("toJsonl: 1 行 1 地区で末尾に改行、空なら空", () => {
 test("tableFiles: features の地区の表と定義ファイル(パス順 → 出現順、雛形とテストは除く)、tableProblems は表の問題だけ", () => {
   const { tableFiles, tableProblems } = readDistrictMap(memorySource(BASE));
   assert.deepEqual(tableFiles, [
-    { name: "samples", file: "src/features/sample/entities/drizzle.ts", dir: "src/features/sample" },
-    { name: "wallets", file: "src/features/core/wallet/entities/drizzle.ts", dir: "src/features/core/wallet" },
-    { name: "wallet_lots", file: "src/features/core/wallet/entities/drizzle.ts", dir: "src/features/core/wallet" },
+    { name: "samples", file: "src/domains/sample/entities/drizzle.ts", dir: "src/domains/sample" },
+    { name: "wallets", file: "src/domains/core/wallet/entities/drizzle.ts", dir: "src/domains/core/wallet" },
+    { name: "wallet_lots", file: "src/domains/core/wallet/entities/drizzle.ts", dir: "src/domains/core/wallet" },
   ].sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0)));
   assert.deepEqual(tableProblems, []);
-  const broken = readDistrictMap(memorySource({ ...BASE, "src/features/sample/entities/more.ts": `const n = "x"; pgTable(n, {});`, "src/featureGate/rules/ghost.ts": `export const rule = { domains: ["core/ghost"] };` }));
-  assert.deepEqual(broken.tableProblems, ["src/features/sample/entities/more.ts: pgTable の表名が文字列リテラルでない(字面で読めない)"]);
+  const broken = readDistrictMap(memorySource({ ...BASE, "src/domains/sample/entities/more.ts": `const n = "x"; pgTable(n, {});`, "src/featureGate/rules/ghost.ts": `export const rule = { domains: ["core/ghost"] };` }));
+  assert.deepEqual(broken.tableProblems, ["src/domains/sample/entities/more.ts: pgTable の表名が文字列リテラルでない(字面で読めない)"]);
   assert.ok(broken.problems.length > broken.tableProblems.length);
 });
 
 test("domainJson・generate: features は domain.json の有無と generate(省略 = true、無し = null)、ほかの種類は null、壊れた JSON は問題", () => {
-  const files = { ...BASE, "src/features/sample/domain.json": '{ "name": "sample" }', "src/features/core/wallet/domain.json": '{ "generate": false }' };
+  const files = { ...BASE, "src/domains/sample/domain.json": '{ "name": "sample" }', "src/domains/core/wallet/domain.json": '{ "generate": false }' };
   const by = Object.fromEntries(readDistrictMap(memorySource(files)).districts.map((d) => [`${d.kind}:${d.name}`, d]));
   assert.deepEqual([by["features:sample"].domainJson, by["features:sample"].generate], [true, true]);
   assert.deepEqual([by["features:wallet"].domainJson, by["features:wallet"].generate], [true, false]);
   assert.deepEqual([by["features:purchaseRequest"].domainJson, by["features:purchaseRequest"].generate], [false, null]);
   assert.deepEqual([by["lib:cron"].domainJson, by["lib:cron"].generate], [null, null]);
-  const broken = readDistrictMap(memorySource({ ...BASE, "src/features/sample/domain.json": "{ nope" }));
-  assert.ok(broken.problems.some((p) => /src\/features\/sample\/domain\.json: JSON として読めない/.test(p)), broken.problems.join("\n"));
+  const broken = readDistrictMap(memorySource({ ...BASE, "src/domains/sample/domain.json": "{ nope" }));
+  assert.ok(broken.problems.some((p) => /src\/domains\/sample\/domain\.json: JSON として読めない/.test(p)), broken.problems.join("\n"));
 });
 
 test("readFeatureRequirements: export const featureRequirements のリテラルを読む・誤りは問題に(設定 D110)", () => {

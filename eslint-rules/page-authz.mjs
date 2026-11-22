@@ -6,12 +6,12 @@
 //
 // ── layout-no-server-data(M4 を D73 K1 の範囲へ広げた形。名前は互換のため据え置き) ──
 // 対象(eslint.config.mjs の files): UI の場所 = src/app の Screen・page.tsx・layout・_layout/**・guard.ts・_components の部品と
-//   src/components・src/hooks・src/features/**/components・src/features/**/hooks。
+//   src/components・src/hooks・src/domains/**/components・src/domains/**/hooks。
 //   loader.ts・route.ts・API(src/app/api/**)は対象外(サーバーのデータを読んでよい場所)。
-//   src/features/**/services/server/** も対象外: features/**/hooks は React の hook(層 3)の意味で、
+//   src/domains/**/services/server/** も対象外: domains/**/hooks は React の hook(層 3)の意味で、
 //   services/server/**/hooks(購入完了フックの登録簿など)はサーバーのコード。
 // 禁止する import(値。型だけは可):
-//   - `services/server` を含むパス(絶対・相対。管理画面の取得本体 features/core/admin/services/server/screenData も含む)
+//   - `services/server` を含むパス(絶対・相対。管理画面の取得本体 domains/core/admin/services/server/screenData も含む)
 //   - DB(L1.20): @/lib/drizzle・drizzle-orm・@/lib/firebase/server・firebase-admin(配下も)・entities/drizzle(表の定義)
 //   - layout.tsx・_layout/** だけ loader(末尾が /loader のパス)も不可。Screen は同じルートの loader を呼ぶ(D21)
 //   (authorization の関数の例外は撤去した。layout がセッションに触れるのは隣の guard.ts の guard() だけ)
@@ -20,7 +20,7 @@
 //
 // ── session-api-callsite(M3: セッション・ガード API を import しない場所) ──
 // 対象: src/app 全体(page・Screen・layout・_layout・loader.ts・guard.ts・_components・API の route と補助ファイル)と UI 側
-//   (src/components・src/features/**/components・src/features/**/hooks・src/hooks)。layout・_layout・loader.ts の許可は撤去した(D73 K4・K5)。
+//   (src/components・src/domains/**/components・src/domains/**/hooks・src/hooks)。layout・_layout・loader.ts の許可は撤去した(D73 K4・K5)。
 //   ページの主体は guard.ts の createLoader が解いて loader の ctx.user で渡し、範囲の守りは guard()。API の主体は Factory の ctx.user(D8 K4)。
 //   token だけのセッション・lib/jwt の Cookie の解析もここで止まる。
 //   proxy の項目(src/proxies/**、上流・fork)も対象: 主体は proxy.ts が渡す ctx.user()(D10)。解決器を作る src/proxy.ts は対象外。
@@ -65,9 +65,9 @@ export const SESSION_API_NAMES = new Set([
 /** M3: セッション API の定義モジュール(namespace / default / dynamic import はモジュール単位で止める) */
 const SESSION_MODULE = new RegExp(
   [
-    String.raw`features/core/auth/services/server/(authorization|requireRole|session(/[^/]+)?)$`,
-    String.raw`features/core/user/services/server/resolvers(/[^/]+)?$`,
-    String.raw`features/core/pairedDevice/services/server/session(/[^/]+)?$`,
+    String.raw`domains/core/auth/services/server/(authorization|requireRole|session(/[^/]+)?)$`,
+    String.raw`domains/core/user/services/server/resolvers(/[^/]+)?$`,
+    String.raw`domains/core/pairedDevice/services/server/session(/[^/]+)?$`,
     String.raw`^@/lib/jwt(/parseSessionCookie)?$`,
   ].join("|"),
 );
@@ -153,9 +153,9 @@ const layoutNoServerData = {
     docs: { description: "UI の場所(Screen・page・layout・_layout・guard.ts・_components・components・hooks)はサーバーのデータを取らない(services/server・DB を値で import しない。layout は loader も)" },
     messages: {
       serverService:
-        '"{{source}}" はサーバーのサービスです。UI の場所はデータを取りません。取得は同じルートの loader(guard.ts の createLoader)へ(詳細: src/features/core/auth/README.md)',
+        '"{{source}}" はサーバーのサービスです。UI の場所はデータを取りません。取得は同じルートの loader(guard.ts の createLoader)へ(詳細: src/domains/core/auth/README.md)',
       db: '"{{source}}" は DB です(接続・drizzle-orm の値・Firebase Admin・entities/drizzle の表)。UI の場所では import しません。取得はドメインのサービス → loader へ(型だけは可)',
-      loader: '"{{source}}" は loader です。layout は loader を呼びません(loader は Screen が呼ぶ。詳細: src/features/core/auth/README.md)',
+      loader: '"{{source}}" は loader です。layout は loader を呼びません(loader は Screen が呼ぶ。詳細: src/domains/core/auth/README.md)',
     },
     schema: [],
   },

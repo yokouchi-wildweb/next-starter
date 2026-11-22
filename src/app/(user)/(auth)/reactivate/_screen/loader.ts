@@ -14,7 +14,7 @@ import "server-only";
 import { notFound, redirect } from "next/navigation";
 
 import { gate } from "@/featureGate";
-import { USER_STATUSES } from "@/features/core/user/constants";
+import { USER_STATUSES } from "@/domains/core/user/constants";
 import { createLoader } from "@/app/guard";
 
 /** 未ログインのときの行き先 */

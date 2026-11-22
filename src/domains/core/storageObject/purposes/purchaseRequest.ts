@@ -1,0 +1,33 @@
+// src/domains/core/storageObject/purposes/purchaseRequest.ts
+// purchaseRequest のファイル用途。用途 ID は改名できない（ref とオブジェクトのパスに入るため）。型と規則: src/lib/storage/README.md
+
+import "server-only";
+
+import { gate } from "@/featureGate";
+import { isOwnPendingPurchaseRequest } from "@/domains/core/purchaseRequest/services/server/isOwnPendingPurchaseRequest";
+import { getRoleCategory } from "@/domains/core/user/constants";
+import type { StorageActor, StoragePurposeMap } from "@/lib/storage";
+
+const MiB = 1024 * 1024;
+
+const isAdmin = (actor: StorageActor | null) => actor !== null && getRoleCategory(actor.role) === "admin";
+
+export const purposes = {
+  "purchaseRequest.bankProof": {
+    visibility: "private",
+    maxBytes: 10 * MiB,
+    contentTypes: ["image/*"],
+    upload: {
+      allow: "authenticated",
+      // 決済の機能が閉じていれば受け付けない(purchase_requests が無いことがある)。read はそのまま: 保存済みの明細を管理者が見られる
+      check: ({ actor, scopeId }) => gate.enabled("payment") && isOwnPendingPurchaseRequest(scopeId, actor),
+    },
+    read: {
+      allow: "authenticated",
+      check: ({ actor, object }) => object.ownerUserId === actor?.userId || isAdmin(actor),
+    },
+    maxPending: 3,
+    // 振込明細は管理者が照合する非公開の原本として受け取ったまま保存する
+    metadata: "keep",
+  },
+} satisfies StoragePurposeMap;

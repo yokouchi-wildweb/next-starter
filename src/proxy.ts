@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createProxyUser } from '@/features/core/auth/services/server/proxyUserDeps';
+import { createProxyUser } from '@/domains/core/auth/services/server/proxyUserDeps';
 import { proxyHandlers, proxyResponseDecorators } from './proxies';
 import type { ProxyContext } from './proxies';
 import { serverErrorReport } from '@/wiring/serverErrors';

@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/features/core/demo/**"
-  - "src/config/features/demo.config.ts"
+  - "src/domains/core/demo/**"
+  - "src/config/domains/demo.config.ts"
 ---
-# features/demo
+# domains/demo
 what: demo mode, demo login and the admin demo user list | a core domain with no table (the demo user mark = users.is_demo, owned by user) | config demoConfig, server demoLogin, hooks useDemoLogin / useBankTransferVisionDemo, admin list components/DemoUserList
 use: always (in no rule's `domains`) | its addresses are closed by the rules demoPages, demoLogin, adminDemoUsers (dependsOn demoLogin)
-change: placement = src/config/features/demo.config.ts | replace = services/server/onDemoUserCreated.ts → a fork's onDemoUserCreated.replace.ts (rows added for a new demo user)
+change: placement = src/config/domains/demo.config.ts | replace = services/server/onDemoUserCreated.ts → a fork's onDemoUserCreated.replace.ts (rows added for a new demo user)
 rules:
 using:
 - mode_needs_pages: `mode.enabled: true` needs the feature demoPages open (declared in featureRequirements; pnpm check proxies stops the build otherwise)

@@ -12,7 +12,7 @@ import {
   readFailureResponse,
   readResolutionResponse,
   storageObjectService,
-} from "@/features/core/storageObject/services/server";
+} from "@/domains/core/storageObject/services/server";
 import { isDomainError } from "@/lib/errors";
 import { createApiRoute } from "@/wiring/apiRoute";
 

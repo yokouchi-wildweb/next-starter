@@ -9,8 +9,8 @@
 // - withinDays: 任意（デフォルト 30、1〜365 にクランプ）
 
 import { createMeRoute } from "@/wiring/apiRoute";
-import { getExpiringLots } from "@/features/core/wallet/services/server/lots";
-import { walletConfig, type WalletType } from "@/features/wallet/config";
+import { getExpiringLots } from "@/domains/core/wallet/services/server/lots";
+import { walletConfig, type WalletType } from "@/domains/wallet/config";
 import { DomainError } from "@/lib/errors";
 
 const DEFAULT_WITHIN_DAYS = 30;

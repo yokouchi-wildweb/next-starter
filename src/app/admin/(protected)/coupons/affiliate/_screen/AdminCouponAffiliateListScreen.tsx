@@ -11,10 +11,10 @@ import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import ListTop from "@/components/Admin/ListTop";
 import { Para } from "@/components/TextBlocks/Para";
-import { couponConfig } from "@/features/coupon/config";
+import { couponConfig } from "@/domains/coupon/config";
 import { Construction } from "lucide-react";
 
-import { AdminCouponSectionTabs } from "@/features/core/coupon/components/AdminCouponSectionTabs";
+import { AdminCouponSectionTabs } from "@/domains/core/coupon/components/AdminCouponSectionTabs";
 
 import { loadAdminCouponAffiliateListScreen } from "./loader";
 

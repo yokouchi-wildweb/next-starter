@@ -4,9 +4,9 @@
 //     管理ダッシュボードの受け口(dashboard/sections)も: 相手の無い上書き・allowRoles を広げる上書き・key とファイル名・描画の無い定義(checkAdminDashboard)
 //   show [--role=<ロール>] [--closed=now|all|none] = ロールごとの木を描く(読むだけ)。行ごとに当たる門番の規則(開/閉)か 常時、重複、
 //     描かない物と理由。--closed: now = 今の規則の開閉(既定)、all = 全部閉じた、none = 全部開いた。fork の取り込みの前後比較に使う
-// DB・外部に届かない(門 build の守りが確かめる)。仕組み: src/features/core/admin/menu/README.md・src/features/core/admin/dashboard/README.md
+// DB・外部に届かない(門 build の守りが確かめる)。仕組み: src/domains/core/admin/menu/README.md・src/domains/core/admin/dashboard/README.md
 
-import { USER_ROLES } from "@/features/core/user/constants";
+import { USER_ROLES } from "@/domains/core/user/constants";
 import { adminDomains } from "@/registry/adminDomains";
 
 import { readDashboardSnapshot, readGateRules, readMenuSnapshot, readRoutePaths, readSettingRows } from "./collect";

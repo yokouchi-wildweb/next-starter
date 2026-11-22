@@ -5,7 +5,7 @@ paths:
 # lib/seed
 what: types and functions for development / sample seed data written as data in each domain's seed.ts (defineSeed, ref, planSeeds, resolveRow) | entry @/lib/seed | inserted by the runner scripts/runner/seed (pnpm ops db seed)
 use: always
-change: add = src/features/<domain>/seed.ts of your own domain
+change: add = src/domains/<domain>/seed.ts of your own domain
 rules:
 using:
 - server_only_data: a seed.ts starts with `import "server-only"` and holds data only

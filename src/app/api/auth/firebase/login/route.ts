@@ -3,8 +3,8 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { createFirebaseSession } from "@/features/core/auth/services/server/firebaseSession";
-import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";
+import { createFirebaseSession } from "@/domains/core/auth/services/server/firebaseSession";
+import { issueSessionCookie } from "@/domains/core/auth/services/server/session/issueSessionCookie";
 import { getClientIp } from "@/lib/request";
 
 export const POST = createApiRoute(

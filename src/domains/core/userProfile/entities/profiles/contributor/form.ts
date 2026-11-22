@@ -1,0 +1,21 @@
+// 生成物・編集不可: pnpm generate role が src/domains/core/userProfile/profiles/contributor.profile.json から生成する
+// src/domains/core/userProfile/entities/profiles/contributor/form.ts
+// 投稿者プロフィールのフォーム型定義
+//
+// 元情報: src/domains/core/userProfile/profiles/contributor.profile.json
+// このファイルは pnpm generate role によって自動生成されました
+
+import { z } from "zod";
+import { ContributorProfileSchema } from "./schema";
+
+/**
+ * 投稿者プロフィールのフォーム追加フィールド
+ */
+export type ContributorProfileAdditional = {
+  // foo: string; // フォームに追加する項目
+};
+
+/**
+ * 投稿者プロフィールのフォームフィールド型
+ */
+export type ContributorProfileFields = z.infer<typeof ContributorProfileSchema> & ContributorProfileAdditional;

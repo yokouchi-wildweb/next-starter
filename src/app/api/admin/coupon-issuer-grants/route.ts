@@ -6,11 +6,11 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { getGrantListWithStats } from "@/features/core/couponIssuerGrant/services/server";
+import { getGrantListWithStats } from "@/domains/core/couponIssuerGrant/services/server";
 import {
   COUPON_ISSUER_GRANT_STATUSES,
   type CouponIssuerGrantStatus,
-} from "@/features/core/couponIssuerGrant/constants";
+} from "@/domains/core/couponIssuerGrant/constants";
 import { BadRequestError, parsePositiveInteger } from "@/app/api/[domain]/search/utils";
 
 const DEFAULT_LIMIT = 20;

@@ -9,7 +9,7 @@ export const cronTask: CronTaskDefinition = {
   description: "監査ログの dead-letter（audit_logs_failed）を audit_logs へ再投入する",
   schedule: "10 * * * *", // 毎時 10 分
   run: async () => {
-    const { recoverDeadLetterAuditLogs } = await import("@/features/core/auditLog/services/server");
+    const { recoverDeadLetterAuditLogs } = await import("@/domains/core/auditLog/services/server");
     return await recoverDeadLetterAuditLogs();
   },
 };

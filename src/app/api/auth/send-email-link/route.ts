@@ -2,13 +2,13 @@
 
 import { NextResponse } from "next/server";
 
-import { authConfig } from "@/features/auth/config";
+import { authConfig } from "@/domains/auth/config";
 import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha";
 import { RECAPTCHA_V2_INTERNALS } from "@/lib/recaptcha/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { isDisposableEmail, isHideMyEmail } from "@/lib/spamGuard";
-import { sendSignInLink } from "@/features/core/auth/services/server/sendSignInLink";
-import { INVITE_LINK_COOKIE_NAME } from "@/features/core/referral/lib/inviteLinkCookie";
+import { sendSignInLink } from "@/domains/core/auth/services/server/sendSignInLink";
+import { INVITE_LINK_COOKIE_NAME } from "@/domains/core/referral/lib/inviteLinkCookie";
 import { gate } from "@/featureGate";
 
 export const POST = createApiRoute(

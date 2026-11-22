@@ -13,7 +13,7 @@ const RUN = {
   name: "wallet:fix-rows",
   status: "succeeded",
   args: ["--all"],
-  file: "src/features/core/wallet/scripts/migrations/fix-rows.local.ts",
+  file: "src/domains/core/wallet/scripts/migrations/fix-rows.local.ts",
   fileHash: "abc",
   source: "export const task = {};\n",
   result: { fixed: 3 },

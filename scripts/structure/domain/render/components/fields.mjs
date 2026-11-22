@@ -105,7 +105,7 @@ export function generateFieldsFromConfig(config, collectionChildren = new Map())
   const hasRelations = getFormRelations(config).length > 0;
   const insertBeforeValue = hasRelations ? "mergedInsertBefore" : "insertBeforeProp";
 
-  return `// src/features/__domain__/components/common/__Domain__Fields.tsx
+  return `// src/domains/__domain__/components/common/__Domain__Fields.tsx
 
 "use client";
 
@@ -120,7 +120,7 @@ import {
   type InsertFieldsMap,
   type MediaState,${hasRelations ? "\n  useRelationOptions," : ""}
 } from "@/lib/formSuite";
-${hasRelations ? RELATION_IMPORTS : ""}import { domainDisplay } from "@/features/__domain__/entities/display";
+${hasRelations ? RELATION_IMPORTS : ""}import { domainDisplay } from "@/domains/__domain__/entities/display";
 ${baseFieldsBlock(collectMediaFields(config), collectionFieldPatches(config, collectionChildren))}
 export type __Domain__FieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;

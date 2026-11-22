@@ -184,7 +184,7 @@ test("buildRouteMap: 管理画面の共通部品の組の access は registry:<d
   const { rows, problems } = buildRouteMap(
     healthyTree({
       "src/app/admin/y/_screen/loader.ts": `import "server-only";
-import type { Sample } from "@/features/sample/entities/model";
+import type { Sample } from "@/domains/sample/entities/model";
 import { createLoader } from "@/app/admin/guard";
 import { adminListParts } from "@/wiring/adminScreenParts";
 export const loadYScreen = createLoader(adminListParts<Sample>("sample"));`,
@@ -240,7 +240,7 @@ test("buildRouteMap: guard.ts の範囲の layout が guard() を呼ばない・
   const legacy = buildRouteMap(
     healthyTree({
       "src/app/admin/layout.tsx": `import { guard } from "./guard";
-import { authGuard } from "@/features/core/auth/services/server/authorization";
+import { authGuard } from "@/domains/core/auth/services/server/authorization";
 export default async function L({ children }) {
   await guard();
   await ${"authGuard"}({ allowRoles: ["admin"] });

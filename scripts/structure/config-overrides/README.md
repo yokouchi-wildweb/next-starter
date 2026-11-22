@@ -18,7 +18,7 @@ pnpm check config-overrides        # build・/ship・forge:post の検査の束(
 
 ### 見る所
 
-- 地区の 4 種 `src/config/lib/`・`features/`・`layout/`・`proxies/` と、基盤の上書き `src/config/featureGate/` の直下だけ。古い `app/`・`ui/` と `src/config` 直下のファイルは見ません(移行中、空になったら消す)
+- 地区の 4 種 `src/config/lib/`・`domains/`・`layout/`・`proxies/` と、基盤の上書き `src/config/featureGate/` の直下だけ。古い `app/`・`ui/` と `src/config` 直下のファイルは見ません(移行中、空になったら消す)
 - 置ける物: `<名前>.config.ts`(値の上書き)・`<名前>.ui.config.ts`(描画専用の上書き)・`README.md`。サブフォルダは置けません(中は平ら)
 
 ### 落とす物

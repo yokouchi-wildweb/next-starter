@@ -1,0 +1,212 @@
+// src/domains/auth/services/server/localLogin.ts
+
+import { z } from "zod";
+
+import type { SessionUser } from "@/domains/core/auth/entities/session";
+import { verifyPassword } from "@/domains/core/auth/utils/password";
+import { userService, formatShortLockMessage, PERMANENT_LOCK_MESSAGE } from "@/domains/core/user/services/server/userService";
+import { message as accountLockedMessage } from "@/domains/core/auth/messages/accountLocked";
+import { messagingService } from "@/domains/core/messaging/services/server";
+import { auditLogger } from "@/domains/core/auditLog/services/server";
+import { recordLoginFailure } from "./loginAudit";
+import { invalidateSessionsForUser } from "./sessionInvalidation";
+import { DomainError } from "@/lib/errors";
+import { getServerAuth, isFirebaseServerConfigured } from "@/lib/firebase/server";
+import { SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
+import type { User } from "@/domains/core/user/entities";
+import { getRoleCategory } from "@/domains/core/user/constants";
+import { issueSessionToken } from "./session/sessionToken";
+
+export type LocalLoginInput = z.infer<typeof LocalLoginSchema> & {
+  ip?: string;
+};
+
+// 入力値の形式を検証するためのスキーマ。未入力やフォーマット不正を網羅的に検知する。
+const LocalLoginSchema = z.object({
+  email: z
+    .string({ required_error: "メールアドレスを入力してください" })
+    .trim()
+    .min(1, { message: "メールアドレスを入力してください" })
+    .email({ message: "メールアドレスの形式が不正です" }),
+  password: z
+    .string({ required_error: "パスワードを入力してください" })
+    .min(1, { message: "パスワードを入力してください" }),
+});
+
+export type LocalLoginResult = {
+  user: SessionUser;
+  session: {
+    token: string;
+    expiresAt: Date;
+    maxAge: number;
+  };
+  requiresReactivation: boolean;
+  /**
+   * Firebase Auth にもサインインするためのカスタムトークン(Storage のルール・chatRoom の私用 app・useFirebaseAuthSync の材料)。
+   * Firebase のサーバー側が未設定なら null(ローカルログインは Firebase なしで完了する。CLAUDE.md BACKENDS unconfigured)
+   */
+  firebaseCustomToken: string | null;
+};
+
+// 管理者カテゴリのアカウントであることを確認し、一般ユーザーのログインを遮断する。
+// 違反時は recordLoginFailure で監査ログを残してから throw する。
+async function assertAdminRole(user: User, email: string): Promise<void> {
+  if (getRoleCategory(user.role) !== "admin") {
+    await recordLoginFailure({ user, email, reason: "not_admin_role" });
+    throw new DomainError("このアカウントではログインできません", { status: 403 });
+  }
+}
+
+// 利用ステータスを検証し、ログイン可否を判定する。
+// security_locked (永続ロック) と短期ロックは checkLockState / assertNotLocked で扱う。
+async function assertLoginableStatus(user: User, email: string): Promise<void> {
+  if (user.status === "pending") {
+    await recordLoginFailure({ user, email, reason: "status_pending" });
+    throw new DomainError("このアカウントは利用できません", { status: 403 });
+  }
+  if (user.status === "withdrawn") {
+    await recordLoginFailure({ user, email, reason: "status_withdrawn" });
+    throw new DomainError("このアカウントは利用できません", { status: 403 });
+  }
+  // active, inactive, suspended, banned はログイン許可
+  // （inactive は復帰ページへ、suspended/banned は制限ページへ誘導）
+}
+
+// 現在のロック状態を検査し、ロック中ならその旨を throw する。
+// 短期ロック中・永続ロック中とも、パスワード検証より前にブロックする (カウントは増分しない)。
+async function assertNotLocked(user: User, email: string): Promise<void> {
+  const state = userService.checkLockState(user);
+  if (state.kind === "permanent_locked") {
+    await recordLoginFailure({ user, email, reason: "permanent_locked" });
+    throw new DomainError(PERMANENT_LOCK_MESSAGE, { status: 403 });
+  }
+  if (state.kind === "short_locked") {
+    await recordLoginFailure({ user, email, reason: "short_locked" });
+    throw new DomainError(formatShortLockMessage(state.lockedUntil), { status: 403 });
+  }
+}
+
+/**
+ * ローカル認証によるログイン処理。
+ */
+export async function localLogin(input: unknown): Promise<LocalLoginResult> {
+  // 受け取った body を検証し、形式が崩れている場合は 400 を返す。
+  const parsed = LocalLoginSchema.safeParse(input);
+
+  if (!parsed.success) {
+    throw new DomainError("ログイン情報が正しくありません", { status: 400 });
+  }
+
+  // 正常にパースしたメールアドレスとパスワードを取り出す。
+  const { email, password } = parsed.data;
+  // IPアドレスはスキーマ外で渡される
+  const ip = (input as { ip?: string })?.ip;
+
+  // ローカル認証ユーザーをメールアドレスで検索する。
+  const user = await userService.findByLocalEmail(email);
+
+  // 該当ユーザーが存在しなければ認証失敗とする。
+  // 不明 email への試行パターン検知のため targetId=unknown:<hash> で監査ログ記録。
+  if (!user) {
+    await recordLoginFailure({ user: null, email, reason: "user_not_found" });
+    throw new DomainError("メールアドレスまたはパスワードが正しくありません", { status: 401 });
+  }
+
+  // 権限・ロック状態・ステータスのチェックを先に行い、以降の処理を早期に中断する。
+  // ロック検査はパスワード検証より先に置き、短期ロック中の試行を即ブロックする
+  // (カウントを増分しないことで攻撃者が永続ロックへの到達を意図的に早められないようにする)。
+  await assertAdminRole(user, email);
+  await assertNotLocked(user, email);
+  await assertLoginableStatus(user, email);
+
+  // ハッシュ化されたパスワードと比較し、誤りがあれば同様に認証失敗。
+  const passwordMatched = await verifyPassword(password, user.localPassword);
+
+  if (!passwordMatched) {
+    // 個別の失敗を監査ログに記録。続いて recordFailedLogin で
+    // 累積カウント増分と (閾値到達なら) ロック発動を行う。
+    // 両者は意味が異なるため両方記録する (個別失敗 vs ロック遷移)。
+    await recordLoginFailure({ user, email, reason: "wrong_password" });
+    const outcome = await userService.recordFailedLogin(user);
+    if (outcome.kind === "permanent_locked") {
+      // 永続ロック発動時は既存全セッションも即時失効させる。
+      // (status=security_locked への遷移と同時に発火、A5 の責務)
+      await invalidateSessionsForUser({
+        userId: user.id,
+        providerUid: user.providerUid,
+        reason: "status_lock",
+      });
+      // 永続ロック通知メールを fire-and-forget で送信。
+      // メール送信失敗で認証フローを止めない (失敗は warn ログのみ)。
+      // 宛先は利用者(メールの経路が users.email を引く)。記録が利用者に結び付く
+      if (user.email) {
+        messagingService
+          .sendMessage(accountLockedMessage, {
+            recipient: { userId: user.id },
+            vars: { occurredAt: new Date().toLocaleString("ja-JP"), ip: ip ?? "" },
+          })
+          .then((result) => {
+            const delivery = result.deliveries.find((item) => item.channel === "email");
+            if (delivery && delivery.status !== "sent") {
+              console.warn("[lockout] failed to send account-locked notification", delivery.status, delivery.reason);
+            }
+          })
+          .catch((err) => {
+            console.warn("[lockout] failed to send account-locked notification", err);
+          });
+      }
+      throw new DomainError(PERMANENT_LOCK_MESSAGE, { status: 403 });
+    }
+    if (outcome.kind === "short_locked") {
+      throw new DomainError(formatShortLockMessage(outcome.lockedUntil), { status: 403 });
+    }
+    throw new DomainError("メールアドレスまたはパスワードが正しくありません", { status: 401 });
+  }
+
+  // assertNotLocked を通過した時点で lockedUntil は null または過去日時。
+  // 直前まで短期ロック中だった (= lockedUntil が過去にセットされていた) 場合、
+  // 時間経過で実質解除されている。「unlocked_auto」として監査ログを残す。
+  if (user.lockedUntil) {
+    await auditLogger.record({
+      targetType: "user",
+      targetId: user.id,
+      subjectUserId: user.id,
+      action: "auth.account.unlocked_auto",
+      before: {
+        lockedUntil: user.lockedUntil.toISOString(),
+        failedLoginCount: user.failedLoginCount,
+      },
+      after: { lockedUntil: null, failedLoginCount: 0 },
+      bestEffort: true,
+    });
+  }
+
+  // 最終認証日時を更新する (ロックアウト関連カウンタも併せてクリアされる)。
+  await userService.updateLastAuthenticated(user.id, { ip });
+
+  // inactive の場合は復帰フラグを立てる
+  const requiresReactivation = user.status === "inactive";
+
+  // セッションに格納する情報を組み立ててトークンを署名する(通常の maxAge)。establishSession と同じ部品
+  const { sessionUser, token, expiresAt, maxAge } = await issueSessionToken(user, {
+    maxAge: SESSION_DEFAULT_MAX_AGE_SECONDS,
+  });
+
+  // Firebase Storage のセキュリティルールで認証を通すためのカスタムトークンを生成する。
+  // Firebase のサーバー側が未設定なら作らない(ログインの前提にしない)。設定済みで失敗したときは今まで通り失敗させる(障害を隠さない)
+  const firebaseCustomToken = isFirebaseServerConfigured()
+    ? await getServerAuth().createCustomToken(sessionUser.userId, { admin: true })
+    : null;
+
+  // 呼び出し元へセッション情報とユーザー情報をまとめて返す。
+  return {
+    user: sessionUser,
+    session: {
+      token,
+      expiresAt,
+      maxAge,
+    },
+    requiresReactivation,
+    firebaseCustomToken,
+  };
+}

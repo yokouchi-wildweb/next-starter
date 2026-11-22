@@ -1,0 +1,96 @@
+// src/domains/core/purchaseRequest/components/BankTransferInstruction/CancelTransferButton.tsx
+//
+// 振込案内ページの最下部に配置する「振込による購入をキャンセル」ボタン。
+// クリックで Dialog を開き、確認後にサーバー側 cancelPurchase API を呼んで
+// purchase_request を expired にし、決済方法選択画面（/wallet/[slug]/purchase?...）へ
+// リダイレクトする。
+//
+// 注意:
+// - 不可逆操作（既振込み済みの場合の事故防止）のため Dialog で必ず一度確認を挟む。
+// - Dialog の onConfirm は Promise を返すと自動でロック + ローディング管理されるため、
+//   二重送信ガードは Dialog 側に委ねている。
+// - redirectUrl はサーバー側で組み立てたものを信頼しつつ、Open Redirect への
+//   defense-in-depth として sanitizeRedirectPath で同一オリジンの相対パスに限定する。
+// - HTTP は useCancelPurchase 経由（client service を直接呼ばない）。active 振込の
+//   キャッシュ無効化も hook が行う。
+
+"use client";
+
+import { useState } from "react";
+
+import { Dialog } from "@/components/Overlays/Dialog";
+import { Flex } from "@/components/Layout/Flex";
+import { Button } from "@/components/Button/Button";
+import { Para } from "@/components/TextBlocks/Para";
+import { Stack } from "@/components/Layout/Stack";
+import { useToast } from "@/lib/toast";
+import { err } from "@/lib/errors";
+import { sanitizeRedirectPath } from "@/lib/url";
+
+import { useCancelPurchase } from "@/domains/core/purchaseRequest/hooks/useCancelPurchase";
+
+type Props = {
+  /** キャンセル対象の purchase_request の ID */
+  requestId: string;
+};
+
+export function CancelTransferButton({ requestId }: Props) {
+  const [open, setOpen] = useState(false);
+  const { showToast } = useToast();
+  const { trigger: cancel } = useCancelPurchase();
+
+  const handleConfirm = async () => {
+    try {
+      const result = await cancel(requestId);
+
+      // 不正・空なら "" が返る
+      const redirectPath = sanitizeRedirectPath(result.redirectUrl, "");
+      if (redirectPath) {
+        window.location.href = redirectPath;
+        return;
+      }
+
+      // フォールバック: redirectUrl 不正・空のときは現在のページをリロード。
+      //   SSR の status ガード (Pattern B) が status=expired を検知して
+      //   /wallet/[slug] へ自動でリダイレクトしてくれる。
+      window.location.reload();
+    } catch (e) {
+      showToast(err(e, "キャンセル処理に失敗しました"), "error");
+      throw e; // Dialog 側でロック解除させる（再試行を許可）
+    }
+  };
+
+  return (
+    <>
+      <Flex justify="center">
+        <Button
+          type="button"
+          variant="destructiveOutline"
+          size="sm"
+          onClick={() => setOpen(true)}
+        >
+          振込による購入をキャンセル
+        </Button>
+      </Flex>
+
+      <Dialog
+        open={open}
+        onOpenChange={setOpen}
+        title="振込による購入をキャンセルしますか？"
+        confirmLabel="はい、キャンセルする"
+        cancelLabel="戻る"
+        confirmVariant="destructive"
+        onConfirm={handleConfirm}
+      >
+        <Stack gap="xs">
+          <Para size="sm">
+            進行中の振込手続きが無効になり、決済方法を選び直す画面に戻ります。
+          </Para>
+          <Para size="sm" tone="destructive">
+            ※既にお振込みを完了されている場合は、キャンセルしないでください。お振込み済みの金額が反映されない可能性があります。
+          </Para>
+        </Stack>
+      </Dialog>
+    </>
+  );
+}

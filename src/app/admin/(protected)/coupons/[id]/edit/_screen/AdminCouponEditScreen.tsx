@@ -6,9 +6,9 @@
 // レコードが無ければ 404、保存後の戻り先は ?returnTo=(無ければ一覧)。どちらも loader が判定する。
 
 import type { ScreenProps } from "@/lib/screens";
-import type { AdminEditScreenParams, AdminEditScreenSearchParams } from "@/features/core/admin/services/server/screenData/adminEdit";
+import type { AdminEditScreenParams, AdminEditScreenSearchParams } from "@/domains/core/admin/services/server/screenData/adminEdit";
 import { loadAdminCouponEditScreen } from "./loader";
-import AdminCouponEdit from "@/features/core/coupon/components/AdminCouponEdit";
+import AdminCouponEdit from "@/domains/core/coupon/components/AdminCouponEdit";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 
 export const metadata = {

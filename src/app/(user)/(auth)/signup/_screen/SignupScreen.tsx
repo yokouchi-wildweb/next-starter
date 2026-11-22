@@ -8,7 +8,7 @@
 import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
-import { Signup } from "@/features/core/auth/components/Signup";
+import { Signup } from "@/domains/core/auth/components/Signup";
 
 import { loadSignupScreen } from "./loader";
 

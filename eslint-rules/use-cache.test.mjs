@@ -10,13 +10,13 @@ import plugin from "./use-cache.mjs";
 
 const tsParser = createRequire(import.meta.resolve("eslint-config-next"))("@typescript-eslint/parser");
 const repoRoot = path.resolve(import.meta.dirname, "..");
-const file = path.join(repoRoot, "src/features/sample/services/server/cached.ts");
+const file = path.join(repoRoot, "src/domains/sample/services/server/cached.ts");
 
 const ruleTester = new RuleTester({
   languageOptions: { ecmaVersion: 2022, sourceType: "module", parser: tsParser },
 });
 
-const SESSION = `import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";\n`;
+const SESSION = `import { getSessionUser } from "@/domains/core/auth/services/server/session/getSessionUser";\n`;
 
 test("rule no-principal-outside-args: 共有の範囲の中の主体の読みを止め、引数・private・範囲の外は通す", () => {
   ruleTester.run("no-principal-outside-args", plugin.rules["no-principal-outside-args"], {
@@ -42,7 +42,7 @@ test("rule no-principal-outside-args: 共有の範囲の中の主体の読みを
       // remote の中の getAuditContext(監査の文脈の主体)
       { code: `import { getAuditContext } from "@/lib/audit";\nexport async function load() {\n  "use cache: remote";\n  return getAuditContext();\n}`, filename: file, errors: [{ messageId: "principal", data: { directive: "use cache: remote", name: "getAuditContext" } }] },
       // 別名の import と入れ子の関数(範囲を引き継ぐ)
-      { code: `import { requireCurrentPrincipal as who } from "@/features/core/pairedDevice/services/server/session";\nexport async function load() {\n  "use cache";\n  const f = async () => who();\n  return f();\n}`, filename: file, errors: [{ messageId: "principal", data: { directive: "use cache", name: "who" } }] },
+      { code: `import { requireCurrentPrincipal as who } from "@/domains/core/pairedDevice/services/server/session";\nexport async function load() {\n  "use cache";\n  const f = async () => who();\n  return f();\n}`, filename: file, errors: [{ messageId: "principal", data: { directive: "use cache", name: "who" } }] },
       // import が後ろにあっても判じる
       { code: `export async function load() {\n  "use cache";\n  return headers();\n}\nimport { headers } from "next/headers";`, filename: file, errors: [{ messageId: "principal", data: { directive: "use cache", name: "headers" } }] },
     ],
@@ -56,7 +56,7 @@ test("eslint.config.mjs: src のコードに当たり、テストには当たら
     const [result] = await eslint.lintText(code, { filePath: path.join(repoRoot, rel) });
     return result.messages.filter((m) => m.ruleId === "use-cache/no-principal-outside-args").length;
   };
-  assert.equal(await count("src/features/sample/services/server/cached.ts"), 1);
+  assert.equal(await count("src/domains/sample/services/server/cached.ts"), 1);
   assert.equal(await count("src/app/(user)/foo/_screen/FooScreen.tsx"), 1);
-  assert.equal(await count("src/features/sample/services/server/cached.test.ts"), 0);
+  assert.equal(await count("src/domains/sample/services/server/cached.test.ts"), 0);
 });

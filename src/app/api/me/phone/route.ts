@@ -3,8 +3,8 @@
 import { NextResponse } from "next/server";
 
 import { gate } from "@/featureGate";
-import { updateOwnPhoneNumber } from "@/features/core/user/services/server/phoneNumber";
-import { isPhoneNumberInputOpen } from "@/features/core/user/utils/accountItems";
+import { updateOwnPhoneNumber } from "@/domains/core/user/services/server/phoneNumber";
+import { isPhoneNumberInputOpen } from "@/domains/core/user/utils/accountItems";
 import { createMeRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
 

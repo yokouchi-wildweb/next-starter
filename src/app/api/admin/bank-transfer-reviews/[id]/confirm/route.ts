@@ -6,7 +6,7 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { bankTransferReviewService } from "@/features/bankTransferReview/services/server/bankTransferReviewService";
+import { bankTransferReviewService } from "@/domains/bankTransferReview/services/server/bankTransferReviewService";
 
 type Params = { id: string };
 

@@ -7,7 +7,7 @@
 
 import type { ScreenProps } from "@/lib/screens";
 import { loadAdminUserTagCreateScreen } from "./loader";
-import AdminUserTagCreate from "@/features/core/userTag/components/AdminUserTagCreate";
+import AdminUserTagCreate from "@/domains/core/userTag/components/AdminUserTagCreate";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 
 export const metadata = {

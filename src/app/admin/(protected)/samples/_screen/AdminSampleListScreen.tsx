@@ -5,7 +5,7 @@
 
 import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens";
-import AdminSampleList from "@/features/sample/components/AdminSampleList";
+import AdminSampleList from "@/domains/sample/components/AdminSampleList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 
 import { loadAdminSampleListScreen } from "./loader";

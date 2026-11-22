@@ -8,7 +8,7 @@
 
 import { gate } from "@/featureGate";
 import { createApiRoute } from "@/wiring/apiRoute";
-import { getMessageTemplateOptions } from "@/features/core/messaging/services/server/templates";
+import { getMessageTemplateOptions } from "@/domains/core/messaging/services/server/templates";
 
 export const GET = createApiRoute(
   {

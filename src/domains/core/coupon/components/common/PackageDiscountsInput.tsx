@@ -1,0 +1,125 @@
+// パッケージ別割引設定の入力コンポーネント
+//
+// クーポンの discountMode が "per_package" の場合に表示する。
+// wallet の config.ts の currency のパッケージ一覧を元に、各パッケージの割引タイプ・割引値を入力する。
+// wallet を閉じた fork ではパッケージが無いので、この欄を出さない(門番の規則 wallet を確かめる、設定 D97)。
+
+"use client";
+
+import { useEffect } from "react";
+import { useFormContext } from "react-hook-form";
+import { Stack } from "@/components/Layout/Stack";
+import { Flex } from "@/components/Layout/Flex";
+import { Block } from "@/components/Layout/Block";
+import { Span } from "@/components/TextBlocks/Span";
+import { NumberInput } from "@/components/Input/NumberInput";
+import { useGate } from "@/featureGate/client";
+import { walletConfig } from "@/domains/wallet/config";
+import type { PackageDiscount } from "@/domains/core/purchaseRequest/types/couponEffect";
+
+/**
+ * settings.packageDiscounts の入力UI
+ *
+ * 全通貨のパッケージを統合して表示し、各パッケージに割引タイプと割引値を設定する。
+ * discountMode が "per_package" のときのみ表示される想定。
+ */
+export function PackageDiscountsInput() {
+  const { watch, setValue } = useFormContext();
+  const walletOpen = useGate().enabled("wallet");
+
+  const discountMode = watch("settings.discountMode");
+  const packageDiscounts = (watch("settings.packageDiscounts") ?? []) as PackageDiscount[];
+
+  // 全通貨のパッケージを統合（重複 amount は除外）
+  const allPackages = walletOpen ? getAllPackages() : [];
+
+  // discountMode が per_package に切り替わった際に初期値を設定
+  useEffect(() => {
+    if (!walletOpen || discountMode !== "per_package") return;
+    if (packageDiscounts.length > 0) return;
+
+    const initial: PackageDiscount[] = allPackages.map((pkg) => ({
+      amount: pkg.amount,
+      discountType: "percentage",
+      discountValue: 0,
+    }));
+    setValue("settings.packageDiscounts", initial, { shouldDirty: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [discountMode]);
+
+  if (!walletOpen || discountMode !== "per_package") return null;
+
+  const handleValueChange = (index: number, value: number) => {
+    const updated = [...packageDiscounts];
+    updated[index] = { ...updated[index], discountValue: value };
+    setValue("settings.packageDiscounts", updated, { shouldDirty: true });
+  };
+
+  const handleTypeChange = (index: number, type: "fixed" | "percentage") => {
+    const updated = [...packageDiscounts];
+    updated[index] = { ...updated[index], discountType: type };
+    setValue("settings.packageDiscounts", updated, { shouldDirty: true });
+  };
+
+  return (
+    <Block className="rounded-lg border border-border bg-muted/50 p-4">
+      <Stack gap="sm">
+        <Span size="sm" weight="bold">パッケージ別割引設定</Span>
+        <Stack gap="xs">
+          {allPackages.map((pkg, index) => {
+            const entry = packageDiscounts[index];
+            if (!entry) return null;
+
+            return (
+              <Flex
+                key={pkg.amount}
+                align="center"
+                gap="md"
+                className="rounded-md bg-card px-3 py-2"
+              >
+                <Span size="sm" className="min-w-20 shrink-0">
+                  {pkg.amount.toLocaleString()} {pkg.unit}
+                </Span>
+                <select
+                  value={entry.discountType}
+                  onChange={(e) => handleTypeChange(index, e.target.value as "fixed" | "percentage")}
+                  className="h-(--control-h-md) rounded-md border border-input bg-card px-2 text-sm"
+                >
+                  <option value="percentage">%割引</option>
+                  <option value="fixed">円割引</option>
+                </select>
+                <NumberInput
+                  value={entry.discountValue}
+                  onChange={(v) => handleValueChange(index, v)}
+                  min={0}
+                  placeholder={entry.discountType === "percentage" ? "%" : "円"}
+                  className="w-24"
+                />
+              </Flex>
+            );
+          })}
+        </Stack>
+      </Stack>
+    </Block>
+  );
+}
+
+// ============================================================================
+// ヘルパー
+// ============================================================================
+
+function getAllPackages(): { amount: number; unit: string }[] {
+  const seen = new Set<number>();
+  const result: { amount: number; unit: string }[] = [];
+
+  for (const config of Object.values(walletConfig.currency)) {
+    for (const pkg of config.packages) {
+      if (!seen.has(pkg.amount)) {
+        seen.add(pkg.amount);
+        result.push({ amount: pkg.amount, unit: config.unit });
+      }
+    }
+  }
+
+  return result.sort((a, b) => a.amount - b.amount);
+}

@@ -3,13 +3,13 @@
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける。手順: src/lib/screens/README.md
 //
 // loader は access の評価だけ(public)。文書は legal の口 getLegalDocument("privacy") の差し込み済みの文書を読むだけ。文面を変えるのは legal の上書き
-// (src/config/features/legal.config.ts、形: src/features/core/legal/README.md)、構成を変えるのは差し替え Screen で行う。
+// (src/config/domains/legal.config.ts、形: src/domains/core/legal/README.md)、構成を変えるのは差し替え Screen で行う。
 
 import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
-import { getLegalDocument, getLegalEnactedAtFormat } from "@/features/legal/documents";
+import { getLegalDocument, getLegalEnactedAtFormat } from "@/domains/legal/documents";
 import { LegalDocumentRenderer } from "@/lib/structuredDocument";
 
 import { loadPrivacyPolicyScreen } from "./loader";

@@ -19,9 +19,9 @@ test("覆い: 決まりの paths か外す一覧に当たるファイルは穴�
 });
 
 test("覆い: 書き場所の一覧の行は glob そのものか代表のパスで照らす", () => {
-  const intake = parseIntakeRows("# 注釈\nedit src/config/**  # 値\nadd src/features/core/setting/fields/*\n!edit src/config/x.ts\nedit firebase.json  # 設定\n");
-  assert.deepEqual(intake.map((r) => r.glob), ["src/config/**", "src/features/core/setting/fields/*", "firebase.json"]);
-  const gaps = coverageGaps({ files: [], intake, rulePaths: ["src/config/**", "src/features/**"], uncovered: [] });
+  const intake = parseIntakeRows("# 注釈\nedit src/config/**  # 値\nadd src/domains/core/setting/fields/*\n!edit src/config/x.ts\nedit firebase.json  # 設定\n");
+  assert.deepEqual(intake.map((r) => r.glob), ["src/config/**", "src/domains/core/setting/fields/*", "firebase.json"]);
+  const gaps = coverageGaps({ files: [], intake, rulePaths: ["src/config/**", "src/domains/**"], uncovered: [] });
   assert.deepEqual(gaps.intake, ["edit firebase.json"]);
   assert.equal(representativePath("src/**/x/*.ts"), "src/x/x/x.ts");
 });
@@ -47,7 +47,7 @@ test("今の木: .claude/rules/core/uncovered.txt の全行に理由がある", 
 
 test("matchesLoad: Claude Code の読み込みと同じく ** と * は点で始まる名・フォルダにも当たる(D225、注文 59 の claude -p の確かめ)", async () => {
   const { matchesLoad } = await import("./lib.rulePaths.mjs");
-  assert.equal(matchesLoad("src/features/core/analytics/entities/.gitkeep", "src/features/**/entities/**"), true);
+  assert.equal(matchesLoad("src/domains/core/analytics/entities/.gitkeep", "src/domains/**/entities/**"), true);
   assert.equal(matchesLoad("servers/room/.npmrc", "servers/**"), true);
   assert.equal(matchesLoad(".codex/README.md", "**/README*.md"), true);
   assert.equal(matchesLoad(".notices/README.md", ".notices/**"), true);

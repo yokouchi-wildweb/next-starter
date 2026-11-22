@@ -1,6 +1,0 @@
-// src/features/core/messaging/constants/index.ts
-
-export * from "./sources";
-export * from "./preferences";
-export * from "./dispatchOperations";
-export * from "./channelLabels";

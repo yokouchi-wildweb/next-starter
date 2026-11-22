@@ -6,7 +6,7 @@
 //
 // 設定(eslint.config.mjs):
 //   "deprecated-imports/no-deprecated-path": ["warn", { paths: [{ from, to, until }] }]
-//   from  = 旧パス(`@/features/core/wallet/components/WalletBalancePage`。これに一致、または `from + "/"` 配下の import を検出)
+//   from  = 旧パス(`@/domains/core/wallet/components/WalletBalancePage`。これに一致、または `from + "/"` 配下の import を検出)
 //   to    = 新パス(メッセージに出す。配下の import は同じ相対部分を to に付け替えた候補を出す)
 //   until = 削除予定(checkpoint 名など。メッセージに出す)
 //   exact = true なら from そのもの(と from + "/index")だけを検出し、配下は検出しない
@@ -14,18 +14,18 @@
 //   collapse = true なら配下の import も検出し、候補は配下の道を付けずに to そのもの
 //           (閉じた lib の入口 1 本へ移した旧フォルダ `@/components/Form` → `@/lib/formSuite` のように、配下の道が行き先に無いとき)
 //
-// `@/features/<core ドメイン>/...`(core を省略した推奨形)も `@/features/core/<ドメイン>/...` と同一視する。
+// `@/domains/<core ドメイン>/...`(core を省略した推奨形)も `@/domains/core/<ドメイン>/...` と同一視する。
 // 相対パス import(`../WalletBalancePage`)は解決しない(shim 削除後に tsc が検出する)。
 
 /**
- * import 元を正規化する。`@/features/<x>/` で x が core でなければ `@/features/core/<x>/` に揃える
- * (tsconfig paths の `@/features/<coreDomain>/*` → `core/<coreDomain>/*` と同じ扱い。business ドメインは
+ * import 元を正規化する。`@/domains/<x>/` で x が core でなければ `@/domains/core/<x>/` に揃える
+ * (tsconfig paths の `@/domains/<coreDomain>/*` → `core/<coreDomain>/*` と同じ扱い。business ドメインは
  * core 配下に実体が無いので from 側と一致せず、誤検出にはならない)
  */
 export function normalizeImportSource(source) {
-  const m = /^@\/features\/([^/]+)(\/.*)?$/.exec(source);
+  const m = /^@\/domains\/([^/]+)(\/.*)?$/.exec(source);
   if (!m || m[1] === "core") return source;
-  return `@/features/core/${m[1]}${m[2] ?? ""}`;
+  return `@/domains/core/${m[1]}${m[2] ?? ""}`;
 }
 
 /**

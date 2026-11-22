@@ -1,7 +1,7 @@
 // src/app/api/me/email/confirm/route.ts
 
 import { createMeRoute } from "@/wiring/apiRoute";
-import { confirmEmailChange } from "@/features/core/auth/services/server/confirmEmailChange";
+import { confirmEmailChange } from "@/domains/core/auth/services/server/confirmEmailChange";
 
 /**
  * Firebase Auth側で更新されたメールアドレスをDBに同期します。

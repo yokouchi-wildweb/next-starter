@@ -538,13 +538,13 @@ export function checkAdminPageScreen(source) {
 }
 
 /**
- * Screen は `@/features/<domain>/components/` 配下のセクションコンテナを読み、その内側(部品、契約外)を直接読まない(must-read §4)。
+ * Screen は `@/domains/<domain>/components/` 配下のセクションコンテナを読み、その内側(部品、契約外)を直接読まない(must-read §4)。
  * 「部品を持つコンテナ」= `index.tsx` を持つディレクトリ。import 先の途中のディレクトリがコンテナなら違反。
  * コンテナでないディレクトリ(`Admin/` `common/` などのグループ分け、`index.ts` だけの barrel)は名前空間として通す。
  * `<Name>/index` は `<Name>` と同じ扱い。features 以外(components/ lib/ など)と相対 import は対象外
  * @param {string} source
  * @param {{ isContainerDir?: (dirSpec: string) => boolean }} [options]
- *   isContainerDir: `@/features/.../components/<a>`(import 指定子の形、末尾 / 無し)がコンテナか。
+ *   isContainerDir: `@/domains/.../components/<a>`(import 指定子の形、末尾 / 無し)がコンテナか。
  *   ファイルシステムを見るのは呼び出し側(この関数は純粋)。省略時は全てコンテナ扱い(入れ子の import は全て違反)
  * @returns {string[]} 違反した import 元の説明(空なら合格)
  */
@@ -556,7 +556,7 @@ export function checkScreenImports(source, options) {
   let m;
   while ((m = re.exec(src)) !== null) {
     const spec = m[1];
-    const path = /^(@\/features\/(?:core\/)?[^/]+\/components)\/(.+)$/.exec(spec);
+    const path = /^(@\/domains\/(?:core\/)?[^/]+\/components)\/(.+)$/.exec(spec);
     if (!path) continue;
     const segments = path[2].split("/");
     if (segments[segments.length - 1] === "index") segments.pop();
@@ -617,7 +617,7 @@ function resolveRelative(fromFile, source) {
 /**
  * loader が import してはいけない相手: `_components/`(契約外の部品)と Screen ファイル。型だけの import も不可(契約の型を契約外が決める逆転になる)。
  * 相対 import は loader の場所(path)から解決して判定する(`_components/loader.ts` からの `./Part` は `_components/` 内を指す)。
- * Screen 名の判定は相対 import か `_screen/` / `_components/` 配下に限る(`features/<domain>/types/XScreen` のような型ファイルを誤検出しない)
+ * Screen 名の判定は相対 import か `_screen/` / `_components/` 配下に限る(`domains/<domain>/types/XScreen` のような型ファイルを誤検出しない)
  * @param {string} source import 元
  * @param {string} loaderPath loader の repo 相対パス(空なら相対 import を解決しない)
  * @returns {boolean}

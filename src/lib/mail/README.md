@@ -4,7 +4,7 @@
 
 メールの送信(Resend / SendGrid)と、メールの見た目の部品(React Email)の入口 `@/lib/mail`(`send`・`MailSendError`・webhook・枠と部品・色の生成物 `MAIL_THEME_COLORS` と型)。
 
-- 利用者へのメールは連絡の定義を messaging の送信の入口 `messagingService.sendMessage` / `sendMessageToMany` が送る(送信の記録 dispatch・配達の記録 delivery・配信停止)。`send()` を呼ぶのはメールの経路の項目(src/features/core/messaging/channels/email)。書き方: src/lib/messaging/README.md
+- 利用者へのメールは連絡の定義を messaging の送信の入口 `messagingService.sendMessage` / `sendMessageToMany` が送る(送信の記録 dispatch・配達の記録 delivery・配信停止)。`send()` を呼ぶのはメールの経路の項目(src/domains/core/messaging/channels/email)。書き方: src/lib/messaging/README.md
 
 ## Usage
 

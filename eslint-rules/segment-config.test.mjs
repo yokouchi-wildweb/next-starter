@@ -57,5 +57,5 @@ test("eslint.config.mjs: page・layout・route に当たり、他のファイル
   assert.equal(await ruleIdOf("src/app/(user)/foo/layout.tsx"), 1);
   assert.equal(await ruleIdOf("src/app/api/foo/route.ts"), 1);
   assert.equal(await ruleIdOf("src/app/(user)/foo/_screen/FooScreen.tsx"), 0);
-  assert.equal(await ruleIdOf("src/features/sample/constants/index.ts"), 0);
+  assert.equal(await ruleIdOf("src/domains/sample/constants/index.ts"), 0);
 });

@@ -7,7 +7,7 @@ import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
 import type { ScreenProps } from "@/lib/screens";
-import { WalletPurchase } from "@/features/core/wallet/components/WalletPurchase";
+import { WalletPurchase } from "@/domains/core/wallet/components/WalletPurchase";
 
 import { loadWalletPurchaseScreen, type WalletPurchaseScreenParams } from "./loader";
 

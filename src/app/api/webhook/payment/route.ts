@@ -3,13 +3,13 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { purchaseRequestService } from "@/features/core/purchaseRequest/services/server/purchaseRequestService";
+import { purchaseRequestService } from "@/domains/core/purchaseRequest/services/server/purchaseRequestService";
 import { isDomainError } from "@/lib/errors";
 import {
   getPaymentProvider,
   type PaymentProviderName,
-} from "@/features/core/purchaseRequest/services/server/payment";
-import { purchaseRequestConfig } from "@/features/purchaseRequest/config";
+} from "@/domains/core/purchaseRequest/services/server/payment";
+import { purchaseRequestConfig } from "@/domains/purchaseRequest/config";
 
 /**
  * 設定済みプロバイダ名の集合（purchaseRequest/config.ts の payment から動的に導出）

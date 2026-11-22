@@ -1,8 +1,8 @@
 ---
 paths:
-  - "src/features/core/referral/**"
+  - "src/domains/core/referral/**"
 ---
-# features/referral
+# domains/referral
 what: the inviter → invitee relation made when a new user signs up with an invite code (a coupon of type invite); referralService, /api/referral/**, the mypage InviteCode container and the admin invite list. Rewards live in referralReward
 use: referral (requires coupon)
 change: none → /order <direct parent> (rewards: referralReward receptacles)

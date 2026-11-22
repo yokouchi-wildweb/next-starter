@@ -7,7 +7,7 @@ import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
 import type { ScreenProps } from "@/lib/screens";
-import { BankTransferInstruction } from "@/features/core/purchaseRequest/components/BankTransferInstruction";
+import { BankTransferInstruction } from "@/domains/core/purchaseRequest/components/BankTransferInstruction";
 
 import {
   loadWalletPurchaseBankTransferScreen,

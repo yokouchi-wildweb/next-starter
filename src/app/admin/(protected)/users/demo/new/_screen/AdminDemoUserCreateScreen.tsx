@@ -5,7 +5,7 @@
 // loader は access の評価だけ(サーバー側の取得も遷移制御も無い)。
 
 import type { ScreenProps } from "@/lib/screens";
-import { DemoUserCreate } from "@/features/core/user/components/admin";
+import { DemoUserCreate } from "@/domains/core/user/components/admin";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 
 import { loadAdminDemoUserCreateScreen } from "./loader";

@@ -3,7 +3,7 @@
 // 入口の規則(1 つ。D85): 部品・lib は入口からだけ読む。値も型も、静的・dynamic import・require・re-export も同じ。
 // 読む先を実パスに解いて(resolve-import.mjs。別名・相対・"src/…" で抜けられない)、次の 3 種を見る:
 //   1. 棚の単位 src/components/<Category>/<Unit>: 入口 = <Unit>.<拡張子> のファイルか <Unit>/index.*。中のファイルは外から読まない
-//   2. core のドメインの部品 src/features/core/<domain>/components/(common/)<Part>: 入口 = <Part>.tsx か <Part>/index.*
+//   2. core のドメインの部品 src/domains/core/<domain>/components/(common/)<Part>: 入口 = <Part>.tsx か <Part>/index.*
 //   3. 宣言済みの lib(package.json を持つ src/lib/<name>): exports の入口だけ。宣言済みの lib の中からは
 //      "libs" に書いた lib の入口・"peers" に書いた棚・"@lib-config/<自分>"(描画専用は "@lib-config/<自分>.ui"、口の決まりは scripts/structure/lib-package/configSlots.mjs)と外部パッケージだけを読む(宣言の読み手 src/lib/libPackage)
 // - 同じ単位・同じ部品・同じ lib の中からの読みは見ない(中の組み立ては自由)
@@ -17,7 +17,7 @@ import { readLibPackage } from "../src/lib/libPackage/node.mjs";
 import { isUnder, moduleVisitors, repoRelative, resolveImport } from "./resolve-import.mjs";
 
 const SHELF_UNIT = /^src\/components\/([^/]+)\/([^/]+)\/(.+)$/;
-const CORE_UI_PART = /^(src\/features\/core\/[^/]+\/components\/(?:common\/)?[^/]+)\/(.+)$/;
+const CORE_UI_PART = /^(src\/domains\/core\/[^/]+\/components\/(?:common\/)?[^/]+)\/(.+)$/;
 const ENTRY = /^index(\.(ts|tsx|mts|mjs|js|cjs))?$/;
 const GENERATED_LIST = /\/extensions\/[^/]+$/;
 const TEST_FILE = /\.test\.[cm]?[jt]sx?$/;
@@ -106,7 +106,7 @@ const rule = {
       // 2. core の部品
       const part = corePartFolderOf(resolved);
       if (part && isOutside(importer, part)) {
-        context.report({ node, messageId: "coreInner", data: { source, part: part.replace(/^src\/features\/core\//, "") } });
+        context.report({ node, messageId: "coreInner", data: { source, part: part.replace(/^src\/domains\/core\//, "") } });
         return;
       }
       // 3. lib

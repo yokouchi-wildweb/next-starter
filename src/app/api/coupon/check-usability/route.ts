@@ -4,8 +4,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { couponService } from "@/features/core/coupon/services/server/couponService";
-import { getCouponRedeemReasonMessage } from "@/features/core/coupon/constants/redeemReasonMessages";
+import { couponService } from "@/domains/core/coupon/services/server/couponService";
+import { getCouponRedeemReasonMessage } from "@/domains/core/coupon/constants/redeemReasonMessages";
 
 const CheckUsabilitySchema = z.object({
   code: z.string().min(1, { message: "クーポンコードを指定してください。" }),

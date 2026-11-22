@@ -15,7 +15,7 @@
 
 import { NextResponse } from "next/server";
 
-import { storageObjectService } from "@/features/core/storageObject/services/server/storageObjectService";
+import { storageObjectService } from "@/domains/core/storageObject/services/server/storageObjectService";
 import { probeMedia } from "@/lib/mediaProbe/server";
 import type { MediaRef, ProbeErrorCode } from "@/lib/mediaProbe";
 import { createApiRoute } from "@/wiring/apiRoute";

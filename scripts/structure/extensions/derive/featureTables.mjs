@@ -1,6 +1,6 @@
 // scripts/structure/extensions/derive/featureTables.mjs
 // 組み込みの変換 "featureTables": 機能を閉じる規則の domains: [ドメインのフォルダ](D33 で features: から改名)から、そのフォルダの全 pgTable の表名を導く(D16・D20 K1)。
-// domains に書けるのはドメインの位置にあるフォルダ(src/features/core/<名前> か src/features/<名前>。CLAUDE.md DOMAINS)。
+// domains に書けるのはドメインの位置にあるフォルダ(src/domains/core/<名前> か src/domains/<名前>。CLAUDE.md DOMAINS)。
 // 表の数は問わない(0 = Firestore のドメインなど、tables: [] になる)。無いフォルダ・ドメインの位置でない書き方(深い場所・core そのもの)は止める。
 // 規則のファイルは字面で読むだけ(import しない = 表定義を proxy の束に載せない)。ドメインの有無・表・汎用 API のキーは地区の地図の読み手
 // src/lib/districtMap の features の地区(dir・tables・apiKeys)から読む(目録 D1・D2)
@@ -92,11 +92,11 @@ export function scanCronTaskImports(repoRoot) {
  */
 export function createFeatureTables(repoRoot) {
   const map = readDistrictMapAt(repoRoot);
-  // 規則の domains は src/features からの相対("core/<d>" か "<d>")
+  // 規則の domains は src/domains からの相対("core/<d>" か "<d>")
   const districtOf = new Map(map.districts.filter((d) => d.kind === "features").map((d) => [d.dir.slice(FEATURES_DIR.length + 1), d]));
   const sections = scanSettingSectionFeatures(repoRoot);
   const cronTasks = scanCronTaskImports(repoRoot);
-  /** folders(src/features からの相対)のどれかを値で import する task と、読むフォルダ(folders のうち当たる物、folders の順) */
+  /** folders(src/domains からの相対)のどれかを値で import する task と、読むフォルダ(folders のうち当たる物、folders の順) */
   const cronTasksReading = (folders) =>
     cronTasks
       .map((task) => ({

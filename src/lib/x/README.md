@@ -10,7 +10,7 @@
 |---------|------|------|
 | ライブラリ | `src/lib/x/` | API ラッパー（本ファイル） |
 | ライブラリ | `src/lib/crypto/` | トークン暗号化（AES-256-GCM、汎用） |
-| ドメイン | `src/features/core/userXProfile/` | プロフィール + 暗号化トークン保存 |
+| ドメイン | `src/domains/core/userXProfile/` | プロフィール + 暗号化トークン保存 |
 | ルート | `src/app/api/auth/x/` | OAuth フロー（login / callback / unlink） |
 
 ## Usage
@@ -196,7 +196,7 @@ import { Link } from "@/components/Navigation/Link";
 
 ```ts
 // クライアント（UI からは fork のフックで包む。例: useDomainMutation）
-import { unlinkX } from "@/features/core/userXProfile/services/client/userXProfileClient";
+import { unlinkX } from "@/domains/core/userXProfile/services/client/userXProfileClient";
 
 await unlinkX(); // POST /api/auth/x/unlink（normalizeHttpError 済みのエラー）
 ```
@@ -204,7 +204,7 @@ await unlinkX(); // POST /api/auth/x/unlink（normalizeHttpError 済みのエラ
 ### ユーザーとして投稿する(推奨: userXProfileService)
 
 ```ts
-import { userXProfileService } from "@/features/core/userXProfile/services/server/userXProfileService";
+import { userXProfileService } from "@/domains/core/userXProfile/services/server/userXProfileService";
 import { postTweet } from "@/lib/x";
 
 // ユーザーの代わりに投稿（トークン管理は全て自動）
@@ -466,7 +466,7 @@ import {
 } from "@/lib/x";
 ```
 
-- 保存済みトークンで操作するサーバーのサービス: `@/features/core/userXProfile/services/server/userXProfileService`
+- 保存済みトークンで操作するサーバーのサービス: `@/domains/core/userXProfile/services/server/userXProfileService`
 
 | メソッド | 説明 |
 |---------|------|
@@ -533,7 +533,7 @@ user_x_profiles
 ## Related
 
 - トークン暗号化: `src/lib/crypto/`
-- 連携の保存: `src/features/core/userXProfile/`
+- 連携の保存: `src/domains/core/userXProfile/`
 - `twitter-api-v2`: https://github.com/PLhery/node-twitter-api-v2
 - API 料金(2026 年 2 月〜、変わりうる外部の情報):
 

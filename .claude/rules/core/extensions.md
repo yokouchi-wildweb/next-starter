@@ -3,7 +3,7 @@ paths:
   - "src/app/**/_screen/**"
   - "src/app/**/_layout/**"
   - "src/app/**/_components/**"
-  - "src/features/core/**"
+  - "src/domains/core/**"
 ---
 # extensions
 > **ROLE**: loaded when copying or composing a parent's parts | holds FORK_EXTENSION (judge, guards, want → means, copy and own marks)

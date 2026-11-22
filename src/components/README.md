@@ -38,7 +38,7 @@
 ### 配置判断
 
 - 配置の決まりは CLAUDE.md の CODE_PLACEMENT・COMPONENTS と `.claude/rules/core/components.md`（slots・core parts）
-- 複数ドメインで使う汎用 UI → ここ、特定ドメイン専用 UI → `src/features/<domain>/components/common/`、特定ページ専用 UI → `app/<route>/_screen/`（ルートを作った側）か `app/<route>/_components/`（fork）
+- 複数ドメインで使う汎用 UI → ここ、特定ドメイン専用 UI → `src/domains/<domain>/components/common/`、特定ページ専用 UI → `app/<route>/_screen/`（ルートを作った側）か `app/<route>/_components/`（fork）
 
 ### 包み
 

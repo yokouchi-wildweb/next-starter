@@ -5,8 +5,8 @@ import { NextResponse } from "next/server";
 import { gate } from "@/featureGate";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { isDisposableEmail } from "@/lib/spamGuard";
-import { sendEarlyRegistrationLink } from "@/features/core/auth/services/server/sendEarlyRegistrationLink";
-import { INVITE_LINK_COOKIE_NAME } from "@/features/core/referral/lib/inviteLinkCookie";
+import { sendEarlyRegistrationLink } from "@/domains/core/auth/services/server/sendEarlyRegistrationLink";
+import { INVITE_LINK_COOKIE_NAME } from "@/domains/core/referral/lib/inviteLinkCookie";
 
 export const POST = createApiRoute(
   {

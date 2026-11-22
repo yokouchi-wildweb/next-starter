@@ -8,10 +8,10 @@
 import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens";
 import { loadAdminCouponOfficialListScreen } from "./loader";
-import AdminCouponList from "@/features/core/coupon/components/AdminCouponList";
+import AdminCouponList from "@/domains/core/coupon/components/AdminCouponList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 
-import { AdminCouponSectionTabs } from "@/features/core/coupon/components/AdminCouponSectionTabs";
+import { AdminCouponSectionTabs } from "@/domains/core/coupon/components/AdminCouponSectionTabs";
 
 export const metadata = {
   title: "クーポン一覧",

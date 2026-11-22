@@ -5,4 +5,4 @@
 export const generatedHeader = (source) => `// 生成物・編集不可: pnpm generate role が ${source} から生成する`;
 
 /** プロフィールごとの生成物の 1 行目 */
-export const profileFileHeader = (roleId) => generatedHeader(`src/features/core/userProfile/profiles/${roleId}.profile.json`);
+export const profileFileHeader = (roleId) => generatedHeader(`src/domains/core/userProfile/profiles/${roleId}.profile.json`);

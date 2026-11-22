@@ -14,8 +14,8 @@ import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { MediaInput } from "@/lib/mediaInputSuite";
-import { useBankTransferVisionDemo } from "@/features/core/demo/hooks/useBankTransferVisionDemo";
-import type { DemoJudgmentResult, DemoStrictChecks } from "@/features/core/demo/types/bankTransferVision";
+import { useBankTransferVisionDemo } from "@/domains/core/demo/hooks/useBankTransferVisionDemo";
+import type { DemoJudgmentResult, DemoStrictChecks } from "@/domains/core/demo/types/bankTransferVision";
 
 const ACCEPTED_MIME_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 

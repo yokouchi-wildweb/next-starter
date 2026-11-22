@@ -3,16 +3,16 @@ import type { NextRequest, NextResponse } from 'next/server';
 
 import { gate } from '@/featureGate';
 
-import { ACQUISITION_COOKIE_NAME } from '@/features/core/userAcquisition/constants';
+import { ACQUISITION_COOKIE_NAME } from '@/domains/core/userAcquisition/constants';
 import {
   appendTouch,
   parseAttributionCookie,
   serializeAttributionCookie,
-} from '@/features/core/userAcquisition/lib/attributionCookie';
+} from '@/domains/core/userAcquisition/lib/attributionCookie';
 import {
   classifyVisit,
   getAttributionCookieMaxAgeSeconds,
-} from '@/features/core/userAcquisition/lib/classifyVisit';
+} from '@/domains/core/userAcquisition/lib/classifyVisit';
 import type { ProxyResponseDecorator } from './types';
 
 /** アセット配信など、ページナビゲーションでないパスの拡張子 (.js / .png / .ico 等) */

@@ -2,11 +2,11 @@
 // 連絡の集計の送信ごと(?cursor&limit 1-100 既定 20。送信の管理 messagingDispatches が閉なら空。管理者だけ)
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { parseDateRangeParams } from "@/features/core/analytics/services/server/utils/dateRange";
+import { parseDateRangeParams } from "@/domains/core/analytics/services/server/utils/dateRange";
 import {
   getMessagingDispatches,
   parseMessagingFilterParams,
-} from "@/features/core/analytics/services/server/messagingAnalytics";
+} from "@/domains/core/analytics/services/server/messagingAnalytics";
 
 export const GET = createApiRoute(
   {

@@ -21,7 +21,7 @@ test("1 行スイッチの組: 既定・素の名前・置き換えのどれか�
 
 test("名乗った .default: 枠の宣言の frame.default.ts は src/app の下だけ", () => {
   assert.equal(isClaimedDefault("src/app/(user)/frame.default.ts"), true);
-  assert.equal(isClaimedDefault("src/features/core/x/frame.default.ts"), false);
+  assert.equal(isClaimedDefault("src/domains/core/x/frame.default.ts"), false);
 });
 
 test("上書きの名前: 最後の拡張子を .override.ts に、逆は対象の glob の拡張子", () => {
@@ -35,5 +35,5 @@ test("上書きのファイルか: 素の override.ts と src/app の frame.over
   assert.equal(isOverridePath("src/f/roles/a.role.override.ts"), true);
   assert.equal(isOverridePath("src/app/api/cron/x/override.ts"), false);
   assert.equal(isOverridePath("src/app/(user)/frame.override.ts"), false);
-  assert.equal(isOverridePath("src/features/x/frame.override.ts"), true);
+  assert.equal(isOverridePath("src/domains/x/frame.override.ts"), true);
 });

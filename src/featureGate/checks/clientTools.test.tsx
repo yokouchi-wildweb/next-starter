@@ -16,7 +16,7 @@ import { rules as generatedRules } from "@/featureGate/extensions/rules";
 import { overrideSwitches } from "@/featureGate/ruleList";
 import { LinkButton } from "@/components/Button/LinkButton";
 import { Link, LinkVisibilityProvider } from "@/components/Navigation/Link";
-import { RichMenuCard } from "@/features/core/user/components/common/RichMenuCard";
+import { RichMenuCard } from "@/domains/core/user/components/common/RichMenuCard";
 import { GatedLink, GateProvider, useGate, type ClientGate, type ClientGateState } from "@/featureGate/client";
 import { rules } from "@/featureGate/node";
 import { clientTools } from "@/featureGate/tools/client";

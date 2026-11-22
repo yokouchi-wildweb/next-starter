@@ -35,16 +35,16 @@ function walk(dir, out = []) {
 }
 
 /**
- * ファイル → 属する features の地区(src/features からの相対のフォルダ "core/<d>" か "<d>" と、地区の名前・requires)
+ * ファイル → 属する features の地区(src/domains からの相対のフォルダ "core/<d>" か "<d>" と、地区の名前・requires)
  * @param {import("../../lib/districtMap/read.mjs").District[]} districts
  */
 function domainLookup(districts) {
   const domains = districts
     .filter((d) => d.kind === "features")
-    .map((d) => ({ folder: d.dir.slice("src/features/".length), prefix: `${d.dir}/`, name: d.name, requires: d.requires }));
+    .map((d) => ({ folder: d.dir.slice("src/domains/".length), prefix: `${d.dir}/`, name: d.name, requires: d.requires }));
   const byFolder = new Map(domains.map((d) => [d.folder, d]));
   return {
-    /** src/features の下のファイルが属するドメイン。地区の外なら null */
+    /** src/domains の下のファイルが属するドメイン。地区の外なら null */
     of: (rel) => domains.find((d) => rel.startsWith(d.prefix)) ?? null,
     /** 規則の features のフォルダが名乗る名前(地区の名前 = フォルダ名だけ。domainEntry のキーは資源の名前で名乗りに使わない、目録 D4) */
     nameOf: (folder) => byFolder.get(folder)?.name ?? folder.split("/").pop(),
@@ -82,7 +82,7 @@ export function scanDependencies({ root, rules, exceptionFiles = [], requiredNam
   const folderRules = new Map();
   for (const rule of rules) for (const folder of rule.domains ?? []) folderRules.set(folder, [...(folderRules.get(folder) ?? []), rule]);
   const folders = [...folderRules.keys()];
-  const folderOfTarget = (resolved) => folders.find((f) => resolved === `src/features/${f}` || resolved.startsWith(`src/features/${f}/`)) ?? null;
+  const folderOfTarget = (resolved) => folders.find((f) => resolved === `src/domains/${f}` || resolved.startsWith(`src/domains/${f}/`)) ?? null;
   const domains = domainLookup(readDistrictMapAt(root).districts);
   const exceptions = new Set(exceptionFiles);
   const found = [];

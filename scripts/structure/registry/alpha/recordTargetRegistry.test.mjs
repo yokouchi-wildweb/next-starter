@@ -29,12 +29,12 @@ const item = (key, messages = "[]") =>
 const definition = (key, extra = "") =>
   `import { defineMessage } from "@/lib/messaging";\nexport const message = defineMessage({ key: "${key}", label: "x", category: "notice", layout: "simple"${extra} });\n`;
 const override = (body) => `export const recordTargetOverride = { ${body} } satisfies MessageRecordTargetOverride;\n`;
-const REVIEW = "src/features/core/bankTransferReview/recordTargets/";
-const SHOP = "src/features/shop/recordTargets/";
+const REVIEW = "src/domains/core/bankTransferReview/recordTargets/";
+const SHOP = "src/domains/shop/recordTargets/";
 // 地区として見つかるよう、ドメインのフォルダに何か 1 つ置く
 const DOMAINS = {
-  "src/features/core/bankTransferReview/README.md": "# bankTransferReview\n",
-  "src/features/shop/README.md": "# shop\n",
+  "src/domains/core/bankTransferReview/README.md": "# bankTransferReview\n",
+  "src/domains/shop/README.md": "# shop\n",
 };
 
 test("0 本: 型つきの空の一覧", () => {
@@ -62,7 +62,7 @@ test("2 つのドメイン(core と業務)から集め、鍵の順にドメイ�
   const { text } = renderRecordTargetRegistry(root);
   assert.ok(
     text.includes(
-      '  "bankTransferReview.reviews": {\n    key: "bankTransferReview.reviews",\n    domain: "bankTransferReview",\n    target: () => import("@/features/core/bankTransferReview/recordTargets/reviews"),\n  },',
+      '  "bankTransferReview.reviews": {\n    key: "bankTransferReview.reviews",\n    domain: "bankTransferReview",\n    target: () => import("@/domains/core/bankTransferReview/recordTargets/reviews"),\n  },',
     ),
   );
   assert.ok(text.indexOf('"bankTransferReview.reviews"') < text.indexOf('"shop.orders"'));
@@ -70,16 +70,16 @@ test("2 つのドメイン(core と業務)から集め、鍵の順にドメイ�
 
 test("鍵の重なり: core と業務のドメインのフォルダ名が同じなら両方のファイルを名指して止める", () => {
   const root = fixture({
-    "src/features/core/shop/README.md": "# shop\n",
-    "src/features/shop/README.md": "# shop\n",
-    "src/features/core/shop/recordTargets/orders.ts": item('"shop.orders"'),
+    "src/domains/core/shop/README.md": "# shop\n",
+    "src/domains/shop/README.md": "# shop\n",
+    "src/domains/core/shop/recordTargets/orders.ts": item('"shop.orders"'),
     [`${SHOP}orders.ts`]: item('"shop.orders"'),
   });
   const { problems } = scanRecordTargets(root);
   assert.equal(problems.length, 1, problems.join("\n"));
   assert.match(problems[0], /鍵 shop\.orders が .* と重なる/);
-  assert.ok(problems[0].includes("src/features/core/shop/recordTargets/orders.ts"));
-  assert.ok(problems[0].includes("src/features/shop/recordTargets/orders.ts"));
+  assert.ok(problems[0].includes("src/domains/core/shop/recordTargets/orders.ts"));
+  assert.ok(problems[0].includes("src/domains/shop/recordTargets/orders.ts"));
 });
 
 test("止める: 鍵が場所とずれる・key がリテラルでない・形が違う・点つきの名前", () => {
@@ -102,8 +102,8 @@ test("止める: 鍵が場所とずれる・key がリテラルでない・形�
 test("messages: 名指しの連絡定義があり adminTargets に records がある(書いていない = records)なら通る", () => {
   const root = fixture({
     ...DOMAINS,
-    "src/features/shop/messages/shipped.ts": definition("shop.shipped"),
-    "src/features/shop/messages/sale.ts": definition("shop.sale", ', adminTargets: ["records", "all"]'),
+    "src/domains/shop/messages/shipped.ts": definition("shop.shipped"),
+    "src/domains/shop/messages/sale.ts": definition("shop.sale", ', adminTargets: ["records", "all"]'),
     [`${SHOP}orders.ts`]: item('"shop.orders"', '["shop.shipped", "shop.sale"]'),
   });
   const { entries, problems } = scanRecordTargets(root);
@@ -114,7 +114,7 @@ test("messages: 名指しの連絡定義があり adminTargets に records が�
 test("止める: 名指しの連絡定義が無い・その定義の adminTargets に records が無い(項目と鍵を名指す)", () => {
   const root = fixture({
     ...DOMAINS,
-    "src/features/shop/messages/sale.ts": definition("shop.sale", ', adminTargets: ["all"]'),
+    "src/domains/shop/messages/sale.ts": definition("shop.sale", ', adminTargets: ["all"]'),
     [`${SHOP}orders.ts`]: item('"shop.orders"', '["shop.missing", "shop.sale"]'),
   });
   const { problems } = scanRecordTargets(root);
@@ -139,8 +139,8 @@ test("止める: messages が無い・リテラルの配列でない", () => {
 test("override: 隣の recordTargetOverride.messages が丸ごと差し替え、検査は override を名指し、一覧に遅延 import", () => {
   const files = {
     ...DOMAINS,
-    "src/features/shop/messages/shipped.ts": definition("shop.shipped"),
-    "src/features/shop/messages/sale.ts": definition("shop.sale", ', adminTargets: ["role"]'),
+    "src/domains/shop/messages/shipped.ts": definition("shop.shipped"),
+    "src/domains/shop/messages/sale.ts": definition("shop.sale", ', adminTargets: ["role"]'),
     [`${REVIEW}reviews.ts`]: item('"bankTransferReview.reviews"'),
     [`${REVIEW}reviews.override.ts`]: override('messages: ["shop.shipped"]'),
   };
@@ -157,7 +157,7 @@ test("override: 隣の recordTargetOverride.messages が丸ごと差し替え、
     },
   ]);
   const { text } = renderRecordTargetRegistry(root);
-  assert.ok(text.includes('    override: () => import("@/features/core/bankTransferReview/recordTargets/reviews.override"),\n'));
+  assert.ok(text.includes('    override: () => import("@/domains/core/bankTransferReview/recordTargets/reviews.override"),\n'));
 
   const bad = fixture({ ...files, [`${REVIEW}reviews.override.ts`]: override('messages: ["shop.sale"]') });
   const checked = scanRecordTargets(bad);

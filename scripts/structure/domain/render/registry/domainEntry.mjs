@@ -50,7 +50,7 @@ export function renderTableLines(camel, config) {
  */
 export function renderDomainEntry({ camel, config, isCore = false }) {
   const { lines, names } = serializeAccess(buildDomainEntryAccess(config));
-  const dir = `src/features/${isCore ? "core/" : ""}${camel}`;
+  const dir = `src/domains/${isCore ? "core/" : ""}${camel}`;
   const out = [
     `// ${dir}/services/server/domainEntry.ts`,
     "// pnpm generate domain が domain.json から生成する。手で直すときは domain.json の generate を false にする（そのドメインは生成しなくなる）。",

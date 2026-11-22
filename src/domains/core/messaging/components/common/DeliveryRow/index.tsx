@@ -1,0 +1,77 @@
+// src/domains/core/messaging/components/common/DeliveryRow/index.tsx
+// 部品(props だけ): 送信の配達の 1 行(状態・送信チャンネル・宛先・利用者の名前・理由・失敗の理由の文・試した回数・時刻)。
+// 利用者の id・受信者の鍵・表に無い理由や失敗の符号は見せない(D46。表に無い符号は決まった文、符号は記録に残る)。
+// provider の生の値と誤りの文は DTO が返さない(D37)
+
+"use client";
+
+import { Flex } from "@/components/Layout/Flex";
+import { Stack } from "@/components/Layout/Stack";
+import { Span } from "@/components/TextBlocks/Span";
+
+import type { AdminDeliveryRow } from "@/domains/core/messaging/services/client/adminMessagingClient";
+
+import { DELIVERY_ERROR_TEXT } from "@/domains/core/messaging/constants/deliveryErrors";
+import { DELIVERY_REASON_LABELS, DeliveryStatusBadge } from "../DeliveryStatusBadge";
+import { messageChannelLabel } from "@/domains/core/messaging/constants/channelLabels";
+
+import { formatAdminDateTime } from "../DispatchRow";
+
+
+export type DeliveryRowProps = {
+  delivery: AdminDeliveryRow;
+};
+
+/** 配達の最後の出来事の時刻(失敗 → 配達 → 送信 → 作成の順に見る) */
+function lastEventAt(delivery: AdminDeliveryRow): string | null {
+  return delivery.failedAt ?? delivery.deliveredAt ?? delivery.sentAt ?? delivery.createdAt;
+}
+
+/** 表に無い失敗の符号の文(符号は記録に残り、画面には出さない) */
+export const DELIVERY_ERROR_FALLBACK = "送信できませんでした";
+
+export function DeliveryRow({ delivery }: DeliveryRowProps) {
+  // 宛先: メール・LINE などの宛先だけ。お知らせの宛先は利用者の id なので出さない(利用者は名前で出す)。受信者の鍵にも落とさない
+  const shownAddress = delivery.address && delivery.address !== delivery.userId ? delivery.address : null;
+  return (
+    <Stack gap="2xs" className="border-b border-border px-1 py-2" data-slot="delivery-row">
+      <Flex align="center" gap="xs" wrap="wrap">
+        <DeliveryStatusBadge status={delivery.status} />
+        <Span size="sm">{messageChannelLabel(delivery.channel)}</Span>
+        {shownAddress ? (
+          <Span size="sm" className="font-mono">
+            {shownAddress}
+          </Span>
+        ) : null}
+      </Flex>
+      <Flex align="center" gap="md" wrap="wrap">
+        {delivery.userId ? (
+          <Span size="xs" tone="muted">
+            宛先 {delivery.userName ?? "(名前未設定のユーザー)"}
+          </Span>
+        ) : null}
+        {delivery.reason ? (
+          <Span size="xs" tone="muted">
+            理由: {DELIVERY_REASON_LABELS[delivery.reason] ?? "その他"}
+          </Span>
+        ) : null}
+        {delivery.errorCode ? (
+          <Span size="xs" tone="muted">
+            エラー: {DELIVERY_ERROR_TEXT[delivery.errorCode] ?? DELIVERY_ERROR_FALLBACK}
+          </Span>
+        ) : null}
+        <Span size="xs" tone="muted">
+          送信回数 {delivery.attempts}
+        </Span>
+        {delivery.openedAt ? (
+          <Span size="xs" tone="muted">
+            開封 {formatAdminDateTime(delivery.openedAt)}
+          </Span>
+        ) : null}
+        <Span size="xs" tone="muted">
+          {formatAdminDateTime(lastEventAt(delivery))}
+        </Span>
+      </Flex>
+    </Stack>
+  );
+}

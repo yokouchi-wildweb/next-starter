@@ -9,7 +9,7 @@
 ### 生成の流れ（`pipeline/generate.mjs`）
 
 - 読む → 検査（`checks/`、全件を並べて止める）→ 全カテゴリの生成物を組み立てる → 書いた後の状態で `serviceRegistry.ts` が作れるか確かめる → 書く → `serviceRegistry.ts` を作り直す → 地区の地図 `district-map.jsonl` を書き直す
-- 組み立てでは、主の集まりの項目 `mediaCollection` があれば、従属の domain.json を無いときだけ書き出す Output も足す（`render/collections/`。雛形の形と権限の写し: [src/features/README.md](../../../src/features/README.md)「主の集まりの項目（mediaCollection）」）
+- 組み立てでは、主の集まりの項目 `mediaCollection` があれば、従属の domain.json を無いときだけ書き出す Output も足す（`render/collections/`。雛形の形と権限の写し: [src/domains/README.md](../../../src/domains/README.md)「主の集まりの項目（mediaCollection）」）
 - 登録表が作れない状態（手書きの行が残っている、他のドメインに `domainEntry.ts` が無い）なら何も書かずに止まる
 
 `pnpm generate domain` は全ドメインの生成物を先に組み立て、登録表が作れることを確かめてから書き始めるので、途中のドメインで止まって半端に残ることはない。テンプレートを変えたあとの一括反映に使う。
@@ -96,7 +96,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 - fixture: `samples`（このリポの src/ そのまま）、`synthetic` / `synthetic-bad`（`tests/fixtures/parity/<name>/<domain>/domain.json`。Firestore・hiddenColumns・63 字超の FK・空スキーマ・入れ子リレーション・メディア列・旧形式のキーと、検査で止まる失敗系。主の集まりの項目の組 = `showcase` と `atelier`）。`--repo <path>` で fork のリポを足せる
 - mode: `each`（1 ドメインずつ）、`all`、`all2`（2 回 = 冪等性）、`only-registry`、`only-entities-hooks`。`--modes` / `--variants` / `--fixtures` で絞る、`--keep` で作業ディレクトリを残す
 - 失敗系は両版が同じ exit code・同じエラー文で止まることを見る。差分の詳細は FAIL 行の report（JSON）に出る
-- 旧側の src 部品: テンプレート（`src/features/_template`・`src/app/admin/_template`）は ref のものを使う。生成器は src の `.mjs`（型の表 `src/lib/domain/fields`、`src/lib/domain/relations`、`src/utils`）も import するので、旧側は ref の生成器の import を辿ってそのフォルダも ref から取り出して重ねる（表・`presenterFor` の変更も差分に出る）。ref に無いフォルダは作業ツリーのまま使い、起動時に重ねたフォルダとともに表示する。重ねたフォルダ（新側が import するフォルダも）は生成物ではないので比べない
+- 旧側の src 部品: テンプレート（`src/domains/_template`・`src/app/admin/_template`）は ref のものを使う。生成器は src の `.mjs`（型の表 `src/lib/domain/fields`、`src/lib/domain/relations`、`src/utils`）も import するので、旧側は ref の生成器の import を辿ってそのフォルダも ref から取り出して重ねる（表・`presenterFor` の変更も差分に出る）。ref に無いフォルダは作業ツリーのまま使い、起動時に重ねたフォルダとともに表示する。重ねたフォルダ（新側が import するフォルダも）は生成物ではないので比べない
 - 対話（`-i`）の経路は対象外
 - 旧側は ref の生成器で動くので、ref より後に入った domain.json の形（`generate` の旗など）は旧側で読めない。そうした変更の前後は `--dry-run` の比較で確かめる
 - 新しい形の domain.json を生成器が受けるようになったら、`tests/fixtures/parity/synthetic/` にその例を 1 つ足す

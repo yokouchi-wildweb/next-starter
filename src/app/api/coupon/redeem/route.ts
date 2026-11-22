@@ -9,8 +9,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { couponService } from "@/features/core/coupon/services/server/couponService";
-import { getCouponRedeemReasonMessage } from "@/features/core/coupon/constants/redeemReasonMessages";
+import { couponService } from "@/domains/core/coupon/services/server/couponService";
+import { getCouponRedeemReasonMessage } from "@/domains/core/coupon/constants/redeemReasonMessages";
 
 /** 汎用消込が受理する種別。帰属付き種別（invite / affiliate）は専用入口のみ */
 const GENERIC_REDEEM_SCOPE = { types: ["official"] } as const;
