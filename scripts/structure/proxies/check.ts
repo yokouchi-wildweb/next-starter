@@ -1,9 +1,11 @@
 #!/usr/bin/env tsx
-// scripts/structure/proxies/check.ts — 段階 build の門番の検査の入口(pnpm check proxies、設定の議会 L1.44)
+// scripts/structure/proxies/check.ts — 段階 build・ship の門番の検査の入口(pnpm check proxies、設定の議会 L1.44)
 //
-// 門番の検査のうちビルドで止める物をここで順に呼ぶ。検査の本体は src/featureGate/checks に 1 検査 1 ファイル(門番 m107)。
+// 門番の検査をここで順に呼ぶ。検査の本体は src/featureGate/checks に 1 検査 1 ファイル(門番 m107)。
 // 今の検査: 機能を要する設定の値(featureRequirements、設定 D107・D110)・明示的に開けた子の親(explicitChildren、D121)・
 // 門番のテスト(FEATURE_GATE_CHECK=all、当議会 D133、testGate.mjs)。どれかが失敗したら exit 1
+// 門番のテストは段階 build では回さない(D294: build はテストを回さない。Vercel の build には .git が無く、テストの runner が読めない)。
+// 段階は run.mjs が env PHASE で渡す(名指しの pnpm check proxies は PHASE=- で、テストも回る)
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -28,7 +30,12 @@ async function main() {
     console.error(`❌ proxies: switches.config.ts で開けた機能 ${children.problems.length} 件の親が閉(src/featureGate/README.md)`);
     for (const problem of children.problems) console.error(`  - ${problem}`);
   } else console.log(`proxies: switches で開けた機能 ${children.checked} 件の親 OK`);
-  // 門番のテスト(FEATURE_GATE_CHECK=all、当議会 D133): 落ちたら違反と環境の依存の不足を分けて出し、どちらも止める
+  // 門番のテスト(FEATURE_GATE_CHECK=all、当議会 D133): 落ちたら違反と環境の依存の不足を分けて出し、どちらも止める。段階 build では回さない(D294)
+  if (process.env.PHASE === "build") {
+    console.log("proxies: 門番のテストは段階 build では回さない(出荷の段階 ship で回る)");
+    if (failed) process.exit(1);
+    return;
+  }
   const tests = runGateTests(repoRoot);
   if (tests.ok) console.log(`proxies: 門番のテスト OK(${tests.summary.join(" / ").replaceAll("ℹ ", "")})`);
   else {

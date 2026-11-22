@@ -2,7 +2,7 @@
 // 機能を要する設定の値の検査(設定 D107・D110、門番 m107 の 1 検査 1 ファイル)。
 // 地区の持ち主の config.ts の宣言 featureRequirements(読み手 src/lib/districtMap、地図の欄)ごとに、合成した値(既定 + src/config の上書き)を
 // 鍵で読み、off でない(element なら要素に off 以外がある)のに機能が規則の値で閉(configEnabled、全開スイッチを通さない)なら失敗にする。
-// 入口: 段階 build の pnpm check proxies(scripts/structure/proxies/check.ts)と FEATURE_GATE_CHECK=all pnpm test src/featureGate(./featureRequirements.test.ts)
+// 入口: 段階 build・ship の pnpm check proxies(scripts/structure/proxies/check.ts)と FEATURE_GATE_CHECK=all pnpm test src/featureGate(./featureRequirements.test.ts)
 
 import path from "node:path";
 import { pathToFileURL } from "node:url";

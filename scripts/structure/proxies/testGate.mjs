@@ -1,4 +1,4 @@
-// scripts/structure/proxies/testGate.mjs — 門番のテストを段階で回す段(当議会 D133、check.ts が呼ぶ)
+// scripts/structure/proxies/testGate.mjs — 門番のテストを段階で回す段(当議会 D133、check.ts が呼ぶ。段階 ship だけ、build では回さない D294)
 //
 // FEATURE_GATE_CHECK=all で src/featureGate と scripts/structure/proxies のテストを pnpm test の runner で回し、
 // 落ちたテストを「違反」と「環境の依存の不足」(DB・Firebase の未設定、モジュールが見つからない)に分けて返す。
