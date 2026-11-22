@@ -4,7 +4,7 @@
 //   選んだ種別のシステムテンプレート(シンプル・リッチ・メンテナンスなど、説明「システム」)→ 公開中のテンプレート(説明は版、D119)
 //   (SelectPopover、多ければ検索)、選ぶと onLoad(id)
 // - 読み込んだ後: 名前と版、直した印(edited)、「別のテンプレートを読み込む」「テンプレートの読み込みを解除」(解除 = 白紙に戻す。今の文はひな形が同じなら残る = hook)
-// 専用の埋め込み情報の入力は SendEmbeddedInputs(このフォルダ)
+// 専用の埋め込み情報の入力は SendVarInputs(このフォルダ)
 
 "use client";
 
@@ -14,7 +14,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { SelectPopover } from "@/components/Overlays/Popover";
 import { Span } from "@/components/TextBlocks/Span";
 
-export { SendEmbeddedInputs, type SendEmbeddedInputsProps } from "./SendEmbeddedInputs";
+export { SendVarInputs, type SendVarInputsProps } from "./SendVarInputs";
 
 export type SendTemplatePickerProps = {
   /** 選べるテンプレート(選んだ種別のシステムテンプレート(system)と公開中の物) */

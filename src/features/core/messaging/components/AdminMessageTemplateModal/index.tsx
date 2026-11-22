@@ -32,11 +32,11 @@ import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 import { err } from "@/lib/errors";
 
-import { EmbeddedInfoPopover } from "@/features/core/messaging/components/common/EmbeddedInfoPopover";
+import { VarPopover } from "@/features/core/messaging/components/common/VarPopover";
 import { KindCategoryFields } from "@/features/core/messaging/components/common/KindCategoryFields";
 import { LayoutFields } from "@/features/core/messaging/components/common/LayoutFields";
 import { LayoutPreview } from "@/features/core/messaging/components/common/LayoutPreview";
-import { TemplateEmbeddedInfoModal } from "@/features/core/messaging/components/common/TemplateEmbeddedInfoModal";
+import { TemplateVarsModal } from "@/features/core/messaging/components/common/TemplateVarsModal";
 import { TemplateVersionList } from "@/features/core/messaging/components/common/TemplateVersionList";
 import { useVarTags } from "@/features/core/messaging/hooks/useVarTags";
 import { useLayoutPreview } from "@/features/core/messaging/hooks/useLayoutPreview";
@@ -109,9 +109,9 @@ function TemplateModalBody({
   const locked = form.readOnly;
   const [versionsOpen, setVersionsOpen] = useState(false);
 
-  // 埋め込み情報 = 下の操作の帯の左(モーダルに固定でいつも押せる)。吹き出しは上に開く(EmbeddedInfoPopover)
-  const embeddedControls = (
-    <EmbeddedInfoPopover
+  // 埋め込み情報 = 下の操作の帯の左(モーダルに固定でいつも押せる)。吹き出しは上に開く(VarPopover)
+  const varControls = (
+    <VarPopover
       common={tags.common}
       own={tags.own}
       onCopy={tags.copy}
@@ -124,7 +124,7 @@ function TemplateModalBody({
   const footer = form.system ? null : (
     <Flex align="center" justify="between" gap="md" wrap="wrap">
       {/* 埋め込み情報は入力欄と同じく、そろうまで出さない(D139)。右の操作は右に寄せたまま */}
-      {form.fieldsReady ? embeddedControls : null}
+      {form.fieldsReady ? varControls : null}
       {locked ? null : (
         <Flex justify="end" gap="xs" wrap="wrap" className="ml-auto">
           {template ? (
@@ -320,7 +320,7 @@ function TemplateModalBody({
         confirmVariant="destructive"
         onConfirm={fields.confirmLayoutChange}
       />
-      <TemplateEmbeddedInfoModal
+      <TemplateVarsModal
         open={varsEditor.open}
         onOpenChange={varsEditor.setOpen}
         rows={varsEditor.rows}

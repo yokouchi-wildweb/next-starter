@@ -77,7 +77,7 @@ export type AdminOverrideMessageDetail = {
   /** 使ってよい {{鍵}}(vars は秘密を除く・共通の文脈・provides) */
   allowedKeys: string[];
   /**
-   * 埋め込み情報の一覧(部品 EmbeddedInfoTags が読む): 共通 + 当たる enrichers(日本語の別名つき)+ この連絡の vars(秘密を除く。
+   * 埋め込み情報の一覧(部品 VarTags が読む): 共通 + 当たる enrichers(日本語の別名つき)+ この連絡の vars(秘密を除く。
    * source "own"、別名なし = 鍵で書く)
    */
   vars: MessageVarEntry[];

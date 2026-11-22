@@ -26,7 +26,7 @@ import { messageChannelLabel } from "@/features/core/messaging/constants/channel
 import type { OverrideFieldValue } from "@/features/core/messaging/hooks/useMessageOverrideEditor";
 import type { AdminOverrideField } from "@/features/core/messaging/services/client/overrideClient";
 
-import { EmbeddedInfoTags } from "../EmbeddedInfoTags";
+import { VarTags } from "../VarTags";
 import { LayoutFieldInput } from "../LayoutFields";
 import { OverrideFieldMarks } from "../OverrideFieldMarks";
 
@@ -143,7 +143,7 @@ export function OverrideFieldEditor({
           {error}
         </Para>
       ) : null}
-      {unknownKeys.length > 0 ? <EmbeddedInfoTags common={[]} own={[]} unknownNames={unknownKeys} showTitle={false} /> : null}
+      {unknownKeys.length > 0 ? <VarTags common={[]} own={[]} unknownNames={unknownKeys} showTitle={false} /> : null}
 
       {shape ? (
         <Stack gap="2xs" data-slot="override-field-code">

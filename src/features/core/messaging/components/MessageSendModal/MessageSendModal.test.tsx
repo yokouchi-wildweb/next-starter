@@ -191,14 +191,14 @@ mock.module(`${COMMON}/KindCategoryFields`, { namedExports: { KindCategoryFields
 mock.module(`${COMMON}/SendCategoryChannels`, { namedExports: { SendCategoryChannels: stub("channels") } });
 mock.module(`${COMMON}/SendTargetPicker`, { namedExports: { SendTargetPicker: stub("target") } });
 mock.module(`${COMMON}/SendTemplatePicker`, {
-  namedExports: { SendTemplatePicker: stub("template"), SendEmbeddedInputs: stub("vars") },
+  namedExports: { SendTemplatePicker: stub("template"), SendVarInputs: stub("vars") },
 });
 mock.module(`${COMMON}/LayoutFields`, { namedExports: { LayoutFields: stub("layoutFields") } });
 mock.module(`${COMMON}/LayoutPreview`, { namedExports: { LayoutPreview: stub("layoutPreview") } });
 mock.module(`${COMMON}/SendSchedule`, { namedExports: { SendSchedule: stub("schedule") } });
 mock.module(`${COMMON}/SendConfirmView`, { namedExports: { SendConfirmView: stub("confirm"), SendResultView: stub("result") } });
 mock.module(`${COMMON}/SampleForYouModal`, { namedExports: { SampleForYouModal: stub("sampleForYou") } });
-mock.module(`${COMMON}/EmbeddedInfoPopover`, { namedExports: { EmbeddedInfoPopover: stub("embeddedInfo") } });
+mock.module(`${COMMON}/VarPopover`, { namedExports: { VarPopover: stub("varPopover") } });
 
 // 回の一覧(開く口)の周り: 絞り込みの入力・SWR・URL・一括操作・詳細のモーダルは jsdom で動かさない偽物
 mock.module("@/components/Input/DateInput", {
@@ -298,7 +298,7 @@ test("書く段: 部品を並べ、confirmOnClose に closeConfirm、ボタン�
   const view = await render(createElement(MessageSendModal, { mode: NEW }));
   // 並び(D110 D115 D118): 種別とカテゴリー → 送信方法 → 宛先 → テンプレート → 内容(白紙 = ひな形の欄)→ 送信日時、
   // プレビューのペイン → 下の帯(埋め込み情報の吹き出し)。「あなた宛ての表示例」は表示例が無い間は出さない
-  assert.deepEqual(parts(view.container), ["kindCategory", "channels", "target", "template", "layoutFields", "schedule", "layoutPreview", "embeddedInfo"]);
+  assert.deepEqual(parts(view.container), ["kindCategory", "channels", "target", "template", "layoutFields", "schedule", "layoutPreview", "varPopover"]);
   assert.equal(lastProps.get("target")!.kind, "select");
   assert.deepEqual(lastProps.get("template")!.templates, [{ id: "t1", name: "春", currentVersion: 2, system: false }]);
   assert.equal(lastProps.get("template")!.loaded, null);
@@ -348,7 +348,7 @@ test("bulk は宛先 = 選んだ記録の数、予約を出さない", async () 
   const view = await render(
     createElement(MessageSendModal, { mode: { type: "bulk", target: "t", recordIds: ["r1", "r2"], recordNoun: "記録" } }),
   );
-  assert.deepEqual(parts(view.container), ["kindCategory", "channels", "target", "template", "layoutFields", "layoutPreview", "embeddedInfo"]);
+  assert.deepEqual(parts(view.container), ["kindCategory", "channels", "target", "template", "layoutFields", "layoutPreview", "varPopover"]);
   assert.equal(lastProps.get("target")!.kind, "bulk");
   assert.equal(lastProps.get("target")!.recordCount, 2);
   assert.equal(lastProps.get("target")!.recordNoun, "記録");

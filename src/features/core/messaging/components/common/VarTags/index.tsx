@@ -1,4 +1,4 @@
-// src/features/core/messaging/components/common/EmbeddedInfoTags/index.tsx
+// src/features/core/messaging/components/common/VarTags/index.tsx
 // 部品(props だけ): 埋め込み情報のタグ(D111 D126)。共通(共通の一覧と enricher)と専用(このテンプレート・連絡の宣言)を分け、専用は色を変える。
 // タグは日本語の別名を出し、押すと {{別名}} をコピー(onCopy、hook useVarTags)。ツールチップは出さない(使い方は見出しの 1 行)。
 // unknownNames = 今の文の中の一覧に無い名前(使えない印)。一覧は hook が lib の varCatalog から作る
@@ -14,9 +14,9 @@ import { cn } from "@/lib/cn";
 import type { MessageVarEntry } from "@/lib/messaging";
 
 /** 使い方の 1 行(見出しの下。吹き出しの題の下にも使う) */
-export const EMBEDDED_INFO_USAGE = "クリックでコピー、本文の中にペーストして埋め込み";
+export const VAR_USAGE = "クリックでコピー、本文の中にペーストして埋め込み";
 
-export type EmbeddedInfoTagsProps = {
+export type VarTagsProps = {
   /** 共通の埋め込み情報(共通の一覧 + enricher) */
   common: readonly MessageVarEntry[];
   /** 専用の埋め込み情報 */
@@ -29,7 +29,7 @@ export type EmbeddedInfoTagsProps = {
   showTitle?: boolean;
 };
 
-export function EmbeddedInfoTags({ common, own, onCopy, unknownNames = [], showTitle = true }: EmbeddedInfoTagsProps) {
+export function VarTags({ common, own, onCopy, unknownNames = [], showTitle = true }: VarTagsProps) {
   return (
     <Stack gap="xs" data-slot="vars-info-tags">
       {showTitle ? (
@@ -38,7 +38,7 @@ export function EmbeddedInfoTags({ common, own, onCopy, unknownNames = [], showT
             埋め込み情報
           </Span>
           <Span size="xs" tone="muted">
-            {EMBEDDED_INFO_USAGE}
+            {VAR_USAGE}
           </Span>
         </Stack>
       ) : null}

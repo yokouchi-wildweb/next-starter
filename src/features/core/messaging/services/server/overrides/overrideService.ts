@@ -15,7 +15,7 @@
 // - プレビュー(D86): 保存した値と未保存の値(values = { 欄の鍵: 値 }、検査を通る物だけ)をコードの値に重ね、文字の欄を印で包んで(previewMarkers.ts)
 //   送る口と同じ組み立て(sendMessage/content.ts)で経路 1 つを描く。経路に preview が無ければ html は null。
 //   ひな形の鍵・その経路の欄の中身(印なし)・要約も返す(お知らせは client のひな形の描き方 layoutInApps が描く)
-// - 1 件は埋め込み情報の一覧(vars: 共通 + enrichers と enricher と同じ鍵の vars の別名 + 残りの vars)も返す(部品 EmbeddedInfoTags)
+// - 1 件は埋め込み情報の一覧(vars: 共通 + enrichers と enricher と同じ鍵の vars の別名 + 残りの vars)も返す(部品 VarTags)
 // - service でも管理者を確かめる(D42)
 
 import { isDeepStrictEqual } from "node:util";
