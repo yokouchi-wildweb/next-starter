@@ -174,6 +174,9 @@ export const VOCAB = [
   // ── S4 送る画面の公開の hook(D191)
   ex("MessageSendStep", "SendStep", "S4", "送る画面の進行の段(useSendSteps と同じ型。別名は無い)", DOMAIN),
 
+  // ── S6 画面の語(D186・D187・D189)
+  ex("MESSAGE_KIND_LABELS", null, "S6", "種別の表示名は messaging の config kindLabels(label・adminLabel?)。読むのは presenters の messageKindLabel / messageKindAdminLabel。fork の名前の変更は src/config/features/messaging.config.ts", DOMAIN),
+
   // ── 開発の語(D180〜D182。書き換えず一覧に出すだけ)
   word("種類", "カテゴリー", "S1", "種類", "カテゴリー(category)の意味の時だけ(D182 (2))。種別(kind)・ほかの意味の種類はそのまま"),
   word("回", "送信", "S1", "(?<![今前次毎初数何一二三])回(?=[のにをがはでへとごも])", "dispatch の意味の時だけ(D182 (3))。配達(delivery)はそのまま"),

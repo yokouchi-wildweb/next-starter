@@ -1,10 +1,10 @@
 // src/features/core/wallet/messages/expiringNotice.ts
 //
 // 失効の予告(残高の有効期限が近い)。送り手: services/server/notification/sendPreExpiryNotices.ts(cron wallet-expiration-notice)
-// 送る段(何日前)と経路は wallet の config(expiration[<通貨>].notice.preExpiry[].channels)、文面はここ。
+// 送る段(何日前)は wallet の config(expiration[<通貨>].notice.preExpiry)、送信チャンネルはカテゴリー、文面はここ。
 // 段ごとに文面を変えたいときは override で {{daysBefore}} を使う(段ごとの文面の設定は無い)。
-// 種類 walletExpiring(種別 activity = 利用者が止められる失効の予告、D67。経路は種類から)。二重送信の鍵: wallet-expiring:<通貨>:<日数>:<利用者>:<失効日>
-// ひな形: statement(お知らせの明細、messaging/layouts/statement。お知らせの一覧は要約 = 件名と短い本文、詳細はひな形の描き方)
+// カテゴリー walletExpiring(種別 transactional = 利用者は止められない、送るかは wallet の config の段が決める D207・D208)。二重送信の鍵: wallet-expiring:<通貨>:<日数>:<利用者>:<失効日>
+// レイアウト: statement(明細、messaging/layouts/statement。サービス内通知の一覧は要約 = 件名と短い本文、詳細はレイアウトの描き方)
 
 import { z } from "zod";
 

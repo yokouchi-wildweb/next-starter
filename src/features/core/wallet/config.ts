@@ -19,22 +19,23 @@ import type { CurrencyConfig } from "./types/currency";
 export type WalletPurchaseRestriction = "none" | "phoneVerified";
 
 /**
- * 失効予告の1段（「何日前に」送るか）。経路は連絡の種類が決める(D86。上流 = 種類 walletExpiring の email・inApp、
- * 変えるなら種類の override src/features/core/messaging/categories/walletExpiring.override.ts の channels)。
- * 文面は連絡の定義 src/features/core/wallet/messages/expiringNotice.ts(変えるなら隣に expiringNotice.override.ts。
+ * 失効予告の1段（「何日前に」送るか）。送るかはこの段が決める(上流のカテゴリー walletExpiring は種別 transactional で、利用者は止められない D207・D208)。
+ * 送信チャンネルはカテゴリーが決める(D86。上流 = カテゴリー walletExpiring の email・inApp、
+ * 変えるならカテゴリーの override src/features/core/messaging/categories/walletExpiring.override.ts の channels)。
+ * 文面は連絡定義 src/features/core/wallet/messages/expiringNotice.ts(変えるなら隣に expiringNotice.override.ts。
  * 段ごとに変えたいときは {{daysBefore}} を使う)
  */
 export type WalletPreExpiryNoticeStage = {
   /** 失効の何日前に送るか（1以上の整数。同一通貨内で重複不可） */
   daysBefore: number;
   /**
-   * 送る連絡の鍵(省略 = 上流の wallet.expiringNotice)。通貨・段ごとに経路を変えたい fork は、自分の種類(= 自分の経路)の
+   * 送る連絡の鍵(省略 = 上流の wallet.expiringNotice)。通貨・段ごとに送信チャンネルを変えたい fork は、自分のカテゴリー(= 自分の送信チャンネル)の
    * 連絡を足してここで向ける(vars は wallet.expiringNotice と同じ物を受けること)
    */
   messageKey?: string;
 };
 
-/** 失効時の本通知(文面は連絡の定義 messages/expiredNotice.ts、経路は種類 walletExpired) */
+/** 失効時の本通知(文面は連絡定義 messages/expiredNotice.ts、送信チャンネルはカテゴリー walletExpired) */
 export type WalletExpiredNotice = {
   /** 送る連絡の鍵(省略 = 上流の wallet.expiredNotice。vars は同じ物を受けること) */
   messageKey?: string;
@@ -197,7 +198,7 @@ export type WalletConfig = {
   /** 消費し尽くしたロット（remaining = 0）を物理削除するまでの保持日数 */
   lotPruneRetentionDays: number;
   /**
-   * 管理者による残高変更通知の値の表示(文面は連絡の定義 messages/adjustmentNotice.ts。
+   * 管理者による残高変更通知の値の表示(文面は連絡定義 messages/adjustmentNotice.ts。
    * 送り手: services/server/notification/sendAdjustmentNotification.ts)
    */
   adjustmentNotification: {
@@ -230,7 +231,7 @@ const defaults: WalletConfig = {
    * 「最後の残高変更から180日」で数える例:
    *   regular_point: { expirationDays: 180, expirationBasis: "lastActivity", sweepEnabled: true },
    *
-   * 通知も送る例（30日前と7日前と失効時。経路は連絡の種類 walletExpiring・walletExpired が決める）:
+   * 通知も送る例（30日前と7日前と失効時。送信チャンネルはカテゴリー walletExpiring・walletExpired が決める）:
    *   regular_coin: {
    *     expirationDays: 180,
    *     sweepEnabled: true,
@@ -239,9 +240,9 @@ const defaults: WalletConfig = {
    *       expired: {},
    *     },
    *   },
-   *   30日前だけメールにしたいなど段ごとに経路を変えるなら、その経路の種類と連絡を fork が足して
+   *   30日前だけメールにしたいなど段ごとに送信チャンネルを変えるなら、その送信チャンネルのカテゴリーと連絡定義を fork が足して
    *   { daysBefore: 30, messageKey: "<自分のドメイン>.<名前>" } と向ける
-   *   (文面は連絡の定義 messages/expiringNotice.ts・expiredNotice.ts。変えるなら隣の <名前>.override.ts)
+   *   (文面は連絡定義 messages/expiringNotice.ts・expiredNotice.ts。変えるなら隣の <名前>.override.ts)
    */
   expiration: {
     regular_coin: { expirationDays: null, sweepEnabled: false },

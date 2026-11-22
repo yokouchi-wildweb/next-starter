@@ -18,7 +18,7 @@ import { Span } from "@/components/TextBlocks/Span";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { CreateButton } from "@/lib/crud";
 
-import { MESSAGE_KIND_LABELS } from "@/features/core/messaging/constants/kindLabels";
+import { messageKindAdminLabel, messageKindAdminOptions } from "@/features/core/messaging/presenters";
 import { AdminMessageTemplateModal } from "@/features/core/messaging/components/AdminMessageTemplateModal";
 import { KindCategoryMeta, RowDateMeta, RowMetaItem } from "@/features/core/messaging/components/common/MessageRowMeta";
 import { useAdminDispatchCategories } from "@/features/core/messaging/hooks/useAdminDispatchCategories";
@@ -37,12 +37,10 @@ export function AdminMessageTemplateList() {
   // 種別の表示名: カテゴリーの受け口の種別から(送信一覧と同じ「種別 › カテゴリー」)
   const categories = useAdminDispatchCategories();
   // 種別の絞り込みの選択肢 = 管理画面から送れるカテゴリーの種別(重ねない、表の並び)
-  const kindOptions = (Object.keys(MESSAGE_KIND_LABELS) as (keyof typeof MESSAGE_KIND_LABELS)[])
-    .filter((key) => categories.categories.some((category) => category.kind === key))
-    .map((key) => ({ value: key, label: MESSAGE_KIND_LABELS[key] }));
+  const kindOptions = messageKindAdminOptions().filter((option) => categories.categories.some((category) => category.kind === option.value));
   const kindLabelOf = (template: { category: string }) => {
     const kind = categories.categories.find((category) => category.key === template.category)?.kind ?? null;
-    return kind && kind in MESSAGE_KIND_LABELS ? MESSAGE_KIND_LABELS[kind as keyof typeof MESSAGE_KIND_LABELS] : null;
+    return kind ? messageKindAdminLabel(kind) : null;
   };
 
   return (

@@ -1,7 +1,7 @@
 // src/features/core/auth/messages/emailChange.ts
 //
 // メールアドレスの変更の確認(新しいアドレスへ送る)。送り手: services/server/sendEmailChangeLink.ts
-// 止められない連絡(required)。リンクは秘密。ひな形: link(認証のリンク、messaging/layouts/link)
+// 止められない連絡(required)。リンクは秘密。レイアウト: link(認証のリンク、messaging/layouts/link)
 
 import { z } from "zod";
 

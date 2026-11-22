@@ -1,8 +1,8 @@
 // wallet の連絡 3 本(失効の予告・失効の本通知・残高の変更)の検査:
 // - メール: 件名と見える文面が前の送り方(config の copy を管理者のお知らせのメールに入れたもの)と同じ
-// - お知らせ(inApp): ひな形の要約(題 = 件名、本文 = 本文)。失効の 2 本は前の短い本文ではなくメールと同じ本文になる(指令 55、S6 まで)。
+// - お知らせ(inApp): レイアウトの要約(題 = 件名、本文 = 本文)。失効の 2 本は前の短い本文ではなくメールと同じ本文になる(指令 55、S6 まで)。
 //   残高の変更は題と本文が前の組み立て(buildTitle・buildBody)と同じ
-// - 送る口と同じくひな形(statement・notice)の描き方で描く
+// - 送る口と同じくレイアウト(statement・notice)の描き方で描く
 // 実行: pnpm test src/features/core/wallet/messages
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -47,7 +47,7 @@ function visibleText(html: string): string {
 
 async function draw(definition: { vars: { parse: (v: unknown) => unknown }; layout: string; values: Readonly<Record<string, unknown>> }, vars: Record<string, string>) {
   definition.vars.parse(vars);
-  // 送る口と同じく、ひな形のメールの描き方で描く(件名 = 要約の題)
+  // 送る口と同じく、レイアウトのメールの描き方で描く(件名 = 要約の題)
   const layout = layouts[definition.layout]!;
   const values = fill(definition.values, vars) as Record<string, unknown>;
   const summary = layout.summary(values);
@@ -55,7 +55,7 @@ async function draw(definition: { vars: { parse: (v: unknown) => unknown }; layo
   return { subject: summary.title, text: visibleText(html) };
 }
 
-/** お知らせ(inApp)の行の題と本文 = ひな形の要約(送る口の inApp は要約から描く) */
+/** お知らせ(inApp)の行の題と本文 = レイアウトの要約(送る口の inApp は要約から描く) */
 function inAppOf(definition: { layout: string; values: Readonly<Record<string, unknown>> }, vars: Record<string, string>) {
   const summary = layouts[definition.layout]!.summary(fill(definition.values, vars) as Record<string, unknown>);
   return { title: summary.title, body: summary.body };
@@ -122,7 +122,7 @@ test("残高の変更: 題と本文が前の組み立てと同じ(理由のあ�
   assert.equal(render({ ...base, changeMethod: "OTHER" }).body, `操作: OTHER\n金額: 1,000 ${unit}\n残高: 1,000 ${unit}`);
 });
 
-test("種類: 失効の予告は止められる activity(D67)、失効と残高の変更は取引。経路は種類から", () => {
+test("カテゴリー: 失効の予告・失効・残高の変更はどれも種別 transactional(失効の予告は利用者が止められない D207・D208)。送信チャンネルはカテゴリーから", () => {
   for (const definition of [expiringNotice, expiredNotice, adjustmentNotice]) assert.equal(definition.required, undefined);
   assert.deepEqual(
     [expiringNotice, expiredNotice, adjustmentNotice].map((definition) => {
@@ -130,14 +130,14 @@ test("種類: 失効の予告は止められる activity(D67)、失効と残高�
       return [definition.category, category.kind, [...category.channels]];
     }),
     [
-      ["walletExpiring", "activity", ["email", "inApp"]],
+      ["walletExpiring", "transactional", ["email", "inApp"]],
       ["walletExpired", "transactional", ["email", "inApp"]],
       ["walletAdjusted", "transactional", ["inApp"]],
     ],
   );
 });
 
-test("ひな形: 失効の 2 本は statement(お知らせの明細)、残高の変更は notice(汎用のお知らせ)", () => {
+test("レイアウト: 失効の 2 本は statement(お知らせの明細)、残高の変更は notice(汎用のお知らせ)", () => {
   assert.equal(expiringNotice.layout, "statement");
   assert.equal(expiredNotice.layout, "statement");
   assert.equal(adjustmentNotice.layout, "notice");

@@ -35,7 +35,7 @@ import { listVariables } from "@/lib/templateVariables";
 import { useToast } from "@/lib/toast";
 import { useUnsavedGuard } from "@/lib/unsavedGuard";
 
-import { MESSAGE_KIND_LABELS } from "../constants/kindLabels";
+import { messageKindAdminLabel } from "../presenters";
 import {
   deleteMessageTemplate,
   createMessageTemplate,
@@ -167,7 +167,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
   const kindOptions = useMemo(
     () =>
       MESSAGE_KINDS.filter((kind) => (TEMPLATE_KINDS as readonly string[]).includes(kind) && categories.some((category) => category.kind === kind)).map(
-        (kind) => ({ value: kind, label: MESSAGE_KIND_LABELS[kind] }),
+        (kind) => ({ value: kind, label: messageKindAdminLabel(kind) }),
       ),
     [categories],
   );

@@ -1,7 +1,7 @@
 // src/features/core/user/messages/registrationComplete.ts
 //
 // 会員登録の完了の知らせ(signupMode が earlyRegistration でないとき)。送り手: services/server/registration/sendRegistrationCompleteMail.ts
-// 種類 registrationComplete(種別 transactional、好みを見ない)。ひな形: welcome(ようこそ、messaging/layouts/welcome)
+// カテゴリー registrationComplete(種別 transactional、好みを見ない)。レイアウト: welcome(ようこそ、messaging/layouts/welcome)
 
 import { z } from "zod";
 

@@ -1,9 +1,9 @@
 // src/features/core/wallet/messages/expiredNotice.ts
 //
 // 失効の本通知(有効期限切れで残高を没収した後)。送り手: services/server/notification/sendExpiredNotices.ts(cron wallet-expiration-notice)
-// 経路は wallet の config(expiration[<通貨>].notice.expired.channels)、文面はここ。
-// 種類 walletExpired(種別 transactional)。二重送信の鍵: wallet-expired:<履歴の id>
-// ひな形: statement(お知らせの明細、messaging/layouts/statement。お知らせの一覧は要約 = 件名と短い本文、詳細はひな形の描き方)
+// 送るかは wallet の config(expiration[<通貨>].notice.expired)、送信チャンネルはカテゴリー、文面はここ。
+// カテゴリー walletExpired(種別 transactional)。二重送信の鍵: wallet-expired:<履歴の id>
+// レイアウト: statement(明細、messaging/layouts/statement。サービス内通知の一覧は要約 = 件名と短い本文、詳細はレイアウトの描き方)
 
 import { z } from "zod";
 

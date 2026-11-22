@@ -2,7 +2,7 @@
 //
 // 会員登録のメールアドレスの確認(Firebase のサインインのリンク)。送り手: services/server/sendSignInLink.ts
 // 止められない連絡(required): 認証の流れがこのメールに依る。リンクは秘密(本文を記録に残さない)。
-// ひな形: link(認証のリンク、messaging/layouts/link。ボタンの URL を URL の案内の下にも出す)
+// レイアウト: link(認証のリンク、messaging/layouts/link。ボタンの URL を URL の案内の下にも出す)
 
 import { z } from "zod";
 
