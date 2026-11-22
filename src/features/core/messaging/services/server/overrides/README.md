@@ -21,7 +21,7 @@
 
 - 表 `message_overrides`: 直した欄だけ行（`message_key`・`field_path` = 欄の鍵・`layout_version` = 保存した時のレイアウトの版・`value`・`code_value` = 直した時のコードの値・`updated_by`、UNIQUE(message_key, field_path)）。既定に戻す = 行を消す
 - 改版（D122・D132）: 読む時に行の欄の鍵を保存した版から今の版へ、レイアウトの改版の対応（`revisions`）で移す（lib/messaging `moveAdminFieldPath`）。移せない行（捨てた欄・段の対応が無い・版の無い古い形の行 = 前の『送信チャンネル.欄』の行）は当てず使えない（`unusable`）と数える。行は消さない（既定に戻すで消す）。保存は今の版で書き、同じ欄へ移る前の版の行を消す
-- 重なる順: 管理画面の値 > fork の上書き > 上流の既定（欄ごと）。重ねるのは送る口の `resolveDefinition` の 1 か所（`sendMessage/definition.ts`、門が開の時だけ）。重ねた値は送信の `values` に入るので、予約・後回しの組み直しは送った時の文言のまま（D128）
+- 重なる順: テキストの編集 > fork の上書き > 上流の既定（欄ごと）。重ねるのは送る口の `resolveDefinition` の 1 か所（`sendMessage/definition.ts`、門が開の時だけ）。重ねた値は送信の `values` に入るので、予約・後回しの組み直しは送った時の文言のまま（D128）
 - 検査（lib/messaging `checkAdminFieldValue`、保存・送る口・プレビューで同じ）: 今の版で直せる欄にある・欄の宣言の zod（必須は空にできない）・`{{鍵}}` / `{{別名}}` は vars の鍵と別名（秘密を除く）∪ 共通の文脈 ∪ throttle の鍵 ∪ provides。通らない行は使えない行として一覧に出る
 
 ## Verification

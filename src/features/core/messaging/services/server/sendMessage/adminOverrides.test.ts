@@ -1,7 +1,7 @@
 // 送る口が管理画面のテキストの編集(D21・D132)を重ねる検査(メモリの store・テストの送信チャンネルとレイアウト card)
 // - resolveDefinition が門の開いた時だけ欄ごとに重ねる。行は保存した版から今の版の欄へ移す
 // - 当てられない行(古い形・検査を通らない)はコードの値で送る。重ねた値が送信の見出し・values に入る(cron の組み直しは送った時の文言)
-// - プレビューも同じ定義(上書きを重ねた物)で描く
+// - プレビューも同じ定義(テキストの編集を重ねた物)で描く
 // 実行: pnpm test src/features/core/messaging/services/server/sendMessage/adminOverrides.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -65,7 +65,7 @@ test("門が閉なら読まず重ねない", async () => {
   assert.equal(channel.calls[0][0].content.title, "コードの題 靴");
 });
 
-test("プレビューも上書きを重ねた定義で描く", async () => {
+test("プレビューもテキストの編集を重ねた定義で描く", async () => {
   const { sender } = setup([{ fieldPath: "title", value: "直した題 {{item}}", layoutVersion: 1 }]);
   const preview = await sender.previewMessage({ definition: notice }, { vars: { item: "靴" }, userId: "u1" });
   assert.equal((preview.channels[0].fields as { title?: unknown }).title, "直した題 靴");

@@ -110,7 +110,7 @@ export const drizzleMessageOverrideStore: MessageOverrideStore = {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * 渡した id のうち、上書きの行がまだある id(uuid の形でない id は「無い」)。
+ * 渡した id のうち、テキストの編集の行がまだある id(uuid の形でない id は「無い」)。
  * storage の照合(cron storage-sweep)が record_type messaging.override の有無の関数として使う
  */
 export async function existingOverrideIds(ids: readonly string[]): Promise<ReadonlySet<string>> {
