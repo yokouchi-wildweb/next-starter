@@ -73,12 +73,10 @@ export const MessageDispatchTable = pgTable(
     // ---- 新しい連絡の基盤の列（S2 で追加。既存行のため null 可か既定値つき）----
 
     /**
-     * 出どころ（D128。どれか 1 つ）: 定義連絡の鍵（messaging/messages/<名前>.ts の key）/ システムテンプレートの鍵（system_template）/
-     * DB のテンプレート（template_id + template_version）。テンプレートからの送信（管理の送信）は message_key が null
+     * 出どころ（D202。どれか 1 つ）: 定義連絡の鍵（messaging/messages/<名前>.ts の key）/ DB のテンプレート（template_id +
+     * template_version + template_edited）/ 自由連絡でレイアウトを直に選んだ送信はレイアウト（layout）だけ。自由連絡は message_key が null
      */
     message_key: text("message_key"),
-    /** システムテンプレートの鍵（messaging/templates の受け口、管理の送信の白紙）。それ以外の送信は null */
-    system_template: text("system_template"),
     /** 保存されたテンプレートからの送信のテンプレート（消されても送信は残す） */
     template_id: uuid("template_id").references(() => MessageTemplateTable.id, {
       onDelete: "set null",
@@ -114,13 +112,11 @@ export const MessageDispatchTable = pgTable(
     channel_counts: jsonb("channel_counts").$type<MessageChannelCounts>(),
     /** 送信チャンネルごとの件名・題 { <channel>: string }（record に依らず常に残す） */
     headings: jsonb("headings").$type<MessageChannelTextMap>(),
-    /** 送信に 1 組の共通の変数の写し（record が vars / full のとき。secret の印の鍵は落とす） */
-    vars: jsonb("vars").$type<Record<string, unknown>>(),
     /**
-     * DB のテンプレートの専用の埋め込み情報の値 { 鍵: 差し込む字 }（送る人が入れた値、指令 58）。残し方・消し方は vars と同じ。
-     * テンプレートからの送信の vars は {}。組み直しの差し込みの表 = vars ∪ embedded_values
+     * 送信に 1 組の埋め込み情報の値（定義連絡の vars・DB のテンプレートの専用の値、D202）。record が vars / full のときと
+     * cron が送る残りの間だけ残す。secret の印の鍵は落とす。組み直しの差し込みの表はこれだけ
      */
-    embedded_values: jsonb("embedded_values").$type<Record<string, string>>(),
+    vars: jsonb("vars").$type<Record<string, unknown>>(),
     /** 全員同文の描画結果 { <channel>: 送信チャンネルごとの欄 }（record が vars / full のとき） */
     rendered: jsonb("rendered").$type<Record<string, unknown>>(),
     /** 本文の記録の段（meta / vars / full） */

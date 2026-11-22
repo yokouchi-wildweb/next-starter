@@ -6,7 +6,7 @@
 
 ## API
 
-- `message_dispatches`（`drizzle.ts`）: 送信。`message_key`・`kind`・`category`・`target` jsonb（宛先の指定: all / role / group / 選んだ宛先の一覧）・`system_template`（システムテンプレートの鍵）・`template_id` / `template_version`（固定した版）・`template_edited`（直した印）・`layout` / `layout_version`（レイアウトの鍵と送った版）・`values` jsonb（レイアウトの欄の中身、差し込む前の字。残し方は vars と同じ。予約・cron・失敗の再送はこれと vars だけで描く、D128）・`tags`・`scheduled_at`・`status`（`scheduled / processing / completed / completed_with_failures / cancelled` ほか）・`channel_counts` jsonb（`{ <送信チャンネル>: { targeted, sent, failed, skipped_no_address, skipped_throttled, suppressed } }`）・`headings` / `vars` / `rendered` jsonb（送信チャンネルを鍵に）・`embedded_values` jsonb（DB のテンプレートの専用の埋め込み情報の値。残し方は vars と同じ）・`record`（meta / vars / full）・`show_to_later_signups`（既定 false）・`deleted_at`（管理者の削除、D88）・`is_test`・`expand_cursor`・`idempotency_key`（UNIQUE）・`metadata`（`cancelReason`・`inboxImages`・`resends` など）
+- `message_dispatches`（`drizzle.ts`）: 送信。`message_key`（定義連絡の鍵。出どころは定義連絡の鍵 / DB のテンプレート `template_*` / 自由連絡はレイアウトだけ、D202）・`kind`・`category`・`target` jsonb（宛先の指定: all / role / group / 選んだ宛先の一覧）・`template_id` / `template_version`（固定した版）・`template_edited`（直した印）・`layout` / `layout_version`（レイアウトの鍵と送った版）・`values` jsonb（レイアウトの欄の中身、差し込む前の字。残し方は vars と同じ。予約・cron・失敗の再送はこれと vars だけで描く、D128）・`tags`・`scheduled_at`・`status`（`scheduled / processing / completed / completed_with_failures / cancelled` ほか）・`channel_counts` jsonb（`{ <送信チャンネル>: { targeted, sent, failed, skipped_no_address, skipped_throttled, suppressed } }`）・`headings` / `rendered` jsonb（送信チャンネルを鍵に）・`vars` jsonb（送信に 1 組の埋め込み情報の値 = 定義連絡の vars と DB のテンプレートの専用の値。秘密の鍵は落とす）・`record`（meta / vars / full）・`show_to_later_signups`（既定 false）・`deleted_at`（管理者の削除、D88）・`is_test`・`expand_cursor`・`idempotency_key`（UNIQUE）・`metadata`（`cancelReason`・`inboxImages`・`resends` など）
 - `message_dispatch_recipients`（`recipient.ts`）: グループ宛ての送信の受信者の一覧（`dispatch_id`・`user_id`。送信と利用者の削除で消える）
 - `message_deliveries`（`delivery.ts`）: 受信者 × 送信チャンネルの 1 行。`UNIQUE(dispatch_id, channel, recipient_key)`。lease `locked_until` + `lock_token`、送り直し `next_attempt_at`、複数の宛先 `targets` jsonb、`throttle_key`（索引 `(throttle_key, sent_at)`）。利用者を消すと `user_id` は null（`recipient_key` は残る）
 - `message_events`（`delivery.ts`）: provider と内部の事件（追記だけ）。`UNIQUE(provider, provider_event_id)`、`seq`・`dispatch_id`（送信と一緒に消える）・`message_key`・`channel`
@@ -23,9 +23,10 @@
 
 - `message_key` が null の送信 = 前の送る口の送信と写した前のお知らせ。件名・本文は `headings`・`rendered`・`channel_counts` にあり、送信の読む口はそこから返す。写した前のお知らせの送信は `source` `legacy.notification`・`tags` `['legacy']`・`expand_cursor` `"~done"`（cron は拾わない）・`metadata.legacyNotificationId`。受信者ごとの監査ログ（`messaging.message.sent` / `failed`）は前の送信だけにある
 - 列 `vars`（テンプレート・版）は前の名前 `embedded` から改名した。前の列がある DB は `pnpm task messaging:rename-template-vars`（`scripts/migrations/rename-template-vars.ts`、冪等）を `pnpm db:push` の前に走らせる（push が先だと列を消して足すので宣言が失われる）
+- 送信の `vars` は前の列 `embedded_values`（DB のテンプレートの専用の値）をまとめた物、`system_template` は外した（その行はレイアウトと欄の中身を持つので自由連絡として読む、D171）。前の列がある DB は `pnpm task messaging:merge-dispatch-vars`（`scripts/migrations/merge-dispatch-vars.ts`、冪等）を `pnpm db:push` の前に走らせる（push が先だと `embedded_values` の値が失われる）
 - 集計の注意: 前の送る口のお知らせは前の送信と写した送信の 2 つに出る。analytics は `source` `legacy.notification` の送信を受け取り箱の既読の数だけに使う
 
 ## Verification
 
 - `pnpm db:push` の後 `pnpm db:push:check` = 0（索引を足した・変えた時）
-- 改名の移行の SQL と判断: `pnpm test src/features/core/messaging/scripts/migrations/rename-template-vars.test.ts`
+- 移行の SQL と判断: `pnpm test src/features/core/messaging/scripts/migrations`

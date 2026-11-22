@@ -279,10 +279,25 @@ const SAME_AS_DISPATCH = {
   templateVersion: null,
   templateEdited: false,
   content: { layout: "notice", layoutVersion: 1, values: { subject: "元の件名", blocks: [] } },
-  embeddedValues: null,
+  vars: null,
   channels: ["email", "inApp"],
+  // サーバーが答える「同じ内容で送る」の写し(自由連絡の送信だけ、dispatchDto の sameAsOf)
+  sameAs: { layout: "notice", layoutVersion: 1, values: { subject: "元の件名", blocks: [] }, vars: {}, template: null },
 };
 const SAME_AS = { type: "sameAs", dispatch: SAME_AS_DISPATCH } as const;
+
+/** 送信の詳細を直し、sameAs をサーバーと同じ組み方で付け直す(中身が無い送信は null、テンプレートの版があればその出どころ) */
+const dispatchOf = (over: Record<string, unknown>, vars: Record<string, string> = {}) => {
+  const dispatch = { ...SAME_AS_DISPATCH, ...over } as typeof SAME_AS_DISPATCH & Record<string, unknown>;
+  const content = dispatch.content as typeof SAME_AS_DISPATCH.content | null;
+  const version = (dispatch.templateVersion as number | null) ?? (dispatch.templateId ? 1 : null);
+  return {
+    ...dispatch,
+    sameAs: content
+      ? { ...content, vars, template: version !== null ? { id: dispatch.templateId as string | null, version, edited: dispatch.templateEdited as boolean } : null }
+      : null,
+  };
+};
 
 test("純粋な関数", () => {
   const now = Date.UTC(2026, 10, 13);
@@ -327,7 +342,7 @@ test("純粋な関数", () => {
   );
   assert.equal(hooks.initialTextOf(NEW, "", layouts as never, categories as never, []), null, "種別を選ぶまで文面は無い");
   const edited = hooks.initialTextOf(
-    { type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, templateId: TEMPLATE_ID, templateEdited: true, embeddedValues: { discount: "30", gone: "x" } } } as never,
+    { type: "sameAs", dispatch: dispatchOf({ templateId: TEMPLATE_ID, templateEdited: true }, { discount: "30", gone: "x" }) } as never,
     "promotion",
     layouts as never,
     categories as never,
@@ -337,7 +352,7 @@ test("純粋な関数", () => {
   assert.deepEqual([edited?.start, edited?.versionValues, edited?.unlocked], [SAME_AS_DISPATCH.content.values, template.values, true], "直した送信は直した文で直す状態から");
   assert.deepEqual(edited?.vars, { discount: "30" }, "今の版が宣言する鍵だけ");
   const otherKind = hooks.initialTextOf(
-    { type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, templateId: TEMPLATE_ID } } as never,
+    { type: "sameAs", dispatch: dispatchOf({ templateId: TEMPLATE_ID }) } as never,
     "direct",
     layouts as never,
     categories as never,
@@ -345,21 +360,25 @@ test("純粋な関数", () => {
   );
   assert.deepEqual([otherKind?.source, otherKind?.start], [NOTICE_SOURCE, SAME_AS_DISPATCH.content.values], "種別を選び直した後は送信のレイアウトから");
   // その場で書いた送信: 送信のレイアウトが管理画面で選べる物ならそのレイアウトに送信の values
-  const letterMode = { type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, content: { layout: "letter", layoutVersion: 1, values: { subject: "手紙の件名" } } } } as never;
+  const letterMode = { type: "sameAs", dispatch: dispatchOf({ content: { layout: "letter", layoutVersion: 1, values: { subject: "手紙の件名" } } }) } as never;
   const letterText = hooks.initialTextOf(letterMode, "promotion", layouts as never, categories as never, []);
   assert.deepEqual([letterText?.source, letterText?.layout, letterText?.start], [{ type: "layout", layout: "letter", label: "手紙" }, "letter", { subject: "手紙の件名" }]);
   assert.equal(hooks.sameAsNoteOf(letterMode, letterText, []), null);
 
   // 写せなかった時の知らせ
-  const goneMode = { type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, templateId: "gone" } } as never;
+  const goneMode = { type: "sameAs", dispatch: dispatchOf({ templateId: "gone" }) } as never;
   const goneText = hooks.initialTextOf(goneMode, "promotion", layouts as never, categories as never, [template] as never);
   assert.deepEqual(goneText?.start, SAME_AS_DISPATCH.content.values);
   assert.match(hooks.sameAsNoteOf(goneMode, goneText, [template] as never) ?? "", /白紙のテンプレートにコピーしました/);
-  const emptyMode = { type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, templateId: "gone", content: null } } as never;
+  const emptyMode = { type: "sameAs", dispatch: dispatchOf({ templateId: "gone", content: null }) } as never;
   assert.match(hooks.sameAsNoteOf(emptyMode, hooks.initialTextOf(emptyMode, "promotion", layouts as never, categories as never, []), []) ?? "", /入力し直してください/);
+  // 定義連絡の送信はサーバーが写しを答えない(sameAs null、D193)= 中身があっても写さず初めのレイアウトの白紙
+  const definitionMode = { type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, sameAs: null } } as never;
+  const definitionText = hooks.initialTextOf(definitionMode, "promotion", layouts as never, categories as never, []);
+  assert.deepEqual([definitionText?.source, definitionText?.start], [NOTICE_SOURCE, {}]);
   // 管理画面で選べないレイアウト(legacy)・無いレイアウトの送信 = 初めのレイアウトの白紙 + 知らせ
   for (const layout of ["legacy", "welcome"]) {
-    const otherLayout = { type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, content: { layout, layoutVersion: 1, values: { subject: "元" } } } } as never;
+    const otherLayout = { type: "sameAs", dispatch: dispatchOf({ content: { layout, layoutVersion: 1, values: { subject: "元" } } }) } as never;
     const otherText = hooks.initialTextOf(otherLayout, "promotion", layouts as never, categories as never, []);
     assert.deepEqual([otherText?.source, otherText?.start], [NOTICE_SOURCE, {}], layout);
     assert.match(hooks.sameAsNoteOf(otherLayout, otherText, []) ?? "", /形と違うため/, layout);
@@ -633,7 +652,7 @@ test("sameAs: カテゴリー → 種別・宛先・中身を写す。テンプ�
   assert.equal(m().dirty, false, "写しただけでは書きかけにしない");
   await view.unmount();
 
-  const fromTemplate = await open({ type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, templateId: TEMPLATE_ID, templateVersion: 2, embeddedValues: { discount: "30" } } });
+  const fromTemplate = await open({ type: "sameAs", dispatch: dispatchOf({ templateId: TEMPLATE_ID, templateVersion: 2 }, { discount: "30" }) });
   const t = () => fromTemplate.value();
   assert.deepEqual(t().loadedTemplate, { type: "template", id: TEMPLATE_ID, name: "春", version: 3 }, "今の公開版を読み込む");
   assert.equal(t().text.locked, true);
@@ -647,15 +666,14 @@ test("sameAs: カテゴリー → 種別・宛先・中身を写す。テンプ�
   const editedValues = { subject: "直した件名", blocks: [{ type: "paragraph", text: "直した本文" }] };
   const edited = await open({
     type: "sameAs",
-    dispatch: {
-      ...SAME_AS_DISPATCH,
+    dispatch: dispatchOf({
       target: { type: "recipients", count: 1 },
       targetUserIds: ["u9"],
       templateId: TEMPLATE_ID,
       templateVersion: 2,
       templateEdited: true,
       content: { layout: "notice", layoutVersion: 1, values: editedValues },
-    },
+    }),
   });
   const e = () => edited.value();
   assert.equal(e().loadedTemplate?.version, 3);
@@ -666,13 +684,13 @@ test("sameAs: カテゴリー → 種別・宛先・中身を写す。テンプ�
   await edited.unmount();
 
   // 公開中でないテンプレート: 送信のレイアウトに送信の values を写し、知らせを出す
-  const gone = await open({ type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, templateId: "gone", templateVersion: 1, templateEdited: true } });
+  const gone = await open({ type: "sameAs", dispatch: dispatchOf({ templateId: "gone", templateVersion: 1, templateEdited: true }) });
   assert.deepEqual(gone.value().text.source, NOTICE_SOURCE);
   assert.deepEqual(gone.value().text.values, SAME_AS_DISPATCH.content.values);
   assert.match(gone.value().sameAsNote ?? "", /白紙のテンプレートにコピーしました/);
   await gone.unmount();
 
-  const nothing = await open({ type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, templateId: "gone", templateVersion: 1, content: null } });
+  const nothing = await open({ type: "sameAs", dispatch: dispatchOf({ templateId: "gone", templateVersion: 1, content: null }) });
   assert.match(nothing.value().sameAsNote ?? "", /内容を入力し直してください/);
   assert.deepEqual(nothing.value().text.values, BLANK_VALUES);
   await nothing.unmount();

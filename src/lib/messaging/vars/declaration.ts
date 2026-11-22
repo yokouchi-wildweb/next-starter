@@ -158,7 +158,7 @@ export function varDisplayText(type: string, text: string): string {
 
 /**
  * 差し込みの表の専用の値を人が読む字にする(隣の `<鍵>@type` の型で。印の行は表から外す)。
- * 送る時(版の宣言の vars が印を足す)も組み直し(送信の embedded_values が印を持つ)も同じこの 1 か所
+ * 送る時(版の宣言の vars が印を足す)も組み直し(送信の vars が印を持つ)も同じこの 1 か所
  */
 export function displayVarValues(map: Readonly<Record<string, string>>): Record<string, string> {
   const out: Record<string, string> = {};

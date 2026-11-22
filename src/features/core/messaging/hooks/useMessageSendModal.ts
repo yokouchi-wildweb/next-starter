@@ -131,9 +131,9 @@ export function blankLayoutOf(layouts: readonly AdminSendLayoutOption[]): { key:
   return first ? { key: first.key, label: first.label } : null;
 }
 
-/** 送信の専用の埋め込み情報の値(テンプレートの今の版が宣言する鍵だけ) */
-function embeddedOfDispatch(dispatch: AdminDispatchDetail, template: MessageSendTemplate): Record<string, string> {
-  const values = dispatch.embeddedValues ?? {};
+/** 送信の埋め込み情報の値のうちテンプレートの今の版が宣言する鍵だけ */
+function varsOfDispatch(sameAs: NonNullable<AdminDispatchDetail["sameAs"]>, template: MessageSendTemplate): Record<string, string> {
+  const values = sameAs.vars;
   return Object.fromEntries(template.vars.filter((item) => values[item.key] !== undefined).map((item) => [item.key, String(values[item.key])]));
 }
 
@@ -155,23 +155,25 @@ export function initialTextOf(
     return blankState ? { ...blankState, start: { ...blankState.start, ...(mode.defaults?.values ?? {}) } } : null;
   }
   if (mode.type === "new") return blankState;
-  const { dispatch } = mode;
-  const content = dispatch.content;
-  if (dispatch.templateId) {
+  // 写すのはサーバーが答えた自由連絡の写しだけ(定義連絡の送信は null = 白紙、D193)
+  const same = mode.dispatch.sameAs;
+  if (!same) return blankState;
+  const templateId = same.template?.id ?? null;
+  if (templateId) {
     // 今の種別のテンプレートだけ(種別を選び直した後は白紙から)
     const template = templates.find(
-      (item) => item.id === dispatch.templateId && categories.find((option) => option.key === item.category)?.kind === kind,
+      (item) => item.id === templateId && categories.find((option) => option.key === item.category)?.kind === kind,
     );
     if (template) {
-      const copyEdited = dispatch.templateEdited && content !== null && content.layout === template.layout;
+      const copyEdited = same.template!.edited && same.layout === template.layout;
       return templateTextState(template, {
-        ...(copyEdited ? { start: content.values, unlocked: true } : {}),
-        vars: embeddedOfDispatch(dispatch, template),
+        ...(copyEdited ? { start: same.values, unlocked: true } : {}),
+        vars: varsOfDispatch(same, template),
       });
     }
   }
-  const contentLayout = content ? layouts.find((option) => option.selectable && option.key === content.layout) : undefined;
-  if (content && contentLayout) return layoutTextState(contentLayout, content.values);
+  const sameLayout = layouts.find((option) => option.selectable && option.key === same.layout);
+  if (sameLayout) return layoutTextState(sameLayout, same.values);
   return blankState;
 }
 
@@ -182,15 +184,16 @@ export function sameAsNoteOf(
   templates: readonly MessageSendTemplate[],
 ): string | null {
   if (mode.type !== "sameAs") return null;
-  const { dispatch } = mode;
-  const templateGone = dispatch.templateId !== null && !templates.some((item) => item.id === dispatch.templateId);
-  const copied = text !== null && dispatch.content !== null && dispatch.content.layout === text.layout;
+  const same = mode.dispatch.sameAs;
+  const templateId = same?.template?.id ?? null;
+  const templateGone = templateId !== null && !templates.some((item) => item.id === templateId);
+  const copied = text !== null && same !== null && same.layout === text.layout;
   if (templateGone) {
     return copied
       ? "元の送信のテンプレートは現在公開されていないため、内容を白紙のテンプレートにコピーしました"
       : "元の送信のテンプレートは現在公開されていないため、内容を入力し直してください(コピーできる内容がありませんでした)";
   }
-  if (dispatch.templateId === null && !copied) return "元の送信の内容はこの画面の形と違うためコピーできませんでした。内容を入力し直してください";
+  if (templateId === null && !copied) return "元の送信の内容はこの画面の形と違うためコピーできませんでした。内容を入力し直してください";
   return null;
 }
 

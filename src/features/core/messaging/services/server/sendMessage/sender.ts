@@ -138,10 +138,6 @@ type ManyOptions = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** 専用の埋め込み情報の値(差し込む字にした物だけ) */
-function embeddedValuesOf(vars: Readonly<Record<string, unknown>>): Record<string, string> {
-  return Object.fromEntries(Object.entries(vars).flatMap(([key, value]) => (typeof value === "string" ? [[key, value]] : [])));
-}
 /** 宛先数の見込み(送る時に展開で数え直す) */
 export type RecipientEstimate = {
   count: number;
@@ -251,8 +247,6 @@ export function createMessageSender(deps: MessageSendDeps) {
       const { id } = await deps.store.insertDispatch({
         status: scheduled ? "scheduled" : "processing",
         scheduled_at: input.scheduledAt ?? null,
-        // システムテンプレートの列(廃止、D171)。列は送信の記録の直し(T6)で外す
-        system_template: null,
         template_id: template?.id ?? null,
         template_version: template?.version ?? deletedTemplate?.version ?? null,
         template_edited: template?.edited ?? deletedTemplate?.edited ?? false,
@@ -276,10 +270,9 @@ export function createMessageSender(deps: MessageSendDeps) {
         tags: input.tags ? [...input.tags] : null,
         channel_counts: emptyChannelCounts(channels),
         headings,
-        // 送信の vars: 残す時は秘密の鍵を落とした写し。cron が送る残り(queueVars)にも要る(record meta なら cron が終わりに消す)。
-        // テンプレートからの送信: 専用の埋め込み情報の値は embedded_values にだけ残し、vars は {}(残し方・消し方は vars と同じ、指令 58)
-        vars: policy.keepVars || queueVars ? (source ? {} : omitKeys(vars, policy.secretKeys)) : null,
-        embedded_values: source && (policy.keepVars || queueVars) ? embeddedValuesOf(omitKeys(vars, policy.secretKeys)) : null,
+        // 送信の vars(出どころに依らず 1 つ、D202。DB のテンプレートの専用の値もここ): 残す時は秘密の鍵を落とした写し。
+        // cron が送る残り(queueVars)にも要る(record meta なら cron が終わりに消す)
+        vars: policy.keepVars || queueVars ? omitKeys(vars, policy.secretKeys) : null,
         rendered,
         record: policy.record,
         show_to_later_signups: input.showToLaterSignups ?? false,
@@ -504,7 +497,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         completed_at: status === "processing" ? null : deps.now(),
         updatedAt: deps.now(),
         // cron に渡す残りが無ければ、送るためだけに置いた vars を record に従って消す
-        ...(queuedCount === 0 && !policy.keepVars ? { vars: null, values: null, embedded_values: null } : {}),
+        ...(queuedCount === 0 && !policy.keepVars ? { vars: null, values: null } : {}),
       },
       completed ? [completed] : [],
     );
@@ -659,7 +652,7 @@ export function createMessageSender(deps: MessageSendDeps) {
             };
       const result = await sendToMany(
         resolved as AnyMessageDefinition,
-        // 専用の値は定義の vars(版の宣言の zod)で検査して差し込む。送信には embedded_values に残す
+        // 専用の値は定義の vars(版の宣言の zod)で検査して差し込み、送信の vars に残す
         { ...rest, vars: vars ?? {} } as SendMessageToManyInput,
         { resolved, source },
       );

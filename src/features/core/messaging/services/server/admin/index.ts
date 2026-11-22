@@ -330,5 +330,5 @@ export type {
   AdminSendTestInput,
 } from "./send";
 export type { AdminDispatchCategoryOption, AdminPage, ListDeliveriesQuery, ListDispatchesQuery } from "./readDispatches";
-export type { AdminDeliveryRow, AdminDispatchDetail, AdminDispatchSummary, AdminDispatchTargetGroup } from "./dispatchDto";
+export type { AdminDeliveryRow, AdminDispatchDetail, AdminDispatchSameAs, AdminDispatchSummary, AdminDispatchTargetGroup } from "./dispatchDto";
 export type { AdminBulkSendCounts, AdminMessageContent, MessageBulkSendTarget } from "./types";

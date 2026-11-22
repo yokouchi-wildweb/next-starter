@@ -308,10 +308,6 @@ test("d3 再送(新しい送信): テンプレートの送信は同じ出どこ�
   const free = setup({ record: "meta", message_key: null }, { definition: definitionOf({ record: "meta" }) });
   await adminResendFailed(free.deps, "d1");
   assert.deepEqual(free.sentNew[0].template, { layout: "card" });
-  // 廃止したシステムテンプレートからの古い送信(system_template が残る行)も送信のレイアウト(D171)
-  const legacy = setup({ record: "meta", message_key: null, system_template: "promotion" }, { definition: definitionOf({ record: "meta" }) });
-  await adminResendFailed(legacy.deps, "d1");
-  assert.deepEqual(legacy.sentNew[0].template, { layout: "card" });
   const code = setup({ record: "meta" }, { definition: definitionOf({ record: "meta" }) });
   await adminResendFailed(code.deps, "d1");
   assert.equal(code.sentNew[0].template, undefined);
