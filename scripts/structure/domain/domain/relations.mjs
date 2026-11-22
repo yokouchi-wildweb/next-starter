@@ -53,7 +53,7 @@ export function buildOnDeleteOption(behavior) {
  */
 export function foreignTableName(workspace, domainName) {
   const domainCamel = toCamelCase(domainName) || domainName;
-  const candidates = [workspace.featurePath(domainCamel, "domain.json"), workspace.featurePath("core", domainCamel, "domain.json")];
+  const candidates = [workspace.domainPath(domainCamel, "domain.json"), workspace.domainPath("core", domainCamel, "domain.json")];
   for (const configPath of candidates) {
     if (workspace.exists(configPath)) {
       const foreignConfig = workspace.readConfigLenient(configPath);

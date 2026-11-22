@@ -12,7 +12,7 @@ import { collectPoints, intakeOutputGlobs } from "../../../src/lib/districtMap/n
 import { OVERRIDE_ROOT } from "../../../src/lib/districtMap/index.mjs";
 import { INTAKE_BLOCK_END, INTAKE_BLOCK_START, INTAKE_FILE, matchIntake, parseIntake, readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
 import { FORK_OWNED_DIR } from "../../../src/lib/screens/node.mjs";
-import { loadGates, scanTargets } from "../../runner/phases/scan.mjs";
+import { loadPhases, scanTargets } from "../../runner/phases/scan.mjs";
 import { literalGlob, overrideGlobOf } from "./intake.mjs";
 import { checkSwitches } from "./switches.mjs";
 
@@ -31,7 +31,7 @@ function derivedRows() {
   const rows = switches.map((s) => `edit ${literalGlob(s.path)}`);
   const { points } = collectPoints(repoRoot);
   for (const point of points.filter((p) => p.spec.placement !== undefined)) rows.push(`${point.spec.kind} ${point.spec.placement}`);
-  for (const t of scanTargets(join(repoRoot, "scripts"), loadGates(join(repoRoot, "scripts")))) {
+  for (const t of scanTargets(join(repoRoot, "scripts"), loadPhases(join(repoRoot, "scripts")))) {
     for (const glob of t.decl.regions ?? []) rows.push(`region ${glob}`);
     for (const glob of intakeOutputGlobs(t.decl.outputs)) rows.push(`generated ${glob}`);
   }

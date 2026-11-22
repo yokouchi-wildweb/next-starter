@@ -13,11 +13,11 @@ const NOT_DOMAIN_DIRS = new Set(["_template", "core"]);
  * @param {string} [rootDir] リポジトリのルート（src/ を含むディレクトリ）
  */
 export function createWorkspace(rootDir = process.cwd()) {
-  const featuresDir = path.join(rootDir, "src", "domains");
-  const templateDir = path.join(featuresDir, "_template");
+  const domainsDir = path.join(rootDir, "src", "domains");
+  const templateDir = path.join(domainsDir, "_template");
 
-  const coreDir = path.join(featuresDir, "core");
-  const featurePath = (...segments) => path.join(featuresDir, ...segments);
+  const coreDir = path.join(domainsDir, "core");
+  const domainPath = (...segments) => path.join(domainsDir, ...segments);
   const hasConfig = (dir) => fs.existsSync(path.join(dir, "domain.json"));
 
   /**
@@ -26,7 +26,7 @@ export function createWorkspace(rootDir = process.cwd()) {
    * @returns {{ kind: "business" | "core", dir: string, configPath: string, rel: string }} rel = リポジトリからの相対（例: src/domains/core/user）
    */
   function locateDomain(camel) {
-    const business = featurePath(camel);
+    const business = domainPath(camel);
     const core = path.join(coreDir, camel);
     const inBusiness = hasConfig(business);
     const inCore = camel !== "core" && hasConfig(core);
@@ -64,7 +64,7 @@ export function createWorkspace(rootDir = process.cwd()) {
             .filter((dirent) => dirent.isDirectory() && !NOT_DOMAIN_DIRS.has(dirent.name) && hasConfig(path.join(dir, dirent.name)))
             .map((dirent) => dirent.name)
         : [];
-    const names = [...dirsIn(featuresDir), ...dirsIn(coreDir)];
+    const names = [...dirsIn(domainsDir), ...dirsIn(coreDir)];
     for (const name of names) locateDomain(name); // 重なりを止める
     return [...new Set(names)].sort();
   }
@@ -86,14 +86,14 @@ export function createWorkspace(rootDir = process.cwd()) {
     rootDir,
     districtMapPath,
     readDistrictMap,
-    featuresDir,
+    domainsDir,
     templateDir,
     adminTemplateDir: path.join(rootDir, "src", "app", "admin", "_template"),
     adminProtectedDir: path.join(rootDir, "src", "app", "admin", "(protected)"),
     rolesDir: path.join(coreDir, "user", "roles"),
     coreRolesDir: path.join(coreDir, "user", "coreRoles"),
     formInputsDir: path.join(rootDir, "src", "wiring", "formInputs", "inputs"),
-    featurePath,
+    domainPath,
     locateDomain,
     configPath,
     templatePath: (...segments) => path.join(templateDir, ...segments),

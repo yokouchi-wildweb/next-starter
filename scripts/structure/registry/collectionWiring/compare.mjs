@@ -13,11 +13,11 @@ const NOT_DOMAIN_DIRS = new Set(["_template", "core"]);
  * @returns {Map<string, string[]>} フォルダ名（= serviceRegistry のキー）→ 項目名。集まりを持つ主だけ
  */
 export function declaredCollections(repoRoot) {
-  const featuresDir = path.join(repoRoot, "src", "domains");
+  const domainsDir = path.join(repoRoot, "src", "domains");
   const declared = new Map();
-  for (const dirent of fs.readdirSync(featuresDir, { withFileTypes: true })) {
+  for (const dirent of fs.readdirSync(domainsDir, { withFileTypes: true })) {
     if (!dirent.isDirectory() || NOT_DOMAIN_DIRS.has(dirent.name)) continue;
-    const configPath = path.join(featuresDir, dirent.name, "domain.json");
+    const configPath = path.join(domainsDir, dirent.name, "domain.json");
     if (!fs.existsSync(configPath)) continue;
     const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
     const names = (config.fields ?? []).filter((field) => field.fieldType === "mediaCollection").map((field) => field.name);

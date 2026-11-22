@@ -9,7 +9,7 @@ import { belongsToRelations } from "../../domain/relations.mjs";
 import { isCollectionFieldType, isMediaFieldType } from "../../spec/fieldTypes.mjs";
 import { resolveCollectionChildren } from "../collections/children.mjs";
 import { file } from "../output.mjs";
-import { featureRel } from "../../domain/context.mjs";
+import { domainRel } from "../../domain/context.mjs";
 
 /** 従属の列（主への参照・値・並び）のプロパティ名。従属の domain.json が無ければ雛形の名前 */
 function childColumns(ownerConfig, child) {
@@ -57,7 +57,7 @@ export function renderCollectionsOutput(ctx, workspace) {
   const children = resolveCollectionChildren(ctx, workspace);
   const tables = [...new Set(fields.map((f) => children.get(f.name)?.camel ?? toCamelCase(f.collection.domain)))];
   const content = [
-    `// ${featureRel(ctx)}/services/server/collections.ts`,
+    `// ${domainRel(ctx)}/services/server/collections.ts`,
     "// pnpm generate domain が domain.json の集まりの項目（mediaCollection）から生成する。手で直さない。",
     "// createCrudService の collections オプション（ドメイン集約）。生成の drizzleBase.ts が import して渡す。",
     "// 詳細: src/lib/crud/collections/README.md",

@@ -76,16 +76,16 @@ export async function runDelete(workspace, domain, options = {}) {
   // 消さずに残るコードからの import も止める。確認より前は追加ディレクトリの候補を全部除いて数え、選んだ後に選ばなかった候補を数える
   // 門番の規則がこのドメインを domains に持てば止める(規則の domains から先に外す。D26)
   const stop =
-    gateRuleStopMessage(workspace, target.featureDir) ??
-    deleteStopMessage(workspace, path.basename(target.featureDir)) ??
-    codeReferenceStopMessage(workspace, target.featureDir, withAdmin(searchDirs));
+    gateRuleStopMessage(workspace, target.domainDir) ??
+    deleteStopMessage(workspace, path.basename(target.domainDir)) ??
+    codeReferenceStopMessage(workspace, target.domainDir, withAdmin(searchDirs));
   if (stop) {
     console.error(stop);
     process.exitCode = 1;
     return;
   }
 
-  const listed = (extras) => listDeletePaths(workspace, { featureDir: target.featureDir, adminDir, extras });
+  const listed = (extras) => listDeletePaths(workspace, { domainDir: target.domainDir, adminDir, extras });
 
   const chosen = options.interactive
     ? await askInteractive(workspace, target, searchDirs)
@@ -93,7 +93,7 @@ export async function runDelete(workspace, domain, options = {}) {
   if (!chosen) return;
   const { extras, removeConfig } = chosen;
   if (extras.length < searchDirs.length) {
-    const unchosenStop = codeReferenceStopMessage(workspace, target.featureDir, withAdmin(extras));
+    const unchosenStop = codeReferenceStopMessage(workspace, target.domainDir, withAdmin(extras));
     if (unchosenStop) {
       console.error(unchosenStop);
       process.exitCode = 1;

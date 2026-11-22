@@ -15,7 +15,7 @@ import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { changedFiles, globToRegExp } from "./changed.mjs";
 import { MARK } from "./netGuard.mjs";
-import { GateError, loadGates, scanTargets } from "./scan.mjs";
+import { PhaseError, loadPhases, scanTargets } from "./scan.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export { changedFiles, globToRegExp };
@@ -25,7 +25,7 @@ export const OFFLINE_ENV = /^(DATABASE_URL.*|MY_SERVICE_ACCOUNT_KEY|NEXT_PUBLIC_
 function featureStates(repo) {
   if (process.env.GATES_FEATURES) return JSON.parse(process.env.GATES_FEATURES);
   const r = spawnSync("npx", ["tsx", "--import", "./scripts/runner/preload/serverOnly.mjs", join(HERE, "features.ts")], { cwd: repo, encoding: "utf8" });
-  if (r.status !== 0) throw new GateError(`機能の開閉が読めない: ${(r.stderr || r.stdout).trim().split("\n").slice(-2).join(" / ")}`);
+  if (r.status !== 0) throw new PhaseError(`機能の開閉が読めない: ${(r.stderr || r.stdout).trim().split("\n").slice(-2).join(" / ")}`);
   return JSON.parse(r.stdout);
 }
 
@@ -46,18 +46,18 @@ export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(rep
   const sep = argv.indexOf("--");
   const own = sep < 0 ? argv.slice(1) : argv.slice(1, sep);
   const pass = sep < 0 ? [] : argv.slice(sep + 1);
-  const gate = own.find((a) => a.startsWith("--phase="))?.slice("--phase=".length) ?? null;
-  const gateList = gate ? gate.split(",").map((g) => g.trim()).filter(Boolean) : null;
+  const phase = own.find((a) => a.startsWith("--phase="))?.slice("--phase=".length) ?? null;
+  const phaseList = phase ? phase.split(",").map((g) => g.trim()).filter(Boolean) : null;
   const name = own.find((a) => !a.startsWith("--")) ?? null;
   const all = own.includes("--all");
-  let gates;
+  let phases;
   let targets;
   try {
-    gates = loadGates(scriptsDir);
-    for (const g of gateList ?? []) if (!(g in gates.phases)) throw new GateError(`知らない段階 ${g}(段階は ${Object.keys(gates.phases).join(", ")})`);
-    targets = scanTargets(scriptsDir, gates);
+    phases = loadPhases(scriptsDir);
+    for (const g of phaseList ?? []) if (!(g in phases.phases)) throw new PhaseError(`知らない段階 ${g}(段階は ${Object.keys(phases.phases).join(", ")})`);
+    targets = scanTargets(scriptsDir, phases);
   } catch (e) {
-    if (!(e instanceof GateError)) throw e;
+    if (!(e instanceof PhaseError)) throw e;
     log(`phases: 止まる — ${e.message}`);
     return 2;
   }
@@ -66,12 +66,12 @@ export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(rep
     return 2;
   }
   // explicit の段階(build:post = 組み上がった物が要る)だけに乗る対象は、その段階か名前で呼んだ時だけ回す
-  const explicitGates = Object.entries(gates.phases).filter(([, g]) => g.explicit).map(([n]) => n);
-  const onlyExplicit = (t) => (t.decl.phases ?? []).length > 0 && (t.decl.phases ?? []).every((g) => explicitGates.includes(g));
-  const picked = targets.filter((t) => t.decl[mode] && (!name || t.name === name) && (gateList ? gateList.some((g) => (t.decl.phases ?? []).includes(g)) : name || !onlyExplicit(t)));
-  if (!gate && !name) for (const t of targets.filter((x) => x.decl[mode] && onlyExplicit(x))) log(`phases: ${t.kind}/${t.name}: ${t.decl.phases.join(", ")} だけの対象なので飛ばした(--phase=${t.decl.phases[0]} か名前で回す)`);
+  const explicitPhases = Object.entries(phases.phases).filter(([, g]) => g.explicit).map(([n]) => n);
+  const onlyExplicit = (t) => (t.decl.phases ?? []).length > 0 && (t.decl.phases ?? []).every((g) => explicitPhases.includes(g));
+  const picked = targets.filter((t) => t.decl[mode] && (!name || t.name === name) && (phaseList ? phaseList.some((g) => (t.decl.phases ?? []).includes(g)) : name || !onlyExplicit(t)));
+  if (!phase && !name) for (const t of targets.filter((x) => x.decl[mode] && onlyExplicit(x))) log(`phases: ${t.kind}/${t.name}: ${t.decl.phases.join(", ")} だけの対象なので飛ばした(--phase=${t.decl.phases[0]} か名前で回す)`);
   if (!picked.length) {
-    log(`phases: ${mode}${gate ? ` --phase=${gate}` : ""}${name ? ` ${name}` : ""}: 対象なし`);
+    log(`phases: ${mode}${phase ? ` --phase=${phase}` : ""}${name ? ` ${name}` : ""}: 対象なし`);
     return 0;
   }
   let states = null;
@@ -83,11 +83,11 @@ export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(rep
       return 2;
     }
   }
-  const offlineGates = Object.entries(gates.phases).filter(([, g]) => g.offline).map(([n]) => n);
+  const offlinePhases = Object.entries(phases.phases).filter(([, g]) => g.offline).map(([n]) => n);
   // watch の段階で選んだ時だけ範囲の変更を読む(1 回)
-  const watchGates = (gateList ?? []).filter((g) => gates.phases[g]?.watch);
+  const watchPhases = (phaseList ?? []).filter((g) => phases.phases[g]?.watch);
   let range = null;
-  const watched = (t) => !all && !name && t.decl.watch?.length && watchGates.some((g) => (t.decl.phases ?? []).includes(g));
+  const watched = (t) => !all && !name && t.decl.watch?.length && watchPhases.some((g) => (t.decl.phases ?? []).includes(g));
   if (picked.some(watched)) {
     range = changed(repo);
     if (range.files === null) log(`phases: watch: ${range.why}ので watch を見ずに全部回す`);
@@ -112,8 +112,8 @@ export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(rep
         continue;
       }
     }
-    const offline = mode === "check" && (t.decl.phases ?? []).some((g) => offlineGates.includes(g));
-    const env = { ...process.env, PHASE: gateList?.find((g) => (t.decl.phases ?? []).includes(g)) ?? "-" };
+    const offline = mode === "check" && (t.decl.phases ?? []).some((g) => offlinePhases.includes(g));
+    const env = { ...process.env, PHASE: phaseList?.find((g) => (t.decl.phases ?? []).includes(g)) ?? "-" };
     if (offline) for (const k of Object.keys(env)) if (OFFLINE_ENV.test(k)) env[k] = "";
     const [cmd, args] = command(repo, join(t.dir, t.decl[mode]), offline);
     const r = spawnSync(cmd, [...args, ...pass], { cwd: repo, env, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
@@ -122,7 +122,7 @@ export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(rep
     const hit = err.split("\n").find((l) => l.startsWith(MARK));
     process.stderr.write(err.split("\n").filter((l) => !l.startsWith(MARK)).join("\n"));
     if (hit) {
-      log(`phases: ${label}: build に宣言した検査が外に届いた(${hit.slice(MARK.length).trim()})。この宣言は拒む: phase.json の gates から offline の段階を外すか、外に届かない検査にする`);
+      log(`phases: ${label}: build に宣言した検査が外に届いた(${hit.slice(MARK.length).trim()})。この宣言は拒む: phase.json の phases から offline の段階を外すか、外に届かない検査にする`);
       code = 1;
     } else if (r.status !== 0) {
       log(`phases: ${label}: ${mode} が落ちた(exit ${r.status})`);

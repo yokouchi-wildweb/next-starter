@@ -14,10 +14,10 @@ export { codeReferenceStopMessage, codeReferences, deleteStopMessage, inboundRef
  * @returns {{ adminDir: string | null, pluralKebab: string }}
  */
 export function resolveAdminDir(workspace, target) {
-  const { pluralCandidateSet, featureCandidateSet, searchNameSet } = target;
+  const { pluralCandidateSet, domainCandidateSet, searchNameSet } = target;
   const adminDir =
-    resolveDir(workspace.adminProtectedDir, ...pluralCandidateSet, ...featureCandidateSet) ||
-    resolveDir(path.join(workspace.rootDir, "src", "app", "admin"), ...pluralCandidateSet, ...featureCandidateSet);
+    resolveDir(workspace.adminProtectedDir, ...pluralCandidateSet, ...domainCandidateSet) ||
+    resolveDir(path.join(workspace.rootDir, "src", "app", "admin"), ...pluralCandidateSet, ...domainCandidateSet);
   let pluralKebab = toKebabCase(target.plural);
   if (adminDir) {
     const adminFolderName = path.basename(adminDir);
@@ -47,8 +47,8 @@ function readRuleDomains(text) {
  * このドメインのフォルダを domains に持つ門番の規則(src/featureGate/rules/<名前>.ts、字面で読む)。削除の前に止める材料(D26: ひな形の後始末はなくした)
  * @returns {string[]} 規則のファイル(rootDir からの相対)
  */
-export function gateRuleHolders(workspace, featureDir) {
-  const folder = path.relative(path.join(workspace.rootDir, "src", "domains"), featureDir).split(path.sep).join("/");
+export function gateRuleHolders(workspace, domainDir) {
+  const folder = path.relative(path.join(workspace.rootDir, "src", "domains"), domainDir).split(path.sep).join("/");
   const dir = path.join(workspace.rootDir, "src", "featureGate", "rules");
   if (!fs.existsSync(dir)) return [];
   const files = [];
@@ -61,10 +61,10 @@ export function gateRuleHolders(workspace, featureDir) {
 }
 
 /** 門番の規則がこのドメインを持てば止める文(無ければ null) */
-export function gateRuleStopMessage(workspace, featureDir) {
-  const holders = gateRuleHolders(workspace, featureDir);
+export function gateRuleStopMessage(workspace, domainDir) {
+  const holders = gateRuleHolders(workspace, domainDir);
   if (holders.length === 0) return null;
-  const folder = path.relative(path.join(workspace.rootDir, "src", "domains"), featureDir).split(path.sep).join("/");
+  const folder = path.relative(path.join(workspace.rootDir, "src", "domains"), domainDir).split(path.sep).join("/");
   return [
     `門番の規則がこのドメイン(${folder})を domains に持つので削除を止めました(何も消していません):`,
     ...holders.map((file) => ` - ${file}`),
@@ -73,9 +73,9 @@ export function gateRuleStopMessage(workspace, featureDir) {
 }
 
 /** 削除するパスの一覧（表示用、rootDir からの相対） */
-export function listDeletePaths(workspace, { featureDir, adminDir, extras }) {
+export function listDeletePaths(workspace, { domainDir, adminDir, extras }) {
   const paths = [];
-  if (fs.existsSync(featureDir)) paths.push(path.relative(workspace.rootDir, featureDir));
+  if (fs.existsSync(domainDir)) paths.push(path.relative(workspace.rootDir, domainDir));
   if (adminDir && fs.existsSync(adminDir)) paths.push(path.relative(workspace.rootDir, adminDir));
   paths.push(...extras.map((d) => path.relative(workspace.rootDir, d)));
   return paths;
@@ -83,16 +83,16 @@ export function listDeletePaths(workspace, { featureDir, adminDir, extras }) {
 
 /** ディレクトリを消し、レジストリを掃除する。@returns 手で直すレジストリの一覧 */
 export function removeDomainFiles(workspace, { target, adminDir, pluralKebab, extras, removeConfig }, io = console) {
-  const { featureDir } = target;
+  const { domainDir } = target;
   if (adminDir && fs.existsSync(adminDir)) fs.rmSync(adminDir, { recursive: true, force: true });
 
-  if (fs.existsSync(featureDir)) {
+  if (fs.existsSync(domainDir)) {
     if (removeConfig) {
-      fs.rmSync(featureDir, { recursive: true, force: true });
+      fs.rmSync(domainDir, { recursive: true, force: true });
     } else {
-      for (const entry of fs.readdirSync(featureDir)) {
+      for (const entry of fs.readdirSync(domainDir)) {
         if (entry !== "domain.json") {
-          fs.rmSync(path.join(featureDir, entry), { recursive: true, force: true });
+          fs.rmSync(path.join(domainDir, entry), { recursive: true, force: true });
         }
       }
     }

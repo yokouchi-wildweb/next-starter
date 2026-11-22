@@ -23,7 +23,7 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { changedFiles, globToRegExp } from "../phases/changed.mjs";
-import { gateTestFiles } from "../phases/scan.mjs";
+import { phaseTestFiles } from "../phases/scan.mjs";
 import { scanTree, selectChanged } from "./changed.mjs";
 import { GROUPS, NAMED_ONLY, groupOf, listTestFiles, readFlags } from "./scan.mjs";
 
@@ -75,7 +75,7 @@ export function parseArgs(argv) {
 const matches = (file, pattern) => (/[*?]/.test(pattern) ? globToRegExp(pattern).test(file) : file === pattern || file.startsWith(pattern.replace(/\/?$/, "/")));
 
 /** 選ぶ: { files, notes } か { problem } */
-export async function select(opts, { repo, files, changed = changedFiles, tree = scanTree, gateTests = gateTestFiles }) {
+export async function select(opts, { repo, files, changed = changedFiles, tree = scanTree, gateTests = phaseTestFiles }) {
   const groups = opts.groups ?? (opts.db ? GROUPS : ["unit", "fork"]);
   // servers/ の下は引数のパス・glob がそこを名指しした時と、--changed の範囲に servers/ の下の変更がある時だけ(NAMED_ONLY)
   const range = opts.changed ? changed(repo) : null;

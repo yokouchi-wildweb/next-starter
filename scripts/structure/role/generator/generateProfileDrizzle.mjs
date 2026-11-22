@@ -28,10 +28,10 @@ function formatValue(v) {
  */
 function getForeignTableName(domainName) {
   const domainCamel = toCamelCase(domainName) || domainName;
-  const featuresDir = path.join(ROOT_DIR, "src", "domains");
+  const domainsDir = path.join(ROOT_DIR, "src", "domains");
   const candidates = [
-    path.join(featuresDir, domainCamel, "domain.json"),
-    path.join(featuresDir, "core", domainCamel, "domain.json"),
+    path.join(domainsDir, domainCamel, "domain.json"),
+    path.join(domainsDir, "core", domainCamel, "domain.json"),
   ];
   for (const configPath of candidates) {
     if (fs.existsSync(configPath)) {

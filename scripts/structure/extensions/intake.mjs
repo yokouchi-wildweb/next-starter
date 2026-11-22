@@ -7,7 +7,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, posix } from "node:path";
 
-import { loadGates, scanTargets } from "../../runner/phases/scan.mjs";
+import { loadPhases, scanTargets } from "../../runner/phases/scan.mjs";
 import { parseSwitchLayout, APP_DIR, discoverRoutes, listAppFiles } from "../../../src/lib/screens/node.mjs";
 
 import { isListPoint, overrideGlobOf } from "../../../src/lib/districtMap/index.mjs";
@@ -100,7 +100,7 @@ function readScreens(repoRoot) {
 function readGenerators(repoRoot) {
   const scriptsDir = join(repoRoot, "scripts");
   if (!existsSync(join(scriptsDir, "runner/phases/phases.json"))) return [];
-  return scanTargets(scriptsDir, loadGates(scriptsDir))
+  return scanTargets(scriptsDir, loadPhases(scriptsDir))
     .map((t) => ({ name: t.name, outputs: intakeOutputGlobs(t.decl.outputs), regions: t.decl.regions }))
     .filter((g) => g.outputs.length > 0 || g.regions);
 }

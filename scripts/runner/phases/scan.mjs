@@ -12,19 +12,19 @@ export const KEYS = ["check", "generate", "phases", "after", "watch", "features"
 /** テストのファイルの形(pnpm test の入口と同じ: scripts/runner/test/scan.mjs の TEST_FILE) */
 const TEST_FILE = /\.test\.(ts|tsx|mts|mjs|js|cjs)$/;
 
-export class GateError extends Error {}
+export class PhaseError extends Error {}
 
 /** 段階の一覧: { phases: { <名前>: { runs, offline } }, upstreamFolders: { structure: [], workflow: [] } } */
-export function loadGates(scriptsDir) {
+export function loadPhases(scriptsDir) {
   const p = join(scriptsDir, "runner/phases/phases.json");
-  if (!existsSync(p)) throw new GateError(`段階の一覧 ${p} が無い`);
+  if (!existsSync(p)) throw new PhaseError(`段階の一覧 ${p} が無い`);
   return JSON.parse(readFileSync(p, "utf8"));
 }
 
 const strings = (v) => Array.isArray(v) && v.every((x) => typeof x === "string" && x.length > 0);
 
 /** 1 枚の phase.json を検証する(理由の配列、空 = 正しい) */
-export function validate(decl, dir, gateNames) {
+export function validate(decl, dir, phaseNames) {
   const errs = [];
   if (decl === null || typeof decl !== "object" || Array.isArray(decl)) return ["phase.json がオブジェクトでない"];
   for (const k of Object.keys(decl)) if (!KEYS.includes(k)) errs.push(`知らない欄 ${k}`);
@@ -44,13 +44,13 @@ export function validate(decl, dir, gateNames) {
   }
   // outputs: 1 行 = glob の文字列(= every-run)か { glob, kind?, source? }(生成器が出力を宣言する唯一の場所。読み方は src/lib/districtMap/domainOutputs.mjs)
   errs.push(...normalizeGateOutputs(decl.outputs).problems);
-  for (const g of decl.phases ?? []) if (!gateNames.includes(g)) errs.push(`知らない段階 ${g}(段階は ${gateNames.join(", ")})`);
+  for (const g of decl.phases ?? []) if (!phaseNames.includes(g)) errs.push(`知らない段階 ${g}(段階は ${phaseNames.join(", ")})`);
   return errs;
 }
 
-/** 対象を走査して検証する: [{ kind, name, dir, decl, upstream }]。誤りは GateError(全部まとめて) */
-export function scanTargets(scriptsDir, gates) {
-  const gateNames = Object.keys(gates.phases);
+/** 対象を走査して検証する: [{ kind, name, dir, decl, upstream }]。誤りは PhaseError(全部まとめて) */
+export function scanTargets(scriptsDir, phases) {
+  const phaseNames = Object.keys(phases.phases);
   const targets = [];
   const errs = [];
   for (const kind of KINDS) {
@@ -66,19 +66,19 @@ export function scanTargets(scriptsDir, gates) {
         errs.push(`${kind}/${name}/phase.json: JSON が読めない(${e.message})`);
         continue;
       }
-      for (const e of validate(decl, dir, gateNames)) errs.push(`${kind}/${name}/phase.json: ${e}`);
-      targets.push({ kind, name, dir, decl, upstream: (gates.upstreamFolders?.[kind] ?? []).includes(name) });
+      for (const e of validate(decl, dir, phaseNames)) errs.push(`${kind}/${name}/phase.json: ${e}`);
+      targets.push({ kind, name, dir, decl, upstream: (phases.upstreamFolders?.[kind] ?? []).includes(name) });
     }
   }
   const names = new Set(targets.map((t) => t.name));
   const dup = targets.map((t) => t.name).filter((n, i, a) => a.indexOf(n) !== i);
   for (const n of new Set(dup)) errs.push(`対象の名前 ${n} が structure と workflow の両方にある`);
   for (const t of targets) for (const a of t.decl.after ?? []) if (!names.has(a)) errs.push(`${t.kind}/${t.name}/phase.json: after の ${a} が無い`);
-  if (errs.length) throw new GateError(errs.join("\n"));
+  if (errs.length) throw new PhaseError(errs.join("\n"));
   return order(targets);
 }
 
-/** after を満たす順(段ごとに: 上流が先で名前順、fork は上流の全部の後に名前順)。循環は GateError */
+/** after を満たす順(段ごとに: 上流が先で名前順、fork は上流の全部の後に名前順)。循環は PhaseError */
 export function order(targets) {
   const rank = (t) => (t.upstream ? 0 : 1);
   const cmp = (a, b) => rank(a) - rank(b) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
@@ -92,7 +92,7 @@ export function order(targets) {
       const ready = pool.filter((t) => (t.decl.after ?? []).every((a) => done.has(a))).sort(cmp);
       if (!ready.length) {
         const stuck = pool.map((t) => `${t.name}(after ${(t.decl.after ?? []).join(", ")})`).join(" / ");
-        throw new GateError(pass === 0 && pool.some((t) => (t.decl.after ?? []).some((a) => rest.find((r) => r.name === a && rank(r) === 1)))
+        throw new PhaseError(pass === 0 && pool.some((t) => (t.decl.after ?? []).some((a) => rest.find((r) => r.name === a && rank(r) === 1)))
           ? `上流の対象が fork の対象の後を求めている: ${stuck}`
           : `after が循環している: ${stuck}`);
       }
@@ -107,7 +107,7 @@ export function order(targets) {
 }
 
 /** phase.json の tests を読む(その段階の check.mjs が node --test に渡す一覧の唯一の場所): リポ相対のパスの配列 */
-export function gateTestsOf(dir) {
+export function phaseTestsOf(dir) {
   const decl = JSON.parse(readFileSync(join(dir, "phase.json"), "utf8"));
   return decl.tests ?? [];
 }
@@ -117,11 +117,11 @@ export function gateTestsOf(dir) {
  * tests の欄(notices・rules)。pnpm test は名指しでない時にこれを除く(段階の入口のテストはテストの段で繰り返さない、D389)。
  * 段階の宣言が読めない時は空(テストを減らさない: 誤りは pnpm check が出す)
  */
-export function gateTestFiles(repo) {
+export function phaseTestFiles(repo) {
   const out = new Map();
   let targets;
   try {
-    targets = scanTargets(join(repo, "scripts"), loadGates(join(repo, "scripts")));
+    targets = scanTargets(join(repo, "scripts"), loadPhases(join(repo, "scripts")));
   } catch {
     return out;
   }

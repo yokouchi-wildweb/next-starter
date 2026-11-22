@@ -186,7 +186,7 @@ export function classifyMailSendImport(importerRel, resolved, typeOnly, specifie
 }
 
 /** features の barrel(services/server の外の index.ts)が services/server を値で再 export するか */
-export function classifyFeaturesIndexReexport(importerRel, resolved, typeOnly, isReexport) {
+export function classifyDomainsIndexReexport(importerRel, resolved, typeOnly, isReexport) {
   if (!isReexport || typeOnly || !resolved) return null;
   if (!/^src\/domains\/.+\/index\.(ts|tsx)$/.test(importerRel) || SERVER_SERVICE_DIR.test(importerRel)) return null;
   return SERVER_SERVICE_DIR.test(resolved) ? "serverReexport" : null;
@@ -342,7 +342,7 @@ const cronRouteViaWiring = {
   },
 };
 
-const featuresIndexNoServerReexport = {
+const domainsIndexNoServerReexport = {
   meta: {
     type: "problem",
     docs: { description: "features の index.ts(services/server の外)は services/server を値で再 export しない" },
@@ -361,7 +361,7 @@ const featuresIndexNoServerReexport = {
       const specs = node.specifiers ?? [];
       const typeOnly = declarationTypeOnly || (specs.length > 0 && specs.every((sp) => sp.exportKind === "type"));
       const resolved = resolveImport(node.source.value, context.filename, repoRoot);
-      if (classifyFeaturesIndexReexport(importerRel, resolved, typeOnly, true)) {
+      if (classifyDomainsIndexReexport(importerRel, resolved, typeOnly, true)) {
         context.report({ node: node.source, messageId: "serverReexport", data: { source: node.source.value } });
       }
     };
@@ -521,14 +521,14 @@ const toolsNoDbWrite = {
 };
 
 /** lib のファイルが features を指す import か */
-export const isLibFeaturesImport = (importerRel, resolved) => isUnder(importerRel, LIB) && isUnder(resolved, FEATURES);
+export const isLibDomainsImport = (importerRel, resolved) => isUnder(importerRel, LIB) && isUnder(resolved, FEATURES);
 
-const libNoFeatures = {
+const libNoDomains = {
   meta: {
     type: "problem",
     docs: { description: "src/lib から src/domains を import しない(値も型も)" },
     messages: {
-      libFeatures: '"{{source}}": lib は features を import しません(値も型も)。型は lib が持つか型引数で受け、値は注入で受けて src/wiring で結びます(CLAUDE.md CODE_PLACEMENT deps)',
+      libDomains: '"{{source}}": lib は features を import しません(値も型も)。型は lib が持つか型引数で受け、値は注入で受けて src/wiring で結びます(CLAUDE.md CODE_PLACEMENT deps)',
     },
     schema: [],
   },
@@ -536,22 +536,22 @@ const libNoFeatures = {
     const repoRoot = context.cwd ?? process.cwd();
     const importerRel = repoRelative(context.filename, repoRoot);
     return moduleVisitors(({ node, source }) => {
-      if (!isLibFeaturesImport(importerRel, resolveImport(source, context.filename, repoRoot))) return;
-      context.report({ node, messageId: "libFeatures", data: { source } });
+      if (!isLibDomainsImport(importerRel, resolveImport(source, context.filename, repoRoot))) return;
+      context.report({ node, messageId: "libDomains", data: { source } });
     });
   },
 };
 
 /** src/hooks・src/utils のファイルが features を指す import か(D87) */
-export const isHooksUtilsFeaturesImport = (importerRel, resolved) =>
+export const isHooksUtilsDomainsImport = (importerRel, resolved) =>
   (isUnder(importerRel, "src/hooks") || isUnder(importerRel, "src/utils")) && isUnder(resolved, FEATURES);
 
-const hooksUtilsNoFeatures = {
+const hooksUtilsNoDomains = {
   meta: {
     type: "problem",
     docs: { description: "src/hooks・src/utils から src/domains を import しない(値も型も)" },
     messages: {
-      hooksUtilsFeatures:
+      hooksUtilsDomains:
         '"{{source}}": src/hooks・src/utils はドメインを読みません(値も型も)。ドメインの物はそのドメインの hooks / utils に置くか、値と型は引数・型引数で受けます(D87)',
     },
     schema: [],
@@ -560,8 +560,8 @@ const hooksUtilsNoFeatures = {
     const repoRoot = context.cwd ?? process.cwd();
     const importerRel = repoRelative(context.filename, repoRoot);
     return moduleVisitors(({ node, source }) => {
-      if (!isHooksUtilsFeaturesImport(importerRel, resolveImport(source, context.filename, repoRoot))) return;
-      context.report({ node, messageId: "hooksUtilsFeatures", data: { source } });
+      if (!isHooksUtilsDomainsImport(importerRel, resolveImport(source, context.filename, repoRoot))) return;
+      context.report({ node, messageId: "hooksUtilsDomains", data: { source } });
     });
   },
 };
@@ -997,10 +997,10 @@ const plugin = {
     "route-factory-via-wiring": routeFactoryViaWiring,
     "page-guard-via-wiring": pageGuardViaWiring,
     "cron-route-via-wiring": cronRouteViaWiring,
-    "domains-index-no-server-reexport": featuresIndexNoServerReexport,
+    "domains-index-no-server-reexport": domainsIndexNoServerReexport,
     "lib-no-registry": libNoRegistry,
-    "lib-no-domains": libNoFeatures,
-    "hooks-utils-no-domains": hooksUtilsNoFeatures,
+    "lib-no-domains": libNoDomains,
+    "hooks-utils-no-domains": hooksUtilsNoDomains,
     "client-no-domain-json": clientNoDomainJson,
     "feature-gate-entries": featureGateEntries,
     "link-via-shelf": linkViaShelf,

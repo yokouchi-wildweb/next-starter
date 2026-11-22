@@ -3,7 +3,7 @@
 
 import { resolveFieldName } from "../../domain/fieldName.mjs";
 import { belongsToManyRelations, belongsToRelations } from "../../domain/relations.mjs";
-import { featureRel } from "../../domain/context.mjs";
+import { domainRel } from "../../domain/context.mjs";
 import {
   isArrayFieldType,
   isCollectionFieldType,
@@ -145,7 +145,7 @@ export function renderSchema(ctx) {
     }
   });
 
-  let content = `// ${featureRel(ctx)}/entities/schemaRegistry.ts\n\n${buildImports(uses).join("\n")}\n\n`;
+  let content = `// ${domainRel(ctx)}/entities/schemaRegistry.ts\n\n${buildImports(uses).join("\n")}\n\n`;
   content += `export const ${pascal}BaseSchema = z.object({\n${lines.join("\n")}`;
   // ソフトデリート用の deletedAt（Create / Update からは除外 = サーバー側で管理）
   if (config.useSoftDelete) content += `\n  deletedAt: z.date().nullish(),`;

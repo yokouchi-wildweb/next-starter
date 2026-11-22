@@ -7,14 +7,14 @@
 
 import path from "node:path";
 
-import { featureRel } from "../../domain/context.mjs";
+import { domainRel } from "../../domain/context.mjs";
 import { file } from "../output.mjs";
 
 /** 生成するドメインの import の住所(src/domains/<x>/ → @/domains/<x>) */
-const featureImport = (ctx) => `@/domains/${featureRel(ctx).replace(/^src\/domains\//, "").replace(/^core\//, "")}`;
+const domainImport = (ctx) => `@/domains/${domainRel(ctx).replace(/^src\/domains\//, "").replace(/^core\//, "")}`;
 
 export function extensionPointsContent(ctx) {
-  return `// ${featureRel(ctx)}/extensionPoints.ts
+  return `// ${domainRel(ctx)}/extensionPoints.ts
 // ${ctx.label}の拡張点の宣言(pnpm generate domain が生成する。生成のたびに書き直すので手で編集しない。
 // 別の受け口が要るなら domain.json を generate: false にして手で持つ)。書式: scripts/structure/extensions/README.md
 
@@ -23,7 +23,7 @@ export const extensionPoints = {
   adminBulkActions: {
     dir: "adminBulkActions",
     export: "bulkAction",
-    type: { from: "${featureImport(ctx)}/types/adminBulkAction", name: "${ctx.pascal}AdminBulkActionItem" },
+    type: { from: "${domainImport(ctx)}/types/adminBulkAction", name: "${ctx.pascal}AdminBulkActionItem" },
     side: "client",
     key: "key",
     overrideOf: ["enabled", "order"],
@@ -33,14 +33,14 @@ export const extensionPoints = {
 }
 
 export function adminBulkActionTypeContent(ctx) {
-  return `// ${featureRel(ctx)}/types/adminBulkAction.ts
+  return `// ${domainRel(ctx)}/types/adminBulkAction.ts
 // ${ctx.label}の管理一覧の一括操作の項目の型(pnpm generate domain が生成する。手で編集しない)
 
 import type { BulkActionItem } from "@/lib/tableSuite";
-import type { ${ctx.pascal} } from "${featureImport(ctx)}/entities";
+import type { ${ctx.pascal} } from "${domainImport(ctx)}/entities";
 import type { AdminBulkActionAccess } from "@/domains/core/user/types";
 
-/** ${featureRel(ctx)}/adminBulkActions/<名前>.tsx の export const bulkAction。作り方: src/lib/tableSuite/README.md「一括操作の受け口」 */
+/** ${domainRel(ctx)}/adminBulkActions/<名前>.tsx の export const bulkAction。作り方: src/lib/tableSuite/README.md「一括操作の受け口」 */
 export type ${ctx.pascal}AdminBulkActionItem = BulkActionItem<${ctx.pascal}, AdminBulkActionAccess>;
 `;
 }

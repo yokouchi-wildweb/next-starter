@@ -51,35 +51,35 @@ function importSources(text) {
  * 解決するとそのフォルダに入る相対パス
  * @param {string} file リポジトリ相対（posix）
  * @param {string} source
- * @param {string} featureRel 消すドメインのフォルダ（リポジトリ相対の posix。例 src/domains/coupon・src/domains/core/coupon）
+ * @param {string} domainRel 消すドメインのフォルダ（リポジトリ相対の posix。例 src/domains/coupon・src/domains/core/coupon）
  */
-function pointsAt(file, source, featureRel) {
-  const folder = path.posix.basename(featureRel);
+function pointsAt(file, source, domainRel) {
+  const folder = path.posix.basename(domainRel);
   if (source.startsWith("@/")) {
     const target = `src/${source.slice(2)}`;
-    return [featureRel, `src/domains/${folder}`].some((dir) => target === dir || target.startsWith(`${dir}/`));
+    return [domainRel, `src/domains/${folder}`].some((dir) => target === dir || target.startsWith(`${dir}/`));
   }
   if (!source.startsWith(".")) return false;
   const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), source));
-  return target === featureRel || target.startsWith(`${featureRel}/`);
+  return target === domainRel || target.startsWith(`${domainRel}/`);
 }
 
 /**
  * 消さずに残るコードからの import（ファイルを読まない純関数）
  * @param {{ path: string, text: string }[]} files リポジトリ相対（posix）のパスと中身
- * @param {string} featureRel 消すドメインのフォルダ（リポジトリ相対の posix）
+ * @param {string} domainRel 消すドメインのフォルダ（リポジトリ相対の posix）
  * @param {string[]} [excludedDirs] 一緒に消すディレクトリ（リポジトリ相対の posix。ドメインのフォルダは常に除く）
  * @returns {{ file: string, source: string }[]}
  */
-export function codeReferences(files, featureRel, excludedDirs = []) {
-  const excluded = [featureRel, ...excludedDirs];
+export function codeReferences(files, domainRel, excludedDirs = []) {
+  const excluded = [domainRel, ...excludedDirs];
   const inside = (file, dir) => file === dir || file.startsWith(`${dir}/`);
   const references = [];
   for (const { path: file, text } of files) {
     if (!CODE_FILE.test(file)) continue;
     if (excluded.some((dir) => inside(file, dir)) || SKIPPED_PREFIXES.some((prefix) => file.startsWith(prefix))) continue;
     for (const source of new Set(importSources(text))) {
-      if (pointsAt(file, source, featureRel)) references.push({ file, source });
+      if (pointsAt(file, source, domainRel)) references.push({ file, source });
     }
   }
   return references;
@@ -104,16 +104,16 @@ function readSourceFiles(rootDir) {
 /**
  * import の参照で止める理由（無ければ null）
  * @param {import("../../domain/workspace.mjs").Workspace} workspace
- * @param {string} featureDir 消すドメインのフォルダ（絶対パス）
+ * @param {string} domainDir 消すドメインのフォルダ（絶対パス）
  * @param {string[]} [excludedDirs] 一緒に消すディレクトリ（絶対パス）
  */
-export function codeReferenceStopMessage(workspace, featureDir, excludedDirs = []) {
+export function codeReferenceStopMessage(workspace, domainDir, excludedDirs = []) {
   const rel = (dir) => path.relative(workspace.rootDir, dir).split(path.sep).join("/");
-  const featureRel = rel(featureDir);
-  const references = codeReferences(readSourceFiles(workspace.rootDir), featureRel, excludedDirs.map(rel));
+  const domainRel = rel(domainDir);
+  const references = codeReferences(readSourceFiles(workspace.rootDir), domainRel, excludedDirs.map(rel));
   if (references.length === 0) return null;
   return [
-    `${path.basename(featureDir)} は消さずに残るコードから import されているため削除できません:`,
+    `${path.basename(domainDir)} は消さずに残るコードから import されているため削除できません:`,
     ...references.map(({ file, source }) => `  - ${file}: ${source}`),
     "消すなら、先にその import を外してください（参照元が別のドメインなら、そのドメインのコード・関連を先に直す）。一緒に消すルートのディレクトリは --extra で選ぶと数えません",
   ].join("\n");

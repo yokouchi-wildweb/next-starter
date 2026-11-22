@@ -74,4 +74,4 @@ export function requireConfig(ctx) {
 }
 
 /** 生成物の頭のコメントに書くドメインのフォルダ（リポジトリ相対）。rel を持たない ctx（テストの手組み）は business の位置 */
-export const featureRel = (ctx) => ctx.rel ?? `src/domains/${ctx.camel}`;
+export const domainRel = (ctx) => ctx.rel ?? `src/domains/${ctx.camel}`;

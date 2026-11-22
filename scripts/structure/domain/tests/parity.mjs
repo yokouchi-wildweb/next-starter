@@ -53,38 +53,38 @@ const cp = (src, dest) => fs.cpSync(src, dest, { recursive: true, dereference: f
 const extractOld = () => extractGeneratorAt(repoRoot, ref, "dc-parity-old-");
 
 /** domain.json を持つドメインフォルダ（features ディレクトリ直下） */
-function listDomains(featuresDir) {
-  if (!fs.existsSync(featuresDir)) return [];
+function listDomains(domainsDir) {
+  if (!fs.existsSync(domainsDir)) return [];
   return fs
-    .readdirSync(featuresDir, { withFileTypes: true })
-    .filter((d) => d.isDirectory() && !SKIP_DIRS.has(d.name) && fs.existsSync(path.join(featuresDir, d.name, "domain.json")))
+    .readdirSync(domainsDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && !SKIP_DIRS.has(d.name) && fs.existsSync(path.join(domainsDir, d.name, "domain.json")))
     .map((d) => d.name)
     .sort();
 }
 
 /** fixture の「元」: features ディレクトリ（domain.json の置き場）と、existing で写すリポのルート */
 function resolveFixture(name) {
-  if (name === "samples") return { label: "samples", featuresDir: null, repo: null };
+  if (name === "samples") return { label: "samples", domainsDir: null, repo: null };
   const synthetic = path.join(fixtureRoot, name);
-  if (fs.existsSync(synthetic)) return { label: name, featuresDir: synthetic, repo: null };
+  if (fs.existsSync(synthetic)) return { label: name, domainsDir: synthetic, repo: null };
   const repo = path.resolve(name);
-  if (fs.existsSync(path.join(repo, "src", "domains"))) return { label: path.basename(repo), featuresDir: path.join(repo, "src", "domains"), repo };
+  if (fs.existsSync(path.join(repo, "src", "domains"))) return { label: path.basename(repo), domainsDir: path.join(repo, "src", "domains"), repo };
   throw new Error(`fixture が見つかりません: ${name}`);
 }
 
 /** このリポの src/ を複製し、fixture のドメインを重ねた基準ツリーを作る */
-function buildBase({ featuresDir, repo }, variant) {
+function buildBase({ domainsDir, repo }, variant) {
   const base = tmp("dc-parity-base-");
   cp(path.join(repoRoot, "src"), path.join(base, "src"));
-  if (!featuresDir) return base;
-  for (const d of listDomains(featuresDir)) {
+  if (!domainsDir) return base;
+  for (const d of listDomains(domainsDir)) {
     const dest = path.join(base, "src", "domains", d);
     fs.rmSync(dest, { recursive: true, force: true });
     if (variant === "existing" && repo) {
-      cp(path.join(featuresDir, d), dest);
+      cp(path.join(domainsDir, d), dest);
     } else {
       fs.mkdirSync(dest, { recursive: true });
-      fs.copyFileSync(path.join(featuresDir, d, "domain.json"), path.join(dest, "domain.json"));
+      fs.copyFileSync(path.join(domainsDir, d, "domain.json"), path.join(dest, "domain.json"));
     }
   }
   if (variant === "existing" && repo) {
@@ -188,7 +188,7 @@ let cases = 0;
 let failures = 0;
 for (const name of [...fixtures, ...repos]) {
   const fixture = resolveFixture(name);
-  const domains = listDomains(fixture.featuresDir ?? path.join(repoRoot, "src", "domains"));
+  const domains = listDomains(fixture.domainsDir ?? path.join(repoRoot, "src", "domains"));
   for (const variant of variants) {
     if (variant === "existing" && !fixture.repo) continue;
     const base = buildBase(fixture, variant);

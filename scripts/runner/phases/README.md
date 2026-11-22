@@ -41,7 +41,7 @@ pnpm generate [<対象>] [--phase=<段階>] [-- <入口への引数>]
 - `watch`: 変更を見るパスの glob(リポジトリ直下からの相対、`**` = 何段でも・`*` = 1 段の中・`?` = 1 文字)。watch の段階で選んだ時に使う(下)
 - `features`: 機能名(src/featureGate の規則名)。どれかが閉じていれば飛ばし、「機能 <名前> が閉じているので飛ばした」を必ず出す。知らない機能名は止める
 - `outputs`: この生成器が書くファイルの宣言(生成器が出力を宣言する唯一の場所)。1 行 = glob の文字列(リポジトリ直下からの相対、= `every-run`)か `{ glob, kind?, source? }`(`kind` = `every-run` 毎回書き直す(省略時)/ `write-once` 無いときだけ書く、`source` = 変えたいときに直す物)。`every-run` の行は受け口の一覧(src/lib/forkOwnership/intake.txt)の `generated` の行になる(`pnpm generate extensions` が書く。`{dir}` などドメインの置き換えを持つ glob は除く: scripts/structure/domain/README.md)
-- `tests`: `check` が `node --test` に渡すテストのファイル(リポジトリ直下からの相対、`*.test.*`)。その一覧の唯一の場所(check.mjs は `scan.mjs` の `gateTestsOf` で読む)。`check` そのものがテストのファイルの対象(cycles・config)と同じく、`pnpm test` は名指しでない時にこれらを回さない(段階の入口のテストは段階 1 回、D389。`gateTestFiles`)
+- `tests`: `check` が `node --test` に渡すテストのファイル(リポジトリ直下からの相対、`*.test.*`)。その一覧の唯一の場所(check.mjs は `scan.mjs` の `phaseTestsOf` で読む)。`check` そのものがテストのファイルの対象(cycles・config)と同じく、`pnpm test` は名指しでない時にこれらを回さない(段階の入口のテストは段階 1 回、D389。`phaseTestFiles`)
 - `regions`: この生成器が書き直しても fork の区画(fork entries の対)を残すファイルの glob。受け口の一覧の `region` の行になる
 - 知らない欄は止める
 

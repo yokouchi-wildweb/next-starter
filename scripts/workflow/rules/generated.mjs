@@ -5,7 +5,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { loadGates, scanTargets } from "../../runner/phases/scan.mjs";
+import { loadPhases, scanTargets } from "../../runner/phases/scan.mjs";
 import { hasGeneratedMark, MARKABLE, outputFiles, outputsOutsidePaths } from "./lib.ruleGenerated.mjs";
 import { planUnmark } from "../../structure/domain/cli/unmark.mjs";
 import { parsePaths } from "./lib.rulePaths.mjs";
@@ -16,7 +16,7 @@ const read = (p) => readFileSync(join(root, p), "utf8");
 const DISTRICT_MAP = "src/registry/district-map.jsonl";
 
 const scriptsDir = join(root, "scripts");
-const gates = scanTargets(scriptsDir, loadGates(scriptsDir)).map((t) => ({ gate: `${t.kind}/${t.name}`, outputs: t.decl.outputs, upstream: t.upstream }));
+const gates = scanTargets(scriptsDir, loadPhases(scriptsDir)).map((t) => ({ gate: `${t.kind}/${t.name}`, outputs: t.decl.outputs, upstream: t.upstream }));
 const files = execFileSync("git", ["ls-files", "-z"], { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 }).split("\0").filter(Boolean);
 // 作り直しの対象のドメイン = domain.json を持ち generate が false でない物(false = 生成器が触らない)
 const domains = existsSync(join(root, DISTRICT_MAP))

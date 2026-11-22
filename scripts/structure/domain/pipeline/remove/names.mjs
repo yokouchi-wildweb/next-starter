@@ -84,29 +84,29 @@ export function resolveDir(base, ...candidates) {
 
 /**
  * 入力のドメイン名から削除対象の名前を解決する
- * @returns {{ normalizedSnake: string, camel: string, featureDir: string, configPath: string, canonicalSingular: string, plural: string,
- *   featureCandidateSet: Set<string>, pluralCandidateSet: Set<string>, searchNameSet: Set<string> }}
+ * @returns {{ normalizedSnake: string, camel: string, domainDir: string, configPath: string, canonicalSingular: string, plural: string,
+ *   domainCandidateSet: Set<string>, pluralCandidateSet: Set<string>, searchNameSet: Set<string> }}
  */
 export function resolveDeleteTarget(workspace, domain) {
   const normalizedSnake = toSnakeCase(domain) || domain;
   const pascal = toPascalCase(normalizedSnake);
   const camel = toCamelCase(normalizedSnake);
   const singularKebab = toKebabCase(camel || normalizedSnake);
-  const featureCandidateSet = removeEmpty(new Set([domain, camel, pascal, singularKebab].filter(Boolean)));
+  const domainCandidateSet = removeEmpty(new Set([domain, camel, pascal, singularKebab].filter(Boolean)));
   const singularCandidates = createSingularCandidates(camel);
   for (const singularCandidate of singularCandidates) {
-    featureCandidateSet.add(singularCandidate);
-    featureCandidateSet.add(toPascalCase(singularCandidate));
-    featureCandidateSet.add(toKebabCase(singularCandidate));
+    domainCandidateSet.add(singularCandidate);
+    domainCandidateSet.add(toPascalCase(singularCandidate));
+    domainCandidateSet.add(toKebabCase(singularCandidate));
   }
   // business（src/domains/<d>）を先に、無ければ domain.json を持つ core（src/domains/core/<d>）
-  const coreFeatureDir = resolveDir(path.join(workspace.featuresDir, "core"), ...featureCandidateSet);
-  const resolvedFeatureDir =
-    resolveDir(workspace.featuresDir, ...[...featureCandidateSet].filter((name) => name !== "core")) ??
-    (coreFeatureDir && fs.existsSync(path.join(coreFeatureDir, "domain.json")) ? coreFeatureDir : null);
-  const canonicalSingular = (resolvedFeatureDir && path.basename(resolvedFeatureDir)) || singularCandidates[0] || camel;
-  const featureDir = resolvedFeatureDir ?? path.join(workspace.featuresDir, canonicalSingular);
-  const configPath = path.join(featureDir, "domain.json");
+  const coreDomainDir = resolveDir(path.join(workspace.domainsDir, "core"), ...domainCandidateSet);
+  const resolvedDomainDir =
+    resolveDir(workspace.domainsDir, ...[...domainCandidateSet].filter((name) => name !== "core")) ??
+    (coreDomainDir && fs.existsSync(path.join(coreDomainDir, "domain.json")) ? coreDomainDir : null);
+  const canonicalSingular = (resolvedDomainDir && path.basename(resolvedDomainDir)) || singularCandidates[0] || camel;
+  const domainDir = resolvedDomainDir ?? path.join(workspace.domainsDir, canonicalSingular);
+  const configPath = path.join(domainDir, "domain.json");
   let plural = canonicalSingular === camel ? camel + "s" : camel;
   if (fs.existsSync(configPath)) {
     const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
@@ -120,6 +120,6 @@ export function resolveDeleteTarget(workspace, domain) {
     pluralCandidateSet.add(toPascalCase(candidate));
     pluralCandidateSet.add(toKebabCase(candidate));
   }
-  const searchNameSet = removeEmpty(new Set([...featureCandidateSet, ...pluralCandidateSet]));
-  return { normalizedSnake, camel, featureDir, configPath, canonicalSingular, plural, featureCandidateSet, pluralCandidateSet, searchNameSet };
+  const searchNameSet = removeEmpty(new Set([...domainCandidateSet, ...pluralCandidateSet]));
+  return { normalizedSnake, camel, domainDir, configPath, canonicalSingular, plural, domainCandidateSet, pluralCandidateSet, searchNameSet };
 }

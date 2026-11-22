@@ -10,7 +10,7 @@ import { ESLint, RuleTester } from "eslint";
 
 import plugin, {
   classifyFeatureGateImport,
-  classifyFeaturesIndexReexport,
+  classifyDomainsIndexReexport,
   classifyLibRegistryImport,
   classifyAxiosImport,
   classifyCronFactoryImport,
@@ -106,11 +106,11 @@ test("rule lib-no-domains: 値も型も、別名も相対も止める。lib の�
       { code: `import { x } from "@/domains/core/user/types";`, filename: at("src/wiring/apiRoute.ts") },
     ],
     invalid: [
-      { code: `import { x } from "@/domains/core/auth/services/server/foo";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
-      { code: `import type { X } from "@/domains/core/user/types";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
-      { code: `import { x } from "@/domains/user/types";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
-      { code: `import { x } from "../../domains/sample/entities";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
-      { code: `const m = await import("@/domains/sample/entities");`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libFeatures" }] },
+      { code: `import { x } from "@/domains/core/auth/services/server/foo";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libDomains" }] },
+      { code: `import type { X } from "@/domains/core/user/types";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libDomains" }] },
+      { code: `import { x } from "@/domains/user/types";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libDomains" }] },
+      { code: `import { x } from "../../domains/sample/entities";`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libDomains" }] },
+      { code: `const m = await import("@/domains/sample/entities");`, filename: at("src/lib/foo/index.ts"), errors: [{ messageId: "libDomains" }] },
     ],
   });
 });
@@ -193,12 +193,12 @@ test("classify: pageGuard の値 import は wiring と pageGuard 自身だけ、
 
 test("classify: features の index.ts は services/server を値で再 export しない(D73 K5)", () => {
   const server = "src/domains/core/user/services/server/userService";
-  assert.equal(classifyFeaturesIndexReexport("src/domains/core/user/index.ts", server, false, true), "serverReexport");
-  assert.equal(classifyFeaturesIndexReexport("src/domains/sample/index.tsx", server, false, true), "serverReexport");
-  assert.equal(classifyFeaturesIndexReexport("src/domains/core/user/index.ts", server, true, true), null, "型だけは可");
-  assert.equal(classifyFeaturesIndexReexport("src/domains/core/user/services/server/index.ts", server, false, true), null, "services/server の中の barrel は対象外");
-  assert.equal(classifyFeaturesIndexReexport("src/domains/core/user/index.ts", "src/domains/core/user/hooks/useUser", false, true), null);
-  assert.equal(classifyFeaturesIndexReexport("src/domains/core/user/index.ts", server, false, false), null, "再 export でない import は対象外");
+  assert.equal(classifyDomainsIndexReexport("src/domains/core/user/index.ts", server, false, true), "serverReexport");
+  assert.equal(classifyDomainsIndexReexport("src/domains/sample/index.tsx", server, false, true), "serverReexport");
+  assert.equal(classifyDomainsIndexReexport("src/domains/core/user/index.ts", server, true, true), null, "型だけは可");
+  assert.equal(classifyDomainsIndexReexport("src/domains/core/user/services/server/index.ts", server, false, true), null, "services/server の中の barrel は対象外");
+  assert.equal(classifyDomainsIndexReexport("src/domains/core/user/index.ts", "src/domains/core/user/hooks/useUser", false, true), null);
+  assert.equal(classifyDomainsIndexReexport("src/domains/core/user/index.ts", server, false, false), null, "再 export でない import は対象外");
 });
 
 test("classifyCronFactoryImport: cron の作り手の値 import は wiring と lib/cron の中だけ、型と他の名前は誰でも", () => {
@@ -707,7 +707,7 @@ test("config: shelf-purity は src/components(テストを除く)で error、棚
 test("rule hooks-utils-no-domains: src/hooks・src/utils から features を値も型も(別名・相対)止め、ほかの場所と features 以外は通す", () => {
   const hook = at("src/hooks/useThing.ts");
   const util = at("src/utils/thing.ts");
-  const err = (source) => [{ messageId: "hooksUtilsFeatures", data: { source } }];
+  const err = (source) => [{ messageId: "hooksUtilsDomains", data: { source } }];
   ruleTester.run("hooks-utils-no-domains", plugin.rules["hooks-utils-no-domains"], {
     valid: [
       { code: `import { cn } from "@/lib/cn";`, filename: hook },

@@ -3,7 +3,7 @@
 // 検査（規則違反）は Output を作る時点で済ませ、例外で止める（書き込みの前）
 
 import path from "node:path";
-import { featureRel } from "../../../domain/context.mjs";
+import { domainRel } from "../../../domain/context.mjs";
 import { loadRoleCategories } from "../../../domain/roles.mjs";
 import { file } from "../../output.mjs";
 import { buildStoragePurposeEntries } from "./entries.mjs";
@@ -52,7 +52,7 @@ export function renderStoragePurposesOutput(ctx, workspace, warn = console.warn)
   }
   if (entries.length === 0) return [];
   return [
-    file(path.join(ctx.dir, "services", "server", "storagePurposes.ts"), renderStoragePurposesContent(featureRel(ctx), entries), {
+    file(path.join(ctx.dir, "services", "server", "storagePurposes.ts"), renderStoragePurposesContent(domainRel(ctx), entries), {
       label: "ファイル用途を生成しました",
     }),
   ];

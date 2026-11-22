@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { globToRegExp, run } from "./run.mjs";
-import { GateError, gateTestFiles, gateTestsOf, loadGates, scanTargets } from "./scan.mjs";
+import { PhaseError, phaseTestFiles, phaseTestsOf, loadPhases, scanTargets } from "./scan.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -31,10 +31,10 @@ function fixture(t) {
   return { repo, scriptsDir, add, exec };
 }
 
-const names = (f) => scanTargets(f.scriptsDir, loadGates(f.scriptsDir)).map((t) => t.name);
+const names = (f) => scanTargets(f.scriptsDir, loadPhases(f.scriptsDir)).map((t) => t.name);
 
 test("段階の一覧: 6 つの段階、build と build:post が offline、上流の対象フォルダの名簿", () => {
-  const g = loadGates(join(HERE, "../.."));
+  const g = loadPhases(join(HERE, "../.."));
   assert.deepEqual(Object.keys(g.phases), ["build", "build:post", "ship", "forge:pre", "forge:post", "deploy"]);
   assert.deepEqual(Object.entries(g.phases).filter(([, v]) => v.offline).map(([k]) => k), ["build", "build:post"]);
   assert.ok(g.upstreamFolders.structure.includes("domain") && g.upstreamFolders.workflow.includes("notices"));
@@ -48,7 +48,7 @@ test("phase.json の誤り: 知らない欄・知らない段階・無い入口�
   f.add("workflow", "rules", { check: "check.mjs", after: ["nowhere"] });
   f.add("structure", "cron", "{ not json");
   assert.throws(() => names(f), (e) => {
-    assert.ok(e instanceof GateError);
+    assert.ok(e instanceof PhaseError);
     for (const m of ["知らない欄 color", "知らない段階 nightly", "missing.mjs が無い", "check か generate", "after の nowhere が無い", "cron/phase.json: JSON が読めない"]) assert.match(e.message, new RegExp(m));
     return true;
   });
@@ -207,15 +207,15 @@ test("watch: 段階 ship で選んだ watch つきの対象は、範囲の変更
   assert.equal(calls, 0, "watch の段階でなければ範囲を読まない");
 });
 
-test("tests の欄: リポ相対の *.test.* の配列で実在する物だけ。check がテストの対象と tests が gateTestFiles に段階の名で並ぶ(D389)", (t) => {
+test("tests の欄: リポ相対の *.test.* の配列で実在する物だけ。check がテストの対象と tests が phaseTestFiles に段階の名で並ぶ(D389)", (t) => {
   const { repo, scriptsDir, add } = fixture(t);
   mkdirSync(join(repo, "lib"), { recursive: true });
   writeFileSync(join(repo, "lib/a.test.mjs"), "");
   add("structure", "cyc", { check: "cyc.test.mjs", phases: ["ship"] }, { "cyc.test.mjs": "" });
   add("workflow", "ntc", { check: "check.mjs", phases: ["ship"], tests: ["lib/a.test.mjs"] });
-  assert.deepEqual([...gateTestFiles(repo)], [["scripts/structure/cyc/cyc.test.mjs", "cyc"], ["lib/a.test.mjs", "ntc"]]);
-  assert.deepEqual(gateTestsOf(join(scriptsDir, "workflow/ntc")), ["lib/a.test.mjs"]);
+  assert.deepEqual([...phaseTestFiles(repo)], [["scripts/structure/cyc/cyc.test.mjs", "cyc"], ["lib/a.test.mjs", "ntc"]]);
+  assert.deepEqual(phaseTestsOf(join(scriptsDir, "workflow/ntc")), ["lib/a.test.mjs"]);
   add("workflow", "bad", { check: "check.mjs", tests: ["lib/a.mjs", "lib/none.test.mjs"] });
-  assert.throws(() => scanTargets(scriptsDir, loadGates(scriptsDir)), (e) => e instanceof GateError && /lib\/a\.mjs はテストのファイル/.test(e.message) && /lib\/none\.test\.mjs が無い/.test(e.message));
-  assert.deepEqual([...gateTestFiles(repo)], []);   // 宣言が読めない時は空(テストを減らさない)
+  assert.throws(() => scanTargets(scriptsDir, loadPhases(scriptsDir)), (e) => e instanceof PhaseError && /lib\/a\.mjs はテストのファイル/.test(e.message) && /lib\/none\.test\.mjs が無い/.test(e.message));
+  assert.deepEqual([...phaseTestFiles(repo)], []);   // 宣言が読めない時は空(テストを減らさない)
 });
