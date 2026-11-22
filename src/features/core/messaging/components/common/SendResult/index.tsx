@@ -29,9 +29,9 @@ export type SendResultFailedPage = {
   isFetchingMore: boolean;
   hasMore: boolean;
   error?: unknown;
-  sentinelRef?: (node: HTMLElement | null) => void;
-  retry?: () => void;
-  loadMore?: () => void;
+  sentinelRef: (node: HTMLElement | null) => void;
+  retry: () => void;
+  loadMore: () => void;
 };
 
 export type SendResultProps = {
@@ -108,10 +108,8 @@ export function SendResult({ channels, failed, loadMode = "auto" }: SendResultPr
           isFetchingMore={failed.isFetchingMore}
           hasMore={failed.hasMore}
           error={failed.error}
-          sentinelRef={failed.sentinelRef}
           onRetry={failed.retry}
-          loadMode={loadMode}
-          onLoadMore={failed.loadMore}
+          {...(loadMode === "button" ? { loadMode: "button" as const, onLoadMore: failed.loadMore } : { sentinelRef: failed.sentinelRef })}
           hideCompletedNotice
           emptyNode={
             <Para size="sm" tone="muted" className="my-0">

@@ -34,6 +34,9 @@ const page = (over: Partial<Props["failed"]> = {}): Props["failed"] => ({
   isFetchingMore: false,
   hasMore: false,
   error: null,
+  sentinelRef: () => {},
+  retry: () => {},
+  loadMore: () => {},
   ...over,
 });
 const COUNT = { targeted: 3, sent: 1, failed: 1, suppressed: 1, skipped_no_address: 1, skipped_throttled: 0 };

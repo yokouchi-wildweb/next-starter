@@ -151,7 +151,7 @@ test("useSendPreview / useSendTest: 渡した口で描いて持つ・消す / �
         return { shown: input.n };
       },
     }),
-    test: hooks.useSendTest({
+    test: hooks.useSendTest<{ n: number }, { ok: boolean }>({
       fetcher: async (input: { n: number; idempotencyKey: string }) => {
         fetched.push(input);
         return { ok: true };
