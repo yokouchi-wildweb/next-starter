@@ -1,7 +1,7 @@
 // 振込レビューの管理一覧の受け口 adminBulkActions の検査。
 // - 生成の一覧(extensions/adminBulkActions)に上流の既定の項目 sendEmail がある
 // - override で enabled: false にした形(生成器が重ねる)は出ない / fork の項目は order で並ぶ(selectBulkActions の上で)
-// - sendEmail は連絡の作成関数 bulkMessageAction の項目で、送るモーダルを bulk(target・選んだ id・今の文言)で描き、送った後に onDone(モーダルは偽物)
+// - sendEmail は連絡の作成関数 bulkMessageAction の項目で、送るモーダルを bulk(target・選んだ id・今の文言。決まった文面・カテゴリーは無い)で描き、送った後に onDone(モーダルは偽物)
 // 実行: pnpm test src/features/core/bankTransferReview/hooks/adminBankTransferReviewBulkActions.test.tsx
 import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -65,19 +65,8 @@ test("sendEmail: 連絡の一括送信のボタンを target bankTransferReview�
   assert.deepEqual(mode.recordIds, ["r1", "r2"]);
   assert.equal(mode.target, "bankTransferReview");
   assert.equal(mode.recordNoun, "振込レビュー");
-  assert.equal(mode.defaultCategory, "operatorDirect");
-  // 既定の中身 = ひな形の欄の中身(件名 + 段落、ひな形の送る口)
-  assert.deepEqual(mode.defaults, {
-    values: {
-      subject: "お振込に関するお知らせ",
-      blocks: [
-        {
-          type: "paragraph",
-          text: "お振込のご確認に関する重要なお知らせをメールにて送付しております。\nお手数をおかけいたしますが、ご確認のほどお願いいたします。",
-        },
-      ],
-    },
-  });
+  // 決まった文面・カテゴリーは渡さない(連絡定義の物、D195。白紙から書く形は S5 で作り直すまで)
+  assert.deepEqual(Object.keys(mode).sort(), ["recordIds", "recordNoun", "source", "target", "type"]);
   assert.equal(props?.label, "メール一斉送信");
   assert.equal(props?.disabled, false);
   let done = 0;

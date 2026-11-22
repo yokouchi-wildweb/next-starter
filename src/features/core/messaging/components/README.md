@@ -67,7 +67,7 @@ core_ui の形: 流れとデータは hook（`hooks/index.ts` から）、部品
 ### 送るモーダル（MessageSendModal）
 
 - 入れ物 `MessageSendModal`（`mode`・`label?`・`triggerVariant?`・`disabled?`・`icon?`・`onSent?(result)`・`dispatchBasePath?`）: 開くボタン + モーダル。fork は自分の画面にもそのまま置ける
-  - `mode`: `{ type: "new", initialRecipients? }`（`initialRecipients` = 利用者 id の並び: 宛先は「選んだ利用者」のその人たちから始まり、管理者が変えられる。利用者の詳細などから 1 人宛ての自由連絡を開く入口、D177）/ `{ type: "sameAs", dispatch }`（送信のカテゴリー・送信チャンネル・宛先の形と中身を写す）/ `{ type: "bulk", target, recordIds, recordNoun, defaults?, defaultCategory?, source? }`（管理一覧の一括操作、`defaults = { values }` は初めのレイアウトの欄の中身に重ねる値）。new・sameAs の口は門 `messagingBroadcast` が開の時だけ、bulk は門の外
+  - `mode`: `{ type: "new", initialRecipients? }`（`initialRecipients` = 利用者 id の並び: 宛先は「選んだ利用者」のその人たちから始まり、管理者が変えられる。利用者の詳細などから 1 人宛ての自由連絡を開く入口、D177）/ `{ type: "sameAs", dispatch }`（送信のカテゴリー・送信チャンネル・宛先の形と中身を写す）/ `{ type: "bulk", target, recordIds, recordNoun, source? }`（管理一覧の一括操作。新しく送ると同じく種別から選び初めのレイアウトの白紙から書く。決まった文面・カテゴリーは渡さない = 連絡定義の物、D195）。new・sameAs の口は門 `messagingBroadcast` が開の時だけ、bulk は門の外
   - `initialRecipients` を渡す呼び手（利用者の詳細のボタンなど）は `/send`（門の中）を通るので、ボタンを門 `messagingBroadcast` で包む（`requires` / `useGate`）。1 人宛ての自由連絡の入口を使う fork は `messagingBroadcast` を開く
 - 流れ（D110 D115）: 種別とカテゴリー（`KindCategoryFields` の 1 行、新しく送る時は種別を先に選ばない、D118）→ 送信チャンネルの絞り（最初はカテゴリーの `defaultChannels`、無ければ全部。カテゴリー・種別を替えるとその最初の送信チャンネルに戻る、sameAs は触るまで元の送信の送信チャンネル、D119） → 宛先（種別が許す種類だけ、direct はグループも）→ レイアウト（`SendLayoutPicker`。開いた時は選択肢の `initialLayout`（config の messaging.initialLayout）、選べるのは管理画面で選べて無効でない物（`selectable`）。替えると欄の中身は白紙から（前の値は持ち越さない）、書きかけがあれば Dialog で確かめる。種別を替えてもレイアウトと文はそのまま、D195）→ テンプレート（任意の読み込みの道具。その種別の公開中の物、門 `messagingTemplates` が開の時だけ行を出す。使えないレイアウトのテンプレートはサーバーが出さない）→ 内容 → 予約（bulk 以外）→ プレビュー・自分へのテスト送信 → 見込み → 確認 → 送る
 - 内容（D118 D119 D120）: 読み込んでいない時はレイアウトの欄（`LayoutFields`）で全文を書く。テンプレートを読み込んだ直後は文を固定し、専用の埋め込み情報の入力（`SendVarInputs`）だけ。『文面を直す』で全文を直せる（つながりは残り、版と違えば直した印 = 送る口の `edited`）。『テンプレートの読み込みを解除』はそのテンプレートのレイアウトへ（選べなければ初めのレイアウト。レイアウトが同じなら今の文は残る）。レイアウトを選ぶ・種別を替えるとテンプレートは外れる。『テンプレートを更新』は今の文をそのテンプレートの新しい版にする（1 回の保存で公開、送るとは別、門 `messagingTemplates` が開の時だけ）。直している間は埋め込み情報のタグ（共通 + カテゴリーに当たる enrichers + 専用）。内容の中にレイアウトの実際の描き方のプレビュー（`LayoutPreview` + `useLayoutPreview`、送る送信チャンネルのタブ、未入力は仮の文）。ボタン「あなた宛ての表示例」は送る口のプレビュー（埋め込み情報を差し込んだ形）
@@ -90,11 +90,12 @@ import { bulkMessageAction } from "@/features/core/messaging/components/AdminBul
 
 export const bulkAction = bulkMessageAction(
   { key: "notify", order: 100 },
-  { target: "<bulkSendTargets の key>", recordNoun: "発送リクエスト", defaultCategory: "operatorDirect" },
+  { target: "<bulkSendTargets の key>", recordNoun: "発送リクエスト" },
 );
 ```
 
-- options（`BulkMessageActionOptions`）: `target`・`recordNoun`・`label?`（既定「一括送信」）・`defaults?`（`{ values }` = 初めのレイアウトの欄の中身に重ねる初期値。例 汎用のお知らせ `{ subject, blocks }`）・`defaultCategory?`（既定 `operatorDirect`）・`source?`・`disabled?`・`onSent?(result)`
+- options（`BulkMessageActionOptions`）: `target`・`recordNoun`・`label?`（既定「一括送信」）・`source?`・`disabled?`・`onSent?(result)`
+  - 決まった文面・カテゴリーの指定は無い（送るモーダルは種別から選び白紙から書く）。決まった文面を送るなら連絡定義（messages/<名前>.ts）にする（D195 D200）
 - 上流の使い手: `bankTransferReview/adminBulkActions/sendEmail.tsx`
 
 ## Verification

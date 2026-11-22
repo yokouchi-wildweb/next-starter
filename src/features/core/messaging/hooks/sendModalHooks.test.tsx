@@ -14,7 +14,7 @@
 //   直して送信した物は直した文で文面を直す状態から / 公開中でないテンプレートは送信のレイアウト + 知らせ / 管理画面で選べないレイアウトの送信は知らせ
 // - グループ宛て: 選ぶまで止まる・体 target group・上限超えは確認で送れない / sameAs のグループ(選べなければ知らせ、全員に広げない)
 // - sameAs の送信チャンネル: 元の送信が使った送信チャンネルだけオン(今のカテゴリーの中で)、触るまで書きかけにしない
-// - bulk: 選んだ記録が宛先、defaults の values を初めのレイアウトに重ねる、bulk-send の API と bulk のプレビュー・テスト、予約は無い、見込みは取らない
+// - bulk: 選んだ記録が宛先、新しく送ると同じく種別から選び初めのレイアウトの白紙から(決まった文面・カテゴリーは無い、D195)、bulk-send の API と bulk のプレビュー・テスト、予約は無い、見込みは取らない
 // 実行: pnpm test src/features/core/messaging/hooks/sendModalHooks.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -335,14 +335,14 @@ test("純粋な関数", () => {
 
   // 初めの文面
   const bulk = hooks.initialTextOf(
-    { type: "bulk", target: "t", recordIds: ["r"], recordNoun: "記録", defaults: { values: { subject: "題" } } },
+    { type: "bulk", target: "t", recordIds: ["r"], recordNoun: "記録" },
     "direct",
     layouts as never,
     "notice",
     categories as never,
     [],
   );
-  assert.deepEqual([bulk?.source, bulk?.start, bulk?.unlocked], [NOTICE_SOURCE, { subject: "題" }, true]);
+  assert.deepEqual([bulk?.source, bulk?.start, bulk?.unlocked], [NOTICE_SOURCE, {}, true], "bulk も初めのレイアウトの白紙から");
   assert.equal(
     hooks.initialTextOf({ type: "bulk", target: "t", recordIds: ["r"], recordNoun: "記録" }, "direct", [layouts[0]] as never, "notice", categories as never, []),
     null,
@@ -792,7 +792,7 @@ test("sameAs: カテゴリー → 種別・宛先・中身を写す。テンプ�
   await nothing.unmount();
 });
 
-test("bulk: 選んだ記録が宛先、defaults を初めのレイアウトに重ねる、bulk の API、予約は無い、見込みは取らない、onSent", async () => {
+test("bulk: 選んだ記録が宛先、種別から選び白紙から書く、bulk の API、予約は無い、見込みは取らない、onSent", async () => {
   const sentResults: unknown[] = [];
   const view = await open(
     {
@@ -800,13 +800,18 @@ test("bulk: 選んだ記録が宛先、defaults を初めのレイアウトに�
       target: "bankTransferReview",
       recordIds: ["r1", "r2"],
       recordNoun: "振込レビュー",
-      defaults: { values: { subject: "題", blocks: [{ type: "paragraph", text: "本文" }] } },
     },
     (result) => sentResults.push(result),
   );
   const m = () => view.value();
   assert.equal(m().showSchedule, false);
-  assert.deepEqual([m().kind, m().category], ["direct", "operatorDirect"], "既定のカテゴリーとその種別");
+  assert.deepEqual([m().kind, m().category], ["", ""], "種別は先に選ばない(既定のカテゴリーは無い)");
+  assert.equal(m().targetError, "種別を選んでください");
+  assert.deepEqual(m().text.values, BLANK_VALUES, "初めのレイアウトの白紙(決まった文面は無い)");
+  await act(async () => m().setKind("direct"));
+  assert.deepEqual([m().kind, m().category], ["direct", "operatorDirect"]);
+  await typeField(m, "subject", "題");
+  await typeField(m, "blocks", [{ type: "paragraph", text: "本文" }]);
   assert.equal(m().channels.find((channel) => channel.key === "inApp")?.label, "お知らせ", "送信チャンネルの名前は送るモーダルと同じ");
   assert.equal(m().targetError, null);
   await act(async () => m().toggleChannel("email", false));
