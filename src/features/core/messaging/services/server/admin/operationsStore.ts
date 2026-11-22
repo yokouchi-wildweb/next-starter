@@ -1,6 +1,6 @@
 // src/features/core/messaging/services/server/admin/operationsStore.ts
 //
-// 管理の操作の DB(drizzle)。どの操作も回の行を FOR UPDATE で持った 1 つの取引で行う(cron の展開・予約の拾いと重ならない)。
+// 管理の操作の DB(drizzle)。どの操作も送信の行を FOR UPDATE で持った 1 つの取引で行う(cron の展開・予約の拾いと重ならない)。
 // 配達は FOR UPDATE SKIP LOCKED で取り、lease 中(sending)の行は触らない(cron と再送が同じ宛先を二重に送らない)
 
 import { and, eq, inArray, isNotNull, isNull, lt, notInArray, or, sql } from "drizzle-orm";

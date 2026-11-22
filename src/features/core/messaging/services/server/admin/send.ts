@@ -1,16 +1,16 @@
 // src/features/core/messaging/services/server/admin/send.ts
 //
-// 管理の送信(D34・D40・D41・D42・D65・D80・D85・D117・D125)。どの送信も『テンプレートを選んで送る』1 つの流れ(その場で書く連絡 = 白紙のシステムテンプレート)。
+// 管理の送信(D34・D40・D41・D42・D65・D80・D85・D117・D125)。どの送信も『テンプレートを選んで送る』1 つの流れ(自由連絡 = 白紙のシステムテンプレート)。
 // - 中身: template = 出どころ { system: 白紙の鍵 } か { id, version }(DB のテンプレートの読み込んだ版。今の公開版でなければ 409)・
-//   values = ひな形の欄の中身({{鍵}} のまま、ひな形の欄の zod で検査)・edited? = 版の中身から直したか(DB のテンプレートだけ。中身の違いでも付く)・
-//   vars? = 専用の埋め込み情報の値 { 鍵: 値 }(DB のテンプレートの版かシステムテンプレートの宣言の型で検査、回の embedded_values に残る)。組み方は sendMessage/templateDefinition.ts(fork のコードからは messagingService.sendTemplateMessage)
+//   values = レイアウトの欄の中身({{鍵}} のまま、レイアウトの欄の zod で検査)・edited? = 版の中身から直したか(DB のテンプレートだけ。中身の違いでも付く)・
+//   vars? = 専用の埋め込み情報の値 { 鍵: 値 }(DB のテンプレートの版かシステムテンプレートの宣言の型で検査、送信の embedded_values に残る)。組み方は sendMessage/templateDefinition.ts(fork のコードからは messagingService.sendTemplateMessage)
 // - 宛先 target: 全員 / ロール / ユーザーグループ(groupId。門 userGroups が閉・しまった・壊れた・人数の上限は送る口が拒む)/
 //   選んだ利用者(userIds)
 // - カテゴリー(必須): 管理者が送れる種別(announcement・direct・promotion)のカテゴリーの鍵。宛先の種類は種別の性質 adminFreeText で確かめる
 //   (./freeText.ts。誤りは 400)。白紙はカテゴリーと同じ種別の物だけ(400)
-// - 経路: カテゴリーの経路の中の絞り(省略 = 全部、D86)。LINE・fork の経路も送れる
+// - 送信チャンネル: カテゴリーの送信チャンネルの中の絞り(省略 = 全部、D86)。LINE・fork の送信チャンネルも送れる
 // - 予約: scheduledAt(ISO 8601)。過ぎた・遠すぎる時刻は送る口が 400。拾うのは cron の周期(Hobby は 1 日 1 回)
-// - プレビュー: 操作した管理者を見本の受信者にして経路ごとに描く(メールは送る時と同じ描き方の HTML)
+// - プレビュー: 操作した管理者を見本の受信者にして送信チャンネルごとに描く(メールは送る時と同じ描き方の HTML)
 // - 見込み: 宛先の数(送る時に展開で数え直す = fixedAtSend)。グループは一員の数と上限(memberLimit・overLimit)。
 //   一員の数は利用できない利用者・送り始めより後の登録を外す前の数なので、送る時の数は少ないことがある
 // - 選択肢のグループ: 使用中のグループを名前の順に(id は値としてだけ、D94)。門 userGroups が閉なら空
@@ -74,15 +74,15 @@ const targetSchema = z.discriminatedUnion("type", [
 export const adminContentFields = {
   /** 出どころ(白紙 { system } か DB のテンプレート { id, version }) */
   template: AdminMessageTemplateSchema,
-  /** ひな形の欄の中身(白紙・DB のテンプレートの版のひな形。{{鍵}} / {{別名}} のまま) */
+  /** レイアウトの欄の中身(白紙・DB のテンプレートの版のレイアウト。{{鍵}} / {{別名}} のまま) */
   values: z.record(z.string(), z.unknown()),
   /** 版の中身から直したか(DB のテンプレートだけ。送る口は中身の違いでも直した印を付ける) */
   edited: z.boolean().optional(),
-  /** DB のテンプレートの専用の埋め込み情報の値(回に 1 組) */
+  /** DB のテンプレートの専用の埋め込み情報の値(送信に 1 組) */
   vars: z.record(z.string(), z.unknown()).optional(),
   /** 送るカテゴリー(種別 announcement・direct・promotion) */
   category: z.string().trim().min(1).max(100),
-  /** 送る経路(カテゴリーの経路の中の絞り。省略 = 全部。その中に文言の無い経路があれば 400) */
+  /** 送る送信チャンネル(カテゴリーの送信チャンネルの中の絞り。省略 = 全部。その中に文言の無い送信チャンネルがあれば 400) */
   channels: z.array(z.string().min(1)).min(1).max(20).optional(),
 };
 
@@ -134,7 +134,7 @@ export type AdminSendResult = {
 /** 送る画面のグループの選択肢(label = グループ名、kindLabel = 種類の表示名) */
 export type AdminSendGroupOption = { id: string; label: string; kindLabel: string };
 
-/** 送る画面が欄を描くひな形 1 つ(鍵・表示名・版・欄の宣言) */
+/** 送る画面が欄を描くレイアウト 1 つ(鍵・表示名・版・欄の宣言) */
 export type AdminSendLayoutOption = { key: string; label: string; version: number; fields: MessageLayoutFields };
 
 /** 送る画面の選択肢 */
@@ -149,7 +149,7 @@ export type AdminSendOptions = {
     name: string;
     category: string;
     currentVersion: number;
-    /** 今の公開版のひな形・ひな形の版・欄の中身(送る画面が読み込んで送る) */
+    /** 今の公開版のレイアウト・レイアウトの版・欄の中身(送る画面が読み込んで送る) */
     layout: string;
     layoutVersion: number;
     values: Record<string, unknown>;
@@ -160,7 +160,7 @@ export type AdminSendOptions = {
   categories: AdminFreeTextCategoryOption[];
   /** 使うシステムテンプレート全部(送る画面がテンプレートとして並べる。種別ごとにシンプル・リッチ、切った物は出さない、D119・D122) */
   systemTemplates: AdminSystemTemplateOption[];
-  /** 白紙と並べたテンプレートが使うひな形の欄の宣言(門 messagingTemplates の外。送る画面はこれで欄を描く) */
+  /** 白紙と並べたテンプレートが使うレイアウトの欄の宣言(門 messagingTemplates の外。送る画面はこれで欄を描く) */
   layouts: AdminSendLayoutOption[];
   /** 予約できる日数(config.schedule.maxDaysAhead) */
   maxScheduleDays: number;
@@ -180,7 +180,7 @@ export type AdminSendDeps = AdminCheckDeps & {
   categories: Readonly<Record<string, MessageCategory>>;
   /** システムテンプレートの受け口(選択肢のカテゴリーに種別の白紙を付ける) */
   systemTemplates: Readonly<Record<string, MessageSystemTemplate>>;
-  /** ひな形の受け口(選択肢の欄の宣言) */
+  /** レイアウトの受け口(選択肢の欄の宣言) */
   layouts: Readonly<Record<string, MessageLayout>>;
   /** enrichers の受け口(選択肢の埋め込み情報の一覧) */
   enrichers: Readonly<Record<string, MessageEnricher>>;
@@ -203,7 +203,7 @@ export function parseOr400<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, input
   return parsed.data;
 }
 
-/** 送る中身(出どころ・欄の中身・直した印・専用の値)・カテゴリー・経路の絞り */
+/** 送る中身(出どころ・欄の中身・直した印・専用の値)・カテゴリー・送信チャンネルの絞り */
 export type AdminContent = {
   template: MessageTemplateRef;
   values: Record<string, unknown>;
@@ -215,7 +215,7 @@ export type AdminContent = {
 type Content = AdminContent;
 
 /**
- * 選んだカテゴリーを確かめる(種別・宛先の種類)。白紙の種別・中身・経路の検査は送る口(templateDefinition)
+ * 選んだカテゴリーを確かめる(種別・宛先の種類)。白紙の種別・中身・送信チャンネルの検査は送る口(templateDefinition)
  * @throws DomainError(400)
  */
 export function adminContentCategory(deps: AdminContentDeps, content: Content, target: MessageAdminTarget | null): MessageCategory {
@@ -368,7 +368,7 @@ export async function adminSendTest(deps: AdminSendDeps, rawInput: unknown): Pro
   return testAdminContent(deps, rawInput, { target: "users", source: `${SEND_SOURCE}.test` });
 }
 
-/** 選択肢の経路(有効な受け口の経路・表示名は受け口の label)。送る・一括送信の両方の選択肢が使う */
+/** 選択肢の送信チャンネル(有効な受け口の送信チャンネル・表示名は受け口の label)。送る・一括送信の両方の選択肢が使う */
 export function adminChannelOptions(channels: Readonly<Record<string, MessageChannel>>): AdminSendOptions["channels"] {
   return Object.keys(channels).flatMap((key) => {
     const channel = activeChannel(channels, key);
@@ -377,7 +377,7 @@ export function adminChannelOptions(channels: Readonly<Record<string, MessageCha
 }
 
 /** 送る画面の選択肢 */
-/** 選択肢の白紙とテンプレートが使うひな形(受け口に無いひな形は落とす。送る口がその時に断る) */
+/** 選択肢の白紙とテンプレートが使うレイアウト(受け口に無いレイアウトは落とす。送る口がその時に断る) */
 export function adminSendLayoutOptions(
   layouts: Readonly<Record<string, MessageLayout>>,
   categories: readonly AdminFreeTextCategoryOption[],

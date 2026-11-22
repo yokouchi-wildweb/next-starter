@@ -1,5 +1,5 @@
 // src/features/core/messaging/layouts/alert/AlertInApp.default.tsx
-// ひな形「セキュリティの警告」のお知らせ(受け取り箱の詳しい表示)の既定の見た目。props だけの部品(hook なし)。
+// レイアウト「セキュリティの警告」のお知らせ(受け取り箱の詳しい表示)の既定の見た目。props だけの部品(hook なし)。
 // 件名は呼び手(受け取り箱の画面)が見出しに出すので、ここは説明・ラベルと値(表 = Grid)・心当たりの段落(最初の行を太字)
 
 import { Grid } from "@/components/Layout/Grid";

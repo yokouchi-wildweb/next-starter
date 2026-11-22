@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/common/InboxDetailModal/index.tsx
 // 部品(props だけ): お知らせ 1 件の詳細のモーダル(受け取り箱の表示はこれ 1 つ、D120)。一覧で行を押した時と、自動で開く未読のモーダルが同じ物を使う。
-// 題 = 行の題(無ければ「お知らせ」を読み上げだけ)、中身 = InboxItemDetail(日時 + ひな形の描き方)。
+// 題 = 行の題(無ければ「お知らせ」を読み上げだけ)、中身 = InboxItemDetail(日時 + レイアウトの描き方)。
 // 詳しい表示(detail)が取れるまでは行(item)の日時と読み込み中。children = 中身の下の操作(未読の流れのスキップ・次へ・確認完了と n/N)
 
 "use client";

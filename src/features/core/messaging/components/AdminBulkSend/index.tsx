@@ -27,7 +27,7 @@ export type BulkMessageActionOptions = {
   recordNoun: string;
   /** ボタンとモーダルの題(既定「一括送信」) */
   label?: string;
-  /** 書く欄の初期値({ values } = 種別の白紙のひな形の欄の中身に重ねる値。例 汎用のお知らせ { subject, blocks }) */
+  /** 書く欄の初期値({ values } = 種別の白紙のレイアウトの欄の中身に重ねる値。例 汎用のお知らせ { subject, blocks }) */
   defaults?: MessageSendDefaults;
   /** 既定のカテゴリー(既定 operatorDirect。選べなければ最初) */
   defaultCategory?: string;

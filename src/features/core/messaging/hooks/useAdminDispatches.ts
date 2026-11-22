@@ -2,7 +2,7 @@
 
 // src/features/core/messaging/hooks/useAdminDispatches.ts
 //
-// 管理: 回の一覧(無限スクロール、カーソルのモード)。絞り込みが変われば先頭から取り直す。
+// 管理: 送信の一覧(無限スクロール、カーソルのモード)。絞り込みが変われば先頭から取り直す。
 // 画面は @/components/Widgets/InfiniteScrollList に items / hasMore / sentinelRef を渡す
 
 import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";

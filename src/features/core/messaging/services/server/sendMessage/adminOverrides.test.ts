@@ -1,6 +1,6 @@
-// 送る口が管理画面の文言の上書き(D21・D132)を重ねる検査(メモリの store・テストの経路とひな形 card)
+// 送る口が管理画面のテキストの編集(D21・D132)を重ねる検査(メモリの store・テストの送信チャンネルとレイアウト card)
 // - resolveDefinition が門の開いた時だけ欄ごとに重ねる。行は保存した版から今の版の欄へ移す
-// - 当てられない行(古い形・検査を通らない)はコードの値で送る。重ねた値が回の見出し・values に入る(cron の組み直しは送った時の文言)
+// - 当てられない行(古い形・検査を通らない)はコードの値で送る。重ねた値が送信の見出し・values に入る(cron の組み直しは送った時の文言)
 // - プレビューも同じ定義(上書きを重ねた物)で描く
 // 実行: pnpm test src/features/core/messaging/services/server/sendMessage/adminOverrides.test.ts
 import { test } from "node:test";
@@ -44,7 +44,7 @@ function setup(rows: AdminFieldValue[], enabled = true) {
   return { store, channel, loads, sender: createMessageSender(deps) };
 }
 
-test("上書きを欄ごとに重ねて送り、回の見出しにも入る。当てられない行はコードの値", async () => {
+test("テキストの編集を欄ごとに重ねて送り、送信の見出しにも入る。当てられない行はコードの値", async () => {
   const { sender, channel, store, loads } = setup([
     { fieldPath: "title", value: "直した題 {{item}}", layoutVersion: 1 },
     { fieldPath: "body", value: "{{nope}}", layoutVersion: 1 },
@@ -54,7 +54,7 @@ test("上書きを欄ごとに重ねて送り、回の見出しにも入る。�
   assert.deepEqual(loads, ["shop.notice"]);
   assert.equal(channel.calls[0][0].content.title, "直した題 靴");
   assert.equal(channel.calls[0][0].content.body, "コードの本文", "検査を通らない行は当てない");
-  // 回の見出しも上書きを重ねた中身から(回の values は記録の段に従って残す。cron の組み直しは回の物だけを描く)
+  // 送信の見出しもテキストの編集を重ねた中身から(送信の values は記録の段に従って残す。cron の組み直しは送信の物だけを描く)
   assert.deepEqual(store.dispatches[0].headings, { test: "直した題 靴" });
 });
 

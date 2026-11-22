@@ -1,7 +1,7 @@
 // 配信停止の判定の検査(D35)
-// - 好み: 取引(transactional)と required は見ない。'*' の種類・経路は全部に当たる。
-//   種別まるごとの行(kind X、'*' '*')は種別 X の連絡の全種類・全経路に当たり、ほかの種別には当たらない(和、D71)
-// - 宛先の停止: required でない連絡は hard_bounce・complaint・manual にいつも従い、one_click は範囲が種類か '*' の時だけ。
+// - 好み: 取引(transactional)と required は見ない。'*' のカテゴリー・送信チャンネルは全部に当たる。
+//   種別まるごとの行(kind X、'*' '*')は種別 X の連絡の全カテゴリー・全送信チャンネルに当たり、ほかの種別には当たらない(和、D71)
+// - 宛先の停止: required でない連絡は hard_bounce・complaint・manual にいつも従い、one_click は範囲がカテゴリーか '*' の時だけ。
 //   required は hard_bounce だけ
 // - 宛先が複数なら止めた宛先だけ外し、残りが無ければ suppression
 // 実行: pnpm test src/features/core/messaging/services/server/sendMessage/stops.test.ts
@@ -33,7 +33,7 @@ test("好みに従う連絡か", () => {
   assert.equal(honoursPreferences({ ...marketing, required: true }), false);
 });
 
-test("好み: 種類 × 経路、'*' は全部、取引と required は見ない", async () => {
+test("好み: カテゴリー × 送信チャンネル、'*' は全部、取引と required は見ない", async () => {
   const { store, deps } = setup();
   store.preferences.push(
     { userId: "u1", category: "news", channel: "email" },
@@ -52,7 +52,7 @@ test("好み: 種類 × 経路、'*' は全部、取引と required は見ない
   );
 });
 
-test("好み: 種別まるごとの行は同じ種別の連絡だけを全経路で止める", async () => {
+test("好み: 種別まるごとの行は同じ種別の連絡だけを全送信チャンネルで止める", async () => {
   const { store, deps } = setup();
   store.preferences.push(
     { userId: "u1", category: "*", channel: "*", kind: "promotion" },

@@ -1,6 +1,6 @@
 // src/lib/messaging/definition/kinds.ts
 //
-// 種別(kind)の 7 つと性質の表(D80)。種別は種類(category)が持ち、連絡の定義は種別を書かない(D81)。
+// 種別(kind)の 7 つと性質の表(D80)。種別はカテゴリー(category)が持ち、連絡定義は種別を書かない(D81)。
 // 種別の値で分ける読み手(配信停止の判定・お知らせの見え方・検査・管理の送信の宛先・本文の残し方の既定)は、
 // 種別の文字列を比べずにこの表を引く(fork は種別を増やせない)。
 
@@ -27,7 +27,7 @@ export const MESSAGE_KINDS = [
  */
 export type MessageKind = (typeof MESSAGE_KINDS)[number];
 
-/** 管理者がその場で書いて送れる宛先(管理の送る画面と一覧の一括)。group = ユーザーグループ(全員・ロールと同じ種別だけ) */
+/** 自由連絡の宛先(管理の送る画面と一覧の一括)。group = ユーザーグループ(全員・ロールと同じ種別だけ) */
 export type MessageAdminTarget = "all" | "role" | "group" | "users" | "bulk";
 
 /** 本文の残し方(types.ts の MessageRecord と同じ語彙) */
@@ -35,21 +35,21 @@ type RecordDefault = "meta" | "vars" | "full";
 
 /** 種別の性質(D80) */
 export type MessageKindTraits = {
-  /** fork が上流のこの種別の連絡を override で止め(enabled:false)・経路を外せるか(functional の上流の物だけ不可、D68) */
+  /** fork が上流のこの種別の連絡を override で止め(enabled:false)・送信チャンネルを外せるか(functional の上流の物だけ不可、D68) */
   upstreamDisable: boolean;
   /** 利用者の停止・好み・停止のヘッダと本文の停止リンクに従うか(activity・promotion) */
   userStoppable: boolean;
   /** 住所の停止のどれに従うか: hardBounce = hard bounce だけ(苦情の停止を越えて届ける)/ all = 苦情・ワンクリック・手作業も */
   addressStop: "hardBounce" | "all";
-  /** 管理者がその場で書いて送れる宛先(空 = コードの定義からだけ) */
+  /** 自由連絡で送れる宛先(空 = 定義連絡だけ) */
   adminFreeText: readonly MessageAdminTarget[];
   /** 本文の残し方の既定(定義の record が無い時) */
   recordDefault: RecordDefault;
-  /** 管理画面で文言を直せるか(false = 直せる欄が無い。adminEditableFields が読む) */
+  /** 管理画面でテキストの編集ができるか(false = 直せる欄が無い。adminEditableFields が読む) */
   adminTextOverride: boolean;
   /** 会話の間引き(throttle)を付けられるか */
   throttle: boolean;
-  /** 種類の経路の上書きで email を外せないか(functional・security のメール、D86) */
+  /** カテゴリーの送信チャンネルの上書きで email を外せないか(functional・security のメール、D86) */
   emailFixed: boolean;
   /**
    * 送る口の中ですぐ送るか(security、D72・D80): 予約と全員・ロール・グループ宛ては 400(選んだ宛先だけ)、宛先が多くても後回しの列に入れず

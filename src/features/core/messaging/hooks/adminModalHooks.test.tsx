@@ -1,12 +1,12 @@
-// 管理のモーダルと一覧・回の画面の流れの hook の検査(jsdom の上で描く。client service・toast・離れる前の確認は偽物)。
+// 管理のモーダルと一覧・送信の画面の流れの hook の検査(jsdom の上で描く。client service・toast・離れる前の確認は偽物)。
 // - useAdminDispatchFilters: 入力と確定を分ける・期間は日付 → ISO(まで = 翌日未満)・種別 → カテゴリー(種別を変えると空)・clear
 // - useAdminDispatchCategories: 種別ごとの選択肢・表示名(鍵は出さない)
 // - useAdminDispatchDetail: 配達の絞り / 削除の見込み(確認を開いている間だけ)・削除する(onDeleted)・再送(includeUnknown を渡して戻す)・送信を再開 → 知らせ、失敗も知らせ。
-//   中身を残していない回はプレビューを取らない
+//   中身を残していない送信はプレビューを取らない
 // - useAdminMessageTemplateList / useAdminMessageOverrideList: 種別で絞る・モーダルの開き先
 // - useMessageTemplateModal: 閉じている間は取らない / 作る → 同じモーダルで直す形 / 開き直すと作った id とタブが戻る
 // - useMessageTemplateVersion: id と版がそろった時だけ 1 版を取る (useModalSession は src/hooks/useModalSession.test.ts)
-// - closeConfirm: テンプレートの書く欄(作った後は消える)・文言の編集の下書き(元の文言に戻すと消える)
+// - closeConfirm: テンプレートの書く欄(作った後は消える)・テキストの編集の下書き(元の文言に戻すと消える)
 // - C9: モーダルの操作の後の一覧(作った = 取り直す・保存 = 行を置き換える・削除 = 行を外す・種別で絞っている時の保存は取り直す)、
 //   onChanged は form から(作る = create、新しい版 = publish、変わらない = update、削除 = delete、D134 D137)
 // - 作った直後に 1 件がまだ無い間は読み込み中(空の中身を出さない)
@@ -51,7 +51,7 @@ const detail = (extra: Record<string, unknown> = {}) => ({
   catalog: [],
   ...extra,
 });
-// 選択肢: 種別 → カテゴリー(経路つき)→ ひな形(欄の宣言)・埋め込み情報の一覧(D115)
+// 選択肢: 種別 → カテゴリー(送信チャンネルつき)→ レイアウト(欄の宣言)・埋め込み情報の一覧(D115)
 const OPTIONS = {
   channels: [{ key: "email", label: "メール" }],
   categories: [{ key: "promotion", label: "お知らせ", description: null, kind: "promotion", channels: ["email"] }],
@@ -187,7 +187,7 @@ mock.module("@/features/core/messaging/services/client/overrideClient", {
       categoryLabel: null,
       allowedKeys: [],
       vars: [],
-      // J126(D132): 経路の一覧と欄(ひな形の欄の鍵・宣言・使う経路)
+      // J126(D132): 送信チャンネルの一覧と欄(レイアウトの欄の鍵・宣言・使う送信チャンネル)
       channels: [{ key: "email", label: "メール" }],
       fields: [
         {
@@ -302,7 +302,7 @@ test("useAdminDispatchDetail: 配達の絞り・操作の知らせ・削除の�
   const d = () => view.value();
   await settle();
   assert.equal(d().dispatch?.id, "d1");
-  assert.equal(d().preview, null, "中身を残していない回はプレビューを出さない");
+  assert.equal(d().preview, null, "中身を残していない送信はプレビューを出さない");
   assert.equal(calls.some((c) => c[0] === "dispatchPreview"), false, "中身が無ければプレビューを取らない");
   await act(async () => d().deliveryFilters.setStatus("failed"));
   await settle();
@@ -404,7 +404,7 @@ test("useMessageTemplateForm: onCreated に作った id、closeConfirm は書き
   );
   const f = () => view.value();
   assert.equal(f().closeConfirm.enabled, false);
-  assert.equal(f().fields.layout, "notice", "選べるひな形が 1 つなら選んだ形");
+  assert.equal(f().fields.layout, "notice", "選べるレイアウトが 1 つなら選んだ形");
   await act(async () => {
     f().fields.setName("秋");
     f().fields.setKind("promotion");
@@ -414,7 +414,7 @@ test("useMessageTemplateForm: onCreated に作った id、closeConfirm は書き
   assert.equal(f().closeConfirm.enabled, true);
   await act(async () => f().save());
   assert.deepEqual(created, ["new-id"]);
-  // 作る = 1 回(鍵はサーバーが作る)、名前・カテゴリー・ひな形・中身・専用の埋め込み情報
+  // 作る = 1 回(鍵はサーバーが作る)、名前・カテゴリー・レイアウト・中身・専用の埋め込み情報
   assert.deepEqual(calls.find((c) => c[0] === "create")?.[1], {
     name: "秋",
     description: null,

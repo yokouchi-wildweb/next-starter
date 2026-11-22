@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/common/DispatchDeleteSummary/index.tsx
-// 部品(props だけ): 回の削除の見込み(D88、delete-summary の結果)。確認の Dialog の中に出す。
-// お知らせ(消せる経路)は受け取った人から消える / メール・LINE(消せない経路)は送信済みのため取り消せない(記録は残る) /
+// 部品(props だけ): 送信の削除の見込み(D88、delete-summary の結果)。確認の Dialog の中に出す。
+// お知らせ(消せる送信チャンネル)は受け取った人から消える / メール・LINE(消せない送信チャンネル)は送信済みのため取り消せない(記録は残る) /
 // 未送信・予約は送られない / 削除済みは対象外 / 元に戻せない
 
 "use client";

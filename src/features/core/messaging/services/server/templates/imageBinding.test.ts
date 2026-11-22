@@ -40,7 +40,7 @@ test("結び方: そのまま・attach・複製、参照の書き換え", async 
       return `${r}-copy`;
     },
   };
-  // 欄の中身(ひな形 notice: 件名 + ブロック。画像のブロックと段落の中の参照)
+  // 欄の中身(レイアウト notice: 件名 + ブロック。画像のブロックと段落の中の参照)
   const values = {
     subject: "s",
     blocks: [

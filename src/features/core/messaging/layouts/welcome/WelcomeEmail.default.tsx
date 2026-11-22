@@ -1,5 +1,5 @@
 // src/features/core/messaging/layouts/welcome/WelcomeEmail.default.tsx
-// ひな形「ようこそ」のメールの既定の見た目(前の user の WelcomeMailView と同じ部品の並び):
+// レイアウト「ようこそ」のメールの既定の見た目(前の user の WelcomeMailView と同じ部品の並び):
 //   ロゴ(事業の設定)と札 → お祝いの見出し → お礼 → 区切り → 案内 → ボタン(あれば)→ 区切り → 末尾の注意書き(→ 停止のリンク)
 // 文の改行はそのまま出す。値の無い欄は描かない
 

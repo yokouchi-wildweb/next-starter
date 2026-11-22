@@ -1,5 +1,5 @@
 // src/features/core/messaging/layouts/welcome/layout.ts
-// 上流のひな形「ようこそ」(D122・D123): 登録の完了の知らせ(会員登録・事前登録)。コードの連絡だけが使う(adminSelectable false)。
+// 上流のレイアウト「ようこそ」(D122・D123): 登録の完了の知らせ(会員登録・事前登録)。定義連絡だけが使う(adminSelectable false)。
 // 要約: 題 = 件名 / 本文 = お礼 + 案内 / 行き先 = ボタン(あれば)/ 短い本文 = プレビューの文
 
 import { defineMessageLayout } from "@/lib/messaging";

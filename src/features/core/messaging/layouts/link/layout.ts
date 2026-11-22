@@ -1,6 +1,6 @@
 // src/features/core/messaging/layouts/link/layout.ts
-// 上流のひな形「認証のリンク」(D122・D123): リンクを押してもらう認証のメール(確認・事前登録・パスワードの再設定・メールアドレスの変更)。
-// コードの連絡だけが使う(adminSelectable false)。要約: 題 = 件名 / 本文 = 受付の文 + ボタンの案内 / 行き先 = ボタン / 短い本文 = プレビューの文
+// 上流のレイアウト「認証のリンク」(D122・D123): リンクを押してもらう認証のメール(確認・事前登録・パスワードの再設定・メールアドレスの変更)。
+// 定義連絡だけが使う(adminSelectable false)。要約: 題 = 件名 / 本文 = 受付の文 + ボタンの案内 / 行き先 = ボタン / 短い本文 = プレビューの文
 
 import { defineMessageLayout } from "@/lib/messaging";
 

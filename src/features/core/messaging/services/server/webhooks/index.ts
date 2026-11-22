@@ -1,7 +1,7 @@
 // src/features/core/messaging/services/server/webhooks/index.ts
 //
 // provider の webhook の受け口(/api/webhook/messaging/[channel]/[provider])の本体。route は結果を応答に写すだけ。
-// - 知らない経路・provider → 404 / 鍵(env)が無い → 503 / 検証の失敗 → 401
+// - 知らない送信チャンネル・provider → 404 / 鍵(env)が無い → 503 / 検証の失敗 → 401
 // - 事件の当て方の誤りは投げる(route が 500 にし、provider が送り直す。事件は一度だけ入るので重ならない)
 
 import { gate } from "@/featureGate";

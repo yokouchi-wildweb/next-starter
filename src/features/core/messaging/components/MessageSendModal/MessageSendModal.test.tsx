@@ -2,9 +2,9 @@
 // - 入れ物: ボタンで開く / 書く段は部品を並べる(左右 2 つのペイン: 操作 = 種別とカテゴリー → 送信方法 → 宛先 → テンプレート → 内容 → 送信日時、
 //   プレビュー = LayoutPreview。種別を選ぶまでは案内だけ)/ テンプレートを読み込んだ直後は専用の埋め込み情報の入力と『文面を直す』だけ /
 //   予約は bulk で出さない / confirmOnClose に hook の closeConfirm を渡す / 下の帯のボタンで hook を呼ぶ
-// - 確認の段は「送信する」(予約なら「予約する」)で confirmSend、「戻る」で backToEdit、上限を超えたら送れない / 結果の段(回へのリンクは dispatchDetailHref)
+// - 確認の段は「送信する」(予約なら「予約する」)で confirmSend、「戻る」で backToEdit、上限を超えたら送れない / 結果の段(送信へのリンクは dispatchDetailHref)
 // - 手で直した書きかけの上に読み込む時は Dialog で確かめる(置き換える → confirmLoad、閉じる → cancelLoad)
-// - 開く口: 回の一覧の「新規送信」は門 messagingBroadcast が開の時だけ
+// - 開く口: 送信の一覧の「新規送信」は門 messagingBroadcast が開の時だけ
 // 実行: pnpm test src/features/core/messaging/components/MessageSendModal/MessageSendModal.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -200,7 +200,7 @@ mock.module(`${COMMON}/SendConfirmView`, { namedExports: { SendConfirmView: stub
 mock.module(`${COMMON}/SampleForYouModal`, { namedExports: { SampleForYouModal: stub("sampleForYou") } });
 mock.module(`${COMMON}/VarPopover`, { namedExports: { VarPopover: stub("varPopover") } });
 
-// 回の一覧(開く口)の周り: 絞り込みの入力・SWR・URL・一括操作・詳細のモーダルは jsdom で動かさない偽物
+// 送信の一覧(開く口)の周り: 絞り込みの入力・SWR・URL・一括操作・詳細のモーダルは jsdom で動かさない偽物
 mock.module("@/components/Input/DateInput", {
   namedExports: {
     DateInput: () => createElement("input"),
@@ -296,7 +296,7 @@ const NEW = { type: "new" } as const;
 
 test("書く段: 部品を並べ、confirmOnClose に closeConfirm、ボタンで hook を呼ぶ", async () => {
   const view = await render(createElement(MessageSendModal, { mode: NEW }));
-  // 並び(D110 D115 D118): 種別とカテゴリー → 送信方法 → 宛先 → テンプレート → 内容(白紙 = ひな形の欄)→ 送信日時、
+  // 並び(D110 D115 D118): 種別とカテゴリー → 送信方法 → 宛先 → テンプレート → 内容(白紙 = レイアウトの欄)→ 送信日時、
   // プレビューのペイン → 下の帯(埋め込み情報の吹き出し)。「あなた宛ての表示例」は表示例が無い間は出さない
   assert.deepEqual(parts(view.container), ["kindCategory", "channels", "target", "template", "layoutFields", "schedule", "layoutPreview", "varPopover"]);
   assert.equal(lastProps.get("target")!.kind, "select");
@@ -320,7 +320,7 @@ test("書く段: 部品を並べ、confirmOnClose に closeConfirm、ボタン�
   await noKind.unmount();
 });
 
-test("テンプレートを読み込んだ直後: 専用の埋め込み情報の入力と『文面を直す』だけ(ひな形の欄・吹き出しは出さない)", async () => {
+test("テンプレートを読み込んだ直後: 専用の埋め込み情報の入力と『文面を直す』だけ(レイアウトの欄・吹き出しは出さない)", async () => {
   const declarations = [{ key: "discount", alias: "割引", type: "number", required: true }];
   state = make({
     loadedTemplate: { type: "template", id: "t1", name: "春", version: 2 },
@@ -366,7 +366,7 @@ test("確認の段: 送信する → confirmSend、戻る → backToEdit / 予�
   assert.equal(confirm.bulk, null);
   assert.equal(confirm.scheduledAt, null);
   assert.equal(confirm.templateVersion, null);
-  assert.deepEqual(confirm.channels, ["メール"], "オンの経路だけ");
+  assert.deepEqual(confirm.channels, ["メール"], "オンの送信チャンネルだけ");
   assert.equal(confirm.categoryLabel, "お知らせ");
   await act(async () => button(view.container, "戻る")!.click());
   await act(async () => exact(view.container, "送信する")!.click());
@@ -387,7 +387,7 @@ test("確認の段: 送信する → confirmSend、戻る → backToEdit / 予�
   assert.equal(exact(over.container, "送信する")?.disabled, true);
   await over.unmount();
 
-  // 結果の段: 回へのリンクは一覧の上の詳細(?dispatch=<id>)
+  // 結果の段: 送信へのリンクは一覧の上の詳細(?dispatch=<id>)
   events.length = 0;
   state = make({ step: "done", result: { kind: "send", result: { status: "queued", queuedCount: 0, dispatchId: "d1" } } });
   const done = await render(createElement(MessageSendModal, { mode: NEW }));
@@ -420,7 +420,7 @@ test("確認の段: 送信する → confirmSend、戻る → backToEdit / 予�
   await bulkDone.unmount();
 });
 
-test("開く口: 回の一覧の「新規送信」は門 messagingBroadcast が開の時だけ", async () => {
+test("開く口: 送信の一覧の「新規送信」は門 messagingBroadcast が開の時だけ", async () => {
   const { AdminDispatchList, AdminDispatchSendButton } = await import("../AdminDispatchList");
   state = make({ open: false });
   const open = await render(createElement(AdminDispatchList));

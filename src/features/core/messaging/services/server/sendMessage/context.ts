@@ -1,6 +1,6 @@
 // src/features/core/messaging/services/server/sendMessage/context.ts
 //
-// 差し込む値(vars ∪ 受信者ごとの値 ∪ enrichers の provides ∪ 共通の文脈)と差し込み。経路の中身の組み立ては ./content.ts
+// 差し込む値(vars ∪ 受信者ごとの値 ∪ enrichers の provides ∪ 共通の文脈)と差し込み。送信チャンネルの中身の組み立ては ./content.ts
 
 import {
   COMMON_CONTEXT_KEYS,
@@ -57,7 +57,7 @@ export function secretKeysOf(resolved: AnyResolvedMessageDefinition): string[] {
   return listSecretVarKeys(resolved.vars);
 }
 
-/** 当たる enrichers(当て先 = 連絡の鍵・種類・種別・全部、D127)の値を集める(返値は provides の zod で検査する) */
+/** 当たる enrichers(当て先 = 連絡の鍵・カテゴリー・種別・全部、D127)の値を集める(返値は provides の zod で検査する) */
 async function enrich(
   enrichers: Readonly<Record<string, MessageEnricher>>,
   resolved: AnyResolvedMessageDefinition,

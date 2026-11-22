@@ -1,19 +1,19 @@
 // src/features/core/messaging/services/server/sendMessage/throttle.ts
 //
-// 会話の間引き(D48)。定義の throttle { by, mode, seconds } を、経路の send の前に受信者ごとに当てる(要求の中の送りと cron の送りの両方)。
-// - 間引きの鍵 = 受信者の鍵 × message_key × by の値(回の vars)の sha256
-// - 判定は鍵の lock(本物は pg_advisory_xact_lock)を持った取引の中で、回 × 受信者の配達の行を読み直してから 1 度だけ行い、
+// 会話の間引き(D48)。定義の throttle { by, mode, seconds } を、送信チャンネルの send の前に受信者ごとに当てる(要求の中の送りと cron の送りの両方)。
+// - 間引きの鍵 = 受信者の鍵 × message_key × by の値(送信の vars)の sha256
+// - 判定は鍵の lock(本物は pg_advisory_xact_lock)を持った取引の中で、送信 × 受信者の配達の行を読み直してから 1 度だけ行い、
 //   その受信者の全部の行に書く(throttle_key が入った行 = 決めた行。後の束・cron は判定し直さず、決めた状態に従う)
-// - untilRead(経路に inApp がある): 同じ鍵の未読の受信者ごとのお知らせがあれば置き換える(中身を最新に、collapsed_count + 1、
-//   前の回を collapsed_dispatch_ids に足し dispatch_id は今の回、published_at = 今 = 未読のまま上に出る)。
-//   inApp の行は sent + reason throttled、他の経路の行は suppressed + throttled(回の skipped_throttled に数える)
-// - window(と inApp が経路に無い untilRead): 同じ鍵の前の送り(他の回・reason なしで seconds 以内に sent、か送る途中)があれば、
-//   inApp は未読の行があれば置き換え・無ければ新しい行、他の経路は throttled
+// - untilRead(送信チャンネルに inApp がある): 同じ鍵の未読の受信者ごとのお知らせがあれば置き換える(中身を最新に、collapsed_count + 1、
+//   前の送信を collapsed_dispatch_ids に足し dispatch_id は今の送信、published_at = 今 = 未読のまま上に出る)。
+//   inApp の行は sent + reason throttled、他の送信チャンネルの行は suppressed + throttled(送信の skipped_throttled に数える)
+// - window(と inApp が送信チャンネルに無い untilRead): 同じ鍵の前の送り(他の送信・reason なしで seconds 以内に sent、か送る途中)があれば、
+//   inApp は未読の行があれば置き換え・無ければ新しい行、他の送信チャンネルは throttled
 // - 間引かない時(最初の 1 通・window の後・既読の後): inApp の行はこの取引の中で新しいお知らせ(鍵つき・回数 1)を書いて sent、
-//   他の経路の行は throttle_key だけ入れて普通に送る(後から来た同じ鍵の送りがこの行・このお知らせを見て間引く)
-// - お知らせは経路の send を通さずにここで書く(lock を経路の呼び出しの間持たないため)。行の形は channels/inApp の inAppItemRow
-//   (中身は buildRowContent: 記録の段に依らずひな形・欄の中身を残し、秘密の欄は空、D120)
-// - 全員・ロール宛ての回(共有の 1 行)は間引かない(どの経路も)。グループ宛てと選んだ宛先の回は間引く
+//   他の送信チャンネルの行は throttle_key だけ入れて普通に送る(後から来た同じ鍵の送りがこの行・このお知らせを見て間引く)
+// - お知らせは送信チャンネルの send を通さずにここで書く(lock を送信チャンネルの呼び出しの間持たないため)。行の形は channels/inApp の inAppItemRow
+//   (中身は buildRowContent: 記録の段に依らずレイアウト・欄の中身を残し、秘密の欄は空、D120)
+// - 全員・ロール宛ての送信(共有の 1 行)は間引かない(どの送信チャンネルも)。グループ宛てと選んだ宛先の送信は間引く
 
 import { createHash } from "node:crypto";
 
@@ -50,13 +50,13 @@ export type ThrottleDecided = {
 };
 
 export type ThrottleResult = {
-  /** 経路の send に渡す残り */
+  /** 送信チャンネルの send に渡す残り */
   jobs: DeliveryJob[];
   /** 間引きが状態を決めた行(この束の外の同じ受信者の行も含む) */
   decided: ThrottleDecided[];
 };
 
-/** 間引くか(定義の throttle・部品・回の宛て方) */
+/** 間引くか(定義の throttle・部品・送信の宛て方) */
 export function throttleApplies(
   deps: MessageSendDeps,
   resolved: AnyResolvedMessageDefinition,
@@ -66,7 +66,7 @@ export function throttleApplies(
 }
 
 /**
- * 経路の send の前に間引きを当てる。throttle の無い連絡・全員・ロール宛ての回はそのまま返す。
+ * 送信チャンネルの send の前に間引きを当てる。throttle の無い連絡・全員・ロール宛ての送信はそのまま返す。
  */
 export async function applyThrottle(
   deps: MessageSendDeps,
@@ -74,7 +74,7 @@ export async function applyThrottle(
     dispatchId: string;
     targetType: string | null | undefined;
     resolved: AnyResolvedMessageDefinition;
-    /** 回の vars(by の値) */
+    /** 送信の vars(by の値) */
     vars: Readonly<Record<string, unknown>>;
     policy: RecordPolicy;
     jobs: readonly ThrottleJob[];

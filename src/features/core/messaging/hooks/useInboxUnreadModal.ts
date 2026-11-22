@@ -110,7 +110,7 @@ export function useInboxUnreadModal(options: UseInboxUnreadModalOptions = {}) {
   }, [active, isLoading, items]);
 
   const current = queue[index] ?? null;
-  // 今の行の詳しい表示(ひな形・欄の中身。一覧の詳細と同じ表示にする、D120)
+  // 今の行の詳しい表示(レイアウト・欄の中身。一覧の詳細と同じ表示にする、D120)
   const { detail, isLoading: isDetailLoading } = useInboxItemDetail(open && current ? current.id : null);
 
   useEffect(() => {

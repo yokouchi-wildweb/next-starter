@@ -1,8 +1,8 @@
 // src/features/core/messaging/services/server/sendMessage/testHelpers.ts
 //
-// 送る口の単体テストの部品: メモリの store とテスト用の経路の項目・ひな形(card)。テストだけが読む。
-// テストの経路は要約から描ける(要約 → { title, body?, image?, link? } を中身にする)。テストの定義は layout: "card" で、
-// values = { title, body?, image?, link? }(要約の題・本文・画像・行き先がそのまま経路の中身になる)
+// 送る口の単体テストの部品: メモリの store とテスト用の送信チャンネルの項目・レイアウト(card)。テストだけが読む。
+// テストの送信チャンネルは要約から描ける(要約 → { title, body?, image?, link? } を中身にする)。テストの定義は layout: "card" で、
+// values = { title, body?, image?, link? }(要約の題・本文・画像・行き先がそのまま送信チャンネルの中身になる)
 
 import { randomUUID } from "node:crypto";
 
@@ -46,10 +46,10 @@ export type MemoryStore = MessageSendStore & {
   movedKeys: Set<string>;
   /** createdAt = 登録の時刻(送り始めの線。省略 = 線より前) */
   users: (MessageUserRow & { role?: string; createdAt?: Date })[];
-  /** 回の受信者の一覧(グループ宛て、本物は message_dispatch_recipients) */
+  /** 送信の受信者の一覧(グループ宛て、本物は message_dispatch_recipients) */
   recipients: { dispatch_id: string; user_id: string }[];
   endpoints: { userId: string; channel: string; address: string }[];
-  /** touchEndpoints の呼び出し(経路・宛先・時刻) */
+  /** touchEndpoints の呼び出し(送信チャンネル・宛先・時刻) */
   endpointTouches: { channel: string; entries: { userId: string; address: string }[]; at: Date }[];
   /** kind のある行 = 種別まるごとの停止(category・channel は '*')。省略・null・'*' = 種別まるごとではない */
   preferences: { userId: string; category: string; channel: string; kind?: string | null }[];
@@ -93,7 +93,7 @@ export function createMemoryStore(): MemoryStore {
       if (values.idempotency_key && store.dispatches.some((row) => row.idempotency_key === values.idempotency_key)) {
         throw new MessageIdempotencyConflict();
       }
-      // 回を作った時刻(本物は default now()。送り始めの線に使う)
+      // 送信を作った時刻(本物は default now()。送り始めの線に使う)
       const row = { createdAt: new Date(), ...values, id: randomUUID() };
       store.dispatches.push(row);
       return { id: row.id };
@@ -188,7 +188,7 @@ export function createMemoryStore(): MemoryStore {
 }
 
 /**
- * テストの連絡の定義(defineMessage)。varNames(D133)を書かなければ vars の鍵ごとに「<鍵>の値」の別名と説明を付ける
+ * テストの連絡定義(defineMessage)。varNames(D133)を書かなければ vars の鍵ごとに「<鍵>の値」の別名と説明を付ける
  * (別名の形 = 英数字以外の字を含む。書いた鍵はその値)
  */
 export function defineTestMessage<Vars extends z.AnyZodObject>(
@@ -201,7 +201,7 @@ export function defineTestMessage<Vars extends z.AnyZodObject>(
   return defineMessage({ ...definition, varNames } as MessageDefinition<Vars>);
 }
 
-/** テストのひな形: card = 題・本文・画像・行き先(要約にそのまま写す)/ notice = 上流の汎用のお知らせ(管理者が書く連絡が使う) */
+/** テストのレイアウト: card = 題・本文・画像・行き先(要約にそのまま写す)/ notice = 上流の汎用のお知らせ(自由連絡が使う) */
 export const TEST_LAYOUTS: Readonly<Record<string, MessageLayout>> = {
   notice: noticeLayout as MessageLayout,
   card: defineMessageLayout({
@@ -222,7 +222,7 @@ export const TEST_LAYOUTS: Readonly<Record<string, MessageLayout>> = {
   }) as MessageLayout,
 };
 
-/** 要約 → テストの経路の中身(空の本文は出さない) */
+/** 要約 → テストの送信チャンネルの中身(空の本文は出さない) */
 export function summaryContent(summary: MessageLayoutSummary): Record<string, unknown> {
   return {
     title: summary.title,
@@ -232,7 +232,7 @@ export function summaryContent(summary: MessageLayoutSummary): Record<string, un
   };
 }
 
-/** テスト用の経路: 宛先ごとに返す結果を behave で決め、受けた束を calls に残す。要約から描ける */
+/** テスト用の送信チャンネル: 宛先ごとに返す結果を behave で決め、受けた束を calls に残す。要約から描ける */
 export function createTestChannel(
   key = "test",
   behave: (target: ChannelSendTarget, call: number) => ChannelSendResult | "throw" = (target) => ({
@@ -280,7 +280,7 @@ export const testConfig: MessagingConfig = {
 
 export const FIXED_NOW = new Date("2026-11-10T00:00:00.000Z");
 
-/** テストの種類(種別と経路は種類から引く D81・D86)。テストの定義はこの鍵を category に書く */
+/** テストのカテゴリー(種別と送信チャンネルはカテゴリーから引く D81・D86)。テストの定義はこの鍵を category に書く */
 export const TEST_CATEGORIES: Readonly<Record<string, MessageCategory>> = {
   news: { key: "news", label: "お知らせ", kind: "promotion", channels: ["test"] },
   account: { key: "account", label: "アカウント", kind: "transactional", channels: ["test"] },

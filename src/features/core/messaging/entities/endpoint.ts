@@ -1,6 +1,6 @@
 // src/features/core/messaging/entities/endpoint.ts
 //
-// 端末の帳簿（利用者 × 経路 × 宛先: プッシュの購読トークン・電話番号など）。
+// 端末の帳簿（利用者 × 送信チャンネル × 宛先: プッシュの購読トークン・電話番号など）。
 // Web・ネイティブ・SMS で共通の形。退会時は cleanupHandlers の項目で消す。
 
 import {
@@ -26,7 +26,7 @@ export const MessageEndpointTable = pgTable(
     channel: text("channel").notNull(),
     /** 宛先（トークン・電話番号など） */
     address: text("address").notNull(),
-    /** 宛先の種類（web / ios / android など、経路が決める） */
+    /** 宛先の種類（web / ios / android など、送信チャンネルが決める） */
     kind: text("kind"),
     /** 付加情報（秘密は入れない） */
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),

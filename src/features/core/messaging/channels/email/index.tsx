@@ -1,6 +1,6 @@
 // src/features/core/messaging/channels/email/index.tsx
 //
-// 上流の経路 email(経路の受け口の項目)。宛先は users.email、送信は lib/mail、描き方はひな形(layouts の受け口の layoutEmails > 汎用 > 要約)。
+// 上流の送信チャンネル email(送信チャンネルの受け口の項目)。宛先は users.email、送信は lib/mail、描き方はレイアウト(layouts の受け口の layoutEmails > 汎用 > 要約)。
 // 中身: ./createEmailChannel.tsx
 
 import { render } from "@react-email/render";

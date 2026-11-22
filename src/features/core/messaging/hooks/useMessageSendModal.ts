@@ -4,15 +4,15 @@
 //
 // 管理: 送るモーダルの流れ(1 つの hook。入れ物 MessageSendModal はこれを呼んで部品を並べるだけ、CLAUDE.md core_ui)。
 // 開き方(mode):
-// - new: 回の一覧の「新規送信」。POST /api/admin/messaging/send(門 messagingBroadcast の内側)
-// - sameAs: 回の詳細の「同じ内容で送る」。回のカテゴリー(→ 種別)・経路・宛先の形と、回の中身(ひな形 + values、D128)を写す。
-//   テンプレートの回でそのテンプレートが今も公開中 = 今の版を読み込んだ形(直して送った回は直した文で、文面を直す状態から。専用の埋め込み情報の値も写す)。
-//   公開中でない・その場で書いた回 = 種別の白紙に回の values を入れた形(ひな形が白紙と違えば写せない = sameAsNote)
+// - new: 送信の一覧の「新規送信」。POST /api/admin/messaging/send(門 messagingBroadcast の内側)
+// - sameAs: 送信の詳細の「同じ内容で送る」。送信のカテゴリー(→ 種別)・送信チャンネル・宛先の形と、送信の中身(レイアウト + values、D128)を写す。
+//   テンプレートの送信でそのテンプレートが今も公開中 = 今の版を読み込んだ形(直して送信した物は直した文で、文面を直す状態から。専用の埋め込み情報の値も写す)。
+//   公開中でない・その場で書いた送信 = 種別の白紙に送信の values を入れた形(レイアウトが白紙と違えば写せない = sameAsNote)
 // - bulk: 管理一覧の一括操作。宛先 = 選んだ記録(target + recordIds)、POST /api/admin/messaging/bulk-send(門の外)。予約は無い
 // 流れ(D110 D115): 種別 → カテゴリー(種別に 2 つ以上ある時だけ選ぶ)→ 宛先(種別が許す種類だけ。direct はグループも、D109)
 // → テンプレート(その種別の公開中の物。読み込まない = 種別の白紙、D117)→ 文面(useSendTemplateText: 読み込んだ直後は固定、
 // 『文面を直す』で全文、『テンプレートの読み込みを解除』で白紙へ、『テンプレートを更新』で新しい版、D118 D119 D120)
-// → 経路の絞り(カテゴリーの経路の中、既定は全部オン)→ 予約(bulk 以外)→ プレビュー(ひな形の描き方 useLayoutPreview がいつも、
+// → 送信チャンネルの絞り(カテゴリーの送信チャンネルの中、既定は全部オン)→ 予約(bulk 以外)→ プレビュー(レイアウトの描き方 useLayoutPreview がいつも、
 // 「プレビュー」= あなた宛ての表示例を送る口で描く)・自分へのテスト送信 → 見込み → 確認 → 送る → 結果。
 // - 送る口の入力 = { category, channels?, template: { system } | { id, version }, values, edited?, vars? }(services/server/admin/send.ts)
 // - 見込み → 確認の段・予約の検査・二重送信を防ぐ鍵(開くたびに 1 つ、送った後に作り直す)はこの hook の中
@@ -61,7 +61,7 @@ import { blankTextState, varPreviewValues, templateTextState, useSendTemplateTex
 /** 一覧の一括操作の既定のカテゴリー(種別 direct、D81) */
 export const ADMIN_BULK_SEND_DEFAULT_CATEGORY = "operatorDirect";
 
-/** 書く欄の初期値(bulk)。values = 種別の白紙のひな形の欄の中身に重ねる値(例 汎用のお知らせ { title, body }) */
+/** 書く欄の初期値(bulk)。values = 種別の白紙のレイアウトの欄の中身に重ねる値(例 汎用のお知らせ { title, body }) */
 export type MessageSendDefaults = {
   values?: Record<string, unknown>;
 };
@@ -121,7 +121,7 @@ export function kindsOf(categories: readonly AdminFreeTextCategoryOption[]): str
   return [...new Set(categories.map((option) => option.kind))];
 }
 
-/** mode から導く初めのカテゴリー(sameAs = 回のカテゴリー、bulk = 既定のカテゴリー) */
+/** mode から導く初めのカテゴリー(sameAs = 送信のカテゴリー、bulk = 既定のカテゴリー) */
 function preferredCategoryOf(mode: MessageSendMode): string | null {
   if (mode.type === "sameAs") return mode.dispatch.category;
   if (mode.type === "bulk") return mode.defaultCategory ?? ADMIN_BULK_SEND_DEFAULT_CATEGORY;
@@ -133,7 +133,7 @@ export function blankOfKind(categories: readonly AdminFreeTextCategoryOption[], 
   return categories.find((option) => option.kind === kind && option.systemTemplate)?.systemTemplate ?? null;
 }
 
-/** 回の専用の埋め込み情報の値(テンプレートの今の版が宣言する鍵だけ) */
+/** 送信の専用の埋め込み情報の値(テンプレートの今の版が宣言する鍵だけ) */
 function embeddedOfDispatch(dispatch: AdminDispatchDetail, template: MessageSendTemplate): Record<string, string> {
   const values = dispatch.embeddedValues ?? {};
   return Object.fromEntries(template.vars.filter((item) => values[item.key] !== undefined).map((item) => [item.key, String(values[item.key])]));
@@ -141,8 +141,8 @@ function embeddedOfDispatch(dispatch: AdminDispatchDetail, template: MessageSend
 
 /**
  * mode と選択肢から導く初めの文面(まだ触っていない時)。sameAs:
- * - テンプレートの回で、そのテンプレートが今も公開中: 今の版を読み込んだ形。直して送った回は回の values で文面を直す状態から(ひな形が今の版と同じ時)
- * - それ以外: 種別の白紙。回のひな形が白紙と同じなら回の values を入れる
+ * - テンプレートの送信で、そのテンプレートが今も公開中: 今の版を読み込んだ形。直して送信した物は送信の values で文面を直す状態から(レイアウトが今の版と同じ時)
+ * - それ以外: 種別の白紙。送信のレイアウトが白紙と同じなら送信の values を入れる
  */
 export function initialTextOf(
   mode: MessageSendMode,
@@ -175,7 +175,7 @@ export function initialTextOf(
   return blankState;
 }
 
-/** sameAs で回の文面をそのまま写せなかった時の知らせ(ほかは null) */
+/** sameAs で送信の文面をそのまま写せなかった時の知らせ(ほかは null) */
 export function sameAsNoteOf(
   mode: MessageSendMode,
   text: SendTextState | null,
@@ -194,7 +194,7 @@ export function sameAsNoteOf(
   return null;
 }
 
-/** mode から導く初めの宛先(sameAs = 回の宛先の形。グループ宛ての回は同じグループ、選んだ利用者に送った回は同じ利用者を選んだ形) */
+/** mode から導く初めの宛先(sameAs = 送信の宛先の形。グループ宛ての送信は同じグループ、選んだ利用者への送信は同じ利用者を選んだ形) */
 export function initialTargetOf(mode: MessageSendMode): MessageSendTarget {
   const blank: MessageSendTarget = { type: "all", roles: [], groupId: "", userIds: [] };
   if (mode.type !== "sameAs") return blank;
@@ -202,7 +202,7 @@ export function initialTargetOf(mode: MessageSendMode): MessageSendTarget {
   const target = record(mode.dispatch.target);
   if (target.type === "role" && Array.isArray(target.roles)) return { ...blank, type: "role", roles: target.roles.map(String) };
   if (target.type === "all") return blank;
-  // 全員・ロール・グループでない回(選んだ利用者・一覧の一括)= 選んだ利用者の形。利用者 id は回の詳細が返す時だけ写す(多すぎる回は選び直し)
+  // 全員・ロール・グループでない送信(選んだ利用者・一覧の一括)= 選んだ利用者の形。利用者 id は送信の詳細が返す時だけ写す(多すぎる送信は選び直し)
   return { ...blank, type: "users", userIds: [...(mode.dispatch.targetUserIds ?? [])] };
 }
 
@@ -211,7 +211,7 @@ export function overLimitText(estimate: Pick<RecipientEstimate, "count" | "membe
   return `宛先数 ${estimate.count.toLocaleString("ja-JP")} 人が上限 ${(estimate.memberLimit ?? 0).toLocaleString("ja-JP")} 人を超えているため送信できません`;
 }
 
-/** 前の回のグループが今は選べない時の知らせ(全員に広げない、D64) */
+/** 元の送信のグループが今は選べない時の知らせ(全員に広げない、D64) */
 export const TARGET_GROUP_GONE_NOTE = "元の送信のグループは現在選べません(アーカイブされたか、ユーザーグループ機能が無効です)。宛先を選び直してください";
 
 const NO_LAYOUTS: AdminSendLayoutOption[] = [];
@@ -234,7 +234,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const [textTouched, setTextTouched] = useState(false);
   /** 上書きを確かめている読み込み(テンプレートの id) */
   const [pendingLoad, setPendingLoad] = useState<string | null>(null);
-  /** 外した経路(null = まだ触っていない = mode から導く。sameAs は元の回が使わなかった経路を外した形) */
+  /** 外した送信チャンネル(null = まだ触っていない = mode から導く。sameAs は元の送信が使わなかった送信チャンネルを外した形) */
   const [channelsOffState, setChannelsOff] = useState<string[] | null>(null);
   const [scheduleMode, setScheduleModeState] = useState<"now" | "at">("now");
   const [scheduledAt, setScheduledAtState] = useState("");
@@ -255,7 +255,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const allTemplates: MessageSendTemplate[] = useMemo(() => (templatesOpen ? (options?.templates ?? []) : []), [templatesOpen, options]);
   const allCategories: AdminFreeTextCategoryOption[] = useMemo(() => options?.categories ?? [], [options]);
   const layouts = options?.layouts ?? NO_LAYOUTS;
-  // 経路の表示名 = 選択肢の経路(受け口の label)。取れる前は constants の控え
+  // 送信チャンネルの表示名 = 選択肢の送信チャンネル(受け口の label)。取れる前は constants の控え
   const channelLabels = useMemo(() => {
     const labels: Record<string, string> = { ...MESSAGE_CHANNEL_LABELS };
     for (const channel of options?.channels ?? []) labels[channel.key] = channel.label;
@@ -269,7 +269,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     [allCategories],
   );
   const preferredCategory = preferredCategoryOf(mode);
-  // 新しく送る時は種別を選ばせる(先に選んでおかない、D110 D118)。同じ内容で送る・一括送信は回 / 既定のカテゴリーの種別
+  // 新しく送る時は種別を選ばせる(先に選んでおかない、D110 D118)。同じ内容で送る・一括送信は送信 / 既定のカテゴリーの種別
   const initialKind = allCategories.find((option) => option.key === preferredCategory)?.kind ?? "";
   const kind = kindState !== null && kinds.some((item) => item.key === kindState) ? kindState : initialKind;
   const kindCategories = useMemo(() => allCategories.filter((option) => option.kind === kind), [allCategories, kind]);
@@ -312,11 +312,11 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     [systemTemplates, templates, templatesOpen],
   );
 
-  // ---- 経路 ----
-  /** 選んだカテゴリーの経路 */
+  // ---- 送信チャンネル ----
+  /** 選んだカテゴリーの送信チャンネル */
   const categoryChannels = useMemo(() => categoryOption?.channels ?? [], [categoryOption]);
-  // 経路をまだ触っていない時のオン: カテゴリーの最初の経路(defaultChannels、無ければ全部、D119)。
-  // sameAs で種別・カテゴリーをまだ触っていない = 元の回の経路だけオン(今のカテゴリーの経路の中で。全部外れてしまう時は全部オン)
+  // 送信チャンネルをまだ触っていない時のオン: カテゴリーの最初の送信チャンネル(defaultChannels、無ければ全部、D119)。
+  // sameAs で種別・カテゴリーをまだ触っていない = 元の送信が使った送信チャンネルだけオン(今のカテゴリーの送信チャンネルの中で。全部外れてしまう時は全部オン)
   const categoryDefaults = useMemo(() => categoryOption?.defaultChannels ?? categoryChannels, [categoryOption, categoryChannels]);
   const initialChannelsOff = useMemo(() => {
     const used = mode.type === "sameAs" && chosenCategory === null && kindState === null ? (mode.dispatch.channels ?? []) : categoryDefaults;
@@ -324,7 +324,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     return off.length === categoryChannels.length ? [] : off;
   }, [mode, chosenCategory, kindState, categoryChannels, categoryDefaults]);
   const channelsOff = channelsOffState ?? initialChannelsOff;
-  /** 送る経路 = カテゴリーの経路 − 外した経路 */
+  /** 使う送信チャンネル = カテゴリーの送信チャンネル − 外した送信チャンネル */
   const sendChannels = useMemo(() => categoryChannels.filter((key) => !channelsOff.includes(key)), [categoryChannels, channelsOff]);
   const channels = useMemo(
     () => categoryChannels.map((key) => ({ key, label: channelLabels[key] ?? key, on: !channelsOff.includes(key) })),
@@ -356,7 +356,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     [categoryOption, text.state],
   );
   const textDirty = textTouched || text.form.formState.isDirty;
-  /** ひな形の実際の描き方のプレビュー(経路のタブ、未入力は仮の文、D114。書く段の間だけ) */
+  /** レイアウトの実際の描き方のプレビュー(送信チャンネルのタブ、未入力は仮の文、D114。書く段の間だけ) */
   // 専用の埋め込み情報は入れた値(空なら既定値)で埋めて描く(「あなた宛ての表示例」と同じ。共通・enricher は受信者ごとなので {{名前}} のまま)
   const previewValues = useMemo(
     () => varPreviewValues(text.values, text.state?.varDeclarations ?? [], text.state?.vars ?? {}),
@@ -380,10 +380,10 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
       setKindState(next);
       // 種別を替えたらその種別の最初のカテゴリーを選び直す(D118)
       setChosenCategory(allCategories.find((option) => option.kind === next)?.key ?? null);
-      // 送信方法は新しいカテゴリーの最初の経路に戻す(D119)
+      // 送信方法は新しいカテゴリーの最初の送信チャンネルに戻す(D119)
       setChannelsOff(null);
       setPreview(null);
-      // テンプレートは種別ごと → 白紙へ(ひな形が同じなら今の文を残す)
+      // テンプレートは種別ごと → 白紙へ(レイアウトが同じなら今の文を残す)
       const nextBlank = blankOfKind(allCategories, next);
       text.reset(nextBlank ? text.toBlank(nextBlank) : null);
     },
@@ -432,7 +432,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     if (pendingLoad) applyLoad(pendingLoad);
   }, [pendingLoad, applyLoad]);
   const cancelLoad = useCallback(() => setPendingLoad(null), []);
-  /** 『テンプレートの読み込みを解除』: 種別の白紙へ(ひな形が同じなら今の文を白紙の文として残す、D118) */
+  /** 『テンプレートの読み込みを解除』: 種別の白紙へ(レイアウトが同じなら今の文を白紙の文として残す、D118) */
   const unloadTemplate = useCallback(() => {
     text.reset(blank ? text.toBlank(blank) : null);
     setTextTouched(true);
@@ -672,7 +672,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     step,
     optionsLoaded,
     optionsError,
-    /** sameAs で回の文面をそのまま写せなかった時の知らせ(書く段の上に出す) */
+    /** sameAs で送信の文面をそのまま写せなかった時の知らせ(書く段の上に出す) */
     sameAsNote,
     /** 書きかけ(閉じる・離れる前に確かめる) */
     dirty,
@@ -695,7 +695,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     groups,
     /** 門 userGroups が開か(開ならグループが 0 件でもグループの選択肢を出す) */
     groupsEnabled: gate.enabled("userGroups"),
-    /** 宛先の知らせ(sameAs の前の回のグループが今は選べない時) */
+    /** 宛先の知らせ(sameAs の元の送信のグループが今は選べない時) */
     targetNote: targetGroupGone ? TARGET_GROUP_GONE_NOTE : null,
     // テンプレートと文面
     /** テンプレートを読み込めるか(門 messagingTemplates が開) */
@@ -719,7 +719,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     confirmLoad,
     cancelLoad,
     updateTemplate,
-    // 経路・予約
+    // 送信チャンネル・予約
     channels,
     sendChannels,
     toggleChannel,
@@ -748,7 +748,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     runPreview,
     /** 「あなた宛ての表示例」を閉じる(表示例を消す) */
     closePreview: () => setPreview(null),
-    /** 表示例のお知らせの汎用の描き方に使う今のひな形の欄の宣言 */
+    /** 表示例のお知らせの汎用の描き方に使う今のレイアウトの欄の宣言 */
     previewLayoutFields: text.layout?.fields ?? null,
     sendTest,
     requestConfirm,

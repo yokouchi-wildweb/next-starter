@@ -1,12 +1,12 @@
 // src/features/core/messaging/components/common/LayoutPreview/index.tsx
-// 部品(props だけ): ひな形の実際の描き方のプレビュー(D114)。経路のタブ(種類の経路)で切り替える。
+// 部品(props だけ): レイアウトの実際の描き方のプレビュー(D114)。送信チャンネルのタブ(カテゴリーの送信チャンネル)で切り替える。
 // - メール = 送る HTML(server のプレビュー API が送る口と同じ 3 段で描いた物。iframe は MessagePreview)
-// - お知らせ(inApp)= カード: 受け取り箱の詳細と同じ部品 InboxLayoutView(ひな形のお知らせの描き方 > 汎用(fields があれば)、要約は描かない D120)
-// - ほかの経路 = API の文(text)か要約の文(LINE など文を送る経路は要約がそのまま送る文)
+// - お知らせ(inApp)= カード: 受け取り箱の詳細と同じ部品 InboxLayoutView(レイアウトのお知らせの描き方 > 汎用(fields があれば)、要約は描かない D120)
+// - ほかの送信チャンネル = API の文(text)か要約の文(LINE など文を送る送信チャンネルは要約がそのまま送る文)
 // - 描けない(3 段のどれでも描けない)時は理由
 // - 空の欄の目印(テンプレートのプレビュー、D127): 描いた物の目印を仮の枠に置き換える(previewMarkers.ts)。メール = iframe に入れる前の HTML、
 //   お知らせのカード = React が隠れた所に描いた物の写しを置き換えて見せる(React の持つ要素は書き換えない)。目印が無ければそのまま
-// 取得はしない: 中身は呼び手の hook が渡す(テンプレート・送る画面 = useLayoutPreview、文言の編集・回の詳細 = それぞれの取得元)
+// 取得はしない: 中身は呼び手の hook が渡す(テンプレート・送る画面 = useLayoutPreview、テキストの編集・送信の詳細 = それぞれの取得元)
 
 "use client";
 
@@ -29,14 +29,14 @@ import { hasPreviewMarker, markerText, replacePreviewMarkers } from "./previewMa
 
 export { PREVIEW_MARKER_CLOSE, PREVIEW_MARKER_OPEN, hasPreviewMarker, markerText, previewMarker, replacePreviewMarkers } from "./previewMarkers";
 
-/** 経路 1 つの描く物(取得元を問わない形): 送る HTML / 文、またはひな形の欄の中身と要約(お知らせのカード)、または描けない理由 */
+/** 送信チャンネル 1 つの描く物(取得元を問わない形): 送る HTML / 文、またはレイアウトの欄の中身と要約(お知らせのカード)、または描けない理由 */
 export type LayoutPreviewContent = {
   /** 送る HTML(メール) */
   html?: string | null;
   text?: string | null;
   /** 件名・題 */
   title?: string | null;
-  /** その経路の欄の中身(お知らせのカードに渡す) */
+  /** その送信チャンネルの欄の中身(お知らせのカードに渡す) */
   values?: Readonly<Record<string, unknown>> | null;
   summary?: MessageLayoutSummary | null;
   /** お知らせの欄の宣言(汎用の描き方に使う。無ければ汎用の段を飛ばす) */
@@ -46,18 +46,18 @@ export type LayoutPreviewContent = {
 };
 
 export type LayoutPreviewProps = {
-  /** ひな形の鍵(無い = 「ひな形を選ぶと出ます」) */
+  /** レイアウトの鍵(無い = 「ひな形を選ぶと出ます」) */
   layout: string | null;
-  /** 経路の鍵(タブの順) */
+  /** 送信チャンネルの鍵(タブの順) */
   channels: readonly string[];
-  /** 選んだ経路 */
+  /** 選んだ送信チャンネル */
   channel: string | null;
   onChannelChange: (channel: string) => void;
-  /** 選んだ経路の描く物(無い = まだ無い) */
+  /** 選んだ送信チャンネルの描く物(無い = まだ無い) */
   content: LayoutPreviewContent | null;
   loading?: boolean;
   error?: unknown;
-  /** 必須の欄が空の経路(タブに「未入力あり」の印、D117) */
+  /** 必須の欄が空の送信チャンネル(タブに「未入力あり」の印、D117) */
   incompleteChannels?: readonly string[];
   /** メールの iframe の高さ(px) */
   emailHeight?: number;
@@ -121,7 +121,7 @@ type ChannelBodyProps = {
 
 function ChannelBody({ layout, channel, content, emailHeight }: ChannelBodyProps) {
   if (channel === "inApp") {
-    // 利用者の受け取り箱の詳細と同じ部品(ひな形のお知らせの描き方 > 汎用)
+    // 利用者の受け取り箱の詳細と同じ部品(レイアウトのお知らせの描き方 > 汎用)
     const summary = content.summary;
     if (!summary) return <NoPreview />;
     const marked = hasPreviewMarker(JSON.stringify([content.values ?? null, summary]));
@@ -180,7 +180,7 @@ function MarkedCopy({ marked, children }: { marked: boolean; children: ReactNode
   );
 }
 
-/** 要約の文(お知らせ以外で描き方の無い経路: LINE など文を送る経路はこれがそのまま送る文) */
+/** 要約の文(お知らせ以外で描き方の無い送信チャンネル: LINE など文を送る送信チャンネルはこれがそのまま送る文) */
 function SummaryText({ summary }: { summary: MessageLayoutSummary }) {
   return (
     <Stack gap="2xs">

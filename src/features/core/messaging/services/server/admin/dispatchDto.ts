@@ -1,17 +1,17 @@
 // src/features/core/messaging/services/server/admin/dispatchDto.ts
 //
-// 回・配達を管理 API へ返す形(D37)。返す項目はここ 1 か所で絞る:
-// - 常に: id・鍵・種別・種類・送り元・状態・経路・件名 / 題(headings)・数・送った人・時刻・テストか
-// - 本文: 回の記録の段が vars / full のときだけ(回の描いた結果 rendered と共通の vars)。配達の本文は full のときだけ、配達の vars は vars / full
+// 送信・配達を管理 API へ返す形(D37)。返す項目はここ 1 か所で絞る:
+// - 常に: id・鍵・種別・カテゴリー・送り元・状態・送信チャンネル・件名 / 題(headings)・数・送った人・時刻・テストか
+// - 本文: 送信の記録の段が vars / full のときだけ(送信の描いた結果 rendered と共通の vars)。配達の本文は full のときだけ、配達の vars は vars / full
 //   (秘密の連絡は送る口が本文を残さないので、ここにも出ない)
 // - 宛先(address): 管理 API だけが使うので出す
-// - 回の中身(ひな形の鍵と版・欄の中身 values、差し込む前の字、D128)と選んだ利用者の id: 「同じ内容で送る」が写すので出す(管理者だけ)。
-//   欄の中身は記録の段に従って回に残る物だけ(meta で閉じた回・秘密の連絡は null)
+// - 送信の中身(レイアウトの鍵と版・欄の中身 values、差し込む前の字、D128)と選んだ利用者の id: 「同じ内容で送る」が写すので出す(管理者だけ)。
+//   欄の中身は記録の段に従って送信に残る物だけ(meta で閉じた送信・秘密の連絡は null)
 // - 出さない: provider の生の値(provider_message_id・事件の payload)と last_error の文。失敗は状態・reason と、last_error の符号の部分
 //   (errorCode、文は constants/deliveryErrors.ts)で見る
-// - グループ宛ての回: targetGroup { id, name }(id は「同じ内容で送る」が開き直す値としてだけ、画面に出さない、D94・D60)。
+// - グループ宛ての送信: targetGroup { id, name }(id は「同じ内容で送る」が開き直す値としてだけ、画面に出さない、D94・D60)。
 //   名前は読む時のグループ名(しまったグループも)、門 userGroups が閉・消えたグループは null。detail.target は { type: "group" } だけ
-// - 前の送る口の回(ひな形 layout が null。テンプレートから送った回は message_key が null なので鍵では見ない): 件名・本文は S2 の写しが前の列から headings / rendered へ移した。記録の段(record)を持たないので、
+// - 前の送る口の送信(レイアウト layout が null。テンプレートからの送信は message_key が null なので鍵では見ない): 件名・本文は S2 の写しが前の列から headings / rendered へ移した。記録の段(record)を持たないので、
 //   本文は段に依らず rendered を返す(前の列を消す前の管理の見え方を保つ)
 
 import type { MessageLayoutSummary, MessageRecord } from "@/lib/messaging";
@@ -20,7 +20,7 @@ import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import type { MessageChannelCounts, MessageChannelTextMap } from "../../../entities/schema";
 import type { DispatchOperationFlags } from "./operations";
 
-/** 回の中身(D128): ひな形の鍵・送った版・欄の中身 */
+/** 送信の中身(D128): レイアウトの鍵・送った版・欄の中身 */
 export type AdminDispatchContent = { layout: string; layoutVersion: number | null; values: Record<string, unknown> };
 
 export type AdminDispatchSummary = {
@@ -31,7 +31,7 @@ export type AdminDispatchSummary = {
   source: string;
   status: string;
   channels: string[];
-  /** 経路ごとの件名・題 */
+  /** 送信チャンネルごとの件名・題 */
   headings: MessageChannelTextMap;
   recipientCount: number;
   channelCounts: MessageChannelCounts | null;
@@ -40,9 +40,9 @@ export type AdminDispatchSummary = {
   createdAt: string;
   completedAt: string | null;
   scheduledAt: string | null;
-  /** 削除した時刻(D88。削除した回は一覧に既定で出ない) */
+  /** 削除した時刻(D88。削除した送信は一覧に既定で出ない) */
   deletedAt: string | null;
-  /** グループ宛ての回の宛先のグループ(id は値としてだけ。名前が引けなければ null)。ほかの宛先は null */
+  /** グループ宛ての送信の宛先のグループ(id は値としてだけ。名前が引けなければ null)。ほかの宛先は null */
   targetGroup: AdminDispatchTargetGroup | null;
 };
 
@@ -56,25 +56,25 @@ export type AdminDispatchDetail = AdminDispatchSummary & {
   metadata: Record<string, unknown> | null;
   templateId: string | null;
   templateVersion: number | null;
-  /** テンプレートから送った回で、そのテンプレートが消された(版の番号はあり template_id が null、D137)。画面は「削除されたテンプレート」と出す */
+  /** テンプレートからの送信で、そのテンプレートが消された(版の番号はあり template_id が null、D137)。画面は「削除されたテンプレート」と出す */
   templateDeleted: boolean;
-  /** 版の文言を直して送った回か(D85) */
+  /** 版の文言を直した送信か(D85) */
   templateEdited: boolean;
-  /** 白紙のシステムテンプレートから送った回の鍵(D128。ほかの回は null) */
+  /** 白紙のシステムテンプレートからの送信の鍵(D128。ほかの送信は null) */
   systemTemplate: string | null;
-  /** 回の中身(ひな形の鍵と送った版・欄の中身、差し込む前の字)。欄の中身を残していない回は null */
+  /** 送信の中身(レイアウトの鍵と送った版・欄の中身、差し込む前の字)。欄の中身を残していない送信は null */
   content: AdminDispatchContent | null;
-  /** 選んだ利用者に送った回の利用者 id(「同じ内容で送る」の写し)。ほかの宛先の形・多すぎる回は null */
+  /** 選んだ利用者への送信の利用者 id(「同じ内容で送る」の写し)。ほかの宛先の形・多すぎる送信は null */
   targetUserIds: string[] | null;
   /** 送り元の表示名(受け口 sources に表示名がある時だけ。画面は送り元の鍵を見せない、D46) */
   sourceLabel: string | null;
   /** 送った人の名前(利用者なら users.name、system なら null。画面は id でなくこれを出す、D46) */
   actorName: string | null;
-  /** 本文(記録の段が vars / full のときだけ。経路ごとの欄) */
+  /** 本文(記録の段が vars / full のときだけ。送信チャンネルごとの欄) */
   body: Record<string, unknown> | null;
   /** 共通の vars の写し(記録の段が vars / full のときだけ) */
   vars: Record<string, unknown> | null;
-  /** DB のテンプレートの専用の埋め込み情報の値(記録の段が vars / full のときだけ。テンプレート以外の回は null) */
+  /** DB のテンプレートの専用の埋め込み情報の値(記録の段が vars / full のときだけ。テンプレート以外の送信は null) */
   embeddedValues: Record<string, string> | null;
   /** 管理の操作ができるか(取り消し・取り下げ・再送、できない時は理由の符号)。一覧には無い */
   operations: DispatchOperationFlags;
@@ -94,7 +94,7 @@ export type AdminDeliveryRow = {
   errorCode: string | null;
   attempts: number;
   provider: string | null;
-  /** 宛先が複数の経路の宛先ごとの状態(provider の値と誤りの文は落とす) */
+  /** 宛先が複数の送信チャンネルの宛先ごとの状態(provider の値と誤りの文は落とす) */
   targets: { address: string; status: string; attempts: number }[] | null;
   nextAttemptAt: string | null;
   sentAt: string | null;
@@ -104,7 +104,7 @@ export type AdminDeliveryRow = {
   clickedAt: string | null;
   complainedAt: string | null;
   createdAt: string;
-  /** 受信者ごとの vars(回の記録の段が vars / full のとき) */
+  /** 受信者ごとの vars(送信の記録の段が vars / full のとき) */
   vars: Record<string, unknown> | null;
   /** 受信者ごとの描いた本文(full のときだけ) */
   body: Record<string, unknown> | null;
@@ -112,17 +112,17 @@ export type AdminDeliveryRow = {
 
 const iso = (value: Date | null | undefined) => (value ? value.toISOString() : null);
 
-/** 前の送る口の回か(ひな形と記録の段を持たない) */
+/** 前の送る口の送信か(レイアウトと記録の段を持たない) */
 function isOldSend(row: Pick<MessageDispatch, "layout">): boolean {
   return row.layout === null;
 }
 
-/** 経路ごとの件名・題 */
+/** 送信チャンネルごとの件名・題 */
 export function headingsOf(row: Pick<MessageDispatch, "headings">): MessageChannelTextMap {
   return row.headings ?? {};
 }
 
-/** グループ宛ての回のグループ id(ほかは null) */
+/** グループ宛ての送信のグループ id(ほかは null) */
 export function targetGroupIdOf(row: Pick<MessageDispatch, "target">): string | null {
   const target = row.target as { type?: unknown; groupId?: unknown } | null;
   return target?.type === "group" && typeof target.groupId === "string" ? target.groupId : null;
@@ -152,7 +152,7 @@ export function toDispatchSummary(row: MessageDispatch, groupNames: ReadonlyMap<
   };
 }
 
-/** 回の本文を返す段か */
+/** 送信の本文を返す段か */
 export function keepsDispatchBody(record: MessageRecord | null): boolean {
   return record === "vars" || record === "full";
 }
@@ -186,7 +186,7 @@ export function toDispatchDetail(
     targetUserIds,
     sourceLabel,
     actorName,
-    // 前の送る口の回は記録の段を持たない(写しが前の列の本文を rendered へ移した)→ 段に依らず返す
+    // 前の送る口の送信は記録の段を持たない(写しが前の列の本文を rendered へ移した)→ 段に依らず返す
     body: isOldSend(row) || keep ? row.rendered : null,
     vars: keep ? row.vars : null,
     embeddedValues: keep ? (row.embedded_values ?? null) : null,
@@ -231,12 +231,12 @@ export function toDeliveryRow(row: MessageDelivery, record: MessageRecord | null
 }
 
 /**
- * 送った回のプレビューの経路 1 つ(GET dispatches/[id]/preview)。html = メールの送った描き方の HTML(経路に preview が無ければ null)、
- * layout / values / summary = お知らせを client のひな形の描き方(layoutInApps)で描く材料(差し込み済み)。描けなければ cannotRender に理由
+ * 送信のプレビューの送信チャンネル 1 つ(GET dispatches/[id]/preview)。html = メールの送った描き方の HTML(送信チャンネルに preview が無ければ null)、
+ * layout / values / summary = お知らせを client のレイアウトの描き方(layoutInApps)で描く材料(差し込み済み)。描けなければ cannotRender に理由
  */
 export type AdminDispatchPreviewChannel = {
   key: string;
-  /** 経路の表示名 */
+  /** 送信チャンネルの表示名 */
   label: string;
   html: string | null;
   text: string | null;
@@ -246,7 +246,7 @@ export type AdminDispatchPreviewChannel = {
   cannotRender: string | null;
 };
 
-/** 送った回のプレビュー(回のひな形と欄の中身を回の vars・埋め込み情報の値で差し込んで描く)。回ごと描けなければ cannotRender に理由、経路は空 */
+/** 送信のプレビュー(送信のレイアウトと欄の中身を送信の vars・埋め込み情報の値で差し込んで描く)。送信ごと描けなければ cannotRender に理由、送信チャンネルは空 */
 export type AdminDispatchPreview = {
   dispatchId: string;
   layout: string | null;

@@ -17,7 +17,7 @@ afterEach(() => {
 });
 const lists = { categories: { marketing: { label: "キャンペーン情報" } }, channels: { email: { label: "メール" } } };
 
-test("正しいトークン → 種類と経路の表示名", () => {
+test("正しいトークン → カテゴリーと送信チャンネルの表示名", () => {
   const token = signUnsubscribeToken({ recipientKey: USER, category: "marketing", channel: "email" });
   assert.deepEqual(describeUnsubscribeTokenWith(lists, token), { valid: true, categoryLabel: "キャンペーン情報", channelLabel: "メール" });
 });

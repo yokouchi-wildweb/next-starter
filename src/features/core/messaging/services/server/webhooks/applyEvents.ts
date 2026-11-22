@@ -9,7 +9,7 @@
 // - bounced_hard と complained → message_suppressions(reason hard_bounce / complaint、scope '*')。bounced_soft は停止しない
 // - unsubscribed(provider の仕組みの停止)は記録だけで好みに書かない(D35: provider の一括停止は使わない)
 //
-// 経路の事件の種類(メールの項目が決める語彙): sent / delivered / deferred / bounced_hard / bounced_soft / complained /
+// 送信チャンネルの事件の種類(メールの項目が決める語彙): sent / delivered / deferred / bounced_hard / bounced_soft / complained /
 // opened / clicked / dropped / unsubscribed / other
 
 import type { ChannelWebhookEvent } from "@/lib/messaging";

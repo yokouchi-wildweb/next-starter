@@ -1,5 +1,5 @@
 // src/features/core/messaging/layouts/alert/AlertEmail.default.tsx
-// ひな形「セキュリティの警告」のメールの既定の見た目(前の auth の accountLocked の描き方と同じ部品の並び):
+// レイアウト「セキュリティの警告」のメールの既定の見た目(前の auth の accountLocked の描き方と同じ部品の並び):
 //   見出し → 説明 → 情報の箱(値が空の行は出さない)→ 心当たりがない場合 → ある場合(最初の行を太字)→ 末尾の注意書き(→ 停止のリンク)
 // 値の無い欄は描かない
 

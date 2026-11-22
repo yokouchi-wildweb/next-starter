@@ -1,10 +1,10 @@
 // 保存されたテンプレートの service の検査(DB・台帳・監査は偽物)
 // - 保存 = 公開(D134): 作る = 行と版 1、直す = 中身が最新の版と違えば新しい版、同じなら版を作らず unchanged(名前・説明だけも)。版は不変
-// - 中身 = カテゴリー + ひな形 + 欄の中身 + 専用の埋め込み情報の宣言(指令 58)。ひな形を替える時は新しいひな形の欄の中身も要る(D113)
-// - 保存時の検査(400): 種類(種別 announcement・direct・promotion だけ)・ひな形(受け口にあり管理者が選べる)・欄の中身(その種類の経路で使う欄の zod)・
+// - 中身 = カテゴリー + レイアウト + 欄の中身 + 専用の埋め込み情報の宣言(指令 58)。レイアウトを替える時は新しいレイアウトの欄の中身も要る(D113)
+// - 保存時の検査(400): カテゴリー(種別 announcement・direct・promotion だけ)・レイアウト(受け口にあり管理者が選べる)・欄の中身(そのカテゴリーの送信チャンネルで使う欄の zod)・
 //   専用の宣言の形・名前の重なり(共通・enrichers・専用、D126)・文面の {{名前}} は一覧の中だけ。鍵はサーバーが作る
-// - 消す(D137): 行が消え(版は cascade)、欄の中身を残している回が使う画像はその回に結び直す。監査 deleted(名前・最後の版)
-// - 一覧(新しい順・cursor・種別で絞る D135)、画面の選択肢(使える経路・3 つの種別の種類・選べるひな形・基本の埋め込み情報)
+// - 消す(D137): 行が消え(版は cascade)、欄の中身を残している送信が使う画像はその送信に結び直す。監査 deleted(名前・最後の版)
+// - 一覧(新しい順・cursor・種別で絞る D135)、画面の選択肢(使える送信チャンネル・3 つの種別のカテゴリー・選べるレイアウト・基本の埋め込み情報)
 // - システムテンプレート(白紙、D117): 一覧の最初のページの先頭に印つき、1 件も読める、直す・消すは 409、版は持たない
 // - 管理者でなければ 403
 // 実行: pnpm test src/features/core/messaging/services/server/templates
@@ -46,7 +46,7 @@ const enrichers: MessageEnricher[] = [
     resolve: () => ({ displayName: "" }),
   },
 ];
-/** notice = 管理者が選べるひな形(上流の汎用のお知らせ)、card = テストのカード(選べない) */
+/** notice = 管理者が選べるレイアウト(上流の汎用のお知らせ)、card = テストのカード(選べない) */
 const layouts = { ...TEST_LAYOUTS, notice: { ...TEST_LAYOUTS.notice!, adminSelectable: true } };
 
 const IMAGE = "storage://pub/notification.image/00000000-0000-4000-8000-000000000001.png";
@@ -115,7 +115,7 @@ function setup(options: { role?: string; systemTemplates?: Record<string, Messag
   const service = createTemplateService({
     store,
     ledger: { find: async () => null, attach: async () => {}, copy: async (ref) => ref },
-    // 回の画像の台帳: テンプレートの画像(持ち主 = テンプレート)は回へ複製する
+    // 送信の画像の台帳: テンプレートの画像(持ち主 = テンプレート)は送信へ複製する
     dispatchLedger: {
       find: async () => ({ status: "ready", purpose: "notification.image", ownerUserId: ADMIN, recordType: "messaging.template", recordId: "t" }),
       attach: async (_tx, input) => {
@@ -191,12 +191,12 @@ test("直す: 中身が最新の版と同じなら版を作らず unchanged(409 
   assert.deepEqual([renamed.name, renamed.description, renamed.currentVersion], ["夏のセール", "説明", 1]);
   assert.equal(versions.length, 1);
   assert.deepEqual(audits.at(-1)!.metadata, { key: created.key, version: 1, newVersion: false });
-  // 種類・専用の宣言を替えるのは中身の変更 = 新しい版
+  // カテゴリー・専用の宣言を替えるのは中身の変更 = 新しい版
   const recategorized = await service.updateTemplate(created.id, { category: "operatorDirect" });
   assert.deepEqual([recategorized.unchanged, recategorized.currentVersion, versions.at(-1)!.category], [false, 2, "operatorDirect"]);
 });
 
-test("ひな形を替える時は新しいひな形の欄の中身も要る(D113、前の中身を持ち越さない)", async () => {
+test("レイアウトを替える時は新しいレイアウトの欄の中身も要る(D113、前の中身を持ち越さない)", async () => {
   const { service } = setup();
   const created = await service.createTemplate(input());
   await rejectsWith(service.updateTemplate(created.id, { layout: "card" }), 400, /欄の中身も/);
@@ -207,16 +207,16 @@ test("保存時の検査(400)、鍵はサーバーが作る(入力の key は 40
   const cases: Record<string, unknown>[] = [
     // 鍵は受けない(サーバーが作る、D46)
     { key: "spring-sale" },
-    // 前の形(経路ごとの content・variables)は黙って捨てない
+    // 前の形(送信チャンネルごとの content・variables)は黙って捨てない
     { content: { email: { subject: "s" } } },
     { variables: [] },
     { category: "nope" },
-    // 3 つの種別でない種類はテンプレートに使えない
+    // 3 つの種別でないカテゴリーはテンプレートに使えない
     { category: "activity" },
     { category: "account" },
-    // 経路の組は受けない(経路は送る時のカテゴリーの経路)
+    // 送信チャンネルの組は受けない(送信チャンネルは送る時のカテゴリーの送信チャンネル)
     { channels: ["email"] },
-    // ひな形: 無い・管理者が選べない
+    // レイアウト: 無い・管理者が選べない
     { layout: "none" },
     { layout: "card", values: { title: "t" } },
     // 欄の中身: 件名は必須・知らない欄
@@ -244,7 +244,7 @@ test("保存時の検査(400)、鍵はサーバーが作る(入力の key は 40
   assert.equal(byKey.currentVersion, 1);
 });
 
-test("消す(D137): 行と版が消え、欄の中身を残す回の画像は回に結び直す。監査 deleted、消した後は 404", async () => {
+test("消す(D137): 行と版が消え、欄の中身を残す送信の画像は送信に結び直す。監査 deleted、消した後は 404", async () => {
   const kept: TemplateKeptDispatch[] = [
     { id: "d1", actor_id: ADMIN, metadata: null, values: { subject: "s", blocks: [{ type: "image", src: IMAGE }] } },
     { id: "d2", actor_id: ADMIN, metadata: { inboxImages: { [IMAGE]: `${IMAGE}#bound` } }, values: { subject: "s", blocks: [{ type: "image", src: IMAGE }] } },
@@ -257,14 +257,14 @@ test("消す(D137): 行と版が消え、欄の中身を残す回の画像は回
   assert.deepEqual(result, { id: created.id, deleted: true });
   assert.equal(templates.length, 0);
   assert.equal(versions.length, 0);
-  // d1: テンプレートの画像を複製して回へ attach し、中身の参照と metadata.inboxImages を書き換える
+  // d1: テンプレートの画像を複製して送信へ attach し、中身の参照と metadata.inboxImages を書き換える
   assert.deepEqual(dispatchAttached, [{ ref: `${IMAGE}#copy`, dispatchId: "d1" }]);
   assert.deepEqual(dispatchWrites[0], {
     id: "d1",
     values: { subject: "s", blocks: [{ type: "image", src: `${IMAGE}#copy` }] },
     metadata: { inboxImages: { [IMAGE]: `${IMAGE}#copy` } },
   });
-  // d2: 既に結んだ対応があれば使い回す(複製しない)、d3: 画像の無い回は書かない
+  // d2: 既に結んだ対応があれば使い回す(複製しない)、d3: 画像の無い送信は書かない
   assert.deepEqual(dispatchWrites[1], {
     id: "d2",
     values: { subject: "s", blocks: [{ type: "image", src: `${IMAGE}#bound` }] },
@@ -298,7 +298,7 @@ test("一覧(新しい順・cursor・種別で絞る D135)、無い id は 404�
   await rejectsWith(service.getTemplateVersion(a.id, 9), 404);
 });
 
-test("画面の選択肢: 使える経路・3 つの種別の種類(使える経路つき)・選べるひな形・基本の埋め込み情報", async () => {
+test("画面の選択肢: 使える送信チャンネル・3 つの種別のカテゴリー(使える送信チャンネルつき)・選べるレイアウト・基本の埋め込み情報", async () => {
   const { service } = setup();
   const options = await service.templateOptions();
   assert.deepEqual(options.channels, [

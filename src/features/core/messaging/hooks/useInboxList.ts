@@ -5,7 +5,7 @@
 // 受け取り箱の一覧の流れ(入れ物 InboxList と、一覧を自分で組む fork の画面が呼ぶ):
 // - query = useInboxItems(カーソルのモード。InfiniteScrollList に渡す)・unreadCount = 未読の数
 // - open(item): 詳細を開き、未読なら既読にして一覧の印を変える(updateItems、取り直さない。失敗は知らせて詳細は見せる)
-// - detail: 開いた行の詳しい表示(useInboxItemDetail。一覧は要約だけなので、ひな形・欄の中身・欄の宣言はここで取る。取れるまでは opened の要約)
+// - detail: 開いた行の詳しい表示(useInboxItemDetail。一覧は要約だけなので、レイアウト・欄の中身・欄の宣言はここで取る。取れるまでは opened の要約)
 // - markAll: 全部既読にして一覧の未読の印を変え、結果を知らせる(二度押しは止める)
 
 import { useCallback, useState } from "react";

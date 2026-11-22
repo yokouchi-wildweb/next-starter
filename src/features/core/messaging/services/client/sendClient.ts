@@ -34,7 +34,7 @@ export type {
   RecipientEstimate,
 };
 
-/** 送る(予約なら回を scheduled で作る) */
+/** 送る(予約なら送信を scheduled で作る) */
 export async function adminSendMessage(input: AdminSendInput): Promise<AdminSendResult> {
   try {
     const res = await axios.post<AdminSendResult>(BASE, input);
@@ -74,7 +74,7 @@ export async function sendAdminTestMessage(input: AdminSendTestInput): Promise<A
   }
 }
 
-/** 送る画面の選択肢(経路・ロール・グループ・公開中のテンプレート・カテゴリーと白紙・ひな形の欄の宣言・予約できる日数) */
+/** 送る画面の選択肢(送信チャンネル・ロール・グループ・公開中のテンプレート・カテゴリーと白紙・レイアウトの欄の宣言・予約できる日数) */
 export async function getAdminSendOptions(): Promise<AdminSendOptions> {
   try {
     const res = await axios.get<AdminSendOptions>(`${BASE}/options`);

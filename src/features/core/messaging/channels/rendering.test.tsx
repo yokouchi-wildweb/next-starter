@@ -1,7 +1,7 @@
-// 上流の経路のひな形の描き方の宣言(D124)と 3 段の解決
+// 上流の送信チャンネルのレイアウトの描き方の宣言(D124)と 3 段の解決
 // - email: 汎用(欄の型・ブロックを宣言の順に、本物の React Email の描画)と要約から
 // - inApp: 要約から(お知らせの行の中身)/ line: 要約の短い本文(無ければ本文)と行き先
-// - resolveRendering: ひな形の描き方 > email の汎用 > inApp・line の要約
+// - resolveRendering: レイアウトの描き方 > email の汎用 > inApp・line の要約
 // 実行: pnpm test src/features/core/messaging/channels/rendering.test.tsx
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -83,7 +83,7 @@ test("inApp・line: 要約から描ける(お知らせの行の中身・短い�
   assert.deepEqual(await line.renderFromSummary!({ title: "t", body: "本文だけ" }), { text: "本文だけ" });
 });
 
-test("3 段の解決: ひな形の描き方 > email の汎用 > inApp・line の要約", () => {
+test("3 段の解決: レイアウトの描き方 > email の汎用 > inApp・line の要約", () => {
   const resolve = (channelKey: string, channel: typeof email, hasLayoutRenderer = false) =>
     resolveRendering({ layout, channelKey, hasLayoutRenderer, channel, values });
   assert.deepEqual(resolve("email", email, true), { from: "layout" });

@@ -1,6 +1,6 @@
 // src/features/core/messaging/services/server/templates/source.ts
 //
-// 送る口が読むテンプレートの版(今の公開版と、回に固定した版)。送る口の部品 deps.templates
+// 送る口が読むテンプレートの版(今の公開版と、送信に固定した版)。送る口の部品 deps.templates
 
 import { and, eq } from "drizzle-orm";
 

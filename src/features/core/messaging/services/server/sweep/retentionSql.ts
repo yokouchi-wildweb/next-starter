@@ -37,7 +37,7 @@ export function expiredDeliveriesDeleteSql(cutoff: Date, limit: number): SQL {
   `;
 }
 
-/** 消してよい古い回を最大 limit 行、排他で取る(processing・scheduled と、お知らせが参照する回は残す) */
+/** 消してよい古い送信を最大 limit 行、排他で取る(processing・scheduled と、お知らせが参照する送信は残す) */
 export function expiredDispatchesSelectSql(cutoff: Date, limit: number): SQL {
   return sql`
     SELECT d.id, d.metadata FROM message_dispatches d

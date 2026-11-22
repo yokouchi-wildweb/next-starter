@@ -1,10 +1,10 @@
 // src/features/core/messaging/services/server/sendMessage/dispatchResolved.ts
 //
-// 回から描くための定義を組む 1 か所(D128)。cron(展開・送信)・管理の操作(失敗の再送・操作の可否)が使う。
-// - 描く物は回だけから: ひな形の鍵と版・欄の中身(values、差し込む前)・種類・種別・経路・記録の段。定義・テンプレートを引き直さない
-//   (送った後に定義・テンプレート・上書きを直しても、予約・後回しの回の中身は変わらない)
-// - 送った版から今の版へひな形の改版の対応で読み替える。読めない版・ひな形が無い = 誤りの符号(送らずに止める)
-// - 回の values が無い(record meta で閉じた回・required と秘密の連絡)は組めるが values は空。描く呼び手(cron)は values_missing で止める
+// 送信から描くための定義を組む 1 か所(D128)。cron(展開・送信)・管理の操作(失敗の再送・操作の可否)が使う。
+// - 描く物は送信だけから: レイアウトの鍵と版・欄の中身(values、差し込む前)・カテゴリー・種別・送信チャンネル・記録の段。定義・テンプレートを引き直さない
+//   (送った後に定義・テンプレート・上書きを直しても、予約・後回しの送信の中身は変わらない)
+// - 送った版から今の版へレイアウトの改版の対応で読み替える。読めない版・レイアウトが無い = 誤りの符号(送らずに止める)
+// - 送信の values が無い(record meta で閉じた送信・required と秘密の連絡)は組めるが values は空。描く呼び手(cron)は values_missing で止める
 // - 描かない振る舞いはコードの定義(message_key の生成の一覧の定義 + fork の上書き)から読む: 間引き(throttle)・required・vars の zod
 //   (秘密の印)。定義が無ければ間引かず、required でも秘密でもない扱い(ANSWERS Q1)
 
@@ -41,8 +41,8 @@ async function codeDefinition(deps: Pick<MessageSendDeps, "registry">, messageKe
 }
 
 /**
- * 回から描くための定義。
- * @returns 誤りの符号 layout_missing(回のひな形が受け口に無い)/ layout_unreadable(送った版から今の版へ読み替えられない)
+ * 送信から描くための定義。
+ * @returns 誤りの符号 layout_missing(送信のレイアウトが受け口に無い)/ layout_unreadable(送った版から今の版へ読み替えられない)
  */
 export async function resolvedOfDispatch(
   deps: Pick<MessageSendDeps, "registry" | "layouts" | "categories">,
@@ -68,7 +68,7 @@ export async function resolvedOfDispatch(
     channels: [...(dispatch.channels ?? [])],
     layout: layout.key,
     values,
-    // 振る舞い(描かない物)だけコードの定義から。テンプレートから送った回(message_key null)はコードの定義が無いので、回の vars はそのまま差し込む
+    // 振る舞い(描かない物)だけコードの定義から。テンプレートからの送信(message_key null)はコードの定義が無いので、送信の vars はそのまま差し込む
     vars: code ? code.vars : z.object({}).passthrough(),
     // vars の別名(D133): 組み直しでも {{別名}} を鍵と同じ値で埋める(テンプレートの専用の別名は送る時に鍵へ書き換え済み)
     varNames: code?.varNames ?? {},

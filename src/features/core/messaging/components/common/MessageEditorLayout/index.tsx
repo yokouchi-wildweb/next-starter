@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/common/MessageEditorLayout/index.tsx
-// 部品(props だけ): 連絡の編集の 2 つの欄(D80)。左 = プレビュー、右 = 入力(経路ごとのタブ)。
+// 部品(props だけ): 連絡の編集の 2 つの欄(D80)。左 = プレビュー、右 = 入力(送信チャンネルごとのタブ)。
 // 狭い画面は入力が上、プレビューがその下。タブの値は呼び手が持つ(activeChannel / onChannelChange)
 
 "use client";
@@ -16,9 +16,9 @@ export type MessageEditorLayoutProps = {
   channels: readonly { key: string; label: string }[];
   activeChannel: string;
   onChannelChange: (channel: string) => void;
-  /** 左のプレビュー(今のタブの経路) */
+  /** 左のプレビュー(今のタブの送信チャンネル) */
   preview: ReactNode;
-  /** 右の入力(今のタブの経路の欄) */
+  /** 右の入力(今のタブの送信チャンネルの欄) */
   children: ReactNode;
 };
 

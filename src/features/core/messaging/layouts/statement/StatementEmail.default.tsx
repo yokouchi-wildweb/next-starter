@@ -1,5 +1,5 @@
 // src/features/core/messaging/layouts/statement/StatementEmail.default.tsx
-// ひな形「お知らせの明細」のメールの既定の見た目(前の wallet の NoticeMailView と同じ部品の並び):
+// レイアウト「お知らせの明細」のメールの既定の見た目(前の wallet の NoticeMailView と同じ部品の並び):
 //   ロゴ(事業の設定)と札 → 宛名 → 区切り → 本文(改行はそのまま)→ 区切り → 末尾の注意書き(→ 停止のリンク)
 // 値の無い欄は描かない
 

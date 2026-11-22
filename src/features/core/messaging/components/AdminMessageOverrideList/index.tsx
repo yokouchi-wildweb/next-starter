@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/AdminMessageOverrideList/index.tsx
-// セクションコンテナ(管理: 文言を直せる連絡の一覧)。adminEditable を宣言した定義だけ(数は小さく固定なので一度に取る)。
+// セクションコンテナ(管理: テキストの編集ができる連絡の一覧)。adminEditable を宣言した定義だけ(数は小さく固定なので一度に取る)。
 // 行 = 連絡の名前・種別 / カテゴリーの表示名(鍵は見せない、D46)・直せる欄の数・直した数・印(孤立・コードが変わった)。行を押すと直すモーダル(AdminMessageOverrideModal。D87)。
 // 流れ(一覧・モーダルの開き先)は hook useAdminMessageOverrideList。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 

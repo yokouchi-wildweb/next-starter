@@ -1,9 +1,9 @@
 // 好みの service の検査(DB は偽物)
-// - 形 = 経路(enabled: false の経路は出ない)> 種別の枠 > グループ(無い種類が先)> 種類。マスの止まり方は送る側の checkStops と同じ(kind の行も)
-// - 宛先の有無: 経路の自前の引き方 / 無ければ端末の帳簿。connectHref は門で閉じた住所なら null
-// - 1 マス・種類まるごと・経路まるごと・全体('*' '*')・種別まるごと(kind)を止める(source 既定 user、呼び手の値)/ 再開する(その行だけ消す)
-// - 広い行(種別・種類・経路まるごと)の下で 1 マスを再開すると書き分ける(D71・指令 37)。全体の行は書き分けず via all で残る
-// - 知らない種類・有効でない経路・片方だけの '*'・止められない種別は 400、受け口の誤りは投げる
+// - 形 = 送信チャンネル(enabled: false の送信チャンネルは出ない)> 種別の枠 > グループ(無いカテゴリーが先)> カテゴリー。マスの止まり方は送る側の checkStops と同じ(kind の行も)
+// - 宛先の有無: 送信チャンネルの自前の引き方 / 無ければ端末の帳簿。connectHref は門で閉じた住所なら null
+// - 1 マス・カテゴリーまるごと・送信チャンネルまるごと・全体('*' '*')・種別まるごと(kind)を止める(source 既定 user、呼び手の値)/ 再開する(その行だけ消す)
+// - 広い行(種別・カテゴリー・送信チャンネルまるごと)の下で 1 マスを再開すると書き分ける(D71・指令 37)。全体の行は書き分けず via all で残る
+// - 知らないカテゴリー・有効でない送信チャンネル・片方だけの '*'・止められない種別は 400、受け口の誤りは投げる
 // 実行: pnpm test src/features/core/messaging/services/server/preferences
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -27,7 +27,7 @@ function channel(key: string, extra: Partial<MessageChannel> = {}): MessageChann
 const categories: Record<string, MessageCategory> = {
   promotion: { key: "promotion", label: "キャンペーン情報", kind: "promotion", channels: ["email", "inApp", "push", "sms", "line"] },
   activity: { key: "activity", label: "アクティビティ", description: "反応の通知", kind: "activity", channels: ["email", "inApp"] },
-  // 利用者が止められない種別の種類は好みの表に出ない
+  // 利用者が止められない種別のカテゴリーは好みの表に出ない
   registrationComplete: { key: "registrationComplete", label: "会員登録の完了", kind: "transactional", channels: ["email"] },
   campaign: { key: "campaign", label: "セール", kind: "promotion", channels: ["email", "inApp"], group: "promo" },
 };
@@ -75,7 +75,7 @@ function setup(options: { rows?: MessagePreferenceRow[]; email?: boolean; openHr
 
 const row = (category: string, ch: string, kind: string | null = null): MessagePreferenceRow => ({ category, channel: ch, kind });
 type Dto = Awaited<ReturnType<ReturnType<typeof setup>["service"]["getPreferences"]>>;
-/** 経路 → 種類 → [optedOut, via] */
+/** 送信チャンネル → カテゴリー → [optedOut, via] */
 function cellsOf(dto: Dto) {
   const out: Record<string, Record<string, [boolean, string | null]>> = {};
   for (const ch of dto.channels) {
@@ -85,7 +85,7 @@ function cellsOf(dto: Dto) {
   return out;
 }
 
-test("形: 経路 > 種別の枠 > グループ(無い種類が先)> 種類、宛先の有無と connectHref", async () => {
+test("形: 送信チャンネル > 種別の枠 > グループ(無いカテゴリーが先)> カテゴリー、宛先の有無と connectHref", async () => {
   const { service } = setup({ email: false, openHrefs: ["/mypage/push?x=1"] });
   const dto = await service.getPreferences(USER);
   assert.equal(dto.allOptedOut, false);
@@ -118,7 +118,7 @@ test("形: 経路 > 種別の枠 > グループ(無い種類が先)> 種類、�
     optedOut: false,
     via: null,
   });
-  // 列 = 開いている経路 ∩ 種類の経路(push には promotion だけ、取引の種類は出ない)
+  // 列 = 開いている送信チャンネル ∩ カテゴリーの送信チャンネル(push には promotion だけ、取引のカテゴリーは出ない)
   assert.deepEqual(dto.channels[2].kinds.map((f) => [f.kind, f.groups.flatMap((g) => g.categories.map((c) => c.key))]), [["promotion", ["promotion"]]]);
 });
 
@@ -149,7 +149,7 @@ test("source は呼び手の値(既定 user)", async () => {
   ]);
 });
 
-test("種類まるごと・経路まるごとを止めて再開する(その行だけ)。状態は categories と channels[].optedOut", async () => {
+test("カテゴリーまるごと・送信チャンネルまるごとを止めて再開する(その行だけ)。状態は categories と channels[].optedOut", async () => {
   const { service, rows } = setup();
   let dto = await service.setPreference(USER, { category: "activity", channel: "*", optedOut: true });
   assert.deepEqual(rows, [{ category: "activity", channel: "*", kind: null, source: "user" }]);
@@ -165,7 +165,7 @@ test("種類まるごと・経路まるごとを止めて再開する(その行�
   assert.ok(dto.categories.every((c) => !c.optedOut) && dto.channels.every((c) => !c.optedOut));
 });
 
-test("種類まるごとの下の 1 マスの再開: 種類の行を消し、その種類のほかの経路をマスで止める", async () => {
+test("カテゴリーまるごとの下の 1 マスの再開: カテゴリーの行を消し、そのカテゴリーのほかの送信チャンネルをマスで止める", async () => {
   const { service, rows, writes } = setup({ rows: [row("activity", "*"), row("activity", "email")] });
   writes.length = 0;
   const dto = await service.setPreference(USER, { category: "activity", channel: "email", optedOut: false });
@@ -176,7 +176,7 @@ test("種類まるごとの下の 1 マスの再開: 種類の行を消し、そ
   assert.equal(dto.categories.find((c) => c.key === "activity")?.optedOut, false);
 });
 
-test("経路まるごとの下の 1 マスの再開: 経路の行を消し、その経路を持つほかの種類をマスで止める", async () => {
+test("送信チャンネルまるごとの下の 1 マスの再開: 送信チャンネルの行を消し、その送信チャンネルを持つほかのカテゴリーをマスで止める", async () => {
   const { service, rows } = setup({ rows: [row("*", "inApp")] });
   const dto = await service.setPreference(USER, { category: "promotion", channel: "inApp", optedOut: false });
   assert.deepEqual(rows.map((r) => [r.category, r.channel]).sort(), [["activity", "inApp"], ["campaign", "inApp"]]);
@@ -209,7 +209,7 @@ test("広い行が重なる時は全部を書き分け(和)、全体の行は書
   assert.deepEqual(cellsOf(dto).email.promotion, [true, "all"]);
 });
 
-test("種別まるごと: 止めると種別の種類が全部 via kind、ほかの種別と全体は変わらない。再開で行を消す", async () => {
+test("種別まるごと: 止めると種別のカテゴリーが全部 via kind、ほかの種別と全体は変わらない。再開で行を消す", async () => {
   const { service, rows } = setup();
   let dto = await service.setPreference(USER, { kind: "promotion", optedOut: true });
   assert.deepEqual(rows, [{ category: "*", channel: "*", kind: "promotion", source: "user" }]);
@@ -249,7 +249,7 @@ test("種別まるごとの行がある人が 1 マスを再開すると、1 回
   assert.deepEqual(writes, [{ remove: 1, add: 0 }]);
 });
 
-test("入力の誤り・知らない種類・有効でない経路・止められない種別は 400", async () => {
+test("入力の誤り・知らないカテゴリー・有効でない送信チャンネル・止められない種別は 400", async () => {
   const { service } = setup();
   for (const input of [
     null,
@@ -274,7 +274,7 @@ test("入力の誤り・知らない種類・有効でない経路・止めら�
   await assert.rejects(service.setPreference(USER, { kind: "promotion", optedOut: true }, { source: "" }), DomainError);
 });
 
-test("種類とグループの受け口の誤り(知らないグループ)は投げる", async () => {
+test("カテゴリーとグループの受け口の誤り(知らないグループ)は投げる", async () => {
   const { service } = setup({ categories: { ...categories, bad: { key: "bad", label: "x", kind: "activity", channels: ["email"], group: "nope" } } });
   await assert.rejects(service.getPreferences(USER), /group nope/);
 });
@@ -294,7 +294,7 @@ test("マスの止まり方は送る側(checkStops)の判定と同じ(kind の�
   ];
   const kindOf: Record<string, string> = { promotion: "promotion", activity: "activity", campaign: "promotion" };
   for (const rows of rowSets) {
-    // 送る側の store.findOptOuts と同じ絞り込み(種類 = その種類か '*' か入っているグループの行、経路 = 送る経路か '*'、kind = null か連絡の種別)
+    // 送る側の store.findOptOuts と同じ絞り込み(カテゴリー = そのカテゴリーか '*' か入っているグループの行、送信チャンネル = 送る送信チャンネルか '*'、kind = null か連絡の種別)
     const deps = {
       categories,
       store: {

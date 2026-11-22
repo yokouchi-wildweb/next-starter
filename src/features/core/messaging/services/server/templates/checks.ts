@@ -1,9 +1,9 @@
 // src/features/core/messaging/services/server/templates/checks.ts
 //
 // 保存されたテンプレートの保存時の検査(D41、指令 58)。作る・直すの前に同じ検査を通す。
-// - 種類: 種類の受け口(categories)にあり、種別が announcement・direct・promotion(管理者が送れる種別。それ以外は 400)
-// - ひな形: ひな形の受け口(layouts)にあり、管理者が選べる物(adminSelectable)
-// - 欄の中身: そのカテゴリーの経路で使う欄の zod(layoutValuesSchema)を通る
+// - カテゴリー: カテゴリーの受け口(categories)にあり、種別が announcement・direct・promotion(管理者が送れる種別。それ以外は 400)
+// - レイアウト: レイアウトの受け口(layouts)にあり、管理者が選べる物(adminSelectable)
+// - 欄の中身: そのカテゴリーの送信チャンネルで使う欄の zod(layoutValuesSchema)を通る
 // - 専用の埋め込み情報: 宣言の zod(lib/messaging messageVarDeclarationSchema)を通り、一覧(共通 + テンプレートに当たる enrichers + 専用)の
 //   鍵・別名が重ならない(checkVarCatalog、D126)。秘密の型は無い(型は lib の 6 つだけ。秘密はコードの定義の secretVar に置く)
 // - 文面の {{鍵}} / {{別名}} は一覧の中だけ(findVar の unknown は 400)
@@ -30,7 +30,7 @@ export type TemplateCheckDeps = {
   channels: Readonly<Record<string, MessageChannel>>;
   categories: Readonly<Record<string, MessageCategory>>;
   layouts: Readonly<Record<string, MessageLayout>>;
-  /** テンプレートに当たる enrichers(管理者が送れる種別のどれで送っても当たる物。種類は送る時に選ぶ) */
+  /** テンプレートに当たる enrichers(管理者が送れる種別のどれで送っても当たる物。カテゴリーは送る時に選ぶ) */
   enrichers: readonly MessageEnricher[];
 };
 
@@ -53,7 +53,7 @@ export function templateVarCatalog(deps: TemplateCheckDeps, own: readonly Messag
   return varCatalog({ own, enrichers: deps.enrichers });
 }
 
-/** 管理者が選べるひな形 */
+/** 管理者が選べるレイアウト */
 export function adminSelectableLayouts(deps: Pick<TemplateCheckDeps, "layouts">): MessageLayout[] {
   return Object.values(deps.layouts).filter((layout) => layout.adminSelectable === true);
 }

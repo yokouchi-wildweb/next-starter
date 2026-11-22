@@ -1,6 +1,6 @@
 // src/features/core/messaging/constants/dispatchOperations.ts
 //
-// 回の管理の操作(削除・失敗の再送・続きを送る、D88)ができない理由の符号と文。1 か所だけに置き、
+// 送信の管理の操作(削除・失敗の再送・続きを送る、D88)ができない理由の符号と文。1 か所だけに置き、
 // server の service(services/server/admin/operations.ts の 409 の文)と画面の部品(DispatchOperations の理由)が同じ物を読む。
 // server を import しない(client の部品からも読むため)
 
@@ -34,7 +34,7 @@ export const DISPATCH_OPERATION_REASON_TEXT: Record<DispatchOperationReason, str
   no_input_copy: "本文が保存されていないため再送できません。新しく送信してください",
 };
 
-/** 回の詳細で操作の上に出す状態の 1 行(D71 の言い方)。知らない状態は null */
+/** 送信の詳細で操作の上に出す状態の 1 行(D71 の言い方)。知らない状態は null */
 export function dispatchStateLine(dispatch: { status: string; scheduledAt: string | null; deletedAt: string | null }): string | null {
   if (dispatch.deletedAt) return "この送信は削除済みです";
   switch (dispatch.status) {

@@ -32,7 +32,7 @@ export type SendTargetPickerProps =
       groups?: readonly SendTargetGroupOption[];
       /** 門 userGroups が開か(開 = グループの選択肢を出す。省略時は groups があれば出す) */
       groupsEnabled?: boolean;
-      /** 宛先の知らせ(前の回のグループが今は選べない時など) */
+      /** 宛先の知らせ(前の送信のグループが今は選べない時など) */
       note?: string | null;
       /** 選べる宛先の種類(種別が許す物。省略 = 全部) */
       allowedTypes?: readonly SendTargetValue["type"][];
@@ -47,7 +47,7 @@ export function SendTargetPicker(props: SendTargetPickerProps) {
     );
   }
   const { value, onChange, roles, groups = [], groupsEnabled = groups.length > 0, note = null, allowedTypes } = props;
-  // グループが無くても、今グループの形なら選択肢を残す(前の回のグループが今は選べない時に選び直せるように)
+  // グループが無くても、今グループの形なら選択肢を残す(前の送信のグループが今は選べない時に選び直せるように)
   const typeOptions = [
     { value: "all", label: "全員" },
     { value: "role", label: "ロール" },

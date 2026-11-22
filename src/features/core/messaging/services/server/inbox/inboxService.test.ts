@@ -2,7 +2,7 @@
 // - 一覧は公開の時刻・id の降順の keyset、unreadOnly、limit の上限
 // - 既読は 1 件(見える行だけ、他は 404)と全部(watermark + 自分の個別の既読の行を掃く)
 // - 静かな行(metadata.silent)は一覧に出し、未読の数と unreadOnly(未読のモーダル)から除く
-// - 詳細: 見える行だけ(他は 404)。ひな形と欄の中身(書いた版から今の版へ読み替え)とお知らせの欄の宣言、描けない行は要約のカード
+// - 詳細: 見える行だけ(他は 404)。レイアウトと欄の中身(書いた版から今の版へ読み替え)とお知らせの欄の宣言、描けない行は要約のカード
 // 実行: pnpm test src/features/core/messaging/services/server/inbox
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -165,7 +165,7 @@ test("isSilent: silent が true の時だけ", () => {
   assert.equal(isSilent(null), false);
 });
 
-test("詳細: 見える行だけ(他は 404)。ひな形の欄の中身は今の版へ読み替え、お知らせの欄の宣言を付ける。描けない行は要約のカード", async () => {
+test("詳細: 見える行だけ(他は 404)。レイアウトの欄の中身は今の版へ読み替え、お知らせの欄の宣言を付ける。描けない行は要約のカード", async () => {
   const { service } = setup(
     [
       { id: "new", userId: "u1", targetRoles: null, publishedAt: at(9), layout: "note", layoutVersion: 2, values: { subject: "今の版", body: "本文" } },
@@ -184,7 +184,7 @@ test("詳細: 見える行だけ(他は 404)。ひな形の欄の中身は今の
   );
   const old = await service.getInboxItem(viewer, "old");
   assert.deepEqual([old.layoutVersion, old.values], [2, { subject: "前の版" }], "版 1 の title は今の版の subject");
-  // 前の行・ひな形の無い行・読めない版は 4 つとも無い(要約のカード)
+  // 前の行・レイアウトの無い行・読めない版は 4 つとも無い(要約のカード)
   for (const id of ["plain", "gone", "future"]) {
     const card = await service.getInboxItem(viewer, id);
     assert.deepEqual([card.layout, card.layoutVersion, card.values, card.fields], [undefined, undefined, undefined, undefined], id);

@@ -13,7 +13,7 @@ export type SubscriberStore = {
   advanceMark: (subscriberKey: string, seq: number) => Promise<void>;
   /** created_at <= cutoff の事件の一番大きい seq(無ければ 0) */
   upperSeq: (cutoff: Date) => Promise<number>;
-  /** after < seq <= upTo の事件を seq 順に(種類・連絡の鍵・経路で絞る) */
+  /** after < seq <= upTo の事件を seq 順に(種類・連絡の鍵・送信チャンネルで絞る) */
   fetchEvents: (query: {
     after: number;
     upTo: number;

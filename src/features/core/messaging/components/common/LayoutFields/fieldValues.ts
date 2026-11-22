@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/common/LayoutFields/fieldValues.ts
-// ひな形の欄の入力の部品が使う純粋な関数(空の値・ブロックの空の形・並びの入れ替え・読むだけの文)。
-// 欄の型とブロックの種類は lib(@/lib/messaging のひな形の語彙、D123)が決め、ここは入力の初めの形を作るだけ
+// レイアウトの欄の入力の部品が使う純粋な関数(空の値・ブロックの空の形・並びの入れ替え・読むだけの文)。
+// 欄の型とブロックの種類は lib(@/lib/messaging のレイアウトの語彙、D123)が決め、ここは入力の初めの形を作るだけ
 
 import {
   MESSAGE_BLOCK_KINDS,

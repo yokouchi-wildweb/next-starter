@@ -1,7 +1,7 @@
 // src/lib/messaging/definition/registry.ts
 //
 // 連絡の生成の一覧(src/registry/messageRegistry.ts、pnpm generate registry が書く)の型。
-// 鍵 = <ドメインのフォルダ名>.<ファイル名>。定義・上書きは遅延 import(使う連絡だけを読む)。描き方はひな形(layouts の受け口)が持つ。
+// 鍵 = <ドメインのフォルダ名>.<ファイル名>。定義・上書きは遅延 import(使う連絡だけを読む)。描き方はレイアウト(layouts の受け口)が持つ。
 
 import type { z } from "zod";
 

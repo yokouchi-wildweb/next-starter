@@ -1,13 +1,13 @@
 // src/features/core/messaging/components/MessageSendModal/index.tsx
 // セクションコンテナ(管理: 送るモーダル。D87)。ボタンとモーダルを描き、hook useMessageSendModal を呼んで部品を並べるだけ。
-// 開き方 mode: new(回の一覧「新しく送る」)/ sameAs(回の詳細「同じ内容で送る」)/ bulk(管理一覧の一括操作、bulkMessageAction)。
+// 開き方 mode: new(送信の一覧「新しく送る」)/ sameAs(送信の詳細「同じ内容で送る」)/ bulk(管理一覧の一括操作、bulkMessageAction)。
 // new / sameAs の口を門 messagingBroadcast で出し分けるのは置き場の入れ物(AdminDispatchList / AdminDispatchDetail)。bulk は門の外。
 // fork は自分の画面(例 発送リクエストの一覧)にもこの入れ物をそのまま置ける(公開の部品と hook)。
 // 画面(D126): 左右 2 つのペイン(左 = プレビュー、右 = 操作。狭い画面は操作が上)。「あなた宛ての表示例」は上に重ねるモーダル(SampleForYouModal、D129)。
 // 並び(D110 D115 D118): 種別とカテゴリーの 1 行 → 送信方法 → 宛先(種別が許す物)→ テンプレート(その種別の物、読み込まない = 白紙)
 // → 内容 → 送る時刻。内容(D118 D119 D120): テンプレートを読み込んだ直後は文を固定して見せ、専用の埋め込み情報の入力だけ。
-// 『文面を直す』でひな形の欄の入力(LayoutFields)と埋め込み情報のタグ、『テンプレートを更新』(Dialog で確かめる、送るとは別)。
-// プレビュー = ひな形の実際の描き方(LayoutPreview、経路のタブ、未入力は仮の文。種別を選ぶまでは案内だけ)。「あなた宛ての表示例」のボタン = 送る口で描いた表示例(埋め込み情報を差し込む)
+// 『文面を直す』でレイアウトの欄の入力(LayoutFields)と埋め込み情報のタグ、『テンプレートを更新』(Dialog で確かめる、送るとは別)。
+// プレビュー = レイアウトの実際の描き方(LayoutPreview、送信チャンネルのタブ、未入力は仮の文。種別を選ぶまでは案内だけ)。「あなた宛ての表示例」のボタン = 送る口で描いた表示例(埋め込み情報を差し込む)
 // 手で直した書きかけの上に読み込む時は Dialog で確かめる。書きかけのまま閉じる = Modal の confirmOnClose。ページの移動は hook の中の @/lib/unsavedGuard
 
 "use client";

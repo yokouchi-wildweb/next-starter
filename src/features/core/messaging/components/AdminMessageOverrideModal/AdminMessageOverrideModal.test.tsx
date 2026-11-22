@@ -1,5 +1,5 @@
-// 文言の編集を直すモーダルの入れ物と、一覧からの開き方の検査(jsdom の上で描く。hook・Modal・部品は偽物)。
-// - 鍵が無い間は描かない / confirmOnClose に hook の closeConfirm / 今の経路の欄ごとに OverrideFieldEditor を並べる / 読み込み中・取れない時
+// テキストの編集のモーダルの入れ物と、一覧からの開き方の検査(jsdom の上で描く。hook・Modal・部品は偽物)。
+// - 鍵が無い間は描かない / confirmOnClose に hook の closeConfirm / 今の送信チャンネルの欄ごとに OverrideFieldEditor を並べる / 読み込み中・取れない時
 // - 名前・種別とカテゴリーの表示名(鍵は出さない、D46)/ 左のプレビュー(LayoutPreview)/ 下の帯の左に埋め込み情報の吹き出し
 // - 保存は 1 回(D132): 下の帯の「保存」は下書きが無ければ押せず、確かめると saveAll
 // - 「すべてデフォルトに戻す」(D136): 変わる物が無ければ押せず、確かめると resetAll
@@ -27,7 +27,7 @@ const events: string[] = [];
 let editor: Record<string, unknown> = {};
 let editorMounts = 0;
 const CHANNEL = { key: "email", label: "メール" };
-// 欄 = ひな形の欄(D132)。経路のタブで絞った今の経路の欄だけを並べる(activeFields)
+// 欄 = レイアウトの欄(D132)。送信チャンネルのタブで絞った今の送信チャンネルの欄だけを並べる(activeFields)
 const field = (path: string) => ({
   path,
   spec: { type: "line", label: path },
@@ -167,7 +167,7 @@ test("鍵が無い間は描かない / 欄を並べ、confirmOnClose に closeCo
   await view.draw(createElement(AdminMessageOverrideModal, props(true, null)));
   assert.equal(modalProps, null);
   await view.draw(createElement(AdminMessageOverrideModal, props(true, "user.welcome")));
-  // 右 = 種別とカテゴリー(読むだけ)→ 今の経路の欄、左 = プレビュー、下の帯の左 = 埋め込み情報
+  // 右 = 種別とカテゴリー(読むだけ)→ 今の送信チャンネルの欄、左 = プレビュー、下の帯の左 = 埋め込み情報
   assert.deepEqual(parts(view.container), ["kind-category", "field", "field", "preview", "vars"]);
   assert.match(view.container.textContent ?? "", /プレビュー/);
   assert.deepEqual(modalProps!.confirmOnClose, { enabled: true, message: "下書き" });
@@ -261,7 +261,7 @@ test("一覧: 行でモーダルの開き先を変える", async () => {
   await act(async () => (view.container.querySelector("[data-slot=override-message-row]") as HTMLButtonElement).click());
   assert.deepEqual(events, ["open:user.welcome"]);
   assert.match(view.container.textContent ?? "", /会員登録の完了/);
-  // 種類の経路を並べる(J99。行の形は送信一覧と同じ MessageRowMeta)
+  // カテゴリーの送信チャンネルを並べる(J99。行の形は送信一覧と同じ MessageRowMeta)
   assert.match(view.container.querySelector("[aria-label=送信方法]")?.textContent ?? "", /メール/);
   assert.doesNotMatch(view.container.textContent ?? "", /user\.welcome|transactional/);
   assert.equal(view.container.querySelector("a"), null);

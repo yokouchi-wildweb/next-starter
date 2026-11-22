@@ -2,7 +2,7 @@
 
 // src/features/core/messaging/hooks/useAdminBulkSend.ts
 //
-// 管理の一括送信(POST /api/admin/messaging/bulk-send)。成功したら回のキーを再検証する。
+// 管理の一括送信(POST /api/admin/messaging/bulk-send)。成功したら送信のキーを再検証する。
 // useAdminBulkSendOptions = 選択肢(GET、一覧の一括で送れるカテゴリー)。enabled の間だけ取る
 
 import useSWR from "swr";

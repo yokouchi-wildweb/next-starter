@@ -1,5 +1,5 @@
 // 内部の事件(D47 の outbox)の検査(メモリの store。本物は store の書く口が同じ取引で message_events へ書く)
-// - 小さな送信(要求の中): 止めた行 → delivery.suppressed、送れた → delivery.sent、要求の中で閉じた回 → dispatch.completed
+// - 小さな送信(要求の中): 止めた行 → delivery.suppressed、送れた → delivery.sent、要求の中で閉じた送信 → dispatch.completed
 // - cron: 展開・送信・閉じる で delivery.sent / delivery.failed / dispatch.completed
 // - 書くのは購読が聞いている種類だけ(購読なし = 何も書かない)。provider internal、事件ごとに別の provider_event_id
 // - 保持の掃除: 購読の一番遅い印より新しい事件は日数を過ぎても消さない(購読なしは今までどおり)
@@ -45,7 +45,7 @@ function setup(types: readonly string[], behave?: Parameters<typeof createTestCh
 const summary = (events: { type?: string; channel?: string | null; delivery_id?: string | null }[]) =>
   events.map((event) => event.type).sort();
 
-test("小さな送信: 止めた行・送れた行・要求の中で閉じた回の事件を書く(provider internal、id は別々)", async () => {
+test("小さな送信: 止めた行・送れた行・要求の中で閉じた送信の事件を書く(provider internal、id は別々)", async () => {
   const { world, sender } = setup([...INTERNAL_EVENT_TYPES]);
   await sender.sendMessageToMany(notice, { recipients: [{ userId: "u1" }, { userId: "u3" }], vars: { item: "靴" } });
   const events = world.store.events;

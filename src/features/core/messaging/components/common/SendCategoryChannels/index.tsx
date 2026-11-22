@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/common/SendCategoryChannels/index.tsx
-// 部品(props だけ): 送るモーダルのカテゴリー(選んだ種別の物、D115。1 つしか無ければ選ばせず出さない)と、その経路の中の絞り(既定は全部オン)。
-// blank の印は呼び手が文言の無い経路に付ける時だけ(省略 = 付けない)。種別の選び = SendKindPicker(このフォルダ)
+// 部品(props だけ): 送るモーダルのカテゴリー(選んだ種別の物、D115。1 つしか無ければ選ばせず出さない)と、その送信チャンネルの中の絞り(既定は全部オン)。
+// blank の印は呼び手が文言の無い送信チャンネルに付ける時だけ(省略 = 付けない)。種別の選び = SendKindPicker(このフォルダ)
 
 "use client";
 
@@ -64,7 +64,7 @@ export function SendCategoryChannels({
         <Span size="sm" weight="medium" className={hideChannelLabel ? "sr-only" : undefined} id="send-channels-label">
           送信方法
         </Span>
-        {/* 経路 = 押すと入り切りする丸い札(入 = primary の薄い地 + ✓)。文言の無い経路は札の中に「未入力」 */}
+        {/* 送信チャンネル = 押すと入り切りする丸い札(入 = primary の薄い地 + ✓)。文言の無い送信チャンネルは札の中に「未入力」 */}
         <Flex gap="xs" wrap="wrap" role="group" aria-labelledby="send-channels-label">
           {channels.map((channel) => (
             <Button

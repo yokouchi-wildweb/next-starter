@@ -1,11 +1,11 @@
 // src/features/core/messaging/services/server/admin/dispatchPreview.ts
 //
-// 送った回のプレビュー(管理、GET /api/admin/messaging/dispatches/[id]/preview)。回が送った物を見せる:
-// - 描く物は回だけから(resolvedOfDispatch: ひな形の鍵と送った版を今の版へ読み替えた欄の中身・種類・経路。定義・テンプレートを引き直さない)
-// - 差し込み = 回に残した vars ∪ embedded_values ∪ 共通の文脈(サービス名・URL)。受信者ごとの値({{受信者名}} など)は字のまま
-// - 経路ごとに 送る口と同じ組み立て(buildContent)→ メールは経路の preview で HTML、お知らせは client のひな形の描き方の材料(欄の中身・要約)
-// - 記録の段で中身を残していない回(values が無い: record meta・秘密の連絡)・ひな形が無い・版を読めない回は cannotRender に理由(経路は空)
-// - どのひな形でも描く(テンプレートの adminSelectable の絞りは使わない)。service でも管理者を確かめる(D42)
+// 送信のプレビュー(管理、GET /api/admin/messaging/dispatches/[id]/preview)。送信が送った物を見せる:
+// - 描く物は送信だけから(resolvedOfDispatch: レイアウトの鍵と送った版を今の版へ読み替えた欄の中身・カテゴリー・送信チャンネル。定義・テンプレートを引き直さない)
+// - 差し込み = 送信に残した vars ∪ embedded_values ∪ 共通の文脈(サービス名・URL)。受信者ごとの値({{受信者名}} など)は字のまま
+// - 送信チャンネルごとに 送る口と同じ組み立て(buildContent)→ メールは送信チャンネルの preview で HTML、お知らせは client のレイアウトの描き方の材料(欄の中身・要約)
+// - 記録の段で中身を残していない送信(values が無い: record meta・秘密の連絡)・レイアウトが無い・版を読めない送信は cannotRender に理由(送信チャンネルは空)
+// - どのレイアウトでも描く(テンプレートの adminSelectable の絞りは使わない)。service でも管理者を確かめる(D42)
 
 import { displayVarValues, varMap, type MessageVarEntry, type MessageLayout } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
@@ -20,10 +20,10 @@ import { layoutChannelView } from "./layoutChannelView";
 
 export type AdminDispatchPreviewDeps = AdminCheckDeps & {
   findDispatch: (id: string) => Promise<MessageDispatch | null>;
-  /** 回から描く定義(sendMessage/dispatchResolved.ts) */
+  /** 送信から描く定義(sendMessage/dispatchResolved.ts) */
   resolve: (row: MessageDispatch) => Promise<{ resolved: AnyResolvedMessageDefinition } | { error: DispatchResolveError }>;
   layouts: Readonly<Record<string, MessageLayout>>;
-  /** 送る口と同じ組み立て(描けない経路は DomainError) */
+  /** 送る口と同じ組み立て(描けない送信チャンネルは DomainError) */
   buildContent: (resolved: AnyResolvedMessageDefinition, channel: string, map: VariableMap) => Promise<{ content: Record<string, unknown> }>;
   /** 欄の値の中の文字列を全部差し込む(sendMessage/context.ts renderValue) */
   renderValue: (value: unknown, map: VariableMap) => unknown;
@@ -33,11 +33,11 @@ export type AdminDispatchPreviewDeps = AdminCheckDeps & {
   varCatalog: (resolved: AnyResolvedMessageDefinition) => MessageVarEntry[];
   /** 共通の文脈(サービス名・URL) */
   commonValues: () => Record<string, unknown>;
-  /** 停止のリンクを出す回か(好みに従う連絡 = category を経路の preview に渡す) */
+  /** 停止のリンクを出す送信か(好みに従う連絡 = category を送信チャンネルの preview に渡す) */
   honoursPreferences: (resolved: AnyResolvedMessageDefinition) => boolean;
-  /** 経路の表示名(無い経路は null) */
+  /** 送信チャンネルの表示名(無い送信チャンネルは null) */
   channelLabel: (channel: string) => string | null;
-  /** 経路のプレビュー(経路の受け口の preview。無い経路は null) */
+  /** 送信チャンネルのプレビュー(送信チャンネルの受け口の preview。無い送信チャンネルは null) */
   channelPreview: (
     channel: string,
     input: { messageKey: string; content: unknown; category?: string },
@@ -52,8 +52,8 @@ const RESOLVE_ERRORS: Record<DispatchResolveError, string> = {
 const reasonOf = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
 /**
- * 回 1 件のプレビュー。
- * @throws DomainError(404) 回が無い / (403) 管理者でない
+ * 送信 1 件のプレビュー。
+ * @throws DomainError(404) 送信が無い / (403) 管理者でない
  */
 export async function adminDispatchPreview(deps: AdminDispatchPreviewDeps, id: string): Promise<AdminDispatchPreview> {
   await assertAdminActor(deps);

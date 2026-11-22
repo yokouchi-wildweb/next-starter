@@ -1,10 +1,10 @@
 // src/features/core/messaging/services/server/sendMessage/definition.ts
 //
-// 定義を送れる形にする: 生成の一覧の上書きを重ね、属する種類(category)から種別と経路を付け(resolveMessageDefinition)、検査を通す
-// (ひな形が受け口にある・欄の中身がひな形の欄の zod を通る・{{鍵}} が宣言済み)。
-// 管理画面の文言(message_overrides、欄の道 = ひな形の欄の鍵)は門 messagingOverrides が開の時に最後に欄ごとに重ねる
+// 定義を送れる形にする: 生成の一覧の上書きを重ね、属するカテゴリー(category)から種別と送信チャンネルを付け(resolveMessageDefinition)、検査を通す
+// (レイアウトが受け口にある・欄の中身がレイアウトの欄の zod を通る・{{鍵}} が宣言済み)。
+// 管理画面のテキストの編集(message_overrides、欄の道 = レイアウトの欄の鍵)は門 messagingOverrides が開の時に最後に欄ごとに重ねる
 // (D21: 管理画面 > fork の override > 上流)。行は保存した版から今の版へ移し、移せない・検査を通らない行は当てずコードの値(警告 1 行)。
-// 重ねた値は回の values に残るので、予約・後回しの組み直しは送った時の文言のまま(D128。後で上書きを直しても変わらない)
+// 重ねた値は送信の values に残るので、予約・後回しの組み直しは送った時の文言のまま(D128。後でテキストを編集し直しても変わらない)
 
 import type { z } from "zod";
 
@@ -32,10 +32,10 @@ import { enricherKeysFor, messageSharedVars } from "./enrichers";
 export type AnyMessageDefinition = MessageDefinition<z.AnyZodObject>;
 export type AnyResolvedMessageDefinition = ResolvedMessageDefinition<z.AnyZodObject>;
 
-/** 上流の経路の鍵(受け口に項目が無くても登録済みとして扱う。定義の検査の経路の有無) */
+/** 上流の送信チャンネルの鍵(受け口に項目が無くても登録済みとして扱う。定義の検査の送信チャンネルの有無) */
 const UPSTREAM_CHANNEL_KEYS = ["email", "inApp", "line"] as const;
 
-/** 登録された経路の鍵(上流の 3 経路 + 経路の受け口の項目) */
+/** 登録された送信チャンネルの鍵(上流の 3 送信チャンネル + 送信チャンネルの受け口の項目) */
 export function registeredChannelKeys(channels: Readonly<Record<string, MessageChannel>>): string[] {
   return [...new Set<string>([...UPSTREAM_CHANNEL_KEYS, ...Object.values(channels).map((channel) => channel.key)])];
 }
@@ -48,9 +48,9 @@ export type ResolveDefinitionDeps = {
   registry: MessageRegistry;
   channels: Readonly<Record<string, MessageChannel>>;
   enrichers: Readonly<Record<string, MessageEnricher>>;
-  /** categories の受け口(fork の種類の override を重ねた後) */
+  /** categories の受け口(fork のカテゴリーの override を重ねた後) */
   categories: Readonly<Record<string, MessageCategory>>;
-  /** ひな形の受け口(server の一覧 layouts) */
+  /** レイアウトの受け口(server の一覧 layouts) */
   layouts: Readonly<Record<string, MessageLayout>>;
   /** 管理画面の文言(無い・enabled() が false = 重ねない。管理の上書きの service はコードの値を見るので渡さない) */
   adminOverrides?: MessageAdminOverrideSource;
@@ -63,9 +63,9 @@ export type MessageAdminOverrideSource = {
 };
 
 /**
- * 上書きを重ね、種類から種別と経路を付けて検査した定義を返す。上書きは生成の一覧(messageRegistry)の項目から読む。
- * adminOverrides があり門が開なら、管理画面の文言を 1 回読んで欄ごとに重ねる(当てられない行はコードの値のまま、警告だけ)。
- * options.category = 送る時に決めた種類(回に残した種類で cron が組み直す・管理の送信の仮の種類)。省略 = 定義の種類
+ * 上書きを重ね、カテゴリーから種別と送信チャンネルを付けて検査した定義を返す。上書きは生成の一覧(messageRegistry)の項目から読む。
+ * adminOverrides があり門が開なら、管理画面のテキストの編集を 1 回読んで欄ごとに重ねる(当てられない行はコードの値のまま、警告だけ)。
+ * options.category = 送る時に決めたカテゴリー(送信に残したカテゴリーで cron が組み直す・管理の送信の仮のカテゴリー)。省略 = 定義のカテゴリー
  * @throws DomainError(500) 定義か上書きに誤りがある(呼び手の入力ではなくコードの誤り)
  */
 export async function resolveDefinition(
@@ -117,9 +117,9 @@ export async function resolveDefinition(
 }
 
 /**
- * 送る経路を決める: 種類の経路(D86)。requested = その回だけの絞り(管理の手で送る時・テンプレートの版の経路)。
- * 種類の外の経路と空の絞りは拒む(足すことはできない)。止められない連絡から email は外せない。
- * 描けない経路は組み立て(sendMessage/content.ts)が回を書く前に止める
+ * 使う送信チャンネルを決める: カテゴリーの送信チャンネル(D86)。requested = その送信だけの絞り(管理の手で送る時・テンプレートの版の送信チャンネル)。
+ * カテゴリーの外の送信チャンネルと空の絞りは拒む(足すことはできない)。止められない連絡から email は外せない。
+ * 描けない送信チャンネルは組み立て(sendMessage/content.ts)が送信を書く前に止める
  * @throws DomainError(400)
  */
 export function resolveChannels(
@@ -153,7 +153,7 @@ function checkEmail(resolved: AnyResolvedMessageDefinition, list: string[]): str
 
 /**
  * 生成の一覧の全件を確かめる(L2.2。テストと出荷前の検査が呼ぶ):
- * 鍵が合う・上書きを重ね種類を付けた定義が validateMessageDefinition を通る・種類の経路の全部で描ける(組み立てを差し込み無しで通す)。
+ * 鍵が合う・上書きを重ねカテゴリーを付けた定義が validateMessageDefinition を通る・カテゴリーの送信チャンネルの全部で描ける(組み立てを差し込み無しで通す)。
  * @returns 誤りの文(空 = 全件よい)
  */
 export async function checkMessageRegistry(deps: ResolveDefinitionDeps & MessageContentDeps): Promise<string[]> {

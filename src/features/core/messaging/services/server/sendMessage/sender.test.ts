@@ -1,12 +1,12 @@
-// 新しい送る口(sendMessage / sendMessageToMany)の検査。DB はメモリの store、経路はテスト用の項目(上流の項目は 0 本)。
-// - 上書きを重ねて検査してから送る(enabled:false は回を作らない・誤った定義は 500)
-// - 回の行の新しい列と、宛先 × 経路の配達の行。宛先の無い受信者: 選んだ宛先は no_address の行、全員・ロールは行なしで数える
+// 新しい送る口(sendMessage / sendMessageToMany)の検査。DB はメモリの store、送信チャンネルはテスト用の項目(上流の項目は 0 本)。
+// - 上書きを重ねて検査してから送る(enabled:false は送信を作らない・誤った定義は 500)
+// - 送信の行の新しい列と、宛先 × 送信チャンネルの配達の行。宛先の無い受信者: 選んだ宛先は no_address の行、全員・ロールは行なしで数える
 // - 冪等の鍵: message_dispatches と message_idempotency_keys の両方で 409
 // - record meta / vars / full、required と秘密を差し込む連絡は描いた本文をどこにも残さない
 // - ChannelError の分類 → 行の状態、required は要求の中で短く再送して尽きたら failed、非 required の一時は queued + next_attempt_at
-// - 小さな送信は最初の束だけ要求の中、残りは queued。大きな送信・target は回の行だけ
-// - グループ宛て(D58): 送り始めに門・しまった・壊れた・人数の上限を確かめ(DomainError、回を作らない)、定期計算の版を回に固定する。見込みは数と上限
-// - 帳簿を読む経路で送れた宛先は端末の帳簿の last_used_at を経路ごとに 1 回記録する(自前の引き方の経路・送れなかった宛先は記録しない、記録の失敗は送信を変えない)
+// - 小さな送信は最初の束だけ要求の中、残りは queued。大きな送信・target は送信の行だけ
+// - グループ宛て(D58): 送り始めに門・しまった・壊れた・人数の上限を確かめ(DomainError、送信を作らない)、定期計算の版を送信に固定する。見込みは数と上限
+// - 帳簿を読む送信チャンネルで送れた宛先は端末の帳簿の last_used_at を送信チャンネルごとに 1 回記録する(自前の引き方の送信チャンネル・送れなかった宛先は記録しない、記録の失敗は送信を変えない)
 // 実行: pnpm test src/features/core/messaging/services/server/sendMessage
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -55,12 +55,12 @@ test("d1: 上書きを重ねて送る(生成の一覧の override)", async () =>
   const { sender, channel, store } = setup({ registry });
   await sender.sendMessage(notice, { recipient: { userId: "u2" }, vars: { item: "靴" } });
   assert.equal(channel.calls[0][0].content.title, "上書き 靴");
-  // 宛先に連絡の鍵が載る(メールの経路が連絡ごとの描き方を引く)
+  // 宛先に連絡の鍵が載る(メールの送信チャンネルが連絡ごとの描き方を引く)
   assert.equal(channel.calls[0][0].messageKey, "shop.notice");
   assert.deepEqual(store.dispatches[0].headings, { test: "上書き 靴" });
 });
 
-test("d1: enabled:false の上書きは回を作らず disabled を返す", async () => {
+test("d1: enabled:false の上書きは送信を作らず disabled を返す", async () => {
   const registry: MessageRegistry = {
     "shop.notice": {
       key: "shop.notice",
@@ -83,7 +83,7 @@ test("d1: 検査に落ちる定義は 500、vars が合わなければ 400", asy
   await assertDomainError(sender.sendMessage(notice, { recipient: { userId: "u2" }, vars: { item: 1 } }), 400);
 });
 
-test("d2: 回の新しい列と、宛先 × 経路の配達の行", async () => {
+test("d2: 送信の新しい列と、宛先 × 送信チャンネルの配達の行", async () => {
   const { sender, store, channel } = setup();
   const result = await sender.sendMessageToMany(notice, {
     recipients: [{ userId: "u1" }, { userId: "u2" }],
@@ -154,14 +154,14 @@ test("d2: 単発で見つからない利用者は 404", async () => {
   await assertDomainError(sender.sendMessage(notice, { recipient: { userId: "nobody" }, vars: { item: "x" } }), 404);
 });
 
-test("d2: 経路の項目が無い経路は channel_off の行", async () => {
+test("d2: 送信チャンネルの項目が無い送信チャンネルは channel_off の行", async () => {
   const { sender } = setup();
   const twoChannels = defineTestMessage({ ...notice });
   const result = await sender.sendMessageToMany(
     twoChannels,
     { recipients: [{ userId: "u2" }], vars: { item: "x" }, channels: ["test", "ghost"] },
   ).catch((error) => error);
-  // ghost は種類の経路の外なので止まる(経路は絞ることだけができる)
+  // ghost はカテゴリーの送信チャンネルの外なので止まる(送信チャンネルは絞ることだけができる)
   assert.ok(result instanceof DomainError);
 });
 
@@ -239,7 +239,7 @@ test("d4: 秘密を差し込む連絡は record full でも描いた本文を残
 
 test("d4: required は vars の写しも本文も残さない", async () => {
   const required = defineTestMessage({ ...notice, key: "auth.verify", label: "テストの連絡", category: "accountEmail", required: true });
-  // required は email を外せないので、テストの経路を email の鍵で置く
+  // required は email を外せないので、テストの送信チャンネルを email の鍵で置く
   const email = createTestChannel("email");
   const store = createMemoryStore();
   store.users.push({ id: "u2", name: "利用者2", email: "u2@example.test" });
@@ -343,7 +343,7 @@ test("小さな送信は最初の束だけ送り、残りは queued + next_attem
   assert.equal(store.dispatches[0].completed_at, null);
 });
 
-test("大きな送信と target は回の行だけ書き、展開しない", async () => {
+test("大きな送信と target は送信の行だけ書き、展開しない", async () => {
   const { sender, store, channel } = setup({ users: 6 });
   const large = await sender.sendMessageToMany(notice, {
     recipients: ["u1", "u2", "u3", "u4", "u5", "u6"].map((userId) => ({ userId })),
@@ -363,7 +363,7 @@ test("大きな送信と target は回の行だけ書き、展開しない", asy
   assert.equal(channel.calls.length, 0);
 });
 
-test("グループ宛て(D58): 送り始めに確かめ、回の行だけ書き(定期計算の版を固定)、門が閉・上限・グループの誤りは回を作らない", async () => {
+test("グループ宛て(D58): 送り始めに確かめ、送信の行だけ書き(定期計算の版を固定)、門が閉・上限・グループの誤りは送信を作らない", async () => {
   const { DomainError: Err } = await import("@/lib/errors");
   const targets: Record<string, { count: number; version: number | null } | Error> = {
     scheduled: { count: 2, version: 7 },
@@ -401,7 +401,7 @@ test("グループ宛て(D58): 送り始めに確かめ、回の行だけ書き(
   await assertDomainError(send("missing"), 404);
   open = false;
   await assertDomainError(send("fixed"), 404);
-  assert.equal(store.dispatches.length, 2, "誤りの時は回を作らない");
+  assert.equal(store.dispatches.length, 2, "誤りの時は送信を作らない");
   await assertDomainError(createMessageSender(createDeps({ store, channels: { test: createTestChannel() } })).sendMessageToMany(notice, { target: { type: "group", groupId: "fixed" }, vars: { item: "x" } }), 404);
   open = true;
 
@@ -471,12 +471,12 @@ test("enrichers の provides を差し込み、返値は zod で検査する", a
   );
 });
 
-test("enrichers の当て先(D127): 種類・種別・全部で当て、当たらない連絡には値も鍵も無い", async () => {
+test("enrichers の当て先(D127): カテゴリー・種別・全部で当て、当たらない連絡には値も鍵も無い", async () => {
   const enricher = (target: Record<string, unknown>) => ({
     points: { key: "points", target, provides: z.object({ extra: z.string() }), aliases: { extra: "おまけ" }, resolve: () => ({ extra: "当たった" }) },
   });
   const withPoints = defineTestMessage({ ...notice, layout: "card", values: { title: "t", body: "{{extra}}" } });
-  // notice の種類 news = 種別 promotion
+  // notice のカテゴリー news = 種別 promotion
   for (const target of [{ categories: ["news"] }, { kinds: ["promotion"] }, { all: true }, { messages: ["x.y"], kinds: ["promotion"] }]) {
     const { store, channel } = setup();
     const deps = createDeps({ store, channels: { test: channel }, enrichers: enricher(target) as never });
@@ -512,7 +512,7 @@ test("宛先を直に渡す受信者は addr:<hash> の鍵で送る", async () =
   assert.equal(channel.calls[0][0].content.body, " 様 x");
 });
 
-test("enabled: false の経路は項目が無い経路と同じく channel_off で送らない", async () => {
+test("enabled: false の送信チャンネルは項目が無い送信チャンネルと同じく channel_off で送らない", async () => {
   const off = createTestChannel("test");
   off.enabled = false;
   const { sender, store } = setup({ channel: off });
@@ -556,7 +556,7 @@ test("配信停止(D35): 好みに従う連絡の宛先に category と List-Uns
   assert.equal(tx.channel.calls[0][0].headers, undefined);
 });
 
-test("配信停止: 停止の URL の中身に連絡の鍵と回の id が載る(停止を連絡・回に結ぶ)", async () => {
+test("配信停止: 停止の URL の中身に連絡の鍵と送信の id が載る(停止を連絡・送信に結ぶ)", async () => {
   const { store, channel } = setup();
   const payloads: Record<string, unknown>[] = [];
   const deps = createDeps({
@@ -576,7 +576,7 @@ test("配信停止: 停止の URL の中身に連絡の鍵と回の id が載る
   ]);
 });
 
-test("配信停止(D57): 鍵が無い時は category だけ付き headers は付かない(経路が鍵の無い印として扱う)", async () => {
+test("配信停止(D57): 鍵が無い時は category だけ付き headers は付かない(送信チャンネルが鍵の無い印として扱う)", async () => {
   const store = createMemoryStore();
   store.users.push({ id: "u2", name: "利用者2", email: null });
   store.endpoints.push({ userId: "u2", channel: "test", address: "addr-u2" });
@@ -588,7 +588,7 @@ test("配信停止(D57): 鍵が無い時は category だけ付き headers は付
   assert.equal(channel.calls[0][0].headers, undefined);
 });
 
-test("d4: 帳簿を読む経路で送れた宛先だけ last_used_at を経路ごとに 1 回記録する", async () => {
+test("d4: 帳簿を読む送信チャンネルで送れた宛先だけ last_used_at を送信チャンネルごとに 1 回記録する", async () => {
   const channel = createTestChannel("test", (target) =>
     target.address === "addr-u1"
       ? { address: target.address, kind: "permanent", reason: "provider_error" }
@@ -605,7 +605,7 @@ test("d4: 帳簿を読む経路で送れた宛先だけ last_used_at を経路�
   assert.equal(failing.store.endpointTouches.length, 0);
 });
 
-test("d4: 自前の宛先の引き方を持つ経路は帳簿に記録しない、記録が失敗しても送信は sent のまま", async () => {
+test("d4: 自前の宛先の引き方を持つ送信チャンネルは帳簿に記録しない、記録が失敗しても送信は sent のまま", async () => {
   const own = { ...createTestChannel("test"), resolveAddresses: async (ids: readonly string[]) => ids.map((userId) => ({ userId, address: `own-${userId}` })) };
   const store = createMemoryStore();
   store.users.push({ id: "u2", name: "利用者2", email: "u2@example.test" });
@@ -628,7 +628,7 @@ test("d4: 自前の宛先の引き方を持つ経路は帳簿に記録しない�
   assert.equal(broken.store.deliveries[0].status, "sent");
 });
 
-test("経路は種類から(D86): channels はその回の絞りだけ、種類の外と空は 400、回に使った経路が残る", async () => {
+test("送信チャンネルはカテゴリーから(D86): channels はその送信の絞りだけ、カテゴリーの外と空は 400、送信に使った送信チャンネルが残る", async () => {
   const both = defineTestMessage({
     key: "shop.both",
     label: "テストの連絡",
@@ -644,13 +644,13 @@ test("経路は種類から(D86): channels はその回の絞りだけ、種類�
   inApp.resolveAddresses = async (ids) => ids.map((userId) => ({ userId, address: userId }));
   const deps = createDeps({ store, channels: { test: createTestChannel(), inApp } });
   const sender = createMessageSender(deps);
-  // 省略 = 種類の経路の全部
+  // 省略 = カテゴリーの送信チャンネルの全部
   await sender.sendMessage(both, { recipient: { userId: "u2" }, vars: { item: "a" } });
   assert.deepEqual(store.dispatches[0].channels, ["test", "inApp"]);
-  // 絞る(その回に使った経路だけが回に残る)
+  // 絞る(その送信に使った送信チャンネルだけが送信に残る)
   await sender.sendMessage(both, { recipient: { userId: "u2" }, vars: { item: "b" }, channels: ["inApp"] });
   assert.deepEqual(store.dispatches[1].channels, ["inApp"]);
-  // 種類の外は足せない・空は拒む
+  // カテゴリーの外は足せない・空は拒む
   await assertDomainError(sender.sendMessage(both, { recipient: { userId: "u2" }, vars: { item: "c" }, channels: ["test", "line"] }), 400);
   await assertDomainError(sender.sendMessage(both, { recipient: { userId: "u2" }, vars: { item: "d" }, channels: [] }), 400);
   assert.equal(store.dispatches.length, 2);
@@ -659,7 +659,7 @@ test("経路は種類から(D86): channels はその回の絞りだけ、種類�
 test("種別の性質(D80): 記録の既定は種別から、security は苦情の停止を越えて届き好みを見ない", async () => {
   const store = createMemoryStore();
   store.users.push({ id: "u2", name: "利用者2", email: "u2@example.test" });
-  // 種類 accountEmail は functional → 記録の既定 meta(vars を残さない)
+  // カテゴリー accountEmail は functional → 記録の既定 meta(vars を残さない)
   const alert = defineTestMessage({ key: "auth.alert", label: "テストの連絡", category: "accountEmail", vars: z.object({ item: z.string() }), layout: "card", values: { title: "{{item}}" } });
   const email = createTestChannel("email");
   const deps = createDeps({ store, channels: { email } });
@@ -690,7 +690,7 @@ test("security(性質 sendInEntry): 予約と target は 400、宛先が多く�
   );
   await assertDomainError(sender.sendMessageToMany(securityAlert, { target: { type: "all" }, vars: { item: "x" } }), 400);
   assert.equal(store.dispatches.length, 0);
-  // smallSendMaxRecipients(5)を越える 7 人: 回の行だけにせず展開し、最初の束(inRequestBatchSize 2)を口の中で送る
+  // smallSendMaxRecipients(5)を越える 7 人: 送信の行だけにせず展開し、最初の束(inRequestBatchSize 2)を口の中で送る
   const recipients = Array.from({ length: 7 }, (_, i) => ({ userId: `u${i + 1}` }));
   const result = await sender.sendMessageToMany(securityAlert, { recipients, vars: { item: "x" } });
   assert.equal(store.deliveries.length, 7);

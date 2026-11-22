@@ -43,7 +43,7 @@ export const drizzleWebhookStore: WebhookStore = {
     return null;
   },
   async insertEvent({ deliveryId, provider, type, occurredAt, providerEventId, payload }) {
-    // 配達から回・連絡の鍵・経路を写す(購読の絞りと MessageEvent の値。照合できない事件は null)
+    // 配達から送信・連絡の鍵・送信チャンネルを写す(購読の絞りと MessageEvent の値。照合できない事件は null)
     const [owner] = deliveryId
       ? await db
           .select({

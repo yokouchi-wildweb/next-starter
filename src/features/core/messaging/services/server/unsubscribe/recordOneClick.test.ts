@@ -1,6 +1,6 @@
 // ワンクリックの配信停止の記録の検査(DB は偽物)
-// - user:<id> → 好みの行(種類 × 経路、source one_click)。何度届いても 1 行。利用者がいなければ何もしない
-// - addr:<hash> → 宛先の停止(reason one_click、scope = 種類)
+// - user:<id> → 好みの行(カテゴリー × 送信チャンネル、source one_click)。何度届いても 1 行。利用者がいなければ何もしない
+// - addr:<hash> → 宛先の停止(reason one_click、scope = カテゴリー)
 // 実行: pnpm test src/features/core/messaging/services/server/unsubscribe
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -43,14 +43,14 @@ test("利用者がいなければ何もしない", async () => {
   assert.equal(preferences.size, 0);
 });
 
-test("宛先だけの受信者は宛先の停止(scope = 種類)", async () => {
+test("宛先だけの受信者は宛先の停止(scope = カテゴリー)", async () => {
   const { store, suppressions } = memory([]);
   const hash = "b".repeat(64);
   await recordOneClickUnsubscribe(store, { recipientKey: `addr:${hash}`, category: "activity", channel: "email", addressHash: hash });
   assert.deepEqual([...suppressions], [`email|${hash}|activity|one_click`]);
 });
 
-test("停止の行に連絡の鍵と回の id を残す(前のトークンは null)", async () => {
+test("停止の行に連絡の鍵と送信の id を残す(前のトークンは null)", async () => {
   const { store, origins } = memory(["u-1"]);
   const dispatchId = "0b8e2c1d-3f4a-4b5c-9d6e-7f8a9b0c1d2e";
   await recordOneClickUnsubscribe(store, { recipientKey: "user:u-1", category: "marketing", channel: "email", messageKey: "shop.notice", dispatchId });

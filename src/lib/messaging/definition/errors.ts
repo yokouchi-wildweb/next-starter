@@ -1,7 +1,7 @@
 // src/lib/messaging/definition/errors.ts
 
 /**
- * 経路の送信の失敗の分類(lib/mail の MailSendErrorKind と同じ語彙)
+ * 送信チャンネルでの送信の失敗の分類(lib/mail の MailSendErrorKind と同じ語彙)
  * - transient: 一時。時間を置いて送り直す
  * - permanent: 恒久。送り直しても通らない
  * - unknown: 受付不明。送り直すなら冪等の鍵を付ける
@@ -11,11 +11,11 @@ export const CHANNEL_ERROR_KINDS = ["transient", "permanent", "unknown"] as cons
 export type ChannelErrorKind = (typeof CHANNEL_ERROR_KINDS)[number];
 
 /**
- * 経路の送信の失敗。経路の send は宛先ごとの結果に入れるか、これを投げる。
+ * 送信チャンネルでの送信の失敗。送信チャンネルの send は宛先ごとの結果に入れるか、これを投げる。
  */
 export class ChannelError extends Error {
   readonly kind: ChannelErrorKind;
-  /** 経路の鍵(email・inApp・line・fork の経路) */
+  /** 送信チャンネルの鍵(email・inApp・line・fork の送信チャンネル) */
   readonly channel: string;
   /** 機械が読む理由(例 invalid_address・rate_limited・provider_error) */
   readonly reason: string;

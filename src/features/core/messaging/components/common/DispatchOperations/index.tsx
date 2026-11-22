@@ -1,12 +1,12 @@
 // src/features/core/messaging/components/common/DispatchOperations/index.tsx
-// 部品(props だけ): 回の管理の操作(削除・失敗分を再送・送信を再開、D88)と、その上の状態の 1 行。
+// 部品(props だけ): 送信の管理の操作(削除・失敗分を再送・送信を再開、D88)と、その上の状態の 1 行。
 // - できるかは AdminDispatchDetail.operations(server と同じ判定)。今できる操作のボタンだけを並べ、できない操作は出さない
 //   (押せないボタン・理由の文は出さない)。できる操作が 1 つも無ければボタンの行ごと出さない
 // - 状態の 1 行は呼び手が渡す(constants/dispatchOperations.ts の dispatchStateLine)
 // - 押すと確認の Dialog(onConfirm の Promise の間 loading)。削除は戻せない・送信済みのメール・LINE は取り消せないと書く
-// - 再送は 同じ回で送り直す / 新しい回として送る と失敗・不明の数を出し、不明がある時だけ「不明も含める」(二重に届くおそれ)を選べる。
+// - 再送は 同じ送信で送り直す / 新しい送信として送る と失敗・不明の数を出し、不明がある時だけ「不明も含める」(二重に届くおそれ)を選べる。
 //   その値は呼び手が持つ(includeUnknown / onIncludeUnknownChange)
-// - 送信を再開は canContinue(送信中の回)の時だけ、ConfirmPopover で確かめる
+// - 送信を再開は canContinue(状態が送信中の送信)の時だけ、ConfirmPopover で確かめる
 
 "use client";
 
@@ -40,7 +40,7 @@ export type DispatchOperationsProps = {
   onResend: () => Promise<void>;
   /** 操作の上に出す状態の 1 行(null = 出さない) */
   stateLine?: string | null;
-  /** 送信を再開できるか(送信中の回) */
+  /** 送信を再開できるか(状態が送信中の送信) */
   canContinue?: boolean;
   onContinue?: () => Promise<void>;
 };

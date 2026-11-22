@@ -1,4 +1,4 @@
-// 上流のひな形「ようこそ」: 宣言・要約・メール(前の WelcomeMailView と同じ部品の並び)・お知らせ・生成の一覧に載る
+// 上流のレイアウト「ようこそ」: 宣言・要約・メール(前の WelcomeMailView と同じ部品の並び)・お知らせ・生成の一覧に載る
 // 実行: pnpm test src/features/core/messaging/layouts/welcome/welcome.test.tsx
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -38,7 +38,7 @@ function assertOrder(html: string, texts: string[]) {
   }
 }
 
-test("宣言: ようこそ、コードの連絡だけ、件名・見出し・お礼が必須でボタンは任意", () => {
+test("宣言: ようこそ、定義連絡だけ、件名・見出し・お礼が必須でボタンは任意", () => {
   assert.equal(layout.key, "welcome");
   assert.equal(layout.adminSelectable, false);
   assert.equal(layoutValuesSchema(layout).safeParse(values).success, true);

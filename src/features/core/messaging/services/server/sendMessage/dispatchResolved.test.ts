@@ -1,7 +1,7 @@
-// 回の記録と回から描く定義(D128)
-// - 送る口が回に残す物: 出どころ(message_key)・カテゴリー・ひな形の鍵と版・欄の中身(values)。values の残し方は vars と同じ
+// 送信の記録と送信から描く定義(D128)
+// - 送る口が送信に残す物: 出どころ(message_key)・カテゴリー・レイアウトの鍵と版・欄の中身(values)。values の残し方は vars と同じ
 //   (record vars / full は残す・meta は送り残しの間だけ・required と秘密の連絡は残さない)
-// - resolvedOfDispatch: 描く物は回だけから、間引き・required・vars の zod はコードの定義から(無ければ無し)。ひな形が無い・版を読めない = 誤り
+// - resolvedOfDispatch: 描く物は送信だけから、間引き・required・vars の zod はコードの定義から(無ければ無し)。レイアウトが無い・版を読めない = 誤り
 // 実行: pnpm test src/features/core/messaging/services/server/sendMessage/dispatchResolved.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -25,7 +25,7 @@ function setup() {
   return { store, deps, sender: createMessageSender(deps) };
 }
 
-test("回の記録: 出どころ・カテゴリー・ひな形の鍵と版・欄の中身。values は vars と同じ段で残す", async () => {
+test("送信の記録: 出どころ・カテゴリー・レイアウトの鍵と版・欄の中身。values は vars と同じ段で残す", async () => {
   const { store, sender } = setup();
   const kept = defineTestMessage({ ...base, key: "shop.kept", category: "account", record: "vars" });
   const meta = defineTestMessage({ ...base, key: "shop.meta", category: "account", record: "meta" });
@@ -38,13 +38,13 @@ test("回の記録: 出どころ・カテゴリー・ひな形の鍵と版・欄
     { key: k!.message_key, category: k!.category, layout: k!.layout, version: k!.layout_version, values: k!.values, edited: k!.template_edited },
     { key: "shop.kept", category: "account", layout: "card", version: 1, values: base.values, edited: false },
   );
-  // meta: 要求の中で送り終えた回は残さない / 秘密: 残さない
+  // meta: 要求の中で送り終えた送信は残さない / 秘密: 残さない
   assert.equal(m!.values, null);
   assert.equal(sec!.values, null);
   assert.equal(sec!.layout, "card");
 });
 
-test("record meta で送り残しのある回は values を持つ(cron が描く)", async () => {
+test("record meta で送り残しのある送信は values を持つ(cron が描く)", async () => {
   const { store, deps } = setup();
   for (const id of ["u3", "u4", "u5"]) {
     store.users.push({ id, name: id, email: null });
@@ -66,7 +66,7 @@ const dispatch: DispatchSource = {
   values: { title: "{{item}}" },
 };
 
-test("resolvedOfDispatch: 描く物は回から、間引き・required・vars はコードの定義から(無ければ無し)", async () => {
+test("resolvedOfDispatch: 描く物は送信から、間引き・required・vars はコードの定義から(無ければ無し)", async () => {
   const throttled = defineTestMessage({
     ...base,
     key: "shop.throttled",
@@ -88,12 +88,12 @@ test("resolvedOfDispatch: 描く物は回から、間引き・required・vars �
 
   const gone = await resolvedOfDispatch({ ...deps, registry: {} }, { ...dispatch, values: { ...dispatch.values! } });
   assert.ok("resolved" in gone && gone.resolved.throttle === undefined && gone.resolved.required === undefined);
-  // 欄の中身の無い回も組める(values は空。描く cron が values_missing で止める)
+  // 欄の中身の無い送信も組める(values は空。描く cron が values_missing で止める)
   const empty = await resolvedOfDispatch(deps, { ...dispatch, values: null });
   assert.ok("resolved" in empty && Object.keys(empty.resolved.values).length === 0);
 });
 
-test("resolvedOfDispatch: ひな形が無い・送った版を今の版へ読めない = 誤り、読める版は読み替える", async () => {
+test("resolvedOfDispatch: レイアウトが無い・送った版を今の版へ読めない = 誤り、読める版は読み替える", async () => {
   const deps = { registry: {}, layouts: TEST_LAYOUTS, categories: TEST_CATEGORIES };
   assert.deepEqual(await resolvedOfDispatch(deps, { ...dispatch, layout: "nope", values: { ...dispatch.values } }), { error: "layout_missing" });
   const v3 = { ...TEST_LAYOUTS.card!, version: 3, revisions: { 1: { title: "headline" }, 2: { headline: "title" } } } as MessageLayout;

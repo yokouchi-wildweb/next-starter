@@ -5,12 +5,12 @@
 //   読み込み直後は文を固定、専用の埋め込み情報の入力だけ(D119)→ 文面を直す → 直した印(D118)→ 予約の検査 → プレビュー・テスト送信 →
 //   見込み → 確認 → 送る(送る口の入力 { template, values, edited, vars, category, channels }、鍵を作り直す)・書きかけの確認・閉じると初めに戻る
 // - 『テンプレートを更新』(D120): 直した文を 1 回の保存で新しい版に(D134)、新しい版へつなぎ直し直した印が消える / 変わらなければ unchanged
-// - 種別が 2 つ以上のカテゴリーを持つ時は選ぶ、送信方法はカテゴリーの最初の経路(defaultChannels)。門 messagingTemplates が閉ならシステムだけ
-// - 読み込み: 手で直した後は確かめる / 解除は白紙へ(ひな形が同じなら文を残す)/ システムテンプレートの専用の埋め込み情報
-// - sameAs: カテゴリー → 種別・宛先の形・回の中身(ひな形 + values)を写す / テンプレートの回は今の版を読み込む(専用の値も)/
-//   直して送った回は直した文で文面を直す状態から / 公開中でないテンプレートは白紙 + 知らせ / 写せない回は知らせ
+// - 種別が 2 つ以上のカテゴリーを持つ時は選ぶ、送信方法はカテゴリーの最初の送信チャンネル(defaultChannels)。門 messagingTemplates が閉ならシステムだけ
+// - 読み込み: 手で直した後は確かめる / 解除は白紙へ(レイアウトが同じなら文を残す)/ システムテンプレートの専用の埋め込み情報
+// - sameAs: カテゴリー → 種別・宛先の形・送信の中身(レイアウト + values)を写す / テンプレートの送信は今の版を読み込む(専用の値も)/
+//   直して送信した物は直した文で文面を直す状態から / 公開中でないテンプレートは白紙 + 知らせ / 写せない送信は知らせ
 // - グループ宛て: 選ぶまで止まる・体 target group・上限超えは確認で送れない / sameAs のグループ(選べなければ知らせ、全員に広げない)
-// - sameAs の経路: 元の回の経路だけオン(今のカテゴリーの中で)、触るまで書きかけにしない
+// - sameAs の送信チャンネル: 元の送信が使った送信チャンネルだけオン(今のカテゴリーの中で)、触るまで書きかけにしない
 // - bulk: 選んだ記録が宛先、defaults の values を白紙に重ねる、bulk-send の API と bulk のプレビュー・テスト、予約は無い、見込みは取らない
 // 実行: pnpm test src/features/core/messaging/hooks/sendModalHooks.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
@@ -196,7 +196,7 @@ mock.module("@/features/core/messaging/services/client/templateClient", {
       calls.push(["updateTemplate", id, input]);
       return { ...template, ...saveResult };
     },
-    // ひな形のプレビュー(描いた物は見ない。送る画面の左のプレビューが呼ぶ)
+    // レイアウトのプレビュー(描いた物は見ない。送る画面の左のプレビューが呼ぶ)
     previewMessageLayout: async (input: { channel: string }) => ({ channel: input.channel, html: null, text: null, title: null, summary: null, cannotRender: null }),
     listMessageTemplates: notCalled("listMessageTemplates"),
     getMessageTemplateOptions: notCalled("getMessageTemplateOptions"),
@@ -322,7 +322,7 @@ test("純粋な関数", () => {
     [template] as never,
   );
   assert.deepEqual(edited?.source, { type: "template", id: TEMPLATE_ID, name: "春", version: 3 });
-  assert.deepEqual([edited?.start, edited?.versionValues, edited?.unlocked], [SAME_AS_DISPATCH.content.values, template.values, true], "直した回は直した文で直す状態から");
+  assert.deepEqual([edited?.start, edited?.versionValues, edited?.unlocked], [SAME_AS_DISPATCH.content.values, template.values, true], "直した送信は直した文で直す状態から");
   assert.deepEqual(edited?.vars, { discount: "30" }, "今の版が宣言する鍵だけ");
   const otherKind = hooks.initialTextOf({ type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, templateId: TEMPLATE_ID } } as never, "direct", categories as never, [template] as never);
   assert.equal(otherKind?.source.type, "system", "種別を選び直した後は白紙から");
@@ -346,7 +346,7 @@ test("純粋な関数", () => {
     groupId: "",
     userIds: [],
   });
-  // グループ宛ての回 = 同じグループ(id は値としてだけ)
+  // グループ宛ての送信 = 同じグループ(id は値としてだけ)
   assert.deepEqual(hooks.initialTargetOf({ type: "sameAs", dispatch: { target: { type: "group" }, targetGroup: { id: "g1", name: "常連" } } as never }), {
     type: "group",
     roles: [],
@@ -354,7 +354,7 @@ test("純粋な関数", () => {
     userIds: [],
   });
   assert.equal(hooks.initialTargetOf({ type: "sameAs", dispatch: { target: null } as never }).type, "users");
-  // 選んだ利用者に送った回(recipients)= 同じ利用者を選んだ形。id が無い(多すぎる)回は選び直し
+  // 選んだ利用者への送信(recipients)= 同じ利用者を選んだ形。id が無い(多すぎる)送信は選び直し
   assert.deepEqual(hooks.initialTargetOf({ type: "sameAs", dispatch: { target: { type: "recipients", count: 2 }, targetUserIds: ["u1", "u2"] } as never }), {
     type: "users",
     roles: [],
@@ -401,7 +401,7 @@ test("new: 種別 → 宛先 → テンプレートを読み込む(固定)→ �
   assert.equal(m().text.locked, true, "読み込んだ直後は文を固定(D119)");
   assert.deepEqual(m().text.values, template.values);
   assert.equal(m().text.edited, false);
-  assert.deepEqual(m().sendChannels, ["email", "inApp"], "カテゴリーの最初の経路");
+  assert.deepEqual(m().sendChannels, ["email", "inApp"], "カテゴリーの最初の送信チャンネル");
   assert.match(m().contentError ?? "", /埋め込み情報「割引」を入力してください/);
   assert.deepEqual(
     m().varCatalog.map((entry) => [entry.alias, entry.source]),
@@ -518,7 +518,7 @@ test("テンプレートを更新: 直した文を新しい版にし、つなぎ
   await closed.unmount();
 });
 
-test("種別: 宛先は種別が許す種類だけ、カテゴリーが 2 つ以上なら選ぶ、送信方法はカテゴリーの最初の経路、空の文は確認に進めない", async () => {
+test("種別: 宛先は種別が許す種類だけ、カテゴリーが 2 つ以上なら選ぶ、送信方法はカテゴリーの最初の送信チャンネル、空の文は確認に進めない", async () => {
   const view = await open(NEW);
   const m = () => view.value();
   await act(async () => m().setKind("direct"));
@@ -548,13 +548,13 @@ test("種別: 宛先は種別が許す種類だけ、カテゴリーが 2 つ以
     ["inApp", true],
     ["line", false],
   ]);
-  assert.equal(m().channels.find((c) => c.key === "inApp")?.label, "お知らせ", "経路の名前は選択肢の label");
+  assert.equal(m().channels.find((c) => c.key === "inApp")?.label, "お知らせ", "送信チャンネルの名前は選択肢の label");
   await act(async () => m().toggleChannel("inApp", false));
   assert.equal(m().contentError, "送信方法を 1 つ以上選んでください");
   await view.unmount();
 });
 
-test("読み込み: 手で直した後は確かめる / 解除は白紙へ(ひな形が同じなら文を残す)/ システムテンプレートの専用の埋め込み情報", async () => {
+test("読み込み: 手で直した後は確かめる / 解除は白紙へ(レイアウトが同じなら文を残す)/ システムテンプレートの専用の埋め込み情報", async () => {
   const view = await open(NEW);
   const m = () => view.value();
   await act(async () => m().setKind("promotion"));
@@ -571,7 +571,7 @@ test("読み込み: 手で直した後は確かめる / 解除は白紙へ(ひ�
   assert.equal(m().loadedTemplate?.id, TEMPLATE_ID);
   assert.deepEqual(m().text.values, template.values);
 
-  // 解除: 白紙へ。ひな形が同じ(notice)なので今の文は白紙の文として残る。専用の埋め込み情報は無くなる
+  // 解除: 白紙へ。レイアウトが同じ(notice)なので今の文は白紙の文として残る。専用の埋め込み情報は無くなる
   await act(async () => m().unloadTemplate());
   assert.equal(m().loadedTemplate, null);
   assert.deepEqual(m().text.source, { type: "system", key: "promotion", label: "宣伝の白紙" });
@@ -600,7 +600,7 @@ test("読み込み: 手で直した後は確かめる / 解除は白紙へ(ひ�
   await view.unmount();
 });
 
-test("sameAs: カテゴリー → 種別・宛先・中身を写す。テンプレートの回は今の版を読み込み、直した回は直した文、公開中でなければ白紙 + 知らせ", async () => {
+test("sameAs: カテゴリー → 種別・宛先・中身を写す。テンプレートの送信は今の版を読み込み、直した送信は直した文、公開中でなければ白紙 + 知らせ", async () => {
   const roleDispatch = { ...SAME_AS_DISPATCH, category: "notice", target: { type: "role", roles: ["user"] } };
   const view = await open({ type: "sameAs", dispatch: roleDispatch });
   const m = () => view.value();
@@ -622,7 +622,7 @@ test("sameAs: カテゴリー → 種別・宛先・中身を写す。テンプ�
   assert.equal(t().sameAsNote, null);
   await fromTemplate.unmount();
 
-  // 直して送った回: 直した文で文面を直す状態から(直した印つき)。選んだ利用者の回は同じ利用者
+  // 直して送信した物: 直した文で文面を直す状態から(直した印つき)。選んだ利用者への送信は同じ利用者
   const editedValues = { subject: "直した件名", blocks: [{ type: "paragraph", text: "直した本文" }] };
   const edited = await open({
     type: "sameAs",
@@ -644,7 +644,7 @@ test("sameAs: カテゴリー → 種別・宛先・中身を写す。テンプ�
   assert.deepEqual([e().target.type, e().target.userIds], ["users", ["u9"]]);
   await edited.unmount();
 
-  // 公開中でないテンプレート: 白紙に回の values を写し、知らせを出す
+  // 公開中でないテンプレート: 白紙に送信の values を写し、知らせを出す
   const gone = await open({ type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, templateId: "gone", templateVersion: 1, templateEdited: true } });
   assert.deepEqual(gone.value().text.source, { type: "system", key: "promotion", label: "宣伝の白紙" });
   assert.deepEqual(gone.value().text.values, SAME_AS_DISPATCH.content.values);
@@ -672,7 +672,7 @@ test("bulk: 選んだ記録が宛先、defaults を白紙に重ねる、bulk の
   const m = () => view.value();
   assert.equal(m().showSchedule, false);
   assert.deepEqual([m().kind, m().category], ["direct", "operatorDirect"], "既定のカテゴリーとその種別");
-  assert.equal(m().channels.find((channel) => channel.key === "inApp")?.label, "お知らせ", "経路の名前は送るモーダルと同じ");
+  assert.equal(m().channels.find((channel) => channel.key === "inApp")?.label, "お知らせ", "送信チャンネルの名前は送るモーダルと同じ");
   assert.equal(m().targetError, null);
   await act(async () => m().toggleChannel("email", false));
   assert.equal(m().contentError, null);
@@ -741,7 +741,7 @@ test("sameAs のグループ: 今も選べれば同じグループ、選べな�
   await gone.unmount();
 });
 
-test("sameAs の経路: 元の回の経路だけオン(お知らせだけの回はお知らせだけ)、触るまで書きかけにしない、戻せる", async () => {
+test("sameAs の送信チャンネル: 元の送信が使った送信チャンネルだけオン(お知らせだけの送信はお知らせだけ)、触るまで書きかけにしない、戻せる", async () => {
   const view = await open({ ...SAME_AS, dispatch: { ...SAME_AS_DISPATCH, channels: ["inApp"] } });
   const m = () => view.value();
   assert.deepEqual(m().sendChannels, ["inApp"]);
@@ -760,7 +760,7 @@ test("sameAs の経路: 元の回の経路だけオン(お知らせだけの回�
   assert.equal(m().dirty, false, "元に戻せば書きかけでない");
   await view.unmount();
 
-  // 今のカテゴリーに無い経路しか使っていない回 = 全部外さず全部オン(送れない形にしない)
+  // 今のカテゴリーに無い送信チャンネルしか使っていない送信 = 全部外さず全部オン(送れない形にしない)
   const other = await open({ ...SAME_AS, dispatch: { ...SAME_AS_DISPATCH, channels: ["line"] } });
   assert.deepEqual(other.value().sendChannels, ["email", "inApp"]);
   await other.unmount();

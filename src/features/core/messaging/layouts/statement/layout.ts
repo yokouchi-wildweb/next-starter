@@ -1,5 +1,5 @@
 // src/features/core/messaging/layouts/statement/layout.ts
-// 上流のひな形「お知らせの明細」(D122・D123): 札・宛名・本文の知らせ(財布の失効の予告・本通知など)。コードの連絡だけが使う(adminSelectable false)。
+// 上流のレイアウト「お知らせの明細」(D122・D123): 札・宛名・本文の知らせ(財布の失効の予告・本通知など)。定義連絡だけが使う(adminSelectable false)。
 // 要約: 題 = 件名 / 本文 = 本文 / 短い本文 = 短い本文(無ければプレビューの文)。短い本文はお知らせの一覧の本文と LINE の文になる(指令 60)
 
 import { defineMessageLayout } from "@/lib/messaging";

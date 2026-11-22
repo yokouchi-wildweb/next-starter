@@ -4,7 +4,7 @@
 
 import type { MessageChannelCounts } from "../../../entities/schema";
 
-/** 管理者が書いて送った文面(経路ごとの欄、差し込む前の字) */
+/** 管理者が書いて送った文面(送信チャンネルごとの欄、差し込む前の字) */
 export type AdminMessageContent = Record<string, unknown>;
 
 /** 一括送信の中身の出どころ(afterSend に渡す): 白紙のシステムテンプレートの鍵か、DB のテンプレートの固定した版と直した印 */
@@ -14,7 +14,7 @@ export type AdminBulkSendTemplate = { system: string } | { id: string; version: 
 export type AdminBulkSendCounts = {
   /** 重複を除いた利用者の数 */
   recipientCount: number;
-  /** 経路ごとの数(要求の中で分かった分。大きな送信は cron が足していく) */
+  /** 送信チャンネルごとの数(要求の中で分かった分。大きな送信は cron が足していく) */
   channelCounts: MessageChannelCounts;
   /** cron に任せた配達の数 */
   queuedCount: number;
@@ -41,7 +41,7 @@ export type MessageBulkSendTarget = {
     recordIds: readonly string[];
     dispatchId: string | null;
     counts: AdminBulkSendCounts;
-    /** 送った欄の中身(ひな形の欄、差し込む前の字。汎用のお知らせの件名は values.subject) */
+    /** 送った欄の中身(レイアウトの欄、差し込む前の字。汎用のお知らせの件名は values.subject) */
     values: Record<string, unknown>;
     /** 中身の出どころ(白紙か DB のテンプレート) */
     template: AdminBulkSendTemplate;

@@ -1,12 +1,12 @@
 // src/features/core/messaging/services/server/sendMessage/deliver.ts
 //
-// 配達の行を経路の受け口の項目の send(targets) で送り、結果を行の状態に写す(D34・D45)。
+// 配達の行を送信チャンネルの受け口の項目の send(targets) で送り、結果を行の状態に写す(D34・D45)。
 // - 宛先ごとの冪等の鍵 = 配達の行の id(宛先が複数なら <id>:<番号>)
 // - sent → sent / permanent → failed / unknown(と send が投げた例外)→ unknown(自動で送り直さない)
 // - transient: inRequestOnly(required・秘密)は要求の中で短く再送し、尽きたら failed。
 //   それ以外は queued のまま next_attempt_at を広げて cron に任せ、回数が尽きたら failed
 // - 行の状態は宛先の 1 つでも sent なら sent
-// - 帳簿を読む経路(resolveAddresses を持たない)で送れた宛先は、端末の帳簿の last_used_at を記録する(経路ごとに 1 回、失敗しても結果は変えない)
+// - 帳簿を読む送信チャンネル(resolveAddresses を持たない)で送れた宛先は、端末の帳簿の last_used_at を記録する(送信チャンネルごとに 1 回、失敗しても結果は変えない)
 
 import { ChannelError, type ChannelSendResult, type ChannelSendTarget, type MessageKey } from "@/lib/messaging";
 
@@ -22,7 +22,7 @@ export type DeliveryJob = {
   deliveryId: string;
   /** 受信者の鍵(配信停止の URL に入れる) */
   recipientKey: string;
-  /** 回の id(配信停止の URL に入れる。停止を回に結ぶ) */
+  /** 送信の id(配信停止の URL に入れる。停止を送信に結ぶ) */
   dispatchId?: string;
   channel: string;
   userId: string | null;
@@ -48,7 +48,7 @@ function targetKey(job: DeliveryJob, index: number): string {
   return job.addresses.length > 1 ? `${job.deliveryId}:${index}` : job.deliveryId;
 }
 
-/** 経路の send を 1 回呼ぶ。投げたら束の全部をその分類(ChannelError 以外は unknown)にする */
+/** 送信チャンネルの send を 1 回呼ぶ。投げたら束の全部をその分類(ChannelError 以外は unknown)にする */
 async function callSend(
   deps: MessageSendDeps,
   channelKey: string,
@@ -101,7 +101,7 @@ function rowStatus(states: readonly AddressState[]): MessageDeliveryStatus | "tr
   return "failed";
 }
 
-/** 帳簿を読む経路で送れた宛先の last_used_at を記録する(経路ごとに 1 回。失敗は警告だけ) */
+/** 帳簿を読む送信チャンネルで送れた宛先の last_used_at を記録する(送信チャンネルごとに 1 回。失敗は警告だけ) */
 async function touchLedgerEndpoints(
   deps: MessageSendDeps,
   sentNow: ReadonlyMap<string, readonly { userId: string; address: string }[]>,
@@ -112,23 +112,23 @@ async function touchLedgerEndpoints(
     try {
       await deps.store.touchEndpoints(channelKey, entries, deps.now());
     } catch (error) {
-      console.warn(`[messaging] 端末の帳簿の last_used_at を記録できませんでした(経路 ${channelKey})`, error);
+      console.warn(`[messaging] 端末の帳簿の last_used_at を記録できませんでした(送信チャンネル ${channelKey})`, error);
     }
   }
 }
 
 /**
- * 配達の行の束を送る(経路ごとに 1 回の send、transient は inRequestOnly なら短く再送)。
+ * 配達の行の束を送る(送信チャンネルごとに 1 回の send、transient は inRequestOnly なら短く再送)。
  */
 export async function sendDeliveries(
   deps: MessageSendDeps,
   params: {
-    /** 連絡の鍵(宛先に載せる。メールの経路は連絡ごとの描き方を引く) */
+    /** 連絡の鍵(宛先に載せる。メールの送信チャンネルは連絡ごとの描き方を引く) */
     messageKey: MessageKey;
     jobs: readonly DeliveryJob[];
     policy: RecordPolicy;
     inRequestOnly: boolean;
-    /** 好みに従う連絡の種類の鍵(入っている時だけ宛先に category と配信停止のヘッダを付ける) */
+    /** 好みに従う連絡のカテゴリーの鍵(入っている時だけ宛先に category と配信停止のヘッダを付ける) */
     category?: string;
   },
 ): Promise<DeliveryResult[]> {
@@ -139,7 +139,7 @@ export async function sendDeliveries(
   const errors = new Map<string, string>();
   const providers = new Map<string, { provider: string | null; providerMessageId: string | null }>();
   const attempts = new Map<string, number>();
-  /** この呼び出しで送れた宛先(経路 → 利用者と宛先)。帳簿の last_used_at に使う */
+  /** この呼び出しで送れた宛先(送信チャンネル → 利用者と宛先)。帳簿の last_used_at に使う */
   const sentNow = new Map<string, { userId: string; address: string }[]>();
 
   for (const job of jobs) {

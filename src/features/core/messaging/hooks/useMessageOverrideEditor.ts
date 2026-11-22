@@ -2,23 +2,23 @@
 
 // src/features/core/messaging/hooks/useMessageOverrideEditor.ts
 //
-// 管理: 1 連絡の文言の編集(入れ物 AdminMessageOverrideModal はこれを呼んで部品を並べるだけ。CLAUDE.md core_ui_guards)。
-// - 欄ごとの下書き(ひな形の欄の中身の形)。初めは送る時の値(effective)
+// 管理: 1 連絡のテキストの編集(入れ物 AdminMessageOverrideModal はこれを呼んで部品を並べるだけ。CLAUDE.md core_ui_guards)。
+// - 欄ごとの下書き(レイアウトの欄の中身の形)。初めは送る時の値(effective)
 // - 保存は 1 回(D132): 下の帯の「保存」が直した欄の全部と「元の文言に戻す」の印の欄を PUT { fields } でまとめて送る(1 つの取引、
 //   どれかが誤りなら何も書かない)。欄の誤りは fieldErrors(400 code override_fields_invalid の details.fields)で欄に出す。
 //   成功したら下書き・印を捨て、1 連絡と一覧を取り直す
 // - 欄ごとの操作は「元の文言に戻す」だけ(resetField): 保存してある欄は戻す印を付けて保存で消す(画面はコードの値を見せる)、下書きだけの欄は下書きを捨てる
 // - 下書きが 1 つでもあれば、ページを離れる前に確かめる(@/lib/unsavedGuard)。モーダルを閉じる前の確かめは closeConfirm
 // - 下書きの中の知らない {{鍵}}(使ってよい鍵の外)を欄ごとに返す(保存はサーバーが同じ検査で止める)
-// - 欄の道 = ひな形の欄の鍵(D132)。直せる欄は既定でひな形の全欄(連絡が adminEditableOnly で絞ればその欄だけ。server が決める)。
-//   経路のタブは欄の channels(その欄を使う経路)で絞る。使えない行(経路の無い行)はどのタブにも出す
-// - 欄の値はひな形の欄の中身の形のまま(1行テキスト・段落・並び・組・ラベルと値・ブロックの並び …。入力は部品 LayoutFieldInput)
+// - 欄の道 = レイアウトの欄の鍵(D132)。直せる欄は既定でレイアウトの全欄(連絡が adminEditableOnly で絞ればその欄だけ。server が決める)。
+//   送信チャンネルのタブは欄の channels(その欄を使う送信チャンネル)で絞る。使えない行(送信チャンネルの無い行)はどのタブにも出す
+// - 欄の値はレイアウトの欄の中身の形のまま(1行テキスト・段落・並び・組・ラベルと値・ブロックの並び …。入力は部品 LayoutFieldInput)
 // - 埋め込み情報のタグ(部品 VarTags): 1 件の vars を共通 / 専用に分けて渡す(useVarTags)
 // - 別名で見せる(D133): 画面に出す値(入力・元の文言・使えない名前・プレビュー)の {{鍵}} は一覧の別名があれば {{別名}} で見せる。
 //   直していない欄の比べる元も別名にした値なので、開いただけでは下書きにならない。打った値は {{別名}} のまま保存する(サーバーは別名も通す)
 // - 「すべてデフォルトに戻す」(D136): resetAll = 下書きを捨て、保存してある欄(使えない行も)の全部に戻す印。保存で当たる
-// - 2 つの欄の編集(D80): 今の経路のタブ(activeChannel)・入力中の欄(focusedPath)・
-//   描いたプレビュー(POST /preview: 保存した値と下書きを重ねたひな形の描き方。メールは HTML、お知らせはひな形の描き方の材料 values + summary。
+// - 2 つの欄の編集(D80): 今の送信チャンネルのタブ(activeChannel)・入力中の欄(focusedPath)・
+//   描いたプレビュー(POST /preview: 保存した値と下書きを重ねたレイアウトの描き方。メールは HTML、お知らせはレイアウトの描き方の材料 values + summary。
 //   下書きが変わってから少し待って取り直す、D86)
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -43,7 +43,7 @@ import { MESSAGE_OVERRIDES_KEY, messageOverrideKey } from "./overrideKeys";
 import { replaceKeysWithAliases, useVarTags, valueWithAliases } from "./useVarTags";
 import { useMessageOverride } from "./useMessageOverride";
 
-/** 欄の値(ひな形の欄の中身の形のまま: 文字・数・並び・組・ブロックの並び …) */
+/** 欄の値(レイアウトの欄の中身の形のまま: 文字・数・並び・組・ブロックの並び …) */
 export type OverrideFieldValue = unknown;
 
 /** 値を編集の形にそろえる(無い値は空の文字) */
@@ -166,12 +166,12 @@ export function useMessageOverrideEditor(messageKey: string) {
   /** 戻す印がある(保存すると行を消す) */
   const isResetPending = useCallback((field: AdminOverrideField) => resets.includes(field.path), [resets]);
 
-  /** 今の経路の欄(その経路が使う欄と、使えない・直せなくなった行) */
+  /** 今の送信チャンネルの欄(その送信チャンネルが使う欄と、使えない・直せなくなった行) */
   const activeFields = useMemo(
     () => (detail?.fields ?? []).filter((field) => field.channels.includes(activeChannel) || field.channels.length === 0),
     [detail, activeChannel],
   );
-  /** 今の経路の値(下書き、戻す印ならコードの値、無ければ送る時の値)。プレビューが読む */
+  /** 今の送信チャンネルの値(下書き、戻す印ならコードの値、無ければ送る時の値)。プレビューが読む */
   const activeValues = useMemo(
     () => Object.fromEntries(activeFields.filter((field) => field.editable).map((field) => [field.path, valueOf(field)])),
     [activeFields, valueOf],
@@ -188,7 +188,7 @@ export function useMessageOverrideEditor(messageKey: string) {
   );
   const draftSignature = JSON.stringify(activeDrafts);
   const detailVersion = detail ? JSON.stringify(detail.fields.map((field) => field.updatedAt)) : "";
-  // 今の求め(経路・下書き・保存の版)。結果がこの求めの物でなければ描き直し中
+  // 今の求め(送信チャンネル・下書き・保存の版)。結果がこの求めの物でなければ描き直し中
   const previewRequest = `${activeChannel}|${draftSignature}|${detailVersion}`;
   const [preview, setPreview] = useState<{ request: string; result: MessageOverridePreview | null } | null>(null);
   const hasDetail = Boolean(detail);
@@ -277,7 +277,7 @@ export function useMessageOverrideEditor(messageKey: string) {
     detail,
     error,
     isLoading,
-    /** 経路のタブ(連絡の種類の経路) */
+    /** 送信チャンネルのタブ(連絡のカテゴリーの送信チャンネル) */
     channels: detail?.channels ?? [],
     activeChannel,
     setActiveChannel,
@@ -286,9 +286,9 @@ export function useMessageOverrideEditor(messageKey: string) {
     activeValues,
     focusedPath,
     setFocusedPath,
-    /** 描いたプレビュー(今の経路の物だけ。メールの HTML・お知らせの描き方の材料。無ければ null) */
+    /** 描いたプレビュー(今の送信チャンネルの物だけ。メールの HTML・お知らせの描き方の材料。無ければ null) */
     preview: previewResult,
-    /** プレビューのひな形の鍵と描く物(部品 LayoutPreview に渡す) */
+    /** プレビューのレイアウトの鍵と描く物(部品 LayoutPreview に渡す) */
     previewLayout: preview?.result?.layout ?? null,
     previewContent,
     previewLoading,

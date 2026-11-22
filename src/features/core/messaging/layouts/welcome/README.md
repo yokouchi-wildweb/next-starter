@@ -1,8 +1,8 @@
-# welcome（上流のひな形「ようこそ」）
+# welcome（上流のレイアウト「ようこそ」）
 
 ## Overview
 
-登録の完了の知らせ（会員登録・事前登録）のひな形（D122・D123）。コードの連絡だけが使い、管理者はテンプレートで選べない（`adminSelectable: false`）。受け口の仕組みは `../README.md`、型と語彙は `src/lib/messaging/README.md`「ひな形」。user の連絡 2 本(`registrationComplete`・`earlyRegistrationComplete`)が使う。
+登録の完了の知らせ（会員登録・事前登録）のレイアウト（D122・D123）。定義連絡だけが使い、管理者はテンプレートで選べない（`adminSelectable: false`）。受け口の仕組みは `../README.md`、型と語彙は `src/lib/messaging/README.md`「レイアウト」。user の連絡 2 本(`registrationComplete`・`earlyRegistrationComplete`)が使う。
 
 ## Usage
 

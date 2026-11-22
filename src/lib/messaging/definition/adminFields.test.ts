@@ -1,5 +1,5 @@
-// 管理画面の欄の値(文言の上書き、D132)の直せる欄・検査・重ね方・改版での移し方
-// - 直せる欄: 既定 = ひな形の欄のうち種類の経路で使う物の全部、adminEditableOnly で絞る、functional・required の連絡は無い
+// 管理画面の欄の値(テキストの編集、D132)の直せる欄・検査・重ね方・改版での移し方
+// - 直せる欄: 既定 = レイアウトの欄のうちカテゴリーの送信チャンネルで使う物の全部、adminEditableOnly で絞る、functional・required の連絡は無い
 // - 検査: 直せる欄の外・欄の型(必須は空にできない)・知らない {{鍵}}・秘密の vars を落とす。並び・ブロックは欄ごと丸ごと
 // - 改版: 保存した版から今の版へ欄の道を移す。移せない(捨てた欄・段の対応が無い・版の無い古い形の行)= unusable
 // - 重ね方: 当てられる行だけ values に重ね、当てられない行はコードの値のまま rejected で返す
@@ -60,9 +60,9 @@ const definition = defineMessage({
 const resolve = (over: Record<string, unknown> = {}, category = { kind: "transactional" as const, channels: ["email", "inApp"] }) =>
   resolveMessageDefinition({ ...definition, ...over } as typeof definition, undefined, category);
 
-test("直せる欄: 既定は種類の経路で使う欄の全部、adminEditableOnly で絞る、functional・required は無い", () => {
+test("直せる欄: 既定はカテゴリーの送信チャンネルで使う欄の全部、adminEditableOnly で絞る、functional・required は無い", () => {
   assert.deepEqual(adminEditableFields(resolve(), LAYOUT), ["subject", "blocks", "preheader"]);
-  // メールだけの欄は種類の経路に email が無ければ直せない
+  // メールだけの欄はカテゴリーの送信チャンネルに email が無ければ直せない
   assert.deepEqual(adminEditableFields(resolve({}, { kind: "transactional", channels: ["inApp"] }), LAYOUT), ["subject", "blocks"]);
   assert.deepEqual(adminEditableFields(resolve({ adminEditableOnly: ["subject"] }), LAYOUT), ["subject"]);
   assert.deepEqual(adminEditableFields(resolve({}, { kind: "functional", channels: ["email"] } as never), LAYOUT), []);
@@ -125,7 +125,7 @@ test("改版: 保存した版から今の版へ欄の道を移す。捨てた欄
   assert.ok("unusable" in moveAdminFieldPath(LAYOUT_V3, "preheader", 1), "捨てた欄");
   assert.ok("unusable" in moveAdminFieldPath(LAYOUT_V3, "title", 4), "今より新しい版");
   assert.ok("unusable" in moveAdminFieldPath(LAYOUT_V3, "email.subject", null), "版の無い古い形の行");
-  assert.ok("unusable" in moveAdminFieldPath(LAYOUT, "email.subject", 1), "ひな形に無い欄");
+  assert.ok("unusable" in moveAdminFieldPath(LAYOUT, "email.subject", 1), "レイアウトに無い欄");
   const broken = { ...LAYOUT_V3, revisions: { 1: { subject: "title" } } } as MessageLayout;
   assert.ok("unusable" in moveAdminFieldPath(broken, "blocks", 1), "段の対応が無い");
 });

@@ -2,7 +2,7 @@
 
 // src/features/core/messaging/hooks/useDeleteDispatch.ts
 //
-// 管理: 回の削除(D88、どの状態でも・戻せない)。成功したらその回と回の一覧を再検証する(配達の一覧は呼び手が revalidate する)
+// 管理: 送信の削除(D88、どの状態でも・戻せない)。成功したらその送信と送信の一覧を再検証する(配達の一覧は呼び手が revalidate する)
 
 import { useDomainMutation } from "@/lib/crud";
 

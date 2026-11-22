@@ -2,8 +2,8 @@
 
 // src/features/core/messaging/hooks/useResendDispatch.ts
 //
-// 管理: 回の失敗の再送({ includeUnknown } = 送れたか分からない宛先も含める)。成功したらその回と回の一覧を再検証する
-// (新しい回として送った時は結果の newDispatchId がその回)
+// 管理: 送信の失敗の再送({ includeUnknown } = 送れたか分からない宛先も含める)。成功したらその送信と送信の一覧を再検証する
+// (新しい送信になった時は結果の newDispatchId がその送信)
 
 import { useDomainMutation } from "@/lib/crud";
 

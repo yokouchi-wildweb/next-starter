@@ -3,10 +3,10 @@
 //   unknown・lease の切れた sending は送り直さない、複数の宛先は一時の失敗の宛先だけ送り直す
 // - d3: 予約と大きな送信・target を再開の位置から展開し、終えたら status・channel_counts・recipient_count・vars を確定
 // - d4: 続きを送るは 1 束だけ
-// - d5: 保持の日数で消し、お知らせが参照する回は残し、回の冪等の鍵を移す
-// - グループ宛て(D58): 最初の 1 回で一員を回の受信者の一覧へ書き(配達の行なし、送り始めの線より後の登録は外す)、その後は一覧だけから
-//   束ごとに配達の行。固定できない(門が閉・グループの誤り・時間の上限)回は cancelled + cancelReason。お知らせは受信者ごと
-// - 送り始めの線(D58): 全員・ロール宛ては回を作った時刻より後に登録した利用者を入れない
+// - d5: 保持の日数で消し、お知らせが参照する送信は残し、送信の冪等の鍵を移す
+// - グループ宛て(D58): 最初の 1 回で一員を送信の受信者の一覧へ書き(配達の行なし、送り始めの線より後の登録は外す)、その後は一覧だけから
+//   束ごとに配達の行。固定できない(門が閉・グループの誤り・時間の上限)送信は cancelled + cancelReason。お知らせは受信者ごと
+// - 送り始めの線(D58): 全員・ロール宛ては送信を作った時刻より後に登録した利用者を入れない
 // 実行: pnpm test src/features/core/messaging/services/server/sweep
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -53,7 +53,7 @@ function setup(options: { users?: number; behave?: Parameters<typeof createTestC
 
 const sweep = (deps: ReturnType<typeof setup>["deps"]) => sweepMessages(deps, { deadline: farFuture() });
 
-test("d2: 小さな送信の残りを lease で取って送り、回を閉じる", async () => {
+test("d2: 小さな送信の残りを lease で取って送り、送信を閉じる", async () => {
   const { world, deps, sender, channel } = setup({ users: 5 });
   const recipients = ["u1", "u2", "u3", "u4", "u5"].map((userId) => ({ userId }));
   await sender.sendMessageToMany({ ...notice, record: "meta" }, { recipients, vars: { item: "靴" } });
@@ -172,12 +172,12 @@ test("d2: 複数の宛先は一時の失敗の宛先だけ送り直し、行は 
   assert.equal(world.store.dispatches[0].status, "completed");
 });
 
-test("組み直し(D128): 送った後に定義を直しても・一覧から消えても、回のひな形と欄の中身で描く", async () => {
+test("組み直し(D128): 送った後に定義を直しても・一覧から消えても、送信のレイアウトと欄の中身で描く", async () => {
   const { world, deps, sender, channel } = setup({ users: 3 });
   await sender.sendMessageToMany(notice, { recipients: ["u1", "u2", "u3"].map((userId) => ({ userId })), vars: { item: "x" } });
   const dispatch = world.store.dispatches[0];
   assert.deepEqual([dispatch.layout, dispatch.layout_version, dispatch.values], ["card", 1, notice.values]);
-  // 定義を直した(上書き)・一覧から消えた: cron は回の物だけで描く
+  // 定義を直した(上書き)・一覧から消えた: cron は送信の物だけで描く
   const changed: MessageRegistry = {
     "shop.notice": { key: "shop.notice", definition: async () => ({ message: { ...notice, values: { title: "直した定義" } } }) },
   };
@@ -190,7 +190,7 @@ test("組み直し(D128): 送った後に定義を直しても・一覧から消
   assert.ok(world.store.deliveries.every((row) => row.status === "sent"));
 });
 
-test("組み直し(D128): 送った版から今の版へ改版の対応で読み替え、読めない版・欄の中身の無い回は止める", async () => {
+test("組み直し(D128): 送った版から今の版へ改版の対応で読み替え、読めない版・欄の中身の無い送信は止める", async () => {
   const card = TEST_LAYOUTS.card!;
   const v2 = {
     ...card,
@@ -268,7 +268,7 @@ test("d3: 大きな選んだ宛先は一覧の番号から展開し、受信者�
   assert.equal(dispatch.channel_counts?.test.skipped_no_address, 1);
 });
 
-test("d3: 予約の時刻が来た回を動かす", async () => {
+test("d3: 予約の時刻が来た送信を動かす", async () => {
   const { world, deps, sender } = setup();
   await sender.sendMessageToMany(notice, { target: { type: "role", roles: ["admin"] }, vars: { item: "x" } });
   const dispatch = world.store.dispatches[0];
@@ -282,7 +282,7 @@ test("d3: 予約の時刻が来た回を動かす", async () => {
   assert.equal(dispatch.recipient_count, 1);
 });
 
-test("d4: 続きを送るは 1 つの回を 1 束だけ進める", async () => {
+test("d4: 続きを送るは 1 つの送信を 1 束だけ進める", async () => {
   const { world, deps, sender } = setup({ users: 5 });
   await sender.sendMessageToMany(notice, { target: { type: "all" }, vars: { item: "x" } });
   await sender.sendMessageToMany(notice, { target: { type: "all" }, vars: { item: "y" } });
@@ -301,7 +301,7 @@ test("d4: 続きを送るは 1 つの回を 1 束だけ進める", async () => {
   await assert.rejects(continueDispatch(deps, second.id), (error: unknown) => error instanceof DomainError && error.status === 409);
 });
 
-test("d5: 保持の日数で消し、お知らせが参照する回と送っている途中の回は残し、冪等の鍵を移し、消す回に結んだ画像を外す", async () => {
+test("d5: 保持の日数で消し、お知らせが参照する送信と送っている途中の送信は残し、冪等の鍵を移し、消す送信に結んだ画像を外す", async () => {
   const { world, deps, sender } = setup();
   const day = 24 * 60 * 60 * 1000;
   const now = new Date("2030-01-01T00:00:00.000Z");
@@ -312,7 +312,7 @@ test("d5: 保持の日数で消し、お知らせが参照する回と送って�
   await sender.sendMessage(notice, { recipient: { userId: "u2" }, vars: { item: "d" }, idempotencyKey: "recent-key" });
   const [old, inbox, oldInFlight, recent] = world.store.dispatches;
   for (const d of [old, inbox, oldInFlight]) Object.assign(d, { createdAt: ago(731) });
-  // 回に結んだお知らせの画像(metadata.inboxImages の値)は、消す回からだけ外す
+  // 送信に結んだお知らせの画像(metadata.inboxImages の値)は、消す送信からだけ外す
   const IMG = (n: number) => `storage://pub/notification.image/0190a3b2-0000-7000-8000-00000000000${n}.png`;
   Object.assign(old, { metadata: { inboxImages: { [IMG(1)]: IMG(2), "https://example.test/x.png": "https://example.test/x.png" } } });
   Object.assign(inbox, { metadata: { inboxImages: { [IMG(3)]: IMG(3) } } });
@@ -359,7 +359,7 @@ function setupInApp(inAppBody: string) {
     category: "newsInApp",
     vars: z.object({ item: z.string() }),
     varNames: { item: { alias: "品名", description: "テストの品名" } },
-    // 経路ごとの中身は持たない: 両方の経路が同じひな形の要約から描く
+    // 送信チャンネルごとの中身は持たない: 両方の送信チャンネルが同じレイアウトの要約から描く
     layout: "card",
     values: { title: "{{serviceName}} {{item}}", body: inAppBody, link: "/news" },
   });
@@ -378,7 +378,7 @@ function setupInApp(inAppBody: string) {
   return { world, deps, inApp, news, sender: createMessageSender(deps) };
 }
 
-test("d3(D32): 全員・ロール宛てのお知らせは回に 1 行の共有の行で、受信者ごとの inApp の行を作らない", async () => {
+test("d3(D32): 全員・ロール宛てのお知らせは送信に 1 行の共有の行で、受信者ごとの inApp の行を作らない", async () => {
   const { world, deps, inApp, news, sender } = setupInApp("{{item}} が入荷しました");
   await sender.sendMessageToMany(news, { target: { type: "role", roles: ["user"] }, vars: { item: "靴" } });
   await sweep(deps);
@@ -390,7 +390,7 @@ test("d3(D32): 全員・ロール宛てのお知らせは回に 1 行の共有�
       dispatch_id: dispatch.id,
       user_id: null,
       target_roles: ["user"],
-      // テストの経路は要約から描く(送る時に描く経路ではない)ので、行はひな形の列を持たない(要約のカード)
+      // テストの送信チャンネルは要約から描く(送る時に描く送信チャンネルではない)ので、行はレイアウトの列を持たない(要約のカード)
       layout: null,
       layout_version: null,
       values: null,
@@ -498,7 +498,7 @@ test("グループ宛て(D58): 最初に一覧へ書き(配達なし・線より
   assert.equal(dispatch.status, "completed");
 });
 
-test("グループ宛て(D58): 固定の時に門が閉・グループの誤り・時間の上限なら回を cancelled にし理由を残す(配達なし)", async () => {
+test("グループ宛て(D58): 固定の時に門が閉・グループの誤り・時間の上限なら送信を cancelled にし理由を残す(配達なし)", async () => {
   const cases: { name: string; open?: boolean; fail?: Error; timeout?: boolean; reason: RegExp }[] = [
     { name: "門", open: false, reason: /閉じています/ },
     { name: "しまった", fail: new DomainError("グループ「g」はしまってあります", { status: 409 }), reason: /しまってあります/ },
@@ -536,7 +536,7 @@ test("グループ宛て(D58): お知らせは受信者ごとの行(共有の行
   assert.equal(world.store.dispatches[0].status, "completed");
 });
 
-test("送り始めの線(D58): 全員・ロール宛ては回を作った時刻より後に登録した利用者を入れない", async () => {
+test("送り始めの線(D58): 全員・ロール宛ては送信を作った時刻より後に登録した利用者を入れない", async () => {
   const { world, deps, sender } = setup({ users: 4 });
   world.store.users.find((user) => user.id === "u4")!.createdAt = new Date(Date.now() + 3_600_000);
   await sender.sendMessageToMany(notice, { target: { type: "all" }, vars: { item: "x" } });

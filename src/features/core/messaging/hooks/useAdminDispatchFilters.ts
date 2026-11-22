@@ -2,11 +2,11 @@
 
 // src/features/core/messaging/hooks/useAdminDispatchFilters.ts
 //
-// 管理: 回の一覧の絞り込み(AdminDispatchList はこれを呼んで欄を並べるだけ。CLAUDE.md core_ui)。
-// - 入力中の値(期間から・まで・種別・カテゴリー・経路・状態)と、「絞り込む」で確定した filters を分けて持つ
+// 管理: 送信の一覧の絞り込み(AdminDispatchList はこれを呼んで欄を並べるだけ。CLAUDE.md core_ui)。
+// - 入力中の値(期間から・まで・種別・カテゴリー・送信チャンネル・状態)と、「絞り込む」で確定した filters を分けて持つ
 // - カテゴリーは種別を選んだ後だけ(種別を変えると空に戻す)。定義の鍵では絞らない(D46: 画面は鍵を打たせない)
 // - 期間は日付(YYYY-MM-DD)の入力 → from = その日の 0 時、to = 「まで」の翌日の 0 時(未満)
-// - 状態の欄の DISPATCH_FILTER_DELETED(削除済み)= 削除した回だけ(deleted only、状態では絞らない、D88)
+// - 状態の欄の DISPATCH_FILTER_DELETED(削除済み)= 削除した送信だけ(deleted only、状態では絞らない、D88)
 // - clear = 入力も確定も空に戻す
 
 import { useCallback, useState } from "react";

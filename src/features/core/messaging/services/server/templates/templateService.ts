@@ -1,14 +1,14 @@
 // src/features/core/messaging/services/server/templates/templateService.ts
 //
 // 保存されたテンプレート(管理者が画面で書く連絡の中身、D40・D41)の管理の service。/api/admin/messaging/templates が呼ぶ。
-// - 状態は持たない: 下書きは無く(D134: 保存 = 公開)、要らなくなれば消す(D137: 版も消え、送った回は残り template_id が null)
+// - 状態は持たない: 下書きは無く(D134: 保存 = 公開)、要らなくなれば消す(D137: 版も消え、送信は残り template_id が null)
 // - 作る = 行と版 1 を 1 つの取引で書く。直す = 行を書き、中身が最新の版と違えば同じ取引で版を追記して current_version を進める
 //   (同じ中身なら版を作らず unchanged。名前・説明だけの変更も版を作らない)。版は書き換えない
-// - 中身 = カテゴリー + ひな形 + 欄の中身 + 専用の埋め込み情報の宣言(指令 58)。版は保存の時の ひな形・ひな形の版・欄の中身・宣言・種類を持つ
-//   (回は送る時に版を固定する)。ひな形を替える時は入力の欄の中身だけを持つ(前のひな形の中身は残さない、D113)
+// - 中身 = カテゴリー + レイアウト + 欄の中身 + 専用の埋め込み情報の宣言(指令 58)。版は保存の時の レイアウト・レイアウトの版・欄の中身・宣言・カテゴリーを持つ
+//   (送信は送る時に版を固定する)。レイアウトを替える時は入力の欄の中身だけを持つ(前のレイアウトの中身は残さない、D113)
 // - 保存の検査は checks.ts(D41)、画像の結び付けは imageBinding.ts
-// - 画面の選択肢 templateOptions(使える経路・種類・管理者が選べるひな形・専用の宣言の前から書ける埋め込み情報)
-// - 消す時: 欄の中身を残している回が使う画像を、同じ取引で回に結び直す(テンプレートの行が消えると storage の照合が外すため)
+// - 画面の選択肢 templateOptions(使える送信チャンネル・カテゴリー・管理者が選べるレイアウト・専用の宣言の前から書ける埋め込み情報)
+// - 消す時: 欄の中身を残している送信が使う画像を、同じ取引で送信に結び直す(テンプレートの行が消えると storage の照合が外すため)
 // - service でも管理者を確かめる(D42)。監査 messaging.template.{created, updated, deleted}(created・updated は版の番号、deleted は名前と最後の版)
 // - 一覧は種別(kind)で絞れる: その種別のカテゴリーのテンプレートと、その種別のシステムテンプレート(D135)
 // - システムテンプレート(受け口 messaging/templates の白紙、D117・D125): 一覧の最初のページの先頭に印つき(system: true、id = system:<鍵>)で並び、
@@ -48,22 +48,22 @@ import { enabledSystemTemplates, isAdminSendableKind, isSystemTemplateEnabled } 
 export type TemplateServiceDeps<Tx> = AdminCheckDeps & {
   store: MessageTemplateStore<Tx>;
   ledger: TemplateImageLedger<Tx>;
-  /** 回の画像の台帳(消す時に、残す回の画像を回へ結び直す。受け取り箱と同じ持ち主 messaging.dispatch) */
+  /** 送信の画像の台帳(消す時に、残す送信の画像を送信へ結び直す。受け取り箱と同じ持ち主 messaging.dispatch) */
   dispatchLedger: InboxImageLedger<Tx>;
   check: () => TemplateCheckDeps;
   recordAudit: (input: AuditRecordInput) => Promise<unknown>;
   /** システムテンプレートの受け口(無い = 一覧に並べない) */
   systemTemplates?: () => Readonly<Record<string, MessageSystemTemplate>>;
-  /** 経路の鍵 → ひな形の描き方を持つひな形の鍵の表(email = layoutEmails。プレビューが 3 段の 1 段目を選ぶのに使う) */
+  /** 送信チャンネルの鍵 → レイアウトの描き方を持つレイアウトの鍵の表(email = layoutEmails。プレビューが 3 段の 1 段目を選ぶのに使う) */
   layoutRenderers?: () => Readonly<Record<string, Readonly<Record<string, unknown>>>>;
-  /** 経路のプレビュー(経路の受け口の preview。無い経路は html なし) */
+  /** 送信チャンネルのプレビュー(送信チャンネルの受け口の preview。無い送信チャンネルは html なし) */
   channelPreview?: (
     channel: string,
     input: { messageKey: string; content: unknown; category?: string },
   ) => Promise<{ html?: string; text?: string }> | null;
 };
 
-/** プレビューで経路へ渡す連絡の鍵(テンプレートの回と同じ。停止のリンクの見本に使うだけ) */
+/** プレビューで送信チャンネルへ渡す連絡の鍵(テンプレートの送信と同じ。停止のリンクの見本に使うだけ) */
 const PREVIEW_MESSAGE_KEY = "messaging.template";
 
 /** システムテンプレートの id の頭(DB のテンプレートの id は uuid) */
@@ -74,7 +74,7 @@ export function isSystemTemplateId(id: string): boolean {
   return id.startsWith(SYSTEM_TEMPLATE_ID_PREFIX);
 }
 
-/** 種類の表示名(受け口の label。無ければ null) */
+/** カテゴリーの表示名(受け口の label。無ければ null) */
 type CategoryLabelOf = (category: string) => string | null;
 
 /** 作るテンプレートの鍵(運営する人は打たない、D46)。tpl- + 英小文字・数字 10 字 */
@@ -217,7 +217,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
   }
 
   /**
-   * 行の欄の中身を今のひな形の版へ読み替える(ひな形が改版していれば revisions を当てる)。読めなければ 409
+   * 行の欄の中身を今のレイアウトの版へ読み替える(レイアウトが改版していれば revisions を当てる)。読めなければ 409
    */
   function currentValues(row: MessageTemplate): Record<string, unknown> {
     const layout = deps.check().layouts[row.layout];
@@ -335,7 +335,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
       const { row, version } = await deps.store.transaction(async (tx) => {
         const current = await deps.store.lockForUpdate(tx, id);
         if (!current) throw new DomainError("テンプレートがありません", { status: 404 });
-        // ひな形を替える時は入力の欄の中身だけ(前のひな形の中身は持ち越さない、D113)。同じひな形なら入力が無ければ今の中身
+        // レイアウトを替える時は入力の欄の中身だけ(前のレイアウトの中身は持ち越さない、D113)。同じレイアウトなら入力が無ければ今の中身
         const layoutChanged = patch.layout !== undefined && patch.layout !== current.layout;
         if (layoutChanged && patch.values === undefined) {
           throw new DomainError("ひな形を替える時は新しいひな形の欄の中身も送ってください", { status: 400 });
@@ -372,8 +372,8 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
     },
 
     /**
-     * 消す(D137): 版は消え(FK cascade)、送った回は残る(template_id は FK で null、版の番号・中身は回に残る)。
-     * 欄の中身を残している回(予約・送り直し・同じ内容で送る)が使う画像は、同じ取引で回に結び直す(複製を回の持ち物にし、中身の参照を書き換える)。
+     * 消す(D137): 版は消え(FK cascade)、送信は残る(template_id は FK で null、版の番号・中身は送信に残る)。
+     * 欄の中身を残している送信(予約・送り直し・同じ内容で送る)が使う画像は、同じ取引で送信に結び直す(複製を送信の持ち物にし、中身の参照を書き換える)。
      * @throws DomainError(404) 無い / (409) システムテンプレート
      */
     async deleteTemplate(id: string): Promise<{ id: string; deleted: true }> {
@@ -423,7 +423,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
       return toVersion(row, categoryLabel);
     },
 
-    /** 画面の選択肢: 使える経路・種類・管理者が選べるひな形・専用の宣言の前から書ける埋め込み情報(fork の物も受け口から入る) */
+    /** 画面の選択肢: 使える送信チャンネル・カテゴリー・管理者が選べるレイアウト・専用の宣言の前から書ける埋め込み情報(fork の物も受け口から入る) */
     async templateOptions(): Promise<AdminTemplateOptions> {
       await assertAdminActor(deps);
       const check = deps.check();
@@ -431,13 +431,13 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
         channels: Object.values(check.channels)
           .filter((channel) => channel.enabled !== false)
           .map((channel) => ({ key: channel.key, label: channel.label })),
-        // テンプレートに使える種類 = 管理者が送れる種別(announcement・direct・promotion)の種類だけ
+        // テンプレートに使えるカテゴリー = 管理者が送れる種別(announcement・direct・promotion)のカテゴリーだけ
         categories: Object.values(check.categories).filter((category) => isAdminSendableKind(category.kind)).map((category) => ({
           key: category.key,
           label: categoryAdminLabel(category),
           description: category.description ?? null,
           kind: category.kind,
-          // その種類で送る経路(受け口にあり使える物だけ。プレビューのタブと経路だけの欄はこの分、D115)
+          // そのカテゴリーで送る送信チャンネル(受け口にあり使える物だけ。プレビューのタブと送信チャンネルだけの欄はこの分、D115)
           channels: category.channels.filter((key) => check.channels[key] && check.channels[key].enabled !== false),
         })),
         layouts: adminSelectableLayouts(check).map((layout) => ({
@@ -452,9 +452,9 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
     },
 
     /**
-     * ひな形のプレビュー(作る・直す・送る画面、D114): 管理者が選べるひな形と欄の中身(保存しない)を経路 1 つで描く。
-     * 描き方は送る口と同じ 3 段(buildChannelContent)、メールは経路の preview が送る HTML を返す。{{名前}} は差し込まずそのまま見せる。
-     * 描けない(3 段のどれでも描けない)時は cannotRender に理由。保存しない・回を作らない
+     * レイアウトのプレビュー(作る・直す・送る画面、D114): 管理者が選べるレイアウトと欄の中身(保存しない)を送信チャンネル 1 つで描く。
+     * 描き方は送る口と同じ 3 段(buildChannelContent)、メールは送信チャンネルの preview が送る HTML を返す。{{名前}} は差し込まずそのまま見せる。
+     * 描けない(3 段のどれでも描けない)時は cannotRender に理由。保存しない・送信を作らない
      */
     async previewLayout(input: unknown): Promise<AdminLayoutPreview> {
       await assertAdminActor(deps);

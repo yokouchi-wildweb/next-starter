@@ -1,6 +1,6 @@
 // src/features/core/messaging/services/server/overrides/imageBindingLedger.ts
 //
-// 文言の上書きの画像の結び付け(imageBinding.ts)の本物の台帳。読んだ台帳の行は判断にだけ使い、HTTP には返さない。
+// テキストの編集の画像の結び付け(imageBinding.ts)の本物の台帳。読んだ台帳の行は判断にだけ使い、HTTP には返さない。
 
 import "server-only";
 

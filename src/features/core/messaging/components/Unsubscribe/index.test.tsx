@@ -1,6 +1,6 @@
 // Unsubscribe(確認のページの入れ物)と流れの hook useUnsubscribe の検査(jsdom の上で描く。client service と棚の Link は偽物 = 入れ物 + hook を本物で通す)。
 // - 正しくないトークン → 「リンクが正しくありません」
-// - 確認(種類・経路)→ 押すと POST(トークン)→ 「配信を停止しました」+ 通知設定への案内
+// - 確認(カテゴリー・送信チャンネル)→ 押すと POST(トークン)→ 「配信を停止しました」+ 通知設定への案内
 // - 失敗 → 確認のまま失敗の文、もう一度押せる
 // 実行: pnpm test src/features/core/messaging/components/Unsubscribe/index.test.tsx
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)

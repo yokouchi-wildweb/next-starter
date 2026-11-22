@@ -1,5 +1,5 @@
 // src/features/core/messaging/categories/emailVerification.ts
-// 上流の種類: メールアドレスの確認(種別 functional)。auth.verification
+// 上流のカテゴリー: メールアドレスの確認(種別 functional)。auth.verification
 
 import type { MessageCategory } from "@/lib/messaging";
 

@@ -20,7 +20,7 @@ export type ExpansionWrite = {
   patch: Partial<MessageDispatchInsert>;
   /** 入った配達の行から同じ取引で書く内部の事件(delivery.suppressed など) */
   eventsFor?: (created: readonly MessageDelivery[]) => MessageEventRowInsert[];
-  /** 全員・ロール宛てのお知らせの共有の 1 行(回の最初の束で 1 度だけ、D32) */
+  /** 全員・ロール宛てのお知らせの共有の 1 行(送信の最初の束で 1 度だけ、D32) */
   inboxItem?: MessageInboxItemInsert;
   /**
    * グループ宛ての固定(D58): 同じ取引で 1 文の INSERT INTO message_dispatch_recipients SELECT … FROM users WHERE
@@ -35,15 +35,15 @@ export type ExpansionWrite = {
   };
 };
 
-/** 経路ごと・状態ごと・理由ごとの配達の行の数 */
+/** 送信チャンネルごと・状態ごと・理由ごとの配達の行の数 */
 export type DeliveryAggregate = { channel: string; status: string; reason: string | null; count: number }[];
 
 export type MessageSweepStore = {
-  /** 予約の時刻が来た回を processing にする(返値 = 動かした数) */
+  /** 予約の時刻が来た送信を processing にする(返値 = 動かした数) */
   activateScheduled: (now: Date, limit: number) => Promise<number>;
   /**
-   * 展開の続きがある回を 1 つ排他で取り(FOR UPDATE SKIP LOCKED)、step の書き込みを同じ取引で入れる。
-   * dispatchId を渡すとその回だけ。取れなければ false
+   * 展開の続きがある送信を 1 つ排他で取り(FOR UPDATE SKIP LOCKED)、step の書き込みを同じ取引で入れる。
+   * dispatchId を渡すとその送信だけ。取れなければ false
    */
   expandOne: (
     dispatchId: string | null,
@@ -71,19 +71,19 @@ export type MessageSweepStore = {
   /** sending のまま lease が切れた行を unknown にする(自動で送り直さない) */
   markStaleSending: (now: Date, limit: number) => Promise<number>;
   findDispatches: (ids: readonly string[]) => Promise<MessageDispatch[]>;
-  /** 終えられる回(processing・展開済み・queued / sending の行が無い) */
+  /** 終えられる送信(processing・展開済み・queued / sending の行が無い) */
   findCompletable: (limit: number, dispatchId?: string) => Promise<MessageDispatch[]>;
   aggregateDeliveries: (dispatchId: string) => Promise<DeliveryAggregate>;
   updateDispatch: (id: string, patch: Partial<MessageDispatchInsert>, events?: readonly MessageEventRowInsert[]) => Promise<void>;
 };
 
-/** 保持の掃除の DB の読み書き(1 呼び出し = 1 文・最大 limit 行。回だけは画像を外すので 1 取引) */
+/** 保持の掃除の DB の読み書き(1 呼び出し = 1 文・最大 limit 行。送信だけは画像を外すので 1 取引) */
 export type MessageRetentionStore = {
   /** maxSeq = 購読の一番遅い印(null = 購読なし)。それより新しい事件は消さない */
   deleteEventsBefore: (cutoff: Date, limit: number, maxSeq: number | null) => Promise<number>;
   deleteDeliveriesBefore: (cutoff: Date, limit: number) => Promise<number>;
   /**
-   * お知らせが参照せず、processing / scheduled でない回を消す。消す前に冪等の鍵を移し、回に結んだお知らせの画像
+   * お知らせが参照せず、processing / scheduled でない送信を消す。消す前に冪等の鍵を移し、送信に結んだお知らせの画像
    * (metadata.inboxImages の値)を台帳から外す(同じ取引。detachedImages = 外した数)
    */
   deleteDispatchesBefore: (cutoff: Date, limit: number) => Promise<{ deleted: number; movedKeys: number; detachedImages: number }>;

@@ -54,7 +54,7 @@ export const AdminBulkSendInputSchema = z
     /** 受け口 bulkSendTargets の鍵と、その一覧で選んだ記録の id */
     target: z.string().trim().min(1).optional(),
     recordIds: idList.optional(),
-    /** 送る中身・カテゴリー(種別の性質 adminFreeText に bulk がある種別: direct・promotion)・経路の絞り(送る画面と同じ) */
+    /** 送る中身・カテゴリー(種別の性質 adminFreeText に bulk がある種別: direct・promotion)・送信チャンネルの絞り(送る画面と同じ) */
     ...adminContentFields,
     /** 二重送信を防ぐ鍵(クライアント発行) */
     idempotencyKey: z.string().trim().min(8).max(128).optional(),
@@ -180,14 +180,14 @@ export function adminBulkSendTest(deps: AdminContentDeps, rawInput: unknown): Pr
   return testAdminContent(deps, rawInput, { target: "bulk", source: `${BULK_SOURCE}.test` });
 }
 
-/** 一括送信の選択肢: 経路(表示名は受け口の label、送るモーダルと同じ)・bulk で送れるカテゴリー(種別の白紙つき = その場で書く連絡に使える)と、門 messagingTemplates が開の時だけ公開中のテンプレート */
+/** 一括送信の選択肢: 送信チャンネル(表示名は受け口の label、送るモーダルと同じ)・bulk で送れるカテゴリー(種別の白紙つき = 自由連絡に使える)と、門 messagingTemplates が開の時だけ公開中のテンプレート */
 export type AdminBulkSendOptions = {
   channels: AdminSendOptions["channels"];
   categories: AdminFreeTextCategoryOption[];
   templates: AdminSendOptions["templates"];
   /** bulk で送れる種別のシステムテンプレート(D119) */
   systemTemplates: AdminSendOptions["systemTemplates"];
-  /** 白紙と並べたテンプレートが使うひな形の欄の宣言 */
+  /** 白紙と並べたテンプレートが使うレイアウトの欄の宣言 */
   layouts: AdminSendOptions["layouts"];
 };
 

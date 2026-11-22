@@ -1,6 +1,6 @@
 // src/features/core/messaging/services/server/sweep/complete.ts
 //
-// 展開と送信を終えた回を閉じる: 経路ごとの sent / failed / skipped_throttled を配達の行から数え直し、
+// 展開と配達を終えた送信を閉じる: 送信チャンネルごとの sent / failed / skipped_throttled を配達の行から数え直し、
 // status を completed / completed_with_failures、completed_at を埋め、record meta なら送るために置いた vars を消す。
 
 import type { MessageChannelCounts } from "../../../entities/schema";
@@ -9,7 +9,7 @@ import type { MessageSweepDeps } from "./types";
 
 const FAILED = ["failed", "bounced", "unknown"];
 
-/** 終えられる回を閉じる(返値 = 閉じた数) */
+/** 終えられる送信を閉じる(返値 = 閉じた数) */
 export async function completeDispatches(
   deps: MessageSweepDeps,
   params: { limit: number; dispatchId?: string },
@@ -27,7 +27,7 @@ export async function completeDispatches(
         skipped_throttled: 0,
         suppressed: 0,
       };
-      // 配達の行のある経路だけ数え直す(全員・ロール宛てのお知らせの共有の行は展開の時に数えた値のまま)
+      // 配達の行のある送信チャンネルだけ数え直す(全員・ロール宛てのお知らせの共有の行は展開の時に数えた値のまま)
       const hasRows = aggregate.some((entry) => entry.channel === key);
       counts[key] = hasRows ? { ...base, sent: 0, failed: 0, skipped_throttled: 0 } : { ...base };
     }
@@ -42,7 +42,7 @@ export async function completeDispatches(
     }
     const now = deps.now();
     const status = anyFailed ? "completed_with_failures" : "completed";
-    // 回を閉じた事件(購読が聞いていれば、回の更新と同じ取引で)
+    // 送信を閉じた事件(購読が聞いていれば、送信の更新と同じ取引で)
     const event = dispatchCompletedEvent(deps.eventTypes ?? new Set(), dispatch, status, now, { isTest: dispatch.is_test ?? false });
     await deps.sweepStore.updateDispatch(
       dispatch.id,

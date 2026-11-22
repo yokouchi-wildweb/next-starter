@@ -1,6 +1,6 @@
 // src/features/core/messaging/channels/inApp/index.ts
 //
-// 上流の経路 inApp(お知らせ = message_inbox_items)。中身: ./createInAppChannel.ts
+// 上流の送信チャンネル inApp(お知らせ = message_inbox_items)。中身: ./createInAppChannel.ts
 
 import { and, eq, inArray, or } from "drizzle-orm";
 
@@ -45,7 +45,7 @@ export const channel = createInAppChannel({
     await db.insert(MessageInboxItemTable).values([...rows]);
   },
   async bindImages(dispatchId, refs) {
-    // 回の行を排他で持って結ぶ(並ぶ束・送り直しは対応 metadata.inboxImages を読んで同じファイルを使う)
+    // 送信の行を排他で持って結ぶ(並ぶ束・送り直しは対応 metadata.inboxImages を読んで同じファイルを使う)
     return db.transaction(async (tx) => {
       const [dispatch] = await tx
         .select({ id: MessageDispatchTable.id, actor_id: MessageDispatchTable.actor_id, metadata: MessageDispatchTable.metadata })
@@ -59,7 +59,7 @@ export const channel = createInAppChannel({
     });
   },
   async removeDispatch(dispatchId) {
-    // 回の行を排他で持ち、行を消して画像を外す(外した実物は commit の後に消す)
+    // 送信の行を排他で持ち、行を消して画像を外す(外した実物は commit の後に消す)
     const detached: string[] = [];
     const removed = await db.transaction(async (tx) => {
       const [dispatch] = await tx

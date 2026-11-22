@@ -1,18 +1,18 @@
 // src/features/core/messaging/services/server/endpoints/schema.ts
 //
-// 端末の帳簿の登録の入力(どの経路も同じ形。経路ごとの形は後の指令)と、本人へ返す安全な DTO。
+// 端末の帳簿の登録の入力(どの送信チャンネルも同じ形。送信チャンネルごとの形は後の指令)と、本人へ返す安全な DTO。
 
 import { z } from "zod";
 
 /** metadata の JSON の大きさの上限(バイト) */
 const METADATA_MAX_BYTES = 2048;
 
-/** 登録の入力(宛先は経路の中の宛先: プッシュのトークン・電話番号など。秘密は metadata に入れない) */
+/** 登録の入力(宛先は送信チャンネルの中の宛先: プッシュのトークン・電話番号など。秘密は metadata に入れない) */
 export const RegisterMessageEndpointInputSchema = z
   .object({
     channel: z.string().trim().min(1).max(64),
     address: z.string().trim().min(1).max(2048),
-    /** 宛先の種類(web / ios / android など、経路が決める) */
+    /** 宛先の種類(web / ios / android など、送信チャンネルが決める) */
     kind: z.string().trim().min(1).max(32).optional(),
     /** 付加情報(平らな値だけ。秘密は入れない) */
     metadata: z

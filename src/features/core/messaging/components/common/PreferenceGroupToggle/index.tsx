@@ -1,9 +1,9 @@
 // src/features/core/messaging/components/common/PreferenceGroupToggle/index.tsx
-// 部品(props だけ): グループまるごとの切り替え(D123。グループの行で止めるので、後からグループに入った種類も止まる)。
+// 部品(props だけ): グループまるごとの切り替え(D123。グループの行で止めるので、後からグループに入ったカテゴリーも止まる)。
 // 向きはほかの好みの部品と同じ:
-// - 経路ごと(channelLabel あり)= 入 = この経路で受け取る(マス・経路まるごとと同じ)。値は応答の channels[].kinds[].groups[].optedOut
-// - すべての経路(channelLabel なし)= 入 = 止めている(種類まるごとと同じ)。値は応答の groups[].optedOut
-// 上流の既定の画面は置かない(fork がグループだけ・種類だけ・両方を組む。組み方は components/README.md)
+// - 送信チャンネルごと(channelLabel あり)= 入 = この送信チャンネルで受け取る(マス・送信チャンネルまるごとと同じ)。値は応答の channels[].kinds[].groups[].optedOut
+// - すべての送信チャンネル(channelLabel なし)= 入 = 止めている(カテゴリーまるごとと同じ)。値は応答の groups[].optedOut
+// 上流の既定の画面は置かない(fork がグループだけ・カテゴリーだけ・両方を組む。組み方は components/README.md)
 
 "use client";
 
@@ -14,7 +14,7 @@ export type PreferenceGroupToggleProps = {
   groupLabel: string;
   /** グループまるごとの行がある(応答の optedOut) */
   stopped: boolean;
-  /** 経路の表示名。ある = 経路ごと(入 = 受け取る)/ 無い = すべての経路(入 = 止めている) */
+  /** 送信チャンネルの表示名。ある = 送信チャンネルごと(入 = 受け取る)/ 無い = すべての送信チャンネル(入 = 止めている) */
   channelLabel?: string;
   /** 押せなくする(変えている最中など) */
   disabled?: boolean;
@@ -22,7 +22,7 @@ export type PreferenceGroupToggleProps = {
   stoppedByAll?: boolean;
   /** stop = true でグループまるごとを止める */
   onChange: (stop: boolean) => void;
-  /** 見える文言(既定 経路ごと = なし / すべての経路 =「このグループをすべての経路で止める」) */
+  /** 見える文言(既定 送信チャンネルごと = なし / すべての送信チャンネル =「このグループをすべての経路で止める」) */
   label?: string;
   size?: "sm" | "md";
 };

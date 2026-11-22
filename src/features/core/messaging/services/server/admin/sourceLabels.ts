@@ -1,8 +1,8 @@
 // src/features/core/messaging/services/server/admin/sourceLabels.ts
 //
-// 送り元(message_dispatches.source)の表示名(回の詳細の「送り元」。運営する人に鍵を見せない、D46)。引く順:
+// 送り元(message_dispatches.source)の表示名(送信の詳細の「送り元」。運営する人に鍵を見せない、D46)。引く順:
 // 1. 受け口 sources の項目の label(上流は messaging の管理の送り元、fork は自分の送り元を足す)
-// 2. 同じ鍵の連絡の定義の label(cron・業務の送信の送り元の既定 = 定義の鍵)
+// 2. 同じ鍵の連絡定義の label(cron・業務の送信の送り元の既定 = 定義の鍵)
 // 3. 一括送信の対象: `<対象の鍵>.bulk` = 「<対象の label>の一括送信」、`.bulk.test` = 「…の一括送信のテスト」
 // どれにも当たらなければ null(画面は送り元の行を出さない)
 

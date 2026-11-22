@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/common/InboxLayoutView/GenericInAppView.tsx
-// 部品(props だけ): お知らせの汎用の描き方(描き方の 3 段の 2 段目)。ひな形にお知らせの描き方が無い時、ひな形の欄の宣言の順に
+// 部品(props だけ): お知らせの汎用の描き方(描き方の 3 段の 2 段目)。レイアウトにお知らせの描き方が無い時、レイアウトの欄の宣言の順に
 // 欄の型(lib/messaging の語彙)とブロックの種類ごとに components の部品で描く(生の HTML は使わない)。
 // 値の無い欄は描かない。画像は保存値のまま AppImage へ(storage:// の参照を表示用にする)
 
@@ -17,7 +17,7 @@ import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import type { MessageBlock, MessageFieldShape, MessageLayoutFields, MessageLayoutValues } from "@/lib/messaging";
 
 export type GenericInAppViewProps = {
-  /** ひな形のお知らせの欄の宣言(宣言の順に描く) */
+  /** レイアウトのお知らせの欄の宣言(宣言の順に描く) */
   fields: MessageLayoutFields;
   values: MessageLayoutValues;
 };

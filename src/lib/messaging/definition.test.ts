@@ -1,8 +1,8 @@
 // src/lib/messaging/definition.test.ts
 //
-// 連絡の定義の型と読み手の検査(validateMessageDefinition・applyMessageOverride)。定義 = ひな形 + 欄の中身(D122)。
-// - 正しい定義が通る / 止める物(required の守り・ひな形・欄の中身・adminEditableOnly・{{鍵}}・throttle・鍵の形)が止まる
-// - 欄の中身は種類の経路で使う欄だけ必須(D125) / 上書きは欄ごとに重ねる / 型の絞りは @ts-expect-error で固定
+// 連絡定義の型と読み手の検査(validateMessageDefinition・applyMessageOverride)。定義 = レイアウト + 欄の中身(D122)。
+// - 正しい定義が通る / 止める物(required の守り・レイアウト・欄の中身・adminEditableOnly・{{鍵}}・throttle・鍵の形)が止まる
+// - 欄の中身はカテゴリーの送信チャンネルで使う欄だけ必須(D125) / 上書きは欄ごとに重ねる / 型の絞りは @ts-expect-error で固定
 // 実行: pnpm test src/lib/messaging/definition.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -28,7 +28,7 @@ import {
   type MessageOverride,
 } from "./index";
 
-/** テストのひな形: 件名 + ブロック / メールだけの欄を持つひな形 */
+/** テストのレイアウト: 件名 + ブロック / メールだけの欄を持つレイアウト */
 const LAYOUTS: Record<string, MessageLayout> = {
   notice: defineMessageLayout({
     key: "notice",
@@ -88,7 +88,7 @@ const reply = defineMessage({
 
 const codes = (problems: { code: string }[]) => problems.map((p) => p.code).sort();
 
-/** テストの種類(種別と経路は種類から引く) */
+/** テストのカテゴリー(種別と送信チャンネルはカテゴリーから引く) */
 const CATEGORIES: Record<string, MessageCategory> = {
   account: { key: "account", label: "アカウント", kind: "functional", channels: ["email"] },
   accountInApp: { key: "accountInApp", label: "アカウント(お知らせ)", kind: "transactional", channels: ["inApp"] },
@@ -135,7 +135,7 @@ test("上書きを重ねた結果を検査: required への enabled:false・emai
     adminEditableOnly: ["subject"],
     values: { subject: "確認" },
   };
-  // 経路は種類が決めるので上書きで email を外せない(required_without_email は種類の経路で見る)。functional の種類は文言の上書きも不可
+  // 送信チャンネルはカテゴリーが決めるので上書きで email を外せない(required_without_email はカテゴリーの送信チャンネルで見る)。functional のカテゴリーはテキストの編集も不可
   assert.deepEqual(codes(validate(verification, { override })), [
     "kind_admin_editable",
     "required_admin_editable",
@@ -195,7 +195,7 @@ test("variableKeys で足した鍵(enrichers の provides)は {{鍵}} で許す"
   assert.ok(problems[0].message.includes("{{unknownKey}}"));
 });
 
-test("ひな形と欄の中身: 受け口に無いひな形・欄の zod に合わない・知らない欄・知らない経路・定義に無い adminEditable", () => {
+test("レイアウトと欄の中身: 受け口に無いレイアウト・欄の zod に合わない・知らない欄・知らない送信チャンネル・定義に無い adminEditable", () => {
   assert.deepEqual(codes(validate({ ...reply, layout: "nope" })), ["unknown_layout"]);
   assert.deepEqual(codes(validate({ ...reply, values: { subject: "", blocks: reply.values.blocks } })), ["invalid_values"]);
   assert.deepEqual(codes(validate({ ...reply, values: { ...reply.values, title: "欄の名前は変えられない" } })), ["invalid_values"]);
@@ -211,11 +211,11 @@ test("ひな形と欄の中身: 受け口に無いひな形・欄の zod に合�
   ]);
 });
 
-test("経路だけの欄は種類の経路で使う時だけ必須(D125)", () => {
+test("送信チャンネルだけの欄はカテゴリーの送信チャンネルで使う時だけ必須(D125)", () => {
   const def = defineMessage({ ...reply, adminEditableOnly: undefined, category: "accountInApp", layout: "split", values: { title: "題" } });
-  // inApp だけの種類: メールだけの欄は要らない
+  // inApp だけのカテゴリー: メールだけの欄は要らない
   assert.deepEqual(validate(def), []);
-  // email のある種類: メールだけの欄が要る
+  // email のあるカテゴリー: メールだけの欄が要る
   assert.deepEqual(codes(validate({ ...def, category: "chat" })), ["invalid_values"]);
   assert.deepEqual(validate({ ...def, category: "chat", values: { title: "題", mailOnly: "本文" } }), []);
 });
@@ -229,20 +229,20 @@ test("throttle の検査と鍵の形", () => {
   ]);
 });
 
-test("種類の検査: 受け口に無い鍵は誤り、種別の性質で文言の上書き・間引きを止める", () => {
+test("カテゴリーの検査: 受け口に無い鍵は誤り、種別の性質でテキストの編集・間引きを止める", () => {
   assert.deepEqual(codes(validate({ ...verification, category: "nope" })), ["unknown_category"]);
-  // security は間引けない、functional は文言を直せない(required でなくても)
+  // security は間引けない、functional はテキストの編集ができない(required でなくても)
   const alert = defineMessage({ ...verification, category: "alert", required: false, throttle: { by: ["verificationUrl"], mode: "window", seconds: 60 } });
   assert.deepEqual(codes(validate(alert)), ["kind_throttle"]);
   const functional = defineMessage({ ...verification, required: false, adminEditableOnly: ["subject"] });
   assert.deepEqual(codes(validate(functional)), ["kind_admin_editable"]);
-  // 種別と経路は種類から付く
+  // 種別と送信チャンネルはカテゴリーから付く
   const resolved = resolveMessageDefinition(reply, undefined, CATEGORIES.chat);
   assert.equal(resolved.kind, "activity");
   assert.deepEqual(resolved.channels, ["inApp", "email"]);
 });
 
-test("種類の受け口の検査: 種別・経路・グループ(同じ種別だけ)", () => {
+test("カテゴリーの受け口の検査: 種別・送信チャンネル・グループ(同じ種別だけ)", () => {
   const groups = { social: { key: "social", label: "交流", order: 1 } };
   assert.deepEqual(
     validateMessageCategories(
@@ -282,7 +282,7 @@ test("種別の性質の表(D80)", () => {
   assert.equal(kindTraits("nope"), null);
 });
 
-test("fork の経路: 登録された経路の鍵(channels)で種類の経路の有無を見る(経路は欄を持たない、D122)", () => {
+test("fork の送信チャンネル: 登録された送信チャンネルの鍵(channels)でカテゴリーの送信チャンネルの有無を見る(送信チャンネルは欄を持たない、D122)", () => {
   const def = defineMessage({
     key: "shop.orderShipped",
     label: "テストの連絡",
@@ -294,7 +294,7 @@ test("fork の経路: 登録された経路の鍵(channels)で種類の経路の
     values: { subject: "発送しました", blocks: [{ type: "paragraph", text: "注文 {{orderId}}" }] },
   });
   assert.deepEqual(validate(def, { channels: ["email", "inApp", "line", "push"] }), []);
-  // 既定(上流の 3 経路)で読むと push は知らない経路
+  // 既定(上流の 3 送信チャンネル)で読むと push は知らない送信チャンネル
   assert.ok(codes(validate(def)).includes("unknown_channel"));
 });
 
@@ -338,7 +338,7 @@ test("型の絞り(型検査で固定。実行は何もしない)", () => {
     layout: "notice",
     values: {},
   });
-  // @ts-expect-error ひな形(layout)は必須
+  // @ts-expect-error レイアウト(layout)は必須
   defineMessage({ key: "x.y", label: "テストの連絡", category: "x", vars, varNames, values: {} });
   // @ts-expect-error vars の名前(varNames)は全部の鍵に要る
   defineMessage({ key: "x.y", label: "テストの連絡", category: "x", vars, varNames: {}, layout: "notice", values: {} });

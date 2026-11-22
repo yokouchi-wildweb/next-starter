@@ -2,7 +2,7 @@
 
 // src/features/core/messaging/hooks/useDispatchDetailParam.ts
 //
-// 回の詳細のモーダルの開き先 = 一覧の URL の ?dispatch=<回の id>(D130。詳細の別の画面は無い)。
+// 送信の詳細のモーダルの開き先 = 一覧の URL の ?dispatch=<送信の id>(D130。詳細の別の画面は無い)。
 // - dispatchId = 今の ?dispatch の値(無ければ null = 閉じている)。URL を直に開いても一覧の上にモーダルが開く
 // - hrefOf(id) = 今の住所 + ?dispatch=<id>(ほかの検索の値は残す)。一覧の行はこれへ移る(履歴に積むので「戻る」で閉じる)
 // - close() = 一覧の行から開いた時は履歴を 1 つ戻す(「戻る」と同じ)、URL を直に開いた時は ?dispatch を外して置き換える
@@ -13,10 +13,10 @@ import { usePathname, useSearchParams } from "next/navigation";
 
 import { useRouter } from "@/lib/unsavedGuard";
 
-/** 回の詳細の検索の名前 */
+/** 送信の詳細の検索の名前 */
 export const DISPATCH_DETAIL_PARAM = "dispatch";
 
-/** 一覧の住所(既定 /admin/messaging)の上で回の詳細を開く住所 */
+/** 一覧の住所(既定 /admin/messaging)の上で送信の詳細を開く住所 */
 export function dispatchDetailHref(listPath: string, dispatchId: string): string {
   return `${listPath}?${DISPATCH_DETAIL_PARAM}=${encodeURIComponent(dispatchId)}`;
 }

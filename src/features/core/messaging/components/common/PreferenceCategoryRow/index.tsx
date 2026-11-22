@@ -1,8 +1,8 @@
 // src/features/core/messaging/components/common/PreferenceCategoryRow/index.tsx
-// 部品(props だけ): 1 つの経路の中の 1 つの種類(題・説明・その経路での切り替え。入 = 受け取る)。
+// 部品(props だけ): 1 つの送信チャンネルの中の 1 つのカテゴリー(題・説明・その送信チャンネルでの切り替え。入 = 受け取る)。
 // 広い行で止まっているマスは切 + 理由。全部の停止(via all)の下だけ押せない(サーバーは全部の行を書き分けない)。
-// ほかの広い行(種類・種別・経路まるごと)の下は押せて、入にするとサーバーが 1 つの transaction で書き分ける。
-// 行に足す操作(種類まるごとの切り替えなど)は children
+// ほかの広い行(カテゴリー・種別・送信チャンネルまるごと)の下は押せて、入にするとサーバーが 1 つの transaction で書き分ける。
+// 行に足す操作(カテゴリーまるごとの切り替えなど)は children
 
 "use client";
 
@@ -20,9 +20,9 @@ import type {
 } from "@/features/core/messaging/services/client/preferenceClient";
 
 export type PreferenceCategoryRowProps = {
-  /** 1 つの経路での種類(応答の channels[].kinds[].groups[].categories[]) */
+  /** 1 つの送信チャンネルでのカテゴリー(応答の channels[].kinds[].groups[].categories[]) */
   category: MessagePreferenceCategoryDto;
-  /** 経路の表示名(切り替えの読み上げ) */
+  /** 送信チャンネルの表示名(切り替えの読み上げ) */
   channelLabel: string;
   /** 押せなくする(変えている最中・全部を止めている間) */
   disabled?: boolean;

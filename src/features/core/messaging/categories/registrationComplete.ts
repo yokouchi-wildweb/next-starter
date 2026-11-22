@@ -1,5 +1,5 @@
 // src/features/core/messaging/categories/registrationComplete.ts
-// 上流の種類: 会員登録の完了(種別 transactional)。user.registrationComplete・user.earlyRegistrationComplete
+// 上流のカテゴリー: 会員登録の完了(種別 transactional)。user.registrationComplete・user.earlyRegistrationComplete
 
 import type { MessageCategory } from "@/lib/messaging";
 

@@ -1,5 +1,5 @@
 // src/features/core/messaging/layouts/statement/email.tsx
-// ひな形「お知らせの明細」のメールの描き方(server の一覧 layoutEmails)。見た目は ./StatementEmail(1 行スイッチ)
+// レイアウト「お知らせの明細」のメールの描き方(server の一覧 layoutEmails)。見た目は ./StatementEmail(1 行スイッチ)
 
 import type { MessageLayoutEmailRenderer } from "@/lib/messaging";
 

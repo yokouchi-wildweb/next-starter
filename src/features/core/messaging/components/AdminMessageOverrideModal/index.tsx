@@ -1,14 +1,14 @@
 // src/features/core/messaging/components/AdminMessageOverrideModal/index.tsx
-// セクションコンテナ(管理: 1 連絡の文言の上書きを直すモーダル。D87)。開閉は置き場が持つ(open・onOpenChange・messageKey)。
-// 中身 = 連絡の名前・種類 / カテゴリーの表示名(連絡の鍵は見せない、D46)・直せる欄の案内(既定でひな形の全欄、連絡が絞ればその欄だけ、D132)・
+// セクションコンテナ(管理: 1 連絡のテキストの編集のモーダル。D87)。開閉は置き場が持つ(open・onOpenChange・messageKey)。
+// 中身 = 連絡の名前・種類 / カテゴリーの表示名(連絡の鍵は見せない、D46)・直せる欄の案内(既定でレイアウトの全欄、連絡が絞ればその欄だけ、D132)・
 // 使えない行の数 + 2 つのペイン(テンプレート・送るモーダルと同じ形):
-// 左 = 今の経路のプレビュー(上書きと下書きを重ねたひな形の描き方。部品 LayoutPreview: 経路のタブはここだけ、メールは描いた HTML で
-// 入力中の欄を枠で示す、お知らせはひな形のお知らせの描き方)、右 = 名前・種別とカテゴリー(読むだけ)・欄ごとの編集。
+// 左 = 今の送信チャンネルのプレビュー(上書きと下書きを重ねたレイアウトの描き方。部品 LayoutPreview: 送信チャンネルのタブはここだけ、メールは描いた HTML で
+// 入力中の欄を枠で示す、お知らせはレイアウトのお知らせの描き方)、右 = 名前・種別とカテゴリー(読むだけ)・欄ごとの編集。
 // 埋め込み情報は下の帯の左の吹き出し(VarPopover)。高さは固定。
 // 変数の名前は別名で見せる(D133: 入力・元の文言・使えない名前・プレビューの {{鍵}} → {{別名}}、hook が変える)。
 // 下の帯の左に「すべてデフォルトに戻す」(D136: 確かめて、保存してある欄の全部に戻す印・下書きを捨てる。保存で当たる)
 // 保存は 1 回(D132、テンプレートのモーダルと同じ): 下の帯の右の「保存」が直した欄の全部をまとめて保存する(確かめ・保存の間 loading、
-// 1 つの取引、通らない欄は欄に理由)。欄ごとの操作は「元の文言に戻す」だけ(保存で当たる。部品 OverrideFieldEditor、入力はひな形の欄の型から LayoutFieldInput)。
+// 1 つの取引、通らない欄は欄に理由)。欄ごとの操作は「元の文言に戻す」だけ(保存で当たる。部品 OverrideFieldEditor、入力はレイアウトの欄の型から LayoutFieldInput)。
 // 流れは hook useMessageOverrideEditor。部品は公開の部品だけなので、fork は自分の画面にも同じモーダルを置ける。
 // 保存していない欄があるまま閉じる = confirmOnClose、ページの移動 = hook の中の @/lib/unsavedGuard。開き直すたびに下書きを捨てる
 
@@ -107,7 +107,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
           {editor.error ? err(editor.error, "文言を取得できませんでした") : "この通知の文言は編集できません"}
         </Para>
       ) : (
-        // 左右 2 つのペイン(テンプレート・送るモーダルと同じ形): 左 = プレビュー(経路のタブはここだけ、md 以上は上に留まる)、
+        // 左右 2 つのペイン(テンプレート・送るモーダルと同じ形): 左 = プレビュー(送信チャンネルのタブはここだけ、md 以上は上に留まる)、
         // 右 = 通知の名前・種別とカテゴリー(読むだけ)→ 注意 → 欄ごとの編集。狭い画面は右が上
         <Flex direction="column" gap="xl" className="md:flex-row-reverse md:items-start" data-slot="override-editor">
           <Stack gap="md" className="min-w-0 md:w-1/2" data-slot="override-editor-controls">

@@ -1,14 +1,14 @@
 // src/features/core/messaging/services/server/sweep/sendStep.ts
 //
-// cron が lease で取った配達の行を送る。中身は回に残した物だけで描き直す(D128、dispatchResolved.ts):
-// 回のひな形と版・欄の中身(values)+ 回の vars + 行の受信者ごとの値 + enrichers + 共通の文脈。定義・テンプレートは引き直さない
-// - 回の欄の中身が無い(values_missing)・ひな形が無い(layout_missing)・送った版を今の版へ読み替えられない(layout_unreadable)
+// cron が lease で取った配達の行を送る。中身は送信に残した物だけで描き直す(D128、dispatchResolved.ts):
+// 送信のレイアウトと版・欄の中身(values)+ 送信の vars + 行の受信者ごとの値 + enrichers + 共通の文脈。定義・テンプレートは引き直さない
+// - 送信の欄の中身が無い(values_missing)・レイアウトが無い(layout_missing)・送った版を今の版へ読み替えられない(layout_unreadable)
 //   ・描けない(definition_invalid)→ failed(reason の符号だけ)
-// - 経路の項目が無い・enabled: false → suppressed + channel_off
+// - 送信チャンネルの項目が無い・enabled: false → suppressed + channel_off
 // - 連絡のドメインが門で閉じている → 送らずに lease を外し、状態を戻して DOMAIN_CLOSED_RETRY_MS 先送り(開けば送る、D77)
 // - 送る直前に配信停止を確かめ直す(好み・宛先の停止 → suppressed + reason。宛先の 1 つにもう送れた行は sent のまま)
-// - 送った後の行の受信者ごとの値は回の record に従う(meta なら消す)。full なら描いた本文を残す
-// - throttle のある連絡は経路の send の前に間引きを当てる(sendMessage/throttle.ts)
+// - 送った後の行の受信者ごとの値は送信の record に従う(meta なら消す)。full なら描いた本文を残す
+// - throttle のある連絡は送信チャンネルの send の前に間引きを当てる(sendMessage/throttle.ts)
 // required・秘密の連絡はキューに置かれない(送る口が要求の中で送り切る)ので、ここには来ない
 
 import { DomainError } from "@/lib/errors";
@@ -44,12 +44,12 @@ async function loadDefinition(
   dispatch: MessageDispatch,
 ): Promise<{ resolved: AnyResolvedMessageDefinition; policy: RecordPolicy } | { error: string }> {
   try {
-    // 回の欄の中身が無ければ描けない(record meta で閉じた回。送り残しのある回は持っている)
+    // 送信の欄の中身が無ければ描けない(record meta で閉じた送信。送り残しのある送信は持っている)
     if (!dispatch.values) return { error: "values_missing" };
     const loaded = await resolvedOfDispatch(deps, dispatch);
     if ("error" in loaded) return loaded;
     const { resolved } = loaded;
-    // 本文の残し方は送った時の回に固定した値(後の上書きで変えない)
+    // 本文の残し方は送った時の送信に固定した値(後の上書きで変えない)
     const policy = recordPolicyOf({ ...resolved, record: dispatch.record ?? resolved.record });
     return { resolved, policy };
   } catch (error) {
@@ -118,7 +118,7 @@ export async function sendClaimed(
       continue;
     }
     const rowsById = new Map(group.map((row) => [row.id, row]));
-    // 差し込みの表 = vars ∪ 専用の埋め込み情報の値(テンプレートから送った回、指令 58)
+    // 差し込みの表 = vars ∪ 専用の埋め込み情報の値(テンプレートからの送信、指令 58)
     const vars = { ...(dispatch!.vars ?? {}), ...(dispatch!.embedded_values ?? {}) } as Record<string, unknown>;
     const userIds = [...new Set(group.flatMap((row) => (row.user_id ? [row.user_id] : [])))];
     const users = new Map((await deps.store.findUsers(userIds)).map((user) => [user.id, user]));

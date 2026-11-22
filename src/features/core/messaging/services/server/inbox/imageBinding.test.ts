@@ -1,8 +1,8 @@
-// お知らせの画像を回に結ぶ規則(imageBinding.ts)の検査。台帳は偽物
-// - 自分(回の actor)が上げた未紐付けの画像はそのまま attach、別の人の・他の行に結ばれた・用途の違う画像は回ごとに 1 回複製して attach
-// - 回の metadata.inboxImages の対応があれば使い回す(束・送り直し)、既にこの回に結ばれた画像はそのまま
+// お知らせの画像を送信に結ぶ規則(imageBinding.ts)の検査。台帳は偽物
+// - 自分(送信の actor)が上げた未紐付けの画像はそのまま attach、別の人の・他の行に結ばれた・用途の違う画像は送信ごとに 1 回複製して attach
+// - 送信の metadata.inboxImages の対応があれば使い回す(束・送り直し)、既にこの送信に結ばれた画像はそのまま
 // - storage:// でない値は結ばない。保持の掃除が外す参照の一覧
-// - 展開の共有の行(bindExpansionImage): 行の画像を結んだ参照にし、対応を回の patch の metadata に入れる
+// - 展開の共有の行(bindExpansionImage): 行の画像を結んだ参照にし、対応を送信の patch の metadata に入れる
 // 実行: pnpm test src/features/core/messaging/services/server/inbox
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -47,7 +47,7 @@ const ready = (over: Partial<InboxImageObject> = {}): InboxImageObject => ({
 
 const dispatch = { id: "d1", actor_id: "admin-1", metadata: { keep: 1 } as Record<string, unknown> | null };
 
-test("回の actor が上げた未紐付けの画像はそのまま回に attach し、対応を metadata に足す", async () => {
+test("送信の actor が上げた未紐付けの画像はそのまま送信に attach し、対応を metadata に足す", async () => {
   const { ledger, attached, copied } = fakeLedger({ [ref(1)]: ready() });
   const { map, metadata } = await bindInboxImages(ledger, "tx", dispatch, [ref(1), ref(1)]);
   assert.equal(map.get(ref(1)), ref(1));
@@ -73,7 +73,7 @@ test("別の人が上げた・他の行に結ばれた・用途の違う・台�
   }
 });
 
-test("対応があれば使い回す・既にこの回に結ばれた画像はそのまま(台帳に触らない / metadata は変えない)", async () => {
+test("対応があれば使い回す・既にこの送信に結ばれた画像はそのまま(台帳に触らない / metadata は変えない)", async () => {
   const { ledger, attached, copied } = fakeLedger({ [ref(2)]: ready({ recordType: "messaging.dispatch", recordId: "d1" }) });
   const known = { ...dispatch, metadata: { [INBOX_IMAGES_METADATA_KEY]: { [ref(1)]: ref(9) } } };
   const first = await bindInboxImages(ledger, "tx", known, [ref(1)]);
@@ -93,7 +93,7 @@ test("storage:// でない値(固定の URL)は結ばない", async () => {
   assert.deepEqual([attached.length, copied.length], [0, 0]);
 });
 
-test("system の回(actor null)は持ち主なしの画像だけをそのまま attach する", async () => {
+test("system の送信(actor null)は持ち主なしの画像だけをそのまま attach する", async () => {
   const { ledger, attached, copied } = fakeLedger({ [ref(1)]: ready({ ownerUserId: null }), [ref(2)]: ready() });
   await bindInboxImages(ledger, "tx", { ...dispatch, actor_id: null }, [ref(1), ref(2)]);
   assert.deepEqual(attached.map((row) => row.ref).slice(0, 1), [ref(1)]);
@@ -107,7 +107,7 @@ test("保持の掃除が外す参照: 対応の値のうち storage:// だけ(�
   assert.deepEqual(boundInboxImageRefs(null), []);
 });
 
-test("展開の共有の行: 画像を結んだ参照にし、対応を回の patch の metadata に入れる(patch の metadata があれば足す)", async () => {
+test("展開の共有の行: 画像を結んだ参照にし、対応を送信の patch の metadata に入れる(patch の metadata があれば足す)", async () => {
   const { ledger } = fakeLedger({ [ref(1)]: ready({ ownerUserId: "x" }) });
   const item = { dispatch_id: "d1", user_id: null, target_roles: null, title: "題", body: "本文", link: null, image: ref(1), published_at: new Date(0) };
   const out = await bindExpansionImage(ledger, "tx", dispatch, { rows: [], patch: { expand_cursor: "~done", metadata: { p: 1 } }, inboxItem: item });

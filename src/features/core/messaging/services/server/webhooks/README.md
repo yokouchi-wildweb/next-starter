@@ -6,8 +6,8 @@ provider（Resend・SendGrid など）の事件を配達の行と記録に当て
 
 ## API
 
-- 生の本文で経路の項目の `webhooks[provider].verify` → `normalize`（`ChannelWebhookEvent`）→ `applyEvents.ts` が当てる
-- 知らない経路・provider は 404、鍵（env）が無ければ 503、署名の誤りは 401、当てる処理の誤りは 500（provider が送り直す）
+- 生の本文で送信チャンネルの項目の `webhooks[provider].verify` → `normalize`（`ChannelWebhookEvent`）→ `applyEvents.ts` が当てる
+- 知らない送信チャンネル・provider は 404、鍵（env）が無ければ 503、署名の誤りは 401、当てる処理の誤りは 500（provider が送り直す）
 - メールの項目: Resend（`RESEND_WEBHOOK_SECRET`）と SendGrid（`SENDGRID_WEBHOOK_PUBLIC_KEY`）を lib/mail/webhooks の検証と正規化で並べる。送る時に配達の id を provider のタグ（`delivery_id`。Resend tags・SendGrid custom_args）で渡し、事件の `deliveryId` で読み戻す
 - 事件の種類（メール）: `sent` / `delivered` / `deferred` / `bounced_hard` / `bounced_soft` / `complained` / `opened` / `clicked` / `dropped` / `unsubscribed` / `other`
 

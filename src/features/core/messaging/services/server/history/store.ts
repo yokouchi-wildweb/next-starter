@@ -1,6 +1,6 @@
 // src/features/core/messaging/services/server/history/store.ts
 //
-// 利用者ごとの履歴の DB(drizzle)。配達を回と結び、(created_at, id) の降順の keyset。
+// 利用者ごとの履歴の DB(drizzle)。配達を送信と結び、(created_at, id) の降順の keyset。
 // 索引 idx_message_deliveries_user_created(user_id, created_at desc, id desc)で引く。本文・宛先の列は選ばない
 
 import { and, desc, eq, lt, or, type SQL } from "drizzle-orm";

@@ -4,7 +4,7 @@ export { messagingService } from "./messagingService";
 export type { MessagingService } from "./messagingService";
 
 export { sendMessage, sendMessageToMany, sendTemplateMessage } from "./sendMessage";
-/** 管理者がその場で送れる種別(白紙のシステムテンプレートの種別)と受け口の検査 */
+/** 管理者が自由連絡で送れる種別(白紙のシステムテンプレートの種別)と受け口の検査 */
 export { adminSendableKinds, checkSystemTemplates, isAdminSendableKind, TEMPLATE_MESSAGE_KEY } from "./sendMessage";
 export { continueSending, pruneMessagingRecords, runSendSweep } from "./sweep";
 /** 購読(cron messaging-subscribers と運用の再処理) */
@@ -37,7 +37,7 @@ export { existingDispatchIds } from "./inbox/dispatchRecords";
 export { INBOX_IMAGE_RECORD_TYPE } from "./inbox/imageBinding";
 /** storage の照合へ渡すテンプレートの画像の紐付け先の有無 */
 export { existingTemplateIds, TEMPLATE_IMAGE_RECORD_TYPE } from "./templates";
-/** storage の照合へ渡す文言の上書きの画像の紐付け先の有無 */
+/** storage の照合へ渡すテキストの編集の画像の紐付け先の有無 */
 export { existingOverrideIds, OVERRIDE_IMAGE_RECORD_TYPE } from "./overrides";
 export type {
   AdminTemplateDetail,

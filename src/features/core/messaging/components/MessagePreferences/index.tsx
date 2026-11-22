@@ -1,11 +1,11 @@
 // src/features/core/messaging/components/MessagePreferences/index.tsx
-// セクションコンテナ(本人の通知の設定)。応答の入れ子のまま 経路 > 種別の枠 > グループ > 種類 に並べる(D60・D62・D82・D86):
+// セクションコンテナ(本人の通知の設定)。応答の入れ子のまま 送信チャンネル > 種別の枠 > グループ > カテゴリー に並べる(D60・D62・D82・D86):
 // - 上に「すべての連絡を止める」(全部)
-// - 経路の枠(PreferenceChannelSection)ごとに経路まるごとの切り替え、宛先の無い経路は連携の案内
+// - 送信チャンネルの枠(PreferenceChannelSection)ごとに送信チャンネルまるごとの切り替え、宛先の無い送信チャンネルは連携の案内
 // - 種別の枠(PreferenceKindFrame)は見出しだけ(種別のスイッチは出さない、D62。表示名は constants の MESSAGE_KIND_LABELS = 仮)
-// - グループの見出し(PreferenceGroupHeading、グループの無い種類は見出し無しで先)→ 種類の行(PreferenceCategoryRow = その経路の 1 マス)
-// - 種類まるごと(すべての経路)の切り替え(PreferenceCategoryWideToggle)は、その種類が最初に出る経路の行に 1 回だけ置く
-// - 全部を止めている間は広い切り替え(経路まるごと・種類まるごと)も止まった状態で見せて押せない(stoppedByAll)
+// - グループの見出し(PreferenceGroupHeading、グループの無いカテゴリーは見出し無しで先)→ カテゴリーの行(PreferenceCategoryRow = その送信チャンネルの 1 マス)
+// - カテゴリーまるごと(すべての送信チャンネル)の切り替え(PreferenceCategoryWideToggle)は、そのカテゴリーが最初に出る送信チャンネルの行に 1 回だけ置く
+// - 全部を止めている間は広い切り替え(送信チャンネルまるごと・カテゴリーまるごと)も止まった状態で見せて押せない(stoppedByAll)
 // 読み書きは hook useMessagePreferences だけ。取引の連絡(パスワードの再設定など)はここに出ず、止められない。
 // 下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
@@ -32,7 +32,7 @@ import { MESSAGE_KIND_LABELS } from "@/features/core/messaging/constants/kindLab
 import { useMessagePreferences } from "@/features/core/messaging/hooks/useMessagePreferences";
 
 export type MessagePreferencesProps = {
-  /** 経路が 1 つも無いときの文言 */
+  /** 送信チャンネルが 1 つも無いときの文言 */
   emptyText?: string;
 };
 

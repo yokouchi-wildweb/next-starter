@@ -1,5 +1,5 @@
 // src/features/core/messaging/categories/passwordReset.ts
-// 上流の種類: パスワードの再設定(種別 functional)。auth.passwordReset
+// 上流のカテゴリー: パスワードの再設定(種別 functional)。auth.passwordReset
 
 import type { MessageCategory } from "@/lib/messaging";
 

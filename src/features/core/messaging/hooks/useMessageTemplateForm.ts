@@ -3,14 +3,14 @@
 // src/features/core/messaging/hooks/useMessageTemplateForm.ts
 //
 // 管理: テンプレートを作る・直す画面の書く欄と操作(部品はこれを呼んで描くだけ。CLAUDE.md core_ui_guards)。
-// - 順 = 種別 → カテゴリー(種別を選ぶと最初の物を自動で選ぶ。1 つでも出す、D118)→ ひな形(管理者が選べる物)→ 中身(D115)。新しく作る時は種別を先に選ばない(D110)
-// - 中身 = ひな形の欄(useLayoutFieldsForm)。経路は種類が決め、経路だけの欄とプレビューのタブはその分(D115)
-// - ひな形を替える: 中身があれば確かめてから消す(pendingLayout → confirmLayoutChange、D113)。中身の付け替えはしない
-// - 保存 = 作る(POST)か直す(PATCH)の 1 回で公開(作る = 版 1、直す = 中身が違えば新しい版、D134)。同じ中身なら unchanged →「変更はありません」。名前・説明・種類・ひな形・中身・専用の埋め込み情報
+// - 順 = 種別 → カテゴリー(種別を選ぶと最初の物を自動で選ぶ。1 つでも出す、D118)→ レイアウト(管理者が選べる物)→ 中身(D115)。新しく作る時は種別を先に選ばない(D110)
+// - 中身 = レイアウトの欄(useLayoutFieldsForm)。送信チャンネルはカテゴリーが決め、送信チャンネルだけの欄とプレビューのタブはその分(D115)
+// - レイアウトを替える: 中身があれば確かめてから消す(pendingLayout → confirmLayoutChange、D113)。中身の付け替えはしない
+// - 保存 = 作る(POST)か直す(PATCH)の 1 回で公開(作る = 版 1、直す = 中身が違えば新しい版、D134)。同じ中身なら unchanged →「変更はありません」。名前・説明・カテゴリー・レイアウト・中身・専用の埋め込み情報
 // - 専用の埋め込み情報 = 『専用の埋め込み情報を管理』のモーダルで足す・直す(varsEditor。適用で検査を通った物だけ反映、D126)
 // - 埋め込み情報のタグ = 選択肢の baseCatalog(共通 + enrichers)+ 専用。中身の中の知らない {{名前}} を返す
-// - システムテンプレート(system)は読むだけ(保存しない、D117)。削除 = remove(版も消え、送った回は残る、D137。成功で true)
-// - 中身の入力と埋め込み情報は fieldsReady(ひな形・種別・カテゴリーがそろい、カテゴリーに経路が 1 つ以上)まで出さない。
+// - システムテンプレート(system)は読むだけ(保存しない、D117)。削除 = remove(版も消え、送信は残る、D137。成功で true)
+// - 中身の入力と埋め込み情報は fieldsReady(レイアウト・種別・カテゴリーがそろい、カテゴリーに送信チャンネルが 1 つ以上)まで出さない。
 //   それまでは fieldsHint(先に選ぶ物の 1 行、D139)
 // - 書きかけがある間は離れる前に確かめる(@/lib/unsavedGuard。モーダルを閉じる前の確かめは closeConfirm)
 // - 作った後は onCreated(id) を呼ぶ(モーダルがその 1 件を直す形に変わる。ページは移らない)
@@ -159,7 +159,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
   const readOnly = system;
 
   const categories = useMemo(() => options?.categories ?? [], [options]);
-  /** 種別の選択肢(種類のある物だけ、lib の並び) */
+  /** 種別の選択肢(カテゴリーのある物だけ、lib の並び) */
   const kindOptions = useMemo(
     () =>
       MESSAGE_KINDS.filter((kind) => (TEMPLATE_KINDS as readonly string[]).includes(kind) && categories.some((category) => category.kind === kind)).map(
@@ -185,7 +185,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
   );
   const channels = useMemo(() => categories.find((item) => item.key === category)?.channels ?? [], [categories, category]);
   const layoutOption = useMemo(() => options?.layouts.find((item) => item.key === layout) ?? null, [options, layout]);
-  // 保存した中身は保存した時のひな形の間だけ(ひな形を替えたら空から、D113)
+  // 保存した中身は保存した時のレイアウトの間だけ(レイアウトを替えたら空から、D113)
   const savedValues = useMemo(() => (template && template.layout === layout ? template.values : null), [template, layout]);
 
   const valuesForm = useLayoutFieldsForm({ layout: layoutOption, values: savedValues, channels, readOnly });
@@ -201,7 +201,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     [categories],
   );
 
-  /** ひな形を替える(中身があれば確かめる。無ければすぐ) */
+  /** レイアウトを替える(中身があれば確かめる。無ければすぐ) */
   const requestLayoutChange = useCallback(
     (next: string) => {
       if (next === layout) return;
@@ -382,7 +382,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     }
   }, [readOnly, validate, id, updateMutation, createMutation, buildInput, showToast, onCreated, onChanged, valuesForm.form, mutate]);
 
-  /** 削除(版も消え、送った回は残る、D137)。消せたら true(呼び手がモーダルを閉じる) */
+  /** 削除(版も消え、送信は残る、D137)。消せたら true(呼び手がモーダルを閉じる) */
   const remove = useCallback(async (): Promise<boolean> => {
     if (!id || system || !template) return false;
     try {
@@ -396,7 +396,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     }
   }, [id, system, template, deleteMutation, showToast, onChanged]);
 
-  // 中身の入力を出せるか(D139): ひな形・種別・カテゴリーがそろい、カテゴリーに経路が 1 つ以上
+  // 中身の入力を出せるか(D139): レイアウト・種別・カテゴリーがそろい、カテゴリーに送信チャンネルが 1 つ以上
   const missing = [!kind ? "種別" : null, !category ? "カテゴリー" : null, !layoutOption ? "ひな形" : null].filter((item): item is string => item !== null);
   const fieldsReady = missing.length === 0 && channels.length > 0;
   const fieldsHint = fieldsReady
@@ -439,7 +439,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
       pendingLayout,
       confirmLayoutChange,
       cancelLayoutChange,
-      /** 送る経路(種類の経路) */
+      /** 使う送信チャンネル(カテゴリーの送信チャンネル) */
       channels,
     },
     /** 中身のフォーム(部品 LayoutFields に control と fields) */

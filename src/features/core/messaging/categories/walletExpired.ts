@@ -1,5 +1,5 @@
 // src/features/core/messaging/categories/walletExpired.ts
-// 上流の種類: 残高の失効(種別 transactional)。wallet.expiredNotice
+// 上流のカテゴリー: 残高の失効(種別 transactional)。wallet.expiredNotice
 
 import type { MessageCategory } from "@/lib/messaging";
 

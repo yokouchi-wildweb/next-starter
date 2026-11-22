@@ -1,4 +1,4 @@
-// 上流のひな形「セキュリティの警告」: 宣言・要約・メール(前の accountLocked と同じ部品の並び、空の値の行は出さない)・お知らせ・生成の一覧に載る
+// 上流のレイアウト「セキュリティの警告」: 宣言・要約・メール(前の accountLocked と同じ部品の並び、空の値の行は出さない)・お知らせ・生成の一覧に載る
 // 実行: pnpm test src/features/core/messaging/layouts/alert/alert.test.tsx
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -41,7 +41,7 @@ function assertOrder(html: string, texts: string[]) {
   }
 }
 
-test("宣言: セキュリティの警告、コードの連絡だけ、件名・見出し・説明が必須", () => {
+test("宣言: セキュリティの警告、定義連絡だけ、件名・見出し・説明が必須", () => {
   assert.equal(layout.key, "alert");
   assert.equal(layout.adminSelectable, false);
   assert.equal(layoutValuesSchema(layout).safeParse(values).success, true);

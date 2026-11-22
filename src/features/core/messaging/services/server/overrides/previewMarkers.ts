@@ -1,7 +1,7 @@
 // src/features/core/messaging/services/server/overrides/previewMarkers.ts
 //
-// 文言の編集のプレビュー(D86)で、描いた HTML の中の欄の場所に印 data-field="<欄の鍵>" を付ける。
-// 描き方を変えずに済むよう、描く前にひな形の欄の中身の文字を目に見えない印の文字で包み、描いた後の HTML で印を <span data-field> に置き換える。
+// テキストの編集のプレビュー(D86)で、描いた HTML の中の欄の場所に印 data-field="<欄の鍵>" を付ける。
+// 描き方を変えずに済むよう、描く前にレイアウトの欄の中身の文字を目に見えない印の文字で包み、描いた後の HTML で印を <span data-field> に置き換える。
 // プレビューの時だけ(送る時は包まない)。
 // - 包むのは文字: 1行テキスト・段落・複数行テキスト、その並び、ボタン・リンクの label、ブロックの text・label・箇条書きの項目、組の中の同じ物。
 //   画像・URL・日付・数・選択肢は属性や形の決まった値なので包まない
@@ -49,7 +49,7 @@ function wrapValue(value: unknown, shape: MessageFieldShape, path: string): unkn
   return value;
 }
 
-/** ひな形の欄の中身を印で包む(印の道 = 欄の鍵) */
+/** レイアウトの欄の中身を印で包む(印の道 = 欄の鍵) */
 export function wrapPreviewValues(layout: MessageLayout, values: Readonly<Record<string, unknown>>): Record<string, unknown> {
   const out: Record<string, unknown> = { ...values };
   for (const [key, spec] of Object.entries(layout.fields)) {

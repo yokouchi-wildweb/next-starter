@@ -1,6 +1,6 @@
 // src/features/core/messaging/components/common/TemplateVersionList/index.tsx
 // 部品(props だけ): 公開した版の一覧(新しい順)と、選んだ 1 版の中身(読むだけ。版は書き換えない)。
-// 中身は欄の見出しと中身を読むだけの一覧で見せる(ひな形の表示名・欄の見出しは layouts から)
+// 中身は欄の見出しと中身を読むだけの一覧で見せる(レイアウトの表示名・欄の見出しは layouts から)
 
 "use client";
 
@@ -20,7 +20,7 @@ export type TemplateVersionListProps = {
   versions: AdminTemplateVersion[];
   /** 今の公開の版(印を付ける) */
   currentVersion?: number | null;
-  /** 選べるひな形(表示名と欄の見出しに使う。鍵は見せない、D46) */
+  /** 選べるレイアウト(表示名と欄の見出しに使う。鍵は見せない、D46) */
   layouts?: readonly { key: string; label: string; fields: MessageLayoutFields }[];
 };
 

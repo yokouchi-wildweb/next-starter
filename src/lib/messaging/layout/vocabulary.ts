@@ -1,6 +1,6 @@
 // src/lib/messaging/layout/vocabulary.ts
 //
-// ひな形の欄の型の語彙(D123)。lib に 1 か所で固定し、入力・zod・記録・要約・プレビューの 5 か所が読む。
+// レイアウトの欄の型の語彙(D123)。lib に 1 か所で固定し、入力・zod・記録・要約・プレビューの 5 か所が読む。
 // fork は型を増やさない(入力の部品は src/wiring/formInputs の受け口に登録する)。
 // - line 1行テキスト / paragraph 段落 / longText 複数行テキスト / image 画像(storage:// の参照か URL)/ button ボタン {label, url} /
 //   link リンク {label?, url} / date 日付 YYYY-MM-DD / number 数 / select 選択肢 / list 並び(1 つの型の並び)/
@@ -48,7 +48,7 @@ export const MESSAGE_FIELD_TYPE_LABELS: Readonly<Record<MessageFieldType, string
   blocks: "ブロックの並び",
 };
 
-/** 並び・組の中の欄(見出し・経路の印を持たない形) */
+/** 並び・組の中の欄(見出し・送信チャンネルの印を持たない形) */
 export type MessageFieldShape =
   | { type: "line" | "paragraph" | "longText" | "image" | "button" | "link" | "date" | "number" | "keyValue" }
   | { type: "select"; options: readonly { value: string; label: string }[] }
@@ -56,7 +56,7 @@ export type MessageFieldShape =
   | { type: "group"; fields: Readonly<Record<string, MessageFieldShape & { label?: string; required?: boolean }>> }
   | ({ type: "blocks" } & MessageBlocksConstraint);
 
-/** ひな形の欄 1 つの宣言 */
+/** レイアウトの欄 1 つの宣言 */
 export type MessageFieldSpec = MessageFieldShape & {
   /** 欄の見出し(管理画面) */
   label: string;
@@ -64,7 +64,7 @@ export type MessageFieldSpec = MessageFieldShape & {
   placeholder?: string;
   /** 必須(空を通さない) */
   required?: boolean;
-  /** この欄を使う経路の鍵(無い = 全部の経路)。経路だけの欄の印(ひな形の型は経路を知らず、鍵を値として持つだけ) */
+  /** この欄を使う送信チャンネルの鍵(無い = 全部の送信チャンネル)。送信チャンネルだけの欄の印(レイアウトの型は送信チャンネルを知らず、鍵を値として持つだけ) */
   channels?: readonly string[];
 };
 

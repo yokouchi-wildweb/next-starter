@@ -2,9 +2,9 @@
 // - 管理者の再検査(service): admin の利用者と system は通る、他は 403
 // - 一括送信: userIds / target + recordIds、重複を除く、中身は送る画面と同じ { template, values, edited?, vars? }(D117、専用の値は vars 指令 58)を送る口 sendTemplateMessage へ、
 //   カテゴリー(必須、bulk で送れる種別 direct・promotion だけ)、送り元、afterSend(送った欄の中身と出どころ、失敗しても送信は戻さない)、監査 1 行、選択肢
-// - DTO の前の送る口の回 = ひな形(layout)が無い回。テンプレートから送った回(message_key null)は前の回ではない
-// - 読む口: 絞り込みの検査、keyset の印、DTO(本文は記録の段次第、provider の生の値と誤りの文は出さない、前の送る口の回)
-// - グループ宛ての回: 一覧・1 件に宛先のグループ { id(値だけ), name }、名前は 1 ページに 1 回引く、引けなければ null、detail.target は形だけ
+// - DTO の前の送る口の送信 = レイアウト(layout)が無い送信。テンプレートからの送信(message_key null)は前の送信ではない
+// - 読む口: 絞り込みの検査、keyset の印、DTO(本文は記録の段次第、provider の生の値と誤りの文は出さない、前の送る口の送信)
+// - グループ宛ての送信: 一覧・1 件に宛先のグループ { id(値だけ), name }、名前は 1 ページに 1 回引く、引けなければ null、detail.target は形だけ
 // - 続きを送る: 監査 1 行
 // 実行: pnpm test src/features/core/messaging/services/server/admin
 import { test } from "node:test";
@@ -58,7 +58,7 @@ const bulkSystemTemplates: Record<string, MessageSystemTemplate> = { direct: bla
 
 const TEMPLATE = "11111111-1111-4111-8111-111111111111";
 const TEMPLATE_VALUES = { subject: "{{name}} 様へ", blocks: [{ type: "paragraph", text: "本文" }] };
-/** 公開中のテンプレートの選択肢(今の版の ひな形・欄の中身・専用の宣言) */
+/** 公開中のテンプレートの選択肢(今の版の レイアウト・欄の中身・専用の宣言) */
 const tplRow = {
   id: TEMPLATE,
   key: "t",
@@ -132,7 +132,7 @@ test("一括送信(userIds): 重複を除き送る口に白紙・欄の中身・
   assert.deepEqual([audits[0].metadata?.source, audits[0].metadata?.category, audits[0].metadata?.kind], ["system", "promotion", "promotion"]);
 });
 
-test("一括送信(target): 記録 → 利用者、運営からのご連絡(direct)で、afterSend に記録・回・数・送った欄の中身・出どころ", async () => {
+test("一括送信(target): 記録 → 利用者、運営からのご連絡(direct)で、afterSend に記録・送信・数・送った欄の中身・出どころ", async () => {
   const { deps, sent, after, audits } = bulkSetup();
   const values = { ...MAIL, blocks: [...MAIL.blocks, { type: "paragraph", text: "お知らせ" }] };
   const result = await adminBulkSend(deps, {
@@ -167,7 +167,7 @@ test("一括送信の入力の誤り・知らない / 使えない target・管�
   await bad({ ...mail });
   await bad({ userIds: ["a"], target: "review", recordIds: ["x"], ...mail });
   await bad({ userIds: ["a"], category: "promotion", channels: ["email"] });
-  // 前の形(経路ごとの content・message の包み・email を上に)と予約は 400
+  // 前の形(送信チャンネルごとの content・message の包み・email を上に)と予約は 400
   await bad({ userIds: ["a"], category: "promotion", channels: ["email"], content: { email: { subject: "s" } } });
   await bad({ userIds: ["a"], category: "promotion", message: { type: "adhoc", email: { subject: "s", body: "b" } } });
   await bad({ userIds: ["a"], category: "promotion", channels: ["email"], email: { subject: "s", body: "b" } });
@@ -232,13 +232,13 @@ test("一括送信のプレビュー・テスト送信: bulk で送れるカテ�
 test("一括送信の選択肢: bulk で送れるカテゴリー、テンプレートは門 messagingTemplates が開の時だけ、管理者でなければ 403", async () => {
   const { deps } = bulkSetup();
   const options = await adminBulkSendOptions(deps);
-  // 経路は送るモーダルと同じ形(受け口の label・閉じた経路は出さない。D83)
+  // 送信チャンネルは送るモーダルと同じ形(受け口の label・閉じた送信チャンネルは出さない。D83)
   assert.deepEqual(options.channels, [
     { key: "email", label: "メール" },
     { key: "inApp", label: "お知らせ" },
   ]);
   assert.deepEqual(options.categories.map((o) => o.key), ["operatorDirect", "promotion", "promoPush"]);
-  // カテゴリーごとにその種別の白紙(その場で書く送りの出どころ)
+  // カテゴリーごとにその種別の白紙(自由連絡の出どころ)
   assert.deepEqual(options.categories.map((o) => o.systemTemplate?.key), ["direct", "promotion", "promotion"]);
   assert.deepEqual(options.templates, [tplRow]);
   assert.deepEqual((await adminBulkSendOptions(bulkSetup({ templatesOpen: false }).deps)).templates, []);
@@ -320,7 +320,7 @@ const FLAGS = operationFlags({ status: "completed", deleted_at: null, record: "m
   unknown: 0,
 });
 
-test("DTO: 本文は記録の段次第、provider の生の値と誤りの文は出さない、前の送る口の回は段に依らず rendered", () => {
+test("DTO: 本文は記録の段次第、provider の生の値と誤りの文は出さない、前の送る口の送信は段に依らず rendered", () => {
   assert.equal(toDispatchDetail(dispatchRow(), FLAGS).body, null);
   assert.equal(toDispatchDetail(dispatchRow(), FLAGS).vars, null);
   assert.deepEqual(toDispatchDetail(dispatchRow({ record: "vars" }), FLAGS).body, { email: { subject: "件名" } });
@@ -330,7 +330,7 @@ test("DTO: 本文は記録の段次第、provider の生の値と誤りの文は
   );
   assert.deepEqual(oldSend.headings, { email: "旧件名" });
   assert.deepEqual(oldSend.body, { email: { subject: "旧件名", paragraphs: ["旧本文"] } });
-  // テンプレートから送った回(message_key null、ひな形あり)は前の回ではない: 本文は記録の段次第
+  // テンプレートからの送信(message_key null、レイアウトあり)は前の送信ではない: 本文は記録の段次第
   const fromTemplate = toDispatchDetail(dispatchRow({ message_key: null, system_template: "promotion" }), FLAGS);
   assert.equal(fromTemplate.body, null);
   assert.equal(fromTemplate.systemTemplate, "promotion");
@@ -363,7 +363,7 @@ test("keyset の印は往復し、壊れた印は 400", () => {
   assert.throws(() => decodeCursor("zzz"), (e: unknown) => e instanceof DomainError && e.status === 400);
 });
 
-test("読む口: 1 件多く引いて次の印を作る、絞り込みを store へ、配達は回の記録の段で絞る、管理者だけ", async () => {
+test("読む口: 1 件多く引いて次の印を作る、絞り込みを store へ、配達は送信の記録の段で絞る、管理者だけ", async () => {
   const seen: unknown[] = [];
   const rows = [dispatchRow({ id: "d3" }), dispatchRow({ id: "d2" }), dispatchRow({ id: "d1" })];
   const store: AdminDispatchStore = {
@@ -384,7 +384,7 @@ test("読む口: 1 件多く引いて次の印を作る、絞り込みを store 
   const first = await listDispatches(deps, { limit: "2", kind: "promotion", category: "campaign", channel: "email", messageKey: "messaging.x" } as never);
   assert.deepEqual(first.items.map((item) => item.id), ["d3", "d2"]);
   assert.ok(first.nextCursor);
-  assert.deepEqual(seen[0], { filter: { kind: "promotion", category: "campaign", channel: "email", deleted: "exclude" }, after: null, limit: 3 }, "定義の鍵では絞らない(落とす)。削除した回は既定で出さない(D88)");
+  assert.deepEqual(seen[0], { filter: { kind: "promotion", category: "campaign", channel: "email", deleted: "exclude" }, after: null, limit: 3 }, "定義の鍵では絞らない(落とす)。削除した送信は既定で出さない(D88)");
   await listDispatches(deps, { cursor: first.nextCursor! });
   assert.deepEqual((seen[1] as { after: unknown }).after, { createdAt: rows[1].createdAt, id: "d2" });
   await assert.rejects(listDispatches(deps, { status: "nope" } as never), (e: unknown) => e instanceof DomainError && e.status === 400);
@@ -399,7 +399,7 @@ test("読む口: 1 件多く引いて次の印を作る、絞り込みを store 
   await rejects403(listDispatches({ ...check(ctx("user1", "user")), dispatchStore: store, operationInputs, sourceLabel: async () => null }));
 });
 
-test("回 1 件: 回の中身(ひな形・版・欄の中身)と、選んだ利用者に送った回の利用者 id(回の一覧 → 配達の行、多すぎ・ほかの形は null)", async () => {
+test("送信 1 件: 送信の中身(レイアウト・版・欄の中身)と、選んだ利用者への送信の利用者 id(送信の一覧 → 配達の行、多すぎ・ほかの形は null)", async () => {
   const userIdCalls: unknown[] = [];
   let fromDeliveries: string[] = ["u1", "u2"];
   const rows: Record<string, MessageDispatch> = {
@@ -430,11 +430,11 @@ test("回 1 件: 回の中身(ひな形・版・欄の中身)と、選んだ利�
   const plain = await findDispatch(deps, "plain");
   assert.deepEqual([plain.templateEdited, plain.content, plain.targetUserIds], [false, null, null]);
   assert.deepEqual((await findDispatch(deps, "listed")).targetUserIds, ["a", "b"]);
-  assert.deepEqual(userIdCalls, [], "一覧を持つ回は配達を引かない");
+  assert.deepEqual(userIdCalls, [], "一覧を持つ送信は配達を引かない");
   assert.deepEqual((await findDispatch(deps, "counted")).targetUserIds, ["u1", "u2"]);
   assert.deepEqual(userIdCalls, [["counted", 10_001]]);
   fromDeliveries = Array.from({ length: 10_001 }, (_, i) => `u${i}`);
-  assert.equal((await findDispatch(deps, "counted")).targetUserIds, null, "上限を超える回は選び直し");
+  assert.equal((await findDispatch(deps, "counted")).targetUserIds, null, "上限を超える送信は選び直し");
   assert.equal((await findDispatch(deps, "role")).targetUserIds, null);
   // 送り元は受け口に表示名がある時だけ表示名、無ければ null(鍵は返さない)
   assert.equal((await findDispatch(deps, "role")).sourceLabel, "管理者の一括送信");
@@ -446,7 +446,7 @@ test("回 1 件: 回の中身(ひな形・版・欄の中身)と、選んだ利�
   assert.equal((await findDispatch(deps, "role")).actorName, null);
 });
 
-test("回の画面の絞りの選択肢: 受け口のカテゴリーの鍵・表示名・種別、管理者だけ", async () => {
+test("送信の画面の絞りの選択肢: 受け口のカテゴリーの鍵・表示名・種別、管理者だけ", async () => {
   const categories = {
     notice: { key: "notice", label: "お知らせ", kind: "announcement", channels: ["email"] },
     forkSale: { key: "forkSale", label: "セール", kind: "promotion", channels: ["inApp"] },
@@ -480,7 +480,7 @@ test("続きを送る: 進めて監査 1 行、管理者でなければ 403", as
   await rejects403(adminContinueSending({ ...deps, ...check(ctx("user1", "user")) }, "d1"));
 });
 
-test("グループ宛ての回: 一覧・1 件に targetGroup { id, name }(1 ページに 1 回引く)、引けなければ name null、detail.target は形だけ", async () => {
+test("グループ宛ての送信: 一覧・1 件に targetGroup { id, name }(1 ページに 1 回引く)、引けなければ name null、detail.target は形だけ", async () => {
   const G1 = "33333333-3333-4333-8333-333333333333";
   const G2 = "44444444-4444-4444-8444-444444444444";
   const group = (groupId: string) => ({ type: "group", groupId, version: 3 });
@@ -508,7 +508,7 @@ test("グループ宛ての回: 一覧・1 件に targetGroup { id, name }(1 ペ
     page.items.map((item) => item.targetGroup),
     [{ id: G1, name: "常連" }, { id: G2, name: null }, null],
   );
-  assert.deepEqual(asked, [[G1, G2]], "1 ページに 1 回、グループ宛ての回の分だけ");
+  assert.deepEqual(asked, [[G1, G2]], "1 ページに 1 回、グループ宛ての送信の分だけ");
   const one = await findDispatch(deps, "d2");
   assert.deepEqual(one.targetGroup, { id: G1, name: "常連" });
   assert.deepEqual(one.target, { type: "group" }, "固定した版・id は target に出さない");

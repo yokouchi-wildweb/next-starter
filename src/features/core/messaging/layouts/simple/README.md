@@ -1,8 +1,8 @@
-# simple（上流のひな形「シンプルなお知らせ」）
+# simple（上流のレイアウト「シンプルなお知らせ」）
 
 ## Overview
 
-件名・サムネイル・本文・リンクのボタンだけの短いお知らせのひな形（D119）。管理者がテンプレートで選べる（`adminSelectable: true`）。管理の 3 種別の既定の白紙（システムテンプレート `announcement`・`direct`・`promotion`）が使う。ブロックを並べるリッチな形は `notice`。受け口の仕組みは `../README.md`、型と語彙は `src/lib/messaging/README.md`「ひな形」。
+件名・サムネイル・本文・リンクのボタンだけの短いお知らせのレイアウト（D119）。管理者がテンプレートで選べる（`adminSelectable: true`）。管理の 3 種別の既定の白紙（システムテンプレート `announcement`・`direct`・`promotion`）が使う。ブロックを並べるリッチな形は `notice`。受け口の仕組みは `../README.md`、型と語彙は `src/lib/messaging/README.md`「レイアウト」。
 
 ## Usage
 

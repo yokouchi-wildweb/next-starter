@@ -1,5 +1,5 @@
 // src/features/core/messaging/layouts/simple/inApp.tsx
-// ひな形「シンプルなお知らせ」のお知らせの描き方(client の一覧 layoutInApps)。見た目は ./SimpleInApp(1 行スイッチ)
+// レイアウト「シンプルなお知らせ」のお知らせの描き方(client の一覧 layoutInApps)。見た目は ./SimpleInApp(1 行スイッチ)
 
 import type { MessageLayoutInAppRenderer } from "@/lib/messaging";
 

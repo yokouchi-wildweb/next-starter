@@ -1,20 +1,20 @@
 // src/features/core/messaging/services/server/overrides/overrideService.ts
 //
-// 管理画面の文言の上書き(D21・D24・D28・D132)の管理の service。/api/admin/messaging/overrides が呼ぶ。
-// - 欄の道 = ひな形の欄の鍵。直せる欄 = ひな形の欄のうち種類の経路で使う物の全部、adminEditableOnly で絞る(lib adminEditableFields)
+// テキストの編集(D21・D24・D28・D132)の管理の service。/api/admin/messaging/overrides が呼ぶ。
+// - 欄の道 = レイアウトの欄の鍵。直せる欄 = レイアウトの欄のうちカテゴリーの送信チャンネルで使う物の全部、adminEditableOnly で絞る(lib adminEditableFields)
 // - 一覧: 生成の一覧の連絡(門の開いたドメインの物)のうち、直せる欄がある(か行が残る)連絡。使えない行の数(unusableCount)
-// - 1 件: 種類の経路(fork の種類の上書きの後)と、直せる欄の全部(宣言の順)+ 使えない・直せなくなった行。
-//   欄ごとに 欄の宣言(型・見出し・仮の文)・使う経路・コードの値(定義の values)・管理画面の値・送る時の値・印(直した / コードが変わった / 使えない)
-// - 行は保存した時のひな形の版を持ち、読む時に改版の対応で今の版の欄へ移す。移せない行・今の検査を通らない行は当てない(unusable、行は消さない)
+// - 1 件: カテゴリーの送信チャンネル(fork のカテゴリーの上書きの後)と、直せる欄の全部(宣言の順)+ 使えない・直せなくなった行。
+//   欄ごとに 欄の宣言(型・見出し・仮の文)・使う送信チャンネル・コードの値(定義の values)・管理画面の値・送る時の値・印(直した / コードが変わった / 使えない)
+// - 行は保存した時のレイアウトの版を持ち、読む時に改版の対応で今の版の欄へ移す。移せない行・今の検査を通らない行は当てない(unusable、行は消さない)
 // - 保存(D132 の 1 回の保存): 直した欄の値と「元の文言に戻す」欄をまとめて 1 つの取引で書く(saveFields。どれかが誤りなら何も書かない)。
 //   値は送る口と同じ検査(lib/messaging checkAdminFieldValue)を通った物だけ。誤りは欄ごとに 400 の details.fields { 欄の鍵: 理由 }(code override_fields_invalid)。
-//   今のひな形の版と直した時のコードの値も残す。同じ欄へ移る前の版の行は消す(1 つの欄に 1 行)。
+//   今のレイアウトの版と直した時のコードの値も残す。同じ欄へ移る前の版の行は消す(1 つの欄に 1 行)。
 //   値の画像(storage:// の参照)は保存の台帳で行に結び、外れた物を外す(imageBinding.ts)
 // - 既定に戻す = その欄へ移る行を全部消す(使えない行は保存した時の鍵で消す)。まとめての保存の reset と、欄 1 つの resetField(DELETE、管理画面は使わない)。
 //   保存と戻すは欄ごとに監査に残す(messaging.override.updated / .reset、値は残さない)
 // - プレビュー(D86): 保存した値と未保存の値(values = { 欄の鍵: 値 }、検査を通る物だけ)をコードの値に重ね、文字の欄を印で包んで(previewMarkers.ts)
-//   送る口と同じ組み立て(sendMessage/content.ts)で経路 1 つを描く。経路に preview が無ければ html は null。
-//   ひな形の鍵・その経路の欄の中身(印なし)・要約も返す(お知らせは client のひな形の描き方 layoutInApps が描く)
+//   送る口と同じ組み立て(sendMessage/content.ts)で送信チャンネル 1 つを描く。送信チャンネルに preview が無ければ html は null。
+//   レイアウトの鍵・その送信チャンネルの欄の中身(印なし)・要約も返す(お知らせは client のレイアウトの描き方 layoutInApps が描く)
 // - 1 件は埋め込み情報の一覧(vars: 共通 + enrichers と enricher と同じ鍵の vars の別名 + 残りの vars)も返す(部品 VarTags)
 // - service でも管理者を確かめる(D42)
 
@@ -58,22 +58,22 @@ export type OverrideServiceDeps = AdminCheckDeps & {
   store: MessageOverrideStore;
   /** 生成の一覧の連絡の鍵 */
   messageKeys: () => string[];
-  /** 連絡の定義(fork の override を重ねた後、管理画面の値は重ねない)・ひな形・検査の束。無い・読めない連絡は null */
+  /** 連絡定義(fork の override を重ねた後、管理画面の値は重ねない)・レイアウト・検査の束。無い・読めない連絡は null */
   loadDefinition: (
     messageKey: string,
   ) => Promise<{ resolved: AnyResolvedMessageDefinition; layout: MessageLayout; check: AdminFieldCheckOptions } | null>;
   recordAudit: (input: AuditRecordInput) => Promise<unknown>;
-  /** 種類の表示名(受け口の label。無ければ null) */
+  /** カテゴリーの表示名(受け口の label。無ければ null) */
   categoryLabel: (category: string) => string | null;
-  /** 経路の受け口の項目の表示(無い経路は null) */
+  /** 送信チャンネルの受け口の項目の表示(無い送信チャンネルは null) */
   channelInfo: (channel: string) => { label: string } | null;
   /** 画像を行に結ぶ台帳(無ければ結ばない = テスト) */
   images?: OverrideImageLedger<unknown>;
-  /** 送る口と同じ組み立ての経路 1 つの中身(差し込みはしない = {{鍵}} のまま) */
+  /** 送る口と同じ組み立ての送信チャンネル 1 つの中身(差し込みはしない = {{鍵}} のまま) */
   channelContent: (resolved: AnyResolvedMessageDefinition, channel: string) => Promise<Record<string, unknown>>;
   /** その連絡の埋め込み情報の一覧(共通 + 当たる enrichers、日本語の別名つき。無ければ空 = テスト) */
   varCatalog?: (resolved: AnyResolvedMessageDefinition) => MessageVarEntry[];
-  /** 経路のプレビュー(経路の受け口の preview。無い経路は null) */
+  /** 送信チャンネルのプレビュー(送信チャンネルの受け口の preview。無い送信チャンネルは null) */
   channelPreview?: (
     channel: string,
     input: { messageKey: string; content: unknown; category?: string },
@@ -226,8 +226,8 @@ export function createOverrideService(deps: OverrideServiceDeps) {
 
   return {
     /**
-     * 経路 1 つのプレビュー(保存した値と未保存の値 values = { 欄の鍵: 値 } をコードの値に重ねる。検査を通らない値は重ねない)。
-     * @throws DomainError(400) 入力の誤り・連絡に無い経路 / (403) 管理者でない / (404) 連絡が無い
+     * 送信チャンネル 1 つのプレビュー(保存した値と未保存の値 values = { 欄の鍵: 値 } をコードの値に重ねる。検査を通らない値は重ねない)。
+     * @throws DomainError(400) 入力の誤り・連絡に無い送信チャンネル / (403) 管理者でない / (404) 連絡が無い
      */
     async previewMessage(messageKey: string, input: unknown): Promise<MessageOverridePreview> {
       await assertAdminActor(deps);
@@ -254,7 +254,7 @@ export function createOverrideService(deps: OverrideServiceDeps) {
         channel,
         html: rendered?.html ? applyPreviewMarkers(rendered.html) : null,
         text: rendered?.text ? stripPreviewMarkers(rendered.text) : null,
-        // お知らせはひな形の描き方(client)で描く材料(印なしの値と要約)
+        // お知らせはレイアウトの描き方(client)で描く材料(印なしの値と要約)
         ...layoutChannelView(layout, values, channel),
       };
     },

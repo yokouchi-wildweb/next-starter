@@ -2,8 +2,8 @@
 //
 // 掃き出し・保持の掃除の DB の読み書き(drizzle)。
 // - 配達の行の取り: UPDATE … WHERE id IN (SELECT … FOR UPDATE SKIP LOCKED) で lease を付ける(並走する cron と重ならない)
-// - 展開: 回の行を FOR UPDATE SKIP LOCKED で取り、配達の行と再開の位置を同じ取引で書く
-// - グループ宛ての固定(D58): 同じ取引の savepoint で SET LOCAL statement_timeout の後に 1 文の INSERT … SELECT(時間の上限なら savepoint を戻し回を止める)
+// - 展開: 送信の行を FOR UPDATE SKIP LOCKED で取り、配達の行と再開の位置を同じ取引で書く
+// - グループ宛ての固定(D58): 同じ取引の savepoint で SET LOCAL statement_timeout の後に 1 文の INSERT … SELECT(時間の上限なら savepoint を戻し送信を止める)
 // - 消す: SKIP LOCKED の CTE で 1 文 = 最大 limit 行(auditLog の掃除と同じ形)
 
 import { and, asc, count, eq, inArray, isNotNull, isNull, lt, lte, ne, notExists, or, sql } from "drizzle-orm";
@@ -45,7 +45,7 @@ function isStatementTimeout(error: unknown): boolean {
 }
 
 /**
- * グループの一員を回の受信者の一覧へ 1 文で書く(1 つの時点。利用できる利用者・送り始めの線以前の登録だけ)。
+ * グループの一員を送信の受信者の一覧へ 1 文で書く(1 つの時点。利用できる利用者・送り始めの線以前の登録だけ)。
  * 時間の上限を超えたら false(savepoint を戻すので取引は続けられる)
  */
 async function freezeRecipients(tx: TransactionClient, dispatchId: string, freeze: NonNullable<ExpansionWrite["freeze"]>): Promise<boolean> {
@@ -74,7 +74,7 @@ export const drizzleMessageSweepStore: MessageSweepStore = {
     const due = db
       .select({ id: MessageDispatchTable.id })
       .from(MessageDispatchTable)
-      // 削除した予約の回は拾わない(D88)
+      // 削除した予約の送信は拾わない(D88)
       .where(
         and(
           eq(MessageDispatchTable.status, "scheduled"),
@@ -96,9 +96,9 @@ export const drizzleMessageSweepStore: MessageSweepStore = {
     return db.transaction(async (tx) => {
       const conditions = [
         eq(MessageDispatchTable.status, "processing"),
-        // 古い送る口の行(ひな形なし)は展開しない。テンプレートから送った回は message_key が null なので鍵では見ない(D128)
+        // 古い送る口の行(レイアウトなし)は展開しない。テンプレートからの送信は message_key が null なので鍵では見ない(D128)
         isNotNull(MessageDispatchTable.layout),
-        // 削除した回は展開しない(削除は展開の位置も終わりにする。念のため)
+        // 削除した送信は展開しない(削除は展開の位置も終わりにする。念のため)
         isNull(MessageDispatchTable.deleted_at),
         or(isNull(MessageDispatchTable.expand_cursor), ne(MessageDispatchTable.expand_cursor, MESSAGE_EXPAND_DONE)),
       ];
@@ -111,7 +111,7 @@ export const drizzleMessageSweepStore: MessageSweepStore = {
         .limit(1)
         .for("update", { skipLocked: true });
       if (!dispatch) return false;
-      // 共有のお知らせの行の画像は回に結ぶ(回の行を排他で持ったこの取引の中で)
+      // 共有のお知らせの行の画像は送信に結ぶ(送信の行を排他で持ったこの取引の中で)
       const write = await bindExpansionImage(storageInboxImageLedger, tx, dispatch, await step(dispatch));
       if (write.freeze) {
         const frozen = await freezeRecipients(tx, dispatch.id, write.freeze);
@@ -258,7 +258,7 @@ export const drizzleMessageRetentionStore: MessageRetentionStore = {
   },
 
   async deleteDispatchesBefore(cutoff, limit) {
-    // 1 つの取引: 消す回を排他で取る → 回に結んだお知らせの画像を台帳から外す(record_removed)→ 冪等の鍵を移す → 消す。
+    // 1 つの取引: 消す送信を排他で取る → 送信に結んだお知らせの画像を台帳から外す(record_removed)→ 冪等の鍵を移す → 消す。
     // 外した画像の実物は commit の後に消す(失敗は storage の掃除が拾う)
     const detachedIds: string[] = [];
     const out = await db.transaction(async (tx) => {

@@ -1,6 +1,6 @@
 // src/features/core/messaging/services/server/unsubscribe/describe.ts
 //
-// 確認のページ(/unsubscribe)が見せる中身: トークンを確かめ、止める種類と経路の表示名を返す(書き込みは無い)。
+// 確認のページ(/unsubscribe)が見せる中身: トークンを確かめ、止めるカテゴリーと送信チャンネルの表示名を返す(書き込みは無い)。
 // 止める処理は API の POST(/api/messaging/unsubscribe)だけ
 
 import type { MessageCategory, MessageChannel } from "@/lib/messaging";
@@ -14,9 +14,9 @@ export type UnsubscribeTokenDescription =
   | { valid: false }
   | {
       valid: true;
-      /** 止める種類の表示名(受け口に無い鍵なら鍵のまま) */
+      /** 止めるカテゴリーの表示名(受け口に無い鍵なら鍵のまま) */
       categoryLabel: string;
-      /** 止める経路の表示名(受け口に無い鍵なら鍵のまま) */
+      /** 止める送信チャンネルの表示名(受け口に無い鍵なら鍵のまま) */
       channelLabel: string;
     };
 

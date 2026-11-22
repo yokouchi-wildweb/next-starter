@@ -2,7 +2,7 @@
 
 // src/features/core/messaging/services/client/preferenceClient.ts
 //
-// 本人の連絡の好み(配信停止。経路 > 種別の枠 > グループ > 種類の入れ子)の API(/api/me/messaging/preferences)。門 messagingPreferences が閉なら 404
+// 本人の連絡の好み(配信停止。送信チャンネル > 種別の枠 > グループ > カテゴリーの入れ子)の API(/api/me/messaging/preferences)。門 messagingPreferences が閉なら 404
 
 import axios from "axios";
 
@@ -46,7 +46,7 @@ export async function getMessagePreferences(): Promise<MessagePreferencesDto> {
   }
 }
 
-/** 1 マス(種類・経路)・全体(どちらも '*')・種別まるごと({ kind })を止める / 再開する。変えた後の表を返す */
+/** 1 マス(カテゴリー・送信チャンネル)・全体(どちらも '*')・種別まるごと({ kind })を止める / 再開する。変えた後の表を返す */
 export async function setMessagePreference(input: SetMessagePreferenceInput): Promise<MessagePreferencesDto> {
   try {
     const res = await axios.patch<{ preferences: MessagePreferencesDto }>(MESSAGE_PREFERENCES_API_PATH, input);

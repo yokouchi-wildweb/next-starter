@@ -1,5 +1,5 @@
 // src/features/core/messaging/layouts/link/email.tsx
-// ひな形「認証のリンク」のメールの描き方(server の一覧 layoutEmails)。見た目は ./LinkEmail(1 行スイッチ)
+// レイアウト「認証のリンク」のメールの描き方(server の一覧 layoutEmails)。見た目は ./LinkEmail(1 行スイッチ)
 
 import type { MessageLayoutEmailRenderer } from "@/lib/messaging";
 

@@ -1,18 +1,18 @@
 // src/features/core/messaging/services/server/admin/operations.ts
 //
 // 管理の操作(D39・D42・D88): 削除・失敗の再送(続きを送るは continueSending.ts)。service でも管理者を確かめ、監査ログに 1 行ずつ。
-// - 削除(delete、D88。取り消し・取り下げを置き換えた): どの状態の回も消せる(論理削除 deleted_at)。回の行を排他で持った取引で
-//   未送信の配達を canceled・送り直しの予定を止め、展開を止めて deleted_at を書く(status は変えない。予約の回も cron が拾わない)。
-//   commit の後に消せる経路(経路の項目の remove、D89。上流は inApp = お知らせの行・共有の行・画像)を呼ぶ。送ったメール・LINE は残る。
-//   削除済みの回をもう一度消すと remove だけを呼び直す(同じ結果、監査は書かない)。経路の remove の失敗は結果に残す(もう一度消せば呼び直す)
-// - まとめて削除(bulk): 1 回の要求で 100 件まで、回ごとに同じ削除(回ごとの取引)、回ごとの結果
-// - 削除の見込み(summary): 確認の画面のため、選んだ回の経路ごとの送れた数(消せる経路か)・未送信の数・予約の数
-// - 失敗の再送(resend): required でない回の failed の配達を送り直す。unknown は includeUnknown の時だけ(二重の可能性を回に残す)。
-//   - 本文を残す連絡(record vars / full): 同じ回のまま配達の行を queued に戻す(同じ冪等の鍵 = 配達の id のまま)。
+// - 削除(delete、D88。取り消し・取り下げを置き換えた): どの状態の送信も消せる(論理削除 deleted_at)。送信の行を排他で持った取引で
+//   未送信の配達を canceled・送り直しの予定を止め、展開を止めて deleted_at を書く(status は変えない。予約の送信も cron が拾わない)。
+//   commit の後に消せる送信チャンネル(送信チャンネルの項目の remove、D89。上流は inApp = お知らせの行・共有の行・画像)を呼ぶ。送ったメール・LINE は残る。
+//   削除済みの送信をもう一度消すと remove だけを呼び直す(同じ結果、監査は書かない)。送信チャンネルの remove の失敗は結果に残す(もう一度消せば呼び直す)
+// - まとめて削除(bulk): 1 回の要求で 100 件まで、送信ごとに同じ削除(送信ごとの取引)、送信ごとの結果
+// - 削除の見込み(summary): 確認の画面のため、選んだ送信の送信チャンネルごとの送れた数(消せる送信チャンネルか)・未送信の数・予約の数
+// - 失敗の再送(resend): required でない送信の failed の配達を送り直す。unknown は includeUnknown の時だけ(二重の可能性を送信に残す)。
+//   - 本文を残す連絡(record vars / full): 同じ送信のまま配達の行を queued に戻す(同じ冪等の鍵 = 配達の id のまま)。
 //     cron(か続きを送る)が lease で取って送るので、cron と再送が同じ宛先を二重に送らない
-//   - record meta の連絡: 同じ回では送り直さず、回の vars(元の入力の写し)で失敗の宛先へ新しい回として送る。写しが無ければ 409
+//   - record meta の連絡: 同じ送信では送り直さず、送信の vars(元の入力の写し)で失敗の宛先へ新しい送信として送る。写しが無ければ 409
 //   - 秘密を差し込む連絡: 秘密の値を残さないので常に 409(送り手のコードからもう一度送る)。required の連絡も 409
-//   - 削除済み・取り消し済み・予約のままの回は 409
+//   - 削除済み・取り消し済み・予約のままの送信は 409
 
 import { z } from "zod";
 
@@ -40,13 +40,13 @@ export type DispatchOperationFlag = { allowed: boolean; reason: DispatchOperatio
 export type DispatchOperationFlags = {
   /** 削除(削除済みは false = reason deleted。service は削除済みにも同じ結果を返す) */
   canDelete: DispatchOperationFlag;
-  /** 失敗の再送。mode = 同じ回で送り直す(requeue)か新しい回として送る(new_dispatch) */
+  /** 失敗の再送。mode = 同じ送信で送り直す(requeue)か新しい送信として送る(new_dispatch) */
   canResend: DispatchOperationFlag & { mode: "requeue" | "new_dispatch" | null; failed: number; unknown: number };
-  /** 続きを送る(送信中の回だけ) */
+  /** 続きを送る(送信中のものだけ) */
   canContinue: DispatchOperationFlag;
 };
 
-/** 回の連絡の性質(定義が読めなければ null) */
+/** 送信の連絡の性質(定義が読めなければ null) */
 export type DispatchPolicy = { required: boolean; secret: boolean; record: string } | null;
 
 
@@ -80,7 +80,7 @@ export function operationFlags(
   else if (policy.secret) resendFlag = no("secret");
   else if (targets === 0) resendFlag = no("no_failed");
   else if (policy.record === "meta") {
-    // 新しい回は回の vars と欄の中身から描く(閉じた回は両方消えている)
+    // 新しい送信は送信の vars と欄の中身から描く(閉じた送信は両方消えている)
     const copied = Boolean(dispatch.vars && dispatch.values);
     resendFlag = copied ? ok : no("no_input_copy");
     mode = copied ? "new_dispatch" : null;
@@ -91,7 +91,7 @@ export function operationFlags(
   return { canDelete, canContinue, canResend: { ...resendFlag, mode, failed: counts.failed, unknown: counts.unknown } };
 }
 
-/** 回の連絡の性質(required・秘密・本文の残し方) */
+/** 送信の連絡の性質(required・秘密・本文の残し方) */
 export function policyOf(resolved: AnyResolvedMessageDefinition | null, dispatch: Pick<MessageDispatch, "record">): DispatchPolicy {
   if (!resolved) return null;
   const policy = recordPolicyOf({ ...resolved, record: dispatch.record ?? resolved.record });
@@ -101,11 +101,11 @@ export function policyOf(resolved: AnyResolvedMessageDefinition | null, dispatch
 export type AdminOperationsDeps<Tx> = AdminCheckDeps & {
   store: MessageOperationsStore<Tx>;
   now: () => Date;
-  /** 経路の受け口の項目(削除が remove を呼び、見込みが消せる経路かを読む) */
+  /** 送信チャンネルの受け口の項目(削除が remove を呼び、見込みが消せる送信チャンネルかを読む) */
   channels: () => readonly MessageChannel[];
-  /** 回の定義(読めなければ null)。テンプレートの回は固定した版 */
+  /** 送信の定義(読めなければ null)。テンプレートの送信は固定した版 */
   definitionOf: (dispatch: MessageDispatch) => Promise<AnyResolvedMessageDefinition | null>;
-  /** 組み済みの定義で新しい回を送る(record meta の再送) */
+  /** 組み済みの定義で新しい送信として送る(record meta の再送) */
   sendResolved: (
     resolved: AnyResolvedMessageDefinition,
     input: SendMessageToManyInput,
@@ -131,9 +131,9 @@ export type AdminDeleteResult = {
   alreadyDeleted: boolean;
   /** 止めた未送信の配達の数 */
   canceledDeliveries: number;
-  /** 消せる経路ごとに消した数 */
+  /** 消せる送信チャンネルごとに消した数 */
   removed: { channel: string; removed: number }[];
-  /** remove が失敗した経路(もう一度削除すると呼び直す) */
+  /** remove が失敗した送信チャンネル(もう一度削除すると呼び直す) */
   failedChannels: { channel: string; message: string }[];
 };
 
@@ -142,17 +142,17 @@ export type AdminBulkDeleteResult = {
 };
 
 export type AdminDeleteSummary = {
-  /** 見つかった回の数(無い id は数えない) */
+  /** 見つかった送信の数(無い id は数えない) */
   found: number;
-  /** もう削除してある回の数 */
+  /** もう削除してある送信の数 */
   deleted: number;
-  /** 予約のままの回の数(削除すると送られない) */
+  /** 予約のままの送信の数(削除すると送られない) */
   scheduled: number;
   /** 未送信の配達の数(削除で止まる) */
   unsent: number;
-  /** 経路ごとの送れた数。removable = 経路が remove を持つ(削除で受け取った人から消える)/ false = 届いた物は残る */
+  /** 送信チャンネルごとの送れた数。removable = 送信チャンネルが remove を持つ(削除で受け取った人から消える)/ false = 届いた物は残る */
   channels: { key: string; label: string; removable: boolean; sent: number }[];
-  /** 全員・ロール宛ての共有のお知らせの行を持つ回の数(配達の行が無い分。inApp が消せれば消える) */
+  /** 全員・ロール宛ての共有のお知らせの行を持つ送信の数(配達の行が無い分。inApp が消せれば消える) */
   sharedInbox: number;
 };
 
@@ -161,7 +161,7 @@ export type AdminResendResult = {
   mode: "requeue" | "new_dispatch";
   failed: number;
   unknown: number;
-  /** 新しい回として送った時の回の id */
+  /** 新しい送信として送った時の送信の id */
   newDispatchId: string | null;
 };
 
@@ -191,7 +191,7 @@ async function deleteOne<Tx>(deps: AdminOperationsDeps<Tx>, dispatchId: string):
       removed.push({ channel: channel.key, removed: (await channel.remove({ dispatchId })).removed });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.warn(`[messaging] 削除した回の ${channel.key} を消せませんでした(${dispatchId}): ${message}`);
+      console.warn(`[messaging] 削除した送信の ${channel.key} を消せませんでした(${dispatchId}): ${message}`);
       failedChannels.push({ channel: channel.key, message });
     }
   }
@@ -212,8 +212,8 @@ async function deleteOne<Tx>(deps: AdminOperationsDeps<Tx>, dispatchId: string):
 }
 
 /**
- * 回を削除する(どの状態でも。削除済みは remove だけを呼び直す)。
- * @throws DomainError(404) 回が無い / (403) 管理者でない
+ * 送信を削除する(どの状態でも。削除済みは remove だけを呼び直す)。
+ * @throws DomainError(404) 送信が無い / (403) 管理者でない
  */
 export async function adminDeleteDispatch<Tx>(deps: AdminOperationsDeps<Tx>, dispatchId: string): Promise<AdminDeleteResult> {
   await assertAdminActor(deps);
@@ -221,7 +221,7 @@ export async function adminDeleteDispatch<Tx>(deps: AdminOperationsDeps<Tx>, dis
 }
 
 /**
- * 回をまとめて削除する(100 件まで、回ごとに同じ削除・回ごとの結果)。
+ * 送信をまとめて削除する(100 件まで、送信ごとに同じ削除・送信ごとの結果)。
  * @throws DomainError(400) 入力 / (403) 管理者でない
  */
 export async function adminBulkDeleteDispatches<Tx>(deps: AdminOperationsDeps<Tx>, rawInput: unknown): Promise<AdminBulkDeleteResult> {
@@ -274,7 +274,7 @@ export async function adminDispatchDeleteSummary<Tx>(deps: AdminOperationsDeps<T
 
 /**
  * 失敗の再送。
- * @throws DomainError(400) 入力 / (404) 回が無い / (409) 送り直せない(理由つき) / (403) 管理者でない
+ * @throws DomainError(400) 入力 / (404) 送信が無い / (409) 送り直せない(理由つき) / (403) 管理者でない
  */
 export async function adminResendFailed<Tx>(
   deps: AdminOperationsDeps<Tx>,
@@ -309,7 +309,7 @@ export async function adminResendFailed<Tx>(
       return { kind: "requeue" as const, ...requeued };
     }
 
-    // 新しい回として送る(record meta、元の入力の写し = 回の vars)
+    // 新しい送信として送る(record meta、元の入力の写し = 送信の vars)
     const resentIds = Array.isArray(metadata.resentDeliveryIds) ? (metadata.resentDeliveryIds as string[]) : [];
     const rows = await deps.store.listFailed(tx, dispatchId, { includeUnknown, excludeIds: resentIds });
     if (rows.length === 0) refuse("no_failed");
@@ -326,7 +326,7 @@ export async function adminResendFailed<Tx>(
       resolved!,
       {
         recipients,
-        // 回の vars ∪ 専用の埋め込み情報の値(テンプレートの回。新しい回でも embedded_values に分けて残す)
+        // 送信の vars ∪ 専用の埋め込み情報の値(テンプレートの送信。新しい送信でも embedded_values に分けて残す)
         vars: { ...(dispatch.vars ?? {}), ...(dispatch.embedded_values ?? {}) } as Record<string, unknown>,
         channels,
         source: dispatch.source,
@@ -334,8 +334,8 @@ export async function adminResendFailed<Tx>(
         metadata: { resendOf: dispatchId, ...(includeUnknown ? { possibleDuplicate: true } : {}) },
         isTest: dispatch.is_test ?? false,
       } as SendMessageToManyInput,
-      // 定義は回の欄の中身から組んである(D128)。テンプレートの回の再送は同じ出どころ(白紙の鍵か、同じ版と直した印)を残す。
-      // テンプレートを消した回(template_id null・版の番号あり、D137)は消したテンプレートの出どころのまま(コードの連絡の鍵を持たない)
+      // 定義は送信の欄の中身から組んである(D128)。テンプレートの送信の再送は同じ出どころ(白紙の鍵か、同じ版と直した印)を残す。
+      // テンプレートを消した送信(template_id null・版の番号あり、D137)は消したテンプレートの出どころのまま(定義連絡の鍵を持たない)
       dispatch.system_template
         ? { system: dispatch.system_template }
         : dispatch.template_id && dispatch.template_version

@@ -1,14 +1,14 @@
-// 回の一覧(AdminDispatchList)と、一覧の上に開く回の詳細のモーダル(AdminDispatchDetailModal、D130)の検査。
-// jsdom の上で描く。hook・入力・モーダル・next/navigation・送るモーダル・回の操作は偽物(next/navigation の検索の値は差し替えられる)。
+// 送信の一覧(AdminDispatchList)と、一覧の上に開く送信の詳細のモーダル(AdminDispatchDetailModal、D130)の検査。
+// jsdom の上で描く。hook・入力・モーダル・next/navigation・送るモーダル・送信の操作は偽物(next/navigation の検索の値は差し替えられる)。
 // D46: 運営する人に鍵を打たせず見せない
 // - 一覧: 定義の鍵の欄が無い / カテゴリーの選びは種別を選ぶまで押せず、選ぶとその種別のカテゴリー(表示名)/ 行に種別・カテゴリー・送信方法の表示名
 // - 一覧の行は ?dispatch=<id> の住所(ほかの検索の値は残す)。?dispatch があれば一覧の上にモーダルが開き、閉じると ?dispatch を外す
 //   (URL を直に開いた時 = 置き換え、行から開いた時 = 「戻る」)
 // - 詳細(基本情報のタブ): 種別・カテゴリーの表示名、送り元は表示名がある時だけ、送った人は名前、テンプレートの行
-//   (v<n>・消したテンプレートは「削除されたテンプレート(v<n>)」・システムテンプレート)、定義の鍵・送り元の鍵・経路の鍵は出ない
+//   (v<n>・消したテンプレートは「削除されたテンプレート(v<n>)」・システムテンプレート)、定義の鍵・送り元の鍵・送信チャンネルの鍵は出ない
 // - 詳細(送信状況のタブ): 配達は利用者の名前、利用者の id・お知らせの宛先は出さず、表に無い符号は決まった文
-// - 詳細(プレビューのタブ): 前の形の回の本文を経路ごとに(生の JSON は出さない)
-// - グループ宛ての回: 一覧の行と詳細にグループの名前(名前が無ければ「グループ」)、id は出さない
+// - 詳細(プレビューのタブ): 前の形の送信の本文を送信チャンネルごとに(生の JSON は出さない)
+// - グループ宛ての送信: 一覧の行と詳細にグループの名前(名前が無ければ「グループ」)、id は出さない
 // 実行: pnpm test src/features/core/messaging/components/AdminDispatchList/AdminDispatchList.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -295,7 +295,7 @@ mock.module("@/features/core/messaging/hooks/useAdminDispatchDetail", {
       dispatch: detail,
       error: null,
       isLoading: false,
-      // 回の中身の無い回(前の形)= プレビューは残した本文
+      // 送信の中身の無い送信(前の形)= プレビューは残した本文
       preview: null,
       deliveries: {
         items: deliveryItems,
@@ -357,7 +357,7 @@ const render = async (element: ReturnType<typeof createElement>) => {
     unmount: () => act(async () => root.unmount()),
   };
 };
-/** 回の詳細のモーダルを開く(既定のタブ = 基本情報) */
+/** 送信の詳細のモーダルを開く(既定のタブ = 基本情報) */
 const renderDetail = (dispatchId = "d1") => render(createElement(AdminDispatchDetailModal, { dispatchId, onClose: noop }));
 /** モーダルのタブを押して、その中身の文 */
 const openTab = async (view: Awaited<ReturnType<typeof render>>, tab: "summary" | "deliveries" | "preview") => {
@@ -375,7 +375,7 @@ test("一覧: 定義の鍵の欄は無く、カテゴリーは種別を選ぶま
   const text = view.text();
   assert.match(text, /プロモーション/, "種別の表示名");
   assert.match(text, /キャンペーン/);
-  // 送信方法は経路ごとの札(表示名)
+  // 送信方法は送信チャンネルごとの札(表示名)
   const channels = [...view.container.querySelectorAll('[data-slot="row-meta"][aria-label="送信方法"] [data-slot="soft-badge"]')].map((el) => el.textContent);
   assert.deepEqual(channels, ["メール", "お知らせ"]);
   assert.doesNotMatch(text, KEY_LIKE);
@@ -438,7 +438,7 @@ test("詳細: 種別・カテゴリーの表示名、送り元は表示名があ
 
 test("詳細: テンプレートの行は版の番号、消したテンプレートは「削除されたテンプレート(v<n>)」、システムテンプレートは鍵を出さない", async () => {
   const none = await renderDetail();
-  assert.doesNotMatch(none.text(), /テンプレート/, "テンプレートから送っていない回は行ごと出さない");
+  assert.doesNotMatch(none.text(), /テンプレート/, "テンプレートからの送信でなければ行ごと出さない");
   await none.unmount();
 
   const cases: { over: Partial<AdminDispatchDetail>; expected: RegExp }[] = [
@@ -485,7 +485,7 @@ test("詳細: 送信者は名前、配達は利用者の名前・表に無い符
   await system.unmount();
 });
 
-test("詳細(プレビュー): 前の形の回の本文を経路ごとに出し、生の JSON は出さない", async () => {
+test("詳細(プレビュー): 前の形の送信の本文を送信チャンネルごとに出し、生の JSON は出さない", async () => {
   detail = {
     ...DISPATCH,
     record: "vars",
@@ -500,7 +500,7 @@ test("詳細(プレビュー): 前の形の回の本文を経路ごとに出し�
   await view.unmount();
 });
 
-test("グループ宛ての回: 一覧の行と詳細にグループの名前、名前が無ければ「グループ」、id は出さない", async () => {
+test("グループ宛ての送信: 一覧の行と詳細にグループの名前、名前が無ければ「グループ」、id は出さない", async () => {
   const GROUP_ID = "44444444-4444-4444-8444-444444444444";
   const named: AdminDispatchDetail = { ...DISPATCH, id: "d2", targetGroup: { id: GROUP_ID, name: "常連" } };
   const unnamed: AdminDispatchDetail = { ...DISPATCH, id: "d3", targetGroup: { id: GROUP_ID, name: null } };

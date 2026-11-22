@@ -2,13 +2,13 @@
 
 // src/features/core/messaging/hooks/useLayoutPreview.ts
 //
-// ひな形のプレビューの流れ(部品 LayoutPreview に渡す。テンプレートの作る・直す画面と送る画面が使う、D114)。
-// - 経路のタブ = 渡した channels(種類の経路)。選んだ経路 1 つを描く
+// レイアウトのプレビューの流れ(部品 LayoutPreview に渡す。テンプレートの作る・直す画面と送る画面が使う、D114)。
+// - 送信チャンネルのタブ = 渡した channels(カテゴリーの送信チャンネル)。選んだ送信チャンネル 1 つを描く
 // - 空の欄(D127): mode send = 描かない(空のボタン・リンク・画像も出さない)/ template = 欄の見出しの目印で描き、部品 LayoutPreview が仮の枠に置き換える
 //   (ブロックの並びが空なら目印の段落 1 つ、空のブロックは種類の名前の目印、目印を行き先の URL に入れない = "#")
 // - 入力が止まって 400ms 後に POST /api/admin/messaging/layouts/preview(保存しない)。結果がいまの求めの物でなければ描き直し中
-// - 必須の欄が空の経路を incompleteChannels で返す(タブの印、D117)
-// - お知らせ(inApp)はカードを client の描き方(layoutInApps)で描くので、経路だけの欄を除いた中身(inAppValues)も返す
+// - 必須の欄が空の送信チャンネルを incompleteChannels で返す(タブの印、D117)
+// - お知らせ(inApp)はカードを client の描き方(layoutInApps)で描くので、送信チャンネルだけの欄を除いた中身(inAppValues)も返す
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -25,15 +25,15 @@ import { previewMarker } from "@/features/core/messaging/components/common/Layou
 import { previewMessageLayout, type AdminLayoutPreview } from "../services/client/templateClient";
 
 export type UseLayoutPreviewOptions = {
-  /** ひな形の鍵(無い = 描かない) */
+  /** レイアウトの鍵(無い = 描かない) */
   layout?: string | null;
-  /** ひな形の欄の宣言(仮の文と経路だけの欄に使う) */
+  /** レイアウトの欄の宣言(仮の文と送信チャンネルだけの欄に使う) */
   fields?: MessageLayoutFields | null;
   /** 今の欄の中身(フォームの watch の値) */
   values?: Readonly<Record<string, unknown>> | null;
-  /** 送る経路の鍵(タブの順) */
+  /** 使う送信チャンネルの鍵(タブの順) */
   channels: readonly string[];
-  /** 送る種類(停止のリンクの見本) */
+  /** 送るカテゴリー(停止のリンクの見本) */
   category?: string | null;
   /** 描くか(閉じたモーダルでは描かない) */
   enabled?: boolean;
@@ -210,7 +210,7 @@ export function previewValuesOf(
 
 export function useLayoutPreview({ layout, fields, values, channels, category, enabled = true, mode = "template" }: UseLayoutPreviewOptions) {
   const [channelState, setChannelState] = useState<string | null>(null);
-  // 選んだ経路がタブから消えたら最初のタブ(effect で戻さない)
+  // 選んだ送信チャンネルがタブから消えたら最初のタブ(effect で戻さない)
   const channel = channelState && channels.includes(channelState) ? channelState : (channels[0] ?? null);
 
   const filled = useMemo(() => (fields ? previewValuesOf(fields, values ?? {}, mode) : {}), [fields, values, mode]);
@@ -242,7 +242,7 @@ export function useLayoutPreview({ layout, fields, values, channels, category, e
   }, [enabled, request, layout, channel, category, filledSignature]);
 
   const current = result && result.request === request ? result : null;
-  /** お知らせのカードに渡す中身(その経路の欄だけ、仮の文で埋めた物) */
+  /** お知らせのカードに渡す中身(その送信チャンネルの欄だけ、仮の文で埋めた物) */
   const channelValues = useMemo(() => {
     if (!fields || !channel) return filled;
     return Object.fromEntries(Object.entries(filled).filter(([key]) => !fields[key] || fieldBelongsTo(fields[key], channel)));
@@ -250,7 +250,7 @@ export function useLayoutPreview({ layout, fields, values, channels, category, e
 
   const setChannel = useCallback((next: string) => setChannelState(next), []);
 
-  /** 必須の欄(その経路で使う物)が空の経路(仮の文で埋める前の値で見る、D117) */
+  /** 必須の欄(その送信チャンネルで使う物)が空の送信チャンネル(仮の文で埋める前の値で見る、D117) */
   const incompleteChannels = useMemo(() => {
     if (!fields) return [];
     const raw = values ?? {};
@@ -259,7 +259,7 @@ export function useLayoutPreview({ layout, fields, values, channels, category, e
     );
   }, [fields, values, channels]);
 
-  // 前の結果は描き直しの間も残す(同じ経路の物だけ)
+  // 前の結果は描き直しの間も残す(同じ送信チャンネルの物だけ)
   const preview = current?.preview ?? (result?.preview && result.preview.channel === channel ? result.preview : null);
   /** 部品 LayoutPreview の content(送る HTML・題・要約 + お知らせのカードの中身・描けない理由) */
   const content = useMemo(() => (preview ? { ...preview, values: channelValues } : null), [preview, channelValues]);

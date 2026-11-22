@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/common/DispatchStatusBadge/index.tsx
-// 部品(props だけ): 回の状態の印(message_dispatches.status)。削除した回は「削除済み」を重ねる(D88)
+// 部品(props だけ): 送信の状態の印(message_dispatches.status)。削除した送信は「削除済み」を重ねる(D88)
 
 "use client";
 
@@ -7,7 +7,7 @@ import { SoftBadge, type SoftBadgeProps } from "@/components/Badge/SoftBadge";
 
 type Variant = NonNullable<SoftBadgeProps["variant"]>;
 
-/** 回の状態 → 表示名・色(知らない値はそのまま灰色) */
+/** 送信の状態 → 表示名・色(知らない値はそのまま灰色) */
 export const DISPATCH_STATUS_DISPLAY: Record<string, { label: string; variant: Variant }> = {
   scheduled: { label: "予約", variant: "info" },
   processing: { label: "送信中", variant: "warning" },

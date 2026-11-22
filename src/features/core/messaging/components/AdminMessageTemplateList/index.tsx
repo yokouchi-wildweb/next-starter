@@ -104,7 +104,7 @@ export function AdminMessageTemplateList() {
                 className="block h-auto w-full whitespace-normal rounded-md border border-border bg-card px-4 py-3 text-left hover:bg-muted/40"
                 data-slot="template-row"
               >
-                {/* 行の形は送信一覧・文言の編集と同じ: 1 段目 = 状態・名前 … 右に更新日時 / 2 段目 = 種別 › カテゴリー・説明 */}
+                {/* 行の形は送信一覧・テキストの編集と同じ: 1 段目 = 状態・名前 … 右に更新日時 / 2 段目 = 種別 › カテゴリー・説明 */}
                 <Stack gap="xs">
                   <Flex align="center" justify="between" gap="md" wrap="wrap">
                     <Flex align="center" gap="xs" wrap="wrap" className="min-w-0">

@@ -1,5 +1,5 @@
 // src/features/core/messaging/layouts/link/LinkEmail.default.tsx
-// ひな形「認証のリンク」のメールの既定の見た目(前の auth の LinkMailView と同じ部品の並び):
+// レイアウト「認証のリンク」のメールの既定の見た目(前の auth の LinkMailView と同じ部品の並び):
 //   見出し → 受付の文 → ボタンの案内 → ボタン → URL の案内 → ボタンの URL をそのまま → 末尾の注意書き(→ 停止のリンク)
 // 値の無い欄は描かない
 

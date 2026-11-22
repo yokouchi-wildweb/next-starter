@@ -10,9 +10,9 @@ const templateFields = {
   name: z.string().trim().min(1).max(200),
   description: z.string().max(2000).nullable().optional(),
   category: z.string().min(1).max(100),
-  /** ひな形の鍵(管理者が選べる物) */
+  /** レイアウトの鍵(管理者が選べる物) */
   layout: z.string().min(1).max(100),
-  /** ひな形の欄の中身({{鍵}} / {{別名}} のまま。欄の検査は checks.ts) */
+  /** レイアウトの欄の中身({{鍵}} / {{別名}} のまま。欄の検査は checks.ts) */
   values: z.record(z.string(), z.unknown()),
   /** 専用の埋め込み情報の宣言(形の検査は checks.ts) */
   vars: z.array(z.unknown()).max(100).default([]),
@@ -39,12 +39,12 @@ export const ListMessageTemplatesQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
 
-/** ひな形のプレビューの入力(保存しない中身。{{名前}} はそのまま) */
+/** レイアウトのプレビューの入力(保存しない中身。{{名前}} はそのまま) */
 export const PreviewMessageLayoutInputSchema = z
   .object({
     layout: z.string().min(1).max(100),
     channel: z.string().min(1).max(100),
-    /** 送る種類(あれば停止のリンクの見本) */
+    /** 送るカテゴリー(あれば停止のリンクの見本) */
     category: z.string().min(1).max(100).optional(),
     values: z.record(z.string(), z.unknown()),
   })

@@ -1,5 +1,5 @@
 // src/features/core/messaging/components/common/InboxItemDetail/index.tsx
-// 部品(props だけ): お知らせ 1 件の中身(公開の日時 + InboxLayoutView = ひな形のお知らせの描き方 > 汎用)。詳細のモーダル InboxDetailModal が使う。
+// 部品(props だけ): お知らせ 1 件の中身(公開の日時 + InboxLayoutView = レイアウトのお知らせの描き方 > 汎用)。詳細のモーダル InboxDetailModal が使う。
 // 中身は詳しい表示(useInboxItemDetail の layout・values・fields)。取っている間は日時と読み込み中だけ(描けない文は出さない)。
 // 題は描かない(包む Modal の title が持つ)
 
