@@ -17,7 +17,7 @@ args: $ARGUMENTS
 1. branch name:
    - user named one → use it as is
    - none → name it `<area>/<short English description>` from the request and go on (the report gives the name)
-2. base: none given → HEAD of the place it runs in | a request that should branch from main → add `--from main` (unsure → ask)
+2. base: none given → HEAD of the place it runs in | a request that should branch from main → add `--from main`
 3. run `pnpm workflow worktree new <branch> [--from <base>]`
 4. report:
    - created path and branch, the files copied
