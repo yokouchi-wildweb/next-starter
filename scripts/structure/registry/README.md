@@ -50,6 +50,7 @@ pnpm db:push:check -- --allow-defaults      # SET/DROP DEFAULT 行だけ無視�
 - `pnpm db:push` と同じスキーマゲートを掛ける（無効な機能のテーブルは比較対象外）。
 - 出力は「push を実行すると実行される SQL」そのもの。差分ゼロなら exit 0。
 - **push 直後に実行して差分ゼロになること**が、index / default の書き方が正しいことの定義。差分が残る index は、本番でも push のたびに DROP + CREATE される（Internals「差分が残る index がなぜ問題か」）。
+- **改名の問い**: スキーマで改名した列・表などが DB に旧名のまま残っていると、drizzle-kit は「新しく作るのか、別のものからの改名か」を端末で問う。stdin が TTY でない実行（エージェント・CI・`< /dev/null`）では答えが来ないため、問いが出た時点で対象（`<表>.<列>` など）と改名元の候補、その名前を名指す `.notices/` の行（改名か作成かの答え）を出して exit 1 で終わる。答えは選ばない（読むだけ）。決めるのは人: 端末で `pnpm db:push` を実行して選び、その後 `pnpm db:push:check` で差分ゼロを確かめる。TTY があれば今まで通りその場で答えられる（答えても差分の計算だけで DB には書かない）。部品: `scripts/operations/db/lib.pendingPrompt.ts`
 
 #### いつ実行するか
 
