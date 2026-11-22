@@ -20,6 +20,7 @@
 
 - 選択肢 `useDefinitionSendOptions({ recordTarget } | { entry: "broadcast" }, enabled)`
 - 送る `useDefinitionSend()`(鍵は呼び手が `useIdempotencyKey` で持って渡す)、表示例 `useDefinitionPreview()`・テスト `useDefinitionTest()` = 上の 2 つを定義連絡の口でつないだ物
+- 汎用のモーダルの流れ `useDefinitionSendModal({ entry, onSent? })`: 上の hook を組んだ物(連絡定義の選択・送信チャンネルの固定・管理者の値・直せる欄・宛先・予約・送る)。入れ物 `DefinitionSendModal` はこれを並べるだけ
 
 送った後と 1 人宛ての材料:
 
@@ -32,3 +33,4 @@
 
 - 送る画面の公開の hook: `hooks/sendHooks.test.tsx`
 - 自由連絡の送るモーダルの流れ: `hooks/sendModalHooks.test.tsx`
+- 定義連絡の汎用のモーダルの流れ: `hooks/definitionSendModal.test.tsx`
