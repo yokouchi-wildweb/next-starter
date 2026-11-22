@@ -58,7 +58,8 @@ import {
   adminDefinitionPreview as adminDefinitionPreviewWith,
   adminDefinitionSend as adminDefinitionSendWith,
   adminDefinitionTest as adminDefinitionTestWith,
-  adminRecordTargetOptions as adminRecordTargetOptionsWith,
+  adminDefinitionOptions as adminDefinitionOptionsWith,
+  type AdminDefinitionOptionsQuery,
   type AdminDefinitionSendDeps,
 } from "./definitionSend";
 import { adminDispatchPreview as adminDispatchPreviewWith, type AdminDispatchPreviewDeps } from "./dispatchPreview";
@@ -282,9 +283,9 @@ const definitionDeps: AdminDefinitionSendDeps = {
     const { message } = await entry.definition();
     return resolveDefinition(message, sendMessageDeps);
   },
-  messageLabel: (messageKey) => (messageDomainOpen(messageKey) ? messageLabel(messageKey) : Promise.resolve(null)),
   recordTarget,
-  recordTargetKeys: () => Object.keys(recordTargetRegistry),
+  messageKeys: () => Object.keys(messageRegistry),
+  categories,
   broadcastOpen: () => gate.enabled("messagingBroadcast"),
   layouts,
   enrichers,
@@ -299,8 +300,8 @@ export const adminDefinitionSend = (input: unknown) => adminDefinitionSendWith(d
 export const adminDefinitionPreview = (input: unknown) => adminDefinitionPreviewWith(definitionDeps, input);
 /** 定義連絡の自分へのテスト送信 */
 export const adminDefinitionTest = (input: unknown) => adminDefinitionTestWith(definitionDeps, input);
-/** 記録の宛先の選択肢(GET /api/admin/messaging/definitions/record-targets) */
-export const adminRecordTargetOptions = () => adminRecordTargetOptionsWith(definitionDeps);
+/** 定義連絡の選択肢(GET /api/admin/messaging/definitions/options。?recordTarget= は門の外、?entry=broadcast は門 messagingBroadcast の中) */
+export const adminDefinitionOptions = (query?: AdminDefinitionOptionsQuery) => adminDefinitionOptionsWith(definitionDeps, query);
 
 /** 送信の一覧 */
 export function listDispatches(query?: ListDispatchesQuery) {
@@ -376,14 +377,16 @@ export function adminContinueSending(dispatchId: string) {
 export { AdminBulkSendInputSchema, ADMIN_BULK_SEND_MAX_RECIPIENTS } from "./bulkSend";
 export { ListDeliveriesQuerySchema, ListDispatchesQuerySchema } from "./readDispatches";
 export type { AdminBulkSendInput, AdminBulkSendOptions, AdminBulkSendResult } from "./bulkSend";
-export { AdminDefinitionSendInputSchema } from "./definitionSend";
+export { AdminDefinitionOptionsQuerySchema, AdminDefinitionSendInputSchema } from "./definitionSend";
 export type {
   AdminDefinitionEntry,
+  AdminDefinitionOption,
+  AdminDefinitionOptions,
+  AdminDefinitionOptionsQuery,
   AdminDefinitionPreviewInput,
   AdminDefinitionSendInput,
   AdminDefinitionSendResult,
   AdminDefinitionTestInput,
-  AdminRecordTargetOption,
 } from "./definitionSend";
 export { ADMIN_SEND_MAX_USERS } from "./send";
 export type { AdminFreeTextCategoryOption } from "./freeText";

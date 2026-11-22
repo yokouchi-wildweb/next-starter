@@ -11,7 +11,7 @@
 - 一括送信 `/api/admin/messaging/bulk-send/**` はどの門にも入れない（管理一覧の一括操作が使うので、画面を閉じても送れる）
 - 送信の結果 `/api/admin/messaging/send-results/**` はどの門にも入れない（送れる所で結果も見られるよう、一括送信と同じ）
 - 受け取れる送信チャンネル `/api/admin/messaging/recipients/**` はどの門にも入れない（1 人宛ての送る画面の材料、一括送信と同じ）
-- 定義連絡の送る口 `/api/admin/messaging/definitions/**`: 記録の入口と記録の宛先の選択肢は門の外（一括送信と同じ）。全員・ロール・グループの入口は門 `messagingBroadcast` の中だが、同じ道なので道の印に載せず service が `gate.enabled` で見て閉なら 404（プレビュー・テストも）
+- 定義連絡の送る口 `/api/admin/messaging/definitions/**`: 記録の入口と選択肢の `?recordTarget=` は門の外（一括送信と同じ）。全員・ロール・グループの入口は門 `messagingBroadcast` の中だが、同じ道なので道の印に載せず service が `gate.enabled` で見て閉なら 404（プレビュー・テスト・選択肢の `?entry=broadcast` も）
 
 ## API
 
@@ -55,7 +55,11 @@
   - 項目の `afterSend({ recordIds, dispatchId, counts, channels, message, fields })`（記録の入口の送信の受け付けの直後に 1 回。`channels` = 使うと決めた送信チャンネル、`message` = 連絡定義の鍵、`fields` = テキストの編集の後の欄の中身（差し込む前の字）。投げても送信は戻らず結果と監査に失敗を残す）
 - `POST /definitions/preview`: 送ると同じ検査。見本の受信者 = 操作した管理者、記録の入口は選んだ最初の記録の値で組む
 - `POST /definitions/test`: 宛先 = 操作した管理者だけ・`is_test`、記録の入口は最初の記録の値。`afterSend` は呼ばない。送り元 `<送る時の送り元>.test`
-- `GET /definitions/record-targets` → `[{ key, label, messages: [{ key, label }] }]`（門番を通った項目と、読める連絡定義だけ）
+- `GET /definitions/options`（D214 (3)、汎用の送るモーダルが組む材料）: 条件はどちらか 1 つ（無し・両方・知らない鍵は 400）
+  - `?recordTarget=<項目の鍵>` → `{ recordTarget: { key, label }, definitions }`: 項目（門番、無い・閉じた = 404）の `messages` の並びのうち、読める・止められていない・`adminTargets` に `records` がある定義。門の外。項目の一覧を返す口は無い（一覧の一括操作が自分の項目の鍵を知っている）
+  - `?entry=broadcast` → `{ recordTarget: null, definitions }`: `adminTargets` に `all`・`role`・`group` のどれかがある読める・止められていない全部の定義（生成の一覧の順）。門 `messagingBroadcast` が閉なら 404。ロール・グループの選び先は `GET /send/options`
+  - 定義ごと `AdminDefinitionOption`: `key`・`label`（上書きの後）・`layout` `{ key, label, version, fields }`（欄の宣言）・`editableFields`（直せる欄、D169。required・種別が許さない = 空）・`values`（直せる欄の今の中身 = 上書きと管理画面のテキストの編集の後、直す箱の初めの値）・`adminVars`（`[{ key, alias, type, options?, required, default? }]`、別名は varNames）・`channels`（`{ <送信チャンネル>: "on" | "off" | "free" }`、カテゴリーの送信チャンネル）・`initialChannels`（on ∪ （カテゴリーの `defaultChannels`、無ければ全部）∩ free、カテゴリーの順、D213）・`required`・`adminTargets`（書いていない = `["records"]`）・`adminText`（`{ description?, confirm? }`、書いていない = null。再送の頭書きは呼び手の vars、D214 (4)）
+  - レイアウトが受け口に無い定義は出さない（送れない）
 - 監査: `messaging.dispatch.sent` / `scheduled` / `test_sent`（`message`・`entry`（`{ recordTarget, recordCount }` か宛先の指定）・`editedFields`・`channels`・`category`・`kind`・状態・記録の入口は `afterSend`）
 
 ### `/api/admin/messaging/send-results`（sendResults.ts、門の外、D214 (1)）

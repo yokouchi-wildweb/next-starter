@@ -38,7 +38,7 @@ export const message = defineMessage({
 
 ### 上書き(MessageOverride)
 
-`messages/<名前>.override.ts`(データだけ)。変えられるのは名前 `label`(管理画面の表示名)・レイアウトの欄の中身 `values`(欄ごとに差し替え)・`extras`・`enabled`・`adminEditableOnly`・`record`・`throttle`(`null` で外す)・所属のカテゴリー `category`(付け替え: fork のカテゴリーも可、種別が違ってもよい、functional の連絡も可 D166・D167。上流の呼び出しはそのままで属するカテゴリーだけが変わる)・送信チャンネルの固定 `channelModes`(丸ごと差し替え。カテゴリーを付け替える時は新しいカテゴリーの送信チャンネルで書き直す、外の送信チャンネルは `unknown_channel_mode`)。`key`・`vars`・`varNames`・`required`・`layout` は変えられない(送信チャンネルの集まりはカテゴリーの上書き `categories/<名前>.override.ts` の `channels` で変える)。
+`messages/<名前>.override.ts`(データだけ)。変えられるのは名前 `label`(管理画面の表示名)・レイアウトの欄の中身 `values`(欄ごとに差し替え)・`extras`・`enabled`・`adminEditableOnly`・`record`・`throttle`(`null` で外す)・所属のカテゴリー `category`(付け替え: fork のカテゴリーも可、種別が違ってもよい、functional の連絡も可 D166・D167。上流の呼び出しはそのままで属するカテゴリーだけが変わる)・管理者が送る画面の文 `adminText`(丸ごと差し替え)・送信チャンネルの固定 `channelModes`(丸ごと差し替え。カテゴリーを付け替える時は新しいカテゴリーの送信チャンネルで書き直す、外の送信チャンネルは `unknown_channel_mode`)。`key`・`vars`・`varNames`・`required`・`layout` は変えられない(送信チャンネルの集まりはカテゴリーの上書き `categories/<名前>.override.ts` の `channels` で変える)。
 
 種別の性質の検査(required の email・テキストの編集・間引き・email を外せない種別の email の off・上流の functional を止めない)は上書きを重ねた後の値(付け替えた先のカテゴリーの種別・送信チャンネル)に掛かる。functional の連絡をほかの種別のカテゴリーへ移すと、上書きで止められるようになる(D167: 付け替える fork には理由がある)。どのカテゴリーの項目を引くかは `messageCategoryKeyOf(definition, override)`。
 
@@ -93,6 +93,7 @@ export const messageOverride = {
   - 管理者が入れた値は入力の型で変換してから定義の vars の zod で検査する: `adminVarValueOf(input, 値)`(vars/declaration.ts。空は既定値、数は数、ほかは型の形の字、形が違えば problem)
   - 同じ鍵が両方にある = `var_origin_overlap`(鍵を名指す)/ vars に無い鍵 = `unknown_var_origin` / 秘密の値(`secretVar`)を管理者が入れる = `secret_admin_var` / 型の形の誤り(select の options・既定値)= `invalid_var_input`。どちらにも無い vars はコードだけが渡す(管理者の送る口は required の値が埋まらなければ断る)
   - `adminTargets`: 管理者が送れる宛先 `records`(記録の宛先がこの定義を名指す)・`all`・`role`・`group`。書かない = `["records"]`(全員・ロール・グループは書いた時だけ。種別では縛らない)。ほかの値 = `invalid_admin_target`
+- `adminText`: 管理者が送る画面の文 `{ description?, confirm? }`(D214 (3)、各 1〜500 字、表示だけで `{{鍵}}` は差し込まない)。`description` = 送るモーダルの説明 / `confirm` = 送る前の確認の文。書かない = 画面の既定の文。定義連絡の選択肢の口(`GET /api/admin/messaging/definitions/options`)が返す。再送の頭書き(「先日のメールに誤りがありました」等)は持たない: 呼び手が vars で渡す(D214 (4))。ほかの鍵・空・長すぎ = `invalid_admin_text`
 - `channelModes`: 送信チャンネルの固定 `{ [送信チャンネル]: "on" | "off" | "free" }`(D212、書かない = free)。集まりはカテゴリーが決め、定義はその中を固定するだけ。送る口の `resolveChannels` が効かせる: コードの送信は off を落とす / 管理者の絞りは free の中から選び、on はいつも入り、off を名指すと 400(既定のオンはカテゴリーの `defaultChannels`、D213)。分け方は `definitionChannels(resolved)` → `{ on, free, off }`。カテゴリーの外 = `unknown_channel_mode` / 全部 off = `channel_all_off` / required か `emailFixed` の種別の email を off = `email_off_fixed`
 - 管理者が書いて送る連絡(自由連絡): `messagingService.sendFreeMessage`(カテゴリー + 管理画面で選べるレイアウト(`isLayoutAdminSelectable` = `adminSelectable` で無効でない)か DB のテンプレート(無効のレイアウトの物は 400) + 欄の中身)
 
@@ -132,6 +133,7 @@ export const messageOverride = {
 - `override_forbidden_key`: 上書きが key・kind・vars・varNames・required・defaultChannels を持つ
 - `var_origin_overlap` / `unknown_var_origin` / `secret_admin_var` / `invalid_var_input` / `invalid_admin_target`: 管理者が送る時の宣言(定義の項目の adminVars・recordVars・adminTargets)
 - `unknown_channel_mode` / `channel_all_off` / `email_off_fixed`: 送信チャンネルの固定(channelModes)
+- `invalid_admin_text`: 管理者が送る画面の文(adminText、定義と上書き)
 
 ### 管理画面の欄の値(adminFields.ts)
 

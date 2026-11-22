@@ -16,6 +16,8 @@
 // 送信の記録: message_key + テキストの編集の印と編集した欄(edited_fields、D202)。送り元: 記録 "<項目の鍵>.bulk"・全員など "messaging.adminSend"・テスト "<それ>.test"。
 // 記録の入口は送信の受け付けの直後に項目の afterSend を 1 回(使う送信チャンネル・連絡定義・編集の後の欄・recordIds・送信の id と数、D196)。
 // 投げても送信は戻さず結果と監査に失敗を残す。監査 messaging.dispatch.{sent, scheduled, test_sent}
+// 選択肢(GET definitions/options、D214 (3)): 汎用の送るモーダルが組む材料。?recordTarget=<項目>(門の外)か ?entry=broadcast(門の中)で、
+// 定義ごとに表示名・レイアウト・直せる欄と今の中身・管理者の値の入力・送信チャンネルの固定と初めの状態・required・許す宛先・画面の文 adminText
 
 import { z } from "zod";
 
@@ -26,12 +28,18 @@ import {
   adminEditableFields,
   adminVarValueOf,
   applyAdminFieldValues,
+  channelModeOf,
+  definitionChannels,
   layoutVersionOf,
+  type MessageCategory,
+  type MessageChannelMode,
   type MessageDefinitionAdminTarget,
+  type MessageDefinitionAdminText,
   type MessageEnricher,
   type MessageLayout,
   type MessageRecordRecipient,
   type MessageRecordTarget,
+  type MessageVarDeclaration,
   type MessageVarInput,
 } from "@/lib/messaging";
 
@@ -117,22 +125,56 @@ export type AdminDefinitionSendResult = {
   afterSend: { ok: true } | { ok: false; error: string } | null;
 };
 
-/** 記録の宛先の選択肢 1 つ(GET definitions/record-targets): 項目と、それで送れる連絡定義(開いたドメインの物だけ) */
-export type AdminRecordTargetOption = {
+/** 選択肢の口の条件(どちらか 1 つ): recordTarget = 記録の入口の項目の鍵 / entry broadcast = 全員・ロール・グループの入口 */
+export const AdminDefinitionOptionsQuerySchema = z
+  .object({
+    recordTarget: z.string().trim().min(1).max(200).optional(),
+    entry: z.literal("broadcast").optional(),
+  })
+  .strict()
+  .refine((query) => (query.recordTarget === undefined) !== (query.entry === undefined), {
+    message: "recordTarget か entry=broadcast のどちらか 1 つを指定します",
+  });
+export type AdminDefinitionOptionsQuery = z.input<typeof AdminDefinitionOptionsQuerySchema>;
+
+/** 定義連絡 1 本の選択肢(汎用の送るモーダルが組む材料、D214 (3)・D169・D213) */
+export type AdminDefinitionOption = {
   key: string;
+  /** 表示名(上書きの後) */
   label: string;
-  messages: { key: string; label: string }[];
+  /** レイアウトの欄の宣言(送る画面はこれで欄を描く。自由連絡の AdminSendLayoutOption と同じ形から selectable を除いた物) */
+  layout: { key: string; label: string; version: number; fields: MessageLayout["fields"] };
+  /** テキストの編集ができる欄(D169、管理画面のテキストの編集と同じ。required・種別が許さない = 空) */
+  editableFields: string[];
+  /** 直せる欄の今の中身(上書きと管理画面のテキストの編集の後。直す箱の初めの値) */
+  values: Record<string, unknown>;
+  /** 管理者が入れる値の入力(adminVars の鍵・別名 = varNames・入力の型) */
+  adminVars: MessageVarDeclaration[];
+  /** 送信チャンネルごとの固定(カテゴリーの送信チャンネル、カテゴリーの順) */
+  channels: Record<string, MessageChannelMode>;
+  /** 初めに入っている送信チャンネル = on ∪ (カテゴリーの defaultChannels(無い = 全部)∩ free)、カテゴリーの順(D213) */
+  initialChannels: string[];
+  required: boolean;
+  /** 許す宛先(書いていない = ["records"]) */
+  adminTargets: MessageDefinitionAdminTarget[];
+  /** 画面の文(書いていない = null、画面の既定の文) */
+  adminText: MessageDefinitionAdminText | null;
 };
+
+/** 選択肢の口の答え: 記録の入口は項目と並んだ定義、全員・ロール・グループの入口は定義だけ */
+export type AdminDefinitionOptions =
+  | { recordTarget: { key: string; label: string }; definitions: AdminDefinitionOption[] }
+  | { recordTarget: null; definitions: AdminDefinitionOption[] };
 
 export type AdminDefinitionSendDeps = AdminCheckDeps & {
   /** 連絡定義を送れる形にして読む(上書き・テキストの編集の後)。無い鍵・連絡のドメインが閉じている = null */
   loadDefinition: (messageKey: string) => Promise<AnyResolvedMessageDefinition | null>;
-  /** 連絡定義の表示名(上書きの後。無い = null) */
-  messageLabel: (messageKey: string) => Promise<string | null>;
   /** 記録の宛先を鍵で読む(門番 loadRecordTarget を通す: 無い・閉じたドメイン・enabled() が false = null) */
   recordTarget: (key: string) => Promise<MessageRecordTarget | null>;
-  /** 記録の宛先の生成の一覧の鍵(絞らない。読む時に門番が落とす) */
-  recordTargetKeys: () => string[];
+  /** 連絡定義の生成の一覧の鍵(絞らない。読む時に loadDefinition が閉じたドメインを落とす) */
+  messageKeys: () => string[];
+  /** categories の受け口(上書きの後。初めの送信チャンネル defaultChannels を引く) */
+  categories: Readonly<Record<string, MessageCategory>>;
   /** 門 messagingBroadcast が開か(全員・ロール・グループの入口) */
   broadcastOpen: () => boolean;
   layouts: Readonly<Record<string, MessageLayout>>;
@@ -448,19 +490,69 @@ export async function adminDefinitionTest(
   };
 }
 
-/** 記録の宛先の選択肢: 門番を通った項目と、それで送れる連絡定義(連絡定義が読める物だけ。表示名は上書きの後) */
-export async function adminRecordTargetOptions(deps: AdminDefinitionSendDeps): Promise<AdminRecordTargetOption[]> {
-  await assertAdminActor(deps);
-  const options: AdminRecordTargetOption[] = [];
-  for (const key of deps.recordTargetKeys()) {
-    const item = await deps.recordTarget(key);
-    if (!item) continue;
-    const messages: AdminRecordTargetOption["messages"] = [];
-    for (const message of item.messages) {
-      const label = await deps.messageLabel(message);
-      if (label !== null) messages.push({ key: message, label });
-    }
-    options.push({ key: item.key, label: item.label, messages });
+/** 定義 1 本の選択肢(レイアウトが受け口に無い定義は送れないので出さない) */
+function definitionOption(deps: AdminDefinitionSendDeps, resolved: AnyResolvedMessageDefinition): AdminDefinitionOption | null {
+  const layout = deps.layouts[resolved.layout];
+  if (!layout) return null;
+  const editableFields = adminEditableFields(resolved, layout);
+  const values = (resolved.values ?? {}) as Record<string, unknown>;
+  const names = (resolved.varNames ?? {}) as Readonly<Record<string, { alias?: string } | undefined>>;
+  const split = definitionChannels(resolved);
+  const defaults = new Set(deps.categories[resolved.category]?.defaultChannels ?? resolved.channels);
+  return {
+    key: resolved.key,
+    label: resolved.label,
+    layout: { key: layout.key, label: layout.label, version: layoutVersionOf(layout), fields: layout.fields },
+    editableFields,
+    values: Object.fromEntries(editableFields.flatMap((field) => (field in values ? [[field, values[field]]] : []))),
+    adminVars: Object.entries((resolved.adminVars ?? {}) as Readonly<Record<string, MessageVarInput>>).map(([key, input]) => ({
+      key,
+      alias: names[key]?.alias ?? key,
+      ...input,
+    })),
+    channels: Object.fromEntries(resolved.channels.map((channel) => [channel, channelModeOf(resolved, channel)])),
+    initialChannels: resolved.channels.filter((channel) => split.on.includes(channel) || (split.free.includes(channel) && defaults.has(channel))),
+    required: Boolean(resolved.required),
+    adminTargets: [...(resolved.adminTargets ?? DEFAULT_DEFINITION_ADMIN_TARGETS)],
+    adminText: resolved.adminText ? { ...resolved.adminText } : null,
+  };
+}
+
+/** 送れる定義の選択肢(読める・止められていない・その入口の宛先を許す定義だけ、並びの順) */
+async function definitionOptionsOf(
+  deps: AdminDefinitionSendDeps,
+  keys: readonly string[],
+  accepts: (targets: readonly MessageDefinitionAdminTarget[]) => boolean,
+): Promise<AdminDefinitionOption[]> {
+  const options: AdminDefinitionOption[] = [];
+  for (const key of keys) {
+    const resolved = await deps.loadDefinition(key);
+    if (!resolved || !resolved.enabled || !accepts(resolved.adminTargets ?? DEFAULT_DEFINITION_ADMIN_TARGETS)) continue;
+    const option = definitionOption(deps, resolved);
+    if (option) options.push(option);
   }
   return options;
+}
+
+/**
+ * 定義連絡の選択肢(GET definitions/options)。記録の入口 = 項目(門番を通った物)と並んだ定義(門の外)/
+ * 全員・ロール・グループの入口 = そのどれかを許す全部の定義(門 messagingBroadcast の中、閉なら 404)。ロール・グループの選び先は GET send/options
+ * @throws DomainError(400) 条件 / (404) 項目が無い・門が閉
+ */
+export async function adminDefinitionOptions(deps: AdminDefinitionSendDeps, query: AdminDefinitionOptionsQuery = {}): Promise<AdminDefinitionOptions> {
+  await assertAdminActor(deps);
+  const parsed = parseOr400(AdminDefinitionOptionsQuerySchema, query ?? {});
+  if (parsed.recordTarget !== undefined) {
+    const item = await deps.recordTarget(parsed.recordTarget);
+    if (!item) throw new DomainError("記録の宛先が見つかりません", { status: 404 });
+    return {
+      recordTarget: { key: item.key, label: item.label },
+      definitions: await definitionOptionsOf(deps, item.messages, (targets) => targets.includes("records")),
+    };
+  }
+  if (!deps.broadcastOpen()) throw new DomainError("見つかりません", { status: 404 });
+  return {
+    recordTarget: null,
+    definitions: await definitionOptionsOf(deps, deps.messageKeys(), (targets) => targets.some((target) => target !== "records")),
+  };
 }

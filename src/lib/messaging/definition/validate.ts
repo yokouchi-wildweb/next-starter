@@ -67,7 +67,8 @@ export type MessageDefinitionProblemCode =
   | "invalid_admin_target"
   | "unknown_channel_mode"
   | "channel_all_off"
-  | "email_off_fixed";
+  | "email_off_fixed"
+  | "invalid_admin_text";
 
 export type MessageDefinitionProblem = {
   code: MessageDefinitionProblemCode;
@@ -103,6 +104,8 @@ export function applyMessageOverride<Vars extends z.AnyZodObject>(
   if (override.category !== undefined) resolved.category = override.category;
   // 送信チャンネルの固定は丸ごと差し替える(付け替えた先のカテゴリーの送信チャンネルで書き直す)
   if (override.channelModes !== undefined) resolved.channelModes = override.channelModes;
+  // 画面の文は丸ごと差し替える(label と同じ表示だけの値)
+  if (override.adminText !== undefined) resolved.adminText = override.adminText;
   if (override.throttle === null) {
     delete resolved.throttle;
   } else if (override.throttle !== undefined) {
@@ -230,6 +233,8 @@ export function validateMessageDefinition<
   }
   problems.push(...channelModeProblems(resolved, label, traits.emailFixed));
   problems.push(...declarationProblems(definition, label));
+  problems.push(...adminTextProblems(definition.adminText, label, "adminText"));
+  if (options.override) problems.push(...adminTextProblems(options.override.adminText, label, "上書きの adminText"));
   // レイアウトと欄の中身(D122・D125): カテゴリーの送信チャンネルで使う欄だけを検査する
   const values = (resolved.values ?? {}) as Record<string, unknown>;
   const layout = typeof definition.layout === "string" ? options.layouts[definition.layout] : undefined;
@@ -326,6 +331,27 @@ function channelModeProblems(
       code: "email_off_fixed",
       message: `${label}: ${resolved.required ? "required の連絡" : `種別 ${resolved.kind} の連絡`}は email を off にできない`,
     });
+  }
+  return problems;
+}
+
+/** 画面の文の長さ(各) */
+export const ADMIN_TEXT_MAX_LENGTH = 500;
+const ADMIN_TEXT_KEYS = ["description", "confirm"] as const;
+
+/** 管理者が送る画面の文(D214 (3))の問題: object で description / confirm だけ、各 1〜500 字の空白だけでない文 */
+function adminTextProblems(value: unknown, label: string, where: string): MessageDefinitionProblem[] {
+  if (value === undefined) return [];
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return [{ code: "invalid_admin_text", message: `${label}: ${where} は { description?, confirm? } の object` }];
+  }
+  const problems: MessageDefinitionProblem[] = [];
+  for (const [key, text] of Object.entries(value)) {
+    if (!(ADMIN_TEXT_KEYS as readonly string[]).includes(key)) {
+      problems.push({ code: "invalid_admin_text", message: `${label}: ${where} の ${key} は書けない(description / confirm だけ)` });
+    } else if (typeof text !== "string" || text.trim() === "" || text.length > ADMIN_TEXT_MAX_LENGTH) {
+      problems.push({ code: "invalid_admin_text", message: `${label}: ${where} の ${key} は 1〜${ADMIN_TEXT_MAX_LENGTH} 字の文` });
+    }
   }
   return problems;
 }
