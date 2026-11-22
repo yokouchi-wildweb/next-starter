@@ -11,6 +11,7 @@ import { MessageDeliveryTable } from "../../../entities/delivery";
 import { MessageDispatchTable } from "../../../entities/drizzle";
 import { MessageInboxItemTable } from "../../../entities/inbox";
 import type { MessageDeliveryTarget } from "../../../entities/schema";
+import { isDispatchId } from "../dispatchId";
 import type { FailedDeliveryRow, MessageOperationsStore } from "./operationsTypes";
 
 const d = MessageDeliveryTable;
@@ -27,6 +28,8 @@ function statusesOf(includeUnknown: boolean): ("failed" | "unknown")[] {
 export const drizzleMessageOperationsStore: MessageOperationsStore<TransactionClient> = {
   withLockedDispatch: (id, run) =>
     db.transaction(async (tx) => {
+      // uuid の形でない id は無い送信(読まずに null。呼び手が 404)
+      if (!isDispatchId(id)) return run(tx, null);
       const [row] = await tx.select().from(MessageDispatchTable).where(eq(MessageDispatchTable.id, id)).limit(1).for("update");
       return run(tx, row ?? null);
     }),
@@ -57,11 +60,12 @@ export const drizzleMessageOperationsStore: MessageOperationsStore<TransactionCl
   },
 
   async findDispatches(ids) {
-    if (ids.length === 0) return [];
+    const valid = ids.filter(isDispatchId);
+    if (valid.length === 0) return [];
     return db
       .select({ id: MessageDispatchTable.id, status: MessageDispatchTable.status, deleted_at: MessageDispatchTable.deleted_at })
       .from(MessageDispatchTable)
-      .where(inArray(MessageDispatchTable.id, [...ids]));
+      .where(inArray(MessageDispatchTable.id, valid));
   },
 
   async deliveryCounts(dispatchIds) {

@@ -13,6 +13,7 @@ import { UserTable } from "@/domains/core/user/entities/drizzle";
 import { MessageDeliveryTable } from "../../../entities/delivery";
 import { MessageDispatchTable } from "../../../entities/drizzle";
 import type { MessageDeliveryStatus } from "../../../entities/model";
+import { isDispatchId } from "../dispatchId";
 import type { AdminDispatchStore } from "./readDispatches";
 import { UNDELIVERED_STATUSES, type SendResultsStore } from "./sendResults";
 
@@ -41,6 +42,8 @@ export const drizzleAdminDispatchStore: AdminDispatchStore = {
   },
 
   async findDispatch(id) {
+    // uuid の形でない id は無い送信(Postgres の 500 にしない。呼び手が 404)
+    if (!isDispatchId(id)) return null;
     const [row] = await db.select().from(MessageDispatchTable).where(eq(MessageDispatchTable.id, id)).limit(1);
     return row ?? null;
   },

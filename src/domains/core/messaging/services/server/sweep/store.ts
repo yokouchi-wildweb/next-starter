@@ -19,6 +19,7 @@ import { MessageInboxItemTable } from "../../../entities/inbox";
 import type { MessageDispatchInsert } from "../../../entities/model";
 import { MessageDispatchRecipientTable } from "../../../entities/recipient";
 import { MESSAGE_EXPAND_DONE } from "../../../entities/schema";
+import { isDispatchId } from "../dispatchId";
 import { boundInboxImageRefs } from "../inbox/imageBinding";
 import { cleanupDetachedInboxImages, detachInboxImages, storageInboxImageLedger } from "../inbox/imageBindingLedger";
 import { bindExpansionImage } from "./expandImage";
@@ -194,8 +195,10 @@ export const drizzleMessageSweepStore: MessageSweepStore = {
   },
 
   async findDispatches(ids) {
-    if (ids.length === 0) return [];
-    return db.select().from(MessageDispatchTable).where(inArray(MessageDispatchTable.id, [...ids]));
+    // uuid の形でない id は無い送信(管理の「続きを送る」の [id]。Postgres の 500 にしない)
+    const valid = ids.filter(isDispatchId);
+    if (valid.length === 0) return [];
+    return db.select().from(MessageDispatchTable).where(inArray(MessageDispatchTable.id, valid));
   },
 
   async findCompletable(limit, dispatchId) {

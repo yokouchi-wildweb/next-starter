@@ -11,6 +11,7 @@
 - 一括送信 `/api/admin/messaging/bulk-send/**` はどの門にも入れない（管理一覧の一括操作が使うので、画面を閉じても送れる）
 - 送信の結果 `/api/admin/messaging/send-results/**` はどの門にも入れない（送れる所で結果も見られるよう、一括送信と同じ）
 - 受け取れる送信チャンネル `/api/admin/messaging/recipients/**` はどの門にも入れない（1 人宛ての送る画面の材料、一括送信と同じ）
+- 送信の id（`[id]`・`[dispatchId]`）が uuid の形でない字（古い住所 `/admin/messaging/send` の `send`・打ち間違い）は「無い送信」と同じ 404（送信を id で引く store が DB を読まずに無いを返す: `../dispatchId.ts`。uuid の列へ渡して Postgres の 500 にしない）
 - 定義連絡の送る口 `/api/admin/messaging/definitions/**`: 記録の入口と選択肢の `?recordTarget=` は門の外（一括送信と同じ）。全員・ロール・グループの入口は門 `messagingBroadcast` の中だが、同じ道なので道の印に載せず service が `gate.enabled` で見て閉なら 404（プレビュー・テスト・選択肢の `?entry=broadcast` も）
 
 ## API
@@ -111,4 +112,4 @@
 
 ## Verification
 
-- `pnpm test src/domains/core/messaging/services/server/admin`（`admin` / `send` / `operations` / `sendResults` / `recipientChannels`）と `pnpm test src/domains/core/messaging/services/server/history`
+- `pnpm test src/domains/core/messaging/services/server/admin`（`admin` / `send` / `operations` / `sendResults` / `recipientChannels`）と `pnpm test src/domains/core/messaging/services/server/history`、送信の id の形は `pnpm test src/domains/core/messaging/services/server/dispatchId.test.ts`
