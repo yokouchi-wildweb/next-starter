@@ -7,7 +7,7 @@
 export { SendKindPicker, type SendKindPickerProps } from "./SendKindPicker";
 
 import { SoftBadge } from "@/components/Badge/SoftBadge";
-import { Check } from "lucide-react";
+import { Check, Lock } from "lucide-react";
 
 import { Button } from "@/components/Button/Button";
 import { SelectInput } from "@/components/Input/Select";
@@ -22,7 +22,8 @@ export type SendCategoryChannelsProps = {
   categories: { key: string; label: string }[];
   category: string;
   onCategoryChange: (key: string) => void;
-  channels: { key: string; label: string; on: boolean; blank?: boolean }[];
+  /** locked = いつも入っていて外せない(定義連絡の固定 on・required のメール)。押せず、鍵の印 */
+  channels: { key: string; label: string; on: boolean; blank?: boolean; locked?: boolean }[];
   onToggleChannel: (key: string, on: boolean) => void;
   /** カテゴリーの選択を出すか(既定 true。種別と 1 行の KindCategoryFields で選ぶ画面は false、D118) */
   showCategory?: boolean;
@@ -73,6 +74,8 @@ export function SendCategoryChannels({
               size="sm"
               variant="outline"
               aria-pressed={channel.on}
+              disabled={channel.locked}
+              title={channel.locked ? "この送信方法は外せません" : undefined}
               className={cn(
                 "h-8 gap-1.5 rounded-full px-3 font-normal",
                 channel.on ? "border-primary/60 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary" : "text-muted-foreground",
@@ -80,7 +83,7 @@ export function SendCategoryChannels({
               onClick={() => onToggleChannel(channel.key, !channel.on)}
               data-slot="send-channel"
             >
-              {channel.on ? <Check className="size-3.5" aria-hidden /> : null}
+              {channel.locked ? <Lock className="size-3.5" aria-hidden /> : channel.on ? <Check className="size-3.5" aria-hidden /> : null}
               {channel.label}
               {channel.on && channel.blank ? (
                 <SoftBadge variant="warning" size="sm" className="ml-0.5">

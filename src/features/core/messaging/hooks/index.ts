@@ -68,6 +68,18 @@ export { initialChannelsOff } from "./sendChannels";
 export { useLayoutPreview, previewValuesOf, type LayoutPreviewMode, type UseLayoutPreviewOptions } from "./useLayoutPreview";
 export { dispatchDetailHref } from "./useDispatchDetailParam";
 export { useDefinitionSend, useDefinitionSendOptions, useDefinitionPreview, useDefinitionTest } from "./useDefinitionSend";
+export {
+  useDefinitionSendModal,
+  definitionChannelsOf,
+  broadcastTypesOf,
+  changedEdits,
+  type DefinitionSendEntry,
+  type DefinitionSendTarget,
+  type DefinitionSendTargetType,
+  type DefinitionSendChannel,
+  type DefinitionSendModalState,
+  type UseDefinitionSendModalOptions,
+} from "./useDefinitionSendModal";
 export { useSendResults, type UseSendResultsOptions } from "./useSendResults";
 export { useRecipientChannels } from "./useRecipientChannels";
 export { useAdminSendOptions } from "./useAdminSendOptions";

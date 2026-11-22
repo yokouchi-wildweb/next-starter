@@ -100,6 +100,25 @@ export const bulkAction = bulkMessageAction(
   - 決まった文面・カテゴリーの指定は無い（送るモーダルは種別から選び白紙から書く）。決まった文面を送るなら連絡定義（messages/<名前>.ts）にする（D195 D200）
 - 上流の使い手: `bankTransferReview/adminBulkActions/sendEmail.tsx`
 
+### 定義連絡の汎用のモーダル（DefinitionSendModal）
+
+連絡定義（messages/<名前>.ts）を管理者が送るモーダル 1 つ（目的の props は無い、D164）。自由連絡の送るモーダルとは別。
+
+```tsx
+// src/features/<domain>/adminBulkActions/<名前>.tsx
+import { definitionBulkAction } from "@/features/core/messaging/components/DefinitionBulkAction";
+
+export const bulkAction = definitionBulkAction({ key: "<名前>", order: 100 }, { recordTarget: "<記録の宛先の鍵>" });
+```
+
+- 入れ物 `DefinitionSendModal`（`entry`・`label?`（既定「連絡を送る」）・`triggerVariant?`・`disabled?`・`icon?`・`onSent?(result)`・`dispatchBasePath?`）
+  - `entry`: `{ type: "records", recordTarget, recordIds }`（一覧の一括操作、門の外。送る連絡定義は項目の `messages` から選び、1 つならそれ。記録の名詞は項目の表示名。予約は無い）/ `{ type: "broadcast" }`（全員・ロール・グループ、連絡定義の `adminTargets` が許す物だけ。門 `messagingBroadcast` が閉なら何も描かない）
+- 書く段（1 列。定義の中身はコードが持つので、自由連絡のような描き方のプレビューは無い）: 送る連絡 + 説明の文（`adminText.description`）→ 送信方法（off は出さない・on と required のメールは外せない = `SendCategoryChannels` の `locked`・初めは `initialChannels`）→ 宛先 → 管理者の値（`SendVarInputs`）→ 内容（直せる欄だけ `LayoutFields`。required・直せる欄なし = 箱なし、D169。送るのは変えた欄だけ）→ 送信日時（broadcast だけ）。下の帯: あなた宛ての表示例（記録は最初の記録）・自分にテスト送信・確認に進む
+- 確認の段 `DefinitionSendConfirm`（props だけ: 連絡・宛先の文 `definitionRecipientsText`・送信方法・送信日時・`adminText.confirm`）。人数の見込みは無い（上限はサーバーが断る）
+- 結果の段: `SendResultView`（後処理の結果 `afterSend`）+ 送信の結果 `SendResult`（`useSendResults`）
+- hook `useDefinitionSendModal({ entry, onSent? })`（入れ物はこれを呼んで並べるだけ。fork は同じ hook と部品で自前のモーダルを組める、D191）・純粋な関数 `definitionChannelsOf` / `broadcastTypesOf` / `changedEdits`
+- 作成関数 `definitionBulkAction(meta, { recordTarget, label?, disabled?, onSent? })`: 一覧の一括操作の項目（自由連絡の `bulkMessageAction` とは別、D194）。対に持ち主のドメインの記録の宛先（`messages` に送れる連絡定義）が要る
+
 ## Verification
 
 - `pnpm test src/features/core/messaging/components src/features/core/messaging/hooks`
