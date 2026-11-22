@@ -38,7 +38,7 @@ const page = await userGroupEvaluator.listMemberIds(groupId, { cursor, limit: 50
 
 連絡の宛先として使う（messaging）:
 
-- `sendMessageToMany` / 管理の送信の宛先 `target: { type: "group", groupId }`。送り始めに門・保管・壊れた条件・人数の上限を確かめ、だめなら回を作らずに理由を返す
+- `sendMessageToMany` / 管理の送信の宛先 `target: { type: "group", groupId }`。送り始めに門・保管・壊れた条件・人数の上限を確かめ、だめなら送信を作らずに理由を返す
 - 送り始めの後、cron が 1 つの時点の一員を回の受信者の一覧へ 1 文で書き出し、書き終えてからその一覧だけに送る（送る途中でグループが変わっても宛先は変わらない）。定期計算のグループは送り始めの今の版を固定する
 - 詳しくは `src/features/core/messaging/README.md`
 

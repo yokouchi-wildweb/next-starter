@@ -77,7 +77,7 @@ export async function sendExpiredNotices(options: {
     if (createdUntil.getTime() <= createdFrom.getTime()) continue;
 
     const { label } = walletConfig.currency[walletType];
-    // 本通知の連絡(省略 = 上流 wallet.expiredNotice。経路はその連絡の種類が決める)
+    // 本通知の連絡(省略 = 上流 wallet.expiredNotice。送信チャンネルはその連絡のカテゴリーが決める)
     const message = await noticeMessageOf(notice.messageKey, expiredNoticeMessage);
 
     try {

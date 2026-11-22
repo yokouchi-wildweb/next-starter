@@ -1,9 +1,9 @@
 // src/features/core/analytics/services/server/messagingAnalytics/service.ts
-// 連絡(messaging)の集計(D14・D19・D37)。summary・日ごとの series・軸ごとの breakdown・回ごとの dispatches。
+// 連絡(messaging)の集計(D14・D19・D37)。summary・日ごとの series・軸ごとの breakdown・送信ごとの dispatches。
 // 部品(store・門・今・配達の保持の日数)を受けて作る(テストは偽物を渡す、本物は index.ts)。
 //
 // 門(関数が測る物の開閉を自分で確かめる): 開封・クリックは messagingTracking が閉なら null、
-// 回ごとのビューは messagingDispatches が閉なら空。住所は規則 messagingAnalytics が閉じる。
+// 送信ごとのビューは messagingDispatches が閉なら空。住所は規則 messagingAnalytics が閉じる。
 
 import { DomainError } from "@/lib/errors";
 
@@ -52,7 +52,7 @@ async function loadRows(store: MessagingAnalyticsStore, scope: MessagingQuerySco
   return { dispatch, delivery, read, unsubscribe };
 }
 
-/** 回ごとのビューの cursor(送った時刻 ISO | id の base64url) */
+/** 送信ごとのビューの cursor(送った時刻 ISO | id の base64url) */
 export function encodeDispatchCursor(anchor: Date, id: string): string {
   return Buffer.from(`${anchor.toISOString()}|${id}`, "utf8").toString("base64url");
 }
@@ -69,7 +69,7 @@ export function decodeDispatchCursor(cursor: string): { anchor: Date; id: string
 
 export function createMessagingAnalytics(deps: MessagingAnalyticsDeps) {
   const trackingEnabled = () => deps.gateEnabled("messagingTracking");
-  /** この時刻より前に送った回の配達の行は保持の掃除で消えている(かもしれない) */
+  /** この時刻より前の送信の配達の行は保持の掃除で消えている(かもしれない) */
   const retainedFrom = () => new Date(deps.now().getTime() - deps.deliveriesDays * DAY_MS);
 
   function scopeOf(range: ResolvedDateRange, params: MessagingAnalyticsParams, groupBy: MessagingQueryScope["groupBy"], withPrevious: boolean): MessagingQueryScope {
@@ -115,7 +115,7 @@ export function createMessagingAnalytics(deps: MessagingAnalyticsDeps) {
     },
 
     /**
-     * 軸ごとの内訳(当期 + 前の期間と変化率)。配信停止の結び付きの無い行・テンプレートで無い回・タグの無い回は key null
+     * 軸ごとの内訳(当期 + 前の期間と変化率)。配信停止の結び付きの無い行・テンプレートで無い送信・タグの無い送信は key null
      * @throws DomainError(400) 知らない軸
      */
     async getBreakdown(params: MessagingAnalyticsParams & { axis: string }): Promise<MessagingBreakdownResponse> {
@@ -143,7 +143,7 @@ export function createMessagingAnalytics(deps: MessagingAnalyticsDeps) {
     },
 
     /**
-     * 回ごと(送った時刻の新しい順、cursor で続き)。回の管理が閉なら空
+     * 送信ごと(送った時刻の新しい順、cursor で続き)。送信の管理が閉なら空
      * @throws DomainError(400) cursor の形の誤り
      */
     async getDispatches(params: MessagingAnalyticsParams & { cursor?: string; limit?: number }): Promise<MessagingDispatchesResponse> {

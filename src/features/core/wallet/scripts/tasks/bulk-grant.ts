@@ -29,11 +29,11 @@ export const task: OneShotTask = {
     }
     const mark = result.dryRun ? "[dry-run] " : "";
     for (const row of result.skipped) console.log(`${mark}飛ばす ${row.userId}: ${row.why}`);
-    for (const row of result.notifyFailed) console.error(`お知らせの失敗 ${row.userId}: ${row.error}(付与は済んでいる)`);
+    for (const row of result.notifyFailed) console.error(`知らせの失敗 ${row.userId}: ${row.error}(付与は済んでいる)`);
     console.log(
       `${mark}${parsed.walletType} を ${result.granted.length} 人に${result.dryRun ? "付ける" : "付けた"}(合計 ${result.total}、種類 ${parsed.kind})/ 飛ばす ${result.skipped.length} 人` +
         (result.requestBatchId ? ` / request_batch_id ${result.requestBatchId}(取り消しは wallet:reverse-history -- --batch)` : "") +
-        (parsed.notify && !result.dryRun ? ` / お知らせ ${result.notified} 人` : ""),
+        (parsed.notify && !result.dryRun ? ` / 知らせ ${result.notified} 人` : ""),
     );
     return {
       dryRun: result.dryRun,

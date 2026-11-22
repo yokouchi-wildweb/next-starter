@@ -59,7 +59,7 @@ function discoverDir(repoRoot, owner, dir, points, otherDirs) {
   const problems = [];
   // 受け口のフォルダが無い = 項目 0(git は空のフォルダを持てない。上流の項目が 0 の点はここを通る)
   if (!existsSync(abs)) return { items, problems };
-  // files の点は同じフォルダを読む点を全部回す(ひな形の layouts・layoutEmails・layoutInApps のように 1 つのフォルダの別々のファイル)
+  // files の点は同じフォルダを読む点を全部回す(レイアウトの layouts・layoutEmails・layoutInApps のように 1 つのフォルダの別々のファイル)
   if (points[0].spec.files) {
     const problems = [];
     for (const point of points) problems.push(...discoverFiles(repoRoot, rel, abs, point, items).problems);

@@ -235,7 +235,7 @@ await walletService.adjustBalance(
 設定(上書き `src/config/features/wallet.config.ts` の `expiration`。既定は `src/features/core/wallet/config.ts`):
 
 ```typescript
-// config は段だけ。経路は連絡の種類(walletExpiring・walletExpired)、文面は連絡の定義(messages/expiringNotice.ts・expiredNotice.ts)
+// config は段だけ。送信チャンネルは連絡のカテゴリー(walletExpiring・walletExpired)、文面は連絡定義(messages/expiringNotice.ts・expiredNotice.ts)
 expiration: {
   regular_coin: {
     expirationDays: 180,
@@ -244,7 +244,7 @@ expiration: {
       // 失効予告: 段の配列。空配列 = 予告なし
       preExpiry: [
         { daysBefore: 30 },
-        { daysBefore: 7, messageKey: "shop.pointExpiringSoon" }, // 段ごとに経路を変えるなら自分の種類の連絡へ向ける
+        { daysBefore: 7, messageKey: "shop.pointExpiringSoon" }, // 段ごとに送信チャンネルを変えるなら自分のカテゴリーの連絡へ向ける
       ],
       // 失効時の本通知: null = 本通知なし
       expired: {},
@@ -257,11 +257,11 @@ expiration: {
 - 送信チャンネルはカテゴリーが決める: 予告 = カテゴリー `walletExpiring`(種別 transactional = 利用者は止められず、送るかはこの段が決める D207・D208。email・inApp)、本通知 = カテゴリー `walletExpired`(transactional、email・inApp)。全部の通貨・段で変えるならカテゴリーの上書き `src/features/core/messaging/categories/<カテゴリー>.override.ts` の `channels`
 - `messageKey`(段・本通知ごとに任意): 送る連絡の鍵(省略 = 上流の `wallet.expiringNotice` / `wallet.expiredNotice`)。通貨・段ごとに送信チャンネルを変えたい fork は、その送信チャンネルのカテゴリーと、同じ vars を受ける連絡定義を自分のドメインに足して向ける(生成の一覧に無い鍵は cron が止まる)。前の設定の `channels` は無くなった(残っていると cron が止まって知らせる)
 - メールの無い利用者: メールの行が宛先なし(no_address)になり、ほかの送信チャンネルで届く
-- **文言**: 連絡の定義 `messages/expiringNotice.ts`（予告、鍵 `wallet.expiringNotice`）・`messages/expiredNotice.ts`（本通知、`wallet.expiredNotice`）。ひな形の欄の中身（件名・札・宛名・本文・足元）を持つ。変える fork は隣に `<名前>.override.ts` を置く（段ごと・通貨ごとの文面の設定は無い。段で変えたいときは `{{daysBefore}}` を使う）
+- **文言**: 連絡の定義 `messages/expiringNotice.ts`（予告、鍵 `wallet.expiringNotice`）・`messages/expiredNotice.ts`（本通知、`wallet.expiredNotice`）。レイアウトの欄の中身（件名・札・宛名・本文・足元）を持つ。変える fork は隣に `<名前>.override.ts` を置く（段ごと・通貨ごとの文面の設定は無い。段で変えたいときは `{{daysBefore}}` を使う）
   - 差し込む名前: 共通 `{{currencyLabel}}`・`{{amount}}`・`{{displayName}}`（宛名、名前が無ければ「お客様」）・`{{serviceNameShort}}` / 予告 `{{expiresOn}}`・`{{daysBefore}}` / 本通知 `{{expiredOn}}`・`{{balanceAfter}}`
-  - 見た目: ひな形 `statement`（お知らせの明細、`src/features/core/messaging/layouts/statement/`）。欄: `badge` 見出しの札（「… からのお知らせ」、ロゴの下）→ `addressee` 宛名（「… 様」）→ 区切り → `body` 本文（改行はそのまま）→ 区切り → `footer`。見た目を替える fork はその描き方の `.replace`、文言は上書きの `values`
-  - お知らせ（inApp）は受け取り箱（`message_inbox_items`）に入る。題と本文はひな形の要約（題 = 件名、本文 = メールと同じ本文）
-- 送り方: 送る口 `messagingService.sendMessage`(送信チャンネルを渡さない。予告も本通知も種別 transactional なので受信者の好みでは止まらない、D208)。二重送信の鍵は `wallet-expiring:<通貨>:<日数>:<利用者>:<失効日>` / `wallet-expired:<履歴の id>`。ページごとの送信済みの除外は `messagingService.existingIdempotencyKeys`（回の表と鍵の移し先の表の両方）
+  - 見た目: レイアウト `statement`（明細、`src/features/core/messaging/layouts/statement/`）。欄: `badge` 見出しの札（「… からのお知らせ」、ロゴの下）→ `addressee` 宛名（「… 様」）→ 区切り → `body` 本文（改行はそのまま）→ 区切り → `footer`。見た目を替える fork はその描き方の `.replace`、文言は上書きの `values`
+  - inApp は受け取り箱（`message_inbox_items`）に入る。題と本文はレイアウトの要約（題 = 件名、本文 = メールと同じ本文）
+- 送り方: 送る口 `messagingService.sendMessage`(送信チャンネルを渡さない。予告も本通知も種別 transactional なので受信者の好みでは止まらない、D208)。二重送信の鍵は `wallet-expiring:<通貨>:<日数>:<利用者>:<失効日>` / `wallet-expired:<履歴の id>`。ページごとの送信済みの除外は `messagingService.existingIdempotencyKeys`（送信の表と鍵の移し先の表の両方）
 - 全体設定 `walletConfig.expirationNoticeSettings`: `targetStatuses`（送信対象のユーザーステータス。既定 active / inactive）、
   `sendConcurrency`（同時送信数。既定 5）、`dateTimeZone`（文面の日付と予告の日境界。既定 Asia/Tokyo）
 - スケジュール登録は不要: `wallet-expiration-notice` は配線済みで、`notice` を設定した時点から毎時動く（Vercel Hobby では 1 日 1 回）。

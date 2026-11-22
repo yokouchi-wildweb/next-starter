@@ -1,7 +1,7 @@
 // src/features/core/userGroup/services/server/admin/references.ts
 //
 // グループを使っている所(削除の可否、D92)。読むだけ。
-// - 送信の宛先: messaging の回(message_dispatches)のうち、宛先がこのグループで削除していない回の数。
+// - 送信の宛先: messaging の送信(message_dispatches)のうち、宛先がこのグループで削除していない送信の数。
 //   messaging を import しない(循環を作らない)ため、表と列の名前で読む生の SQL(target jsonb {type:'group', groupId}・deleted_at)
 // - 他のグループの条件: 保存した定義の木に「固定グループの一員」(inStaticGroup)でこのグループを指す葉がある、ほかのグループの名前
 //   (削除の対象は持ち主付きでないグループだけ。持ち主の包みが指す例外の人のグループは持ち主と一緒に消える)

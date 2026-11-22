@@ -1,6 +1,6 @@
 // src/app/api/admin/messaging/dispatches/[id]/resend/route.ts
 //
-// 管理者向け: 失敗の再送 body { includeUnknown? }(unknown は明示の時だけ。送り直せない回は 409 + 理由の符号)。監査ログに 1 行
+// 管理者向け: 失敗の再送 body { includeUnknown? }(unknown は明示の時だけ。送り直せない送信は 409 + 理由の符号)。監査ログに 1 行
 // 返す形: { dispatchId, mode: requeue | new_dispatch, failed, unknown, newDispatchId }
 // 門: messagingDispatches の住所 /api/admin/messaging/dispatches の下(閉なら proxy が 404)
 //

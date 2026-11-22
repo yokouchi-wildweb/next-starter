@@ -7,7 +7,7 @@ import type { CronTaskDefinition } from "@/lib/cron";
 
 export const cronTask: CronTaskDefinition = {
   name: "messaging-subscribers",
-  description: "連絡の事件(送った・失敗・止めた・回を閉じた・provider の事件)を購読ごとの印から入った順に渡す(少なくとも 1 回、失敗は隔離)",
+  description: "連絡の事件(送った・失敗・止めた・送信を閉じた・provider の事件)を購読ごとの印から入った順に渡す(少なくとも 1 回、失敗は隔離)",
   schedule: "*/5 * * * *", // 5 分ごと（--plan hobby では 1 日 1 回になる: 遅れるだけで壊れない）
   run: async () => {
     const { runMessageSubscribers } = await import("@/features/core/messaging/services/server/subscribers");

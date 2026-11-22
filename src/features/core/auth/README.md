@@ -116,15 +116,15 @@ return response;
 | `auth.accountLocked` | `localLogin`（永続ロックの時。送りっぱなし、失敗は warn だけ） | 利用者（`users.email`） | 取引の連絡・`record: "meta"`（IP を残さない） |
 
 - required の 4 本は要求の中で短く送り直し、メールの配達が `sent` でなければ(失敗・不明・宛先の停止)DomainError(500)「…の送信に失敗しました: <理由>」(`sendMailMessage.ts`)
-- 見た目はひな形(`src/features/core/messaging/layouts/`、欄は意味で名づけ)
-  - リンクの 4 本 = ひな形 `link`(認証のリンク): `heading` → `received` 受付の文 → `buttonGuide` → ボタン(`button`)→ `urlGuide` → ボタンの URL をそのまま出す → `footer`
-  - `accountLocked` = ひな形 `alert`(セキュリティの警告): `heading` → `explanation` → 情報の箱(`details` = 発生時刻・アクセス元 IP。値が空の行は出さない)→ `notYou`・`ifYou`(最初の行を太字)→ `footer`
+- 見た目はレイアウト(`src/features/core/messaging/layouts/`、欄は意味で名づけ)
+  - リンクの 4 本 = レイアウト `link`(認証のリンク): `heading` → `received` 受付の文 → `buttonGuide` → ボタン(`button`)→ `urlGuide` → ボタンの URL をそのまま出す → `footer`
+  - `accountLocked` = レイアウト `alert`(セキュリティの警告): `heading` → `explanation` → 情報の箱(`details` = 発生時刻・アクセス元 IP。値が空の行は出さない)→ `notYou`・`ifYou`(最初の行を太字)→ `footer`
 
 ## Extension
 
 - 設定: 持ち主 `config.ts`(既定・型 `AuthOverride`・合成 `authConfig`)、上書き `src/config/features/auth.config.ts`(値はリテラル、fork 独自の鍵は上書きの `export type Extra`)。鍵: `thirdPartyProviders`(提供元ごとの有効化)・`signup`(遷移先・進捗の表示・パスワード入力のモード・ロール選択・メール認証後の動作・Hide My Email の扱い)・`rateLimitWarning`(重複登録の警告の文言)
 - ほかの置き場: サインアップの入切 = 門番の規則 `signup`・mode = `user/config.ts` の `signupMode`・セッション Cookie = `lib/jwt`・メールチェック = `lib/spamGuard`
-- メールの見た目を替える fork はひな形の描き方の `.replace`、文言は上書きの `values`
+- メールの見た目を替える fork はレイアウトの描き方の `.replace`、文言は上書きの `values`
 - 登録の後の処理は milestone の定義(`user_registered`)を置く(Usage「登録フロー」)
 
 ## Internals
@@ -151,7 +151,7 @@ return response;
 
 ### 宣伝の同意
 
-- `marketingConsent` = `false`: 宣伝の種別まるごとの停止の行(kind `marketing`、`'*'` `'*'`)を source `signup` で書く(fork が後から足す宣伝の種類にも効く)
+- `marketingConsent` = `false`: 宣伝の種別まるごとの停止の行(kind `marketing`、`'*'` `'*'`)を source `signup` で書く(fork が後から足す宣伝のカテゴリーにも効く)
 - `true`: 同じ登録の前の失敗した試みが残したその行を消す(有効化の前の利用者にほかの好みの行は無い)| 省略 = 何もしない
 - 書くのは有効化(`registerFromAuth`)の前に仮登録の id で、書けなければ投げる(有効化していないので登録はやり直せる)
 - 中身は `services/server/marketingConsent.ts` → messaging の `setMessagePreference(userId, { kind, optedOut }, { source })`

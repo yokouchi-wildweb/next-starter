@@ -83,6 +83,6 @@ export async function fetchMessagingDispatches(
     });
     return data;
   } catch (error) {
-    throw normalizeHttpError(error, "連絡の集計の回ごとの取得に失敗しました");
+    throw normalizeHttpError(error, "連絡の集計の送信ごとの取得に失敗しました");
   }
 }

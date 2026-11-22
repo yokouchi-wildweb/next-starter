@@ -5,8 +5,8 @@
 //   pnpm ops mail test-send                                          (対話: 送信先と連絡を選ぶ)
 //   pnpm ops mail test-send -- --to=<アドレス> --message=<連絡の鍵>     (対話なし。--message=simple は接続確認のメール)
 //
-// 連絡のメール: 生成の一覧(src/registry/messageRegistry.ts)のうち種類の経路に email がある連絡を、
-// 上書き(<名前>.override.ts)を重ね、見本の値を差し込んでひな形のメールの描き方(layouts の受け口 layoutEmails、無ければ要約から)で描いて送る。
+// 連絡のメール: 生成の一覧(src/registry/messageRegistry.ts)のうちカテゴリーの送信チャンネルに email がある連絡を、
+// 上書き(<名前>.override.ts)を重ね、見本の値を差し込んでレイアウトのメールの描き方(layouts の受け口 layoutEmails、無ければ要約から)で描いて送る。
 // 見本の値: 定義の vars・共通の文脈・当たる enrichers の鍵ごとに、URL の欄は https://example.com/sample/<鍵>、他は「<鍵>の見本」。
 // 送る口(回・配達の記録)は通さない(見た目の確認だけ)。連絡の書き方: src/lib/messaging/README.md
 
@@ -86,7 +86,7 @@ async function messageTemplates(): Promise<TemplateConfig[]> {
     templates.push({
       key: entry.key,
       name: entry.key,
-      description: `連絡のメール(ひな形「${layout.label}」${renderer ? "" : "、要約から"})`,
+      description: `連絡のメール(レイアウト「${layout.label}」${renderer ? "" : "、要約から"})`,
       render: async () => {
         const shape = resolved.vars.shape as Record<string, ZodLike>;
         const enricherShape = Object.assign(

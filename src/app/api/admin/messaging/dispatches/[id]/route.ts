@@ -1,8 +1,8 @@
 // src/app/api/admin/messaging/dispatches/[id]/route.ts
 //
-// 管理者向け: 回 1 件(AdminDispatchDetail。本文は記録の段が vars / full のときだけ)と回の削除(D88)
-// - DELETE: どの状態の回も消す(論理削除。未送信を止め、予約は送られず、消せる経路の届けた物を消す。送ったメール・LINE は残る)。
-//   削除済みは同じ結果(消せる経路を呼び直す)。返す形 AdminDeleteResult。監査ログに 1 行
+// 管理者向け: 送信 1 件(AdminDispatchDetail。本文は記録の段が vars / full のときだけ)と送信の削除(D88)
+// - DELETE: どの状態の送信も消す(論理削除。未送信を止め、予約は送られず、消せる送信チャンネルの届けた物を消す。送ったメール・LINE は残る)。
+//   削除済みは同じ結果(消せる送信チャンネルを呼び直す)。返す形 AdminDeleteResult。監査ログに 1 行
 //
 // GET /api/admin/messaging/dispatches/[id]
 // DELETE /api/admin/messaging/dispatches/[id]

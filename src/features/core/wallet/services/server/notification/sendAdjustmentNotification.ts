@@ -29,7 +29,7 @@ export function adjustmentNoticeVars(input: Omit<SendAdjustmentNotificationInput
 }
 
 /**
- * 管理者による残高変更をユーザーに通知する(お知らせ = 受け取り箱)。
+ * 管理者による残高変更をユーザーに通知する(inApp = 受け取り箱)。
  * 送信の失敗は残高の変更に影響させない(投げずにログだけ。残高の変更は済んでいる)。
  */
 export async function sendAdjustmentNotification(

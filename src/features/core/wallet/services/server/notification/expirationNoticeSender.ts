@@ -4,7 +4,7 @@
 // 1ページ分の送信ジョブを受け取り、送信済みの除外 → 送信対象の絞り込み → 送信 を行う。
 // 文面は連絡の定義(messages/expiringNotice.ts・expiredNotice.ts)、送る口は messagingService.sendMessage。
 // ジョブは定義に差し込む値(vars)を持ち、宛名(displayName)とサービスの短い名前はここで足す。
-// 経路は連絡の種類が決める(D86)ので渡さない。メール未登録の人はメールの行が宛先なし(no_address)になり、ほかの経路で届く。
+// 送信チャンネルは連絡のカテゴリーが決める(D86)ので渡さない。メール未登録の人はメールの行が宛先なし(no_address)になり、ほかの送信チャンネルで届く。
 
 import { inArray } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
@@ -106,7 +106,7 @@ async function sendOne(job: ExpirationNoticeJob, displayName: string): Promise<"
       source: job.source,
       idempotencyKey: job.idempotencyKey,
     });
-    // 1 つ以上の経路で送れた(sent)か、一時の失敗で送り直し待ち(queued、cron が送る)なら送った扱い
+    // 1 つ以上の送信チャンネルで送れた(sent)か、一時の失敗で送り直し待ち(queued、cron が送る)なら送った扱い
     return result.deliveries.some((delivery) => delivery.status === "sent" || delivery.status === "queued")
       ? "sent"
       : "failed";

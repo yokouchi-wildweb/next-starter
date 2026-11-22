@@ -1,6 +1,6 @@
 // src/app/api/admin/messaging/dispatches/bulk-delete/route.ts
 //
-// 管理者向け: 回をまとめて削除する(D88)。body { ids }(1〜100 件)→ { results: [{ dispatchId, ok, result | reason・message }] }。回ごとに 1 件の削除と同じ(監査も回ごと)
+// 管理者向け: 送信をまとめて削除する(D88)。body { ids }(1〜100 件)→ { results: [{ dispatchId, ok, result | reason・message }] }。送信ごとに 1 件の削除と同じ(監査も送信ごと)
 // 門: messagingDispatches の住所 /api/admin/messaging/dispatches の下(閉なら proxy が 404)
 //
 // POST /api/admin/messaging/dispatches/bulk-delete

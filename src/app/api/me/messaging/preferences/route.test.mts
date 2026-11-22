@@ -85,7 +85,7 @@ test("PATCH: body を本人の変更として渡し、変えた後の表を返�
   assert.deepEqual(calls, [{ fn: "set", userId: "u1", input: body }]);
 });
 
-test("PATCH: 種類まるごと・経路まるごとの body もそのまま本人の変更として渡す", async () => {
+test("PATCH: カテゴリーまるごと・送信チャンネルまるごとの body もそのまま本人の変更として渡す", async () => {
   for (const body of [{ category: "marketing", channel: "*", optedOut: true }, { category: "*", channel: "email", optedOut: false }]) {
     calls.length = 0;
     const res = await PATCH(

@@ -1,19 +1,19 @@
 // scripts/structure/extensions/derive/messageGuards.mjs
 // 止められない連絡(required)の守り。連絡の定義 messages/<名前>.ts と隣の上書き <名前>.override.ts を字面で読み(実行しない)、
 // - required の上書き: enabled: false にしない・adminEditableOnly(書くなら)は空・throttle(書くなら)は null だけ
-// - 守りに関わる値(定義の required・category・adminEditableOnly、上書きの enabled・adminEditableOnly、種類の kind・channels・group)はリテラルで書く
+// - 守りに関わる値(定義の required・category・adminEditableOnly、上書きの enabled・adminEditableOnly、カテゴリーの kind・channels・group)はリテラルで書く
 // - label(全部の定義に必須、D46): 管理画面に出す連絡の名前。字面の空でない文字列(上書きで変えられる = 表示だけ)
 // - category(全部の定義に必須、D81): リテラルで、categories の受け口(messaging の点 categories)の項目の鍵のどれか。
-//   上書きの category(付け替え、D166・D167)もリテラルで受け口の鍵。下の守りは付け替えた後のカテゴリー(種別・経路)で見る
+//   上書きの category(付け替え、D166・D167)もリテラルで受け口の鍵。下の守りは付け替えた後のカテゴリー(種別・送信チャンネル)で見る
 // - 上書きの channelModes(送信チャンネルの固定の丸ごとの差し替え、D212)もリテラル。required か email を外せない種別の email を "off" にしない
-// - layout(全部の定義に必須、D122): リテラルで、ひな形の受け口(messaging の点 layouts)のフォルダの名前のどれか。欄の中身(values)は
-//   ひな形の欄の zod で実行時に検査する(lib/messaging validateMessageDefinition)
-// - required の定義: 種類の経路に "email" がある・adminEditableOnly が空・throttle が無い
-// - 上流(src/features/core)の functional の種類の連絡: 上書きで enabled: false にしない(D68)
-// - 種類の上書き(categories/<名前>.override.ts): functional・security の種類の channels から "email" を外さない(D86)。
-//   group は categoryGroups の受け口の鍵で、1 つのグループの種類は同じ種別(D82)
+// - layout(全部の定義に必須、D122): リテラルで、レイアウトの受け口(messaging の点 layouts)のフォルダの名前のどれか。欄の中身(values)は
+//   レイアウトの欄の zod で実行時に検査する(lib/messaging validateMessageDefinition)
+// - required の定義: カテゴリーの送信チャンネルに "email" がある・adminEditableOnly が空・throttle が無い
+// - 上流(src/features/core)の functional のカテゴリーの連絡: 上書きで enabled: false にしない(D68)
+// - カテゴリーの上書き(categories/<名前>.override.ts): functional・security のカテゴリーの channels から "email" を外さない(D86)。
+//   group は categoryGroups の受け口の鍵で、1 つのグループのカテゴリーは同じ種別(D82)
 // 種別の性質(emailFixed・upstreamDisable)は src/lib/messaging/definition/kinds.ts の MESSAGE_KIND_TRAITS を字面で読む(表は 1 か所)。
-// categories の点が宣言されていない木(messaging の無い木)では種類の検査をしない
+// categories の点が宣言されていない木(messaging の無い木)ではカテゴリーの検査をしない
 // 上書きの鍵(宣言の overrideOf の中か)は ../overrideKeys.mjs、欄・{{鍵}} など値の検査は lib/messaging の validateMessageDefinition(実行時・生成時)。
 // 点 = lib/messaging の extensionPoints.ts の messages(宣言の overrides の glob の対象)。pnpm check extensions(門 build)が回す
 
@@ -26,10 +26,10 @@ import { literalOf, isOverridePath, overrideGlobOf } from "../../../../src/lib/d
 
 /** 守りを当てる点(持ち主のフォルダ・点の名前) */
 export const MESSAGE_POINT = { owner: "src/lib/messaging", name: "messages" };
-/** 配信停止の種類の点(項目の鍵 = category に書ける値)とグループの点 */
+/** 配信停止のカテゴリーの点(項目の鍵 = category に書ける値)とグループの点 */
 export const CATEGORY_POINT = { owner: "src/features/core/messaging", name: "categories" };
 export const CATEGORY_GROUP_POINT = { owner: "src/features/core/messaging", name: "categoryGroups" };
-/** ひな形の点(layouts/<名前>/layout.ts のフォルダの名前 = layout に書ける値) */
+/** レイアウトの点(layouts/<名前>/layout.ts のフォルダの名前 = layout に書ける値) */
 export const LAYOUT_POINT = { owner: "src/features/core/messaging", name: "layouts" };
 /** 種別の性質の表 */
 const KIND_TRAITS_FILE = "src/lib/messaging/definition/kinds.ts";
@@ -129,7 +129,7 @@ export function readCategoryKeys(repoRoot, points, files) {
   return categories ? [...categories.keys()].sort() : null;
 }
 
-/** 種類のグループの鍵(点が無ければ空) */
+/** カテゴリーのグループの鍵(点が無ければ空) */
 function readGroupKeys(repoRoot, points, files) {
   const point = points.find((p) => p.owner === CATEGORY_GROUP_POINT.owner && p.name === CATEGORY_GROUP_POINT.name);
   if (!point?.spec?.dir || !point.spec.export) return new Set();
@@ -162,7 +162,7 @@ export function readKindTraits(repoRoot) {
   return traits;
 }
 
-/** ひな形の受け口のフォルダの名前(点が宣言されていない木は null) */
+/** レイアウトの受け口のフォルダの名前(点が宣言されていない木は null) */
 export function readLayoutKeys(points, files) {
   const point = points.find((p) => p.owner === LAYOUT_POINT.owner && p.name === LAYOUT_POINT.name);
   if (!point?.spec?.dir) return null;
@@ -176,16 +176,16 @@ export function readLayoutKeys(points, files) {
   );
 }
 
-/** 定義の layout の問題(全部の連絡に必須・ひな形の受け口のフォルダの名前) */
+/** 定義の layout の問題(全部の連絡に必須・レイアウトの受け口のフォルダの名前) */
 function layoutProblems(path, object, layoutKeys) {
   const layout = readLiteralProperty(object, "layout");
-  if (layout.problem) return [`${path}: ${layout.problem}(layout をひな形の受け口と字面で照らすため)`];
+  if (layout.problem) return [`${path}: ${layout.problem}(layout をレイアウトの受け口と字面で照らすため)`];
   const list = layoutKeys ? [...layoutKeys].sort().join(" / ") || "項目なし" : "";
   if (!layout.present || typeof layout.value !== "string") {
-    return [`${path}: layout(ひな形の鍵${list ? `: ${list}` : ""})を書く(全部の連絡に必須。中身は values にひな形の欄の鍵で書く)`];
+    return [`${path}: layout(レイアウトの鍵${list ? `: ${list}` : ""})を書く(全部の連絡に必須。中身は values にレイアウトの欄の鍵で書く)`];
   }
   if (layoutKeys && !layoutKeys.has(layout.value)) {
-    return [`${path}: layout ${JSON.stringify(layout.value)} はひな形の受け口に無い(${list})。先に messaging/layouts/<名前>/layout.ts を足す`];
+    return [`${path}: layout ${JSON.stringify(layout.value)} はレイアウトの受け口に無い(${list})。先に messaging/layouts/<名前>/layout.ts を足す`];
   }
   return [];
 }
@@ -205,13 +205,13 @@ function categoryProblems(path, object, categories) {
   const category = readLiteralProperty(object, "category");
   if (category.problem) return [`${path}: ${category.problem}(category を categories の受け口と字面で照らすため)`];
   const list = [...categories.keys()].sort().join(" / ") || "項目なし";
-  if (!category.present) return [`${path}: category(${list})を書く(全部の連絡に必須。種別と経路は種類から引く)`];
+  if (!category.present) return [`${path}: category(${list})を書く(全部の連絡に必須。種別と送信チャンネルはカテゴリーから引く)`];
   const item = typeof category.value === "string" ? categories.get(category.value) : undefined;
   if (!item) return [`${path}: category ${JSON.stringify(category.value)} は categories の受け口に無い(${list})。先に categories/<名前>.ts を足す`];
   return [];
 }
 
-/** 種類の上書きの問題(email を外さない・グループ) */
+/** カテゴリーの上書きの問題(email を外さない・グループ) */
 function categoryOverrideProblems(repoRoot, categories, files, groupKeys, traits) {
   const problems = [];
   const groupKind = new Map();
@@ -225,13 +225,13 @@ function categoryOverrideProblems(repoRoot, categories, files, groupKeys, traits
       if (override) {
         const c = readLiteralProperty(override, "channels");
         const g = readLiteralProperty(override, "group");
-        if (c.problem || g.problem) problems.push(`${overridePath}: ${c.problem ?? g.problem}(種類の経路・グループを字面で確かめるため)`);
+        if (c.problem || g.problem) problems.push(`${overridePath}: ${c.problem ?? g.problem}(カテゴリーの送信チャンネル・グループを字面で確かめるため)`);
         if (c.present && isStringArray(c.value)) {
           channels = c.value;
           if (traits.emailFixed.has(item.kind) && !c.value.includes("email")) {
-            problems.push(`${overridePath}: 種別 ${item.kind} の種類 ${key} の経路から email は外せない(D86)`);
+            problems.push(`${overridePath}: 種別 ${item.kind} のカテゴリー ${key} の送信チャンネルから email は外せない(D86)`);
           }
-          if (c.value.length === 0) problems.push(`${overridePath}: 種類 ${key} の経路を空にはできない`);
+          if (c.value.length === 0) problems.push(`${overridePath}: カテゴリー ${key} の送信チャンネルを空にはできない`);
         }
         if (g.present && typeof g.value === "string") group = g.value;
       }
@@ -239,13 +239,13 @@ function categoryOverrideProblems(repoRoot, categories, files, groupKeys, traits
     effective.set(key, { ...item, channels, group });
     if (!group) continue;
     if (!groupKeys.has(group)) {
-      problems.push(`${item.path}: 種類 ${key} の group ${group} は categoryGroups の受け口に無い`);
+      problems.push(`${item.path}: カテゴリー ${key} の group ${group} は categoryGroups の受け口に無い`);
       continue;
     }
     const seen = groupKind.get(group);
     if (!seen) groupKind.set(group, { kind: item.kind, key });
     else if (seen.kind !== item.kind) {
-      problems.push(`${item.path}: グループ ${group} には種別 ${seen.kind} の種類 ${seen.key} があり、種別 ${item.kind} の種類 ${key} は入れられない(D82)`);
+      problems.push(`${item.path}: グループ ${group} には種別 ${seen.kind} のカテゴリー ${seen.key} があり、種別 ${item.kind} のカテゴリー ${key} は入れられない(D82)`);
     }
   }
   return { problems, effective };
@@ -288,7 +288,7 @@ export function checkMessageGuards(repoRoot, points, files) {
     const ownOverride = path.replace(/\.[A-Za-z]+$/, ".override.ts");
     const hasOverride = files.includes(ownOverride) && matchesGlob(ownOverride, overrideGlob);
     const overrideObject = hasOverride ? exportedObject(ownOverride, readFileSync(join(repoRoot, ownOverride), "utf8"), overrideExport) : null;
-    // 付け替えた後のカテゴリー(上書きの category、D166)。守りはこのカテゴリーの種別・経路で見る
+    // 付け替えた後のカテゴリー(上書きの category、D166)。守りはこのカテゴリーの種別・送信チャンネルで見る
     let categoryKey = readLiteralProperty(definition, "category").value;
     if (overrideObject) {
       const moved = readLiteralProperty(overrideObject, "category");
@@ -325,7 +325,7 @@ export function checkMessageGuards(repoRoot, points, files) {
     if (required.problem || required.value !== true) continue;
 
     if (categoryItem?.channels && !categoryItem.channels.includes("email")) {
-      problems.push(`${path}: required の連絡の種類(${categoryItem.path})の経路に "email" を含める`);
+      problems.push(`${path}: required の連絡のカテゴリー(${categoryItem.path})の送信チャンネルに "email" を含める`);
     }
     if (!adminEditableOnly.problem && adminEditableOnly.present && !(Array.isArray(adminEditableOnly.value) && adminEditableOnly.value.length === 0)) {
       problems.push(`${path}: required の連絡に adminEditableOnly は付けられない`);

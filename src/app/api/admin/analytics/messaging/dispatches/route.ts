@@ -1,5 +1,5 @@
 // src/app/api/admin/analytics/messaging/dispatches/route.ts
-// 連絡の集計の回ごと(?cursor&limit 1-100 既定 20。回の管理 messagingDispatches が閉なら空。管理者だけ)
+// 連絡の集計の送信ごと(?cursor&limit 1-100 既定 20。送信の管理 messagingDispatches が閉なら空。管理者だけ)
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { parseDateRangeParams } from "@/features/core/analytics/services/server/utils/dateRange";

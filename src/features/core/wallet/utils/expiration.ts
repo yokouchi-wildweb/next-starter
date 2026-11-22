@@ -95,11 +95,11 @@ export function getSweepEnabledWalletTypes(): WalletType[] {
   );
 }
 
-/** 前の設定の channels が残っていれば止める(経路は連絡の種類が決める D86。段ごとに変えるなら messageKey) */
+/** 前の設定の channels が残っていれば止める(送信チャンネルは連絡のカテゴリーが決める D86。段ごとに変えるなら messageKey) */
 function assertNoChannels(walletType: WalletType, label: string, notice: object): void {
   if ("channels" in notice) {
     throw new Error(
-      `walletConfig.expiration: ${walletType} の ${label} の channels は無くなりました(経路は連絡の種類が決める。段ごとに変えるなら自分の種類の連絡を足して messageKey で向ける)`,
+      `walletConfig.expiration: ${walletType} の ${label} の channels は無くなりました(送信チャンネルは連絡のカテゴリーが決める。段ごとに変えるなら自分のカテゴリーの連絡を足して messageKey で向ける)`,
     );
   }
 }

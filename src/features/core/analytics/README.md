@@ -44,7 +44,7 @@
 | GET /api/admin/analytics/messaging/summary | messagingAnalytics | 連絡の期間の合計（指標・率、前期比含む） |
 | GET /api/admin/analytics/messaging/series | messagingAnalytics | 連絡のバケット別の指標（granularity） |
 | GET /api/admin/analytics/messaging/breakdown | messagingAnalytics | 軸（`axis=channel / message / category / template / tag`）ごとの指標（前期比含む） |
-| GET /api/admin/analytics/messaging/dispatches | messagingAnalytics | 回ごとの指標（送った時刻の新しい順、`cursor` / `limit`） |
+| GET /api/admin/analytics/messaging/dispatches | messagingAnalytics | 送信ごとの指標（送った時刻の新しい順、`cursor` / `limit`） |
 
 - purchase 系(`purchase*Analytics`)は決済、wallet 系(`walletHistory` / `walletRanking` / `walletState`)はウォレットの機能の表を読むので、外に出す集計関数の先頭で `gate.assert("payment" / "wallet")`（閉なら 404。route のパスは門番の規則 `paymentAnalytics` / `walletAnalytics` が既に閉じるので、route 以外から呼んだときの自己停止）。
 

@@ -129,9 +129,9 @@ test("1 行スイッチの既定: 何も足さない状態で今までと同じ(
   // 上流のスイッチは全部 .default を指す(今と同じ振る舞い)。AdminHeader.default は管理のヘッダーの行の既定の部品
   // (src/app/admin/_layout、指令 17 d2): AdminPage が描く行そのもので、fork の差し替えの口は隣の AdminHeader.replace(1 行スイッチ)。ForkProviders.default は fork の providers の空の素通し(src/app/_providers、指令 31)
   // MailFrame.default は全メールの枠(src/lib/mail/frame、指令 54 D122: fork は MailFrame.replace で一度に替える)
-  // NoticeEmail.default・NoticeInApp.default は上流のひな形「汎用のお知らせ」の見た目(messaging/layouts/notice、指令 54 d5)
-  // Link・Welcome・Statement・Alert の Email / InApp.default は上流のひな形「認証のリンク」「ようこそ」「お知らせの明細」「セキュリティの警告」の見た目(指令 55 d4)
-  // SimpleEmail.default・SimpleInApp.default は上流のひな形「シンプルなお知らせ」の見た目(messaging/layouts/simple、D119)
+  // NoticeEmail.default・NoticeInApp.default は上流のレイアウト「汎用」の見た目(messaging/layouts/notice、指令 54 d5)
+  // Link・Welcome・Statement・Alert の Email / InApp.default は上流のレイアウト「認証のリンク」「ようこそ」「明細」「セキュリティの警告」の見た目(指令 55 d4)
+  // SimpleEmail.default・SimpleInApp.default は上流のレイアウト「シンプル」の見た目(messaging/layouts/simple、D119)
   const targets = plan.switches.map((s: { target: string }) => s.target).sort();
   assert.deepEqual(targets, [
     "AdminHeader.default",
@@ -228,7 +228,7 @@ test("タスクの走査: 上流のドメインのタスク・移行 13 本、�
   for (const file of tasks) assert.equal((await loadOneShotTask(ROOT, file)).name, file.name);
 });
 
-test("システムの連絡: 上流の auth・user の連絡は生成の一覧にあり、ひな形を持つ", async () => {
+test("システムの連絡: 上流の auth・user の連絡は生成の一覧にあり、レイアウトを持つ", async () => {
   const keys = Object.keys(messageRegistry).filter((key) => key.startsWith("auth.") || key.startsWith("user."));
   assertUpstreamItems(keys, [
     "auth.accountLocked",

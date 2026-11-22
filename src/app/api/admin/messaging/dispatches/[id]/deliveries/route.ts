@@ -1,6 +1,6 @@
 // src/app/api/admin/messaging/dispatches/[id]/deliveries/route.ts
 //
-// 管理者向け: 回の配達(古い順、keyset)。条件: status・channel・cursor・limit(既定 50、最大 100)
+// 管理者向け: 送信の配達(古い順、keyset)。条件: status・channel・cursor・limit(既定 50、最大 100)
 // 返す形: { items: AdminDeliveryRow[], nextCursor }(宛先あり、provider の生の値と誤りの文は無し)
 //
 // GET /api/admin/messaging/dispatches/[id]/deliveries

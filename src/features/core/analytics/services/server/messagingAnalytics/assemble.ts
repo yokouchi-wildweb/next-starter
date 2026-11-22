@@ -48,7 +48,7 @@ export type SourceRows = {
 
 export type Bucket = { cur: MessagingCounts; prev: MessagingCounts };
 
-/** 軸の値(null も 1 つの鍵)→ 期間ごとの数。byChannel = 経路の軸(行の channel を鍵にする、既読は inApp) */
+/** 軸の値(null も 1 つの鍵)→ 期間ごとの数。byChannel = 送信チャンネルの軸(行の channel を鍵にする、既読は inApp) */
 export function bucketize(rows: SourceRows, options: { byChannel: boolean }): Map<string | null, Bucket> {
   const buckets = new Map<string, Bucket>();
   const get = (period: PeriodKey, group: string | null, channel: string) => {

@@ -43,11 +43,11 @@ issue: 行は store=priv・key=incoming/<本来の store>/<purposeId>/<id>.<ext>
 
 - メディア列を持つ表の行を DB の cascade で消すと、その場では detach されない。cascade は許す。残った紐付けは掃除 cron の照合（下記「掃除」の orphanedAttached）が後の実行で外し、実物を消す。すぐ片付けたい表は restrict にし、子のサービスで消す（任意。[lib/crud/storageIntegration README](../../../lib/crud/storageIntegration/README.md)）
 
-### お知らせの画像（messaging の受け取り箱）
+### inApp の画像（messaging の受け取り箱）
 
-- 持ち主の業務行は受け取り箱の行ではなく回（`record_type` `messaging.dispatch` / `record_id` = 回の id / `record_field` `inApp.image`、用途 `notification.image`）
-- 理由: 台帳の 1 つのファイルは 1 つの業務行にしか結べず、宛先ごとの行は同じ画像を指すため（行ごとに持たせると宛先の数だけ複製と描き直しが要る）。宛先ごとの行は利用者の削除の cascade でも消える。受け取り箱の行は回より長生きしない
-- 結ぶ: お知らせの行を書く前に messaging が回に attach する（回の actor が上げた未紐付けの画像はそのまま、別の人の・他の行に結ばれた画像は回ごとに 1 回 copy して attach）。外す: 保持の掃除が回を消す取引の中で detach する。保持の掃除を通らずに回が消えた（手作業の DELETE など）画像は、照合が有無の関数（messaging の `existingDispatchIds`、回の行がある = 残す・無い = 外す）で外す。詳細 [messaging の受け取り箱の README](../messaging/services/server/inbox/README.md)「画像」
+- 持ち主の業務行は受け取り箱の行ではなく送信（`record_type` `messaging.dispatch` / `record_id` = 送信の id / `record_field` `inApp.image`、用途 `notification.image`）
+- 理由: 台帳の 1 つのファイルは 1 つの業務行にしか結べず、宛先ごとの行は同じ画像を指すため（行ごとに持たせると宛先の数だけ複製と描き直しが要る）。宛先ごとの行は利用者の削除の cascade でも消える。受け取り箱の行は送信より長生きしない
+- 結ぶ: inApp の行を書く前に messaging が送信に attach する（送信の actor が上げた未紐付けの画像はそのまま、別の人の・他の行に結ばれた画像は送信ごとに 1 回 copy して attach）。外す: 保持の掃除が送信を消す取引の中で detach する。保持の掃除を通らずに送信が消えた（手作業の DELETE など）画像は、照合が有無の関数（messaging の `existingDispatchIds`、送信の行がある = 残す・無い = 外す）で外す。詳細 [messaging の受け取り箱の README](../messaging/services/server/inbox/README.md)「画像」
 
 ### ユーザーの削除
 
@@ -249,4 +249,4 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 
 - 部品（ref・ポート・配信規則・保存先・位置情報の約束）: [src/lib/storage/README.md](../../../lib/storage/README.md)
 - 業務行との連動（storage オプション）: [src/lib/crud/README.md](../../../lib/crud/README.md)
-- お知らせの画像: [messaging の受け取り箱の README](../messaging/services/server/inbox/README.md)
+- inApp の画像: [messaging の受け取り箱の README](../messaging/services/server/inbox/README.md)

@@ -2,7 +2,7 @@
 //
 // 本人の端末の帳簿(プッシュの購読トークン・電話番号など)。利用者は user.userId に束ねる(client の id は信じない)。
 // GET 一覧 / POST 登録(body { channel, address, kind?, metadata? })/ DELETE ?id= 本人の行を消す
-// 機能の門は持たない(送る口と同じく常に開)。受け付ける経路は帳簿を読む経路だけ(src/features/core/messaging/services/server/endpoints/README.md)
+// 機能の門は持たない(送る口と同じく常に開)。受け付ける送信チャンネルは帳簿を読む送信チャンネルだけ(src/features/core/messaging/services/server/endpoints/README.md)
 
 import { NextResponse } from "next/server";
 

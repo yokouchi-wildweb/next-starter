@@ -108,9 +108,9 @@ const series = await readRolledDailySeries({
 ### 連絡の日まとめ（`messaging.*`、上流の組み込み）
 
 - 鍵 = 1 指標 1 つ: `messaging.targeted` / `sent` / `failed` / `suppressed` / `delivered` / `bounced` / `complained` / `opened` / `clicked` / `read` / `unsubscribed`（kind flow）。`skipped_no_address` / `skipped_throttled` は日まとめにしない（集計の口 `/api/admin/analytics/messaging/**` だけ）
-- dims = `{ channel, messageKey, category }`（配信停止の結び付きの無い行は `messageKey` null）。数え方は集計の口と同じ（回を送った日の cohort、配信停止は止めた日）。項目 = `rollupMetrics/messaging<Measure>.ts`（1 行、中身は `services/server/messagingAnalytics/rollup.ts`）
-- `lookbackDays`: 回の数・配信停止 = 既定（3）、到達・bounce・苦情 7、開封・クリック 14、既読 30（送った日に遅れて足される。配達の行の保持 90 日より短い）
+- dims = `{ channel, messageKey, category }`（配信停止の結び付きの無い行は `messageKey` null）。数え方は集計の口と同じ（送信した日の cohort、配信停止は止めた日）。項目 = `rollupMetrics/messaging<Measure>.ts`（1 行、中身は `services/server/messagingAnalytics/rollup.ts`）
+- `lookbackDays`: 送信の数・配信停止 = 既定（3）、到達・bounce・苦情 7、開封・クリック 14、既読 30（送った日に遅れて足される。配達の行の保持 90 日より短い）
 - enabled: 規則 `messagingAnalytics` が開の時（集計の口と同じ）。`opened` / `clicked` は計測 `messagingTracking` も開の時だけ。条件は受け口の項目が値に書く（常時実行の入口の検査が項目の値を見る）
 - 1 日分の読み込み（4 つの問い合わせ）は同じ日を計算する指標で共有する（短い memo）
-- 読み方: `readRolledDailySeries({ metricKey: "messaging.sent", range, dims? })`。dims は完全一致なので、経路 × 定義 × 種類の 1 組を指すか、省略して日ごとに合算する（定義だけで絞る読み口は無い。要るなら fork が行を読んで足す）。配達の行が保持で消えた後も日まとめの値は残る
+- 読み方: `readRolledDailySeries({ metricKey: "messaging.sent", range, dims? })`。dims は完全一致なので、送信チャンネル × 定義 × カテゴリーの 1 組を指すか、省略して日ごとに合算する（定義だけで絞る読み口は無い。要るなら fork が行を読んで足す）。配達の行が保持で消えた後も日まとめの値は残る
 - 新しく開いた時の過去分: `pnpm task analytics:rollup-backfill -- messaging.<measure> --from YYYY-MM-DD`（配達の行の残る 90 日以内が意味のある範囲）
