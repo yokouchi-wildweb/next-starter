@@ -74,15 +74,15 @@ export function checkTemplateFields(deps: TemplateCheckDeps, fields: TemplateFie
 
   const layout = deps.layouts[fields.layout];
   let values: Record<string, unknown> = {};
-  if (!layout) problems.push(`ひな形 ${fields.layout} はありません`);
+  if (!layout) problems.push(`レイアウト ${fields.layout} はありません`);
   else if (!isLayoutUsable(layout)) problems.push(`レイアウト「${layout.label}」は使えません(無効)`);
-  else if (!isLayoutAdminSelectable(layout)) problems.push(`ひな形「${layout.label}」は管理者が選べるひな形ではありません`);
+  else if (!isLayoutAdminSelectable(layout)) problems.push(`レイアウト「${layout.label}」は管理者が選べるレイアウトではありません`);
   else {
     const channels = category ? category.channels.filter((key) => deps.channels[key]?.enabled !== false) : undefined;
     const parsed = layoutValuesSchema(layout, { channels }).safeParse(fields.values);
     if (!parsed.success) {
       const detail = parsed.error.issues.map((issue) => `${issue.path.join(".") || "(全体)"}: ${issue.message}`).join(" / ");
-      problems.push(`ひな形「${layout.label}」の欄の中身が正しくありません(${detail})`);
+      problems.push(`レイアウト「${layout.label}」の欄の中身が正しくありません(${detail})`);
     } else {
       values = parsed.data as Record<string, unknown>;
     }

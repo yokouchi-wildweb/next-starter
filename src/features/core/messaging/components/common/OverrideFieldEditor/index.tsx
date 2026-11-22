@@ -100,7 +100,7 @@ export function OverrideFieldEditor({
           </Label>
           {commonToAll === true ? (
             <SoftBadge variant="outline" size="sm" data-slot="override-field-common-mark">
-              全経路で共通
+              すべての送信方法で共通
             </SoftBadge>
           ) : commonToAll === false && field.channels.length > 0 ? (
             <SoftBadge variant="secondary" size="sm" data-slot="override-field-channel-mark">

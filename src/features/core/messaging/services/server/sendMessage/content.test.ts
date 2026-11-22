@@ -71,7 +71,7 @@ test("描けない送信チャンネルは送信を書く前に止める(送信�
   await assert.rejects(
     createMessageSender(deps).sendMessage(card, { recipient: { userId: "u1" }, vars: { item: "靴" } }),
     (error: unknown) =>
-      error instanceof DomainError && error.status === 500 && /経路 test はひな形「テストのカード」を描けません/.test(error.message),
+      error instanceof DomainError && error.status === 500 && /送信方法 test はレイアウト「テストのカード」を描けません/.test(error.message),
   );
   assert.equal(store.dispatches.length, 0);
   assert.equal(store.deliveries.length, 0);

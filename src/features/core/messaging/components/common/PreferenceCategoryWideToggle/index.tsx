@@ -16,7 +16,7 @@ export type PreferenceCategoryWideToggleProps = {
   stoppedByAll?: boolean;
   /** stop = true でカテゴリーまるごとを止める */
   onChange: (stop: boolean) => void;
-  /** 文言(既定「このカテゴリーをすべての経路で止める」) */
+  /** 文言(既定「このカテゴリーをすべての通知方法で受け取らない」) */
   label?: string;
 };
 

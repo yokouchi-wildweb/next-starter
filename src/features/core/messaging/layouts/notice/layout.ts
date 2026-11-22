@@ -1,5 +1,5 @@
 // src/features/core/messaging/layouts/notice/layout.ts
-// 上流のレイアウト「汎用のお知らせ」(D122・D123): 件名 + ブロックの並び(任意。件名だけのお知らせも書ける、D109)。管理者がテンプレートで選べる。
+// 上流のレイアウト「汎用」(D122・D123): 件名 + ブロックの並び(任意。件名だけのお知らせも書ける、D109)。管理者がテンプレートで選べる。
 // 要約: 題 = 件名 / 本文 = 段落のブロックをつないだ文 / 画像 = 最初の画像のブロック / 行き先 = 最初のボタンのブロック
 
 import { defineMessageLayout, MESSAGE_BLOCK_KINDS, type MessageBlock } from "@/lib/messaging";
@@ -18,7 +18,7 @@ export function summarizeBlocks(blocks: readonly MessageBlock[]) {
 
 export const layout = defineMessageLayout({
   key: "notice",
-  label: "汎用のお知らせ",
+  label: "汎用",
   description: "件名と、見出し・段落・ボタン・画像などのブロックを並べて書くお知らせ",
   adminSelectable: true,
   fields: {

@@ -91,13 +91,13 @@ export function upgradeLayoutValues(
 ): { values: Record<string, unknown> } | { cannotRender: string } {
   const current = layoutVersionOf(layout);
   if (!Number.isInteger(fromVersion) || fromVersion < 1 || fromVersion > current) {
-    return { cannotRender: `ひな形「${layout.label}」の版 ${fromVersion} は読めません(今の版 ${current})` };
+    return { cannotRender: `レイアウト「${layout.label}」の版 ${fromVersion} は読めません(今の版 ${current})` };
   }
   let out: Record<string, unknown> = { ...values };
   for (let version = fromVersion; version < current; version += 1) {
     const step = layout.revisions?.[version];
     if (!step) {
-      return { cannotRender: `ひな形「${layout.label}」の版 ${version} → ${version + 1} の改版の対応(revisions[${version}])がありません` };
+      return { cannotRender: `レイアウト「${layout.label}」の版 ${version} → ${version + 1} の改版の対応(revisions[${version}])がありません` };
     }
     out = applyLayoutRevisions(out, step);
   }

@@ -46,7 +46,7 @@ test("送信チャンネルごとに受け取れるか(口の順)、選べなく
   });
   const rows = [...view.container.querySelectorAll("[data-slot=recipient-channel]")].map((row) => row.textContent ?? "");
   assert.equal(rows.length, 2);
-  assert.match(rows[0]!, /^お知らせ受け取れる$/);
+  assert.match(rows[0]!, /^サービス内通知受け取れる$/);
   assert.match(rows[1]!, /メール受け取れない理由: 連絡先未登録/);
   assert.equal(view.container.querySelectorAll("button, input").length, 0);
   await view.unmount();

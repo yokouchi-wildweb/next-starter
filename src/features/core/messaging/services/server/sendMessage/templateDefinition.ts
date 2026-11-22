@@ -65,7 +65,7 @@ export function templateVersionValues(
   version: MessageTemplateVersionSource,
 ): Record<string, unknown> {
   const layout = layouts[version.layout];
-  if (!layout) throw new DomainError(`テンプレート ${version.templateKey} のひな形 ${version.layout} がありません`, { status: 409 });
+  if (!layout) throw new DomainError(`テンプレート ${version.templateKey} のレイアウト ${version.layout} がありません`, { status: 409 });
   const upgraded = upgradeLayoutValues(layout, version.values, version.layoutVersion);
   if ("cannotRender" in upgraded) throw new DomainError(upgraded.cannotRender, { status: 409 });
   return upgraded.values;

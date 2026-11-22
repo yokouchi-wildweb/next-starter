@@ -57,7 +57,7 @@ test("誤りを見つける: 鍵の食い違い・上書きの誤り・描けな
   const { summaryRenderable: _s, renderFromSummary: _r, ...mute } = createTestChannel();
   const cannot = await checkMessageRegistry({ ...testDeps, registry: { "shop.good": registry["shop.good"] }, channels: { test: mute as never } });
   assert.equal(cannot.length, 1, cannot.join(" / "));
-  assert.match(cannot[0], /^shop\.good: 連絡 shop\.good を送れません: 経路 test はひな形「テストのカード」を描けません/);
+  assert.match(cannot[0], /^shop\.good: 連絡 shop\.good を送れません: 送信方法 test はレイアウト「テストのカード」を描けません/);
 });
 
 test("category・レイアウト: 受け口に無い鍵は誤り、欄の中身はレイアウトの欄の zod で検査する", async () => {

@@ -1,12 +1,12 @@
 // src/features/core/messaging/layouts/simple/layout.ts
-// 上流のレイアウト「シンプルなお知らせ」(D119): 件名・サムネイル・本文・リンクのボタン。件名・本文は必須、サムネイル・ボタンは任意(空 = 無い、D128)。管理者がテンプレートで選べる(管理の 3 種別の既定の白紙)。
+// 上流のレイアウト「シンプル」(D119): 件名・サムネイル・本文・リンクのボタン。件名・本文は必須、サムネイル・ボタンは任意(空 = 無い、D128)。管理者がテンプレートで選べる(管理の 3 種別の既定の白紙)。
 // 要約: 題 = 件名 / 本文 = 本文 / 画像 = サムネイル / 行き先 = リンクのボタン
 
 import { defineMessageLayout } from "@/lib/messaging";
 
 export const layout = defineMessageLayout({
   key: "simple",
-  label: "シンプルなお知らせ",
+  label: "シンプル",
   description: "件名・サムネイル・本文・リンクのボタンだけの、短いお知らせ",
   adminSelectable: true,
   fields: {

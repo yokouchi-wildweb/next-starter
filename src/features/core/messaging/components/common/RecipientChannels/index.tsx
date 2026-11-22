@@ -40,7 +40,7 @@ export function RecipientChannels({ channels, isLoading = false, error = null }:
     if (error) {
       return (
         <Para size="sm" tone="destructive" className="my-0">
-          {err(error, "受け取れる送信チャンネルを読み込めませんでした")}
+          {err(error, "受け取れる送信方法を読み込めませんでした")}
         </Para>
       );
     }

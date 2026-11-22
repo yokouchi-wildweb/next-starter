@@ -72,7 +72,7 @@ export async function buildChannelContent(input: {
     summary = layout.summary(values);
   } catch (error) {
     return {
-      cannotRender: `経路 ${channelKey}: ひな形「${layout.label}」の要約を作れません(${error instanceof Error ? error.message : String(error)})`,
+      cannotRender: `送信方法 ${channelKey}: レイアウト「${layout.label}」の要約を作れません(${error instanceof Error ? error.message : String(error)})`,
     };
   }
   const resolution = resolveRendering({ layout, channelKey, hasLayoutRenderer: input.hasLayoutRenderer, channel, values });

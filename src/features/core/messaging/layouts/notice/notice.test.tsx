@@ -1,4 +1,4 @@
-// 上流のレイアウト「汎用のお知らせ」: 宣言・要約・メールとお知らせの描き方(ブロックの種類ごと)・生成の一覧に載る
+// 上流のレイアウト「汎用」: 宣言・要約・メールとお知らせの描き方(ブロックの種類ごと)・生成の一覧に載る
 // 実行: pnpm test src/features/core/messaging/layouts/notice/notice.test.tsx
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -31,7 +31,7 @@ const values = {
   ],
 };
 
-test("宣言: 汎用のお知らせ、管理者が選べ、件名が必須でブロックの並び(7 種類)は任意", () => {
+test("宣言: 汎用、管理者が選べ、件名が必須でブロックの並び(7 種類)は任意", () => {
   assert.equal(layout.key, "notice");
   assert.equal(layout.adminSelectable, true);
   assert.equal(layoutValuesSchema(layout).safeParse(values).success, true);

@@ -45,8 +45,8 @@ export type AdminDispatchPreviewDeps = AdminCheckDeps & {
 };
 
 const RESOLVE_ERRORS: Record<DispatchResolveError, string> = {
-  layout_missing: "この送信のひな形は今は登録されていないため、表示できません",
-  layout_unreadable: "この送信のひな形の版を今の版へ読み替えられないため、表示できません",
+  layout_missing: "この送信のレイアウトは今は登録されていないため、表示できません",
+  layout_unreadable: "この送信のレイアウトの版を今の版へ読み替えられないため、表示できません",
 };
 
 const reasonOf = (error: unknown) => (error instanceof Error ? error.message : String(error));
@@ -60,7 +60,7 @@ export async function adminDispatchPreview(deps: AdminDispatchPreviewDeps, id: s
   const row = await deps.findDispatch(id);
   if (!row) throw new DomainError("送信が見つかりません", { status: 404 });
   const empty = (cannotRender: string): AdminDispatchPreview => ({ dispatchId: row.id, layout: row.layout ?? null, cannotRender, channels: [] });
-  if (!row.layout) return empty("この送信はひな形を使う前の形のため、ひな形で表示できません");
+  if (!row.layout) return empty("この送信はレイアウトを使う前の形のため、レイアウトで表示できません");
   if (!row.values) return empty("この送信は本文を保存していないため、表示できません");
   const loaded = await deps.resolve(row);
   if ("error" in loaded) return empty(RESOLVE_ERRORS[loaded.error]);

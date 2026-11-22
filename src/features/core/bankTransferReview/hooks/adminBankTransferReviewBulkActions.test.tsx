@@ -63,7 +63,7 @@ test("sendEmail: 定義連絡の汎用のモーダルを記録の入口 bankTran
   // 入口は項目の鍵と選んだ id だけ(送る連絡定義は項目の messages から選ぶ。目的の props は無い、D164)
   assert.deepEqual(props?.entry, { type: "records", recordTarget: "bankTransferReview.reviews", recordIds: ["r1", "r2"] });
   assert.equal("mode" in (props ?? {}), false, "自由連絡の送るモーダルの開き方は渡さない");
-  assert.equal(props?.label, "メール一斉送信");
+  assert.equal(props?.label, "確認の連絡を送る");
   assert.equal(props?.disabled, false);
   let done = 0;
   renderToStaticMarkup(

@@ -46,7 +46,7 @@ export type LayoutPreviewContent = {
 };
 
 export type LayoutPreviewProps = {
-  /** レイアウトの鍵(無い = 「ひな形を選ぶと出ます」) */
+  /** レイアウトの鍵(無い = 「レイアウトを選ぶと出ます」) */
   layout: string | null;
   /** 送信チャンネルの鍵(タブの順) */
   channels: readonly string[];
@@ -67,7 +67,7 @@ export function LayoutPreview({ layout, channels, channel, onChannelChange, cont
   if (!layout) {
     return (
       <Para size="sm" tone="muted" className="my-0">
-        ひな形を選ぶとプレビューが出ます
+        レイアウトを選ぶとプレビューが出ます
       </Para>
     );
   }

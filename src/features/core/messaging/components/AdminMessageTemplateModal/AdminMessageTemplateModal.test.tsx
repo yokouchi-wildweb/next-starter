@@ -396,7 +396,7 @@ test("D139: そろうまで中身の欄は fieldsHint の 1 行、LayoutFields �
   // fieldsHint が無ければ既定の 1 行
   formState = withFields({ fieldsReady: false, fieldsHint: null });
   const fallback = await render(createElement(AdminMessageTemplateModal, open));
-  assert.equal(fallback.container.querySelector("[data-slot=template-values]")?.textContent, "ひな形を選ぶと入力欄が出ます");
+  assert.equal(fallback.container.querySelector("[data-slot=template-values]")?.textContent, "レイアウトを選ぶと入力欄が出ます");
   await fallback.unmount();
 });
 

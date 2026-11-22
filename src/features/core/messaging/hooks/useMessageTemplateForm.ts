@@ -345,7 +345,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
     if (!name.trim()) return "名前を入力してください";
     if (!kind) return "種別を選んでください";
     if (!category) return "カテゴリーを選んでください";
-    if (!layoutOption) return "ひな形を選んでください";
+    if (!layoutOption) return "レイアウトを選んでください";
     const parsed = layoutValuesSchema({ fields: layoutOption.fields } as MessageLayout, { channels }).safeParse(values);
     if (!parsed.success) {
       for (const issue of parsed.error.issues) {
@@ -400,7 +400,7 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
   }, [id, template, deleteMutation, showToast, onChanged]);
 
   // 中身の入力を出せるか(D139): レイアウト・種別・カテゴリーがそろい、カテゴリーに送信チャンネルが 1 つ以上
-  const missing = [!kind ? "種別" : null, !category ? "カテゴリー" : null, !layoutOption ? "ひな形" : null].filter((item): item is string => item !== null);
+  const missing = [!kind ? "種別" : null, !category ? "カテゴリー" : null, !layoutOption ? "レイアウト" : null].filter((item): item is string => item !== null);
   const fieldsReady = missing.length === 0 && channels.length > 0;
   const fieldsHint = fieldsReady
     ? null

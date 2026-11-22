@@ -61,7 +61,7 @@ export function BankTransferReviewListPanel({ status }: Props) {
   }, [refresh]);
 
   // 一覧の「管理者メモ」列のインライン編集（発送リクエスト一覧と同じ運用）。
-  // メール一斉送信での送付履歴追記もこの列に反映される。
+  // 確認の連絡を送るでの送付履歴追記もこの列に反映される。
   const handleAdminMemoChange = useCallback(
     async (reviewId: string, memo: string) => {
       await saveAdminMemo(reviewId, memo, {

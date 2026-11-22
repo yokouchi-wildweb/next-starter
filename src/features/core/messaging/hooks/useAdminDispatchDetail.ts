@@ -84,7 +84,7 @@ export function useAdminDispatchDetail(dispatchId: string, options: UseAdminDisp
       const res = await deleteTrigger();
       revalidateDeliveries();
       const removed = res.removed.reduce((sum, item) => sum + item.removed, 0);
-      showToast(`送信を削除しました(お知らせ ${removed} 件を削除し、未送信 ${res.canceledDeliveries} 件を止めました)`, "success");
+      showToast(`送信を削除しました(サービス内通知 ${removed} 件を削除し、未送信 ${res.canceledDeliveries} 件を止めました)`, "success");
       onDeleted?.();
     } catch (e) {
       showToast(err(e, "送信を削除できませんでした"), "error");

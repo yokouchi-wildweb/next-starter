@@ -1,5 +1,5 @@
 // src/features/core/messaging/layouts/notice/NoticeEmail.default.tsx
-// レイアウト「汎用のお知らせ」のメールの既定の見た目: 全メールの枠(MailFrame)の中に、件名の見出しとブロックを 1 種類 1 部品で並べる。
+// レイアウト「汎用」のメールの既定の見た目: 全メールの枠(MailFrame)の中に、件名の見出しとブロックを 1 種類 1 部品で並べる。
 // 画像の値(storage:// の参照)は表示できる URL にしてから描く
 
 import type { ReactElement } from "react";

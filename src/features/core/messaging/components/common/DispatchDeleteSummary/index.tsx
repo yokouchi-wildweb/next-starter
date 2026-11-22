@@ -23,7 +23,7 @@ export function dispatchDeleteSummaryLines(summary: AdminDeleteSummary): string[
   const lines: string[] = [];
   const removable = summary.channels.filter((channel) => channel.removable);
   const inbox = removable.reduce((sum, channel) => sum + channel.sent, 0) + summary.sharedInbox;
-  if (inbox > 0) lines.push(`${removable.map((channel) => channel.label).join("・") || "お知らせ"} ${inbox} 件が受け取った人から消えます`);
+  if (inbox > 0) lines.push(`${removable.map((channel) => channel.label).join("・") || "サービス内通知"} ${inbox} 件が受け取った人から消えます`);
   const kept = summary.channels.filter((channel) => !channel.removable && channel.sent > 0);
   const keptCount = kept.reduce((sum, channel) => sum + channel.sent, 0);
   if (keptCount > 0) lines.push(`${kept.map((channel) => channel.label).join("・")} ${keptCount} 件は送信済みのため取り消せません(記録は残ります)`);

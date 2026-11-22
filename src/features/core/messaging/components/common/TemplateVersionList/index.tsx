@@ -62,7 +62,7 @@ export function TemplateVersionList({ versions, currentVersion, layouts = [] }: 
               {when(version.createdAt)}
             </Span>
             <Span size="sm" tone="muted">
-              {version.categoryLabel ?? "削除されたカテゴリー"} / ひな形 {layouts.find((item) => item.key === version.layout)?.label ?? "(使えなくなったひな形)"}
+              {version.categoryLabel ?? "削除されたカテゴリー"} / レイアウト {layouts.find((item) => item.key === version.layout)?.label ?? "(使えなくなったレイアウト)"}
             </Span>
           </Flex>
           <Button

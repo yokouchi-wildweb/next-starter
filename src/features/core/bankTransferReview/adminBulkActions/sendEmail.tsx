@@ -12,5 +12,5 @@ import type { BankTransferReviewAdminBulkActionItem } from "@/features/core/bank
 
 export const bulkAction: BankTransferReviewAdminBulkActionItem = definitionBulkAction(
   { key: "sendEmail", order: 100 },
-  { recordTarget: "bankTransferReview.reviews", label: "メール一斉送信" },
+  { recordTarget: "bankTransferReview.reviews", label: "確認の連絡を送る" },
 );

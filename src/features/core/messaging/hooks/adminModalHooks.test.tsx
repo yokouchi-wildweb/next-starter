@@ -327,7 +327,7 @@ test("useAdminDispatchDetail: 配達の絞り・操作の知らせ・削除の�
     [["deleteSummary", ["d1"]], ["delete"], ["resend", true], ["continue"]],
   );
   assert.deepEqual(toasts, [
-    "success:送信を削除しました(お知らせ 2 件を削除し、未送信 3 件を止めました)",
+    "success:送信を削除しました(サービス内通知 2 件を削除し、未送信 3 件を止めました)",
     "success:2 件を再送しました",
     "success:送信を再開しました(送信 4 / 失敗 0)",
   ]);

@@ -22,7 +22,7 @@ export type PreferenceGroupToggleProps = {
   stoppedByAll?: boolean;
   /** stop = true でグループまるごとを止める */
   onChange: (stop: boolean) => void;
-  /** 見える文言(既定 送信チャンネルごと = なし / すべての送信チャンネル =「このグループをすべての経路で止める」) */
+  /** 見える文言(既定 送信チャンネルごと = なし / すべての送信チャンネル =「このグループをすべての通知方法で止める」) */
   label?: string;
   size?: "sm" | "md";
 };
@@ -56,8 +56,8 @@ export function PreferenceGroupToggle({
       onChange={(stop) => onChange(stop)}
       disabled={disabled || stoppedByAll}
       size={size}
-      label={label ?? "このグループをすべての経路で止める"}
-      aria-label={`${groupLabel}をすべての経路で止める`}
+      label={label ?? "このグループをすべての通知方法で止める"}
+      aria-label={`${groupLabel}をすべての通知方法で止める`}
     />
   );
 }
