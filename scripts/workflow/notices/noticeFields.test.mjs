@@ -1,11 +1,11 @@
-// scripts/workflow/notices/noticeFields.test.mjs — 本文の欄どうしの検査(uses:・skip_checkpoint:・fixes: の前後)を小さなリポで通す。実行: pnpm test scripts/workflow/notices/noticeFields.test.mjs
+// scripts/workflow/notices/noticeFields.test.mjs — 本文の欄どうしの検査(uses:・skip_checkpoint:・covers: の参照先・fixes: の前後)を小さなリポで通す。実行: pnpm test scripts/workflow/notices/noticeFields.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { checkFields, checkSkipCheckpoint, checkUses, fixesPointsBack, lastNoticeFields, noticeAddCommits } from "./noticeFields.mjs";
+import { checkCovers, checkFields, checkSkipCheckpoint, checkUses, fixesPointsBack, lastNoticeFields, noticeAddCommits } from "./noticeFields.mjs";
 
 function notice(id, extra = []) {
   return [`# DOWNSTREAM NOTICE id:${id}`, "from: up", "date: x", "severity: info", ...extra, "change: c", "why: w", "required_actions: none", "verify: v", "refs: -", "notes: -", ""].join("\n");
@@ -78,6 +78,23 @@ test("checkFields through a repo: uses: read from the adding commit's tree, an u
   assert.deepEqual(checkFields(r.dir, { pending: new Set(["20990101-000003-f"]) }), []);
   r.put({ ".notices/20990101-000004-b.md": notice("20990101-000004-b", ["checkpoint: b", "uses: src/missing.ts"]) });
   assert.match(checkFields(r.dir, { pending: new Set(["20990101-000003-f", "20990101-000004-b"]) }).join("\n"), /src\/missing\.ts/);
+});
+
+test("covers: the covered id passes while its body is on disk or only in history (body deleted after the segment closed); an id in neither fails", (t) => {
+  const row = { id: "20990101-000009-relay", fields: { checkpoint: "r", covers: "20990101-000001-a, 20990101-000002-gone" } };
+  assert.deepEqual(checkCovers(row, new Map([["20990101-000001-a", {}], ["20990101-000002-gone", {}]])), []);
+  assert.deepEqual(checkCovers({ id: "x", fields: {} }, new Map()), []);
+  assert.match(checkCovers(row, new Map([["20990101-000001-a", {}]])).join("\n"), /covers: 20990101-000002-gone が .*履歴にもありません/);
+  // 中間 Tier の形: 上流が notice を出し、区間が閉じて本文を消した後に、中継 notice が covers: で名指す
+  const r = repo(t);
+  r.commit({ ".notices/20990101-000001-s.md": notice("20990101-000001-s", ["checkpoint: s"]) });
+  r.commit({ ".notices/20990101-000002-n.md": notice("20990101-000002-n", ["checkpoint: n"]) });
+  rmSync(join(r.dir, ".notices/20990101-000001-s.md"));
+  r.commit({}, "segment closed, body removed");
+  r.put({ ".notices/20990101-000003-relay.md": notice("20990101-000003-relay", ["checkpoint: r", "covers: 20990101-000001-s, 20990101-000002-n"]) });
+  assert.deepEqual(checkFields(r.dir, { pending: new Set(["20990101-000003-relay"]) }), []);
+  r.put({ ".notices/20990101-000004-relay.md": notice("20990101-000004-relay", ["checkpoint: r2", "covers: 20990101-000008-never"]) });
+  assert.match(checkFields(r.dir, { pending: new Set(["20990101-000003-relay", "20990101-000004-relay"]) }).join("\n"), /covers: 20990101-000008-never/);
 });
 
 // 親から先に pick した fork の形(受信箱 20261105-140157・20261106-162044):

@@ -1,7 +1,7 @@
 // scripts/workflow/notices/notices.test.mjs
 // DOWNSTREAM NOTICE(.notices/*.md)の契約テスト。実行: pnpm test scripts/workflow/notices/notices.test.mjs (node:test)
 // /ship が notice を出荷する前に通し、/flux が読む書式(見出し行・checkpoint・fixes・pick・covers・moved・resolves)と食い違わないことを確かめる。
-// 本文の欄どうしの検査(uses:・skip_checkpoint:・fixes: の前後)は scripts/workflow/notices/noticeFields.mjs(本文の最後の版で読む。索引は持たない、D350)。
+// 本文の欄どうしの検査(uses:・skip_checkpoint:・covers: の参照先・fixes: の前後)は scripts/workflow/notices/noticeFields.mjs(本文の最後の版で読む。索引は持たない、D350)。
 // 仕様: .notices/README.md
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -11,7 +11,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { cronTaskNames, scanTasks, taskNamesIn } from "../../runner/task/scan.mjs";
 import { ledgerPickedIds } from "./hotfixApply.mjs";
-import { checkFields, fixesPointsBack } from "./noticeFields.mjs";
+import { checkFields, fixesPointsBack, lastNoticeFields } from "./noticeFields.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const NOTICES = ".notices";
@@ -87,7 +87,8 @@ function commitExists(sha) {
 
 const active = listNotices(NOTICES);
 const done = listNotices(DONE);
-const allIds = new Set([...active, ...done].map((n) => n.id));
+// 出荷済みの id = 本文の最後の版が有るもの(作業ツリーか履歴。区間が閉じて消した本文も履歴に残る、D350)
+const shipped = lastNoticeFields(repoRoot);
 // まだコミットされていない notice(= いま出荷しようとしているもの)
 const pending = new Set(
   git(["status", "--porcelain", "--untracked-files=all", "--", NOTICES])
@@ -139,8 +140,8 @@ test("fixes: の参照先が実在し、履歴上で自分より前のもの", (
     // 前後は足した commit の祖先関係(fixesPointsBack: 未コミットの新しい notice は参照先がコミット済みであることだけを見る。
     // 修正元を親から先に pick した fork では、上流の元の add が修正の add の祖先になる)
     for (const id of ids) {
-      if (!allIds.has(id)) {
-        problems.push(`${n.path}: fixes: ${id} が .notices/ にも done/ にもありません`);
+      if (!shipped.has(id)) {
+        problems.push(`${n.path}: fixes: ${id} が .notices/ にも done/ にも履歴にもありません`);
         continue;
       }
       if (id === n.id || !fixesPointsBack(repoRoot, id, n.id)) {
@@ -166,7 +167,7 @@ test("pick: は clean か - で、fixes: のある notice にだけ付く(本文
   assert.deepEqual(problems, [], problems.join("\n"));
 });
 
-test("本文の欄: uses: の実在と区切り・skip_checkpoint: の条件(本文の最後の版)", () => {
+test("本文の欄: uses: の実在と区切り・skip_checkpoint: の条件・covers: の参照先(本文の最後の版)", () => {
   const ids = new Set([...pending].map((p) => p.match(/(\d{8}-\d{6}-[^/]+)\.md$/)?.[1]).filter(Boolean));
   const problems = checkFields(repoRoot, { pending: ids });
   assert.deepEqual(problems, [], problems.join("\n"));
@@ -203,17 +204,6 @@ test("hotfix: の notice は本体と同じ 1 commit で、生成物を含まな
     if (!files.some((file) => !file.startsWith(`${NOTICES}/`))) problems.push(`${n.path}: hotfix: の notice の commit に本体がありません`);
     for (const file of files) {
       if (HOTFIX_FORBIDDEN.has(file)) problems.push(`${n.path}: hotfix: の commit に fork ごとに中身が違う ${file} が入っています`);
-    }
-  }
-  assert.deepEqual(problems, [], problems.join("\n"));
-});
-
-test("covers: の参照先が実在する", () => {
-  const problems = [];
-  for (const n of active) {
-    if (n.fields.covers === undefined) continue;
-    for (const id of n.fields.covers.split(",").map((s) => s.trim()).filter(Boolean)) {
-      if (!allIds.has(id)) problems.push(`${n.path}: covers: ${id} が .notices/ にも done/ にもありません`);
     }
   }
   assert.deepEqual(problems, [], problems.join("\n"));

@@ -1,5 +1,5 @@
 // scripts/workflow/notices/noticeFields.mjs
-// notice の本文の欄どうしの検査(uses:・skip_checkpoint:・fixes: の前後)。pnpm check notices(notices.test.mjs)が回す。
+// notice の本文の欄どうしの検査(uses:・skip_checkpoint:・covers: の参照先・fixes: の前後)。pnpm check notices(notices.test.mjs)が回す。
 // 出荷済みの一覧の正は履歴(索引は持たない、D350): 欄は本文の最後の版(作業ツリーに有ればその版、消えていれば消す前の版)で読む。
 // 仕様: .notices/README.md
 import { execFileSync } from "node:child_process";
@@ -154,7 +154,17 @@ export function checkSkipCheckpoint({ id, fields }, byId) {
   return problems;
 }
 
-/** 本文の欄どうしの検査を全部(uses:・skip_checkpoint:)。pending = まだ commit していない notice の id。[理由] */
+/**
+ * covers: の参照先が出荷済み(本文の最後の版が有る = 作業ツリーか履歴に有る)。byId = 本文の最後の版の欄。
+ * 区間が閉じて本文を消した上流の notice も履歴に残るので通す(中継 notice は消された本文の id を名指しうる)。[理由]
+ */
+export function checkCovers({ id, fields }, byId) {
+  return list(fields.covers)
+    .filter((c) => !byId.has(c))
+    .map((c) => `${id}: covers: ${c} が .notices/ にも done/ にも履歴にもありません`);
+}
+
+/** 本文の欄どうしの検査を全部(uses:・skip_checkpoint:・covers:)。pending = まだ commit していない notice の id。[理由] */
 export function checkFields(repo, { pending = new Set() } = {}) {
   const byId = lastNoticeFields(repo);
   const problems = [];
@@ -170,7 +180,7 @@ export function checkFields(repo, { pending = new Set() } = {}) {
         return false;
       }
     };
-    problems.push(...checkUses({ id, fields }, exists), ...checkSkipCheckpoint({ id, fields }, byId));
+    problems.push(...checkUses({ id, fields }, exists), ...checkSkipCheckpoint({ id, fields }, byId), ...checkCovers({ id, fields }, byId));
   }
   return problems;
 }
