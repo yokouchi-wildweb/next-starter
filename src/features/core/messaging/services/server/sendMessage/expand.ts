@@ -47,8 +47,8 @@ export function recipientKeyOf(recipient: MessageRecipient): string {
   return "userId" in recipient ? userRecipientKey(recipient.userId) : addressRecipientKey(recipient.address);
 }
 
-/** 利用者 → 送信チャンネルの宛先の一覧 */
-async function resolveUserAddresses(
+/** 利用者 → 送信チャンネルの宛先の一覧(管理の受け取れる送信チャンネルの口も同じ引き方で答える) */
+export async function resolveUserAddresses(
   deps: MessageSendDeps,
   channelKey: string,
   channel: MessageChannel,

@@ -42,7 +42,8 @@ import { buildContent } from "../sendMessage/content";
 import { renderValue, toVariableMap } from "../sendMessage/context";
 import { messageVarCatalog } from "../sendMessage/enrichers";
 import { stopContextOf } from "../sendMessage/sender";
-import { honoursPreferences } from "../sendMessage/stops";
+import { resolveUserAddresses } from "../sendMessage/expand";
+import { checkStops, honoursPreferences } from "../sendMessage/stops";
 import type { AdminCheckDeps } from "./assertAdmin";
 import {
   adminBulkSend as adminBulkSendWith,
@@ -87,6 +88,7 @@ import {
   type ListDeliveriesQuery,
   type ListDispatchesQuery,
 } from "./readDispatches";
+import { recipientChannels as recipientChannelsWith, type RecipientChannelsQuery } from "./recipientChannels";
 import { sendResults as sendResultsWith, type SendResultsQuery } from "./sendResults";
 import { sourceLabelOf } from "./sourceLabels";
 import { drizzleAdminDispatchStore, drizzleSendResultsStore } from "./store";
@@ -349,6 +351,23 @@ export function sendResults(dispatchId: string, query?: SendResultsQuery) {
   return sendResultsWith({ ...adminCheck, sendResultsStore: drizzleSendResultsStore }, dispatchId, query);
 }
 
+/** 1 人の利用者の受け取れる送信チャンネル(送る口と同じ宛先の引き方と停止の判定。門の外、管理者だけ) */
+export function recipientChannels(userId: string, query?: RecipientChannelsQuery) {
+  return recipientChannelsWith(
+    {
+      ...adminCheck,
+      userExists: async (id) => (await sendMessageDeps.store.findUsers([id])).length > 0,
+      categories,
+      channels,
+      loadDefinition: definitionDeps.loadDefinition,
+      resolveAddresses: (key, channel, userIds) => resolveUserAddresses(sendMessageDeps, key, channel, userIds),
+      checkStops: (context, targets) => checkStops(sendMessageDeps, context, targets),
+    },
+    userId,
+    query,
+  );
+}
+
 /** 管理の「続きを送る」 */
 export function adminContinueSending(dispatchId: string) {
   return adminContinueSendingWith({ ...adminCheck, continueSending, recordAudit }, dispatchId);
@@ -388,6 +407,8 @@ export type {
   AdminSendTestInput,
 } from "./send";
 export type { AdminDispatchCategoryOption, AdminPage, ListDeliveriesQuery, ListDispatchesQuery } from "./readDispatches";
+export { RecipientChannelsQuerySchema } from "./recipientChannels";
+export type { AdminRecipientChannels, RecipientChannelReason, RecipientChannelState, RecipientChannelsQuery } from "./recipientChannels";
 export { SendResultsQuerySchema } from "./sendResults";
 export type { AdminSendResultFailure, AdminSendResults, SendResultsQuery, UndeliveredStatus } from "./sendResults";
 export type { AdminDeliveryRow, AdminDispatchDetail, AdminDispatchSameAs, AdminDispatchSummary, AdminDispatchTargetGroup } from "./dispatchDto";
