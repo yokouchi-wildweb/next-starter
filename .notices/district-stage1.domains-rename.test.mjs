@@ -129,15 +129,21 @@ test("計画と当て: 3 つのフォルダ(ドメイン・設定値・札)を�
   assert.deepEqual(again.edits, []);
 });
 
-test("移す先に既にファイルがあれば移動を止める(書き換えは計画に残る)", () => {
+test("移す先に既にファイルがあれば、無いファイルだけをファイルごとに移す(書き換えは移す前に)", () => {
   const root = fixture({
     "src/features/sample/a.ts": 'export const p = "src/features/sample";\n',
     "src/domains/sample/b.ts": "export const b = 1;\n",
   });
   const plan = planRename(root);
-  assert.deepEqual(plan.moves, []);
-  assert.deepEqual(plan.stops.map((s) => [s.kind, s.path]), [["target-exists", "src/domains"]]);
+  assert.deepEqual(plan.moves.map((m) => [m.from, m.mode, m.items.map((i) => [i.from, i.to, i.how])]), [
+    ["src/features", "files", [["src/features/sample/a.ts", "src/domains/sample/a.ts", "move"]]],
+  ]);
+  assert.deepEqual(plan.stops, []);
   assert.equal(plan.edits.length, 1);
+  applyRename(root, plan);
+  assert.ok(!existsSync(join(root, "src/features")));
+  assert.equal(read(root, "src/domains/sample/a.ts"), 'export const p = "src/domains/sample";\n');
+  assert.equal(read(root, "src/domains/sample/b.ts"), "export const b = 1;\n");
 });
 
 test("lineage.md: fork は自分の節だけを書き換え、前書きと祖先の節は書かない / Tier1 は全体", () => {
@@ -150,4 +156,50 @@ test("lineage.md: fork は自分の節だけを書き換え、前書きと祖先
   const tier1 = fixture({ "repo.json": '{ "repo_id": "next-starter", "tier": "root" }\n', ".claude/rules/lineage.md": "# lineage\n> 前書き src/features/a\n" });
   applyRename(tier1, planRename(tier1));
   assert.equal(read(tier1, ".claude/rules/lineage.md"), "# lineage\n> 前書き src/domains/a\n");
+});
+
+test("取り込みの後(移す先がある): ファイルごとに移し、両方にあるファイルは基準との 3 方向の merge、食い違えば止める", () => {
+  const root = fixture({
+    "src/domains/core/auth/a.ts": "export const a = 1;\n",
+    "src/config/domains/auth.config.ts": '// src/config/domains/auth.config.ts\nimport type { X } from "@/domains/auth/config";\nexport default { up: 1 } satisfies X;\n',
+    "src/config/domains/wallet.config.ts": "export default { w: 2 };\n",
+    "src/features/mine/b.ts": 'import { a } from "@/features/auth/a";\nexport const b = a;\n',
+    "src/config/features/auth.config.ts": '// src/config/features/auth.config.ts\nimport type { X } from "@/features/auth/config";\nexport default { fork: 1 } satisfies X;\n',
+    "src/config/features/wallet.config.ts": "export default { w: 3 };\n",
+  });
+  const base = {
+    "src/config/features/auth.config.ts": '// src/config/features/auth.config.ts\nimport type { X } from "@/features/auth/config";\nexport default {} satisfies X;\n',
+    "src/config/features/wallet.config.ts": "export default { w: 1 };\n",
+  };
+  const baseText = (p) => base[p] ?? null;
+  const plan = planRename(root, { baseText });
+  const items = Object.fromEntries(plan.moves.flatMap((m) => m.items ?? []).map((i) => [i.from, i.how]));
+  assert.deepEqual(plan.moves.map((m) => m.mode), ["files", "files"]);
+  assert.equal(items["src/features/mine/b.ts"], "move");
+  assert.equal(items["src/config/features/auth.config.ts"], undefined, "上流も fork も同じ行を変えた: 止める");
+  assert.deepEqual(plan.stops.filter((s) => s.kind !== "lone").map((s) => [s.kind, s.path]), [
+    ["merge-conflict", "src/config/features/auth.config.ts"],
+    ["merge-conflict", "src/config/features/wallet.config.ts"],
+  ]);
+
+  // 上流が値の行を変えていなければ merge で fork の値が新しい道に乗る
+  const root2 = fixture({
+    "src/domains/core/auth/a.ts": "export const a = 1;\n",
+    "src/config/domains/auth.config.ts": '// src/config/domains/auth.config.ts\nimport type { X } from "@/domains/auth/config";\nexport default {} satisfies X;\n// a\n// b\n// c\n// upstream note\n',
+    "src/config/features/auth.config.ts": '// src/config/features/auth.config.ts\nimport type { X } from "@/features/auth/config";\nexport default { fork: 1 } satisfies X;\n// a\n// b\n// c\n',
+    "src/config/features/same.config.ts": "export default {};\n",
+    "src/config/domains/same.config.ts": "export default {};\n",
+  });
+  const base2 = { "src/config/features/auth.config.ts": '// src/config/features/auth.config.ts\nimport type { X } from "@/features/auth/config";\nexport default {} satisfies X;\n// a\n// b\n// c\n' };
+  const baseText2 = (p) => base2[p] ?? null;
+  const plan2 = planRename(root2, { baseText: baseText2 });
+  assert.deepEqual(plan2.stops.filter((s) => s.kind !== "lone"), []);
+  applyRename(root2, plan2, { baseText: baseText2 });
+  assert.ok(!existsSync(join(root2, "src/config/features")));
+  assert.equal(read(root2, "src/config/domains/auth.config.ts"), '// src/config/domains/auth.config.ts\nimport type { X } from "@/domains/auth/config";\nexport default { fork: 1 } satisfies X;\n// a\n// b\n// c\n// upstream note\n');
+  assert.equal(read(root2, "src/config/domains/same.config.ts"), "export default {};\n");
+
+  // 基準が無く中身が違う: both-exist で止める
+  const root3 = fixture({ "src/domains/x/a.ts": "1\n", "src/features/x/a.ts": "2\n" });
+  assert.deepEqual(planRename(root3, { baseText: () => null }).stops.map((s) => s.kind), ["both-exist"]);
 });

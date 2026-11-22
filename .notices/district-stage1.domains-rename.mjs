@@ -10,7 +10,15 @@
 // - src/features → src/domains
 // - src/config/features → src/config/domains
 // - .claude/rules/items/features → .claude/rules/items/domains(機能の札の置き場、D43。fork が自分で書いた札も動く)
-//   移す先に既にファイルがあれば移動を止める(stop: target-exists)
+//   移す先が無ければフォルダごと。移す先が既にある時(fork が段 1 の区間を取り込んだ後: 上流の分は取り込みで src/domains にあり、
+//   fork が足した物と fork が値を変えた上流のファイルが src/features に残る)はファイルごとに移す:
+//   - 移す先に無いファイル → 移す
+//   - 移す先にもあるファイル → 3 方向の merge(git merge-file): 自分 = 書き換えた後の fork の版、基準 = 取り込みの merge の基準
+//     (MERGE_HEAD との merge-base)の版を同じ形で書き換えた物、相手 = 移す先の上流の版。食い違えば書かずに止める(stop: merge-conflict)。
+//     取り込みの merge の途中でない(基準が無い)時は、書き換えた fork の版が移す先と同じなら古い方を消すだけ、違えば止める(stop: both-exist)
+//   (小さいファイルは道の行の書き換えで似ている割合が git の改名の見つけの線(50%)を下回り、取り込みで modify/delete の衝突になる。
+//    git の改名の上限 renameLimit の問題ではないので、この道具が新しい道に置く)
+//   ファイルごとに動かした道は git add -A で索引に載せる(取り込みの merge の衝突もここで解ける)
 //
 // 書き換える形(文字列のパスだけ。語としての feature(門番の機能)は触らない。`\/` の正規表現の字面も同じに読む):
 // - srcPath:  src/features(後ろが / か語の終わり)→ src/domains
@@ -37,13 +45,15 @@
 // - bare:     上の bare の条件に当たらない features/(後ろが知らない名前)
 // - relative: 解いた先が src/features・src/config/features でない相対の features/
 // - leftover: 書き換えた後に残る features/(上のどれでもない形。scripts/operations/features/(門番の機能の道具)は除く)
-// - target-exists: 移す先 src/domains・src/config/domains に既にファイルがある
+// - merge-conflict: 移す先にもあるファイルの 3 方向の merge が食い違う(手で移す先に合わせてから古い方を消す)
+// - both-exist: 基準が無いのに移す先にも違う中身のファイルがある(同)
 //
 // fork の手順: 上流の段 1 の notice の区間を取り込む → dry-run → 止めた物を片付ける(自分のコードなら直す、門番の機能の意味なら残す)
 //   → --apply → notice の required_actions(生成の作り直しと検査)。上流の分は取り込みで動いているので、この道具が動かすのは fork が足した物
 
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { basename, dirname, join, posix } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -214,20 +224,90 @@ function fileRewriter(root, names) {
   return (path, text) => (basename(path) === "renames.json" ? rewriteKeepingOld(text, (t) => one(path, t)) : one(path, text));
 }
 
+/** フォルダの下にファイルが 1 つも無いか */
+function listEmpty(abs) {
+  for (const entry of readdirSync(abs, { withFileTypes: true })) {
+    if (entry.isFile()) return false;
+    if (entry.isDirectory() && !listEmpty(join(abs, entry.name))) return false;
+  }
+  return true;
+}
+
+/** 取り込みの merge の基準の版を読む関数(merge の途中でなければ null を返す) */
+export function mergeBaseReader(root) {
+  if (!existsSync(join(root, ".git"))) return () => null;
+  const head = spawnSync("git", ["rev-parse", "-q", "--verify", "MERGE_HEAD"], { cwd: root, encoding: "utf8" });
+  if (head.status !== 0) return () => null;
+  const base = spawnSync("git", ["merge-base", "HEAD", "MERGE_HEAD"], { cwd: root, encoding: "utf8" }).stdout.trim();
+  if (!base) return () => null;
+  return (path) => {
+    const r = spawnSync("git", ["show", `${base}:${path}`], { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+    return r.status === 0 ? r.stdout : null;
+  };
+}
+
+/** 3 方向の merge(git merge-file -p)。戻り: { text, conflicts } */
+export function mergeFile(ours, base, theirs) {
+  const dir = mkdtempSync(join(tmpdir(), "domains-rename-"));
+  try {
+    writeFileSync(join(dir, "ours"), ours);
+    writeFileSync(join(dir, "base"), base);
+    writeFileSync(join(dir, "theirs"), theirs);
+    const r = spawnSync("git", ["merge-file", "-p", "-L", "fork", "-L", "base", "-L", "upstream", join(dir, "ours"), join(dir, "base"), join(dir, "theirs")], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+    if (r.status < 0 || r.status === null || r.error) throw new Error(`git merge-file: ${r.error?.message ?? r.stderr}`);
+    return { text: r.stdout, conflicts: r.status };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * 移す先にもある 1 ファイル: fork の版(書き換えた後)・基準の版(同じ形で書き換えた物)・移す先の上流の版の 3 方向の merge
+ * @returns {{ text?: string, same?: boolean, stop?: { kind: string, text: string, suggest: string } }}
+ */
+function mergeOne(root, from, to, rewriteFile, baseText) {
+  const ours = rewriteFile(from, readFileSync(join(root, from), "utf8")).text;
+  const theirs = readFileSync(join(root, to), "utf8");
+  if (ours === theirs) return { text: theirs, same: true };
+  const baseRaw = baseText(from);
+  if (baseRaw === null) {
+    return { stop: { kind: "both-exist", text: `${from} と ${to} の中身が違う(取り込みの merge の基準が無い)`, suggest: `${to} に fork の変更を手で移してから ${from} を消す` } };
+  }
+  const base = rewriteFile(from, baseRaw).text;
+  const merged = mergeFile(ours, base, theirs);
+  if (merged.conflicts > 0) {
+    return { stop: { kind: "merge-conflict", text: `${from} → ${to} の 3 方向の merge が ${merged.conflicts} か所食い違う`, suggest: `${to} に fork の変更を手で合わせてから ${from} を消す` } };
+  }
+  return { text: merged.text };
+}
+
 /** 計画(何も書かない) */
-export function planRename(root) {
+export function planRename(root, { baseText = mergeBaseReader(root) } = {}) {
   const rewriteFile = fileRewriter(root, domainNames(root));
   const files = listFiles(root);
   const moves = [];
   const stops = [];
   for (const move of MOVES) {
     if (!existsSync(join(root, move.from))) continue;
+    const inside = files.filter((f) => f.startsWith(`${move.from}/`));
     const target = join(root, move.to);
-    if (existsSync(target) && readdirSync(target).length > 0) {
-      stops.push({ path: move.to, line: 0, kind: "target-exists", text: `${move.from} → ${move.to}`, suggest: `${move.to} の中身を ${move.from} に戻すか片付けてからもう一度` });
+    if (!(existsSync(target) && readdirSync(target).length > 0)) {
+      moves.push({ ...move, mode: "folder", files: inside.length });
       continue;
     }
-    moves.push({ ...move, files: files.filter((f) => f.startsWith(`${move.from}/`)).length });
+    // 移す先がある: ファイルごと
+    const items = [];
+    for (const from of inside) {
+      const to = `${move.to}${from.slice(move.from.length)}`;
+      if (!existsSync(join(root, to))) {
+        items.push({ from, to, how: "move" });
+        continue;
+      }
+      const merged = mergeOne(root, from, to, rewriteFile, baseText);
+      if (merged.stop) stops.push({ path: from, line: 0, ...merged.stop });
+      else items.push({ from, to, how: merged.same ? "same" : "merge" });
+    }
+    moves.push({ ...move, mode: "files", files: items.length, items });
   }
   const edits = [];
   const skipped = {};
@@ -256,14 +336,32 @@ export function planRename(root) {
 }
 
 /** 計画を当てる: 書き換え(移す前の場所で)→ 移動 */
-export function applyRename(root, plan) {
+export function applyRename(root, plan, { baseText = mergeBaseReader(root) } = {}) {
   const rewriteFile = fileRewriter(root, domainNames(root));
   for (const edit of plan.edits) {
     const abs = join(root, edit.path);
     writeFileSync(abs, rewriteFile(edit.path, readFileSync(abs, "utf8")).text);
   }
   const isGit = existsSync(join(root, ".git"));
-  for (const move of plan.moves) {
+  const staged = [];
+  for (const move of plan.moves.filter((m) => m.mode === "files")) {
+    for (const item of move.items) {
+      const from = join(root, item.from);
+      const to = join(root, item.to);
+      if (item.how === "move") {
+        mkdirSync(dirname(to), { recursive: true });
+        renameSync(from, to);
+      } else {
+        // merge / same: 書き換えの後の fork の版で 3 方向の merge をやり直して書く(計画の時と同じ入力)
+        if (item.how === "merge") writeFileSync(to, mergeOne(root, item.from, item.to, rewriteFile, baseText).text);
+        rmSync(from);
+      }
+      staged.push(item.from, item.to);
+    }
+    if (existsSync(join(root, move.from)) && listEmpty(join(root, move.from))) rmSync(join(root, move.from), { recursive: true });
+  }
+  if (isGit && staged.length) for (let i = 0; i < staged.length; i += 200) execFileSync("git", ["add", "-A", "--", ...staged.slice(i, i + 200)], { cwd: root, stdio: "ignore" });
+  for (const move of plan.moves.filter((m) => m.mode !== "files")) {
     const from = join(root, move.from);
     const to = join(root, move.to);
     if (existsSync(to)) rmSync(to, { recursive: true }); // 空のフォルダだけ(中身があれば計画で止めている)
@@ -289,7 +387,7 @@ function main() {
   const byKind = (list) => Object.entries(list.reduce((acc, s) => ((acc[s.kind] = (acc[s.kind] ?? 0) + 1), acc), {})).map(([k, n]) => `${k} ${n}`).join(" / ");
   console.log(`[domains-rename] ${result.mode}`);
   console.log(`移動: ${plan.moves.length} 件`);
-  for (const m of plan.moves) console.log(`  ${m.from} → ${m.to}(${m.files} ファイル)`);
+  for (const m of plan.moves) console.log(`  ${m.from} → ${m.to}(${m.mode === "files" ? `ファイルごと ${m.files} ファイル: 移す ${m.items.filter((i) => i.how === "move").length}・3 方向の merge ${m.items.filter((i) => i.how === "merge").length}・同じ中身 ${m.items.filter((i) => i.how === "same").length}` : `${m.files} ファイル`})`);
   console.log(`書き換え: ${plan.edits.length} ファイル(${Object.entries(plan.totals).map(([k, n]) => `${k} ${n}`).join(" / ") || "なし"})`);
   console.log(`見ない物: ${Object.entries(plan.skipped).map(([k, n]) => `${k} ${n}`).join(" / ") || "なし"}`);
   console.log(`止めた物(書き換えない): ${plan.stops.length} 件${plan.stops.length ? `(${byKind(plan.stops)})` : ""}`);
