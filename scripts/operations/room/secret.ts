@@ -27,7 +27,7 @@ const rotate = process.argv.includes("--rotate");
 
 console.log("=== realtime room: secret ===\n");
 
-// 本番の Worker の秘密を書く前の確認(共通の守り。非対話は --confirm=production が要る)
+// 本番の Worker の秘密を書く前の確認(共通の守り。非対話は方針と人の 1 回分の許可 dep)
 guardDeploy("pnpm ops room secret(ルームの Worker の秘密を書く)", true);
 
 if (!existsSync(path.join(roomDir, "wrangler.toml"))) {

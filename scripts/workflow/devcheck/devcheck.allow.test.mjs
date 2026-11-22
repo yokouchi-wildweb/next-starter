@@ -75,7 +75,7 @@ test("danger: off の 1 行 / 許可なしは /allow が要る / 許可ありは
   assert.deepEqual(runDanger(root, "dbp", manual, KINDS_API), { code: 0, lines: ["db_push: 1 回分の許可あり。打つ命令(この順、1 回だけ):", "  pnpm db:push"] });
   const dep = runDanger(root, "dep", manual, KINDS_API);
   assert.equal(dep.code, 0);
-  assert.match(dep.lines.join("\n"), /pnpm db:push -- --env production --confirm=production\n {2}pnpm live -- --confirm=production$/);
+  assert.match(dep.lines.join("\n"), /pnpm db:push -- --env production\n {2}pnpm live$/);
   const evp = runDanger(root, "evp", manual, KINDS_API);
   assert.equal(evp.code, 4);
   assert.match(evp.lines[0], /上流の入口なし/);

@@ -1,22 +1,21 @@
 // scripts/workflow/devcheck/lib.grant.mjs
 //
 // 許可のフック(PreToolUse、hook.mjs)の判定。素の node で毎回動くので、tsx も重い import も使わない。
-// 判定の順(D66):
-//   1. 固定の止め(印・方針・モードと独立。D58・D67): スキーマの反映 / 本番の確認の自動の付け足し / 本番の env への書き込み → deny
-//      (理由と人が手で打つ形を 1 行で)。repo.json の直接の書き換えも同じ止め方(書くのは pnpm workflow repo-json set / unset)。
-//      読む・探すだけ(grep など)は止めない。素の vercel の env add / rm / pull は pnpm ops vercel の 1 行へ案内して止める(D412)
+// 通すだけで止めない(D420): 命令の文字当ての止めは無い。本番の守りは入口(scripts/runner/guard が方針と 1 回分の許可で通す)、
+// 人の決定を持つファイル(repo.json・.agent/devcheck-allow.json・.env.production*)は公式の .claude/settings.json の permissions.deny。
+// 判定の順:
+//   1. 1 回分の許可の道: devcheck danger <スイッチ名>(読むだけ)と、manual の通常の種類の devcheck run … --manual-go
 //   2. 印(環境変数 DEVCHECK_GRANT=on)があり、その種類の方針が off でなく(manual は devcheck run … --manual-go だけ)、
 //      許可してよい形のときだけ allow
 //   3. それ以外・壊れた時(入力・方針・記録が読めない、例外)は何も返さない(= 普段どおり聞かれる)。方針 off も何も返さない
 // 種類と方針は lib.kinds.mjs(devcheck の命令と同じ物)。入力の形の違いは adapt* で受ける(今は Claude Code の形だけ)
 // 規則と使い方: scripts/workflow/devcheck/README.md「許可の層」
 
-import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
-import os from "node:os";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { consumePermit, PERMIT_FILE, readPermit } from "./lib.allow.mjs";
-import { DANGER_NAMES, KIND_NAMES, POLICY_KEYS, switchOf } from "./lib.kinds.mjs";
+import { consumePermit, readPermit } from "./lib.allow.mjs";
+import { KIND_NAMES, POLICY_KEYS, switchOf } from "./lib.kinds.mjs";
 
 export const GRANT_ENV = "DEVCHECK_GRANT";
 export const GRANT_ON = "on";
@@ -38,8 +37,8 @@ export const PEER_ACTIONS = ["send", "reply", "inbox", "read", "ack", "who"];
 // ---- 入力の変換 ---------------------------------------------------------------------------
 
 /**
- * @typedef {{ tool: string; command?: string; file?: string; url?: string; cwd?: string }} Request
- * 判定の入力。tool = 道具名、command = Bash の全文、file = 書く先のパス、url = 遷移先、cwd = 道具を呼んだ時の作業場所(相対の書く先を解く)
+ * @typedef {{ tool: string; command?: string; url?: string }} Request
+ * 判定の入力。tool = 道具名、command = Bash の全文、url = 遷移先
  */
 
 /**
@@ -53,10 +52,7 @@ export const adaptClaude = (input) => {
   /** @type {Request} */
   const req = { tool: input.tool_name };
   if (typeof ti.command === "string") req.command = ti.command;
-  const file = ti.file_path ?? ti.notebook_path;
-  if (typeof file === "string") req.file = file;
   if (typeof ti.url === "string") req.url = ti.url;
-  if (typeof input.cwd === "string") req.cwd = input.cwd;
   return req;
 };
 
@@ -95,351 +91,9 @@ export const shellWords = (/** @type {string} */ text) => {
   return words;
 };
 
-/** 頭の環境変数の代入と、前に付くだけの語(sudo・env・time など)を外す */
-const stripPrefix = (/** @type {string[]} */ words) => {
-  let i = 0;
-  while (i < words.length && (/^[A-Za-z_][A-Za-z0-9_]*=/.test(words[i]) || ["sudo", "env", "time", "exec", "command", "nohup"].includes(words[i]))) i++;
-  return words.slice(i);
-};
-
-/** 中身をシェルとして動かす語(heredoc の本文・-c の引数を命令として読む) */
-const SHELLS = ["bash", "sh", "zsh", "dash"];
-
-/** text[open] = "(" に対応する ")" の位置(無ければ末尾) */
-const matchParen = (/** @type {string} */ text, /** @type {number} */ open) => {
-  let depth = 0;
-  for (let i = open; i < text.length; i++) {
-    if (text[i] === "(") depth++;
-    else if (text[i] === ")" && --depth === 0) return i;
-  }
-  return text.length;
-};
-
-/** 文字列の中の置き換え($( … ) と ` … `)の中身 */
-const substitutionsIn = (/** @type {string} */ text) => {
-  const out = [];
-  for (let i = 0; i < text.length; i++) {
-    if (text[i] === "$" && text[i + 1] === "(") {
-      const end = matchParen(text, i + 1);
-      out.push(text.slice(i + 2, end));
-      i = end;
-    } else if (text[i] === "`") {
-      const end = text.indexOf("`", i + 1);
-      out.push(text.slice(i + 1, end < 0 ? text.length : end));
-      i = end < 0 ? text.length : end;
-    }
-  }
-  return out;
-};
-
-/**
- * @typedef {{ words: string[]; writes: string[] }} ShellCommand
- * words = 語(引用符を外した)/ writes = 書き出しのリダイレクトの行き先(> >> >| &>)
- */
-
-/**
- * 止めを探すための読み: Bash の全文 → 実際に動く命令の列。
- * 引用符の外のつなぐ・流す記号で切り、引用符の中は文字として扱う(コミットの文などに書いた語では止めない)。
- * 動く物は中まで読む: $( … ) と ` … `(引用符 "…" の中も)、bash -c の引数・eval、シェルに渡す heredoc の本文、
- * 引用符の無い区切りの heredoc の本文の中の置き換え
- * @param {string} text
- * @returns {ShellCommand[]}
- */
-export const parseCommands = (text, depth = 0) => {
-  /** @type {ShellCommand[]} */
-  const out = [];
-  if (depth > 4) return out;
-  /** @type {string[]} */
-  let words = [];
-  /** @type {string[]} */
-  let writes = [];
-  let cur = "";
-  let has = false;
-  /** @type {false | "out" | "in"} */
-  let redirect = false;
-  /** @type {{ delim: string; quoted: boolean; head: string }[]} */
-  const heredocs = [];
-  const sub = (/** @type {string} */ inner) => out.push(...parseCommands(inner, depth + 1));
-  const endWord = () => {
-    if (has) {
-      if (redirect === "out") writes.push(cur);
-      else if (redirect !== "in") words.push(cur);
-      redirect = false;
-    }
-    cur = "";
-    has = false;
-  };
-  const endCommand = () => {
-    endWord();
-    redirect = false;
-    if (words.length || writes.length) {
-      out.push({ words, writes });
-      const w = stripPrefix(words);
-      const c = w.indexOf("-c");
-      if (SHELLS.includes(w[0] ?? "") && c >= 0 && w[c + 1]) sub(w[c + 1]);
-      if (w[0] === "eval") sub(w.slice(1).join(" "));
-    }
-    words = [];
-    writes = [];
-  };
-  let i = 0;
-  while (i < text.length) {
-    const c = text[i];
-    if (c === "'") {
-      const j = text.indexOf("'", i + 1);
-      cur += text.slice(i + 1, j < 0 ? text.length : j);
-      has = true;
-      i = j < 0 ? text.length : j + 1;
-    } else if (c === '"') {
-      let j = i + 1;
-      while (j < text.length && text[j] !== '"') {
-        if (text[j] === "\\") {
-          cur += text[j + 1] ?? "";
-          j += 2;
-        } else if (text[j] === "$" && text[j + 1] === "(") {
-          const end = matchParen(text, j + 1);
-          sub(text.slice(j + 2, end));
-          j = end + 1;
-        } else if (text[j] === "`") {
-          const end = text.indexOf("`", j + 1);
-          sub(text.slice(j + 1, end < 0 ? text.length : end));
-          j = end < 0 ? text.length : end + 1;
-        } else cur += text[j++];
-      }
-      has = true;
-      i = j + 1;
-    } else if (c === "\\") {
-      if (text[i + 1] !== "\n") cur += text[i + 1] ?? "";
-      has = has || text[i + 1] !== "\n";
-      i += 2;
-    } else if (c === "$" && text[i + 1] === "(") {
-      const end = matchParen(text, i + 1);
-      sub(text.slice(i + 2, end));
-      has = true;
-      i = end + 1;
-    } else if (c === "`") {
-      const end = text.indexOf("`", i + 1);
-      sub(text.slice(i + 1, end < 0 ? text.length : end));
-      has = true;
-      i = end < 0 ? text.length : end + 1;
-    } else if (c === "<" && text[i + 1] === "<" && text[i + 2] !== "<") {
-      endWord();
-      let j = i + 2;
-      if (text[j] === "-") j++;
-      while (text[j] === " " || text[j] === "\t") j++;
-      let delim = "";
-      let quoted = false;
-      while (j < text.length && !/[\s;&|<>()]/.test(text[j])) {
-        if (text[j] === "'" || text[j] === '"' || text[j] === "\\") quoted = true;
-        else delim += text[j];
-        j++;
-      }
-      heredocs.push({ delim, quoted, head: stripPrefix(words)[0] ?? "" });
-      i = j;
-    } else if (c === "\n") {
-      endCommand();
-      i++;
-      for (const h of heredocs) {
-        const lines = [];
-        while (i < text.length) {
-          let nl = text.indexOf("\n", i);
-          if (nl < 0) nl = text.length;
-          const line = text.slice(i, nl);
-          i = nl + 1;
-          if (line.replace(/^\t+/, "") === h.delim) break;
-          lines.push(line);
-        }
-        const body = lines.join("\n");
-        if (SHELLS.includes(h.head)) sub(body);
-        else if (!h.quoted) for (const inner of substitutionsIn(body)) sub(inner);
-      }
-      heredocs.length = 0;
-    } else if (c === "&" && text[i + 1] === ">") {
-      endWord();
-      redirect = "out";
-      i += text[i + 2] === ">" ? 3 : 2;
-    } else if (c === ">" || c === "<") {
-      if (c === ">" && has && /^\d+$/.test(cur)) {
-        cur = "";
-        has = false;
-      } else endWord();
-      let j = i + 1;
-      if (c === ">" && (text[j] === ">" || text[j] === "|")) j++;
-      if (text[j] === "&") {
-        // >&2 などは記述子の複製(行き先はファイルでない)
-        j++;
-        while (/[0-9-]/.test(text[j] ?? "")) j++;
-        i = j;
-        continue;
-      }
-      redirect = c === ">" ? "out" : "in";
-      i = j;
-    } else if (";&|()".includes(c)) {
-      endCommand();
-      i++;
-    } else if (/\s/.test(c)) {
-      endWord();
-      i++;
-    } else {
-      cur += c;
-      has = true;
-      i++;
-    }
-  }
-  endCommand();
-  return out;
-};
-
-const PACKAGE_RUNNERS = ["pnpm", "npm", "yarn", "bun", "npx", "pnpx"];
-const SCRIPT_RUNNERS = [...PACKAGE_RUNNERS, "node", "tsx", "deno"];
-
-const isProdEnvPath = (/** @type {string} */ p) => /^\.env\.production/.test(path.basename(p.replace(/['"]/g, "")));
-/** 書く物を守るファイル: 本番の env と repo.json(方針の置き場。書くのは pnpm workflow repo-json set / unset と /repo-policy だけ) */
-const isRepoJsonPath = (/** @type {string} */ p) => path.basename(p.replace(/['"]/g, "")) === "repo.json";
-/** 1 回分の許可の記録(書くのは pnpm workflow devcheck allow だけ) */
-const isPermitPath = (/** @type {string} */ p) => path.basename(p.replace(/['"]/g, "")) === path.basename(PERMIT_FILE);
-/** システムの一時の置き場(os.tmpdir() と TMPDIR、実の道) */
-const tmpRoots = () => {
-  /** @type {string[]} */
-  const roots = [];
-  for (const d of [os.tmpdir(), process.env.TMPDIR]) {
-    if (!d) continue;
-    try {
-      const r = realpathSync(d);
-      if (!roots.includes(r)) roots.push(r);
-    } catch {
-      // 無い置き場は数えない
-    }
-  }
-  return roots;
-};
-/** まだ無いファイルも、在る一番近い親の実の道 + 残り */
-const realOf = (/** @type {string} */ p) => {
-  let dir = p;
-  const rest = [];
-  for (;;) {
-    try {
-      return path.join(realpathSync(dir), ...rest.reverse());
-    } catch {
-      const up = path.dirname(dir);
-      if (up === dir) return p;
-      rest.push(path.basename(dir));
-      dir = up;
-    }
-  }
-};
-/**
- * 書く先がシステムの一時の置き場の下か(確かめ用の使い捨ての写し)。相対の道は cwd から解く。cwd が分からない・
- * コマンドの中で cd する(どこに書くか読めない)時は絶対の道だけを見る = 止める側
- * @param {string} p @param {string | undefined} cwd
- */
-const isTmpPath = (p, cwd) => {
-  const raw = p.replace(/['"]/g, "");
-  if (!path.isAbsolute(raw) && !cwd) return false;
-  const real = realOf(path.resolve(cwd ?? "/", raw));
-  return tmpRoots().some((r) => real === r || real.startsWith(r + path.sep));
-};
-/**
- * 守るファイルか。repo.json は一時の置き場の下の写し(確かめ用に作った物)なら守らない: 方針の置き場はチェックアウトと
- * 他のリポの repo.json(S7 (8)、写しの fk の repo.json まで止めた 11-19)。本番の env と許可の記録はどこでも守る
- * @param {string | undefined} cwd
- */
-const guardedFor = (cwd) => (/** @type {string} */ p) => isProdEnvPath(p) || (isRepoJsonPath(p) && !isTmpPath(p, cwd)) || isPermitPath(p);
-/** 守るファイルへの書き込みの止め(理由と人がすること) */
-const guardedDeny = (/** @type {string} */ p) => {
-  const name = path.basename(String(p).replace(/^of=/, "").replace(/['"]/g, ""));
-  if (isRepoJsonPath(name)) return deny("repo.json(名前・段・方針)は直接書き換えない", "pnpm workflow repo-json set <鍵> <値>(消すのは unset <鍵>)か /repo-policy");
-  if (isPermitPath(name)) return deny("1 回分の許可の記録は直接書き換えない", "/allow <スイッチ名>");
-  return deny(`本番の env(${name})はエージェントが書かない`, `エディタで ${name} を直す`);
-};
-
-// ---- 1. 固定の止め ------------------------------------------------------------------------
-
 /**
  * @typedef {{ decision: "deny" | "allow"; reason: string }} Decision
  */
-
-/** @param {string} reason @param {string} human @returns {Decision} */
-/** 正しい口へ案内する止め(人の手ではなく道具の命令を 1 行で) @param {string} reason @param {string} command */
-const route = (reason, command) => ({ decision: "deny", reason: `devcheck の固定の止め: ${reason}。代わりに: ${command}` });
-
-/**
- * 素の vercel の env add / rm / pull(npx・pnpx・bunx・pnpm|npm|yarn exec|dlx の後も)→ 案内する pnpm ops vercel の形。当たらなければ null
- * @param {string[]} words
- * @returns {string | null}
- */
-export const vercelEnvWrite = (words) => {
-  let i = -1;
-  if (words[0] === "vercel") i = 0;
-  else if (["npx", "pnpx", "bunx"].includes(words[0] ?? "")) {
-    // npx [-y …] vercel(旗だけを越えた最初の語が vercel)
-    const k = words.findIndex((w, n) => n > 0 && !w.startsWith("-"));
-    if (/^vercel(@.*)?$/.test(words[k] ?? "")) i = k;
-  } else if (["pnpm", "npm", "yarn", "bun"].includes(words[0] ?? "") && ["exec", "dlx", "x"].includes(words[1] ?? "") && /^vercel(@.*)?$/.test(words[2] ?? "")) i = 2;
-  if (i < 0) return null;
-  const rest = words.slice(i + 1);
-  const e = rest.indexOf("env");
-  if (e < 0) return null;
-  const op = rest[e + 1] ?? "";
-  const action = { add: "env-add", rm: "env-rm", remove: "env-rm", pull: "env-pull" }[op];
-  if (!action) return null;
-  const pos = rest.slice(e + 2).filter((w) => !w.startsWith("-"));
-  const envFlag = rest.find((w) => w.startsWith("--environment="))?.slice("--environment=".length);
-  if (action === "env-pull") return `pnpm ops vercel env-pull ${envFlag ?? "<環境>"} ${pos[0] ?? "<書く先>"}`;
-  const tail = `${pos[0] ?? "<名前>"} ${pos[1] ?? "<環境>"}`;
-  return action === "env-add" ? `pnpm ops vercel env-add ${tail}(値は標準入力か --value-file)` : `pnpm ops vercel env-rm ${tail}`;
-};
-
-const deny = (reason, human) => ({ decision: "deny", reason: `devcheck の固定の止め: ${reason}。人が手で打つ: ${human}` });
-
-/**
- * 固定の止め 3 つ。印・方針・モードと独立に見る。当たらなければ null
- * (D59 の明示の指示の印は、ここが deny を返す前に見る形で足す)
- * @param {Request} req
- * @returns {Decision | null}
- */
-export const fixedStop = (req) => {
-  if (["Edit", "Write", "MultiEdit", "NotebookEdit"].includes(req.tool) && req.file && guardedFor(req.cwd)(req.file)) {
-    return guardedDeny(req.file);
-  }
-  if (req.tool !== "Bash" || typeof req.command !== "string") return null;
-  const cmds = parseCommands(req.command);
-  // コマンドの中で cd / pushd する時は相対の書く先がどこか読めない: cwd を使わない(絶対の道だけ一時と見る)
-  const isGuardedPath = guardedFor(cmds.some((c) => ["cd", "pushd"].includes(stripPrefix(c.words)[0] ?? "")) ? undefined : req.cwd);
-  for (const cmd of cmds) {
-    // 本番の env への書き込み(リダイレクト)
-    const written = cmd.writes.find(isGuardedPath);
-    if (written) return guardedDeny(written);
-    const words = stripPrefix(cmd.words);
-    const head = words[0] ?? "";
-    // スキーマの反映(db:push:check は読むだけなので通す)
-    if (PACKAGE_RUNNERS.includes(head)) {
-      const schema = words.find((w) => /^db:(push|migrate)(:.*)?$/.test(w) && w !== "db:push:check");
-      if (schema) return deny("スキーマの反映(push / migrate)は人の手で", `pnpm ${schema}`);
-      const dk = words.indexOf("drizzle-kit");
-      if (dk >= 0 && ["push", "migrate", "drop", "up"].includes(words[dk + 1] ?? "")) return deny("スキーマの反映(drizzle-kit)は人の手で", `pnpm db:push`);
-    }
-    if (head === "drizzle-kit" && ["push", "migrate", "drop", "up"].includes(words[1] ?? "")) return deny("スキーマの反映(drizzle-kit)は人の手で", `pnpm db:push`);
-    // 素の vercel の env の書き・取り(D412): Vercel の操作の口 pnpm ops vercel へ案内(見るだけの env ls などは通す)
-    const vercelEnv = vercelEnvWrite(words);
-    if (vercelEnv) return route("Vercel の env の書き・取りは pnpm ops vercel を通す(方針 agent.env_production と /allow evp を見る)", vercelEnv);
-    // 本番の確認の自動の付け足し
-    if (SCRIPT_RUNNERS.includes(head)) {
-      const i = words.findIndex((w, n) => w === "--confirm=production" || (w === "--confirm" && words[n + 1] === "production"));
-      if (i >= 0) return deny("本番の確認(--confirm=production)はエージェントが付けない", `${words.filter((w, n) => !(n === i || (words[i] === "--confirm" && n === i + 1))).join(" ")}(TTY で production と打つ)`);
-    }
-    // 本番の env への書き込み(コマンド)
-    const args = words.slice(1).filter((w) => !w.startsWith("-"));
-    const target =
-      (head === "tee" && args.find(isGuardedPath)) ||
-      (["cp", "mv", "install", "ln"].includes(head) && args.length > 0 && isGuardedPath(args[args.length - 1]) && args[args.length - 1]) ||
-      (["sed", "perl"].includes(head) && words.some((w) => /^(-i|--in-place)/.test(w) || /^-[A-Za-z]*i/.test(w)) && args.find(isGuardedPath)) ||
-      (["rm", "truncate", "shred", "unlink"].includes(head) && args.find(isGuardedPath)) ||
-      (head === "dd" && words.find((w) => w.startsWith("of=") && isGuardedPath(w.slice(3))));
-    if (target) return guardedDeny(target);
-  }
-  return null;
-};
 
 // ---- 2. 許可してよい形 --------------------------------------------------------------------
 
@@ -515,7 +169,6 @@ export const classifyBash = (command, itemKind) => {
  * @typedef {{
  *   grant: boolean;
  *   policy: () => Record<string, string>;
- *   entries?: () => Record<string, Record<string, string>>;
  *   permit?: () => { switches: string[] } | null;
  *   consume?: (sw: string) => void;
  *   itemKind: (name: string) => string | null;
@@ -573,26 +226,9 @@ const plainCommand = (/** @type {string} */ command) => {
 };
 
 /**
- * 危険な種類の入口の命令の形(許可の 1 回で通す形)。consumes = その形で許可を使い切るか
- * @param {string} kind @param {Record<string, string>} entry
- * @returns {{ command: string, consumes: boolean }[]}
- */
-export const dangerForms = (kind, entry) => {
-  const forms = [];
-  const e = entry.entry;
-  if (e && e !== "-") {
-    forms.push({ command: e, consumes: true });
-    if (kind === "deploy" && e === "pnpm live") forms.push({ command: `${e} -- --confirm=production`, consumes: true });
-  }
-  if (kind === "deploy" && entry.db_entry && entry.db_entry !== "-") {
-    forms.push({ command: entry.db_entry, consumes: false }, { command: `${entry.db_entry} --confirm=production`, consumes: false });
-  }
-  return forms.map((f) => ({ ...f, command: (shellWords(f.command) ?? [f.command]).join(" ") }));
-};
-
-/**
- * 1 回分の許可の道(fixedStop の前の 1 か所、D123): 方針が manual で、そのスイッチの許可がある時だけ通し、使ったら消す。
- * 印(DEVCHECK_GRANT)は要らない(人の 1 回の言葉だから)。当たらなければ null
+ * 1 回分の許可の道(D123): devcheck danger <スイッチ名>(読むだけ)と、方針が manual の通常の種類の devcheck run … --manual-go を、
+ * そのスイッチの許可がある時だけ通す(run は使ったら消す)。印(DEVCHECK_GRANT)は要らない(人の 1 回の言葉だから)。
+ * 危険な 3 つの命令そのものは照らさない: 許可を読んで使うのは入口(scripts/runner/guard・pnpm ops vercel、D420)。当たらなければ null
  * @param {Request} req @param {Deps} deps
  * @returns {Decision | null}
  */
@@ -603,18 +239,9 @@ export const permitDecision = (req, deps) => {
   const command = plainCommand(req.command);
   if (!command) return null;
   const policy = deps.policy();
-  const entries = deps.entries ? deps.entries() : {};
   // 許可のある危険な種類の danger(読むだけ、許可は使わない)は印が無くても通す(/allow の流れの途中で止まらないように)
   const dangerRead = /^pnpm (?:-s )?workflow devcheck danger ([a-z]+)$/.exec(command);
   if (dangerRead && permit.switches.includes(dangerRead[1])) return { decision: "allow", reason: `devcheck の 1 回の許可: ${dangerRead[1]} の danger(読むだけ)` };
-  for (const kind of DANGER_NAMES) {
-    const sw = switchOf(kind);
-    if (policy[kind] !== "manual" || !sw || !permit.switches.includes(sw)) continue;
-    const form = dangerForms(kind, entries[kind] ?? {}).find((f) => f.command === command);
-    if (!form) continue;
-    if (form.consumes) deps.consume?.(sw);
-    return { decision: "allow", reason: `devcheck の 1 回の許可: ${sw}(${kind}=manual)` };
-  }
   const match = classifyBash(req.command, deps.itemKind);
   if (match && !match.always && match.manualGo && policy[match.kind] === "manual") {
     const sw = switchOf(match.kind);
@@ -634,8 +261,6 @@ export const permitDecision = (req, deps) => {
 export const decide = (req, deps) => {
   const permitted = permitDecision(req, deps);
   if (permitted) return permitted;
-  const stop = fixedStop(req);
-  if (stop) return stop;
   if (!deps.grant) return null;
   /** @type {Match | null} */
   let match = null;
@@ -665,16 +290,15 @@ const readJsonOrNull = (file) => {
 
 /**
  * 実際の Deps。projectDir = フックの動くチェックアウト / toolDir = この道具のフォルダ(方針・項目)
- * @param {{ projectDir: string; toolDir: string; env: NodeJS.ProcessEnv; policy: Record<string, string> | null; entries?: Record<string, Record<string, string>> | null }} o
+ * @param {{ projectDir: string; toolDir: string; env: NodeJS.ProcessEnv; policy: Record<string, string> | null }} o
  * @returns {Deps}
  */
-export const realDeps = ({ projectDir, toolDir, env, policy, entries = null }) => ({
+export const realDeps = ({ projectDir, toolDir, env, policy }) => ({
   grant: env[GRANT_ENV] === GRANT_ON,
   policy: () => {
     if (!policy) throw new Error("方針が読めない");
     return policy;
   },
-  entries: () => entries ?? {},
   permit: () => readPermit(projectDir),
   consume: (sw) => consumePermit(projectDir, sw),
   itemKind: (name) => {
@@ -707,8 +331,8 @@ export const toClaudeOutput = (decision) =>
 
 /** 方針が要る判定か(印あり・止めなし・形が当たる時だけ方針を読む = 普段のフックを軽く保つ) */
 export const needsPolicy = (/** @type {Request} */ req, /** @type {Deps} */ deps) => {
-  // 1 回分の許可がある間は Bash の判定に方針と入口が要る(許可の道は fixedStop の前)
+  // 1 回分の許可がある間は Bash の判定に方針が要る(許可の道)
   if (req.tool === "Bash" && deps.permit?.()) return true;
-  if (!deps.grant || fixedStop(req)) return false;
+  if (!deps.grant) return false;
   return req.tool === "Bash" || req.tool.startsWith(BROWSER_PREFIX);
 };

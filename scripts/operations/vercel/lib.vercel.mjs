@@ -5,9 +5,9 @@
 //   書く・取る: env-add / env-rm / env-pull → repo.json の agent.env_production(scripts/workflow/devcheck/lib.kinds.mjs)を読む。
 //     off = 打たず人が打つ 1 行(exit 4)/ manual(既定)= 人の /allow evp の 1 回分の許可(.agent/devcheck-allow.json、lib.allow.mjs)がある時だけ。
 //     許可は前提(CLI・ログイン・リンク)が揃って呼ぶ直前に使って消える(揃わない時は使わない)。次の人の入力でも消える(devcheck の hook)
-//     書く 3 動作は .ts で、前半(prepareVercel)の後に共通の守り guardDeploy を呼ぶ(core/scripts.md write_guard、room secret と同じ扱い)。
-//     向き先が本番なら evp の許可を本番の確認として --confirm=production を守りに渡す(dep の許可で pnpm live -- --confirm=production が
-//     通るのと同じ型、D412)。人もエージェントも --confirm を自分では付けられない(引数の誤り・許可のフックの固定の止め)
+//     書く 3 動作は .ts で、前半(prepareVercel)の後に共通の守り guardDeploy(種類 env_production)を呼ぶ(core/scripts.md write_guard)。
+//     向き先が本番で非対話なら、守りが方針と evp の許可を読んで通し、その場で許可を消す(D420。後半の許可の消しはその時は何もしない)。
+//     端末の人には守りが production と打たせる。--confirm= は引数に書けない(使い方の誤り)
 //   本番へ出す操作は入れない(agent.deploy の入口 pnpm live)
 // 値: env-add の値は標準入力か --value-file=<道> で受け、vercel にも標準入力で渡す(引数・画面・記録に出さない)。末尾の改行 1 つは外す
 // 終了コード: 0 = した / 1 = 使い方の誤り / 2 = 方針が読めない / 3 = 前提なし(CLI・ログイン・リンク)/ 4 = 方針 off・許可なし / 5 = vercel が失敗
@@ -85,7 +85,7 @@ const readStdin = () => {
 
 /**
  * 前半: 使い方・方針・許可・値を確かめる(何も呼ばない、許可も使わない)。
- * → { code }(止める)| { prepared }(後半へ。production = 向き先が本番、permitted = evp の許可で通った)
+ * → { code }(止める)| { prepared }(後半へ。production = 向き先が本番)
  * @param {string} action @param {string[]} args
  */
 export async function prepareVercel(action, args, { print = console.log, cwd = process.cwd(), stdin = readStdin } = {}) {
@@ -133,7 +133,7 @@ export async function prepareVercel(action, args, { print = console.log, cwd = p
       return { code: 1 };
     }
   }
-  return { prepared: { action, spec, plan, root, sw, value, production: plan.environment === "production", permitted: spec.write } };
+  return { prepared: { action, spec, plan, root, sw, value, production: plan.environment === "production" } };
 }
 
 /**

@@ -14,7 +14,7 @@ pnpm ops data delete <domain> (--ids <id>[,<id>...] | --file <file>) [--dry-run]
 ```
 
 - `<domain>` = 登録表(`src/registry/serviceRegistry.ts`)のキー(camelCase。snake_case も読む)
-- 本番は `--env production --confirm=production`(書く入口の守り: `scripts/runner/guard/README.md`。export は読むだけなので確認なし)
+- 本番は `--env production`(端末なら production と打つ。非対話は方針と人の 1 回分の許可 dep。書く入口の守り: `scripts/runner/guard/README.md`。export は読むだけなので確認なし)
 
 ### しないこと
 

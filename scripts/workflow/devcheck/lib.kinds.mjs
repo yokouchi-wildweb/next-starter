@@ -152,17 +152,30 @@ export const agentPolicyOf = (values) => {
 };
 
 /**
- * チェックアウトの repo.json から方針を読む(無い = 全部既定)。repo.json が読めない・形の誤りは DevcheckError
+ * チェックアウトの repo.json から方針を同期で読む(無い = 全部既定)。parseRepoJson = src/lib/forkOwnership の読み手(呼び手が渡す:
+ * 同期の呼び手 = 入口の守り scripts/runner/guard は静的に読み込み、フックの道は readAgentPolicy が要る時だけ読み込む)。
+ * repo.json が読めない・形の誤りは DevcheckError
+ * @param {string} root
+ * @param {(text: string) => { values: Record<string, string | boolean>, errors: string[] }} parseRepoJson
+ * @returns {{ policy: Record<string, string>, entries: Record<string, Record<string, string>>, enabled: boolean }}
+ */
+export const agentPolicyFromFile = (root, parseRepoJson) => {
+  const file = path.join(root, POLICY_FILE);
+  if (!existsSync(file)) return agentPolicyOf({});
+  const { values, errors } = parseRepoJson(readFileSync(file, "utf8"));
+  if (errors.length) throw new DevcheckError(`${POLICY_FILE}: ${errors.join(" / ")}`);
+  return agentPolicyOf(values);
+};
+
+/**
+ * チェックアウトの repo.json から方針を読む(agentPolicyFromFile と同じ。repo.json がある時だけ読み手を読み込む)
  * @param {string} root
  * @returns {Promise<{ policy: Record<string, string>, entries: Record<string, Record<string, string>>, enabled: boolean }>}
  */
 export const readAgentPolicy = async (root) => {
-  const file = path.join(root, POLICY_FILE);
-  if (!existsSync(file)) return agentPolicyOf({});
+  if (!existsSync(path.join(root, POLICY_FILE))) return agentPolicyOf({});
   const { parseRepoJson } = await import("../../../src/lib/forkOwnership/node.mjs");
-  const { values, errors } = parseRepoJson(readFileSync(file, "utf8"));
-  if (errors.length) throw new DevcheckError(`${POLICY_FILE}: ${errors.join(" / ")}`);
-  return agentPolicyOf(values);
+  return agentPolicyFromFile(root, parseRepoJson);
 };
 
 /**
@@ -174,8 +187,8 @@ export const loadPolicy = async (root) => (await readAgentPolicy(root)).policy;
 
 // ---- 文脈の上書き(DEVCHECK_CONTEXT v=2 の auto=)-------------------------------------------------
 // ほかの道具(エージェントを束ねる道具)が、人の言葉で manual の通常の種類を、その文脈の中だけ auto にする口。
-// 計画・実行(lib.ts)と許可のフック(hook.mjs)が同じ関数で効いている方針を出す。off・agent.enabled: false・危険な 3 つ・
-// 固定の止めは緩めない(上書きは manual → auto だけ)
+// 計画・実行(lib.ts)と許可のフック(hook.mjs)が同じ関数で効いている方針を出す。off・agent.enabled: false・危険な 3 つは
+// 緩めない(上書きは manual → auto だけ)
 
 /** 上書きできる種類(通常の種類とフックだけの種類) */
 export const OVERRIDABLE = [...KIND_NAMES, ...HOOK_KINDS];

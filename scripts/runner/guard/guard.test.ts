@@ -1,6 +1,7 @@
 // scripts/runner/guard/guard.test.ts — pnpm test scripts/runner/guard
 // 書く入口の共通の守り: 向き先の選び方・段階の印・同じ DB・継いだ DATABASE_URL・本番の確認・ホストの env・旗の外し方、入口の一覧(全部が守りを呼ぶ)、
-// デプロイ(指令 45 の事故の形: 非対話の pnpm live:all)が何も打たずに拒否されること(偽の vercel で確かめる。本物は呼ばない)。
+// 非対話の本番の門(方針と人の 1 回分の許可、D420)、デプロイ(指令 45 の事故の形: 非対話の pnpm live:all)が許可なしでは
+// --confirm=production を付けても何も打たずに拒否されること(偽の vercel で確かめる。本物は呼ばない)。
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -9,7 +10,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, test } from "node:test";
 
-import { confirmProduction, type GuardIO, parseGuardFlags, resolveTarget, stageOfFileName } from "./index";
+import { type AgentGate, confirmProduction, type GuardIO, parseGuardFlags, resolveTarget, stageOfFileName } from "./index";
+import { readPermit, writePermit } from "../../workflow/devcheck/lib.allow.mjs";
 import { roomWillDeploy } from "../../operations/deploy/lib";
 
 const ROOT = path.resolve(import.meta.dirname, "../../..");
@@ -21,15 +23,27 @@ after(() => {
 const DEV = "APP_ENV=development\nDATABASE_URL=postgres://u:p@dev.example/app\n";
 const PROD = "APP_ENV=production\nDATABASE_URL=postgres://u:p@prod.example/app\n";
 
-function io(files: Record<string, string>, over: Partial<GuardIO> = {}): GuardIO & { prompts: string[] } {
+/** 非対話の本番の門の差し替え: 方針と許可の有無、使った回数と出した行を数える */
+function gate(policy: "off" | "manual", permitted: boolean) {
+  const seen = { consumed: 0, kinds: [] as string[] };
+  const agentGate = (kind: string): AgentGate => (seen.kinds.push(kind), { policy, permitted, consume: () => void (seen.consumed += 1) });
+  return { agentGate, seen };
+}
+
+// 既定の門 = manual・許可あり(本番の他の止めを確かめるテストのため。門そのものは「非対話の本番の門」で確かめる)
+function io(files: Record<string, string>, over: Partial<GuardIO> = {}): GuardIO & { prompts: string[]; said: string[] } {
   const prompts: string[] = [];
+  const said: string[] = [];
   return {
     cwd: "/repo",
     env: {},
     isTTY: false,
     readFile: (file) => files[path.basename(file)] ?? null,
     prompt: (q) => (prompts.push(q), ""),
+    agentGate: gate("manual", true).agentGate,
+    say: (line) => void said.push(line),
     prompts,
+    said,
     ...over,
   };
 }
@@ -70,10 +84,13 @@ test("本番: 開発と同じ DB は止める、本番の DB が空は DB に書
   assert.doesNotThrow(() => resolveTarget(["--env", "production", "--confirm=production"], { write: true, what: "メール" }, io(empty)));
 });
 
-test("本番に書く: 非対話は --confirm=production が無ければ拒否、TTY は production と打てば通る、読むだけは確認なし", () => {
+test("本番に書く: 非対話は門(方針と許可)で決まる、TTY は production と打てば通る、読むだけは確認なし", () => {
   const files = { ".env.development": DEV, ".env.production": PROD };
-  assert.throws(() => resolveTarget(["--env", "production"], W, io(files)), /非対話では --confirm=production/);
-  assert.equal(resolveTarget(["--env", "production", "--confirm=production"], W, io(files)).stage, "production");
+  const none = gate("manual", false);
+  assert.throws(() => resolveTarget(["--env", "production", "--confirm=production"], W, io(files, { agentGate: none.agentGate })), /1 回分の許可\(\/allow dep\)/);
+  const ok = gate("manual", true);
+  assert.equal(resolveTarget(["--env", "production"], W, io(files, { agentGate: ok.agentGate })).stage, "production");
+  assert.deepEqual([ok.seen.kinds, ok.seen.consumed], [["deploy"], 1]);
   const tty = io(files, { isTTY: true, prompt: () => "production" });
   assert.equal(resolveTarget(["--env", "production"], W, tty).stage, "production");
   assert.throws(() => resolveTarget(["--env", "production"], W, io(files, { isTTY: true, prompt: () => "yes" })), /確認が取れなかった/);
@@ -129,15 +146,34 @@ test(".env.<段階>.local を上に重ねる(印が違えば止める)", () => {
 test("ホストの env: ファイルが無く環境変数の APP_ENV が向き先と同じ時だけ進む(本番は --env と確認が要る)", () => {
   const host = { env: { APP_ENV: "production", DATABASE_URL: "postgres://u:p@prod.example/app" } };
   assert.throws(() => resolveTarget([], W, io({}, host)), /\.env\.development がありません/);
-  assert.throws(() => resolveTarget(["--env", "production"], W, io({}, host)), /非対話では --confirm=production/);
-  const t = resolveTarget(["--env", "production", "--confirm=production"], W, io({}, host));
+  assert.throws(() => resolveTarget(["--env", "production"], W, io({}, { ...host, agentGate: gate("manual", false).agentGate })), /1 回分の許可/);
+  const t = resolveTarget(["--env", "production"], W, io({}, host));
   assert.deepEqual([t.stage, t.envFile, t.values], ["production", "(ホストの env)", {}]);
   // ホストの env の DATABASE_URL は継いだ値そのもの(比べる相手のファイルが無い)= 継いだ DATABASE_URL の検査は掛けない
 });
 
-test("デプロイの確認(confirmProduction): 非対話は拒否、--confirm=production で通る、違う値は止める", () => {
-  assert.throws(() => confirmProduction({ confirm: null }, io({}), "pnpm live:all"), /pnpm live:all: 本番.*--confirm=production/);
-  assert.doesNotThrow(() => confirmProduction({ confirm: "production" }, io({}), "pnpm live:all"));
+test("非対話の本番の門(confirmProduction、D420): --confirm=production だけでは通さない、off は拒否、manual は許可で 1 回通して使う", () => {
+  const off = gate("off", true);
+  assert.throws(() => confirmProduction({ confirm: "production" }, io({}, { agentGate: off.agentGate }), "pnpm live:all"), /agent\.deploy が off/);
+  const none = gate("manual", false);
+  assert.throws(() => confirmProduction({ confirm: "production" }, io({}, { agentGate: none.agentGate }), "pnpm live:all"), /--confirm=production だけでは通しません/);
+  assert.equal(none.seen.consumed, 0);
+  const ok = gate("manual", true);
+  const io1 = io({}, { agentGate: ok.agentGate });
+  assert.doesNotThrow(() => confirmProduction({ confirm: null }, io1, "pnpm live:all"));
+  assert.deepEqual([ok.seen.consumed, io1.said.length], [1, 1]);
+  const evp = gate("manual", false);
+  assert.throws(() => confirmProduction({ confirm: null }, io({}, { agentGate: evp.agentGate }), "pnpm ops vercel env-add", "env_production"), /\/allow evp/);
+  assert.deepEqual(evp.seen.kinds, ["env_production"]);
+  const broken = (): AgentGate => {
+    throw new Error("repo.json: 形の誤り");
+  };
+  assert.throws(() => confirmProduction({ confirm: null }, io({}, { agentGate: broken }), "pnpm live:all"), /方針\(repo\.json の agent\.deploy\)が読めません/);
+  // 端末の人は門を見ない(今のまま): --confirm=production なら問わない、無ければ production と打つ
+  const tty = gate("off", false);
+  assert.doesNotThrow(() => confirmProduction({ confirm: "production" }, io({}, { isTTY: true, agentGate: tty.agentGate }), "pnpm live:all"));
+  assert.doesNotThrow(() => confirmProduction({ confirm: null }, io({}, { isTTY: true, prompt: () => "production", agentGate: tty.agentGate }), "pnpm live:all"));
+  assert.deepEqual(tty.seen.kinds, []);
   assert.throws(() => confirmProduction({ confirm: "staging" }, io({}), "pnpm live:all"), /向き先\(production\)と違います/);
 });
 
@@ -169,7 +205,7 @@ test("入口の一覧: 書く・読む入口は guardEntry、prepare の利用�
   for (const rel of [...WRITE_ENTRIES, ...READ_ENTRIES, ...PREPARE_USERS, ...DEPLOY_ENTRIES]) assert.doesNotMatch(read(rel), /from ["']dotenv["']/, rel);
 });
 
-test("デプロイ(指令 45 の事故の形): 非対話の pnpm live:all は --confirm が無ければ何も打たずに拒否、付ければ vercel --prod に進む(偽の vercel。進む側はルームが無効のときだけ)", (t) => {
+test("デプロイ(指令 45 の事故の形): 非対話の pnpm live:all は許可が無ければ --confirm=production を付けても何も打たずに拒否、dep の許可があれば vercel --prod に進み許可を使う(偽の vercel。進む側はルームが無効で、このチェックアウトに人の許可が無い時だけ)", (t) => {
   const bin = mkdtempSync(path.join(tmpdir(), "fake-vercel-"));
   dirs.push(bin);
   const log = path.join(bin, "calls.log");
@@ -182,17 +218,27 @@ test("デプロイ(指令 45 の事故の形): 非対話の pnpm live:all は --
       stdio: ["ignore", "pipe", "pipe"],
       encoding: "utf8",
     });
-  const refused = run([]);
+  if (readPermit(ROOT)) {
+    t.skip("このチェックアウトに人の 1 回分の許可がある(使ってしまうので確かめない)");
+    return;
+  }
+  const refused = run(["--confirm=production"]);
   assert.equal(refused.status, 1, refused.stdout + refused.stderr);
-  assert.match(refused.stderr, /非対話では --confirm=production/);
+  assert.match(refused.stderr, /非対話の本番は/);
   assert.doesNotMatch(refused.stdout, /pnpm check cron|vercel --prod/);
   assert.equal(existsSync(log), false, "vercel は一度も呼ばれない");
   if (roomWillDeploy()) {
     // ルームを有効にした fork では Worker のデプロイ(wrangler、偽物なし)が vercel より先に走り、本物の Cloudflare に触れる
-    t.skip("--confirm=production で進む側（ルームの Worker のデプロイが先に走る設定では確かめない。拒否する側は確かめた）");
+    t.skip("許可で進む側（ルームの Worker のデプロイが先に走る設定では確かめない。拒否する側は確かめた）");
     return;
   }
-  const allowed = run(["--confirm=production", "--allow-unsafe=テスト"]);
+  if (/agent\.deploy が off/.test(refused.stderr)) {
+    t.skip("このチェックアウトの方針 agent.deploy が off(進む側は無い。拒否する側は確かめた)");
+    return;
+  }
+  writePermit(ROOT, ["dep"], "guard.test の進む側");
+  const allowed = run(["--allow-unsafe=テスト"]);
   assert.equal(allowed.status, 0, allowed.stdout + allowed.stderr);
   assert.deepEqual(readFileSync(log, "utf8").trim().split("\n"), ["--version", "--prod"], "--confirm は vercel に渡さない");
+  assert.equal(readPermit(ROOT), null, "許可は使って消える");
 });

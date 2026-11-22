@@ -3,12 +3,20 @@
     "allow": [
       "WebFetch(domain:*)",
       "WebSearch"
+    ],
+    "deny": [
+      "Edit(/repo.json)",
+      "Write(/repo.json)",
+      "Edit(/.agent/devcheck-allow.json)",
+      "Write(/.agent/devcheck-allow.json)",
+      "Edit(**/.env.production*)",
+      "Write(**/.env.production*)"
     ]
   },
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit|mcp__playwright__.*",
+        "matcher": "Bash|mcp__playwright__.*",
         "hooks": [
           {
             "type": "command",

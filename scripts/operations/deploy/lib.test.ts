@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { allowUnsafeArgs, guardSafePoint, parseAllowUnsafe } from "./lib";
+import { guardSafePoint, parseAllowUnsafe } from "./lib";
 
 test("parseAllowUnsafe: 無ければ null、理由は取り出して他の引数は順に残す、旗だけ・空の理由は error", () => {
   assert.deepEqual(parseAllowUnsafe(["--prod"]), { reason: null, rest: ["--prod"], error: null });
@@ -15,11 +15,6 @@ test("parseAllowUnsafe: 無ければ null、理由は取り出して他の引数
   });
   assert.match(parseAllowUnsafe(["--allow-unsafe"]).error ?? "", /理由が空/);
   assert.match(parseAllowUnsafe(["--allow-unsafe=  "]).error ?? "", /理由が空/);
-});
-
-test("allowUnsafeArgs: 理由が無ければ空、あれば 1 つ", () => {
-  assert.deepEqual(allowUnsafeArgs(null), []);
-  assert.deepEqual(allowUnsafeArgs("急ぎ"), ["--allow-unsafe=急ぎ"]);
 });
 
 function harness(verdict: { ok: boolean; line: string; message: string }) {

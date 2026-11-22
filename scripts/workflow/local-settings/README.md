@@ -14,7 +14,7 @@ pnpm workflow local-settings apply [選択…] [--json]  # plan のとおりに�
 
 選択(plan と apply で同じ物を渡す):
 
-- `--no-grant`: 印を書かない(許可のフックは確認を省かない。固定の止めはいつも効く)
+- `--no-grant`: 印を書かない(許可のフックは確認を省かない。人の決定のファイルの `permissions.deny` は共有の `.claude/settings.json` にあり、いつも効く)
 - `--drop-deny=<行>`(繰り返してよい): 今の手元の deny の行のうち消す物。既定は全部残す。上流が昔配った 3 行 `Bash(sudo:*)`・`Bash(rm -rf /:*)`・`Read(./.env)` も既定で残す。今の手元に無い行を指すと止める
 - `--bypass`: 全部許可を選んだ人だけ。個人設定 `~/.claude/settings.json` に `permissions.defaultMode = "bypassPermissions"` と `skipDangerousModePermissionPrompt = true` を書く(ほかの項目は変えない。無ければ作る)。defaultMode は次の起動から効く。このプロジェクトだけに絞る仕組みは無い
 

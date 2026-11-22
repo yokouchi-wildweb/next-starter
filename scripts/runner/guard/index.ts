@@ -8,8 +8,12 @@
 //   シェルから継いだ DATABASE_URL が向き先のファイルの DATABASE_URL と別の DB(host と DB 名)を指す(値は上書きしないので、
 //   止めないと検査はファイルの DB、実際の接続は継いだ DB になる)。
 // ホストの env(本番ホストで env ファイルを置かず環境変数を直接渡す): ファイルが無く、環境変数の APP_ENV が向き先と同じ時だけ、その値で進む
-//   (本番は --env production の明示と確認が要る。例 Vercel 以外のスケジューラ = pnpm task --due --env production --confirm=production)。
-// 本番に書く: 手で打つ(TTY)なら「production」と打たせる。非対話(TTY なし・CI・エージェント)は --confirm=production が無ければ拒否。
+//   (本番は --env production の明示と確認が要る。例 Vercel 以外のスケジューラ = pnpm task --due --env production)。
+// 本番に書く: 手で打つ(TTY)なら「production」と打たせる(--confirm=production は人の省略)。非対話(TTY なし・CI・エージェント)は
+//   --confirm=production だけでは通さない(D420): repo.json の agent.<危険な種類> が off → 拒否、manual → 作業場所(呼んだ所の git の直下)の
+//   .agent/devcheck-allow.json に人の 1 回分の許可(scripts/workflow/devcheck/lib.allow.mjs)がある時だけ 1 回通し、その許可を消す。
+//   種類: DB・外部への本番の書き込みとデプロイ = deploy(dep、本番の DB の反映を含む)/ Vercel の env = env_production(evp)。
+//   方針と許可の読み手は devcheck の物(lib.kinds.mjs・lib.allow.mjs)をそのまま使う(読み方は 1 つ)。
 // デプロイ(env ファイルを読まない)は confirmProduction だけを通す。
 // 守りの旗(--env・--confirm)は process.argv から外して入口に渡す(--dry-run は入口の物なので残す)。
 // 同期で動く(tsx の CJS で先頭から呼べるように。確認の入力は標準入力から 1 行を同期で読む)。README.md
@@ -20,6 +24,10 @@ import path from "node:path";
 import { parse } from "dotenv";
 
 import { APP_ENVS, type AppEnv } from "../../../src/lib/appEnv";
+import { parseRepoJson } from "../../../src/lib/forkOwnership/node.mjs";
+import { consumePermit, readPermit } from "../../workflow/devcheck/lib.allow.mjs";
+import { agentPolicyFromFile, policyKeyOf, switchOf } from "../../workflow/devcheck/lib.kinds.mjs";
+import { checkoutRoot } from "../../workflow/dev-tab/lib";
 
 export class GuardError extends Error {
   constructor(message: string) {
@@ -77,6 +85,12 @@ const shownDb = (url: string | undefined): string => {
   }
 };
 
+/** 非対話の本番を通す危険な種類(devcheck の DANGER_KINDS のうち本番の 2 つ) */
+export type DangerKind = "deploy" | "env_production";
+
+/** 非対話の本番の門: その種類の方針と、作業場所の人の 1 回分の許可 */
+export type AgentGate = { policy: "off" | "manual"; permitted: boolean; consume: () => void };
+
 export type GuardIO = {
   cwd: string;
   env: Record<string, string | undefined>;
@@ -84,6 +98,10 @@ export type GuardIO = {
   readFile: (file: string) => string | null;
   /** 1 行を読む(TTY のときだけ呼ぶ) */
   prompt: (question: string) => string;
+  /** 非対話の本番の時だけ呼ぶ: 方針と許可を読む(方針が読めなければ投げる) */
+  agentGate: (kind: DangerKind) => AgentGate;
+  /** 通した時の 1 行(標準エラー) */
+  say: (line: string) => void;
 };
 
 export type ResolveOptions = {
@@ -93,6 +111,8 @@ export type ResolveOptions = {
   db?: boolean;
   /** 何をするかの短い言葉(確認と止める文に出す) */
   what: string;
+  /** 非対話の本番を通す危険な種類(既定 deploy = 本番の DB・外部への書き込みも「本番へ出す」に入る) */
+  kind?: DangerKind;
 };
 
 export type WriteTarget = { stage: AppEnv; envFile: string; dryRun: boolean; rest: string[]; values: Record<string, string> };
@@ -102,15 +122,36 @@ const readValues = (io: GuardIO, file: string): Record<string, string> | null =>
   return text === null ? null : parse(text);
 };
 
-/** 本番に書く前の確認(--confirm=production か、TTY で production と打つ)。通らなければ GuardError */
-export function confirmProduction(flags: Pick<GuardFlags, "confirm">, io: GuardIO, what: string): void {
+/**
+ * 本番に書く前の確認。TTY: --confirm=production か production と打つ。非対話: --confirm にかかわらず、kind の方針が manual で
+ * 人の 1 回分の許可がある時だけ通して許可を消す(off・許可なしは拒否、D420)。通らなければ GuardError
+ */
+export function confirmProduction(flags: Pick<GuardFlags, "confirm">, io: GuardIO, what: string, kind: DangerKind = "deploy"): void {
   if (flags.confirm !== null && flags.confirm !== "production") throw new GuardError(`--confirm=${flags.confirm} は向き先(production)と違います`);
-  if (flags.confirm === "production") return;
-  if (!io.isTTY) {
-    throw new GuardError(`${what}: 本番(production)に向いています。非対話では --confirm=production を付けた時だけ実行します(何もしていません)`);
+  if (io.isTTY) {
+    if (flags.confirm === "production") return;
+    const answer = io.prompt(`⚠ ${what}: 本番(production)に向いています。続けるなら production と打ってください: `).trim();
+    if (answer !== "production") throw new GuardError(`${what}: 確認が取れなかったので止めました(何もしていません)`);
+    return;
   }
-  const answer = io.prompt(`⚠ ${what}: 本番(production)に向いています。続けるなら production と打ってください: `).trim();
-  if (answer !== "production") throw new GuardError(`${what}: 確認が取れなかったので止めました(何もしていません)`);
+  const key = policyKeyOf(kind);
+  const sw = switchOf(kind) ?? kind;
+  let gate: AgentGate;
+  try {
+    gate = io.agentGate(kind);
+  } catch (error) {
+    throw new GuardError(`${what}: 本番(production)に向いています。方針(repo.json の ${key})が読めません(${error instanceof Error ? error.message : String(error)})。何もしていません`);
+  }
+  if (gate.policy !== "manual") {
+    throw new GuardError(`${what}: 本番(production)に向いています。非対話の本番は ${key} が off なので通しません(人が端末で打つ。任せるなら /repo-policy で manual に)。何もしていません`);
+  }
+  if (!gate.permitted) {
+    throw new GuardError(
+      `${what}: 本番(production)に向いています。非対話の本番は人の 1 回分の許可(/allow ${sw})がある時だけ通します(--confirm=production だけでは通しません)。何もしていません`,
+    );
+  }
+  gate.consume();
+  io.say(`${what}: 人の 1 回分の許可 ${sw} で本番に通しました(許可は使って消えました)`);
 }
 
 /** 向き先を決めて確かめる(ファイルは読むが process.env には入れない)。通らなければ GuardError */
@@ -156,7 +197,7 @@ export function resolveTarget(argv: readonly string[], options: ResolveOptions, 
     const devDb = dbIdentity(dev?.DATABASE_URL);
     if (prodDb !== null && devDb !== null && prodDb === devDb) throw new GuardError(`本番と開発が同じ DB(${prodDb})を指しています。開発と本番は別の DB にする(Neon ならブランチ)`);
   }
-  if (options.write && stage === "production") confirmProduction(flags, io, options.what);
+  if (options.write && stage === "production") confirmProduction(flags, io, options.what, options.kind ?? "deploy");
   else if (flags.confirm !== null && flags.confirm !== stage) throw new GuardError(`--confirm=${flags.confirm} は向き先(${stage})と違います`);
 
   return { stage, envFile: hostMode ? "(ホストの env)" : envFile, dryRun: flags.dryRun, rest: flags.rest, values };
@@ -194,6 +235,19 @@ export const realIO = (): GuardIO => ({
   isTTY: Boolean(process.stdin.isTTY && process.stderr.isTTY),
   readFile: (file) => (existsSync(file) ? readFileSync(file, "utf8") : null),
   prompt: promptLineSync,
+  agentGate: (kind) => {
+    const root = checkoutRoot(process.cwd());
+    const { policy } = agentPolicyFromFile(root, parseRepoJson);
+    const sw = switchOf(kind);
+    return {
+      policy: policy[kind] === "manual" ? "manual" : "off",
+      permitted: Boolean(sw && readPermit(root)?.switches.includes(sw)),
+      consume: () => {
+        if (sw) consumePermit(root, sw);
+      },
+    };
+  },
+  say: (line) => console.error(`✓ ${line}`),
 });
 
 /** process.argv(先頭 2 つの後)から守りの旗を外す */
@@ -226,11 +280,11 @@ export function guardEntry(options: ResolveOptions): WriteTarget {
   }
 }
 
-/** デプロイの入口: 本番に出す時だけ確認(env ファイルは読まない)。守りの旗を外す */
-export function guardDeploy(what: string, production: boolean): void {
+/** デプロイの入口: 本番に出す時だけ確認(env ファイルは読まない)。kind = 非対話の本番を通す種類(Vercel の env は env_production)。守りの旗を外す */
+export function guardDeploy(what: string, production: boolean, kind: DangerKind = "deploy"): void {
   try {
     const flags = parseGuardFlags(process.argv.slice(2));
-    if (production) confirmProduction(flags, realIO(), what);
+    if (production) confirmProduction(flags, realIO(), what, kind);
     stripGuardFlags();
   } catch (error) {
     fail(error);

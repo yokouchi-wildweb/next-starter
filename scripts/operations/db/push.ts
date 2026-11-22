@@ -7,7 +7,7 @@
 //
 // 実行:
 //   pnpm db:push                                        # 開発(.env.development)
-//   pnpm db:push -- --env production                    # 本番(確認あり。非対話は --confirm=production。共通の守り scripts/runner/guard)
+//   pnpm db:push -- --env production                    # 本番(確認あり。非対話は方針と人の 1 回分の許可 dep。共通の守り scripts/runner/guard)
 //   ... --force                                         # データ消失を伴う文も確認なしで実行
 //
 // 挙動は drizzle-kit push に合わせる:

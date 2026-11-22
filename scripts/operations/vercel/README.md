@@ -23,7 +23,7 @@ pnpm ops vercel env-pull <環境> <書く先>                  # env をファ�
   - `off` → 呼ばず、人が打つ素の vercel の 1 行と /repo-policy の案内(exit 4)
   - `manual` + `/allow evp` の許可なし → 呼ばない(exit 4)。許可は人がそのタブで出す言葉だけ(別のセッションの連絡は許可にならない)
   - `manual` + 許可あり → 1 回呼び、許可を使って消す。前提(CLI・ログイン・リンク)が揃わず呼べない時は使わない。次の人の入力でも消える
-- 書く 3 動作は共通の守り `guardDeploy` を通る(`scripts/runner/guard/README.md`。`pnpm ops room secret` と同じ扱い、何も出さないのでセーフポイントは見ない)。向き先が本番の時は、使う evp の許可を本番の確認として守りに渡す(`agent.deploy` の許可で `pnpm live -- --confirm=production` が通るのと同じ型)。`--confirm=` は引数に書けない(使い方の誤り)
+- 書く 3 動作は共通の守り `guardDeploy`(種類 `env_production`)を通る(`scripts/runner/guard/README.md`。何も出さないのでセーフポイントは見ない)。向き先が本番の時、非対話なら守りが方針と evp の許可を読んで 1 回通し、その場で許可を消す(前提が揃わず呼べなかった時も使った後。D420)。端末の人には守りが production と打たせる。`--confirm=` は引数に書けない(使い方の誤り)
 
 ### 値の扱い
 

@@ -18,7 +18,7 @@
 
 ### ホストの env
 
-本番ホストで env ファイルを置かず環境変数を直接渡す場合、ファイルが無く、環境変数の `APP_ENV` が向き先と同じ時だけ、その値で進む。本番は明示が要る(例 Vercel 以外のスケジューラ = `pnpm task --due --env production --confirm=production`)。
+本番ホストで env ファイルを置かず環境変数を直接渡す場合、ファイルが無く、環境変数の `APP_ENV` が向き先と同じ時だけ、その値で進む。本番は `--env production` の明示と確認(下の「本番の確認」)が要る(例 Vercel 以外のスケジューラ = `pnpm task --due --env production`)。
 
 ### 使う側
 
@@ -37,9 +37,16 @@
 - シェルから継いだ `DATABASE_URL` が、向き先のファイル(`.local` を重ねた後)の `DATABASE_URL` と別の DB(host と DB 名で比べる。資格情報や引数の違いは同じ DB)。値は上書きしないので、止めないと検査した DB と繋ぐ DB がずれる。ホストの env は継いだ値そのものなので掛けない
 - 本番を指して、本番と開発が同じ DB(host と DB 名)
 - 本番の DB に書くのに本番の `DATABASE_URL` が空(リリース前 = 未設定。同じ DB の判定には掛けない)
-- 本番に書くのに確認が取れない:
-  - 手で打つ(TTY)なら「production」と打つ
-  - 非対話(TTY なし・CI・エージェント)は `--confirm=production` が無ければ拒否する
+- 本番に書くのに確認が取れない(下の「本番の確認」)
+
+### 本番の確認(D420)
+
+- 手で打つ(TTY): 「production」と打つ。`--confirm=production` を付けた人は問わない(人の省略)
+- 非対話(TTY なし・CI・エージェント): `--confirm=production` の有無にかかわらず、repo.json の方針と人の 1 回分の許可で決める
+  - 種類: DB・外部への本番の書き込みとデプロイ = `agent.deploy`(許可 `dep`。本番の DB の反映を含む)/ `pnpm ops vercel env-*` = `agent.env_production`(許可 `evp`)
+  - 方針が `off` → 拒否(人が端末で打つ。任せるなら /repo-policy)
+  - `manual`(既定)→ 呼んだ所の git の直下の `.agent/devcheck-allow.json` にその許可がある時だけ 1 回通し、許可を消して 1 行出す。無ければ拒否(`/allow dep` / `/allow evp` の案内)
+  - 方針と許可の読み手は devcheck の物(`scripts/workflow/devcheck/lib.kinds.mjs` の `agentPolicyFromFile`・`lib.allow.mjs`)。許可を書くのは人の `/allow`(`pnpm workflow devcheck allow`)だけ
 
 ### デプロイ
 
@@ -47,11 +54,11 @@
 
 - プレビュー(`pnpm live -- --target=preview` など、`--prod` でない vercel)は確認なし
 - ルームの Worker は常に本番(realtimeRoom の設定 `enabled` が false なら出さないので確認も無い)
-- `pnpm ops vercel env-*`(ホスティング側の env を書く・取る)は向き先が production の時だけ確認。方針 `agent.env_production` と人の `/allow evp` の許可を通った時だけ守りまで来て、使う許可を確認として渡す(`scripts/operations/vercel/README.md`)。何も出さないのでセーフポイントは見ない
-- `live:all` は確認を 1 回だけ取り、子の `pnpm ops room deploy` に `--confirm=production` を渡す
+- `pnpm ops vercel env-*`(ホスティング側の env を書く・取る)は向き先が production の時だけ確認(種類 `env_production`、非対話は evp の許可を守りが使って消す。`scripts/operations/vercel/README.md`)。何も出さないのでセーフポイントは見ない
+- `live:all`・`live:room` は確認を 1 回だけ取り、ルームの Worker は同じプロセスの中で出す(`scripts/operations/room/lib.deploy.ts`。子の命令にすると、親が使った許可が無いので非対話で通らない)
 - 本番に出す時は、確認の後にセーフポイントを確かめる(`pnpm live`・`live:all`・`live:room`・`pnpm ops room deploy` の全部。`scripts/operations/deploy/lib.ts` の `guardSafePoint`。仕様 = `.notices/README.md`「区切り(checkpoint)と区間適用」のセーフポイント)
   - fork = 台帳の最後の `upstream:<sha>` が直接の親の `safe/<親の repo_id>/*` tag ちょうど、Tier1 = HEAD が `safe/<自分の repo_id>/*` tag ちょうど。違えば止める
-  - `--allow-unsafe=<理由>` で通す(確認は要る。理由を出す。vercel・wrangler には渡さない。`live:all`・`live:room` は子の `pnpm ops room deploy` に同じ `--allow-unsafe=<理由>` を渡す)
+  - `--allow-unsafe=<理由>` で通す(確認は要る。理由を出す。vercel・wrangler には渡さない)
 
 ## Verification
 

@@ -16,7 +16,7 @@ import { argsOf, checkCron, deployApp, guardSafePoint, isProductionVercel, takeA
 console.log("=== live:app (app) ===\n");
 const allowUnsafe = takeAllowUnsafe();
 const production = isProductionVercel(argsOf(process.argv.slice(2)).filter((a) => !a.startsWith("--confirm=")));
-// 本番に出すなら確認(非対話は --confirm=production が要る)。何かを打つ前に止める
+// 本番に出すなら確認(非対話は方針と人の 1 回分の許可 dep)。何かを打つ前に止める
 guardDeploy("pnpm live(アプリを本番に出す)", production);
 guardSafePoint(production, allowUnsafe);
 checkCron();

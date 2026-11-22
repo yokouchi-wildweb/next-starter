@@ -2,7 +2,8 @@
 //
 // 1 回分の許可(D123・D124): 方針が manual の種類を、人の /allow <スイッチ名…> か言葉の許可で 1 回だけ通すための記録。
 // - 置き場: <チェックアウト>/.agent/devcheck-allow.json = { v: 1, switches: [...], words, at }
-// - 書くのは pnpm workflow devcheck allow だけ(直接の書き換えは許可のフックの固定の止め)
+// - 書くのは pnpm workflow devcheck allow だけ(直接の Edit / Write は .claude/settings.json の permissions.deny、D420)
+// - 読んで使うのは: 危険な 3 つ = その入口(本番は scripts/runner/guard、Vercel の env は pnpm ops vercel)/ manual の通常の種類 = 許可のフック
 // - 寿命: 使ったスイッチは許可のフックが消す / 次の人の入力(UserPromptSubmit の hook.mjs prompt)で全部消える = 同じ番の中だけ
 // - フックからは誰が allow を打ったかは見えない。人の言葉が要る決まりは /allow スキルの文が守る(D118 c)
 // 規則と使い方: scripts/workflow/devcheck/README.md「方針」「許可の層」
@@ -104,8 +105,7 @@ export const runDanger = (root, sw, agent, kinds) => {
   if (entry.entry === "-") return { code: 4, lines: [`${kind}: 上流の入口なし(人が手で行う。fork は ${kinds.policyKeyOf(kind)}.entry に自分の命令を書く)`] };
   const permit = readPermit(root);
   if (!permit?.switches.includes(sw)) return { code: 4, lines: [`${kind} は方針で manual: 人の /allow ${sw}(か言葉の許可)が要る。許可の後にもう一度`] };
-  const commands = kind === "deploy"
-    ? [...(entry.db_entry && entry.db_entry !== "-" ? [`(スキーマが変わる時だけ、先に)${entry.db_entry} --confirm=production`] : []), entry.entry === "pnpm live" ? "pnpm live -- --confirm=production" : entry.entry]
-    : [entry.entry];
+  // 本番は入口の守りが方針とこの許可を読んで 1 回通す(--confirm=production は付けない。D420)
+  const commands = kind === "deploy" ? [...(entry.db_entry && entry.db_entry !== "-" ? [`(スキーマが変わる時だけ、先に)${entry.db_entry}`] : []), entry.entry] : [entry.entry];
   return { code: 0, lines: [`${kind}: 1 回分の許可あり。打つ命令(この順、1 回だけ):`, ...commands.map((c) => `  ${c}`)] };
 };

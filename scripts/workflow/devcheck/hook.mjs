@@ -35,21 +35,20 @@ try {
     let deps = realDeps({ projectDir, toolDir, env: process.env, policy: null });
     if (needsPolicy(req, deps)) {
       let policy = null;
-      let entries = null;
       try {
-        ({ policy, entries } = await readAgentPolicy(projectDir));
+        ({ policy } = await readAgentPolicy(projectDir));
         policy = applyAuto(policy, contextAutoKinds(process.env));   // 文脈の上書き(v=2 の auto=): 計画・実行と同じ効いている方針
       } catch {
         policy = null;
       }
-      deps = realDeps({ projectDir, toolDir, env: process.env, policy, entries });
+      deps = realDeps({ projectDir, toolDir, env: process.env, policy });
     }
     let decision = null;
     try {
       decision = decide(req, deps);
     } catch {
-      // 方針が読めない等: 固定の止めだけはもう一度見る(止めは方針に依らない)
-      decision = decide(req, { ...deps, grant: false, permit: () => null });
+      // 方針が読めない等: 何も返さない(= 普段どおり聞かれる)
+      decision = null;
     }
     const out = toClaudeOutput(decision);
     if (out) process.stdout.write(`${out}\n`);

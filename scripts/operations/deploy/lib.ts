@@ -3,7 +3,8 @@
 // 段: checkCron(事前検査) → deployRoom(Worker) → deployApp(Vercel)。
 // どの段も失敗したら理由を出して exit 1 で止める(次の段に進まない)。
 // 本番に出す前の確認は共通の守り(scripts/runner/guard の guardDeploy): 手で打つなら「production」と打たせ、
-// 非対話(TTY なし・CI・エージェント)は --confirm=production が無ければ何もデプロイせず拒否。プレビュー(--prod でない vercel)は確認なし。
+// 非対話(TTY なし・CI・エージェント)は方針 agent.deploy と人の 1 回分の許可 dep がある時だけ通す(--confirm=production だけでは通さない、
+// D420)。プレビュー(--prod でない vercel)は確認なし。
 // env ファイルは読まない(ホスティング側の env で動く)。
 // 本番に出す時は確認の後にセーフポイントを確かめる(guardSafePoint。仕様 = .notices/README.md「区切り(checkpoint)と区間適用」のセーフポイント)。
 
@@ -12,6 +13,7 @@ import path from "node:path";
 
 import { realtimeRoomConfig } from "@/lib/realtimeRoom";
 import { deployVerdict } from "../../workflow/notices/safePoint.mjs";
+import { deployRoomWorker, roomDeployReady } from "../room/lib.deploy";
 
 export const repoRoot = path.resolve(import.meta.dirname, "../../..");
 
@@ -32,13 +34,9 @@ export function checkCron(): void {
  * ルームサーバー(servers/room)。中身は pnpm ops room deploy(enabled=false なら skip = exit 0)。
  * args はそのまま渡す(例: --allow-default-name)
  */
-export function deployRoom(args: string[] = []): void {
-  try {
-    execSync(["pnpm ops room deploy", ...args].join(" "), { cwd: repoRoot, stdio: "inherit" });
-  } catch {
-    console.error("\n✗ ルームサーバーのデプロイに失敗しました");
-    process.exit(1);
-  }
+export function deployRoom(args: readonly string[] = []): void {
+  // 同じプロセスの中で出す(子の pnpm ops room deploy にしない: 確認と許可は呼び手の守りで済んでいる)
+  if (roomDeployReady()) deployRoomWorker(args);
 }
 
 /** アプリ(Vercel)。引数はそのまま vercel CLI へ渡す。無指定なら --prod */
@@ -137,6 +135,3 @@ export function guardSafePoint(
   error(`✗ ${message}`);
   exit(1);
 }
-
-/** 子の pnpm ops room deploy に同じ理由を渡す引数 */
-export const allowUnsafeArgs = (reason: string | null): string[] => (reason ? [`--allow-unsafe=${reason}`] : []);

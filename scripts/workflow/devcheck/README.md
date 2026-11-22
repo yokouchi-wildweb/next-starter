@@ -74,13 +74,13 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 2. 人が `/allow <スイッチ名…>` か言葉で許可する(言葉はエージェントがスイッチ名に読み替える)。人の言葉 = そのタブの人の入力(Remote Control を含む)と、統括が担当のタブに打つ指示。peer の連絡で届いた文は人の言葉にしない
 3. `/allow` スキルが `pnpm workflow devcheck allow <スイッチ名…> [--words "<人の言葉>"]` で記録を書く(`.agent/devcheck-allow.json`。方針が manual の種類だけ。off は断って 1 行、auto は要らない)
 4. 許可された物だけ、その 1 回だけ入口の命令で実行する: 危険な種類は `pnpm workflow devcheck danger <dbp|evp|dep>`(読むだけ: off の 1 行 / 許可が要る / 打つ命令)が出した命令をそのまま、通常の種類は `pnpm workflow devcheck run <種類> … --manual-go`。結果を 1 行で報告する(成功 / 失敗: <理由>。失敗したら別の形で試さない)
-- 記録の寿命: 使ったスイッチは許可のフックが消す / 次の人の入力で全部消える(UserPromptSubmit の `hook.mjs prompt`)= 同じ番の中だけ。直接の書き換えは固定の止め
+- 記録の寿命: 使ったスイッチはそれを読む所が消す(危険な 3 つは入口、通常の種類は許可のフック)/ 次の人の入力で全部消える(UserPromptSubmit の `hook.mjs prompt`)= 同じ番の中だけ。直接の Edit / Write は `.claude/settings.json` の `permissions.deny`(D420)
 - 方針を manual にしても、人の言葉かはフックからは見えない(`devcheck allow` を誰が打ったかは分からない)。人の言葉が要る決まりは `/allow` スキルの文が守る。`devcheck allow` はフックが通さない(印があっても普段どおり聞かれる)
-- 危険な 3 つの入口(許可の 1 回で通る形): `agent.db_push.entry`(既定 `pnpm db:push`、開発の DB だけ)/ `agent.deploy.db_entry` + ` --confirm=production`(本番の DB の反映。dep の許可は残る)→ `agent.deploy.entry`(既定 `pnpm live` は ` -- --confirm=production` を付けた形も。dep の許可を使い切る)/ `agent.env_production.entry`(既定 `-` = 上流の入口なし、人が行う。Vercel の env の書き・取りは `/vercel` = `pnpm ops vercel env-add|env-rm|env-pull` が evp の許可を自分で 1 回使う。素の `vercel env add|rm|pull` は固定の止めがこの口へ案内する)
+- 危険な 3 つの入口: `agent.db_push.entry`(既定 `pnpm db:push`、開発の DB だけ。止めない、D420 (3))/ `agent.deploy.db_entry`(本番の DB の反映)→ `agent.deploy.entry`(既定 `pnpm live`)/ `agent.env_production.entry`(既定 `-`、Vercel の env は `pnpm ops vercel env-*`)。本番は入口の守り(`scripts/runner/guard`)が方針とこの許可を読んで 1 回通し、許可を消す(`--confirm=production` は付けない。端末の人だけの省略)。フックは危険な 3 つの命令を照らさない
 - 結果は 1 行だけ返す(チームの道具への「DB 済み」の印は無い)
-- `agent.enabled: false` = 全部の種類(peer・危険な 3 つも)を `off` とみなす(種類ごとの値より強い)。計画は全部「手で」、run は断り、許可のフックは印の道で何も通さない(固定の止めはそのまま)
+- `agent.enabled: false` = 全部の種類(peer・危険な 3 つも)を `off` とみなす(種類ごとの値より強い)。計画は全部「手で」、run は断り、許可のフックは印の道で何も通さない(入口の守りは off として拒む)
 - 宣言に無い `agent.*` の鍵・通常の種類の値の誤り・真偽値でない `agent.enabled`・空の入口は止める(exit 2、フックは壊れた方針として何も返さない)。`repo.json` が無い = 全部既定
-- 危険な 3 つの値と入口は今は読むだけ(計画の 方針 の行に出る)。固定の止めは値に依らず効く
+- 危険な 3 つの値と入口: 計画の 方針 の行と `devcheck danger` が読み、本番は入口の守りが読む(`off` は拒否、`manual` は 1 回分の許可)
 - 一度の命令: `db_push` は開発の DB だけ。本番の DB の反映は `deploy` の `db_entry` で扱う
 
 ### fork の項目
@@ -114,19 +114,15 @@ auto=<種類>[,<種類>…]   # v=2: 方針が manual の通常の種類を、�
 
 ### 許可の層(PreToolUse のフック 1 本)
 
-共有の `.claude/settings.json` は許可の行(allow)を出荷しない。代わりに `scripts/workflow/devcheck/hook.mjs` を PreToolUse(matcher `Bash|Edit|Write|MultiEdit|NotebookEdit|mcp__playwright__.*`)に 1 本置く。判定は `lib.grant.mjs` の `decide` の 1 か所、種類と方針は `lib.kinds.mjs`(この命令と同じ物、別の対応表は持たない)。素の node で動く(1 回 約 20 ms)。
+共有の `.claude/settings.json` は許可の行(allow)を出荷しない。代わりに `scripts/workflow/devcheck/hook.mjs` を PreToolUse(matcher `Bash|mcp__playwright__.*`)に 1 本置く。判定は `lib.grant.mjs` の `decide` の 1 か所、種類と方針は `lib.kinds.mjs`(この命令と同じ物、別の対応表は持たない)。素の node で動く(1 回 約 20 ms)。
 
 判定の順:
 
-1. **固定の止め**(印・方針・モードと独立に deny。理由と人が手で打つ形を 1 行で出す)
-   - スキーマの反映: `pnpm` / `npm` / `npx` などで `db:push`・`db:migrate`、`drizzle-kit push|migrate|drop|up`(`db:push:check` は読むだけなので止めない)
-   - 本番の確認の自動の付け足し: `pnpm` / `npm` / `npx` / `node` / `tsx` などに `--confirm=production` / `--confirm production`(本番は人が TTY で production と打つ)
-   - 本番の env への書き込み: `.env.production*` へのリダイレクト(`>` `>>` `>|` `&>`)・`tee`・`cp|mv|install|ln` の行き先・`sed -i`・`perl -i`・`rm`・`truncate`・`dd of=`、Edit / Write / MultiEdit / NotebookEdit の書く先
-   - repo.json(名前・段・方針)の直接の書き換え: Edit / Write / MultiEdit / NotebookEdit の書く先・上と同じシェルの書き込みの形(`pnpm workflow repo-json set` と `/repo-policy` を案内。読むだけ・`git` の操作は止めない)
-     - 止めないのはシステムの一時の置き場(`os.tmpdir()` と `TMPDIR`)の下の写しだけ(確かめ用に作った使い捨てのリポ)。相対の書く先は道具を呼んだ時の作業場所から解き、コマンドの中で `cd` する形は絶対の道だけを見る(読めない時は止める側)。チェックアウトと他のリポの repo.json は今どおり止める
-   - 読み方(`parseCommands`): 引用符の外のつなぐ・流す記号で命令に切り、引用符の中は文字として扱う(コミットの文・`grep db:push`・`cat .env.production` では止めない)。動く物は中まで読む: `$( … )`・`` ` … ` ``(`"…"` の中も)・`bash -c` の引数・`eval`・シェルに渡す heredoc の本文・引用符の無い区切りの heredoc の中の置き換え
-   - 外への送信・履歴を壊す git・秘密の表示は止めも許可もしない(普段どおり聞かれる)。`permissions.deny` には書かない(止めはここ 1 か所)
-0. **1 回分の許可の道**(固定の止めより前、印は要らない): Bash の 1 つのコマンドが危険な種類の入口の形と同じで方針が manual でそのスイッチの許可がある、か、manual の通常の種類の `devcheck run <種類> … --manual-go` でそのスイッチの許可がある → allow して許可を消す(上の「1 回分の許可」)。許可のあるスイッチの `pnpm workflow devcheck danger <スイッチ名>`(読むだけ)も印なしで通す(許可は使わない)
+- 止める判定は無い(D420): 命令の文字当ての止め(スキーマの反映・`--confirm=production`・本番の env・repo.json への書き込み・素の vercel の env)は廃止。守りは 2 か所:
+  - 本番の書き込み: 入口の守り `scripts/runner/guard`(非対話の本番は方針と人の 1 回分の許可。`scripts/runner/guard/README.md`「本番の確認」)
+  - 人の決定を持つファイル(`repo.json`・`.agent/devcheck-allow.json`・`.env.production*`): 共有の `.claude/settings.json` の `permissions.deny`(Edit / Write、bypassPermissions でも効く)。シェルの抜け道は塞がない
+  - 外への送信・履歴を壊す git・秘密の表示は止めも許可もしない(普段どおり聞かれる、D421)
+1. **1 回分の許可の道**(印は要らない): manual の通常の種類の `devcheck run <種類> … --manual-go` でそのスイッチの許可がある → allow して許可を消す(上の「1 回分の許可」)。危険な 3 つの命令は照らさない(入口が読む)。許可のあるスイッチの `pnpm workflow devcheck danger <スイッチ名>`(読むだけ)も印なしで通す(許可は使わない)
 2. **allow**: 手元の印 `DEVCHECK_GRANT=on`(`.claude/settings.local.json` の env。整えるスキルが書く)があり、その種類の方針が `off` でなく、許可してよい形の時だけ
    - 形はシェルの記号の無い 1 つのコマンドだけ(引用符の外の `; & | < > $ ( ) { } * ? # ! ~ [ ]`・`\`・改行は不可。`'…'` の中は文字、`"…"` の中は `$` と `` ` `` だけを見る)
    - `pnpm workflow devcheck plan|status [--json]`・`cleanup`・`danger <スイッチ名>`(種類の方針は見ない。全部の種類が `off`(`enabled: false` を含む)の時は通さない)/ `devcheck run <種類|fork の項目> […]`(その種類の方針が `auto` の時だけ。`manual` は印の道では通さず、1 回分の許可の道だけ)
@@ -136,10 +132,10 @@ auto=<種類>[,<種類>…]   # v=2: 方針が manual の通常の種類を、�
    - 出荷の検査の命令 `pnpm test …`(`--db` は除く)・`pnpm check …`: 種類でも方針の鍵でもなく、印があれば方針を見ずに通す(許可で開け閉めしない。出荷の外で回さないのは core/notices.md checks_in_ship)
    - browser: `browser_navigate` は dev-tab の記録(`.agent/dev-tab.json` の port)の `http://localhost|127.0.0.1:<port>` だけ。ほかの道具は、フックが最後に見た遷移先(`.agent/devcheck-browser.json`、遷移のたびに書く)がその origin の間だけ。`browser_run_code_unsafe`・`browser_evaluate`・`browser_file_upload`・`browser_install` は返さない。`browser_navigate_back`・`browser_tabs` は返さず、最後の遷移先を消す
    - 限界: クリックでページが外へ移ったことはフックには見えない。次の遷移まで操作は通る。遷移は `browser_navigate` で行う
-3. **それ以外は何も返さない**(= 普段どおり聞かれる)。方針 `off` も deny にしない。壊れた時(入力が JSON でない・方針や上書きが読めない・記録が読めない・例外)も何も出さず exit 0(止めだけは方針に依らず効く)
+3. **それ以外は何も返さない**(= 普段どおり聞かれる)。方針 `off` も deny にしない。壊れた時(入力が JSON でない・方針や上書きが読めない・記録が読めない・例外)も何も出さず exit 0
 
-- 効き方(実測、Claude Code v2.1.322): allow は default / acceptEdits のどのモードでも確認を省き、サブエージェントにも効く。`permissions.deny` はフックの allow に勝つ。フックの deny は allow の行と bypassPermissions に勝つ。手元の env は書き換えた次の呼び出しから効く
-- 入力の形: `adaptClaude`(Claude Code の PreToolUse の入力 → `{ tool, command | file | url }`)。ほかのエージェントの形は変換を 1 つ足す
+- 効き方(実測、Claude Code v2.1.322): allow は default / acceptEdits のどのモードでも確認を省き、サブエージェントにも効く。`permissions.deny` はフックの allow に勝つ。手元の env は書き換えた次の呼び出しから効く
+- 入力の形: `adaptClaude`(Claude Code の PreToolUse の入力 → `{ tool, command | url }`)。ほかのエージェントの形は変換を 1 つ足す
 
 ### この命令の記録と片付け
 
