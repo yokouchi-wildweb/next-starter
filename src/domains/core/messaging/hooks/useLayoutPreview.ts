@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   fieldBelongsTo,
+  fieldRequiredIn,
   MESSAGE_BLOCK_KIND_LABELS,
   type MessageBlockKind,
   type MessageFieldShape,
@@ -250,12 +251,12 @@ export function useLayoutPreview({ layout, fields, values, channels, category, e
 
   const setChannel = useCallback((next: string) => setChannelState(next), []);
 
-  /** 必須の欄(その送信チャンネルで使う物)が空の送信チャンネル(仮の文で埋める前の値で見る、D117) */
+  /** 必須の欄(その送信チャンネルで使う物。必須は fieldRequiredIn で channels に対して: requiredFor の件名はメールがある時だけ、D211)が空の送信チャンネル(仮の文で埋める前の値で見る、D117) */
   const incompleteChannels = useMemo(() => {
     if (!fields) return [];
     const raw = values ?? {};
     return channels.filter((key) =>
-      Object.entries(fields).some(([name, spec]) => spec.required && fieldBelongsTo(spec, key) && isEmptyValue(raw[name])),
+      Object.entries(fields).some(([name, spec]) => fieldRequiredIn(spec, channels) && fieldBelongsTo(spec, key) && isEmptyValue(raw[name])),
     );
   }, [fields, values, channels]);
 

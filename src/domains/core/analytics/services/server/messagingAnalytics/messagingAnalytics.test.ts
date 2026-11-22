@@ -4,6 +4,7 @@
 // - series は空のバケットも 0 で埋める。breakdown: 送信チャンネルの軸は行の送信チャンネル、結び付きの無い配信停止は key null、テンプレートの見出し、知らない軸は 400
 // - dispatches: 送信の管理が閉なら空、送信ごとの数、cursor
 // - 送りの組の SQL: is_test・予約 / 取り消しを外し、legacy.notification は既読(withLegacy)の時だけ入る、Date を値に入れない
+// - dispatches の dispatchIds: 期間で絞らない・上限 100・形・cursor と一緒は 400
 // 実行: pnpm test src/domains/core/analytics
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -227,6 +228,76 @@ test("dispatches: 送信の管理が閉なら空、開なら送信ごとの数�
   assert.deepEqual(decodeDispatchCursor(result.nextCursor!), { anchor: new Date("2026-11-10T00:00:00Z"), id: D1 });
   assert.throws(() => decodeDispatchCursor("broken"), DomainError);
   assert.equal(encodeDispatchCursor(new Date("2026-11-10T00:00:00Z"), D1), result.nextCursor);
+});
+
+test("dispatches の dispatchIds: 期間の外の送信も返す(store に期間を渡さない)、nextCursor null、上限・形・cursor と一緒は 400、閉は空", async () => {
+  const pages: Record<string, unknown>[] = [];
+  const scopes: MessagingQueryScope[] = [];
+  const old = new Date("2025-01-01T00:00:00Z");
+  const store = fakeStore({
+    async dispatchPage(params) {
+      pages.push(params as Record<string, unknown>);
+      return [{ id: D2, messageKey: null, category: "news", kind: "announcement", templateId: null, tags: null, anchor: old, status: "completed", deletedAt: null }];
+    },
+    async dispatchCounts(scope) {
+      scopes.push(scope);
+      return [{ period: "cur", group: D2, channel: "inApp", targeted: 3, sent: 3, failed: 0, skippedNoAddress: 0, suppressed: 0, skippedThrottled: 0 }];
+    },
+    async deliveryCounts() {
+      return [];
+    },
+    async readCounts() {
+      return [{ period: "cur", group: D2, read: 2 }];
+    },
+    async unsubscribeCounts() {
+      return [];
+    },
+  });
+  // 期間の値は読まない(RANGE を渡しても store には id だけ)
+  const result = await setup({ store }).analytics.getDispatches({ ...RANGE, dispatchIds: [D2, D1, D2] });
+  assert.deepEqual(pages[0], { dispatchIds: [D2, D1], filter: {}, limit: 2 });
+  assert.equal("from" in pages[0]!, false);
+  assert.deepEqual(scopes[0]!.dispatchIds, [D2]);
+  assert.equal(scopes[0]!.groupBy, "dispatch");
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].dispatchId, D2);
+  assert.equal(result.items[0].sentAt, old.toISOString());
+  assert.equal(result.items[0].metrics.read, 2);
+  assert.equal(result.nextCursor, null);
+  assert.equal(result.dispatchesEnabled, true);
+
+  const bad = (params: Parameters<ReturnType<typeof setup>["analytics"]["getDispatches"]>[0]) =>
+    assert.rejects(setup({ store }).analytics.getDispatches(params), (error: unknown) => error instanceof DomainError && error.status === 400);
+  const many = Array.from({ length: 101 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`);
+  await bad({ dispatchIds: many });
+  await bad({ dispatchIds: ["not-a-uuid"] });
+  await bad({ dispatchIds: [D1], cursor: encodeDispatchCursor(old, D1) });
+  // 100 件ちょうどは通る
+  await setup({ store }).analytics.getDispatches({ dispatchIds: many.slice(0, 100) });
+
+  const closed = await setup({ store, dispatches: false }).analytics.getDispatches({ dispatchIds: [D1] });
+  assert.deepEqual(closed.items, []);
+  assert.equal(closed.dispatchesEnabled, false);
+});
+
+test("送信ごとの SQL: groupBy dispatch は id の一覧だけで期間の値を入れない", () => {
+  const dialect = new PgDialect();
+  const query = dialect.sqlToQuery(
+    dispatchWhere(
+      {
+        current: { from: new Date("2026-11-05T00:00:00Z"), to: new Date("2026-11-11T23:59:59Z") },
+        groupBy: "dispatch",
+        dispatchIds: [D1],
+        granularity: "day",
+        timezone: "UTC",
+        filter: {},
+      },
+      { withLegacy: false },
+    ),
+  );
+  assert.ok(query.params.includes(D1));
+  assert.ok(!query.params.includes("2026-11-05T00:00:00.000Z"));
+  assert.match(query.sql, /NOT IN \('scheduled', 'cancelled'\)/);
 });
 
 test("送りの組の SQL: is_test・予約 / 取り消しを外し、legacy.notification は既読の時だけ、Date を値に入れない", () => {

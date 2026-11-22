@@ -19,7 +19,7 @@ export const getMessagingSeries = analytics.getSeries;
 export const getMessagingBreakdown = analytics.getBreakdown;
 export const getMessagingDispatches = analytics.getDispatches;
 
-export { parseMessagingFilterParams } from "./params";
-export { createMessagingAnalytics, decodeDispatchCursor, encodeDispatchCursor, type MessagingAnalytics } from "./service";
+export { parseDispatchIdsParam, parseMessagingFilterParams } from "./params";
+export { createMessagingAnalytics, decodeDispatchCursor, DISPATCH_IDS_MAX, encodeDispatchCursor, type MessagingAnalytics } from "./service";
 export type * from "./types";
 export { MESSAGING_BREAKDOWN_AXES } from "./types";

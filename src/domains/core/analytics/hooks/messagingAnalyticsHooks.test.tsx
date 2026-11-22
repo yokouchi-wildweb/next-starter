@@ -2,6 +2,7 @@
 // - useMessagingAnalyticsSummary / Series: 期間と絞りを渡す、params が変われば取り直す、enabled: false は取らない
 // - useMessagingAnalyticsBreakdown: axis と params を渡す、axis null は取らない
 // - useMessagingAnalyticsDispatches: 先頭は cursor なし、続きは前の nextCursor、null で終端。dispatchesEnabled / trackingEnabled を返す
+// - useMessagingAnalyticsDispatchReads: dispatchIds だけを渡す(期間・cursor なし)、空の一覧は取らない、順と重なりの違う同じ組は取り直さない、id → 行、100 件を超える組は 100 件ずつ
 // 実行: pnpm test src/domains/core/analytics/hooks/messagingAnalyticsHooks.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -39,6 +40,11 @@ mock.module("@/domains/core/analytics/services/client/messagingAnalyticsClient",
     },
     fetchMessagingDispatches: async (params: Record<string, unknown>) => {
       calls.push({ name: "dispatches", args: [params] });
+      if (params.dispatchIds) {
+        // 予約の送信 "s" は集計に入らない
+        const ids = (params.dispatchIds as string[]).filter((id) => id !== "s");
+        return { items: ids.map(row), nextCursor: null, dispatchesEnabled: true, trackingEnabled: true };
+      }
       if (!params.cursor) {
         return { items: [row("a"), row("b")], nextCursor: "cur-b", dispatchesEnabled: true, trackingEnabled: false };
       }
@@ -54,6 +60,7 @@ let summaryHook: typeof import("./useMessagingAnalyticsSummary");
 let seriesHook: typeof import("./useMessagingAnalyticsSeries");
 let breakdownHook: typeof import("./useMessagingAnalyticsBreakdown");
 let dispatchesHook: typeof import("./useMessagingAnalyticsDispatches");
+let readsHook: typeof import("./useMessagingAnalyticsDispatchReads");
 before(async () => {
   ({ act } = await import("react"));
   ({ createRoot } = await import("react-dom/client"));
@@ -62,6 +69,7 @@ before(async () => {
   seriesHook = await import("./useMessagingAnalyticsSeries");
   breakdownHook = await import("./useMessagingAnalyticsBreakdown");
   dispatchesHook = await import("./useMessagingAnalyticsDispatches");
+  readsHook = await import("./useMessagingAnalyticsDispatchReads");
 });
 after(() => dom.window.close());
 beforeEach(() => {
@@ -169,5 +177,32 @@ test("dispatches: 先頭は cursor なし → 続きは nextCursor → null で�
   assert.equal(params[0].messageKey, "messaging.adminMarketing");
   assert.equal(params[0].limit, 2);
   assert.equal(params[1].cursor, "cur-b");
+  await view.unmount();
+});
+
+test("dispatch reads: 100 件を超える組は 100 件ずつ(並べた順)に分けて取り、1 つにまとめる", async () => {
+  const ids = Array.from({ length: 150 }, (_, index) => `d${String(index).padStart(3, "0")}`);
+  const view = await mount((list: string[]) => readsHook.useMessagingAnalyticsDispatchReads(list), ids.slice().reverse());
+  const requests = calls.filter((c) => c.name === "dispatches").map((c) => (c.args[0] as { dispatchIds: string[] }).dispatchIds);
+  assert.equal(requests.length, 2);
+  assert.deepEqual(requests[0], ids.slice(0, 100));
+  assert.deepEqual(requests[1], ids.slice(100));
+  assert.equal(view.value().rows.size, 150);
+  assert.deepEqual(readsHook.dispatchReadChunks(ids).map((chunk) => chunk.length), [100, 50]);
+  await view.unmount();
+});
+
+test("dispatch reads: dispatchIds だけを渡し id → 行、空は取らない、同じ組は取り直さない", async () => {
+  const view = await mount((ids: string[]) => readsHook.useMessagingAnalyticsDispatchReads(ids), [] as string[]);
+  assert.equal(calls.length, 0);
+  assert.equal(view.value().rows.size, 0);
+  await view.rerender(["b", "a", "s", "a"]);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0]!.args[0], { dispatchIds: ["a", "b", "s"] });
+  assert.deepEqual([...view.value().rows.keys()].sort(), ["a", "b"]);
+  assert.equal(view.value().rows.get("s"), undefined);
+  assert.equal(view.value().dispatchesEnabled, true);
+  await view.rerender(["s", "b", "a"]);
+  assert.equal(calls.length, 1);
   await view.unmount();
 });

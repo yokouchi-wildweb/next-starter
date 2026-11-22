@@ -8,11 +8,10 @@
 import useSWR from "swr";
 
 import { adminDispatchDeleteSummary, type AdminDeleteSummary } from "../services/client/adminMessagingClient";
-
-import { ADMIN_MESSAGING_KEY } from "./adminMessagingKeys";
+import { ADMIN_DISPATCH_DELETE_SUMMARY_KEY } from "./messagingKeys";
 
 export function useDispatchDeleteSummary(ids: readonly string[], enabled: boolean) {
-  const key = enabled && ids.length > 0 ? [`${ADMIN_MESSAGING_KEY}/delete-summary`, [...ids].sort().join(",")] : null;
+  const key = enabled && ids.length > 0 ? [ADMIN_DISPATCH_DELETE_SUMMARY_KEY, [...ids].sort().join(",")] : null;
   const { data, error, isLoading } = useSWR<AdminDeleteSummary>(key, () => adminDispatchDeleteSummary(ids), { revalidateOnFocus: false });
   return { summary: data ?? null, error: error ?? null, isLoading };
 }

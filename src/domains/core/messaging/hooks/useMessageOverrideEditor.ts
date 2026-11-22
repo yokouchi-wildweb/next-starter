@@ -39,9 +39,9 @@ import {
 } from "../services/client/overrideClient";
 import type { LayoutPreviewContent } from "../components/common/LayoutPreview";
 
-import { MESSAGE_OVERRIDES_KEY, messageOverrideKey } from "./overrideKeys";
 import { replaceKeysWithAliases, useVarTags, valueWithAliases } from "./useVarTags";
 import { useMessageOverride } from "./useMessageOverride";
+import { MESSAGE_OVERRIDES_KEY, messageOverrideKey, messageOverrideSaveKey } from "./messagingKeys";
 
 /** 欄の値(レイアウトの欄の中身の形のまま: 文字・数・並び・組・ブロックの並び …) */
 export type OverrideFieldValue = unknown;
@@ -101,7 +101,7 @@ export function useMessageOverrideEditor(messageKey: string) {
   const revalidateKeys = [messageOverrideKey(messageKey), MESSAGE_OVERRIDES_KEY];
 
   const saveMutation = useDomainMutation<AdminOverrideMessageDetail, SaveMessageOverrideInput>(
-    `${messageOverrideKey(messageKey)}/save`,
+    messageOverrideSaveKey(messageKey),
     (input) => saveMessageOverride(messageKey, input),
     revalidateKeys,
   );

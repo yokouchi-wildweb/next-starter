@@ -8,8 +8,7 @@
 import useSWR from "swr";
 
 import { getMessageTemplateVersion, type AdminTemplateVersion } from "../services/client/templateClient";
-
-import { messageTemplateVersionKey } from "./templateKeys";
+import { messageTemplateVersionKey } from "./messagingKeys";
 
 export function useMessageTemplateVersion(id: string | null | undefined, version: number | null | undefined) {
   const ready = Boolean(id) && typeof version === "number";

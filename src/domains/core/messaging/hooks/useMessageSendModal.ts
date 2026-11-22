@@ -50,20 +50,19 @@ import {
   type AdminSendPreviewInput,
   type AdminSendResult,
   type MessagePreview,
-  type RecipientEstimate,
 } from "../services/client/sendClient";
 
-import { ADMIN_DISPATCHES_KEY, ADMIN_MESSAGING_KEY } from "./adminMessagingKeys";
 import { initialChannelsOff as initialChannelsOffOf } from "./sendChannels";
-import { ADMIN_SEND_KEY } from "./sendKeys";
 import { useAdminBulkSendOptions } from "./useAdminBulkSend";
 import { useAdminSendOptions } from "./useAdminSendOptions";
 import { useIdempotencyKey } from "./useIdempotencyKey";
 import { useLayoutPreview } from "./useLayoutPreview";
 import { useSendPreview } from "./useSendPreview";
 import { useSendSteps } from "./useSendSteps";
+import { useRecipientEstimate } from "./useRecipientEstimate";
 import { useSendTest } from "./useSendTest";
 import { layoutTextState, varPreviewValues, templateTextState, useSendTemplateText, type SendTextState } from "./useSendTemplateText";
+import { ADMIN_BULK_SEND_MODAL_KEY, ADMIN_DISPATCHES_KEY, ADMIN_SEND_MODAL_ESTIMATE_KEY, ADMIN_SEND_MODAL_SEND_KEY } from "./messagingKeys";
 
 export type MessageSendMode =
   | {
@@ -212,11 +211,6 @@ export function initialTargetOf(mode: MessageSendMode): MessageSendTarget {
   return { ...blank, type: "users", userIds: [...(mode.dispatch.targetUserIds ?? [])] };
 }
 
-/** 見込みが人数の上限を超えた時の理由(確認の段に出し、送るを止める) */
-export function overLimitText(estimate: Pick<RecipientEstimate, "count" | "memberLimit">): string {
-  return `宛先数 ${estimate.count.toLocaleString("ja-JP")} 人が上限 ${(estimate.memberLimit ?? 0).toLocaleString("ja-JP")} 人を超えているため送信できません`;
-}
-
 /** 元の送信のグループが今は選べない時の知らせ(全員に広げない、D64) */
 export const TARGET_GROUP_GONE_NOTE = "元の送信のグループは現在選べません(アーカイブされたか、ユーザーグループ機能が無効です)。宛先を選び直してください";
 
@@ -246,7 +240,6 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const [scheduleMode, setScheduleModeState] = useState<"now" | "at">("now");
   const [scheduledAt, setScheduledAtState] = useState("");
   const [scheduleError, setScheduleError] = useState<string | null>(null);
-  const [estimate, setEstimate] = useState<RecipientEstimate | null>(null);
   // 二重送信の鍵(開くたびに 1 つ、送った後に作り直す)・表示例・自分へのテスト送信(bulk = 一括の口、門の外)
   const { key: idempotencyKey, renew: renewKey } = useIdempotencyKey();
   const sendPreview = useSendPreview<AdminSendPreviewInput, MessagePreview>({
@@ -597,13 +590,15 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
 
   // ---- 送る口 ----
   const revalidateKeys = [ADMIN_DISPATCHES_KEY];
-  const estimateMutation = useDomainMutation<RecipientEstimate, { target: AdminSendInput["target"] }>(
-    `${ADMIN_SEND_KEY}/modal/estimate`,
-    (input) => estimateAdminRecipients(input),
-  );
-  const sendMutation = useDomainMutation<AdminSendResult, AdminSendInput>(`${ADMIN_SEND_KEY}/modal/send`, (input) => adminSendMessage(input), revalidateKeys);
+  // 人数の見込み(公開の hook、定義連絡のモーダルと同じ。bulk は取らない)
+  const recipientEstimate = useRecipientEstimate<{ target: AdminSendInput["target"] }>({
+    key: ADMIN_SEND_MODAL_ESTIMATE_KEY,
+    estimate: estimateAdminRecipients,
+  });
+  const { estimate, request: requestEstimate, reset: resetEstimate, assertWithinLimit } = recipientEstimate;
+  const sendMutation = useDomainMutation<AdminSendResult, AdminSendInput>(ADMIN_SEND_MODAL_SEND_KEY, (input) => adminSendMessage(input), revalidateKeys);
   const bulkMutation = useDomainMutation<AdminBulkSendResult, AdminBulkSendInput>(
-    `${ADMIN_MESSAGING_KEY}/bulk-send/modal`,
+    ADMIN_BULK_SEND_MODAL_KEY,
     (input) => adminBulkSend(input),
     revalidateKeys,
   );
@@ -634,10 +629,10 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
       const late = scheduleErrorOf(scheduleMode, scheduledAt, maxDays, Date.now());
       setScheduleError(late);
       if (late) throw new Error(late);
-      setEstimate(await estimateMutation.trigger({ target: buildTarget() }));
+      await requestEstimate({ target: buildTarget() });
     }
     toConfirm();
-  }, [assertText, isBulk, scheduleMode, scheduledAt, maxDays, estimateMutation, buildTarget, toConfirm]);
+  }, [assertText, isBulk, scheduleMode, scheduledAt, maxDays, requestEstimate, buildTarget, toConfirm]);
 
   /** 送る(確認の段から)。成功 = 結果の段、鍵を作り直し、onSent */
   const confirmSend = useCallback(async () => {
@@ -651,14 +646,14 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
         backToEdit();
         throw new Error(late);
       }
-      if (estimate?.overLimit) throw new Error(overLimitText(estimate));
+      assertWithinLimit();
       sent = { kind: "send", result: await sendMutation.trigger(buildSendInput()) };
     }
     finish(sent);
     renewKey();
     onSent?.(sent);
     return sent;
-  }, [isBulk, bulkMutation, buildBulkInput, scheduleMode, scheduledAt, maxDays, sendMutation, buildSendInput, onSent, estimate, backToEdit, finish, renewKey]);
+  }, [isBulk, bulkMutation, buildBulkInput, scheduleMode, scheduledAt, maxDays, sendMutation, buildSendInput, onSent, assertWithinLimit, backToEdit, finish, renewKey]);
 
   /** 『テンプレートを更新』(送るとは別、D120)。投げた誤りは呼び手が出す。unchanged = 版と同じ */
   const updateTemplate = useCallback(async () => {
@@ -682,8 +677,8 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     setScheduledAtState("");
     setScheduleError(null);
     closePreview();
-    setEstimate(null);
-  }, [resetText, resetSteps, closePreview]);
+    resetEstimate();
+  }, [resetText, resetSteps, closePreview, resetEstimate]);
 
   /** 開く・閉じる(閉じたら全部を初めに戻す。書きかけの確かめは Modal の confirmOnClose) */
   const setOpen = useCallback(
@@ -778,7 +773,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     preview: sendPreview.preview,
     estimate,
     /** 見込みが人数の上限を超えている(確認の段で送れない。サーバーも 409 で断る、D64) */
-    estimateOverLimit: Boolean(estimate?.overLimit),
+    estimateOverLimit: recipientEstimate.overLimit,
     result: steps.result,
     isPreviewing: sendPreview.isPreviewing,
     isTesting: sendTestHook.isTesting,

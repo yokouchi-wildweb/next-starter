@@ -10,6 +10,8 @@
 - `notice`（汎用）: 件名 + ブロックの並び。管理者がテンプレートで選べる
 - `link`（認証のリンク）・`welcome`（ようこそ）・`statement`（明細）・`alert`（セキュリティの警告）: 定義連絡だけが使う（`adminSelectable: false`）。欄は意味で名づけ（位置の段落は使わない）、メールは前の連絡の見た目と同じ部品の並び
 
+件名（6 つとも、D211）: `subject` は `requiredFor: ["email"]` = その送信にメールが入る時だけ必須（サービス内通知だけ等なら省ける）。欄はどの送信チャンネルにも渡るので、件名を書けばお知らせの題も件名。要約の題は `summaryTitle(values.subject, <要約の本文>)`（lib/messaging）で、件名が無ければ本文の最初の行（40 文字 + …）。
+
 ## Usage
 
 フォルダの中のファイル（どれも `pnpm generate extensions` が一覧にする。並びはフォルダ名の順、鍵 = レイアウトの鍵）:
@@ -29,6 +31,7 @@
   - `adminSelectable`: 管理者がテンプレート・送る画面で選べるか（上流の定義連絡だけのレイアウトを選べるようにする・上流の選べるレイアウトを外す）
   - config の `initialLayout`（送る画面・テンプレートの編集の最初のレイアウト、既定 `simple`）は管理画面で選べる使えるレイアウトであること。`simple` を無効にする・選べなくする fork は `src/config/domains/messaging.config.ts` で `initialLayout` も替える（違えば連絡の一覧の検査が止める。黙ってほかに替えない）
 - fork のレイアウトを足す: `layouts/<名前>/` に `layout.ts`（と `email.tsx`・`inApp.tsx`）だけを置く（受け口が許すのはこの 3 つの名前と上流の項目の `layout.override.ts`）。部品は fork の自分のドメインに置いて import する
+  - 件名をメールの無い送信で省けるようにするなら、上流と同じく件名を `requiredFor: ["email"]` にし、summary の題を `summaryTitle(values.subject, <本文>)` にする（`channels: ["email"]` にするとお知らせから件名が消える）
 - 送信チャンネルを足す fork は、送信チャンネルの項目に汎用の描き方か「要約から描ける」を宣言する（`channels/README.md`）。レイアウトに書き足さずに済む
 
 ## Internals
@@ -41,6 +44,7 @@
 
 - `pnpm generate extensions` / `pnpm check extensions`
 - `pnpm test src/lib/messaging/layout/layout.test.ts src/domains/core/messaging/channels/rendering.test.tsx`
+- 件名（メールの時だけ必須・要約の題）: `pnpm test src/domains/core/messaging/layouts`（各フォルダの `<名前>.test.tsx`）
 - 無効のレイアウト・initialLayout: `pnpm test src/domains/core/messaging/services/server/sendMessage/messageRegistry.test.ts src/lib/messaging/definition.test.ts`
 
 ## Related

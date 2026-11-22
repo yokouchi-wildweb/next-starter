@@ -12,8 +12,7 @@ import {
   type AdminRecipientChannels,
   type RecipientChannelsQuery,
 } from "../services/client/sendResultsClient";
-
-import { recipientChannelsKey } from "./sendKeys";
+import { recipientChannelsKey } from "./messagingKeys";
 
 /** userId = 宛先の利用者(null = 取らない) */
 export function useRecipientChannels(userId: string | null, query: RecipientChannelsQuery = {}, enabled = true) {

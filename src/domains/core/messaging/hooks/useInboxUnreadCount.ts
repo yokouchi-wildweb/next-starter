@@ -7,8 +7,7 @@
 import useSWR from "swr";
 
 import { getInboxUnreadCount } from "../services/client/inboxClient";
-
-import { INBOX_UNREAD_COUNT_KEY } from "./inboxKeys";
+import { INBOX_UNREAD_COUNT_KEY } from "./messagingKeys";
 
 export function useInboxUnreadCount(options: { enabled?: boolean } = {}) {
   const { enabled = true } = options;

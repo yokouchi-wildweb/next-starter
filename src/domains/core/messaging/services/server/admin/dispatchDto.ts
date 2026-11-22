@@ -18,6 +18,8 @@ import type { MessageLayoutSummary, MessageRecord } from "@/lib/messaging";
 
 import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import type { MessageChannelCounts, MessageChannelTextMap } from "../../../entities/schema";
+import { recipientKeyOf } from "../sendMessage/expand";
+import type { MessageRecipient } from "../sendMessage/types";
 import type { DispatchOperationFlags } from "./operations";
 
 /** 送信の中身(D128): レイアウトの鍵・送った版・欄の中身 */
@@ -43,7 +45,8 @@ export type AdminDispatchSummary = {
   channels: string[];
   /** 送信チャンネルごとの件名・題 */
   headings: MessageChannelTextMap;
-  recipientCount: number;
+  /** 宛先の人数(dispatchRecipientCountOf。null = 全員・ロール・グループで展開の前 = 人数は送る時に決まる) */
+  recipientCount: number | null;
   channelCounts: MessageChannelCounts | null;
   actor: { id: string | null; type: string | null };
   isTest: boolean;
@@ -58,9 +61,22 @@ export type AdminDispatchSummary = {
 
 export type AdminDispatchTargetGroup = { id: string; name: string | null };
 
+/**
+ * 送信の宛先 = 宛先の指定と人数(D210 の詳細。利用者を並べない: 送信が持つ宛先の一覧・受信者ごとの値は返さない)。
+ * count = dispatchRecipientCountOf: 展開した後は送信の recipient_count(全員・ロール・グループは展開の束ごとに足す)。
+ * 展開の前(予約・送り始めの前)は、選んだ利用者 = 送信に残した宛先の数(重なりは 1 人)、全員・ロール・グループ = null(人数は送る時に決まる)。
+ * グループの id・名前は targetGroup、選んだ利用者の id(「同じ内容で送る」の写し)は targetUserIds
+ */
+export type AdminDispatchTarget =
+  | { type: "all"; count: number | null }
+  | { type: "role"; roles: string[]; count: number | null }
+  | { type: "group"; count: number | null }
+  | { type: "recipients"; count: number | null };
+
 export type AdminDispatchDetail = AdminDispatchSummary & {
   record: MessageRecord | null;
-  target: Record<string, unknown> | null;
+  /** 宛先の指定と人数(宛先を持たない前の送る口の送信は null) */
+  target: AdminDispatchTarget | null;
   tags: string[];
   reason: string | null;
   metadata: Record<string, unknown> | null;
@@ -80,6 +96,8 @@ export type AdminDispatchDetail = AdminDispatchSummary & {
   targetUserIds: string[] | null;
   /** 送り元の表示名(受け口 sources に表示名がある時だけ。画面は送り元の鍵を見せない、D46) */
   sourceLabel: string | null;
+  /** 連絡定義の表示名(定義の label、上書きの後。自由連絡・知らない鍵は null。画面は鍵を見せない、D46) */
+  definitionLabel: string | null;
   /** 送った人の名前(利用者なら users.name、system なら null。画面は id でなくこれを出す、D46) */
   actorName: string | null;
   /** 本文(記録の段が vars / full のときだけ。送信チャンネルごとの欄) */
@@ -138,6 +156,56 @@ export function targetGroupIdOf(row: Pick<MessageDispatch, "target">): string | 
   return target?.type === "group" && typeof target.groupId === "string" ? target.groupId : null;
 }
 
+type CountSource = Pick<MessageDispatch, "target" | "recipient_count" | "status" | "expand_cursor">;
+
+/** 展開の前か(予約のまま、か送り始めの前 = 送信中で展開の印が無く数がまだ 0。終えた送信の 0 は 0 のまま) */
+function notExpanded(row: CountSource): boolean {
+  return row.status === "scheduled" || (row.status === "processing" && row.expand_cursor === null && row.recipient_count === 0);
+}
+
+/** 送信に残した選んだ利用者の数(重なりは 1 人 = 送る口と同じ鍵 recipientKeyOf)。一覧が無ければ null */
+function storedRecipientCount(target: { recipients?: unknown }): number | null {
+  if (!Array.isArray(target.recipients)) return null;
+  return new Set((target.recipients as MessageRecipient[]).map(recipientKeyOf)).size;
+}
+
+/**
+ * 宛先の人数(詳細の target.count と一覧の recipientCount が同じ物を読む)。展開した後 = recipient_count。
+ * 展開の前: 選んだ利用者 = 送信に残した宛先の数 / 全員・ロール・グループ = null(人数は送る時に決まる)
+ */
+export function dispatchRecipientCountOf(row: CountSource): number | null {
+  if (!notExpanded(row)) return row.recipient_count;
+  const target = row.target as { type?: unknown; recipients?: unknown } | null;
+  switch (target?.type) {
+    case "all":
+    case "role":
+    case "group":
+      return null;
+    case "recipients":
+      return storedRecipientCount(target) ?? row.recipient_count;
+    default:
+      return row.recipient_count;
+  }
+}
+
+/** 送信の宛先の指定と人数(知らない形・宛先の無い送信は null) */
+export function dispatchTargetOf(row: CountSource): AdminDispatchTarget | null {
+  const target = row.target as { type?: unknown; roles?: unknown } | null;
+  const count = dispatchRecipientCountOf(row);
+  switch (target?.type) {
+    case "all":
+      return { type: "all", count };
+    case "role":
+      return { type: "role", roles: Array.isArray(target.roles) ? target.roles.filter((role): role is string => typeof role === "string") : [], count };
+    case "group":
+      return { type: "group", count };
+    case "recipients":
+      return { type: "recipients", count };
+    default:
+      return null;
+  }
+}
+
 /** groupNames = グループ id → 名前(引けた物だけ) */
 export function toDispatchSummary(row: MessageDispatch, groupNames: ReadonlyMap<string, string> = new Map()): AdminDispatchSummary {
   const groupId = targetGroupIdOf(row);
@@ -150,7 +218,7 @@ export function toDispatchSummary(row: MessageDispatch, groupNames: ReadonlyMap<
     status: row.status,
     channels: row.channels,
     headings: headingsOf(row),
-    recipientCount: row.recipient_count,
+    recipientCount: dispatchRecipientCountOf(row),
     channelCounts: row.channel_counts,
     actor: { id: row.actor_id, type: row.actor_type },
     isTest: row.is_test,
@@ -173,18 +241,19 @@ export function toDispatchDetail(
   extras: {
     targetUserIds?: string[] | null;
     sourceLabel?: string | null;
+    definitionLabel?: string | null;
     actorName?: string | null;
     groupNames?: ReadonlyMap<string, string>;
   } = {},
 ): AdminDispatchDetail {
-  const { targetUserIds = null, sourceLabel = null, actorName = null, groupNames } = extras;
+  const { targetUserIds = null, sourceLabel = null, definitionLabel = null, actorName = null, groupNames } = extras;
   const keep = keepsDispatchBody(row.record);
   const content = row.values && row.layout ? { layout: row.layout, layoutVersion: row.layout_version ?? null, values: row.values } : null;
   return {
     ...toDispatchSummary(row, groupNames),
     record: row.record,
-    // グループ宛ては宛先の形だけ(id は targetGroup に値として、固定した版は出さない)
-    target: targetGroupIdOf(row) ? { type: "group" } : row.target,
+    // 宛先の指定と人数だけ(グループの id は targetGroup に値として、固定した版・宛先の一覧・受信者ごとの値は出さない)
+    target: dispatchTargetOf(row),
     tags: row.tags ?? [],
     reason: row.reason,
     metadata: row.metadata,
@@ -197,6 +266,7 @@ export function toDispatchDetail(
     sameAs: sameAsOf(row, content, keep),
     targetUserIds,
     sourceLabel,
+    definitionLabel,
     actorName,
     // 前の送る口の送信は記録の段を持たない(写しが前の列の本文を rendered へ移した)→ 段に依らず返す
     body: isOldSend(row) || keep ? row.rendered : null,

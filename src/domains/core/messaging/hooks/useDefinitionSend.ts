@@ -23,10 +23,9 @@ import {
   type AdminDefinitionSendResult,
 } from "../services/client/definitionSendClient";
 
-import { ADMIN_DISPATCHES_KEY } from "./adminMessagingKeys";
-import { ADMIN_DEFINITION_SEND_KEY, definitionOptionsKey } from "./sendKeys";
 import { useSendPreview } from "./useSendPreview";
 import { useSendTest } from "./useSendTest";
+import { ADMIN_DEFINITION_SEND_SEND_KEY, ADMIN_DISPATCHES_KEY, definitionOptionsKey } from "./messagingKeys";
 
 /** 定義連絡の選択肢(enabled の間だけ取る = 送る画面が開いている間) */
 export function useDefinitionSendOptions(query: AdminDefinitionOptionsQuery, enabled = true) {
@@ -39,7 +38,7 @@ export function useDefinitionSendOptions(query: AdminDefinitionOptionsQuery, ena
 /** 定義連絡を送る(誤りは投げる。409 = 同じ鍵で送り済み) */
 export function useDefinitionSend() {
   const mutation = useDomainMutation<AdminDefinitionSendResult, AdminDefinitionSendInput>(
-    `${ADMIN_DEFINITION_SEND_KEY}/send`,
+    ADMIN_DEFINITION_SEND_SEND_KEY,
     sendAdminDefinition,
     [ADMIN_DISPATCHES_KEY],
   );

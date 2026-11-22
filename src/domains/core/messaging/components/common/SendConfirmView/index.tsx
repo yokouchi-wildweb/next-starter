@@ -1,5 +1,6 @@
 // src/domains/core/messaging/components/common/SendConfirmView/index.tsx
-// 部品(props だけ): 送るモーダルの確認の段(宛先数の見込み・上限を超えた理由・送る時刻・テンプレートの版)と、結果の段(状態・送信へのリンク・一括の後処理)
+// 部品(props だけ): 送るモーダルの確認の段(宛先数の見込み・上限を超えた理由・送る時刻・テンプレートの版)と、結果の段(状態・送信へのリンク・一括の後処理)。
+// 宛先数の見込みの表示 = RecipientEstimateView(自由連絡と定義連絡の確認の段で同じ物。見込みは hook useRecipientEstimate)
 
 "use client";
 
@@ -11,8 +12,33 @@ import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { Span } from "@/components/TextBlocks/Span";
 
+import { overLimitText } from "@/domains/core/messaging/hooks/useRecipientEstimate";
+
 import { DELIVERY_STATUS_DISPLAY } from "../DeliveryStatusBadge";
 import { DISPATCH_STATUS_DISPLAY } from "../DispatchStatusBadge";
+
+export type RecipientEstimateViewProps = {
+  /** 見込み(まだ無ければ null =「-」)。overLimit = 人数の上限を超えた(理由を出す。送るは入れ物が止める) */
+  estimate: { count: number; overLimit?: boolean; memberLimit?: number } | null;
+  /** 行の見出し(既定「宛先」。宛先の文を別の行に出す画面は「人数」など) */
+  label?: string;
+};
+
+/** 宛先数の見込みの行と、上限を超えた時の理由 */
+export function RecipientEstimateView({ estimate, label = "宛先" }: RecipientEstimateViewProps) {
+  return (
+    <>
+      <Para size="sm" className="my-0" data-slot="recipient-estimate">
+        {label}: {estimate ? `${estimate.count.toLocaleString("ja-JP")} 名(送信時に再集計します)` : "-"}
+      </Para>
+      {estimate?.overLimit ? (
+        <Para size="sm" tone="destructive" className="my-0" data-slot="send-confirm-over-limit">
+          {overLimitText(estimate)}
+        </Para>
+      ) : null}
+    </>
+  );
+}
 
 export type SendConfirmViewProps = {
   /** 見込み(bulk は null で、選んだ記録の数を出す)。overLimit = 人数の上限を超えた(理由を出す。送るは入れ物が止める) */
@@ -27,21 +53,15 @@ export type SendConfirmViewProps = {
 };
 
 export function SendConfirmView({ estimate, bulk, scheduledAt, templateVersion, channels, categoryLabel }: SendConfirmViewProps) {
-  const who = bulk
-    ? `選択した ${bulk.recordCount} 件の${bulk.recordNoun}に関連するユーザー`
-    : estimate
-      ? `${estimate.count} 名(送信時に再集計します)`
-      : "-";
   return (
     <Stack gap="xs" data-slot="send-confirm-view">
-      <Para size="sm" className="my-0">
-        宛先: {who}
-      </Para>
-      {estimate?.overLimit ? (
-        <Para size="sm" tone="destructive" className="my-0" data-slot="send-confirm-over-limit">
-          {`宛先数 ${estimate.count.toLocaleString("ja-JP")} 人が上限 ${(estimate.memberLimit ?? 0).toLocaleString("ja-JP")} 人を超えているため送信できません`}
+      {bulk ? (
+        <Para size="sm" className="my-0">
+          宛先: {`選択した ${bulk.recordCount} 件の${bulk.recordNoun}に関連するユーザー`}
         </Para>
-      ) : null}
+      ) : (
+        <RecipientEstimateView estimate={estimate} />
+      )}
       <Para size="sm" className="my-0">
         カテゴリー: {categoryLabel} / 送信方法: {channels.join("・")}
       </Para>

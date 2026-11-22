@@ -577,6 +577,30 @@ export function createMessageSender(deps: MessageSendDeps) {
   }
 
   return {
+    /** 予約の時刻の検査(送る口と同じ。予約の直しも使う)。@throws DomainError(400) 過ぎた時刻・遠すぎる時刻 */
+    checkSchedule,
+
+    /**
+     * 予約した送信の直し(admin/scheduledEdit.ts、D210): 直した定義・送信チャンネルから、送る時に送信へ書くのと同じ中身の列を組む
+     * (件名・題 headings、全員同文の描画 rendered、欄の中身 values、レイアウトの版、送信チャンネルごとの数の空の形)。
+     * 予約は noBody の連絡を受けない(送る口が拒む)ので values はいつも残す。描けない送信チャンネルはここで止まる
+     * @throws DomainError 組み立ての誤り
+     */
+    async scheduledContent(resolved: AnyResolvedMessageDefinition, channels: readonly string[], vars: Record<string, unknown>) {
+      const policy = recordPolicyOf(resolved);
+      const headings = await buildHeadings(deps, resolved, channels, vars, policy);
+      const rendered = policy.keepRendered ? await buildRendered(deps, resolved, channels, vars) : null;
+      const layout = deps.layouts[resolved.layout];
+      return {
+        channels: [...channels],
+        headings,
+        rendered,
+        values: { ...((resolved.values ?? {}) as Record<string, unknown>) },
+        layout_version: layout ? layoutVersionOf(layout) : null,
+        channel_counts: emptyChannelCounts(channels),
+      };
+    },
+
     /** 1 通(1 人)を送る */
     async sendMessage(definition: AnyMessageDefinition, input: SendMessageInput): Promise<SendMessageResult> {
       const { recipient, recipientVars, ...rest } = input;

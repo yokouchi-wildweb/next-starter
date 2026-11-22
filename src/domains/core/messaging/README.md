@@ -102,7 +102,7 @@ export const category: MessageCategory = { key: "itemSoldInApp", label: "出品�
 HTTP の口と返す形は口のフォルダの README:
 
 - 送る口（`sendMessage` / `sendMessageToMany` / `sendFreeMessage`・プレビュー・見込み・間引き・本文の残し方・送信の結果）→ services/server/sendMessage/README.md
-- 管理の口 `/api/admin/messaging/**`（自由連絡を送る・一括送信・定義連絡を管理者が送る `definitions/**`・送信の結果 `send-results/[dispatchId]`・1 人の受け取れる送信チャンネル `recipients/[userId]/channels`・送信の読む口・送信の操作・続きを送る・利用者ごとの履歴）→ services/server/admin/README.md
+- 管理の口 `/api/admin/messaging/**`（自由連絡を送る・一括送信・定義連絡を管理者が送る `definitions/**`（全員・ロール・グループの人数の見込み `definitions/estimate` も）・送信の結果 `send-results/[dispatchId]`・1 人の受け取れる送信チャンネル `recipients/[userId]/channels`・送信の読む口（一覧の絞り 送り元・送った人・運営が送った物だけ・件名の検索と、その選択肢 `dispatches/filters`・既読した利用者 `dispatches/[id]/readers`）・送信の操作・予約の直し（`PATCH dispatches/[id]` と直しの材料 `dispatches/[id]/edit-options`）・続きを送る・利用者ごとの履歴 `users/[userId]/history`）→ services/server/admin/README.md
 - テンプレート `/api/admin/messaging/templates/**`・レイアウトのプレビュー `/api/admin/messaging/layouts/preview` → services/server/templates/README.md / テキストの編集 `/api/admin/messaging/overrides/**` → services/server/overrides/README.md
 - 本人の受け取り箱 `/api/me/messaging/inbox/**` → services/server/inbox/README.md / 好み `/api/me/messaging/preferences` → services/server/preferences/README.md / 端末の帳簿 `/api/me/messaging/endpoints` → services/server/endpoints/README.md
 - 配信停止 `/api/messaging/unsubscribe` と確認のページ `/unsubscribe` → services/server/unsubscribe/README.md
@@ -119,7 +119,7 @@ HTTP の口と返す形は口のフォルダの README:
 - 送る画面・テンプレートの編集: `initialLayout` `"simple"`（最初に開くレイアウト。管理画面で選べる使えるレイアウトであること = 連絡の一覧の検査）
 - 送る口: `smallSendMaxRecipients` 100（これ以下の選んだ宛先は要求の中で展開）/ `inRequestBatchSize` 50（要求の中で送る最初の束）/ `requiredRetry` { attempts 3, delaysMs [200, 1000] } / `transientRetry` { maxAttempts 5, baseDelaySeconds 60, factor 4 } / `expandChunkSize` 500 / `schedule.maxDaysAhead` 90
 - 送信チャンネル: `channels.line.enabled` false（開ける fork は `channels: { line: { enabled: true } }` と LINE の env・機能 `userLineProfile`）
-- cron: `sweep` { budgetMs 240000, deliveryChunkSize 100, expandChunksPerRun 20, leaseSeconds 300 } / `retention` { eventsDays 30, deliveriesDays 90, dispatchesDays 730, idempotencyKeyDays null, chunkSize 1000, budgetMs 240000 } / `subscribers` { lagSeconds 120, maxAttempts 5, batchSize 100, budgetMs 240000 }
+- cron: `sweep` { budgetMs 240000, deliveryChunkSize 100, expandChunksPerRun 20, leaseSeconds 300 } / `retention` { eventsDays 30, deliveriesDays 730, deliveryContentDays 90, dispatchesDays 730, idempotencyKeyDays null, chunkSize 1000, budgetMs 240000 } / `subscribers` { lagSeconds 120, maxAttempts 5, batchSize 100, budgetMs 240000 }
 - 受け取り箱: `inbox.showUnreadModal` true（門 `messagingInbox` が開の間に未読のモーダルを出すか）/ `inbox.unreadModalPaths` `["/"]`（完全一致、末尾 `*` で前方一致）
 - 門の入切は `src/config/featureGate/switches.config.ts`（`pnpm ops features set <name> on|off`）
 
@@ -169,5 +169,5 @@ HTTP の口と返す形は口のフォルダの README:
 - [lib/messaging](../../../lib/messaging/README.md) … 連絡定義・上書き・検査・受け口の項目の型
 - [lib/mail](../../../lib/mail/README.md) … メールの送信と見た目の部品（メールの送信チャンネルの項目が使う）
 - [userGroup](../userGroup/README.md) … グループ宛ての宛先（条件の部品・静的グループ・人数の上限）
-- [analytics](../analytics/README.md) … 連絡の集計（門 `messagingAnalytics`、`/api/admin/analytics/messaging/**`）
+- [analytics](../analytics/README.md) … 連絡の集計（門 `messagingAnalytics`、`/api/admin/analytics/messaging/**`）。送信の一覧の既読数の列は analytics の公開の hook `useMessagingAnalyticsDispatchReads`（送信の id で引く `?dispatchIds=`）を読む（門が閉なら列ごと出さない）
 - [auditLog](../auditLog/README.md) … 管理の操作の記録先

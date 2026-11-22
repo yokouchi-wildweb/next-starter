@@ -7,8 +7,7 @@
 import useSWR from "swr";
 
 import { listMessageTemplateVersions, type AdminTemplateVersion } from "../services/client/templateClient";
-
-import { messageTemplateVersionsKey } from "./templateKeys";
+import { messageTemplateVersionsKey } from "./messagingKeys";
 
 export function useMessageTemplateVersions(id: string | null | undefined) {
   const { data, error, isLoading } = useSWR<AdminTemplateVersion[]>(id ? messageTemplateVersionsKey(id) : null, () =>

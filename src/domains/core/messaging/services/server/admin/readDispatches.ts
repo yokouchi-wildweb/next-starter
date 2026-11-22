@@ -1,6 +1,7 @@
 // src/domains/core/messaging/services/server/admin/readDispatches.ts
 //
-// 送信の読む口(D37。汎用 CRUD の search に乗せない): 送信の一覧(期間・定義・カテゴリー・送信チャンネル・状態、keyset)/ 送信 1 件 / 送信の配達(keyset)。
+// 送信の読む口(D37。汎用 CRUD の search に乗せない): 送信の一覧(期間・種別・カテゴリー・送信チャンネル・状態・送り元・送った人・
+// 件名の文字、keyset)/ 一覧の絞りの選択肢(送り元・送った管理者)/ 送信 1 件 / 送信の配達(keyset)。
 // 管理者を service でも確かめる。返す形は dispatchDto.ts。並び: 送信は新しい順(created_at, id の降順)、配達は古い順(created_at, id の昇順)
 
 import { z } from "zod";
@@ -41,6 +42,14 @@ export const ListDispatchesQuerySchema = z.object({
   category: z.string().trim().min(1).max(100).optional(),
   channel: z.string().trim().min(1).optional(),
   status: z.enum(MESSAGE_DISPATCH_STATUSES).optional(),
+  /** 送り元の鍵(選択肢は dispatchFilterOptions の sources。画面は表示名で並べる、D46) */
+  source: z.string().trim().min(1).max(200).optional(),
+  /** 送った人の利用者 id(選択肢は dispatchFilterOptions の actors) */
+  actor: z.string().trim().min(1).max(200).optional(),
+  /** admin = 運営(管理者)が送った物だけ(actor_type admin。D210)。無ければ全部(連絡の自動の送信も) */
+  sentBy: z.enum(["admin"]).optional(),
+  /** 件名の文字検索(送信チャンネルごとの件名・題 headings のどれかに含む。大文字小文字を区別しない、字そのまま) */
+  q: z.string().trim().min(1).max(100).optional(),
   /** 削除した送信(D88): exclude = 出さない(既定)/ only = 削除した送信だけ / include = 両方 */
   deleted: z.enum(["exclude", "only", "include"]).default("exclude"),
   cursor: z.string().min(1).optional(),
@@ -64,6 +73,10 @@ export type AdminDispatchStore = {
     limit: number,
   ) => Promise<MessageDispatch[]>;
   findDispatch: (id: string) => Promise<MessageDispatch | null>;
+  /** 送信の送り元の鍵(重なりなし、新しく送った順に limit まで) */
+  listDispatchSources: (limit: number) => Promise<string[]>;
+  /** 管理者(actor_type admin)として送った利用者 id(重なりなし、新しく送った順に limit まで) */
+  listDispatchAdminActors: (limit: number) => Promise<string[]>;
   /** 送信の配達の利用者 id(重なりなし、limit まで) */
   listDispatchUserIds: (dispatchId: string, limit: number) => Promise<string[]>;
   /** 利用者の名前(users.name。id → 名前、名前の無い・消えた利用者は入らない) */
@@ -80,6 +93,8 @@ export type AdminReadDeps = AdminCheckDeps & {
   dispatchStore: AdminDispatchStore;
   /** 送り元の表示名(受け口 sources → 同じ鍵の連絡の名前 → 一括の対象の「…の一括送信」、無ければ null。送信の詳細は鍵を見せない、D46) */
   sourceLabel: (source: string) => Promise<string | null>;
+  /** 連絡定義の表示名(定義の label、上書きの後)。知らない鍵は null */
+  definitionLabel: (messageKey: string) => Promise<string | null>;
   /** 送信の操作の判定に要る値(連絡の性質と失敗の数) */
   operationInputs: (row: MessageDispatch) => Promise<{ policy: DispatchPolicy; counts: { failed: number; unknown: number } }>;
   /** ユーザーグループの名前(id → 名前、しまったグループも。門 userGroups が閉なら空。無い = 名前を出さない) */
@@ -121,18 +136,46 @@ export async function findDispatch(deps: AdminReadDeps, id: string): Promise<Adm
   const row = await deps.dispatchStore.findDispatch(id);
   if (!row) throw new DomainError("送信が見つかりません", { status: 404 });
   const { policy, counts } = await deps.operationInputs(row);
-  const [targetUserIds, sourceLabel, names, groupNames] = await Promise.all([
+  const [targetUserIds, sourceLabel, definitionLabel, names, groupNames] = await Promise.all([
     targetUserIdsOf(deps, row),
     deps.sourceLabel(row.source),
+    row.message_key ? deps.definitionLabel(row.message_key) : Promise.resolve(null),
     row.actor_id ? deps.dispatchStore.userNames([row.actor_id]) : Promise.resolve(new Map<string, string>()),
     groupNamesOf(deps, [row]),
   ]);
   return toDispatchDetail(row, operationFlags(row, policy, counts), {
     targetUserIds,
     sourceLabel,
+    definitionLabel,
     actorName: row.actor_id ? (names.get(row.actor_id) ?? null) : null,
     groupNames,
   });
+}
+
+/** 一覧の絞りの選択肢の上限(送り元・送った人のそれぞれ) */
+export const DISPATCH_FILTER_OPTIONS_LIMIT = 200;
+
+/** 送信の一覧の絞りの選択肢: 送り元(鍵は値としてだけ、画面は label)・運営として送った人(id は値としてだけ、画面は name) */
+export type AdminDispatchFilterOptions = {
+  sources: { key: string; label: string | null }[];
+  actors: { id: string; name: string | null }[];
+};
+
+/** 送信の一覧の絞りの選択肢(GET /api/admin/messaging/dispatches/filters)。どちらも新しく送った順に DISPATCH_FILTER_OPTIONS_LIMIT まで */
+export async function dispatchFilterOptions(deps: AdminReadDeps): Promise<AdminDispatchFilterOptions> {
+  await assertAdminActor(deps);
+  const [sourceKeys, actorIds] = await Promise.all([
+    deps.dispatchStore.listDispatchSources(DISPATCH_FILTER_OPTIONS_LIMIT),
+    deps.dispatchStore.listDispatchAdminActors(DISPATCH_FILTER_OPTIONS_LIMIT),
+  ]);
+  const [labels, names] = await Promise.all([
+    Promise.all(sourceKeys.map((key) => deps.sourceLabel(key))),
+    deps.dispatchStore.userNames(actorIds),
+  ]);
+  return {
+    sources: sourceKeys.map((key, index) => ({ key, label: labels[index] ?? null })),
+    actors: actorIds.map((id) => ({ id, name: names.get(id) ?? null })),
+  };
 }
 
 /** 送信の画面の絞りの選択肢: カテゴリー(受け口の全部、fork の物も)の鍵・表示名・種別。画面は種別ごとに並べる */

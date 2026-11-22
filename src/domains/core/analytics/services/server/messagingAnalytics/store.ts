@@ -6,6 +6,7 @@
 // - status scheduled / cancelled は外す、is_test は外す、取り下げた送信は数える
 // - source legacy.notification(写した前のお知らせ)の送信は既読の数だけに使う(送り・到達の数に入れない)
 // - created_at の索引を使うため created_at も範囲で絞る(予約は最大 schedule.maxDaysAhead 日前に作られる)
+// - 送信ごとのビュー(groupBy dispatch)は送信の id の一覧で絞り、期間では絞らない(id は期間のページか dispatchIds の指定から。主キーで有界)
 // 配信停止は止めた時刻で数える(前のトークン・好みのページの停止は送信に結び付かない)。
 // raw SQL に JS の Date は入れない(ISO の文字列で渡す)。
 
@@ -74,18 +75,20 @@ function periodExpr(scope: MessagingQueryScope, time: SQL): SQL {
     : sql`'cur'`;
 }
 
-/** 送信の WHERE(送りの組)。withLegacy = 写した前のお知らせの送信も入れる(既読) */
+/** 送信の WHERE(送りの組)。withLegacy = 写した前のお知らせの送信も入れる(既読)。送信ごと(groupBy dispatch)は id の一覧だけで期間は見ない */
 export function dispatchWhere(scope: MessagingQueryScope, options: { withLegacy: boolean }): SQL {
-  const { from, to } = windowOf(scope);
-  const createdFloor = new Date(from.getTime() - messagingConfig.schedule.maxDaysAhead * DAY_MS);
-  const parts: SQL[] = [
-    sql`${anchor} >= ${iso(from)}`,
-    sql`${anchor} <= ${iso(to)}`,
-    sql`${D.createdAt} <= ${iso(to)}`,
-    sql`${D.createdAt} >= ${iso(createdFloor)}`,
-    sql`${D.status} NOT IN ('scheduled', 'cancelled')`,
-    sql`${D.is_test} = false`,
-  ];
+  const parts: SQL[] = [];
+  if (scope.groupBy !== "dispatch") {
+    const { from, to } = windowOf(scope);
+    const createdFloor = new Date(from.getTime() - messagingConfig.schedule.maxDaysAhead * DAY_MS);
+    parts.push(
+      sql`${anchor} >= ${iso(from)}`,
+      sql`${anchor} <= ${iso(to)}`,
+      sql`${D.createdAt} <= ${iso(to)}`,
+      sql`${D.createdAt} >= ${iso(createdFloor)}`,
+    );
+  }
+  parts.push(sql`${D.status} NOT IN ('scheduled', 'cancelled')`, sql`${D.is_test} = false`);
   if (!options.withLegacy) parts.push(sql`${D.source} <> ${LEGACY_NOTIFICATION_SOURCE}`);
   if (scope.filter.messageKey) parts.push(sql`${D.message_key} = ${scope.filter.messageKey}`);
   if (scope.filter.category) parts.push(sql`${D.category} = ${scope.filter.category}`);
@@ -315,16 +318,28 @@ async function unsubscribeCounts(scope: MessagingQueryScope): Promise<Unsubscrib
 }
 
 async function dispatchPage(params: Parameters<MessagingAnalyticsStore["dispatchPage"]>[0]): Promise<DispatchPageRow[]> {
-  const scope: MessagingQueryScope = {
-    current: { from: params.from, to: params.to },
-    groupBy: "none",
-    granularity: "day",
-    timezone: "UTC",
-    filter: params.filter,
-  };
-  const cursor = params.cursor
-    ? sql`AND (${anchor}, ${D.id}) < (${iso(params.cursor.anchor)}::timestamptz, ${params.cursor.id}::uuid)`
-    : sql``;
+  // dispatchIds = 送信の id の一覧(期間なし、dispatchWhere の groupBy dispatch)/ ほか = 期間の範囲
+  const byIds = "dispatchIds" in params;
+  const scope: MessagingQueryScope = byIds
+    ? {
+        current: { from: new Date(0), to: new Date(0) },
+        groupBy: "dispatch",
+        dispatchIds: params.dispatchIds,
+        granularity: "day",
+        timezone: "UTC",
+        filter: params.filter,
+      }
+    : {
+        current: { from: params.from, to: params.to },
+        groupBy: "none",
+        granularity: "day",
+        timezone: "UTC",
+        filter: params.filter,
+      };
+  const cursor =
+    !byIds && params.cursor
+      ? sql`AND (${anchor}, ${D.id}) < (${iso(params.cursor.anchor)}::timestamptz, ${params.cursor.id}::uuid)`
+      : sql``;
   const rows = rowsOf<Raw>(
     await db.execute(sql`
       SELECT ${D.id} AS id, ${D.message_key} AS message_key, ${D.category} AS category, ${D.kind} AS kind,

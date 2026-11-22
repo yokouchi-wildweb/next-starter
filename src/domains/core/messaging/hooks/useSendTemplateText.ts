@@ -21,10 +21,8 @@ import { replaceVariables } from "@/lib/templateVariables";
 import type { AdminSendLayoutOption } from "../services/client/sendClient";
 import { updateMessageTemplate } from "../services/client/templateClient";
 
-import { ADMIN_MESSAGING_KEY } from "./adminMessagingKeys";
-import { ADMIN_SEND_OPTIONS_KEY } from "./sendKeys";
-import { MESSAGE_TEMPLATES_KEY } from "./templateKeys";
 import { layoutFieldsDefaults, useLayoutFieldsForm } from "./useLayoutFieldsForm";
+import { ADMIN_BULK_SEND_OPTIONS_KEY, ADMIN_SEND_OPTIONS_KEY, MESSAGE_TEMPLATES_KEY, MESSAGE_TEMPLATE_SEND_UPDATE_KEY } from "./messagingKeys";
 
 /** 文面の出どころ */
 export type SendTextSource =
@@ -204,13 +202,13 @@ export function useSendTemplateText({ layouts, initial, channels, templatesOpen,
   const validate = useCallback(async () => (state?.unlocked ? form.trigger() : true), [state?.unlocked, form]);
 
   const updateMutation = useDomainMutation<{ version: number | null; unchanged: boolean }, { id: string; values: Record<string, unknown> }>(
-    `${MESSAGE_TEMPLATES_KEY}/send-update`,
+    MESSAGE_TEMPLATE_SEND_UPDATE_KEY,
     async ({ id, values: nextValues }) => {
       // 直す = 公開(中身が版と同じなら新しい版を作らず unchanged、D134)
       const saved = await updateMessageTemplate(id, { values: nextValues });
       return saved.unchanged ? { version: null, unchanged: true } : { version: saved.currentVersion, unchanged: false };
     },
-    [MESSAGE_TEMPLATES_KEY, ADMIN_SEND_OPTIONS_KEY, `${ADMIN_MESSAGING_KEY}/bulk-send/options`],
+    [MESSAGE_TEMPLATES_KEY, ADMIN_SEND_OPTIONS_KEY, ADMIN_BULK_SEND_OPTIONS_KEY],
   );
 
   /**

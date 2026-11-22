@@ -6,13 +6,19 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import type { SQL } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 
+import { jsonbTextContains } from "./admin/textSearch";
 import { inboxBeforeSql } from "./inbox/cursorSql";
 import { inboxReadSql, inboxSilentSql } from "./inbox/readState";
 import { inboxVisibilitySql } from "./inbox/visibility";
-import { expiredDeliveriesDeleteSql, expiredDispatchesSelectSql, expiredEventsDeleteSql } from "./sweep/retentionSql";
+import {
+  expiredDeliveriesDeleteSql,
+  expiredDeliveryContentClearSql,
+  expiredDispatchesSelectSql,
+  expiredEventsDeleteSql,
+} from "./sweep/retentionSql";
 
 const dialect = new PgDialect();
 const CUTOFF = new Date("2026-01-02T03:04:05.000Z");
@@ -22,11 +28,13 @@ const CASES: [string, () => SQL][] = [
   ["retention: 事件", () => expiredEventsDeleteSql(CUTOFF, 1000)],
   ["retention: 事件(購読の一番遅い印より新しい事件は残す)", () => expiredEventsDeleteSql(CUTOFF, 1000, 42)],
   ["retention: 配達", () => expiredDeliveriesDeleteSql(CUTOFF, 1000)],
+  ["retention: 配達の重い列", () => expiredDeliveryContentClearSql(CUTOFF, 1000)],
   ["retention: 送信", () => expiredDispatchesSelectSql(CUTOFF, 1000)],
   ["inbox: keyset", () => inboxBeforeSql({ publishedAt: CUTOFF, id: USER })],
   ["inbox: 見える行", () => inboxVisibilitySql({ userId: USER, role: "user" })],
   ["inbox: 既読", () => inboxReadSql(USER)],
   ["inbox: 静かな行", () => inboxSilentSql()],
+  ["管理の文字検索: jsonb の文字列", () => jsonbTextContains(sql`headings`, "件名", "children")],
 ];
 
 for (const [name, build] of CASES) {

@@ -8,8 +8,7 @@
 import { useCallback, useState } from "react";
 
 import { useDomainMutation } from "@/lib/crud";
-
-import { ADMIN_SEND_KEY } from "./sendKeys";
+import { adminSendActionKey } from "./messagingKeys";
 
 export type UseSendPreviewOptions<Input, Preview> = {
   /** 描く口(例: previewAdminMessage・previewAdminDefinition) */
@@ -20,7 +19,7 @@ export type UseSendPreviewOptions<Input, Preview> = {
 
 export function useSendPreview<Input, Preview>({ fetcher, name = "preview" }: UseSendPreviewOptions<Input, Preview>) {
   const [preview, setPreview] = useState<Preview | null>(null);
-  const mutation = useDomainMutation<Preview, Input>(`${ADMIN_SEND_KEY}/${name}`, fetcher);
+  const mutation = useDomainMutation<Preview, Input>(adminSendActionKey(name), fetcher);
   const { trigger } = mutation;
 
   const run = useCallback(

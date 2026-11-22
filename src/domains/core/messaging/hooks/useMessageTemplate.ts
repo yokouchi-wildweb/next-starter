@@ -12,8 +12,7 @@ import {
   type AdminTemplateDetail,
   type AdminTemplateOptions,
 } from "../services/client/templateClient";
-
-import { MESSAGE_TEMPLATE_OPTIONS_KEY, messageTemplateKey } from "./templateKeys";
+import { MESSAGE_TEMPLATE_OPTIONS_KEY, messageTemplateKey } from "./messagingKeys";
 
 export function useMessageTemplate(id: string | null | undefined) {
   const { data, error, isLoading, mutate } = useSWR<AdminTemplateDetail>(id ? messageTemplateKey(id) : null, () =>

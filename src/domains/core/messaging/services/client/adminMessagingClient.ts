@@ -18,11 +18,16 @@ import type {
 } from "@/domains/core/messaging/services/server/admin/bulkSend";
 import type { AdminFreeTextCategoryOption } from "@/domains/core/messaging/services/server/admin/freeText";
 import type {
+  AdminScheduledEditInput,
+  AdminScheduledEditOptions,
+} from "@/domains/core/messaging/services/server/admin/scheduledEdit";
+import type {
   AdminDeliveryRow,
   AdminDispatchDetail,
   AdminDispatchPreview,
   AdminDispatchPreviewChannel,
   AdminDispatchSummary,
+  AdminDispatchTarget,
 } from "@/domains/core/messaging/services/server/admin/dispatchDto";
 import type {
   AdminBulkDeleteResult,
@@ -35,7 +40,7 @@ import type {
   AdminSendResult,
   AdminSendTestInput,
 } from "@/domains/core/messaging/services/server/admin/send";
-import type { AdminDispatchCategoryOption } from "@/domains/core/messaging/services/server/admin/readDispatches";
+import type { AdminDispatchCategoryOption, AdminDispatchFilterOptions } from "@/domains/core/messaging/services/server/admin/readDispatches";
 import type { MessagePreview } from "@/domains/core/messaging/services/server/sendMessage/sender";
 import type { ContinueSendingResult } from "@/domains/core/messaging/services/server/sweep/sweep";
 
@@ -52,9 +57,11 @@ export type {
   AdminDeliveryRow,
   AdminDispatchCategoryOption,
   AdminDispatchDetail,
+  AdminDispatchFilterOptions,
   AdminDispatchPreview,
   AdminDispatchPreviewChannel,
   AdminDispatchSummary,
+  AdminDispatchTarget,
   AdminResendResult,
   ContinueSendingResult,
 };
@@ -74,6 +81,14 @@ export type AdminDispatchFilters = {
   category?: string;
   channel?: string;
   status?: string;
+  /** 送り元の鍵(選択肢は getAdminDispatchFilters の sources。画面は label を出す、D46) */
+  source?: string;
+  /** 送った人の利用者 id(選択肢は getAdminDispatchFilters の actors。画面は name を出す) */
+  actor?: string;
+  /** admin = 運営(管理者)が送った物だけ(D210) */
+  sentBy?: "admin";
+  /** 件名の文字検索(送信チャンネルごとの件名・題のどれかに含む。1〜100 字) */
+  q?: string;
   /** 削除した送信: exclude = 出さない(既定)/ only = 削除した送信だけ / include = 両方(D88) */
   deleted?: "exclude" | "only" | "include";
 };
@@ -160,6 +175,16 @@ export async function getAdminDispatchCategories(): Promise<AdminDispatchCategor
   }
 }
 
+/** 送信の一覧の絞りの選択肢(送り元 { key, label }・運営として送った人 { id, name }、新しく送った順に 200 件まで) */
+export async function getAdminDispatchFilters(): Promise<AdminDispatchFilterOptions> {
+  try {
+    const res = await axios.get<AdminDispatchFilterOptions>(`${BASE}/dispatches/filters`);
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "絞り込みの選択肢の取得に失敗しました");
+  }
+}
+
 /** 送信 1 件 */
 export async function getAdminDispatch(id: string): Promise<AdminDispatchDetail> {
   try {
@@ -213,6 +238,32 @@ export async function deleteAdminDispatch(id: string): Promise<AdminDeleteResult
     return res.data;
   } catch (error) {
     throw normalizeHttpError(error, "送信を削除できませんでした");
+  }
+}
+
+/**
+ * 予約した送信を送る前に直す(PATCH、D210)。文面の欄(変えた欄だけ)・送信チャンネル(直した後の一覧)・時刻だけ、宛先は変えない。
+ * 予約のままの送信だけ(送り始めた・削除した送信は 409)。直した後の送信 1 件を返す
+ */
+export async function editAdminScheduledDispatch(id: string, input: AdminScheduledEditInput): Promise<AdminDispatchDetail> {
+  try {
+    const res = await axios.patch<AdminDispatchDetail>(`${BASE}/dispatches/${encodeURIComponent(id)}`, input);
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "予約した送信を直せませんでした");
+  }
+}
+
+/**
+ * 予約した送信の直しの材料(直しと同じ決まり): レイアウト・直せる欄・今の欄の中身・送信チャンネルごとの固定・予約できる日数の上限。
+ * 時刻だけ直せる送信は layout / values が null(送信の canEdit.content が理由)。予約のままでない送信は 409
+ */
+export async function getAdminDispatchEditOptions(id: string): Promise<AdminScheduledEditOptions> {
+  try {
+    const res = await axios.get<AdminScheduledEditOptions>(`${BASE}/dispatches/${encodeURIComponent(id)}/edit-options`);
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "予約した送信の直しの材料を読めませんでした");
   }
 }
 

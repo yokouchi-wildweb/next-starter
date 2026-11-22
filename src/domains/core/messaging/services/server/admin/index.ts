@@ -28,11 +28,13 @@ import { enrichers } from "../../../extensions/enrichers";
 import { layouts } from "../../../extensions/layouts";
 import { sources } from "../../../extensions/sources";
 import {
+  checkSchedule,
   resolvedOfDispatch,
   estimateRecipients,
   previewMessage,
   sendFreeMessage,
   sendMessageDeps,
+  scheduledContent,
   sendResolved,
 } from "../sendMessage";
 import { loadRecordTarget, messageDomainOpen } from "../domainGate";
@@ -58,6 +60,7 @@ import {
   adminDefinitionPreview as adminDefinitionPreviewWith,
   adminDefinitionSend as adminDefinitionSendWith,
   adminDefinitionTest as adminDefinitionTestWith,
+  adminDefinitionEstimate as adminDefinitionEstimateWith,
   adminDefinitionOptions as adminDefinitionOptionsWith,
   type AdminDefinitionOptionsQuery,
   type AdminDefinitionSendDeps,
@@ -71,7 +74,12 @@ import {
   policyOf,
   type AdminOperationsDeps,
 } from "./operations";
-import { drizzleMessageOperationsStore } from "./operationsStore";
+import { drizzleMessageOperationsStore, drizzleScheduledEditStore } from "./operationsStore";
+import {
+  adminEditScheduledDispatch as adminEditScheduledDispatchWith,
+  adminScheduledEditOptions as adminScheduledEditOptionsWith,
+  type AdminScheduledEditDeps,
+} from "./scheduledEdit";
 import {
   adminSend as adminSendWith,
   adminSendEstimate as adminSendEstimateWith,
@@ -83,6 +91,7 @@ import {
 } from "./send";
 import {
   dispatchCategoryOptions as dispatchCategoryOptionsWith,
+  dispatchFilterOptions as dispatchFilterOptionsWith,
   findDispatch as findDispatchWith,
   listDeliveries as listDeliveriesWith,
   listDispatches as listDispatchesWith,
@@ -92,7 +101,8 @@ import {
 import { recipientChannels as recipientChannelsWith, type RecipientChannelsQuery } from "./recipientChannels";
 import { sendResults as sendResultsWith, type SendResultsQuery } from "./sendResults";
 import { sourceLabelOf } from "./sourceLabels";
-import { drizzleAdminDispatchStore, drizzleSendResultsStore } from "./store";
+import { dispatchReaders as dispatchReadersWith, type DispatchReadersQuery } from "./dispatchReaders";
+import { drizzleAdminDispatchStore, drizzleDispatchReadersStore, drizzleSendResultsStore } from "./store";
 
 const adminCheck: AdminCheckDeps = {
   context: () => getAuditContext(),
@@ -214,6 +224,7 @@ const readDeps = {
   groupNames,
   dispatchStore: drizzleAdminDispatchStore,
   sourceLabel: (source: string) => sourceLabelOf({ sources, messageLabel, recordTargetLabel }, source),
+  definitionLabel: messageLabel,
   async operationInputs(row: MessageDispatch) {
     const [resolved, counts] = await Promise.all([definitionOf(row), drizzleMessageOperationsStore.countFailed(null, row.id)]);
     return { policy: policyOf(resolved, row), counts };
@@ -287,6 +298,7 @@ const definitionDeps: AdminDefinitionSendDeps = {
   messageKeys: () => Object.keys(messageRegistry),
   categories,
   broadcastOpen: () => gate.enabled("messagingBroadcast"),
+  estimateRecipients,
   layouts,
   enrichers,
   sendResolved,
@@ -300,6 +312,8 @@ export const adminDefinitionSend = (input: unknown) => adminDefinitionSendWith(d
 export const adminDefinitionPreview = (input: unknown) => adminDefinitionPreviewWith(definitionDeps, input);
 /** 定義連絡の自分へのテスト送信 */
 export const adminDefinitionTest = (input: unknown) => adminDefinitionTestWith(definitionDeps, input);
+/** 定義連絡の全員・ロール・グループの人数の見込み(POST /api/admin/messaging/definitions/estimate。門 messagingBroadcast は service が見る) */
+export const adminDefinitionEstimate = (input: unknown) => adminDefinitionEstimateWith(definitionDeps, input);
 /** 定義連絡の選択肢(GET /api/admin/messaging/definitions/options。?recordTarget= は門の外、?entry=broadcast は門 messagingBroadcast の中) */
 export const adminDefinitionOptions = (query?: AdminDefinitionOptionsQuery) => adminDefinitionOptionsWith(definitionDeps, query);
 
@@ -308,10 +322,43 @@ export function listDispatches(query?: ListDispatchesQuery) {
   return listDispatchesWith(readDeps, query);
 }
 
+/** 送信の一覧の絞りの選択肢(送り元・運営として送った人) */
+export function dispatchFilterOptions() {
+  return dispatchFilterOptionsWith(readDeps);
+}
+
 /** 送信 1 件 */
 export function findDispatch(id: string) {
   return findDispatchWith(readDeps, id);
 }
+
+/** 予約の直しの部品(送る口と同じ検査と中身の組み立て、定義連絡は定義の読み口を共にする) */
+const scheduledEditDeps: AdminScheduledEditDeps = {
+  ...adminCheck,
+  store: drizzleScheduledEditStore,
+  now: () => new Date(),
+  layouts,
+  categories,
+  channels,
+  enrichers,
+  loadDefinition: definitionDeps.loadDefinition,
+  async loadTemplateVersion(templateId, version) {
+    return sendMessageDeps.templates ? sendMessageDeps.templates.loadVersion(templateId, version) : null;
+  },
+  resolveDispatch: (row) => resolvedOfDispatch(sendMessageDeps, row),
+  checkSchedule,
+  maxScheduleDays: messagingConfig.schedule.maxDaysAhead,
+  scheduledContent,
+  findDetail: (id) => findDispatchWith(readDeps, id),
+  recordAudit,
+};
+
+/** 予約した送信を送る前に直す(PATCH /api/admin/messaging/dispatches/[id]。文面の欄・送信チャンネル・時刻、宛先は変えない) */
+export const adminEditScheduledDispatch = (dispatchId: string, input: unknown) =>
+  adminEditScheduledDispatchWith(scheduledEditDeps, dispatchId, input);
+
+/** 予約した送信の直しの材料(GET dispatches/[id]/edit-options。直しと同じ決まりで直せる欄・送信チャンネルの固定・今の欄の中身) */
+export const adminScheduledEditOptions = (dispatchId: string) => adminScheduledEditOptionsWith(scheduledEditDeps, dispatchId);
 
 /** 送信のプレビューの部品(送信だけから描く。送る口と同じ組み立て) */
 const previewDeps: AdminDispatchPreviewDeps = {
@@ -347,6 +394,11 @@ export function listDeliveries(dispatchId: string, query?: ListDeliveriesQuery) 
   return listDeliveriesWith(readDeps, dispatchId, query);
 }
 
+/** 既読した利用者の一覧(時刻のある既読だけ、既読の新しい順。GET /api/admin/messaging/dispatches/[id]/readers) */
+export function dispatchReaders(dispatchId: string, query?: DispatchReadersQuery) {
+  return dispatchReadersWith({ ...adminCheck, readersStore: drizzleDispatchReadersStore }, dispatchId, query);
+}
+
 /** 送信の結果(送信チャンネルごとの数 + 届かなかった人と理由のページ送り。門の外、管理者だけ) */
 export function sendResults(dispatchId: string, query?: SendResultsQuery) {
   return sendResultsWith({ ...adminCheck, sendResultsStore: drizzleSendResultsStore }, dispatchId, query);
@@ -377,11 +429,12 @@ export function adminContinueSending(dispatchId: string) {
 export { AdminBulkSendInputSchema, ADMIN_BULK_SEND_MAX_RECIPIENTS } from "./bulkSend";
 export { ListDeliveriesQuerySchema, ListDispatchesQuerySchema } from "./readDispatches";
 export type { AdminBulkSendInput, AdminBulkSendOptions, AdminBulkSendResult } from "./bulkSend";
-export { AdminDefinitionOptionsQuerySchema, AdminDefinitionSendInputSchema } from "./definitionSend";
+export { AdminDefinitionEstimateInputSchema, AdminDefinitionOptionsQuerySchema, AdminDefinitionSendInputSchema } from "./definitionSend";
 export type {
   AdminDefinitionEntry,
   AdminDefinitionOption,
   AdminDefinitionOptions,
+  AdminDefinitionEstimateInput,
   AdminDefinitionOptionsQuery,
   AdminDefinitionPreviewInput,
   AdminDefinitionSendInput,
@@ -391,6 +444,8 @@ export type {
 export { ADMIN_SEND_MAX_USERS } from "./send";
 export type { AdminFreeTextCategoryOption } from "./freeText";
 export { ADMIN_DELETE_MAX_IDS, AdminDispatchIdsInputSchema, AdminResendInputSchema } from "./operations";
+export { AdminScheduledEditInputSchema } from "./scheduledEdit";
+export type { AdminScheduledEditInput, AdminScheduledEditOptions } from "./scheduledEdit";
 export type {
   AdminBulkDeleteResult,
   AdminDeleteResult,
@@ -409,10 +464,12 @@ export type {
   AdminSendResult,
   AdminSendTestInput,
 } from "./send";
-export type { AdminDispatchCategoryOption, AdminPage, ListDeliveriesQuery, ListDispatchesQuery } from "./readDispatches";
+export type { AdminDispatchCategoryOption, AdminDispatchFilterOptions, AdminPage, ListDeliveriesQuery, ListDispatchesQuery } from "./readDispatches";
 export { RecipientChannelsQuerySchema } from "./recipientChannels";
 export type { AdminRecipientChannels, RecipientChannelReason, RecipientChannelState, RecipientChannelsQuery } from "./recipientChannels";
 export { SendResultsQuerySchema } from "./sendResults";
+export { DispatchReadersQuerySchema } from "./dispatchReaders";
+export type { DispatchReader, DispatchReadersQuery } from "./dispatchReaders";
 export type { AdminSendResultFailure, AdminSendResults, SendResultsQuery, UndeliveredStatus } from "./sendResults";
-export type { AdminDeliveryRow, AdminDispatchDetail, AdminDispatchSameAs, AdminDispatchSummary, AdminDispatchTargetGroup } from "./dispatchDto";
+export type { AdminDeliveryRow, AdminDispatchDetail, AdminDispatchSameAs, AdminDispatchSummary, AdminDispatchTarget, AdminDispatchTargetGroup } from "./dispatchDto";
 export type { AdminBulkSendCounts, AdminMessageContent } from "./types";

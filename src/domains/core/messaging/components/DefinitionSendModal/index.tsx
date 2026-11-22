@@ -4,7 +4,7 @@
 // 書く段(1 列。定義の中身はコードが持ち、選択肢は直せる欄の値しか返さないので、自由連絡のような描き方のプレビューは置かない):
 // 送る連絡(1 つならそれ)+ 説明の文 adminText.description → 送信方法(off は出さない、on・required のメールは外せない)→ 宛先 → 管理者の値
 // → 内容(直せる欄だけ、required・直せる欄なし = 箱なし、D169)→ 送信日時(broadcast だけ)。下の帯: あなた宛ての表示例(記録は最初の記録)・自分にテスト送信・確認に進む。
-// 確認の段 = DefinitionSendConfirm(adminText.confirm)。結果の段 = SendResultView + 送信の結果 SendResult(useSendResults、D214 (1))。
+// 確認の段 = DefinitionSendConfirm(adminText.confirm。全員・ロール・グループは人数の見込み = RecipientEstimateView、上限を超えたら送るを押せない)。結果の段 = SendResultView + 送信の結果 SendResult(useSendResults、D214 (1))。
 // fork は同じ hook と部品で自前のモーダルを組める(D191)
 
 "use client";
@@ -125,7 +125,7 @@ export function DefinitionSendModal({
       showToast(err(e, "テスト送信できませんでした"), "error");
     }
   });
-  const { execute: toConfirm } = useAsyncAction(async () => {
+  const { execute: toConfirm, isExecuting: isConfirming } = useAsyncAction(async () => {
     try {
       await m.requestConfirm();
     } catch (e) {
@@ -174,6 +174,7 @@ export function DefinitionSendModal({
           channels={onChannelLabels}
           scheduledAt={scheduledAt}
           confirmText={definition.adminText?.confirm ?? null}
+          estimate={m.entry.type === "broadcast" ? m.estimate : undefined}
         />
       );
     }
@@ -295,7 +296,7 @@ export function DefinitionSendModal({
           <Button type="button" size="sm" variant="outline" disabled={m.isSending} onClick={m.backToEdit}>
             戻る
           </Button>
-          <Button type="button" size="sm" variant="primary" loading={m.isSending} onClick={() => void send()}>
+          <Button type="button" size="sm" variant="primary" disabled={m.estimateOverLimit} loading={m.isSending} onClick={() => void send()}>
             {scheduledAt ? "予約する" : "送信する"}
           </Button>
         </Flex>
@@ -310,7 +311,7 @@ export function DefinitionSendModal({
         <Button type="button" size="sm" variant="outline" disabled={blocked} loading={m.isTesting} onClick={() => void sendTest()}>
           自分にテスト送信
         </Button>
-        <Button type="button" size="sm" variant="primary" disabled={!m.canSend} onClick={() => void toConfirm()}>
+        <Button type="button" size="sm" variant="primary" disabled={!m.canSend} loading={isConfirming} onClick={() => void toConfirm()}>
           確認に進む
         </Button>
       </Flex>

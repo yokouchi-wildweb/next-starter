@@ -80,6 +80,9 @@ export const sendFreeMessage = sender.sendFreeMessage;
 export const previewMessage = sender.previewMessage;
 export const estimateRecipients = sender.estimateRecipients;
 export const sendResolved = sender.sendResolved;
+/** 予約の直し(admin/scheduledEdit.ts)が使う: 送る口と同じ時刻の検査と中身の列の組み立て */
+export const checkSchedule = sender.checkSchedule;
+export const scheduledContent = sender.scheduledContent;
 export { resolvedOfDispatch, type DispatchResolveError } from "./dispatchResolved";
 export { adminSendableKinds, isAdminSendableKind, TEMPLATE_MESSAGE_KEY } from "./templateDefinition";
 

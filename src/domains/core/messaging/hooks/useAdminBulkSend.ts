@@ -16,12 +16,11 @@ import {
   type AdminBulkSendOptions,
   type AdminBulkSendResult,
 } from "../services/client/adminMessagingClient";
-
-import { ADMIN_DISPATCHES_KEY, ADMIN_MESSAGING_KEY } from "./adminMessagingKeys";
+import { ADMIN_BULK_SEND_KEY, ADMIN_BULK_SEND_OPTIONS_KEY, ADMIN_DISPATCHES_KEY } from "./messagingKeys";
 
 export function useAdminBulkSend() {
   const mutation = useDomainMutation<AdminBulkSendResult, AdminBulkSendInput>(
-    `${ADMIN_MESSAGING_KEY}/bulk-send`,
+    ADMIN_BULK_SEND_KEY,
     (input) => adminBulkSend(input),
     ADMIN_DISPATCHES_KEY,
   );
@@ -29,6 +28,6 @@ export function useAdminBulkSend() {
 }
 
 export function useAdminBulkSendOptions(enabled = true) {
-  const query = useSWR<AdminBulkSendOptions>(enabled ? `${ADMIN_MESSAGING_KEY}/bulk-send/options` : null, () => getAdminBulkSendOptions());
+  const query = useSWR<AdminBulkSendOptions>(enabled ? ADMIN_BULK_SEND_OPTIONS_KEY : null, () => getAdminBulkSendOptions());
   return { options: query.data ?? null, isLoading: query.isLoading, error: query.error };
 }

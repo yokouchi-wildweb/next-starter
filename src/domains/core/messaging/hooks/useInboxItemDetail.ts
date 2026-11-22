@@ -8,9 +8,9 @@
 import useSWR from "swr";
 
 import { getInboxItem, type InboxItemDetailDto } from "../services/client/inboxClient";
+import { inboxItemDetailKey } from "./messagingKeys";
 
 /** SWR のキー(1 件ごと) */
-export const inboxItemDetailKey = (id: string) => `messaging/inbox/item/${id}`;
 
 export function useInboxItemDetail(id: string | null) {
   const { data, error, isLoading } = useSWR<InboxItemDetailDto>(id ? inboxItemDetailKey(id) : null, () => getInboxItem(id!), {

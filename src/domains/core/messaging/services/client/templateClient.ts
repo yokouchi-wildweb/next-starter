@@ -43,11 +43,12 @@ const one = (id: string) => `${BASE}/${encodeURIComponent(id)}`;
 
 /** 一覧(新しい順、種別で絞れる。種別 = その種別のカテゴリーとシステムテンプレート、D135) */
 export async function listMessageTemplates(
-  params: { kind?: string; cursor?: string | null; limit?: number } = {},
+  /** q = 名前か文面の文字(1〜100 字) */
+  params: { kind?: string; q?: string; cursor?: string | null; limit?: number } = {},
 ): Promise<AdminTemplatePage> {
   try {
     const res = await axios.get<AdminTemplatePage>(BASE, {
-      params: { kind: params.kind || undefined, cursor: params.cursor ?? undefined, limit: params.limit },
+      params: { kind: params.kind || undefined, q: params.q?.trim() || undefined, cursor: params.cursor ?? undefined, limit: params.limit },
     });
     return res.data;
   } catch (error) {

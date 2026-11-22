@@ -7,12 +7,11 @@
 import { useDomainMutation } from "@/lib/crud";
 
 import { deleteAdminDispatch, type AdminDeleteResult } from "../services/client/adminMessagingClient";
-
-import { ADMIN_DISPATCHES_KEY, adminDispatchKey } from "./adminMessagingKeys";
+import { ADMIN_DISPATCHES_KEY, adminDispatchDeleteKey, adminDispatchKey } from "./messagingKeys";
 
 export function useDeleteDispatch(dispatchId: string) {
   const mutation = useDomainMutation<AdminDeleteResult, void>(
-    `${adminDispatchKey(dispatchId)}/delete`,
+    adminDispatchDeleteKey(dispatchId),
     () => deleteAdminDispatch(dispatchId),
     [adminDispatchKey(dispatchId), ADMIN_DISPATCHES_KEY],
   );

@@ -7,8 +7,7 @@
 import useSWR from "swr";
 
 import { getAdminDispatch, type AdminDispatchDetail } from "../services/client/adminMessagingClient";
-
-import { adminDispatchKey } from "./adminMessagingKeys";
+import { adminDispatchKey } from "./messagingKeys";
 
 export function useAdminDispatch(id: string | null | undefined) {
   const { data, error, isLoading, mutate } = useSWR<AdminDispatchDetail>(id ? adminDispatchKey(id) : null, () =>

@@ -40,7 +40,7 @@ export type BooleanCheckboxInputProps = {
   size?: CheckboxSizeProps["size"];
   /** 無効化 */
   disabled?: boolean;
-} & Omit<ComponentProps<typeof Checkbox>, "checked" | "defaultChecked" | "onCheckedChange" | "value" | "name" | "disabled">;
+} & Omit<ComponentProps<typeof Checkbox>, "checked" | "defaultChecked" | "onCheckedChange" | "value" | "name" | "disabled" | "onChange" | "onBlur">;
 
 export function BooleanCheckboxInput({ value, name, onChange, onBlur, label, id, className, size, disabled, ...rest }: BooleanCheckboxInputProps) {
   // id も name も無いときも label と結び付くよう、予備の ID を使う

@@ -47,7 +47,7 @@ import {
 } from "../services/client/templateClient";
 
 import { layoutFieldsDefaults, useLayoutFieldsForm } from "./useLayoutFieldsForm";
-import { MESSAGE_TEMPLATES_KEY, messageTemplateKey, messageTemplateVersionsKey } from "./templateKeys";
+import { MESSAGE_TEMPLATES_KEY, MESSAGE_TEMPLATE_CREATE_KEY, messageTemplateDeleteKey, messageTemplateKey, messageTemplateUpdateKey, messageTemplateVersionsKey } from "./messagingKeys";
 
 /** テンプレートを作れる種別(管理者が送れる 3 種別、D115) */
 const TEMPLATE_KINDS = ["announcement", "direct", "promotion"] as const;
@@ -290,18 +290,18 @@ export function useMessageTemplateForm({ template, options, onCreated, onChanged
 
   const revalidateKeys = id ? [messageTemplateKey(id), messageTemplateVersionsKey(id), MESSAGE_TEMPLATES_KEY] : [MESSAGE_TEMPLATES_KEY];
   const createMutation = useDomainMutation<AdminTemplateDetail, CreateMessageTemplateInput>(
-    `${MESSAGE_TEMPLATES_KEY}/create`,
+    MESSAGE_TEMPLATE_CREATE_KEY,
     (input) => createMessageTemplate(input),
     MESSAGE_TEMPLATES_KEY,
   );
   const updateMutation = useDomainMutation<AdminTemplateSaveResult, CreateMessageTemplateInput>(
-    `${MESSAGE_TEMPLATES_KEY}/${id ?? "new"}/update`,
+    messageTemplateUpdateKey(id),
     (input) => updateMessageTemplate(id!, input),
     revalidateKeys,
   );
   // 消した 1 件・版は取り直さない(404 になる。モーダルは閉じる)。一覧だけ
   const deleteMutation = useDomainMutation<{ id: string; deleted: true }, void>(
-    `${MESSAGE_TEMPLATES_KEY}/${id ?? "new"}/delete`,
+    messageTemplateDeleteKey(id),
     () => deleteMessageTemplate(id!),
     [MESSAGE_TEMPLATES_KEY],
   );

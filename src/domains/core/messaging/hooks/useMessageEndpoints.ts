@@ -16,19 +16,19 @@ import {
   type MessageEndpointDto,
   type RegisterMessageEndpointInput,
 } from "../services/client/endpointClient";
+import { MESSAGE_ENDPOINTS_KEY, MESSAGE_ENDPOINTS_REGISTER_KEY, MESSAGE_ENDPOINTS_REMOVE_KEY } from "./messagingKeys";
 
 /** SWR のキー(mutation はこのプレフィックスで一覧を再検証する) */
-export const MESSAGE_ENDPOINTS_KEY = "messaging/endpoints";
 
 export function useMessageEndpoints() {
   const list = useSWR<MessageEndpointDto[]>(MESSAGE_ENDPOINTS_KEY, () => listMessageEndpoints());
   const register = useDomainMutation<MessageEndpointDto, RegisterMessageEndpointInput>(
-    `${MESSAGE_ENDPOINTS_KEY}/register`,
+    MESSAGE_ENDPOINTS_REGISTER_KEY,
     (input) => registerMessageEndpoint(input),
     MESSAGE_ENDPOINTS_KEY,
   );
   const remove = useDomainMutation<void, string>(
-    `${MESSAGE_ENDPOINTS_KEY}/remove`,
+    MESSAGE_ENDPOINTS_REMOVE_KEY,
     (id) => removeMessageEndpoint(id),
     MESSAGE_ENDPOINTS_KEY,
   );

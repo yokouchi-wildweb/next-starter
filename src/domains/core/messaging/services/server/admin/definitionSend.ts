@@ -16,6 +16,8 @@
 // 送信の記録: message_key + テキストの編集の印と編集した欄(edited_fields、D202)。送り元: 記録 "<項目の鍵>.bulk"・全員など "messaging.adminSend"・テスト "<それ>.test"。
 // 記録の入口は送信の受け付けの直後に項目の afterSend を 1 回(使う送信チャンネル・連絡定義・編集の後の欄・recordIds・送信の id と数、D196)。
 // 投げても送信は戻さず結果と監査に失敗を残す。監査 messaging.dispatch.{sent, scheduled, test_sent}
+// 人数の見込み(POST definitions/estimate、D217・指令 12 の 4): 全員・ロール・グループの入口だけ。自由連絡の見込みと同じ数え方と形
+// (RecipientEstimate、停止・宛先なしを引く前)。定義の adminTargets の外は 400、門 messagingBroadcast が閉なら 404
 // 選択肢(GET definitions/options、D214 (3)): 汎用の送るモーダルが組む材料。?recordTarget=<項目>(門の外)か ?entry=broadcast(門の中)で、
 // 定義ごとに表示名・レイアウト・直せる欄と今の中身・管理者の値の入力・送信チャンネルの固定と初めの状態・required・許す宛先・画面の文 adminText
 
@@ -46,7 +48,7 @@ import {
 import { resolveChannels, type AnyResolvedMessageDefinition } from "../sendMessage/definition";
 import { enricherKeysFor } from "../sendMessage/enrichers";
 import { userRecipientKey } from "../sendMessage/expand";
-import type { MessageDefinitionSendOptions, MessagePreview } from "../sendMessage/sender";
+import type { MessageDefinitionSendOptions, MessagePreview, RecipientEstimate } from "../sendMessage/sender";
 import type { MessageDispatchTemplateSource, MessageTargetSpec, SendMessageResult, SendMessageToManyInput } from "../sendMessage/types";
 import { assertAdminActor, type AdminCheckDeps } from "./assertAdmin";
 import { ADMIN_BULK_SEND_MAX_RECIPIENTS } from "./bulkSend";
@@ -80,6 +82,10 @@ const broadcastEntrySchema = z.object({ message: messageKeySchema, target: broad
 
 /** 入口(記録か、全員・ロール・グループ) */
 export const AdminDefinitionEntrySchema = z.union([recordsEntrySchema, broadcastEntrySchema]);
+
+/** 人数の見込みの入力 = 全員・ロール・グループの入口 { message, target }(記録の入口は選んだ記録の数なので見込みは無い) */
+export const AdminDefinitionEstimateInputSchema = broadcastEntrySchema;
+export type AdminDefinitionEstimateInput = z.input<typeof AdminDefinitionEstimateInputSchema>;
 
 const contentFields = {
   entry: AdminDefinitionEntrySchema,
@@ -177,6 +183,8 @@ export type AdminDefinitionSendDeps = AdminCheckDeps & {
   categories: Readonly<Record<string, MessageCategory>>;
   /** 門 messagingBroadcast が開か(全員・ロール・グループの入口) */
   broadcastOpen: () => boolean;
+  /** 宛先数の見込み(自由連絡の見込みと同じ数え方。送る時に数え直す) */
+  estimateRecipients: (target: { target: MessageTargetSpec }) => Promise<RecipientEstimate>;
   layouts: Readonly<Record<string, MessageLayout>>;
   enrichers: Readonly<Record<string, MessageEnricher>>;
   sendResolved: (
@@ -232,6 +240,20 @@ async function prepare(deps: AdminDefinitionSendDeps, content: Content): Promise
       throw new DomainError(`連絡 ${entry.message} は記録の宛先 ${item.label} から送れません`, { status: 400 });
     }
   }
+  const loaded = await loadForEntry(deps, entry);
+
+  const { resolved, editedFields } = applyEdits(deps, loaded, content.edits);
+  const channels = resolveChannels(resolved, content.channels);
+  const vars = adminVarsOf(resolved, content.vars ?? {});
+  const recordVarKeys = item ? Object.keys(resolved.recordVars ?? {}) : [];
+  return { entry, item, resolved, editedFields, channels, vars, recordVarKeys };
+}
+
+/**
+ * 入口の連絡定義を読み、送れるか(止められていない・adminTargets にその入口の宛先)を確かめる(送信・プレビュー・テスト・見込みで同じ)
+ * @throws DomainError(404) 連絡定義が無い / (400) 止められている・宛先の範囲の外
+ */
+async function loadForEntry(deps: Pick<AdminDefinitionSendDeps, "loadDefinition">, entry: AdminDefinitionEntry): Promise<AnyResolvedMessageDefinition> {
   const loaded = await deps.loadDefinition(entry.message);
   if (!loaded) throw new DomainError("連絡定義が見つかりません", { status: 404 });
   if (!loaded.enabled) throw new DomainError(`連絡 ${loaded.label} は止められています`, { status: 400 });
@@ -239,12 +261,19 @@ async function prepare(deps: AdminDefinitionSendDeps, content: Content): Promise
   if (!(loaded.adminTargets ?? DEFAULT_DEFINITION_ADMIN_TARGETS).includes(kind)) {
     throw new DomainError(`連絡 ${loaded.label} はこの宛先(${kind})には送れません`, { status: 400 });
   }
+  return loaded;
+}
 
-  const { resolved, editedFields } = applyEdits(deps, loaded, content.edits);
-  const channels = resolveChannels(resolved, content.channels);
-  const vars = adminVarsOf(resolved, content.vars ?? {});
-  const recordVarKeys = item ? Object.keys(resolved.recordVars ?? {}) : [];
-  return { entry, item, resolved, editedFields, channels, vars, recordVarKeys };
+/**
+ * 全員・ロール・グループの送信の人数の見込み(自由連絡の見込みと同じ RecipientEstimate、送る時に数え直す)
+ * @throws DomainError(400) 入力・止められている・宛先の範囲の外 / (403) 管理者でない / (404) 連絡定義が無い・門 messagingBroadcast が閉
+ */
+export async function adminDefinitionEstimate(deps: AdminDefinitionSendDeps, rawInput: unknown): Promise<RecipientEstimate> {
+  await assertAdminActor(deps);
+  if (!deps.broadcastOpen()) throw new DomainError("見つかりません", { status: 404 });
+  const entry = parseOr400(AdminDefinitionEstimateInputSchema, rawInput);
+  await loadForEntry(deps, entry);
+  return deps.estimateRecipients({ target: broadcastTargetOf(entry) });
 }
 
 /**

@@ -1,6 +1,6 @@
 // src/domains/core/messaging/services/server/admin/operations.ts
 //
-// 管理の操作(D39・D42・D88): 削除・失敗の再送(続きを送るは continueSending.ts)。service でも管理者を確かめ、監査ログに 1 行ずつ。
+// 管理の操作(D39・D42・D88): 削除・失敗の再送(続きを送るは continueSending.ts、予約の直しは scheduledEdit.ts。できるかの印はここ)。service でも管理者を確かめ、監査ログに 1 行ずつ。
 // - 削除(delete、D88。取り消し・取り下げを置き換えた): どの状態の送信も消せる(論理削除 deleted_at)。送信の行を排他で持った取引で
 //   未送信の配達を canceled・送り直しの予定を止め、展開を止めて deleted_at を書く(status は変えない。予約の送信も cron が拾わない)。
 //   commit の後に消せる送信チャンネル(送信チャンネルの項目の remove、D89。上流は inApp = お知らせの行・共有の行・画像)を呼ぶ。送ったメール・LINE は残る。
@@ -44,6 +44,11 @@ export type DispatchOperationFlags = {
   canResend: DispatchOperationFlag & { mode: "requeue" | "new_dispatch" | null; failed: number; unknown: number };
   /** 続きを送る(送信中のものだけ) */
   canContinue: DispatchOperationFlag;
+  /**
+   * 予約の直し(PATCH dispatches/[id]、./scheduledEdit.ts)。allowed = 予約の時刻を直せる(予約のままで削除していない)。
+   * content = 文面の欄と送信チャンネルも直せるか(本文を残していない body_missing・テンプレートを消した template_missing は時刻だけ)
+   */
+  canEdit: DispatchOperationFlag & { content: DispatchOperationFlag };
 };
 
 /** 送信の連絡の性質(定義が読めなければ null) */
@@ -57,9 +62,10 @@ function refuse(reason: DispatchOperationReason): never {
 const ok: DispatchOperationFlag = { allowed: true, reason: null };
 const no = (reason: DispatchOperationReason): DispatchOperationFlag => ({ allowed: false, reason });
 
-/** 3 つの操作ができるか(画面のボタンと service の両方が使う同じ判定) */
+/** 操作ができるか(画面のボタンと service の両方が使う同じ判定) */
 export function operationFlags(
-  dispatch: Pick<MessageDispatch, "status" | "deleted_at" | "record" | "vars" | "values">,
+  dispatch: Pick<MessageDispatch, "status" | "deleted_at" | "record" | "vars" | "values"> &
+    Partial<Pick<MessageDispatch, "message_key" | "template_id" | "template_version">>,
   policy: DispatchPolicy,
   counts: { failed: number; unknown: number },
   options: { includeUnknown?: boolean } = {},
@@ -88,7 +94,25 @@ export function operationFlags(
     resendFlag = ok;
     mode = "requeue";
   }
-  return { canDelete, canContinue, canResend: { ...resendFlag, mode, failed: counts.failed, unknown: counts.unknown } };
+  return {
+    canDelete,
+    canContinue,
+    canResend: { ...resendFlag, mode, failed: counts.failed, unknown: counts.unknown },
+    canEdit: scheduledEditFlag(dispatch),
+  };
+}
+
+/** 予約の直しができるか(画面の印と service の 409 が同じ判定) */
+export function scheduledEditFlag(
+  dispatch: Pick<MessageDispatch, "status" | "deleted_at" | "values"> &
+    Partial<Pick<MessageDispatch, "message_key" | "template_id" | "template_version">>,
+): DispatchOperationFlags["canEdit"] {
+  const time = dispatch.deleted_at ? no("deleted") : dispatch.status === "scheduled" ? ok : no("not_scheduled");
+  if (!time.allowed) return { ...time, content: time };
+  // テンプレートを消した自由連絡(template_id null・版の番号あり、D137): 版の埋め込み情報の宣言が無いので、送る時の差し込みの検査ができない
+  const templateGone = !dispatch.message_key && !dispatch.template_id && dispatch.template_version != null;
+  const content = !dispatch.values ? no("body_missing") : templateGone ? no("template_missing") : ok;
+  return { ...time, content };
 }
 
 /** 送信の連絡の性質(required・秘密・本文の残し方) */

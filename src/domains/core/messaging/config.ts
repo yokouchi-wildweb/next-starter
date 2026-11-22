@@ -35,6 +35,8 @@ export type MessagingConfig = {
   sweep: { budgetMs: number; deliveryChunkSize: number; expandChunksPerRun: number; leaseSeconds: number };
   /**
    * 保持(cron messaging-retention)。日数を過ぎた行を消す
+   * - deliveriesDays: 配達の行を消す日数(送っている途中の queued・sending は残す)
+   * - deliveryContentDays: 配達の重い列(body・vars)を null にする日数。行は deliveriesDays まで残る(状態・時刻の記録は長く、中身は早く消す)
    * - dispatchesDays: お知らせ(message_inbox_items)が参照する送信は残す。消す時に冪等の鍵を message_idempotency_keys へ移す
    * - idempotencyKeyDays: 移した鍵の期限(null = 無期限)
    * - chunkSize: 1 文で消す行の数
@@ -42,6 +44,7 @@ export type MessagingConfig = {
   retention: {
     eventsDays: number;
     deliveriesDays: number;
+    deliveryContentDays: number;
     dispatchesDays: number;
     idempotencyKeyDays: number | null;
     chunkSize: number;
@@ -89,7 +92,8 @@ const defaults: MessagingConfig = {
   sweep: { budgetMs: 240_000, deliveryChunkSize: 100, expandChunksPerRun: 20, leaseSeconds: 300 },
   retention: {
     eventsDays: 30,
-    deliveriesDays: 90,
+    deliveriesDays: 730,
+    deliveryContentDays: 90,
     dispatchesDays: 730,
     idempotencyKeyDays: null,
     chunkSize: 1000,

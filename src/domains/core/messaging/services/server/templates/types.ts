@@ -22,6 +22,8 @@ export type MessageTemplateStore<Tx> = {
   list: (query: {
     /** カテゴリーの鍵で絞る(null = 絞らない。空の並び = 当たる物なし) */
     categories: readonly string[] | null;
+    /** 文字検索(名前か欄の中身の文字列のどれかに含む。大文字小文字を区別しない、字そのまま)。null = 絞らない */
+    q: string | null;
     limit: number;
     after: { createdAt: Date; id: string } | null;
   }) => Promise<MessageTemplate[]>;

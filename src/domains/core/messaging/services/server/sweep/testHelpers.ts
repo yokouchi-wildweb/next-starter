@@ -146,6 +146,20 @@ export function createMemoryWorld(): MemoryWorld {
       for (const e of gone) events.splice(events.indexOf(e), 1);
       return gone.length;
     },
+    async clearDeliveryContentBefore(cutoff, limit) {
+      const cleared = take(
+        store.deliveries.filter(
+          (row) =>
+            (row.body != null || row.vars != null) &&
+            row.createdAt < cutoff &&
+            row.status !== "queued" &&
+            row.status !== "sending",
+        ),
+        limit,
+      );
+      for (const row of cleared) Object.assign(row, { body: null, vars: null });
+      return cleared.length;
+    },
     async deleteDeliveriesBefore(cutoff, limit) {
       const gone = take(
         store.deliveries.filter((row) => row.createdAt < cutoff && row.status !== "queued" && row.status !== "sending"),

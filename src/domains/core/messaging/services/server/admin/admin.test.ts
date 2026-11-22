@@ -2,9 +2,12 @@
 // - 管理者の再検査(service): admin の利用者と system は通る、他は 403
 // - 一括送信: userIds / target + recordIds、重複を除く、中身は送る画面と同じ { origin, values, edited?, vars? }(D117・D171、専用の値は vars 指令 58)を送る口 sendFreeMessage へ、
 //   カテゴリー(必須、bulk で送れる種別 direct・promotion だけ)、送り元、記録の宛先は利用者を解くだけ(afterSend は呼ばない)、監査 1 行、選択肢
+// - 送信 1 件の連絡定義の表示名 definitionLabel: 定義の送信は上書きの後の label、自由連絡・知らない鍵は null(鍵は出さない、D46)
 // - DTO の前の送る口の送信 = レイアウト(layout)が無い送信。自由連絡の送信(message_key null)は前の送信ではない
-// - 読む口: 絞り込みの検査、keyset の印、DTO(本文は記録の段次第、provider の生の値と誤りの文は出さない、前の送る口の送信)
-// - グループ宛ての送信: 一覧・1 件に宛先のグループ { id(値だけ), name }、名前は 1 ページに 1 回引く、引けなければ null、detail.target は形だけ
+// - 読む口: 絞り込みの検査(送り元・送った人・運営が送った物だけ・件名の文字、D210)、keyset の印、DTO(本文は記録の段次第、
+//   provider の生の値と誤りの文は出さない、前の送る口の送信)、一覧の絞りの選択肢(送り元の表示名・送った人の名前)
+// - 詳細の宛先: 宛先の指定と人数だけ(宛先の一覧・受信者ごとの値は返さない、D210)
+// - グループ宛ての送信: 一覧・1 件に宛先のグループ { id(値だけ), name }、名前は 1 ページに 1 回引く、引けなければ null、detail.target は形と人数だけ
 // - 続きを送る: 監査 1 行
 // 実行: pnpm test src/domains/core/messaging/services/server/admin
 import { test } from "node:test";
@@ -22,7 +25,17 @@ import { adminBulkSend, adminBulkSendOptions, adminBulkSendPreview, adminBulkSen
 import { adminContinueSending } from "./continueSending";
 import { toDeliveryRow, toDispatchDetail, toDispatchSummary } from "./dispatchDto";
 import { operationFlags } from "./operations";
-import { decodeCursor, dispatchCategoryOptions, encodeCursor, findDispatch, listDeliveries, listDispatches, type AdminDispatchStore } from "./readDispatches";
+import {
+  decodeCursor,
+  DISPATCH_FILTER_OPTIONS_LIMIT,
+  dispatchCategoryOptions,
+  dispatchFilterOptions,
+  encodeCursor,
+  findDispatch,
+  listDeliveries,
+  listDispatches,
+  type AdminDispatchStore,
+} from "./readDispatches";
 import { TEST_LAYOUTS } from "../sendMessage/testHelpers";
 
 const ctx = (actorId: string | null, actorType: AuditContext["actorType"] = "admin") =>
@@ -384,6 +397,83 @@ test("DTO sameAs: 「同じ内容で送る」の写しは自由連絡で中身�
   assert.equal(toDispatchDetail(dispatchRow({ message_key: null, layout: null, values }), FLAGS).sameAs, null);
 });
 
+test("詳細の宛先(D210): 宛先の指定と人数(recipient_count)だけ。宛先の一覧・受信者ごとの値は返さない", () => {
+  const targetOf = (target: unknown, recipient_count = 5) => toDispatchDetail(dispatchRow({ target, recipient_count } as never), FLAGS).target;
+  assert.deepEqual(targetOf({ type: "all" }), { type: "all", count: 5 });
+  assert.deepEqual(targetOf({ type: "role", roles: ["user", 3] }), { type: "role", roles: ["user"], count: 5 });
+  assert.deepEqual(targetOf({ type: "group", groupId: "g1", version: 2 }), { type: "group", count: 5 });
+  const listed = targetOf({ type: "recipients", recipients: [{ userId: "a" }, { userId: "b" }], recipientVars: { "user:a": { orderNo: "1" } } }, 2);
+  assert.deepEqual(listed, { type: "recipients", count: 2 });
+  assert.deepEqual(targetOf({ type: "recipients", count: 1 }, 1), { type: "recipients", count: 1 });
+  // 終えた全員宛ての 0 は 0(展開の前の人数は下の検査)。宛先を持たない前の送信・知らない形は null
+  assert.deepEqual(targetOf({ type: "all" }, 0), { type: "all", count: 0 });
+  assert.equal(targetOf(null), null);
+  assert.equal(targetOf({ type: "nope" }), null);
+});
+
+test("宛先の人数: 展開の前の選んだ利用者は残した宛先の数、全員・ロール・グループは null(送る時に決まる)。一覧も同じ", () => {
+  const row = (over: Record<string, unknown>) => dispatchRow({ recipient_count: 0, expand_cursor: null, ...over } as never);
+  const one = row({ status: "scheduled", target: { type: "recipients", recipients: [{ userId: "a" }], recipientVars: null } });
+  assert.deepEqual(toDispatchDetail(one, FLAGS).target, { type: "recipients", count: 1 });
+  assert.equal(toDispatchSummary(one).recipientCount, 1);
+  // 重なりは 1 人(送る口と同じ鍵 recipientKeyOf)、宛先(アドレス)も数える
+  const dup = row({
+    status: "scheduled",
+    target: { type: "recipients", recipients: [{ userId: "a" }, { userId: "a" }, { channel: "email", address: "x@y" }, { channel: "email", address: "x@y" }] },
+  });
+  assert.equal(toDispatchSummary(dup).recipientCount, 2);
+  for (const target of [{ type: "all" }, { type: "role", roles: ["user"] }, { type: "group", groupId: "g1" }]) {
+    const scheduled = row({ status: "scheduled", target });
+    assert.equal(toDispatchDetail(scheduled, FLAGS).target!.count, null, target.type);
+    assert.equal(toDispatchSummary(scheduled).recipientCount, null, target.type);
+    // 送り始めの前(送信中・展開の印なし・0)も null
+    assert.equal(toDispatchSummary(row({ status: "processing", target })).recipientCount, null, target.type);
+  }
+  // 展開の途中・終えた送信は recipient_count(終えた 0 は 0)
+  assert.equal(toDispatchSummary(row({ status: "processing", target: { type: "all" }, expand_cursor: "i:10", recipient_count: 40 })).recipientCount, 40);
+  assert.equal(toDispatchSummary(row({ status: "completed", target: { type: "all" }, expand_cursor: "~done", recipient_count: 0 })).recipientCount, 0);
+  // 展開した選んだ利用者は recipient_count(残した一覧より展開の数)
+  assert.equal(toDispatchSummary(row({ status: "completed", target: { type: "recipients", recipients: [{ userId: "a" }, { userId: "b" }] }, recipient_count: 1 })).recipientCount, 1);
+});
+
+test("一覧の絞りの選択肢: 送り元 { key, label }(表示名が無ければ null)・運営として送った人 { id, name }、上限を store へ、管理者だけ", async () => {
+  const limits: number[] = [];
+  const store: AdminDispatchStore = {
+    listDispatches: async () => [],
+    findDispatch: async () => null,
+    listDeliveries: async () => [],
+    listDispatchUserIds: async () => [],
+    listDispatchSources: async (limit) => {
+      limits.push(limit);
+      return ["messaging.adminSend", "fork.unknown"];
+    },
+    listDispatchAdminActors: async (limit) => {
+      limits.push(limit);
+      return ["admin1", "gone"];
+    },
+    userNames: async (ids) => new Map(ids.filter((id) => id === "admin1").map((id) => [id, "管理者 A"])),
+  };
+  const deps = {
+    ...check(ctx("admin1")),
+    dispatchStore: store,
+    operationInputs: async () => ({ policy: null, counts: { failed: 0, unknown: 0 } }),
+    sourceLabel: async (source: string) => (source === "messaging.adminSend" ? "管理者の送信" : null),
+    definitionLabel: async () => null,
+  };
+  assert.deepEqual(await dispatchFilterOptions(deps), {
+    sources: [
+      { key: "messaging.adminSend", label: "管理者の送信" },
+      { key: "fork.unknown", label: null },
+    ],
+    actors: [
+      { id: "admin1", name: "管理者 A" },
+      { id: "gone", name: null },
+    ],
+  });
+  assert.deepEqual(limits, [DISPATCH_FILTER_OPTIONS_LIMIT, DISPATCH_FILTER_OPTIONS_LIMIT]);
+  await rejects403(dispatchFilterOptions({ ...deps, ...check(ctx("user1", "user")) }));
+});
+
 test("keyset の印は往復し、壊れた印は 400", () => {
   const at = new Date("2026-11-01T00:00:00Z");
   assert.deepEqual(decodeCursor(encodeCursor({ createdAt: at, id: "d9" })), { createdAt: at, id: "d9" });
@@ -404,10 +494,12 @@ test("読む口: 1 件多く引いて次の印を作る、絞り込みを store 
       return [deliveryRow()];
     },
     listDispatchUserIds: async () => [],
+    listDispatchSources: async () => [],
+    listDispatchAdminActors: async () => [],
     userNames: async (ids) => new Map(ids.filter((id) => id === "u1").map((id) => [id, "山田"])),
   };
   const operationInputs = async () => ({ policy: null, counts: { failed: 0, unknown: 0 } });
-  const deps = { ...check(ctx("admin1")), dispatchStore: store, operationInputs, sourceLabel: async () => null };
+  const deps = { ...check(ctx("admin1")), dispatchStore: store, operationInputs, sourceLabel: async () => null, definitionLabel: async () => null };
   const first = await listDispatches(deps, { limit: "2", kind: "promotion", category: "campaign", channel: "email", messageKey: "messaging.x" } as never);
   assert.deepEqual(first.items.map((item) => item.id), ["d3", "d2"]);
   assert.ok(first.nextCursor);
@@ -415,6 +507,16 @@ test("読む口: 1 件多く引いて次の印を作る、絞り込みを store 
   await listDispatches(deps, { cursor: first.nextCursor! });
   assert.deepEqual((seen[1] as { after: unknown }).after, { createdAt: rows[1].createdAt, id: "d2" });
   await assert.rejects(listDispatches(deps, { status: "nope" } as never), (e: unknown) => e instanceof DomainError && e.status === 400);
+  // 送り元・送った人・運営が送った物だけ・件名の文字(D210)。字は前後の空白を落として store へ、keyset はそのまま
+  await listDispatches(deps, { source: "messaging.adminSend", actor: "admin1", sentBy: "admin", q: "  セール ", limit: 2 });
+  assert.deepEqual(seen.at(-1), {
+    filter: { source: "messaging.adminSend", actor: "admin1", sentBy: "admin", q: "セール", deleted: "exclude" },
+    after: null,
+    limit: 3,
+  });
+  for (const bad of [{ sentBy: "user" }, { q: "   " }, { q: "あ".repeat(101) }, { source: "" }, { actor: "x".repeat(201) }]) {
+    await assert.rejects(listDispatches(deps, bad as never), (e: unknown) => e instanceof DomainError && e.status === 400, JSON.stringify(bad));
+  }
 
   const deliveries = await listDeliveries(deps, "d1", { status: "failed" });
   assert.deepEqual(deliveries.items[0].vars, { item: "靴" });
@@ -423,7 +525,7 @@ test("読む口: 1 件多く引いて次の印を作る、絞り込みを store 
   await assert.rejects(findDispatch(deps, "nope"), (e: unknown) => e instanceof DomainError && e.status === 404);
   await assert.rejects(listDeliveries(deps, "nope"), (e: unknown) => e instanceof DomainError && e.status === 404);
   assert.equal((await findDispatch(deps, "d1")).operations.canDelete.allowed, true);
-  await rejects403(listDispatches({ ...check(ctx("user1", "user")), dispatchStore: store, operationInputs, sourceLabel: async () => null }));
+  await rejects403(listDispatches({ ...check(ctx("user1", "user")), dispatchStore: store, operationInputs, sourceLabel: async () => null, definitionLabel: async () => null }));
 });
 
 test("送信 1 件: 送信の中身(レイアウト・版・欄の中身)と、選んだ利用者への送信の利用者 id(送信の一覧 → 配達の行、多すぎ・ほかの形は null)", async () => {
@@ -444,6 +546,8 @@ test("送信 1 件: 送信の中身(レイアウト・版・欄の中身)と、�
       userIdCalls.push([id, limit]);
       return fromDeliveries;
     },
+    listDispatchSources: async () => [],
+    listDispatchAdminActors: async () => [],
     userNames: async (ids) => new Map(ids.filter((id) => id === "admin1").map((id) => [id, "管理者 A"])),
   };
   const deps = {
@@ -451,6 +555,7 @@ test("送信 1 件: 送信の中身(レイアウト・版・欄の中身)と、�
     dispatchStore: store,
     operationInputs: async () => ({ policy: null, counts: { failed: 0, unknown: 0 } }),
     sourceLabel: async (source: string) => (source === "messaging.adminBulk" ? "管理者の一括送信" : null),
+    definitionLabel: async () => null,
   };
   const edited = await findDispatch(deps, "edited");
   assert.deepEqual([edited.templateEdited, edited.content], [true, { layout: "notice", layoutVersion: 1, values: { subject: "直した" } }]);
@@ -508,7 +613,7 @@ test("続きを送る: 進めて監査 1 行、管理者でなければ 403", as
   await rejects403(adminContinueSending({ ...deps, ...check(ctx("user1", "user")) }, "d1"));
 });
 
-test("グループ宛ての送信: 一覧・1 件に targetGroup { id, name }(1 ページに 1 回引く)、引けなければ name null、detail.target は形だけ", async () => {
+test("グループ宛ての送信: 一覧・1 件に targetGroup { id, name }(1 ページに 1 回引く)、引けなければ name null、detail.target は形と人数だけ", async () => {
   const G1 = "33333333-3333-4333-8333-333333333333";
   const G2 = "44444444-4444-4444-8444-444444444444";
   const group = (groupId: string) => ({ type: "group", groupId, version: 3 });
@@ -519,6 +624,8 @@ test("グループ宛ての送信: 一覧・1 件に targetGroup { id, name }(1 
     findDispatch: async (id) => rows.find((row) => row.id === id) ?? null,
     listDeliveries: async () => [],
     listDispatchUserIds: async () => [],
+    listDispatchSources: async () => [],
+    listDispatchAdminActors: async () => [],
     userNames: async () => new Map(),
   };
   const deps = {
@@ -526,6 +633,7 @@ test("グループ宛ての送信: 一覧・1 件に targetGroup { id, name }(1 
     dispatchStore: store,
     operationInputs: async () => ({ policy: null, counts: { failed: 0, unknown: 0 } }),
     sourceLabel: async () => null,
+    definitionLabel: async () => null,
     groupNames: async (ids: readonly string[]) => {
       asked.push([...ids]);
       return new Map(ids.filter((id) => id === G1).map((id) => [id, "常連"]));
@@ -539,7 +647,7 @@ test("グループ宛ての送信: 一覧・1 件に targetGroup { id, name }(1 
   assert.deepEqual(asked, [[G1, G2]], "1 ページに 1 回、グループ宛ての送信の分だけ");
   const one = await findDispatch(deps, "d2");
   assert.deepEqual(one.targetGroup, { id: G1, name: "常連" });
-  assert.deepEqual(one.target, { type: "group" }, "固定した版・id は target に出さない");
+  assert.deepEqual(one.target, { type: "group", count: 2 }, "宛先の指定と人数だけ(固定した版・id は target に出さない)");
   // 名前の部品が無い(門 userGroups が閉の結び)なら name null
   const closed = await findDispatch({ ...deps, groupNames: undefined }, "d2");
   assert.deepEqual(closed.targetGroup, { id: G1, name: null });
@@ -581,4 +689,36 @@ test("記録の宛先の読み手(門番 loadRecordTarget): 鍵で遅延 import�
   assert.equal(await loadRecordTarget(registry, "testOnlyDomain.off"), null);
   assert.equal(await loadRecordTarget(registry, "nope"), null);
   assert.equal(await loadRecordTarget(registry, "constructor"), null);
+});
+
+test("送信 1 件の連絡定義の表示名: 定義の送信は label、自由連絡・知らない鍵は null", async () => {
+  const rows: Record<string, MessageDispatch> = {
+    definition: dispatchRow({ id: "definition", message_key: "shop.shipped" }),
+    unknown: dispatchRow({ id: "unknown", message_key: "fork.gone" }),
+    free: dispatchRow({ id: "free", message_key: null }),
+  };
+  const asked: string[] = [];
+  const store: AdminDispatchStore = {
+    listDispatches: async () => [],
+    findDispatch: async (id) => rows[id] ?? null,
+    listDeliveries: async () => [],
+    listDispatchUserIds: async () => [],
+    listDispatchSources: async () => [],
+    listDispatchAdminActors: async () => [],
+    userNames: async () => new Map(),
+  };
+  const deps = {
+    ...check(ctx("admin1")),
+    dispatchStore: store,
+    operationInputs: async () => ({ policy: null, counts: { failed: 0, unknown: 0 } }),
+    sourceLabel: async () => null,
+    definitionLabel: async (key: string) => {
+      asked.push(key);
+      return key === "shop.shipped" ? "発送のお知らせ(上書き)" : null;
+    },
+  };
+  assert.equal((await findDispatch(deps, "definition")).definitionLabel, "発送のお知らせ(上書き)");
+  assert.equal((await findDispatch(deps, "unknown")).definitionLabel, null);
+  assert.equal((await findDispatch(deps, "free")).definitionLabel, null);
+  assert.deepEqual(asked, ["shop.shipped", "fork.gone"], "自由連絡は引かない");
 });

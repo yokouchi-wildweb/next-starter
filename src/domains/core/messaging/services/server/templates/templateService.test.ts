@@ -4,7 +4,7 @@
 // - 保存時の検査(400): カテゴリー(種別 announcement・direct・promotion だけ)・レイアウト(受け口にあり管理者が選べる)・欄の中身(そのカテゴリーの送信チャンネルで使う欄の zod)・
 //   専用の宣言の形・名前の重なり(共通・enrichers・専用、D126)・文面の {{名前}} は一覧の中だけ。鍵はサーバーが作る
 // - 消す(D137): 行が消え(版は cascade)、欄の中身を残している送信が使う画像はその送信に結び直す。監査 deleted(名前・最後の版)
-// - 一覧(新しい順・cursor・種別で絞る D135)、画面の選択肢(使える送信チャンネル・3 つの種別のカテゴリー・選べるレイアウト・基本の埋め込み情報)
+// - 一覧(新しい順・cursor・種別で絞る D135・文字検索 q = 名前か欄の中身の文字列)、画面の選択肢(使える送信チャンネル・3 つの種別のカテゴリー・選べるレイアウト・基本の埋め込み情報)
 // - テンプレートは DB の物だけ(システムテンプレートは廃止、D171): 一覧に system・kind の項目は無い、uuid でない id(前の system:<鍵> も)は 404
 // - 管理者でなければ 403
 // 実行: pnpm test src/domains/core/messaging/services/server/templates
@@ -56,17 +56,21 @@ function setup(options: { role?: string; kept?: TemplateKeptDispatch[]; layouts?
   const versions: MessageTemplateVersion[] = [];
   const audits: AuditRecordInput[] = [];
   const kept = options.kept ?? [];
+  const listQueries: (string | null)[] = [];
   const dispatchWrites: { id: string; values: Record<string, unknown>; metadata: Record<string, unknown> }[] = [];
   const dispatchAttached: { ref: string; dispatchId: string }[] = [];
   let clock = 0;
   const store: MessageTemplateStore<null> = {
     transaction: (run) => run(null),
-    list: async ({ categories: only, limit, after }) =>
-      templates
+    list: async ({ categories: only, q, limit, after }) => {
+      listQueries.push(q);
+      return templates
         .filter((row) => !only || only.includes(row.category))
+        .filter((row) => !q || [row.name, ...stringsOf(row.values)].some((text) => text.toLowerCase().includes(q.toLowerCase())))
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
         .filter((row) => !after || row.createdAt.getTime() < after.createdAt.getTime())
-        .slice(0, limit + 1),
+        .slice(0, limit + 1);
+    },
     find: async (id) => templates.find((row) => row.id === id) ?? null,
     findByKey: async (key) => templates.find((row) => row.key === key) ?? null,
     lockForUpdate: async (_tx, id) => templates.find((row) => row.id === id) ?? null,
@@ -129,7 +133,15 @@ function setup(options: { role?: string; kept?: TemplateKeptDispatch[]; layouts?
     roleCategoryOf: async () => options.role ?? "admin",
     recordAudit: async (input) => audits.push(input),
   });
-  return { service, templates, versions, audits, dispatchWrites, dispatchAttached };
+  return { service, templates, versions, audits, dispatchWrites, dispatchAttached, listQueries };
+}
+
+/** 欄の中身の文字列の値の全部(鍵は入れない。本物の store の jsonpath と同じ見方) */
+function stringsOf(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) return value.flatMap(stringsOf);
+  if (value && typeof value === "object") return Object.values(value).flatMap(stringsOf);
+  return [];
 }
 
 const VALUES = { subject: "{{表示名}} 様へ {{discount}} 割引", blocks: [{ type: "paragraph", text: "{{serviceName}} より" }] };
@@ -275,6 +287,20 @@ test("消す(D137): 行と版が消え、欄の中身を残す送信の画像は
   assert.deepEqual(audits.at(-1)!.metadata, { key: created.key, name: "春のセール", lastVersion: 2 });
   await rejectsWith(service.deleteTemplate(created.id), 404);
   await rejectsWith(service.getTemplate(created.id), 404);
+});
+
+test("一覧の文字検索 q: 名前か欄の中身の文字列(欄の名前は探さない)、前後の空白を落とす、空・101 字は 400", async () => {
+  const { service, listQueries } = setup();
+  await service.createTemplate(input({ name: "春のセール" }));
+  await service.createTemplate(input({ name: "お知らせ", values: { subject: "夏の SALE のご案内", blocks: [{ type: "paragraph", text: "本文" }] } }));
+  assert.deepEqual((await service.listTemplates({ q: "セール" })).items.map((t) => t.name), ["春のセール"]);
+  assert.deepEqual((await service.listTemplates({ q: " sale " })).items.map((t) => t.name), ["お知らせ"]);
+  assert.equal(listQueries.at(-1), "sale", "前後の空白を落として store へ");
+  assert.deepEqual((await service.listTemplates({ q: "subject" })).items, [], "欄の名前では当たらない");
+  assert.equal((await service.listTemplates()).items.length, 2);
+  assert.equal(listQueries.at(-1), null);
+  await rejectsWith(service.listTemplates({ q: "  " }), 400);
+  await rejectsWith(service.listTemplates({ q: "あ".repeat(101) }), 400);
 });
 
 test("一覧(新しい順・cursor・種別で絞る D135)、無い id は 404、版の番号の誤りは 400", async () => {

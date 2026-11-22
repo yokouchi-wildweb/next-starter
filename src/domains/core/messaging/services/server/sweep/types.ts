@@ -81,6 +81,8 @@ export type MessageSweepStore = {
 export type MessageRetentionStore = {
   /** maxSeq = 購読の一番遅い印(null = 購読なし)。それより新しい事件は消さない */
   deleteEventsBefore: (cutoff: Date, limit: number, maxSeq: number | null) => Promise<number>;
+  /** 配達の body・vars を null にする(行は残す。queued・sending ともう null の行は取らない)。返り値 = null にした行の数 */
+  clearDeliveryContentBefore: (cutoff: Date, limit: number) => Promise<number>;
   deleteDeliveriesBefore: (cutoff: Date, limit: number) => Promise<number>;
   /**
    * お知らせが参照せず、processing / scheduled でない送信を消す。消す前に冪等の鍵を移し、送信に結んだお知らせの画像

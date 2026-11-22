@@ -33,8 +33,10 @@ export const UpdateMessageTemplateInputSchema = z
   .strict();
 
 export const ListMessageTemplatesQuerySchema = z.object({
-  /** 種別で絞る(その種別のカテゴリーのテンプレートと、その種別のシステムテンプレート、D135) */
+  /** 種別で絞る(その種別のカテゴリーのテンプレート、D135) */
   kind: z.enum(MESSAGE_KINDS).optional(),
+  /** 文字検索: 名前か文面(欄の中身の文字列のどれか: 件名・本文・ブロックの字・ボタンの字など。欄の名前はレイアウトが決める)に含む */
+  q: z.string().trim().min(1).max(100).optional(),
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });

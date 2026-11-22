@@ -2,6 +2,7 @@
 //
 // 管理の操作の DB(drizzle)。どの操作も送信の行を FOR UPDATE で持った 1 つの取引で行う(cron の展開・予約の拾いと重ならない)。
 // 配達は FOR UPDATE SKIP LOCKED で取り、lease 中(sending)の行は触らない(cron と再送が同じ宛先を二重に送らない)
+// 予約の直し(drizzleScheduledEditStore)は取引でなく条件つきの UPDATE 1 回で cron の拾いと競らない
 
 import { and, eq, inArray, isNotNull, isNull, lt, notInArray, or, sql } from "drizzle-orm";
 
@@ -13,6 +14,7 @@ import { MessageInboxItemTable } from "../../../entities/inbox";
 import type { MessageDeliveryTarget } from "../../../entities/schema";
 import { isDispatchId } from "../dispatchId";
 import type { FailedDeliveryRow, MessageOperationsStore } from "./operationsTypes";
+import type { ScheduledEditStore } from "./scheduledEdit";
 
 const d = MessageDeliveryTable;
 
@@ -143,5 +145,22 @@ export const drizzleMessageOperationsStore: MessageOperationsStore<TransactionCl
         ),
       );
     return rows as FailedDeliveryRow[];
+  },
+};
+
+/** 予約の直しの DB(scheduledEdit.ts)。書き込みは条件つきの UPDATE 1 回(cron の activateScheduled と同じ条件の逆: 拾われた・消された送信は 0 行) */
+export const drizzleScheduledEditStore: ScheduledEditStore = {
+  async findDispatch(id) {
+    const [row] = await db.select().from(MessageDispatchTable).where(eq(MessageDispatchTable.id, id)).limit(1);
+    return row ?? null;
+  },
+
+  async updateScheduled(id, patch) {
+    const rows = await db
+      .update(MessageDispatchTable)
+      .set(patch)
+      .where(and(eq(MessageDispatchTable.id, id), eq(MessageDispatchTable.status, "scheduled"), isNull(MessageDispatchTable.deleted_at)))
+      .returning({ id: MessageDispatchTable.id });
+    return rows.length > 0;
   },
 };

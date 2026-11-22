@@ -11,11 +11,13 @@
   - `hooks/useMessagingAnalyticsSummary.ts` / `useMessagingAnalyticsSeries.ts`: SWR（`(params, { enabled?, config? })`、鍵 = 期間と絞りの値）
   - `hooks/useMessagingAnalyticsBreakdown.ts`: SWR（`(axis, params, options)`、axis が null なら取らない）
   - `hooks/useMessagingAnalyticsDispatches.ts`: 送信ごとは増え続ける一覧なので `useInfiniteScrollQuery` のカーソルのモード（`{ params, limit?（既定 20）, enabled? }`、期間・絞りが変われば先頭から。`InfiniteScrollList` に渡す）。結果の横に直近の応答の `dispatchesEnabled` / `trackingEnabled`（まだ無ければ null）
+  - `hooks/useMessagingAnalyticsDispatchReads.ts`: 渡した送信だけの指標（`(ids, { enabled?, config? })`、SWR。鍵 = 重なりを落として並べた id、空なら取らない。id は何件でもよく、並べた順に 100 件（`DISPATCH_READS_CHUNK` = 口の上限）ずつ並べて取り 1 つにまとめる。組が変われば全部を取り直す）→ `{ rows: Map<送信の id, MessagingDispatchRow>, dispatchesEnabled, trackingEnabled, isLoading, error, mutate }`。messaging の送信の一覧の既読数の列が読む公開の hook（集計に入らない送信は `rows` に無い = 画面は「-」）
 
 ## API
 
 - 関数が測る物の開閉を自分で確かめる: 開封・クリックは計測 `messagingTracking` が閉なら `null`（0 と区別、`trackingEnabled: false`）、送信ごとのビューは送信の管理 `messagingDispatches` が閉なら空（`dispatchesEnabled: false`）
 - 絞り（共通）: `channel` / `messageKey` / `category`（期間は共通クエリパラメータ）
+- 送信ごと `GET …/dispatches`: 期間 + `cursor` / `limit`（1〜100、既定 20）か、`dispatchIds=<id,…>`（カンマ区切り 1〜100、重なりは落とす）。`dispatchIds` はその送信だけを同じ行の形で返す: 期間で絞らない（期間の値は読まない。応答の期間の欄は既定の期間）・`nextCursor` は null・`cursor` と一緒・101 件以上・送信の id の形でない値は 400。予約・取り消し・テストの送信はほかのビューと同じく入らない。送信ごとの数の SQL は id の一覧だけで絞る（期間のページの id もその期間の中なので数は同じ）
 
 ### 指標（`MessagingCounts`）と出どころ
 
@@ -38,7 +40,7 @@
 
 ### 取れない物
 
-- 配達の行は保持の日数（messaging の `retention.deliveriesDays`、既定 90 日）で消える: それより前に送った範囲は `delivered` 〜 `clicked` が `null`（`detailRetained: false`、0 ではない）。送信の数・既読・配信停止は残る
+- 配達の行は保持の日数（messaging の `retention.deliveriesDays`、既定 730 日。重い列 body・vars だけを先に消す `deliveryContentDays`（既定 90 日）は指標に関わらない）で消える: それより前に送った範囲は `delivered` 〜 `clicked` が `null`（`detailRetained: false`、0 ではない）。送信の数・既読・配信停止は残る
 - bounce の hard / soft の区別は配達の行に無い（`message_events` の種類だけ、保持 30 日）。`bounced` は合わせた数
 - 全員・ロール宛ての共有の inApp は配達の行が無い: 数は送信の `channel_counts.inApp` だけ（到達・開封は無い）
 - 配信停止は今ある行だけ（好みのページで戻すと行が消え、数から外れる）。定義・送信への結び付きは結んだトークン（`mk` / `d`）からの停止だけで、それより前の停止と好みのページの停止は結び付き無し

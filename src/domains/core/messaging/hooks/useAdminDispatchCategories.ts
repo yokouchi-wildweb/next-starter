@@ -10,8 +10,7 @@ import { useCallback } from "react";
 import useSWR from "swr";
 
 import { getAdminDispatchCategories, type AdminDispatchCategoryOption } from "../services/client/adminMessagingClient";
-
-import { ADMIN_DISPATCH_CATEGORIES_KEY } from "./adminMessagingKeys";
+import { ADMIN_DISPATCH_CATEGORIES_KEY } from "./messagingKeys";
 
 export function useAdminDispatchCategories() {
   const { data, error, isLoading } = useSWR<AdminDispatchCategoryOption[]>(ADMIN_DISPATCH_CATEGORIES_KEY, () => getAdminDispatchCategories());

@@ -64,6 +64,11 @@ export type MessageFieldSpec = MessageFieldShape & {
   placeholder?: string;
   /** 必須(空を通さない) */
   required?: boolean;
+  /**
+   * この送信チャンネルのどれかを送る時だけ必須(例 件名 = ["email"]、D211)。欄はどの送信チャンネルにも渡る(channels と違い、他の送信チャンネルから隠さない)。
+   * 送る送信チャンネルが分からない検査(layoutValuesSchema に channels を渡さない)では任意
+   */
+  requiredFor?: readonly string[];
   /** この欄を使う送信チャンネルの鍵(無い = 全部の送信チャンネル)。送信チャンネルだけの欄の印(レイアウトの型は送信チャンネルを知らず、鍵を値として持つだけ) */
   channels?: readonly string[];
 };

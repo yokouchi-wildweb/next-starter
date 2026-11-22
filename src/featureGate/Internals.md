@@ -74,7 +74,7 @@ featureGate の README の Internals を分けた文書(README が 20,000 字を
 閉じられるフォルダ(規則の `domains`)を、そのフォルダの外から値で import するファイルは、次のどれかでなければ `pnpm test src/featureGate scripts/structure/proxies` が落ちる(判定: `checks/dependencies.mjs`):
 
 1. 自分のドメインの `services/server/domainEntry.ts` の `requires` に相手のドメインの名前がある(`requires: ["wallet"]`、文字列リテラルの配列で書く。字面で読む)。名前はドメインのフォルダ名だけ(`core/` は付けない)。`domainEntries` のキーは汎用 API・表の資源の名前でドメインの名乗りにならない(フォルダ名と違うキー、例 `auditLogFailed` を書いても当たらない)。ドメイン・requires の読み手は `src/lib/districtMap`
-2. ファイルが規則の名前で確かめる: `gate.enabled("wallet")`・`gate.assert("wallet")`・`useGate.enabled("wallet")`
+2. ファイルが規則の名前で確かめる: `gate.enabled("wallet")`・`gate.assert("wallet")`・`useGate().enabled("wallet")`。`dependsOn` で(推移的に)その規則にたどり着く規則の名前でもよい(例 `core/analytics` を `useGate().enabled("messagingAnalytics")` で守る。子は親が開の時しか開かない。`anyOf` は親を決めないので数えない)
 3. ファイルが src/app の下で、その規則の `pathPatterns` が覆う住所にある(page・loader・route・`_screen`・`_components` など。閉じれば一緒に閉じる)
 4. 同じ規則のフォルダどうし
 5. fork の `required/<規則名>.ts` がある(この fork はその機能を必ず使う = 依存を書いたとみなす)

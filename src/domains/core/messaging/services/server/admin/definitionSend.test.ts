@@ -3,6 +3,8 @@
 // - 400: 項目の messages の外・adminTargets の外・off / カテゴリーの外の送信チャンネル・required のテキストの編集・管理者の値の型・宣言に無い管理者の値
 // - 404: 連絡定義が無い・門 messagingBroadcast が閉(全員などの入口だけ、記録の入口は門の外)
 // - プレビュー・テストは最初の記録の値、テキストの編集の欄を送る口に渡す、afterSend の引数(D196)、投げても送信は戻さない
+// - 人数の見込み(definitions/estimate): 全員・ロール・グループの入口だけ、自由連絡の見込みと同じ数え方と形(RecipientEstimate をそのまま)、
+//   adminTargets の外・記録の入口の形・知らない鍵・止めた定義は 400、無い定義・門が閉は 404、管理者でなければ 403
 // - 選択肢(definitions/options): 記録の入口 = 項目と並んだ定義 / 全員などの入口 = 門の中、定義ごとの直せる欄・今の中身・管理者の値・送信チャンネルの固定と初めの状態・画面の文
 // 実行: pnpm test src/domains/core/messaging/services/server/admin/definitionSend.test.ts
 import { test } from "node:test";
@@ -24,7 +26,9 @@ import {
 
 import type { AnyResolvedMessageDefinition } from "../sendMessage/definition";
 import type { SendMessageToManyInput } from "../sendMessage/types";
+import type { RecipientEstimate } from "../sendMessage/sender";
 import {
+  adminDefinitionEstimate,
   adminDefinitionPreview,
   adminDefinitionSend,
   adminDefinitionTest,
@@ -97,6 +101,7 @@ function setup(
   const sent: { resolved: AnyResolvedMessageDefinition; input: SendMessageToManyInput; options: unknown }[] = [];
   const previews: { resolved: AnyResolvedMessageDefinition; input: Record<string, unknown> }[] = [];
   const audits: AuditRecordInput[] = [];
+  const estimates: unknown[] = [];
   const deps: AdminDefinitionSendDeps = {
     context: () => ({ actorId: "admin1", actorType: "user" }) as never,
     roleCategoryOf: async () => "admin",
@@ -106,6 +111,12 @@ function setup(
     messageKeys: () => ["shop.shipped", ...Object.keys(options.others ?? {}), "shop.gone"],
     categories: { shop: { key: "shop", label: "ショップ", kind: "transactional", channels: ["email", "inApp", "line"], defaultChannels: ["email"] } },
     broadcastOpen: () => options.broadcastOpen ?? true,
+    estimateRecipients: async (target) => {
+      estimates.push(target);
+      const estimate: RecipientEstimate =
+        target.target.type === "group" ? { count: 120, fixedAtSend: true, memberLimit: 100, overLimit: true } : { count: 42, fixedAtSend: true };
+      return estimate;
+    },
     layouts: { notice: LAYOUT },
     enrichers: {},
     sendResolved: async (definition, input, _source, sendOptions) => {
@@ -120,7 +131,7 @@ function setup(
       audits.push(input);
     },
   };
-  return { deps, sent, previews, audits };
+  return { deps, sent, previews, audits, estimates };
 }
 
 const RECORDS = { recordTarget: "shop.orders", recordIds: ["o1", "o2", "o3"], message: "shop.shipped" };
@@ -310,4 +321,38 @@ test("選択肢 ?entry=broadcast: 全員・ロール・グループのどれか�
   await assert.rejects(adminDefinitionOptions(deps, {}), status(400));
   await assert.rejects(adminDefinitionOptions(deps, { entry: "broadcast", recordTarget: "shop.orders" }), status(400));
   await assert.rejects(adminDefinitionOptions(deps, { entry: "all" } as never), status(400));
+});
+
+test("人数の見込み: 全員・ロール・グループの宛先を見込みの口へ渡し、自由連絡と同じ RecipientEstimate をそのまま返す", async () => {
+  const others = { "shop.news": resolved({ key: "shop.news", adminTargets: ["all", "role", "group"] }) };
+  const { deps, estimates } = setup({ others });
+  assert.deepEqual(await adminDefinitionEstimate(deps, { message: "shop.news", target: { type: "all" } }), { count: 42, fixedAtSend: true });
+  assert.deepEqual(await adminDefinitionEstimate(deps, { message: "shop.news", target: { type: "role", roles: ["user"] } }), { count: 42, fixedAtSend: true });
+  const GROUP = "33333333-3333-4333-8333-333333333333";
+  assert.deepEqual(await adminDefinitionEstimate(deps, { message: "shop.news", target: { type: "group", groupId: GROUP } }), {
+    count: 120,
+    fixedAtSend: true,
+    memberLimit: 100,
+    overLimit: true,
+  });
+  assert.deepEqual(estimates, [
+    { target: { type: "all" } },
+    { target: { type: "role", roles: ["user"] } },
+    { target: { type: "group", groupId: GROUP } },
+  ]);
+});
+
+test("人数の見込み: adminTargets の外・記録の入口の形・知らない鍵・止めた定義は 400、無い定義・門が閉は 404、管理者でなければ 403", async () => {
+  const { deps, estimates } = setup();
+  // shop.shipped の adminTargets は records と all だけ
+  await assert.rejects(adminDefinitionEstimate(deps, { message: "shop.shipped", target: { type: "role", roles: ["user"] } }), status(400));
+  await assert.rejects(adminDefinitionEstimate(deps, { recordTarget: "shop.orders", recordIds: ["o1"], message: "shop.shipped" }), status(400));
+  await assert.rejects(adminDefinitionEstimate(deps, { message: "shop.shipped", target: { type: "all" }, extra: 1 }), status(400));
+  await assert.rejects(adminDefinitionEstimate(deps, { message: "shop.shipped", target: { type: "everyone" } }), status(400));
+  await assert.rejects(adminDefinitionEstimate(setup({ definition: { ...resolved(), enabled: false } }).deps, { message: "shop.shipped", target: { type: "all" } }), status(400));
+  await assert.rejects(adminDefinitionEstimate(deps, { message: "shop.gone", target: { type: "all" } }), status(404));
+  await assert.rejects(adminDefinitionEstimate(setup({ broadcastOpen: false }).deps, { message: "shop.shipped", target: { type: "all" } }), status(404));
+  await assert.rejects(adminDefinitionEstimate({ ...deps, roleCategoryOf: async () => "user" }, { message: "shop.shipped", target: { type: "all" } }), status(403));
+  assert.equal(estimates.length, 0, "誤りは数えに行かない");
+  assert.deepEqual(await adminDefinitionEstimate(deps, { message: "shop.shipped", target: { type: "all" } }), { count: 42, fixedAtSend: true });
 });

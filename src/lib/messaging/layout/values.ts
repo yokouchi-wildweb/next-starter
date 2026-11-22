@@ -12,6 +12,14 @@ export function fieldBelongsTo(spec: MessageFieldSpec, channel: string): boolean
   return !spec.channels || spec.channels.includes(channel);
 }
 
+/**
+ * 欄がその送り方で必須か: 宣言の required、または requiredFor のどれかが channels に入る(件名はメールを送る時だけ必須、D211)。
+ * channels を渡さなければ宣言の required だけ。送る口の検査(layoutValuesSchema)・入力欄の印・プレビューの未入力の警告が同じこれを読む
+ */
+export function fieldRequiredIn(spec: Pick<MessageFieldSpec, "required" | "requiredFor">, channels?: readonly string[]): boolean {
+  return Boolean(spec.required || (channels && spec.requiredFor?.some((channel) => channels.includes(channel))));
+}
+
 /** その送信チャンネルが使う欄だけ(宣言の順のまま) */
 export function fieldsForChannel<F extends MessageLayoutFields>(layout: MessageLayout<F>, channel: string): Partial<F> {
   return Object.fromEntries(Object.entries(layout.fields).filter(([, spec]) => fieldBelongsTo(spec, channel))) as Partial<F>;
@@ -35,6 +43,7 @@ export function normalizeLayoutValues(fields: MessageLayoutFields, values: unkno
 /**
  * 欄の中身の zod(知らない鍵は通らない)。検査の前に空を「無い」にする(normalizeLayoutValues。parsed.data は整えた値)。
  * - channels を渡すと、その送信チャンネルのどれにも使われない送信チャンネルだけの欄は必須でなくなる(送らない送信チャンネルの欄を求めない)
+ * - requiredFor の欄は、channels のどれかが requiredFor に入る時だけ必須(渡さなければ任意)
  * - 渡さなければ宣言の required のまま
  */
 export function layoutValuesSchema(layout: MessageLayout, options: { channels?: readonly string[] } = {}) {
@@ -45,7 +54,7 @@ export function layoutValuesSchema(layout: MessageLayout, options: { channels?: 
         Object.entries(layout.fields).map(([key, spec]) => {
           const used = !active || active.some((channel) => fieldBelongsTo(spec, channel));
           const schema = fieldValueSchema(spec);
-          return [key, spec.required && used ? requiredValue(schema) : schema.optional()];
+          return [key, fieldRequiredIn(spec, active) && used ? requiredValue(schema) : schema.optional()];
         }),
       ),
     )

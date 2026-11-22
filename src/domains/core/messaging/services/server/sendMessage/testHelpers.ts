@@ -272,7 +272,7 @@ export const testConfig: MessagingConfig = {
   expandChunkSize: 2,
   channels: { line: { enabled: false } },
   sweep: { budgetMs: 60_000, deliveryChunkSize: 2, expandChunksPerRun: 5, leaseSeconds: 300 },
-  retention: { eventsDays: 30, deliveriesDays: 90, dispatchesDays: 730, idempotencyKeyDays: null, chunkSize: 2, budgetMs: 60_000 },
+  retention: { eventsDays: 30, deliveriesDays: 90, deliveryContentDays: 90, dispatchesDays: 730, idempotencyKeyDays: null, chunkSize: 2, budgetMs: 60_000 },
   inbox: { showUnreadModal: false, unreadModalPaths: ["/"] },
   schedule: { maxDaysAhead: 30 },
   subscribers: { lagSeconds: 120, maxAttempts: 3, batchSize: 2, budgetMs: 60_000 },

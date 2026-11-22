@@ -32,9 +32,10 @@
 
 ### `messaging-retention`（毎日 `45 18 * * *` UTC）
 
-`retention` の日数を過ぎた行を `FOR UPDATE SKIP LOCKED` の束で消す（`retention.ts`、SQL は `retentionSql.ts`）:
+`retention` の日数を過ぎた行を `FOR UPDATE SKIP LOCKED` の束で消す（`retention.ts`、SQL は `retentionSql.ts`）。各段は `runBudgetedBatches` + `createDeadline`（`@/lib/cron`、締切は全段で 1 つ、`retention.budgetMs`）で回す。1 束 = 1 文（select と書き込みを分けると間で行の排他が外れるため）、`chunkSize` に満たない束で段を終える。締切で止まった段があれば結果の `truncated`（続きは次の実行）:
 
-- 事件 30 日（購読の印より新しい事件は残す）/ 配達 90 日（`queued`・`sending` は残す）
+- 事件 30 日（購読の印より新しい事件は残す）
+- 配達は 2 段: 重い列（`body`・`vars`）を `deliveryContentDays`（既定 90 日）で null にして行は残す（もう null の行は取らない。部分索引 `idx_message_deliveries_content_created`）→ 行を `deliveriesDays`（既定 730 日）で消す。どちらも `queued`・`sending` は残す
 - 送信 730 日: お知らせが参照する送信と `processing`・`scheduled` の送信は残す。消す前に `idempotency_key` を `message_idempotency_keys` へ移し、送信に結んだお知らせの画像を台帳から外す（同じ取引、結果の `detachedImages`。実物は commit の後に消す）
 - 移した鍵は `idempotencyKeyDays`（既定 null = 無期限）
 

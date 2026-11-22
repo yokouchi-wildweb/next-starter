@@ -63,6 +63,7 @@ const flags = (extra: Partial<Props["operations"]> = {}): Props["operations"] =>
   canDelete: { allowed: true, reason: null },
   canResend: { allowed: true, reason: null, mode: "requeue", failed: 2, unknown: 1 },
   canContinue: { allowed: false, reason: "not_processing" },
+  canEdit: { allowed: false, reason: "not_scheduled", content: { allowed: false, reason: "not_scheduled" } },
   ...extra,
 });
 const SUMMARY: NonNullable<Props["deleteSummary"]> = {

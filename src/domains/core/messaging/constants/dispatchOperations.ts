@@ -1,6 +1,6 @@
 // src/domains/core/messaging/constants/dispatchOperations.ts
 //
-// 送信の管理の操作(削除・失敗の再送・続きを送る、D88)ができない理由の符号と文。1 か所だけに置き、
+// 送信の管理の操作(削除・失敗の再送・続きを送る・予約の直し、D88・D210)ができない理由の符号と文。1 か所だけに置き、
 // server の service(services/server/admin/operations.ts の 409 の文)と画面の部品(DispatchOperations の理由)が同じ物を読む。
 // server を import しない(client の部品からも読むため)
 
@@ -16,6 +16,9 @@ export const DISPATCH_OPERATION_REASONS = [
   "secret",
   "no_failed",
   "no_input_copy",
+  "not_scheduled",
+  "body_missing",
+  "template_missing",
 ] as const;
 
 export type DispatchOperationReason = (typeof DISPATCH_OPERATION_REASONS)[number];
@@ -32,6 +35,9 @@ export const DISPATCH_OPERATION_REASON_TEXT: Record<DispatchOperationReason, str
   secret: "機密情報を含む通知は内容を保存しないため再送できません。元の操作からもう一度送信してください",
   no_failed: "再送する失敗した宛先がありません",
   no_input_copy: "本文が保存されていないため再送できません。新しく送信してください",
+  not_scheduled: "送信を始めた送信は直せません(直せるのは予約のままの送信だけです)",
+  body_missing: "本文を保存していない送信は、予約の時刻だけ直せます",
+  template_missing: "テンプレートを削除した送信は、予約の時刻だけ直せます",
 };
 
 /** 送信の詳細で操作の上に出す状態の 1 行(D71 の言い方)。知らない状態は null */

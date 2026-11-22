@@ -20,9 +20,9 @@ import {
   type MessagePreferencesDto,
   type SetMessagePreferenceInput,
 } from "../services/client/preferenceClient";
+import { MESSAGE_PREFERENCES_KEY, MESSAGE_PREFERENCES_SET_KEY } from "./messagingKeys";
 
 /** SWR のキー */
-export const MESSAGE_PREFERENCES_KEY = "messaging/preferences";
 
 /** 全体の停止の鍵('*' '*' の行) */
 export const MESSAGE_PREFERENCE_ALL = "*";
@@ -39,7 +39,7 @@ export function useMessagePreferences(options: { enabled?: boolean } = {}) {
   const { enabled = true } = options;
   const query = useSWR<MessagePreferencesDto>(enabled ? MESSAGE_PREFERENCES_KEY : null, () => getMessagePreferences());
   const mutation = useDomainMutation<MessagePreferencesDto, SetMessagePreferenceInput>(
-    `${MESSAGE_PREFERENCES_KEY}/set`,
+    MESSAGE_PREFERENCES_SET_KEY,
     (input) => setMessagePreference(input),
   );
   const [pendingKey, setPendingKey] = useState<string | null>(null);

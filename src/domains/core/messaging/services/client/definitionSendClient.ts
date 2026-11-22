@@ -12,6 +12,7 @@ import { normalizeHttpError } from "@/lib/errors";
 
 import type {
   AdminDefinitionEntry,
+  AdminDefinitionEstimateInput,
   AdminDefinitionOption,
   AdminDefinitionOptions,
   AdminDefinitionPreviewInput,
@@ -19,7 +20,7 @@ import type {
   AdminDefinitionSendResult,
   AdminDefinitionTestInput,
 } from "@/domains/core/messaging/services/server/admin/definitionSend";
-import type { MessagePreview } from "@/domains/core/messaging/services/server/sendMessage/sender";
+import type { MessagePreview, RecipientEstimate } from "@/domains/core/messaging/services/server/sendMessage/sender";
 
 const BASE = "/api/admin/messaging/definitions";
 
@@ -31,6 +32,7 @@ export type AdminDefinitionOptionsQuery = { recordTarget: string } | { entry: "b
 
 export type {
   AdminDefinitionEntry,
+  AdminDefinitionEstimateInput,
   AdminDefinitionOption,
   AdminDefinitionOptions,
   AdminDefinitionPreviewInput,
@@ -76,5 +78,15 @@ export async function getAdminDefinitionOptions(query: AdminDefinitionOptionsQue
     return res.data;
   } catch (error) {
     throw normalizeHttpError(error, "送る連絡の選択肢を取得できませんでした");
+  }
+}
+
+/** 定義連絡の全員・ロール・グループの人数の見込み(自由連絡の見込みと同じ形。送る時に数え直す。門 messagingBroadcast が閉なら 404) */
+export async function estimateAdminDefinitionRecipients(input: AdminDefinitionEstimateInput): Promise<RecipientEstimate> {
+  try {
+    const res = await axios.post<RecipientEstimate>(`${BASE}/estimate`, input);
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "宛先数の見込みを取得できませんでした");
   }
 }

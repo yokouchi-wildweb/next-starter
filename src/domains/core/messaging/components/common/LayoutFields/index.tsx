@@ -2,7 +2,7 @@
 // 部品(props だけ): レイアウトの欄の宣言(D123)から入力を並べる。react-hook-form の control と欄の場所(name)に結ぶ
 // (フォームと検査は hook useLayoutFieldsForm、この部品は描くだけ)。宣言の順 = 画面の順。
 // - activeChannel を渡すと、その送信チャンネルで使う欄だけ(共通 + その送信チャンネルだけ、D117)。共通の欄は「すべての送信方法で共通」の印。描かない欄の値はフォームに残る
-// - 見出し・必須の印・仮の文(宣言の placeholder)。送信チャンネルだけの欄は「<経路>だけ」の印、channels(送信チャンネル)に無い送信チャンネルだけの欄は「使われない」の印で薄く
+// - 見出し・必須の印(fieldRequiredIn: 宣言の required か、requiredFor が channels に当たる時。件名はメールを送る時だけ、D211)・仮の文(宣言の placeholder)。送信チャンネルだけの欄は「<経路>だけ」の印、channels(送信チャンネル)に無い送信チャンネルだけの欄は「使われない」の印で薄く
 // - 欄の型ごとの入力は LayoutFieldInput(ブロックの並びは LayoutBlocksInput)。readOnly = 読むだけ(システムのテンプレート・固定の文)
 // - 欄に入ると onFocusField("<欄>[.<部分>]")(プレビューがその場所を示す)
 
@@ -16,7 +16,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks/Span";
 import { cn } from "@/lib/cn";
-import { fieldBelongsTo, type MessageLayoutFields } from "@/lib/messaging";
+import { fieldBelongsTo, fieldRequiredIn, type MessageLayoutFields } from "@/lib/messaging";
 
 import { messageChannelLabel } from "@/domains/core/messaging/constants/channelLabels";
 
@@ -93,7 +93,11 @@ export function LayoutFields<T extends FieldValues>({ control, name, fields, cha
                 <Flex align="center" gap="xs" wrap="wrap">
                   <Label htmlFor={id} className="text-sm font-medium">
                     {spec.label}
-                    {spec.required ? <Span tone="destructive"> *</Span> : null}
+                    {fieldRequiredIn(spec, channels) ? (
+                      <Span tone="destructive" data-slot="layout-field-required-mark">
+                        {" *"}
+                      </Span>
+                    ) : null}
                   </Label>
                   {activeChannel && !spec.channels?.length ? (
                     <SoftBadge variant="outline" size="sm" data-slot="layout-field-common-mark">

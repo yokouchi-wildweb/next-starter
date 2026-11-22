@@ -134,7 +134,8 @@ export {
   type MessageLayoutSummary,
   type MessageLayoutValues,
 } from "./layout/types";
-export { applyLayoutRevisions, fieldBelongsTo, fieldsForChannel, layoutValuesSchema, normalizeLayoutValues, upgradeLayoutValues } from "./layout/values";
+export { applyLayoutRevisions, fieldBelongsTo, fieldRequiredIn, fieldsForChannel, layoutValuesSchema, normalizeLayoutValues, upgradeLayoutValues } from "./layout/values";
+export { SUMMARY_TITLE_MAX, summaryTitle } from "./layout/summary";
 export { resolveRendering, type MessageChannelRendering, type MessageRenderingResolution } from "./layout/rendering";
 export {
   buildChannelContent,

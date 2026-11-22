@@ -128,8 +128,11 @@ test("レイアウトの検査: 知らない {{鍵}}・宣言の無いレイア�
   // 定義連絡だけのレイアウト(adminSelectable が無い card)は自由連絡で選べない
   await rejectsWith(sender.sendFreeMessage({ ...base, origin: { layout: "card" }, values: { title: "t" } }), 400, /レイアウト card は自由連絡で選べません/);
   await rejectsWith(sender.sendFreeMessage({ ...base, category: "account", values: values("t") }), 400, /announcement・direct・promotion/);
-  // 欄の中身はレイアウトの欄の zod で検査する(notice の件名は必須)
-  await rejectsWith(sender.sendFreeMessage({ ...base, values: { blocks: [] } }), 400, /欄の中身/);
+  // 欄の中身はレイアウトの欄の zod で検査する(知らない欄は 400)
+  await rejectsWith(sender.sendFreeMessage({ ...base, values: { subject: "s", nope: 1 } }), 400, /欄の中身/);
+  // 件名はメールを送る時だけ必須(D211): メールの無いカテゴリー(news = test だけ)は件名なしで送れる
+  const noSubject = await sender.sendFreeMessage({ ...base, values: { blocks: [{ type: "paragraph", text: "本文" }] } });
+  assert.equal(noSubject.status, "completed");
   // レイアウトの送りは直した印を持たない(入力に edited があっても false)
   const ok = await sender.sendFreeMessage({ ...base, values: values("t"), edited: true });
   assert.equal(ok.status, "completed");

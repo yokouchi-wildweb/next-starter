@@ -16,6 +16,7 @@ import {
   type MessagingAnalyticsStore,
   type MessagingBreakdownAxis,
   type MessagingBreakdownResponse,
+  type MessagingDispatchesParams,
   type MessagingDispatchesResponse,
   type MessagingQueryScope,
   type MessagingSeriesResponse,
@@ -33,6 +34,19 @@ export type MessagingAnalyticsDeps = {
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DISPATCH_LIMIT_DEFAULT = 20;
 const DISPATCH_LIMIT_MAX = 100;
+/** 送信の id の一覧(dispatchIds)の上限 */
+export const DISPATCH_IDS_MAX = 100;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * dispatchIds の検査(重なりを落とす)。@throws DomainError(400) 上限を超える・id の形でない
+ */
+function checkDispatchIds(ids: readonly string[]): string[] {
+  const unique = [...new Set(ids)];
+  if (unique.length > DISPATCH_IDS_MAX) throw new DomainError(`dispatchIds は ${DISPATCH_IDS_MAX} 件までです`, { status: 400 });
+  if (unique.some((id) => !UUID.test(id))) throw new DomainError("dispatchIds に送信の id でない値があります", { status: 400 });
+  return unique;
+}
 
 function filterOf(params: MessagingAnalyticsParams) {
   return {
@@ -143,24 +157,33 @@ export function createMessagingAnalytics(deps: MessagingAnalyticsDeps) {
     },
 
     /**
-     * 送信ごと(送った時刻の新しい順、cursor で続き)。送信の管理が閉なら空
-     * @throws DomainError(400) cursor の形の誤り
+     * 送信ごと(送った時刻の新しい順、cursor で続き)。送信の管理が閉なら空。
+     * dispatchIds(1〜100)= その送信だけ(期間で絞らない・期間の値は読まない・nextCursor null。予約・取り消し・テストの送信は入らない)。
+     * 応答の期間の欄は形を保つため期間の値(省略なら既定)から
+     * @throws DomainError(400) cursor の形の誤り・dispatchIds の上限と形・dispatchIds と cursor を一緒に
      */
-    async getDispatches(params: MessagingAnalyticsParams & { cursor?: string; limit?: number }): Promise<MessagingDispatchesResponse> {
-      const range = resolveDateRange(params);
+    async getDispatches(params: MessagingDispatchesParams): Promise<MessagingDispatchesResponse> {
+      const ids = params.dispatchIds ? checkDispatchIds(params.dispatchIds) : null;
+      if (ids && params.cursor) throw new DomainError("dispatchIds と cursor は一緒に指定できません", { status: 400 });
+      const range = resolveDateRange(ids ? {} : params);
       const tracking = trackingEnabled();
       const base = { ...formatDateRangeForResponse(range), trackingEnabled: tracking };
       if (!deps.gateEnabled("messagingDispatches")) {
         return { ...base, items: [], nextCursor: null, dispatchesEnabled: false };
       }
-      const limit = Math.min(Math.max(Math.trunc(params.limit ?? DISPATCH_LIMIT_DEFAULT), 1), DISPATCH_LIMIT_MAX);
-      const page = await deps.store.dispatchPage({
-        from: range.dateFrom,
-        to: range.dateTo,
-        filter: filterOf(params),
-        cursor: params.cursor ? decodeDispatchCursor(params.cursor) : null,
-        limit: limit + 1,
-      });
+      if (ids && ids.length === 0) return { ...base, items: [], nextCursor: null, dispatchesEnabled: true };
+      const limit = ids ? ids.length : Math.min(Math.max(Math.trunc(params.limit ?? DISPATCH_LIMIT_DEFAULT), 1), DISPATCH_LIMIT_MAX);
+      const page = await deps.store.dispatchPage(
+        ids
+          ? { dispatchIds: ids, filter: filterOf(params), limit }
+          : {
+              from: range.dateFrom,
+              to: range.dateTo,
+              filter: filterOf(params),
+              cursor: params.cursor ? decodeDispatchCursor(params.cursor) : null,
+              limit: limit + 1,
+            },
+      );
       const rows = page.slice(0, limit);
       const scope: MessagingQueryScope = {
         ...scopeOf(range, params, "dispatch", false),

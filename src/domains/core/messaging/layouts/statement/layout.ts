@@ -1,8 +1,8 @@
 // src/domains/core/messaging/layouts/statement/layout.ts
 // 上流のレイアウト「明細」(D122・D123): 札・宛名・本文の知らせ(財布の失効の予告・本通知など)。定義連絡だけが使う(adminSelectable false)。
-// 要約: 題 = 件名 / 本文 = 本文 / 短い本文 = 短い本文(無ければプレビューの文)。短い本文はお知らせの一覧の本文と LINE の文になる(指令 60)
+// 件名はメールを送る時だけ必須(D211)。要約: 題 = 件名(無ければ本文の頭、summaryTitle)/ 本文 = 本文 / 短い本文 = 短い本文(無ければプレビューの文)。短い本文はお知らせの一覧の本文と LINE の文になる(指令 60)
 
-import { defineMessageLayout } from "@/lib/messaging";
+import { defineMessageLayout, summaryTitle } from "@/lib/messaging";
 
 export const layout = defineMessageLayout({
   key: "statement",
@@ -10,7 +10,7 @@ export const layout = defineMessageLayout({
   description: "ロゴと札・宛名・本文(改行はそのまま)を出す、明細のお知らせ",
   adminSelectable: false,
   fields: {
-    subject: { type: "line", label: "件名", required: true },
+    subject: { type: "line", label: "件名", requiredFor: ["email"] },
     preheader: { type: "line", label: "プレビューの文" },
     badge: { type: "line", label: "ロゴの下の札" },
     addressee: { type: "line", label: "宛名" },
@@ -19,7 +19,7 @@ export const layout = defineMessageLayout({
     shortBody: { type: "line", label: "短い本文", placeholder: "お知らせの一覧に出す 1 行(無ければプレビューの文)", channels: ["inApp", "line"] },
   },
   summary: (values) => ({
-    title: values.subject ?? "",
+    title: summaryTitle(values.subject, values.body),
     body: values.body ?? "",
     ...(values.shortBody || values.preheader ? { shortBody: values.shortBody || values.preheader } : {}),
   }),

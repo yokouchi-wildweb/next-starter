@@ -26,6 +26,8 @@ export type MessagingDispatchesClientParams = MessagingAnalyticsClientParams & {
   cursor?: string | null;
   /** 1 回の件数(1-100、既定 20) */
   limit?: number;
+  /** その送信だけ(1〜100。期間・cursor は送らない、カンマ区切りで送る) */
+  dispatchIds?: readonly string[];
 };
 
 /** undefined・null・空文字を落とした query(axios に渡す) */
@@ -78,8 +80,9 @@ export async function fetchMessagingDispatches(
   params: MessagingDispatchesClientParams = {},
 ): Promise<MessagingDispatchesResponse> {
   try {
+    const { dispatchIds, ...rest } = params;
     const { data } = await axios.get<MessagingDispatchesResponse>(`${BASE_PATH}/dispatches`, {
-      params: queryOf(params),
+      params: queryOf({ ...rest, dispatchIds: dispatchIds && dispatchIds.length > 0 ? dispatchIds.join(",") : undefined }),
     });
     return data;
   } catch (error) {

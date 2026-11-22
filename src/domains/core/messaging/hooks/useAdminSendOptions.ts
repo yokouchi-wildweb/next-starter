@@ -7,8 +7,7 @@
 import useSWR from "swr";
 
 import { getAdminSendOptions, type AdminSendOptions } from "../services/client/sendClient";
-
-import { ADMIN_SEND_OPTIONS_KEY } from "./sendKeys";
+import { ADMIN_SEND_OPTIONS_KEY } from "./messagingKeys";
 
 export function useAdminSendOptions(enabled = true) {
   const { data, error, isLoading } = useSWR<AdminSendOptions>(enabled ? ADMIN_SEND_OPTIONS_KEY : null, () => getAdminSendOptions());

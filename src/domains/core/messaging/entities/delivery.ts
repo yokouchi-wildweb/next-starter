@@ -19,6 +19,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 import { UserTable } from "@/domains/user/entities/drizzle";
 
@@ -105,6 +106,11 @@ export const MessageDeliveryTable = pgTable(
       table.id.desc(),
     ),
     index("idx_message_deliveries_created_at").on(table.createdAt),
+    // 保持の重い列の段(sweep/retentionSql.ts expiredDeliveryContentClearSql): 中身の残る行だけを古い順に引く。
+    // 行は deliveriesDays まで残るので、これが無いと毎回 null にし終えた行を読み直す。述語は SQL と同じ文字で書く(db:push:check が 0 になる)
+    index("idx_message_deliveries_content_created")
+      .on(table.createdAt)
+      .where(sql`body IS NOT NULL OR vars IS NOT NULL`),
     // 間引きの window の起点(同じ鍵の最後の送り)
     index("idx_message_deliveries_throttle_sent").on(table.throttle_key, table.sent_at),
   ],

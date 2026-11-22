@@ -31,13 +31,13 @@ const values = {
   ],
 };
 
-test("宣言: 汎用、管理者が選べ、件名が必須でブロックの並び(7 種類)は任意", () => {
+test("宣言: 汎用、管理者が選べ、件名はメールを送る時に必須でブロックの並び(7 種類)は任意", () => {
   assert.equal(layout.key, "notice");
   assert.equal(layout.adminSelectable, true);
   assert.equal(layoutValuesSchema(layout).safeParse(values).success, true);
   assert.equal(layoutValuesSchema(layout).safeParse({ subject: "x", blocks: [] }).success, true);
   assert.equal(layoutValuesSchema(layout).safeParse({ subject: "x" }).success, true);
-  assert.equal(layoutValuesSchema(layout).safeParse({ blocks: values.blocks }).success, false);
+  assert.equal(layoutValuesSchema(layout, { channels: ["email"] }).safeParse({ blocks: values.blocks }).success, false);
 });
 
 test("要約: 題 = 件名・本文 = 段落をつなぐ・画像 = 最初の画像・行き先 = 最初のボタン", () => {
@@ -70,4 +70,12 @@ test("生成の一覧: server の宣言とメール、client のお知らせに�
   assert.equal(layouts.notice?.key, "notice");
   assert.equal(layoutEmails.notice?.layout, "notice");
   assert.equal(layoutInApps.notice?.layout, "notice");
+});
+
+test("件名(D211): メールを送らない時は任意・送る時は必須、無ければ要約の題は本文の頭(40 文字 + …)", () => {
+  const { subject: _subject, ...withoutSubject } = values;
+  assert.equal(layoutValuesSchema(layout, { channels: ["inApp"] }).safeParse(withoutSubject).success, true, "サービス内通知だけなら件名は任意");
+  assert.equal(layoutValuesSchema(layout, { channels: ["inApp", "email"] }).safeParse(withoutSubject).success, false, "メールを送るなら件名が要る");
+  assert.equal(layout.summary(values).title, values.subject, "件名があれば題は件名");
+  assert.equal(layout.summary({ ...withoutSubject, blocks: [{ type: "paragraph" as const, text: `${"あ".repeat(45)}\n2 行目` }] }).title, `${"あ".repeat(40)}…`);
 });

@@ -6,8 +6,8 @@
 
 ## Usage
 
-- 欄: `subject`（件名、必須）・`preheader`（プレビューの文）・`badge`（ロゴの下の札。例「… からのお知らせ」）・`addressee`（宛名。例「… 様」）・`body`（本文、複数行テキスト、必須）・`footer`（末尾の注意書き）・`shortBody`（短い本文、お知らせと LINE だけの欄）
-- 要約: 題 = 件名 / 本文 = 本文 / 短い本文 = `shortBody`、無ければプレビューの文（お知らせの一覧の本文と LINE の文になる）
+- 欄: `subject`（件名、メールを送る時だけ必須 `requiredFor: ["email"]`）・`preheader`（プレビューの文）・`badge`（ロゴの下の札。例「… からのお知らせ」）・`addressee`（宛名。例「… 様」）・`body`（本文、複数行テキスト、必須）・`footer`（末尾の注意書き）・`shortBody`（短い本文、お知らせと LINE だけの欄）
+- 要約: 題 = 件名（無ければ本文の最初の行を 40 文字 + …、`summaryTitle`）/ 本文 = 本文 / 短い本文 = `shortBody`、無ければプレビューの文（お知らせの一覧の本文と LINE の文になる）
 - メール（`email.tsx` → `StatementEmail`）: 前の wallet の NoticeMailView と同じ並び: ロゴ（事業の設定）と札 → 宛名 → 区切り → 本文（改行はそのまま）→ 区切り → 末尾の注意書き。値の無い欄は描かない。好みに従う連絡は最後に停止のリンク
 - お知らせ（`inApp.tsx` → `StatementInApp`、client）: 宛名と本文（改行はそのまま）（件名は受け取り箱の画面の見出し）
 

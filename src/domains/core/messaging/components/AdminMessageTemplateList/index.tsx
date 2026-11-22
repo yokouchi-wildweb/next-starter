@@ -1,5 +1,5 @@
 // src/domains/core/messaging/components/AdminMessageTemplateList/index.tsx
-// セクションコンテナ(管理: 保存されたテンプレートの一覧)。種別で絞る(D135)+ 無限スクロール(カーソル)。
+// セクションコンテナ(管理: 保存されたテンプレートの一覧)。種別で絞る(D135)+ 名前か文面の文字で探す(Enter か「検索」で確定)+ 無限スクロール(カーソル)。
 // 行 = 名前・版・種別とカテゴリーの表示名・更新(鍵は見せない、D46)。レイアウトが無効のテンプレートは「使えない」の印(usable: false)。行を押すと直すモーダル、上の「新規作成」で作るモーダル(AdminMessageTemplateModal。D87)。
 // 流れ(絞り・モーダルの開き先)は hook useAdminMessageTemplateList。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
@@ -9,6 +9,7 @@ import { AlignLeft } from "lucide-react";
 
 import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { Button } from "@/components/Button/Button";
+import { Input } from "@/components/Input/Input";
 import { SelectInput } from "@/components/Input/Select";
 import { Label } from "@/components/Input/Label";
 import { Flex } from "@/components/Layout/Flex";
@@ -22,7 +23,7 @@ import { messageKindAdminLabel, messageKindAdminOptions } from "@/domains/core/m
 import { AdminMessageTemplateModal } from "@/domains/core/messaging/components/AdminMessageTemplateModal";
 import { KindCategoryMeta, RowDateMeta, RowMetaItem } from "@/domains/core/messaging/components/common/MessageRowMeta";
 import { useAdminDispatchCategories } from "@/domains/core/messaging/hooks/useAdminDispatchCategories";
-import { useAdminMessageTemplateList } from "@/domains/core/messaging/hooks/useAdminMessageTemplateList";
+import { TEMPLATE_QUERY_MAX, useAdminMessageTemplateList } from "@/domains/core/messaging/hooks/useAdminMessageTemplateList";
 
 const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
 
@@ -33,7 +34,7 @@ const when = (iso: string | null) => {
 };
 
 export function AdminMessageTemplateList() {
-  const { kind, setKind, query, modal } = useAdminMessageTemplateList({ observerOptions: OBSERVER_OPTIONS });
+  const { kind, setKind, search, query, modal } = useAdminMessageTemplateList({ observerOptions: OBSERVER_OPTIONS });
   // 種別の表示名: カテゴリーの受け口の種別から(送信一覧と同じ「種別 › カテゴリー」)
   const categories = useAdminDispatchCategories();
   // 種別の絞り込みの選択肢 = 管理画面から送れるカテゴリーの種別(重ねない、表の並び)
@@ -59,6 +60,33 @@ export function AdminMessageTemplateList() {
               placeholder="すべて"
             />
           </Stack>
+          {/* 文字の検索(名前か文面)。Enter か「検索」で確定 */}
+          <Stack gap="2xs" data-slot="template-search">
+            <Label htmlFor="template-filter-q" className="text-xs">
+              検索
+            </Label>
+            <Flex gap="xs" align="end">
+              <Input
+                id="template-filter-q"
+                className="w-64"
+                value={search.text}
+                maxLength={TEMPLATE_QUERY_MAX}
+                placeholder="名前・文面に含む文字"
+                onChange={(event) => search.setText(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.nativeEvent.isComposing) search.apply();
+                }}
+              />
+              <Button type="button" size="md" variant="primary" onClick={search.apply}>
+                検索
+              </Button>
+              {search.q ? (
+                <Button type="button" size="md" variant="outline" onClick={search.clear}>
+                  クリア
+                </Button>
+              ) : null}
+            </Flex>
+          </Stack>
         </Flex>
         <CreateButton onClick={modal.openNew} />
       </Flex>
@@ -72,7 +100,7 @@ export function AdminMessageTemplateList() {
         onRetry={query.retry}
         emptyNode={
           <Para tone="muted" align="center">
-            テンプレートはありません
+            {search.q ? "当てはまるテンプレートはありません" : "テンプレートはありません"}
           </Para>
         }
         completedText="すべて表示しました"

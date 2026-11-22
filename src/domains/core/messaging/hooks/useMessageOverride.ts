@@ -7,8 +7,7 @@
 import useSWR from "swr";
 
 import { getMessageOverride, type AdminOverrideMessageDetail } from "../services/client/overrideClient";
-
-import { messageOverrideKey } from "./overrideKeys";
+import { messageOverrideKey } from "./messagingKeys";
 
 export function useMessageOverride(key: string | null | undefined) {
   const { data, error, isLoading, mutate } = useSWR<AdminOverrideMessageDetail>(key ? messageOverrideKey(key) : null, () =>

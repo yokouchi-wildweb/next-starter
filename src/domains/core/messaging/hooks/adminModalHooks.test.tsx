@@ -121,6 +121,7 @@ const DISPATCH = {
     canDelete: { allowed: true, reason: null },
     canResend: { allowed: true, reason: null, mode: "requeue", failed: 1, unknown: 1 },
     canContinue: { allowed: true, reason: null },
+    canEdit: { allowed: false, reason: "not_scheduled", content: { allowed: false, reason: "not_scheduled" } },
   },
 };
 const DELETE_SUMMARY = {

@@ -4,6 +4,7 @@
 // - d3: 予約と大きな送信・target を再開の位置から展開し、終えたら status・channel_counts・recipient_count・vars を確定
 // - d4: 続きを送るは 1 束だけ
 // - d5: 保持の日数で消し、お知らせが参照する送信は残し、送信の冪等の鍵を移す
+// - d5b: 配達の保持の 2 段: deliveryContentDays を過ぎた配達は行を残して body・vars を null、行は deliveriesDays で消す
 // - グループ宛て(D58): 最初の 1 回で一員を送信の受信者の一覧へ書き(配達の行なし、送り始めの線より後の登録は外す)、その後は一覧だけから
 //   束ごとに配達の行。固定できない(門が閉・グループの誤り・時間の上限)送信は cancelled + cancelReason。お知らせは受信者ごと
 // - 送り始めの線(D58): 全員・ロール宛ては送信を作った時刻より後に登録した利用者を入れない
@@ -350,6 +351,51 @@ test("d5: 保持の日数で消し、お知らせが参照する送信と送っ�
     deadline: farFuture(),
   });
   assert.equal(expiring.idempotencyKeys, 1);
+});
+
+test("d5b: 配達の重い列(body・vars)は deliveryContentDays で null にして行を残し、行は deliveriesDays で消す", async () => {
+  const { world, deps, sender } = setup();
+  const day = 24 * 60 * 60 * 1000;
+  const now = new Date("2030-01-01T00:00:00.000Z");
+  const ago = (days: number) => new Date(now.getTime() - days * day);
+  for (const item of ["old", "recent", "inFlight", "expired"]) {
+    await sender.sendMessage({ ...notice, record: "full" }, { recipient: { userId: "u2" }, vars: { item } });
+  }
+  const [old, recent, inFlight, expired] = world.store.deliveries;
+  for (const row of [old, recent, inFlight, expired]) {
+    assert.notEqual(row.body, null);
+    assert.notEqual(row.vars, null);
+  }
+  Object.assign(old, { createdAt: ago(100) });
+  Object.assign(recent, { createdAt: ago(10) });
+  Object.assign(inFlight, { createdAt: ago(100), status: "queued" });
+  Object.assign(expired, { createdAt: ago(731) });
+  const oldStatus = old.status;
+  const config = { ...deps.config, retention: { ...deps.config.retention, deliveriesDays: 730, deliveryContentDays: 90, chunkSize: 1 } };
+
+  const result = await pruneMessaging(world.retentionStore, { config, now, deadline: farFuture() });
+  // 中身を null にした行: old と expired(expired は続く段で行ごと消える)
+  assert.equal(result.deliveryContents, 2);
+  assert.equal(result.deliveries, 1);
+  assert.equal(result.truncated, false);
+  assert.deepEqual(world.store.deliveries.map((row) => row.id), [old.id, recent.id, inFlight.id]);
+  assert.equal(old.body, null);
+  assert.equal(old.vars, null);
+  assert.equal(old.status, oldStatus); // 行と状態は残る
+  assert.notEqual(recent.body, null); // 日数の前
+  assert.notEqual(inFlight.body, null); // 送っている途中は取らない
+
+  // もう null の行は取らない
+  const again = await pruneMessaging(world.retentionStore, { config, now, deadline: farFuture() });
+  assert.equal(again.deliveryContents, 0);
+  assert.equal(again.deliveries, 0);
+
+  // 締切を過ぎていれば何もせず truncated(続きは次の実行)
+  Object.assign(recent, { createdAt: ago(100) });
+  const late = await pruneMessaging(world.retentionStore, { config, now, deadline: new Date(Date.now() - 1) });
+  assert.equal(late.deliveryContents, 0);
+  assert.equal(late.truncated, true);
+  assert.notEqual(recent.body, null);
 });
 
 function setupInApp(inAppBody: string) {

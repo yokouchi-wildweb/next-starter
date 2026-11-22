@@ -8,12 +8,11 @@
 import { useDomainMutation } from "@/lib/crud";
 
 import { resendAdminDispatch, type AdminResendResult } from "../services/client/adminMessagingClient";
-
-import { ADMIN_DISPATCHES_KEY, adminDispatchKey } from "./adminMessagingKeys";
+import { ADMIN_DISPATCHES_KEY, adminDispatchKey, adminDispatchResendKey } from "./messagingKeys";
 
 export function useResendDispatch(dispatchId: string) {
   const mutation = useDomainMutation<AdminResendResult, { includeUnknown?: boolean }>(
-    `${adminDispatchKey(dispatchId)}/resend`,
+    adminDispatchResendKey(dispatchId),
     (input) => resendAdminDispatch(dispatchId, input),
     [adminDispatchKey(dispatchId), ADMIN_DISPATCHES_KEY],
   );

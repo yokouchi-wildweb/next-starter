@@ -2,7 +2,7 @@
 
 // src/domains/core/messaging/hooks/useMessageTemplates.ts
 //
-// 管理: 保存されたテンプレートの一覧(無限スクロール、カーソルのモード)。種別が変われば先頭から取り直す
+// 管理: 保存されたテンプレートの一覧(無限スクロール、カーソルのモード)。種別・文字の検索が変われば先頭から取り直す
 
 import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
 
@@ -13,6 +13,8 @@ const DEFAULT_LIMIT = 50;
 export type UseMessageTemplatesOptions = {
   /** 種別で絞る(その種別のカテゴリーとシステムテンプレート、D135。省略 = 全部) */
   kind?: string;
+  /** 名前か文面の文字で探す(1〜100 字。空・省略 = 探さない) */
+  q?: string;
   /** 1 回の件数(既定 50、最大 100) */
   limit?: number;
   enabled?: boolean;
@@ -20,12 +22,12 @@ export type UseMessageTemplatesOptions = {
 };
 
 export function useMessageTemplates(options: UseMessageTemplatesOptions = {}) {
-  const { kind, limit = DEFAULT_LIMIT, enabled, observerOptions } = options;
+  const { kind, q, limit = DEFAULT_LIMIT, enabled, observerOptions } = options;
   return useInfiniteScrollQuery<AdminTemplateSummary, Record<string, never>>({
-    cursorFetcher: ({ cursor, limit: pageLimit }) => listMessageTemplates({ kind, cursor, limit: pageLimit }),
+    cursorFetcher: ({ cursor, limit: pageLimit }) => listMessageTemplates({ kind, q: q || undefined, cursor, limit: pageLimit }),
     limit,
     enabled,
     observerOptions,
-    deps: [kind, limit],
+    deps: [kind, q, limit],
   });
 }

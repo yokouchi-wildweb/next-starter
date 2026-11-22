@@ -7,7 +7,7 @@ import type { CronTaskDefinition } from "@/lib/cron";
 
 export const cronTask: CronTaskDefinition = {
   name: "messaging-retention",
-  description: "連絡の事件・配達・送信の記録を保持の日数で消す（消す送信の冪等の鍵は残す）",
+  description: "連絡の事件・配達・送信の記録を保持の日数で消す（配達の本文・変数は先に null、消す送信の冪等の鍵は残す）",
   schedule: "45 18 * * *", // 毎日 03:45 JST
   run: async () => {
     const { pruneMessagingRecords } = await import("@/domains/core/messaging/services/server/sweep");

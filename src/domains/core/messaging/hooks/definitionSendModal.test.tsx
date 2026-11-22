@@ -42,6 +42,7 @@ const definition = (key: string, over: Record<string, unknown> = {}) => ({
 });
 
 let definitions: Record<string, unknown>[] = [];
+let estimateReply: { count: number; fixedAtSend: true; memberLimit?: number; overLimit?: boolean } = { count: 3, fixedAtSend: true };
 const calls: unknown[][] = [];
 mock.module("@/domains/core/messaging/services/client/definitionSendClient", {
   namedExports: {
@@ -56,6 +57,10 @@ mock.module("@/domains/core/messaging/services/client/definitionSendClient", {
     previewAdminDefinition: async (input: unknown) => {
       calls.push(["preview", input]);
       return { messageKey: "k", channels: [] };
+    },
+    estimateAdminDefinitionRecipients: async (input: unknown) => {
+      calls.push(["estimate", input]);
+      return estimateReply;
     },
     sendAdminDefinitionTest: async (input: unknown) => {
       calls.push(["test", input]);
@@ -90,6 +95,7 @@ beforeEach(() => {
   calls.length = 0;
   broadcastOpen = true;
   definitions = [definition("bankTransferReview.statement")];
+  estimateReply = { count: 3, fixedAtSend: true };
 });
 
 type State = ReturnType<typeof import("./useDefinitionSendModal").useDefinitionSendModal>;
@@ -195,6 +201,36 @@ test("broadcast: 門が閉なら使えず取らない。開なら宛先の種類
   await view.unmount();
 });
 
+test("broadcast の人数の見込み: 確認へ進む時に { message, target } で取り、上限を超えたら送らない。閉じると空", async () => {
+  definitions = [definition("notice.estimate", { adminTargets: ["all", "group"] })];
+  const view = await mount({ entry: { type: "broadcast" } });
+  await openIt(view);
+  assert.equal(view.m().estimate, null);
+  await act(async () => {
+    await view.m().requestConfirm();
+  });
+  assert.deepEqual(calls.find((call) => call[0] === "estimate"), ["estimate", { message: "notice.estimate", target: { type: "all" } }]);
+  assert.equal(view.m().step, "confirm");
+  assert.deepEqual(view.m().estimate, { count: 3, fixedAtSend: true });
+  assert.equal(view.m().estimateOverLimit, false);
+  await act(async () => view.m().setOpen(false));
+  assert.equal(view.m().estimate, null, "閉じると見込みも空に戻る");
+  await view.unmount();
+
+  estimateReply = { count: 150_000, fixedAtSend: true, memberLimit: 100_000, overLimit: true };
+  const over = await mount({ entry: { type: "broadcast" } });
+  await openIt(over);
+  await act(async () => {
+    await over.m().requestConfirm();
+  });
+  assert.equal(over.m().estimateOverLimit, true);
+  await act(async () => {
+    await assert.rejects(() => over.m().confirmSend(), /宛先数 150,000 人が上限 100,000 人を超えているため送信できません/);
+  });
+  assert.equal(calls.some((call) => call[0] === "send"), false, "上限を超えたら送る口を呼ばない");
+  await over.unmount();
+});
+
 test("required: 文面の箱なし・メールは外せない", async () => {
   definitions = [definition("legal.terms", { required: true, editableFields: [], channels: { email: "free", inApp: "free" }, initialChannels: ["inApp"] })];
   const view = await mount({ entry: recordsOf("t.required") });
@@ -252,6 +288,8 @@ test("表示例・テスト・送る: 本文、触っていない欄は edits �
     await view.m().requestConfirm();
   });
   assert.equal(view.m().step, "confirm");
+  assert.equal(calls.some((call) => call[0] === "estimate"), false, "記録の入口は見込みを取らない");
+  assert.equal(view.m().estimate, null);
   const key = view.m().buildSendInput().idempotencyKey;
   await act(async () => {
     await view.m().confirmSend();

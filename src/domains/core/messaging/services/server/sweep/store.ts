@@ -4,7 +4,7 @@
 // - 配達の行の取り: UPDATE … WHERE id IN (SELECT … FOR UPDATE SKIP LOCKED) で lease を付ける(並走する cron と重ならない)
 // - 展開: 送信の行を FOR UPDATE SKIP LOCKED で取り、配達の行と再開の位置を同じ取引で書く
 // - グループ宛ての固定(D58): 同じ取引の savepoint で SET LOCAL statement_timeout の後に 1 文の INSERT … SELECT(時間の上限なら savepoint を戻し送信を止める)
-// - 消す: SKIP LOCKED の CTE で 1 文 = 最大 limit 行(auditLog の掃除と同じ形)
+// - 消す: SKIP LOCKED の CTE で 1 文 = 最大 limit 行(auditLog の掃除と同じ形)。配達の重い列は同じ形の UPDATE で null にする
 
 import { and, asc, count, eq, inArray, isNotNull, isNull, lt, lte, ne, notExists, or, sql } from "drizzle-orm";
 
@@ -23,7 +23,12 @@ import { isDispatchId } from "../dispatchId";
 import { boundInboxImageRefs } from "../inbox/imageBinding";
 import { cleanupDetachedInboxImages, detachInboxImages, storageInboxImageLedger } from "../inbox/imageBindingLedger";
 import { bindExpansionImage } from "./expandImage";
-import { expiredDeliveriesDeleteSql, expiredDispatchesSelectSql, expiredEventsDeleteSql } from "./retentionSql";
+import {
+  expiredDeliveriesDeleteSql,
+  expiredDeliveryContentClearSql,
+  expiredDispatchesSelectSql,
+  expiredEventsDeleteSql,
+} from "./retentionSql";
 import type { ExpansionWrite, MessageRetentionStore, MessageSweepStore } from "./types";
 
 const IN_FLIGHT = ["queued", "sending"] as const;
@@ -254,6 +259,10 @@ export const drizzleMessageSweepStore: MessageSweepStore = {
 export const drizzleMessageRetentionStore: MessageRetentionStore = {
   async deleteEventsBefore(cutoff, limit, maxSeq) {
     return rowsOf(await db.execute(expiredEventsDeleteSql(cutoff, limit, maxSeq))).length;
+  },
+
+  async clearDeliveryContentBefore(cutoff, limit) {
+    return rowsOf(await db.execute(expiredDeliveryContentClearSql(cutoff, limit))).length;
   },
 
   async deleteDeliveriesBefore(cutoff, limit) {

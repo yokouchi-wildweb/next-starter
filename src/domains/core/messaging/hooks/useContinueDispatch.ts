@@ -7,12 +7,11 @@
 import { useDomainMutation } from "@/lib/crud";
 
 import { continueAdminDispatch, type ContinueSendingResult } from "../services/client/adminMessagingClient";
-
-import { ADMIN_DISPATCHES_KEY, adminDispatchKey } from "./adminMessagingKeys";
+import { ADMIN_DISPATCHES_KEY, adminDispatchContinueKey, adminDispatchKey } from "./messagingKeys";
 
 export function useContinueDispatch(dispatchId: string) {
   const mutation = useDomainMutation<ContinueSendingResult, void>(
-    `${adminDispatchKey(dispatchId)}/continue`,
+    adminDispatchContinueKey(dispatchId),
     () => continueAdminDispatch(dispatchId),
     [adminDispatchKey(dispatchId), ADMIN_DISPATCHES_KEY],
   );

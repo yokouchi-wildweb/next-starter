@@ -2,7 +2,7 @@
 
 // src/domains/core/messaging/hooks/useAdminDispatches.ts
 //
-// 管理: 送信の一覧(無限スクロール、カーソルのモード)。絞り込みが変われば先頭から取り直す。
+// 管理: 送信の一覧(無限スクロール、カーソルのモード)。絞り込み(送り元・送った人・運営が送った物だけ・件名の検索も)が変われば先頭から取り直す。
 // 画面は @/components/Widgets/InfiniteScrollList に items / hasMore / sentinelRef を渡す
 
 import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
@@ -25,13 +25,13 @@ export type UseAdminDispatchesOptions = {
 
 export function useAdminDispatches(options: UseAdminDispatchesOptions = {}) {
   const { filters = {}, limit = DEFAULT_LIMIT, enabled, observerOptions } = options;
-  const { from, to, kind, category, channel, status, deleted } = filters;
+  const { from, to, kind, category, channel, status, source, actor, sentBy, q, deleted } = filters;
   return useInfiniteScrollQuery<AdminDispatchSummary, Record<string, never>>({
     cursorFetcher: ({ cursor, limit: pageLimit }) =>
-      listAdminDispatches({ from, to, kind, category, channel, status, deleted, cursor, limit: pageLimit }),
+      listAdminDispatches({ from, to, kind, category, channel, status, source, actor, sentBy, q, deleted, cursor, limit: pageLimit }),
     limit,
     enabled,
     observerOptions,
-    deps: [from, to, kind, category, channel, status, deleted, limit],
+    deps: [from, to, kind, category, channel, status, source, actor, sentBy, q, deleted, limit],
   });
 }

@@ -1,13 +1,15 @@
 // src/domains/core/messaging/components/AdminDispatchDetail/index.tsx
 // セクションコンテナ(管理: 送信 1 件)と、その中の塊(送信の詳細のモーダル AdminDispatchDetailModal も同じ塊で組む、D130)。
-// - DispatchSummaryBlock = 基本情報(状態・件名 / 題・種別とカテゴリーの表示名・送り元の表示名(ある時だけ)・宛先・数・送った人・時刻。
-//   定義の鍵・送り元の鍵は見せない、D46)
+// - DispatchSummaryBlock = 基本情報(状態・件名 / 題・種別とカテゴリーの表示名・完了日時・理由と、部品 DispatchMeta(送信元・送信者・出どころ・
+//   作成 / 予約日時・送信方法)・DispatchTargetSummary(宛先の指定と人数。全員・ロール・グループ宛てでも利用者を並べない、D210)。
+//   定義の鍵・送り元の鍵は見せない、D46。ロールの表示名は利用者のドメインの公開の関数 formatUserRoleLabel)
 // - DispatchBodyBlock = プレビュー(送信の中身 = レイアウトと欄の中身を残した送信: 送信の値で差し込んだレイアウトの描き方を送信チャンネルのタブで、部品 LayoutPreview。
 //   メールは送った HTML、お知らせは受け取り箱と同じ見せ方。中身の無い前の形の送信は残した本文)
 // - DispatchDeliveriesBlock = 送信状況(配達の一覧、状態・送信チャンネルで絞る、無限スクロール = カーソル)
-// - DispatchActions = 送信の操作(状態の 1 行と今できる操作だけ: 削除・失敗分を再送・送信を再開。部品 DispatchOperations)と
+// - DispatchReadersBlock = 既読した利用者(サービス内通知を含む送信だけのタブ。開いた時だけ取る: hook useDispatchReaders + 部品 DispatchReaders、D210)
+// - DispatchActions = 送信の操作(状態の 1 行と今できる操作だけ: 削除・失敗分を再送・送信を再開。部品 DispatchOperations)と予約を編集(ScheduledEditModal)と
 //   「同じ内容で送る」(送るモーダル。自由連絡の送信 = 詳細の sameAs が null でない時だけ、写すのは sameAs。門 messagingBroadcast が閉なら出さない、D193)
-// AdminDispatchDetail(dispatchId)= 塊をタブ(基本情報 / 送信状況 / プレビュー)と操作で並べた入れ物(fork が自分の画面に置ける)。
+// AdminDispatchDetail(dispatchId)= 塊をタブ(基本情報 / 送信状況 / プレビュー / 既読した利用者)と操作で並べた入れ物(fork が自分の画面に置ける)。
 // 流れ(配達の絞り・includeUnknown・操作と知らせ)は hook useAdminDispatchDetail。下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
@@ -31,12 +33,12 @@ import {
   DELIVERY_STATUS_DISPLAY,
 } from "@/domains/core/messaging/components/common/DeliveryStatusBadge";
 import { DeliveryRow } from "@/domains/core/messaging/components/common/DeliveryRow";
-import {
-  dispatchHeading,
-  dispatchKindLabel,
-  dispatchTargetGroupLabel,
-  formatAdminDateTime,
-} from "@/domains/core/messaging/components/common/DispatchRow";
+import { dispatchHeading, dispatchKindLabel, formatAdminDateTime } from "@/domains/core/messaging/components/common/DispatchRow";
+import { DispatchMeta } from "@/domains/core/messaging/components/common/DispatchMeta";
+import { DispatchReaders } from "@/domains/core/messaging/components/common/DispatchReaders";
+import { DispatchTargetSummary } from "@/domains/core/messaging/components/common/DispatchTargetSummary";
+import { ScheduledEditModal } from "@/domains/core/messaging/components/ScheduledEditModal";
+import { formatUserRoleLabel } from "@/domains/core/user/utils";
 import { useGate } from "@/featureGate/client";
 
 import { ADMIN_CHANNEL_FILTER_OPTIONS, messageChannelLabel } from "@/domains/core/messaging/constants/channelLabels";
@@ -50,6 +52,7 @@ import { DispatchOperations } from "@/domains/core/messaging/components/common/D
 import { dispatchStateLine } from "@/domains/core/messaging/constants/dispatchOperations";
 import { DispatchStatusBadge } from "@/domains/core/messaging/components/common/DispatchStatusBadge";
 import { useAdminDispatchDetail } from "@/domains/core/messaging/hooks/useAdminDispatchDetail";
+import { useDispatchReaders } from "@/domains/core/messaging/hooks/useDispatchReaders";
 import type { AdminDispatchDetail as AdminDispatchDetailDto } from "@/domains/core/messaging/services/client/adminMessagingClient";
 
 export type AdminDispatchDetailProps = {
@@ -64,12 +67,21 @@ const DELIVERY_STATUS_OPTIONS = Object.entries(DELIVERY_STATUS_DISPLAY).map(([va
 /** 送信 1 件の状態(hook useAdminDispatchDetail の戻り値)。塊はこれを受けて描く */
 export type AdminDispatchDetailState = ReturnType<typeof useAdminDispatchDetail>;
 
-/** 詳細のタブ */
+/** 詳細のタブ(readers = 既読した利用者は、サービス内通知を含む送信だけ: dispatchDetailTabs) */
 export const DISPATCH_DETAIL_TABS = [
   { value: "summary", label: "基本情報" },
   { value: "deliveries", label: "送信状況" },
   { value: "preview", label: "プレビュー" },
+  { value: "readers", label: "既読した利用者" },
 ] as const;
+
+/** 送信に出すタブ(既読した利用者はサービス内通知を含む送信だけ) */
+export function dispatchDetailTabs(dispatch: Pick<AdminDispatchDetailDto, "channels">) {
+  return DISPATCH_DETAIL_TABS.filter((tab) => tab.value !== "readers" || dispatch.channels.includes("inApp"));
+}
+
+/** ロールの表示名(利用者のドメインのロールの設定。無いロールは id) */
+export const dispatchRoleLabelOf = (role: string): string => formatUserRoleLabel(role, role);
 
 export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
   const detail = useAdminDispatchDetail(dispatchId, { observerOptions: OBSERVER_OPTIONS });
@@ -83,12 +95,14 @@ export function AdminDispatchDetail({ dispatchId }: AdminDispatchDetailProps) {
 
   return (
     <Stack gap="md">
-      <StateTabs tabs={[...DISPATCH_DETAIL_TABS]} value={tab} onValueChange={setTab} ariaLabel="送信の詳細" size="sm">
+      <StateTabs tabs={dispatchDetailTabs(dispatch)} value={tab} onValueChange={setTab} ariaLabel="送信の詳細" size="sm">
         <StateTabsContent value={tab} className="pt-3">
           {tab === "summary" ? (
             <DispatchSummaryBlock dispatch={dispatch} categoryLabel={categories.labelOf(dispatch.category)} />
           ) : tab === "deliveries" ? (
             <DispatchDeliveriesBlock detail={detail} />
+          ) : tab === "readers" ? (
+            <DispatchReadersBlock dispatchId={dispatch.id} />
           ) : (
             <DispatchBodyBlock dispatch={dispatch} preview={detail.preview} />
           )}
@@ -115,8 +129,8 @@ export function DispatchDetailMissing({ error }: { error: unknown }) {
   );
 }
 
-/** 送信の操作(削除・失敗分を再送・送信を再開)と「同じ内容で送る」(自由連絡の送信だけ: 定義連絡・中身の無い前の形の送信は sameAs が null) */
-export function DispatchActions({ detail }: { detail: AdminDispatchDetailState }) {
+/** 送信の操作(削除・失敗分を再送・送信を再開)と「予約を編集」(canEdit の時だけ、保存の後 onEdited に返った送信)と「同じ内容で送る」(自由連絡の送信だけ: 定義連絡・中身の無い前の形の送信は sameAs が null) */
+export function DispatchActions({ detail, onEdited }: { detail: AdminDispatchDetailState; onEdited?: (dispatch: AdminDispatchDetailDto) => void }) {
   const canSend = useGate().enabled("messagingBroadcast");
   const { dispatch, includeUnknown, setIncludeUnknown, remove, resend, continueDispatch } = detail;
   if (!dispatch) return null;
@@ -136,7 +150,11 @@ export function DispatchActions({ detail }: { detail: AdminDispatchDetailState }
         canContinue={dispatch.operations.canContinue.allowed}
         onContinue={continueDispatch}
       />
-      {canSend && dispatch.sameAs !== null ? <MessageSendModal mode={{ type: "sameAs", dispatch }} /> : null}
+      <Flex gap="xs" wrap="wrap" justify="end">
+        {/* 予約を編集(予約のままの送信だけ、operations.canEdit が閉なら描かない。自由連絡・定義連絡とも、D210) */}
+        <ScheduledEditModal dispatch={dispatch} roleLabelOf={dispatchRoleLabelOf} onSaved={onEdited} />
+        {canSend && dispatch.sameAs !== null ? <MessageSendModal mode={{ type: "sameAs", dispatch }} /> : null}
+      </Flex>
     </Flex>
   );
 }
@@ -199,6 +217,12 @@ export function DispatchDeliveriesBlock({ detail }: { detail: AdminDispatchDetai
   );
 }
 
+/** 既読した利用者(タブを開いた時だけ描く = 開いた時だけ取る) */
+export function DispatchReadersBlock({ dispatchId }: { dispatchId: string }) {
+  const readers = useDispatchReaders(dispatchId, { observerOptions: OBSERVER_OPTIONS });
+  return <DispatchReaders readers={readers} />;
+}
+
 /** 送信の中身(数・時刻・本文) */
 type DispatchPreviewState = ReturnType<typeof useAdminDispatchDetail>["preview"];
 
@@ -234,18 +258,6 @@ function DispatchContentPreview({ preview }: { preview: NonNullable<DispatchPrev
 }
 
 /** 基本情報 */
-/**
- * 送信のテンプレートの表示(テンプレートから送っていない送信は null)。消したテンプレートの送信は「削除されたテンプレート」(D137)。
- * DTO にテンプレートの名前は無いので版の番号で見せる
- */
-export function dispatchTemplateLabel(
-  dispatch: Pick<AdminDispatchDetailDto, "templateVersion" | "templateDeleted" | "templateEdited">,
-): string | null {
-  if (dispatch.templateVersion === null) return null;
-  const edited = dispatch.templateEdited ? "・文言を直して送信" : "";
-  return dispatch.templateDeleted ? `削除されたテンプレート(v${dispatch.templateVersion}${edited})` : `v${dispatch.templateVersion}${edited ? `(${edited.slice(1)})` : ""}`;
-}
-
 export function DispatchSummaryBlock({ dispatch, categoryLabel }: { dispatch: AdminDispatchDetailDto; categoryLabel: string | null }) {
   const headings = Object.entries(dispatch.headings ?? {});
   const counts = Object.entries(dispatch.channelCounts ?? {});
@@ -262,14 +274,8 @@ export function DispatchSummaryBlock({ dispatch, categoryLabel }: { dispatch: Ad
       <Stack gap="2xs">
         <Field label="種別" value={dispatchKindLabel(dispatch.kind) ?? "-"} />
         <Field label="カテゴリー" value={categoryLabel ?? (dispatch.category ? "削除されたカテゴリー" : "-")} />
-        {dispatch.sourceLabel ? <Field label="送信元" value={dispatch.sourceLabel} /> : null}
-        {dispatchTemplateLabel(dispatch) ? <Field label="テンプレート" value={dispatchTemplateLabel(dispatch)!} /> : null}
-        <Field label="送信方法" value={dispatch.channels.map(messageChannelLabel).join(" / ")} />
-        {dispatch.targetGroup ? <Field label="宛先" value={dispatchTargetGroupLabel(dispatch) ?? "グループ"} /> : null}
-        <Field label="宛先数" value={`${dispatch.recipientCount} 名`} />
-        <Field label="送信者" value={dispatch.actorName ?? (dispatch.actor.id ? "(名前未設定のユーザー)" : "システム")} />
-        <Field label="作成日時" value={formatAdminDateTime(dispatch.createdAt)} />
-        {dispatch.scheduledAt ? <Field label="予約日時" value={formatAdminDateTime(dispatch.scheduledAt)} /> : null}
+        <DispatchTargetSummary dispatch={dispatch} roleLabelOf={dispatchRoleLabelOf} />
+        <DispatchMeta dispatch={dispatch} />
         <Field label="完了日時" value={formatAdminDateTime(dispatch.completedAt)} />
         {dispatch.reason ? <Field label="理由" value={dispatch.reason} /> : null}
       </Stack>

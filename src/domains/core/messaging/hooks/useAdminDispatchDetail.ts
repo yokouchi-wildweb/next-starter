@@ -19,13 +19,13 @@ import { getAdminDispatchPreview, type AdminDispatchPreview } from "../services/
 
 import type { LayoutPreviewContent } from "../components/common/LayoutPreview";
 
-import { adminDispatchKey } from "./adminMessagingKeys";
 import { useAdminDispatch } from "./useAdminDispatch";
 import { useAdminDispatchDeliveries } from "./useAdminDispatchDeliveries";
 import { useContinueDispatch } from "./useContinueDispatch";
 import { useDeleteDispatch } from "./useDeleteDispatch";
 import { useDispatchDeleteSummary } from "./useDispatchDeleteSummary";
 import { useResendDispatch } from "./useResendDispatch";
+import { adminDispatchPreviewKey } from "./messagingKeys";
 
 export type UseAdminDispatchDetailOptions = {
   /** 配達の 1 回の件数(既定 50、最大 100) */
@@ -41,7 +41,7 @@ export function useAdminDispatchDetail(dispatchId: string, options: UseAdminDisp
   const { dispatch, error, isLoading } = useAdminDispatch(dispatchId);
   // 送信の中身(レイアウトと欄の中身)を残した送信だけプレビューを取る
   const hasContent = Boolean(dispatch?.content);
-  const previewQuery = useSWR<AdminDispatchPreview>(hasContent ? `${adminDispatchKey(dispatchId)}/preview` : null, () =>
+  const previewQuery = useSWR<AdminDispatchPreview>(hasContent ? adminDispatchPreviewKey(dispatchId) : null, () =>
     getAdminDispatchPreview(dispatchId),
   );
   const previewData = previewQuery.data;

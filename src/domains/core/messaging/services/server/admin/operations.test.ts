@@ -340,4 +340,18 @@ test("判定の印: 画面のボタンと service は同じ判定", () => {
   assert.deepEqual([deleted.canDelete.reason, deleted.canResend.reason, deleted.canContinue.reason], ["deleted", "deleted", "deleted"]);
   assert.equal(operationFlags({ ...base, status: "cancelled" }, policy, { failed: 1, unknown: 0 }).canResend.reason, "cancelled");
   assert.equal(operationFlags({ ...base, status: "scheduled" }, policy, { failed: 1, unknown: 0 }).canResend.reason, "scheduled");
+  // 予約の直し: 予約のままだけ、本文の無い送信・テンプレートを消した送信は時刻だけ
+  const none = { allowed: false, reason: "not_scheduled" };
+  assert.deepEqual(flags.canEdit, { ...none, content: none });
+  const ok = { allowed: true, reason: null };
+  assert.deepEqual(operationFlags({ ...base, status: "scheduled" }, policy, { failed: 0, unknown: 0 }).canEdit, { ...ok, content: ok });
+  assert.deepEqual(deleted.canEdit.reason, "deleted");
+  assert.deepEqual(operationFlags({ ...base, status: "scheduled", values: null }, policy, { failed: 0, unknown: 0 }).canEdit, {
+    ...ok,
+    content: { allowed: false, reason: "body_missing" },
+  });
+  assert.equal(
+    operationFlags({ ...base, status: "scheduled", message_key: null, template_id: null, template_version: 2 }, policy, { failed: 0, unknown: 0 }).canEdit.content.reason,
+    "template_missing",
+  );
 });

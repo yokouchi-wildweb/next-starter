@@ -19,6 +19,7 @@ using:
 - functional: functional messages are never disabled, throttled, admin-overridden or stripped of email | judged on the category after the override
 - overrides: an upstream message changes only through messages/<name>.override.ts (label, values, extras, enabled, adminEditableOnly, record, throttle, category, channelModes, adminText; channelModes and adminText replaced whole) | an upstream record target only through recordTargets/<name>.override.ts (messages)
 - send_screens: a fixed-text send = a definition with adminTargets + the owner domain's recordTargets/<name>.ts + definitionBulkAction (the generic DefinitionSendModal) or an own modal from the public hooks (hooks/index.ts) and parts | MessageSendModal / bulkMessageAction only for text the admin writes on the spot, never to build a fixed text
+- scheduled_edit: a scheduled send changes only its text, channels and time before it starts (PATCH dispatches/[id], the fields edit-options lists) | never its target or recipients → delete it and send again
 - stop_unit: a category group is a heading only | stop together → one category
 - audience: condition-based audience → userGroup | event recipient → recipient, not a group
 - legal_notice: a legally required notice uses a category with email

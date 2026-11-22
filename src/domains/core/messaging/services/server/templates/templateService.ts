@@ -210,16 +210,16 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
   }
 
   return {
-    /** 一覧(新しい順、種別で絞れる。種別 = その種別のカテゴリーのテンプレート、D135) */
+    /** 一覧(新しい順、種別と文字で絞れる。種別 = その種別のカテゴリーのテンプレート、D135。文字 = 名前か文面) */
     async listTemplates(query: unknown = {}): Promise<AdminTemplatePage> {
       await assertAdminActor(deps);
-      const { kind, cursor, limit } = parseOr400(ListMessageTemplatesQuerySchema.safeParse(query), "一覧の条件が正しくありません");
+      const { kind, q, cursor, limit } = parseOr400(ListMessageTemplatesQuerySchema.safeParse(query), "一覧の条件が正しくありません");
       const categories = kind
         ? Object.values(deps.check().categories)
             .filter((category) => category.kind === kind)
             .map((category) => category.key)
         : null;
-      const rows = await deps.store.list({ categories, limit, after: decodeCursor(cursor) });
+      const rows = await deps.store.list({ categories, q: q ?? null, limit, after: decodeCursor(cursor) });
       const page = rows.slice(0, limit);
       return {
         items: page.map((row) => toSummary(row, categoryLabel, layoutUsable)),

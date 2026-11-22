@@ -115,6 +115,13 @@ export type MessagingDispatchRow = {
   metrics: MessagingMetrics;
 };
 
+/** 送信ごとのビューの条件: 期間 + cursor・limit か、送信の id の一覧 dispatchIds(1〜100、期間・cursor なし。期間の値は読まない) */
+export type MessagingDispatchesParams = MessagingAnalyticsParams & {
+  cursor?: string;
+  limit?: number;
+  dispatchIds?: readonly string[];
+};
+
 export type MessagingDispatchesResponse = MessagingRangeResponse & {
   items: MessagingDispatchRow[];
   nextCursor: string | null;
@@ -191,13 +198,15 @@ export type MessagingAnalyticsStore = {
   readCounts: (scope: MessagingQueryScope) => Promise<ReadCountRow[]>;
   unsubscribeCounts: (scope: MessagingQueryScope) => Promise<UnsubscribeCountRow[]>;
   /** 送信の頁(送った時刻の新しい順、keyset) */
-  dispatchPage: (params: {
-    from: Date;
-    to: Date;
-    filter: MessagingAnalyticsFilter;
-    cursor: { anchor: Date; id: string } | null;
-    limit: number;
-  }) => Promise<DispatchPageRow[]>;
+  /**
+   * 送信ごとのビューの送信の行(送った時刻の新しい順)。期間の範囲(from・to・cursor)か、送信の id の一覧(dispatchIds、期間なし)。
+   * どちらも送りの組の条件(予約・取り消し・テスト・前のお知らせを外す)と絞りは同じ
+   */
+  dispatchPage: (
+    params:
+      | { from: Date; to: Date; filter: MessagingAnalyticsFilter; cursor: { anchor: Date; id: string } | null; limit: number }
+      | { dispatchIds: readonly string[]; filter: MessagingAnalyticsFilter; limit: number },
+  ) => Promise<DispatchPageRow[]>;
   /** テンプレートの名前(内訳 template の見出し) */
   templateNames: (ids: readonly string[]) => Promise<Map<string, string>>;
 };

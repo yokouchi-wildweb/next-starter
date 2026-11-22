@@ -37,6 +37,24 @@ export function expiredDeliveriesDeleteSql(cutoff: Date, limit: number): SQL {
   `;
 }
 
+/**
+ * 古い配達の重い列(body・vars)を最大 limit 行 null にする(行は残す)。送っている途中の行と、もう null の行は取らない。
+ * 述語は部分索引 idx_message_deliveries_content_created(entities/delivery.ts)と同じ: 中身の残る行だけを古い順に引く
+ */
+export function expiredDeliveryContentClearSql(cutoff: Date, limit: number): SQL {
+  return sql`
+    WITH expired AS (
+      SELECT id FROM message_deliveries
+      WHERE (body IS NOT NULL OR vars IS NOT NULL)
+        AND created_at < ${cutoff.toISOString()}::timestamptz AND status NOT IN ('queued', 'sending')
+      ORDER BY created_at
+      LIMIT ${limit}
+      FOR UPDATE SKIP LOCKED
+    )
+    UPDATE message_deliveries SET body = NULL, vars = NULL WHERE id IN (SELECT id FROM expired) RETURNING id
+  `;
+}
+
 /** 消してよい古い送信を最大 limit 行、排他で取る(processing・scheduled と、お知らせが参照する送信は残す) */
 export function expiredDispatchesSelectSql(cutoff: Date, limit: number): SQL {
   return sql`

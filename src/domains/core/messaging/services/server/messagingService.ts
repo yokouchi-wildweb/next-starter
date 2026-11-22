@@ -9,6 +9,7 @@ import {
   adminBulkSendTest,
   adminBulkDeleteDispatches,
   adminContinueSending,
+  adminDefinitionEstimate,
   adminDefinitionOptions,
   adminDefinitionPreview,
   adminDefinitionSend,
@@ -16,13 +17,17 @@ import {
   adminDeleteDispatch,
   adminDispatchDeleteSummary,
   adminDispatchPreview,
+  adminEditScheduledDispatch,
   adminResendFailed,
+  adminScheduledEditOptions,
   adminSend,
   adminSendEstimate,
   adminSendOptions,
   adminSendPreview,
   adminSendTest,
   dispatchCategoryOptions,
+  dispatchFilterOptions,
+  dispatchReaders,
   findDispatch,
   listDeliveries,
   listDispatches,
@@ -82,6 +87,8 @@ export const messagingService = {
   adminDefinitionPreview,
   adminDefinitionTest,
   adminDefinitionOptions,
+  /** 定義連絡の全員・ロール・グループの人数の見込み(自由連絡の見込みと同じ RecipientEstimate。門 messagingBroadcast は service が見る) */
+  adminDefinitionEstimate,
   /** 管理の送信(/api/admin/messaging/send/**): 送る(今か予約)・プレビュー・見込み・自分へのテスト・選択肢 */
   adminSend,
   adminSendPreview,
@@ -93,6 +100,10 @@ export const messagingService = {
   adminBulkDeleteDispatches,
   adminDispatchDeleteSummary,
   adminResendFailed,
+  /** 予約した送信を送る前に直す(PATCH dispatches/[id]、D210): 文面の欄・送信チャンネル・時刻だけ(宛先は変えない)、予約のままの送信だけ(ほかは 409) */
+  adminEditScheduledDispatch,
+  /** 予約した送信の直しの材料(GET dispatches/[id]/edit-options): 直しと同じ決まりの直せる欄・送信チャンネルの固定・今の欄の中身 */
+  adminScheduledEditOptions,
   /** 管理の「続きを送る」(監査ログに 1 行) */
   adminContinueSending,
   /** 送信の読む口(管理。D37 の DTO): 一覧・1 件・配達 */
@@ -101,12 +112,16 @@ export const messagingService = {
   /** 送信のプレビュー(送信のレイアウトと欄の中身を送信の vars・埋め込み情報の値で描く。GET dispatches/[id]/preview) */
   adminDispatchPreview,
   listDeliveries,
+  /** 既読した利用者の一覧(時刻のある既読だけ = message_inbox_reads、既読の新しい順。門 messagingDispatches、管理者だけ) */
+  dispatchReaders,
   /** 送信の結果(送信チャンネルごとの数 + 届かなかった人と理由のページ送り。D214 (1)、門の外・管理者だけ、送信の詳細の代わりにはしない) */
   sendResults,
   /** 1 人の利用者の受け取れる送信チャンネル(送信チャンネルごとに { available, reason? }。D214 (2)、門の外・管理者だけ) */
   recipientChannels,
   /** 送信の画面の絞りの選択肢(カテゴリーの鍵・表示名・種別。管理) */
   dispatchCategoryOptions,
+  /** 送信の一覧の絞りの選択肢(送り元 { key, label }・運営として送った人 { id, name }。管理) */
+  dispatchFilterOptions,
   /** 利用者ごとの履歴(D37。配達を送信と結び新しい順、本文・宛先なし)。server だけ・route なし: 読める人は呼び手の route が決める(管理者を確かめない) */
   listUserMessageHistory,
   /** 端末の帳簿: 本人の宛先の登録・削除・一覧(/api/me/messaging/endpoints が呼ぶ) */

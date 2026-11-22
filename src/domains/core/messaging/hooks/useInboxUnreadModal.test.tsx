@@ -52,7 +52,6 @@ mock.module("@/domains/core/messaging/hooks/useInboxItemDetail", {
       detailRequests.push(id);
       return { detail: null, error: null, isLoading: false };
     },
-    inboxItemDetailKey: (id: string) => `messaging/inbox/item/${id}`,
   },
 });
 mock.module("@/domains/core/messaging/hooks/useMarkInboxItemRead", {

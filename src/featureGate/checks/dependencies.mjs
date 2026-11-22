@@ -3,7 +3,8 @@
 // 次の形のどれでもなければ違反として返す:
 //   (1) import する側のドメインの domainEntry.ts の requires に相手のドメインの名前(フォルダ名、目録 D4)がある
 //       (ドメインの見つけ方・requires・名前は地区の地図の読み手 src/lib/districtMap から)
-//   (2) ファイルが規則の名前で gate.enabled / gate.assert / useGate().enabled を呼ぶ(`.enabled("R")`・`.assert("R")` の字面)
+//   (2) ファイルが規則の名前で gate.enabled / gate.assert / useGate().enabled を呼ぶ(`.enabled("R")`・`.assert("R")` の字面)。
+//       その規則を dependsOn で(推移的に)たどる規則の名前でもよい(子は親が開の時しか開かない。anyOf は親を決めないので見ない)
 //   (3) ファイルが src/app の下で、その規則の pathPatterns が覆う住所にある(page・loader・route・_screen・_components…)
 //   (4) 同じ規則のフォルダどうし
 //   (5) fork の required/<規則名>.ts(x) がある
@@ -73,15 +74,32 @@ const callsGate = (text, ruleName) =>
   new RegExp(`\\.(enabled|assert)\\(\\s*["'\`]${ruleName}["'\`]\\s*\\)`).test(text);
 
 /**
+ * 規則ごとに、確かめれば (2) で通る規則の名前: 自分と、dependsOn で(推移的に)自分にたどり着く規則
+ * @param {{ name: string, dependsOn?: string[] }[]} rules
+ * @returns {Map<string, string[]>}
+ */
+function guardNamesOf(rules) {
+  const parentsOf = new Map(rules.map((rule) => [rule.name, rule.dependsOn ?? []]));
+  const reaches = (name, target, seen = new Set()) => {
+    if (name === target) return true;
+    if (seen.has(name)) return false;
+    seen.add(name);
+    return (parentsOf.get(name) ?? []).some((parent) => reaches(parent, target, seen));
+  };
+  return new Map(rules.map((rule) => [rule.name, rules.filter((other) => reaches(other.name, rule.name)).map((other) => other.name)]));
+}
+
+/**
  * 閉じられるフォルダを外から値で読むファイルを全部集め、どの形で許されたかを付ける(許されなければ allowedBy: null = 違反)。
  * pnpm ops features list(node/describe.ts)の依存の一覧と、違反の判定 findDependencyViolations が共有する
- * @param {{ root: string, rules: { name: string, domains?: string[], pathPatterns: string[] }[], exceptionFiles?: string[], requiredNames?: string[] }} input
+ * @param {{ root: string, rules: { name: string, domains?: string[], pathPatterns: string[], dependsOn?: string[] }[], exceptionFiles?: string[], requiredNames?: string[] }} input
  * @returns {{ file: string, folder: string, rule: string, allowedBy: "sameRule" | "requires" | "gate" | "route" | "required" | "exception" | null }[]}
  */
 export function scanDependencies({ root, rules, exceptionFiles = [], requiredNames = readRequiredNames(root) }) {
   const folderRules = new Map();
   for (const rule of rules) for (const folder of rule.domains ?? []) folderRules.set(folder, [...(folderRules.get(folder) ?? []), rule]);
   const folders = [...folderRules.keys()];
+  const guardNames = guardNamesOf(rules);
   const folderOfTarget = (resolved) => folders.find((f) => resolved === `src/domains/${f}` || resolved.startsWith(`src/domains/${f}/`)) ?? null;
   const domains = domainLookup(readDistrictMapAt(root).districts);
   const exceptions = new Set(exceptionFiles);
@@ -114,8 +132,8 @@ export function scanDependencies({ root, rules, exceptionFiles = [], requiredNam
           if (ownRules.some((r) => r.name === rule.name)) return "sameRule";
           // (1) requires
           if (ownDomain && ownDomain.requires.includes(domains.nameOf(folder))) return "requires";
-          // (2) 規則の名前で確かめる
-          if (callsGate(text, rule.name)) return "gate";
+          // (2) 規則の名前(または dependsOn でその規則にたどり着く規則の名前)で確かめる
+          if ((guardNames.get(rule.name) ?? [rule.name]).some((name) => callsGate(text, name))) return "gate";
           // (3) その規則で閉じる住所の下
           if (segments && rule.pathPatterns.some((pattern) => patternCoversRoute(pattern, segments))) return "route";
           // (5) fork の required/
@@ -130,7 +148,7 @@ export function scanDependencies({ root, rules, exceptionFiles = [], requiredNam
 
 /**
  * 違反を集める(scanDependencies の許されなかった物)
- * @param {{ root: string, rules: { name: string, domains?: string[], pathPatterns: string[] }[], exceptionFiles?: string[], requiredNames?: string[] }} input
+ * @param {{ root: string, rules: { name: string, domains?: string[], pathPatterns: string[], dependsOn?: string[] }[], exceptionFiles?: string[], requiredNames?: string[] }} input
  * @returns {{ file: string, folder: string, rule: string }[]}
  */
 export function findDependencyViolations(input) {

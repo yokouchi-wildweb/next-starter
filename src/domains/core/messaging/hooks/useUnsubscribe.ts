@@ -9,11 +9,12 @@ import { useCallback, useState } from "react";
 import { useDomainMutation } from "@/lib/crud";
 
 import { postUnsubscribe } from "../services/client/unsubscribeClient";
+import { MESSAGE_UNSUBSCRIBE_KEY } from "./messagingKeys";
 
 export type UnsubscribeStatus = "idle" | "done";
 
 export function useUnsubscribe(token: string) {
-  const mutation = useDomainMutation<void, string>("messaging/unsubscribe", (value) => postUnsubscribe(value));
+  const mutation = useDomainMutation<void, string>(MESSAGE_UNSUBSCRIBE_KEY, (value) => postUnsubscribe(value));
   const [status, setStatus] = useState<UnsubscribeStatus>("idle");
   const [error, setError] = useState<unknown>(null);
   const { trigger } = mutation;

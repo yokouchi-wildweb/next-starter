@@ -9,9 +9,8 @@ import { useCallback } from "react";
 
 import { useDomainMutation } from "@/lib/crud";
 
-import { ADMIN_DISPATCHES_KEY } from "./adminMessagingKeys";
 import { newIdempotencyKey } from "./idempotencyKey";
-import { ADMIN_SEND_KEY } from "./sendKeys";
+import { ADMIN_DISPATCHES_KEY, adminSendActionKey } from "./messagingKeys";
 
 export type UseSendTestOptions<Input, Result> = {
   /** 送る口(例: sendAdminTestMessage・sendAdminDefinitionTest)。input に idempotencyKey が付いて来る */
@@ -21,7 +20,7 @@ export type UseSendTestOptions<Input, Result> = {
 };
 
 export function useSendTest<Input, Result>({ fetcher, name = "test" }: UseSendTestOptions<Input, Result>) {
-  const mutation = useDomainMutation<Result, Input & { idempotencyKey: string }>(`${ADMIN_SEND_KEY}/${name}`, fetcher, [ADMIN_DISPATCHES_KEY]);
+  const mutation = useDomainMutation<Result, Input & { idempotencyKey: string }>(adminSendActionKey(name), fetcher, [ADMIN_DISPATCHES_KEY]);
   const { trigger } = mutation;
   const run = useCallback((input: Input) => trigger({ ...input, idempotencyKey: newIdempotencyKey() }), [trigger]);
   return { run, isTesting: mutation.isMutating };

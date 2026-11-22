@@ -7,12 +7,11 @@
 import { useDomainMutation } from "@/lib/crud";
 
 import { markInboxRead } from "../services/client/inboxClient";
-
-import { INBOX_KEY, INBOX_UNREAD_COUNT_KEY } from "./inboxKeys";
+import { INBOX_READ_KEY, INBOX_UNREAD_COUNT_KEY } from "./messagingKeys";
 
 export function useMarkInboxItemRead() {
   const mutation = useDomainMutation<void, string>(
-    `${INBOX_KEY}/read`,
+    INBOX_READ_KEY,
     (id) => markInboxRead(id),
     INBOX_UNREAD_COUNT_KEY,
   );

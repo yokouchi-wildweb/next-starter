@@ -12,8 +12,7 @@ import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
 
 import { bulkDeleteAdminDispatches, type AdminBulkDeleteResult } from "../services/client/adminMessagingClient";
-
-import { ADMIN_DISPATCHES_KEY } from "./adminMessagingKeys";
+import { ADMIN_DISPATCHES_BULK_DELETE_KEY, ADMIN_DISPATCHES_KEY } from "./messagingKeys";
 
 /** 1 回に削除できる送信の数(サーバーの ADMIN_DELETE_MAX_IDS と同じ) */
 export const DISPATCH_DELETE_MAX = 100;
@@ -21,7 +20,7 @@ export const DISPATCH_DELETE_MAX = 100;
 export function useBulkDeleteDispatches() {
   const { showToast } = useToast();
   const mutation = useDomainMutation<AdminBulkDeleteResult, readonly string[]>(
-    `${ADMIN_DISPATCHES_KEY}/bulk-delete`,
+    ADMIN_DISPATCHES_BULK_DELETE_KEY,
     (ids) => bulkDeleteAdminDispatches(ids),
     [ADMIN_DISPATCHES_KEY],
   );

@@ -4,8 +4,9 @@
 // - 一覧: 定義の鍵の欄が無い / カテゴリーの選びは種別を選ぶまで押せず、選ぶとその種別のカテゴリー(表示名)/ 行に種別・カテゴリー・送信方法の表示名
 // - 一覧の行は ?dispatch=<id> の住所(ほかの検索の値は残す)。?dispatch があれば一覧の上にモーダルが開き、閉じると ?dispatch を外す
 //   (URL を直に開いた時 = 置き換え、行から開いた時 = 「戻る」)
-// - 詳細(基本情報のタブ): 種別・カテゴリーの表示名、送り元は表示名がある時だけ、送った人は名前、テンプレートの行
-//   (v<n>・消したテンプレートは「削除されたテンプレート(v<n>)」、テンプレートでない送信は行なし)、定義の鍵・送り元の鍵・送信チャンネルの鍵は出ない
+// - 詳細(基本情報のタブ): 種別・カテゴリーの表示名、送り元は表示名がある時だけ、送った人は名前、出どころの行
+//   (テンプレート v<n>・消したテンプレートは「削除されたテンプレート(v<n>)」、テンプレートでない送信はテンプレートと出さない)、定義の鍵・送り元の鍵・送信チャンネルの鍵は出ない
+// - 詳細のタブ: サービス内通知を含む送信は「既読した利用者」のタブも出る(D210)
 // - 詳細(送信状況のタブ): 配達は利用者の名前、利用者の id・お知らせの宛先は出さず、表に無い符号は決まった文
 // - 詳細(プレビューのタブ): 前の形の送信の本文を送信チャンネルごとに(生の JSON は出さない)
 // - グループ宛ての送信: 一覧の行と詳細にグループの名前(名前が無ければ「グループ」)、id は出さない
@@ -92,6 +93,12 @@ mock.module("@/components/Input/SwitchInput", {
     SwitchInput: (props: { label?: string }) => createElement("input", { type: "checkbox", "aria-label": props.label }),
   },
 });
+mock.module("@/components/Input/BooleanCheckboxInput", {
+  namedExports: {
+    BooleanCheckboxInput: (props: { name?: string; label?: ReactNode }) =>
+      createElement("label", { "data-name": props.name }, createElement("input", { type: "checkbox" }), props.label),
+  },
+});
 mock.module("@/components/Input/Input", {
   namedExports: {
     Input: (props: { id?: string }) => createElement("input", { id: props.id }),
@@ -164,7 +171,30 @@ mock.module("@/components/Overlays/TabbedModal", {
       : null,
 });
 let broadcastOpen = false;
-mock.module("@/featureGate/client", { namedExports: { useGate: () => ({ enabled: (name: string) => name === "messagingBroadcast" && broadcastOpen }) } });
+let analyticsOpen = false;
+mock.module("@/featureGate/client", {
+  namedExports: {
+    useGate: () => ({
+      enabled: (name: string) => (name === "messagingBroadcast" ? broadcastOpen : name === "messagingAnalytics" ? analyticsOpen : false),
+    }),
+  },
+});
+// 集計の口(既読数の列、ui.readCount): 呼ばれた値を残す。d1 だけ集計の行がある(d2 は予約などで行が無い =「-」)
+const analyticsCalls: Record<string, unknown>[] = [];
+mock.module("@/domains/core/analytics/services/client/messagingAnalyticsClient", {
+  namedExports: {
+    fetchMessagingDispatches: async (params: Record<string, unknown>) => {
+      analyticsCalls.push(params);
+      const ids = (params.dispatchIds as string[] | undefined) ?? [];
+      return {
+        items: ids.filter((id) => id === "d1").map((dispatchId) => ({ dispatchId, metrics: { read: 1234 } })),
+        nextCursor: null,
+        dispatchesEnabled: true,
+        trackingEnabled: true,
+      };
+    },
+  },
+});
 // 送るモーダルは偽物: 印を描き、受けた mode を控える
 const sendModes: unknown[] = [];
 mock.module("@/domains/core/messaging/components/MessageSendModal", {
@@ -208,6 +238,7 @@ const DISPATCH: AdminDispatchDetail = {
   content: null,
   targetUserIds: null,
   sourceLabel: null,
+  definitionLabel: null,
   actorName: "管理者 A",
   body: null,
   vars: null,
@@ -216,6 +247,7 @@ const DISPATCH: AdminDispatchDetail = {
     canDelete: { allowed: true, reason: null },
     canResend: { allowed: false, reason: "no_failed", mode: null, failed: 0, unknown: 0 },
     canContinue: { allowed: false, reason: "not_processing" },
+    canEdit: { allowed: false, reason: "not_scheduled", content: { allowed: false, reason: "not_scheduled" } },
   },
 };
 const delivery = (over: Partial<AdminDeliveryRow> & Pick<AdminDeliveryRow, "id">): AdminDeliveryRow => ({
@@ -264,7 +296,28 @@ mock.module("@/domains/core/messaging/hooks/useAdminDispatchFilters", {
         setChannel: noop,
         status: "",
         setStatus: noop,
+        source: "",
+        setSource: noop,
+        actor: "",
+        setActor: noop,
+        subject: "",
+        setSubject: noop,
+        adminOnly: false,
+        setAdminOnly: noop,
       },
+    }),
+    DISPATCH_SUBJECT_QUERY_MAX: 100,
+  },
+});
+// 絞りの選択肢(送り元は表示名、送った人は名前。鍵・id は値にだけ)
+mock.module("@/domains/core/messaging/hooks/useAdminDispatchFilterOptions", {
+  namedExports: {
+    useAdminDispatchFilterOptions: () => ({
+      sourceOptions: [{ value: "messaging.admin.free", label: "管理画面からの送信" }],
+      actorOptions: [{ value: "11111111-1111-4111-8111-111111111111", label: "運営 太郎" }],
+      loaded: true,
+      error: null,
+      isLoading: false,
     }),
   },
 });
@@ -351,6 +404,8 @@ beforeEach(() => {
   deliveryItems = [];
   listItems = [DISPATCH];
   broadcastOpen = false;
+  analyticsOpen = false;
+  analyticsCalls.length = 0;
   sendModes.length = 0;
 });
 
@@ -401,6 +456,33 @@ test("一覧: 定義の鍵の欄は無く、カテゴリーは種別を選ぶま
   await chosen.unmount();
 });
 
+test("既読数の列: 門 messagingAnalytics が閉なら集計の口を呼ばず列も出さない。開なら行の id で取り、値と「-」", async () => {
+  listItems = [DISPATCH, { ...DISPATCH, id: "d2" }];
+  const closed = await render(createElement(AdminDispatchList));
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 10)));
+  assert.equal(analyticsCalls.length, 0, "門が閉なら集計の口を呼ばない");
+  assert.equal(closed.container.querySelector('[data-slot="dispatch-read-count"]'), null);
+  await closed.unmount();
+
+  analyticsOpen = true;
+  const open = await render(createElement(AdminDispatchList));
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 10)));
+  assert.equal(analyticsCalls.length, 1);
+  assert.deepEqual(analyticsCalls[0], { dispatchIds: ["d1", "d2"] });
+  const counts = [...open.container.querySelectorAll('[data-slot="dispatch-read-count"]')].map((el) => el.textContent);
+  assert.deepEqual(counts, ["既読 1,234", "既読 -"]);
+  await open.unmount();
+});
+
+test("一覧の絞り: 送り元・送った人は表示名・名前の選択肢、件名の欄と「運営が送った物だけ」がある(D210)", async () => {
+  const view = await render(createElement(AdminDispatchList));
+  assert.deepEqual(selects["dispatch-filter-source"].options, [{ value: "messaging.admin.free", label: "管理画面からの送信" }]);
+  assert.deepEqual(selects["dispatch-filter-actor"].options, [{ value: "11111111-1111-4111-8111-111111111111", label: "運営 太郎" }]);
+  assert.ok(view.container.querySelector("#dispatch-filter-subject"), "件名の欄");
+  assert.match(view.container.querySelector('[data-slot="dispatch-filter-actions"]')?.textContent ?? "", /運営が送った物だけ/);
+  await view.unmount();
+});
+
 test("一覧: 行は ?dispatch の住所。?dispatch があれば一覧の上に詳細のモーダルが開き、閉じると ?dispatch を外す", async () => {
   const closed = await render(createElement(AdminDispatchList));
   const row = () => closed.container.querySelector('a[data-slot="dispatch-row"]');
@@ -415,7 +497,7 @@ test("一覧: 行は ?dispatch の住所。?dispatch があれば一覧の上に
   const modal = direct.container.querySelector('[data-testid="modal"]');
   assert.ok(modal, "一覧の上にモーダルが開く");
   assert.equal(modal.querySelector("h2")?.textContent, "送信の詳細: 春のセール");
-  assert.deepEqual([...modal.querySelectorAll("nav button")].map((el) => el.textContent), ["基本情報", "送信状況", "プレビュー"]);
+  assert.deepEqual([...modal.querySelectorAll("nav button")].map((el) => el.textContent), ["基本情報", "送信状況", "プレビュー", "既読した利用者"]);
   await direct.click(direct.container.querySelector('[data-testid="modal-close"]'));
   assert.deepEqual(routerCalls, ["replace:/admin/messaging?foo=1"]);
   await direct.unmount();
@@ -449,18 +531,19 @@ test("詳細: 種別・カテゴリーの表示名、送り元は表示名があ
   await labeled.unmount();
 });
 
-test("詳細: テンプレートの行は版の番号、消したテンプレートは「削除されたテンプレート(v<n>)」、テンプレートでない送信は行を出さない", async () => {
+test("詳細: 出どころの行はテンプレートの版の番号、消したテンプレートは「削除されたテンプレート(v<n>)」、テンプレートでない送信はテンプレートと出さない", async () => {
   const none = await renderDetail();
-  assert.doesNotMatch(none.text(), /テンプレート/, "テンプレートからの送信でなければ行ごと出さない");
+  assert.doesNotMatch(none.text(), /テンプレート/, "テンプレートからの送信でなければテンプレートと出さない");
   await none.unmount();
 
   const cases: { over: Partial<AdminDispatchDetail>; expected: RegExp }[] = [
-    { over: { templateId: "t1", templateVersion: 3 }, expected: /テンプレートv3送信方法/ },
-    { over: { templateId: "t1", templateVersion: 2, templateEdited: true }, expected: /テンプレートv2\(文言を直して送信\)送信方法/ },
-    { over: { templateId: null, templateVersion: 3, templateDeleted: true }, expected: /テンプレート削除されたテンプレート\(v3\)送信方法/ },
+    // テンプレートからの送信は定義連絡でない(messageKey null)
+    { over: { messageKey: null, templateId: "t1", templateVersion: 3 }, expected: /出どころテンプレート v3作成日時/ },
+    { over: { messageKey: null, templateId: "t1", templateVersion: 2, templateEdited: true }, expected: /出どころテンプレート v2\(文言を直して送信\)作成日時/ },
+    { over: { messageKey: null, templateId: null, templateVersion: 3, templateDeleted: true }, expected: /出どころ削除されたテンプレート\(v3\)作成日時/ },
     {
-      over: { templateId: null, templateVersion: 4, templateDeleted: true, templateEdited: true },
-      expected: /テンプレート削除されたテンプレート\(v4・文言を直して送信\)送信方法/,
+      over: { messageKey: null, templateId: null, templateVersion: 4, templateDeleted: true, templateEdited: true },
+      expected: /出どころ削除されたテンプレート\(v4・文言を直して送信\)作成日時/,
     },
   ];
   for (const { over, expected } of cases) {
@@ -535,7 +618,7 @@ test("グループ宛ての送信: 一覧の行と詳細にグループの名前
   await shown.unmount();
   detail = unnamed;
   const bare = await renderDetail("d3");
-  assert.match(bare.text(), /宛先グループ宛先数/);
+  assert.match(bare.text(), /宛先グループ \d+ 名/);
   assert.doesNotMatch(bare.text(), new RegExp(GROUP_ID));
   await bare.unmount();
   detail = { ...DISPATCH };

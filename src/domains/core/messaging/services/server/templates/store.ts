@@ -1,19 +1,22 @@
 // src/domains/core/messaging/services/server/templates/store.ts
 
-import { and, desc, eq, inArray, isNotNull, isNull, lt, or } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNotNull, isNull, lt, or } from "drizzle-orm";
 
 import { db, type TransactionClient } from "@/lib/drizzle";
 
 import { MessageDispatchTable } from "../../../entities/drizzle";
 import { MessageTemplateTable, MessageTemplateVersionTable } from "../../../entities/template";
+import { ilikeContains, jsonbTextContains } from "../admin/textSearch";
 import type { MessageTemplateStore } from "./types";
 
 export const drizzleMessageTemplateStore: MessageTemplateStore<TransactionClient> = {
   transaction: (run) => db.transaction((tx) => run(tx)),
-  async list({ categories, limit, after }) {
+  async list({ categories, q, limit, after }) {
     if (categories && categories.length === 0) return [];
     const conditions = [
       categories ? inArray(MessageTemplateTable.category, [...categories]) : undefined,
+      // 文字: 名前か欄の中身の文字列(欄の名前は探さない)
+      q ? or(ilike(MessageTemplateTable.name, ilikeContains(q)), jsonbTextContains(MessageTemplateTable.values, q, "deep")) : undefined,
       after
         ? or(
             lt(MessageTemplateTable.createdAt, after.createdAt),

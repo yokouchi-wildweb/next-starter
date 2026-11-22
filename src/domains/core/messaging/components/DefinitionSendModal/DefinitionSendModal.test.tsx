@@ -69,6 +69,9 @@ const baseState = () => ({
   textFields: {},
   showSchedule: false,
   scheduleMode: "now",
+  estimate: null as { count: number; fixedAtSend: true; memberLimit?: number; overLimit?: boolean } | null,
+  estimateOverLimit: false,
+  isEstimating: false,
   scheduledAt: "",
   scheduleError: null,
   scheduleNote: "注記",
@@ -137,7 +140,16 @@ mock.module(`${COMMON}/SendTargetPicker`, { namedExports: { SendTargetPicker: st
 mock.module(`${COMMON}/SendTemplatePicker`, { namedExports: { SendVarInputs: stub("vars") } });
 mock.module(`${COMMON}/LayoutFields`, { namedExports: { LayoutFields: stub("layoutFields") } });
 mock.module(`${COMMON}/SendSchedule`, { namedExports: { SendSchedule: stub("schedule") } });
-mock.module(`${COMMON}/SendConfirmView`, { namedExports: { SendResultView: stub("resultView") } });
+mock.module(`${COMMON}/SendConfirmView`, {
+  namedExports: {
+    SendResultView: stub("resultView"),
+    // 見込みの表示(自由連絡と同じ部品)。渡った値を残す
+    RecipientEstimateView: (props: { estimate: { count: number } | null; label?: string }) => {
+      lastProps.set("estimate", props);
+      return createElement("div", { "data-part": "estimate" }, `${props.label ?? "宛先"}: ${props.estimate?.count ?? "-"}`);
+    },
+  },
+});
 mock.module(`${COMMON}/SendResult`, { namedExports: { SendResult: stub("sendResult") } });
 mock.module(`${COMMON}/SampleForYouModal`, { namedExports: { SampleForYouModal: stub("sampleForYou") } });
 
@@ -238,6 +250,31 @@ test("確認の段: 確認の文と宛先の文、送るで confirmSend", async 
   await act(async () => button(view.container, "戻る")!.click());
   assert.deepEqual(events.filter((e) => !e.startsWith("results")), ["send", "back"]);
   await view.unmount();
+});
+
+test("確認の段(broadcast): 人数の見込みを自由連絡と同じ部品で出し、上限を超えたら送れない。記録の入口は出さない", async () => {
+  state = { ...baseState(), step: "confirm" };
+  const records = await render();
+  assert.equal(part(records.container, "estimate"), null, "記録の入口は見込みの行なし");
+  await records.unmount();
+
+  state = { ...baseState(), entry: { type: "broadcast" } as never, step: "confirm", estimate: { count: 1234, fixedAtSend: true }, estimateOverLimit: false };
+  const view = await render();
+  assert.ok(part(view.container, "estimate"));
+  assert.deepEqual(lastProps.get("estimate"), { estimate: { count: 1234, fixedAtSend: true }, label: "人数" });
+  assert.equal(button(view.container, "送信する")!.disabled, false);
+  await view.unmount();
+
+  state = {
+    ...baseState(),
+    entry: { type: "broadcast" } as never,
+    step: "confirm",
+    estimate: { count: 150000, fixedAtSend: true, memberLimit: 100000, overLimit: true },
+    estimateOverLimit: true,
+  };
+  const over = await render();
+  assert.equal(button(over.container, "送信する")!.disabled, true, "上限を超えたら送るを押せない");
+  await over.unmount();
 });
 
 test("結果の段: SendResultView と送信の結果", async () => {

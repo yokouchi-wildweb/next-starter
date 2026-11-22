@@ -12,9 +12,9 @@
 // - 管理者の値(adminVars): 入力の型ごとの入力(値は文字で持ち、数は送る時に読み替え)。埋まらない必須は送れない
 // - テキストの編集(D169): 直せる欄(editableFields)だけ。required・直せる欄が無い = 編集の箱なし。送る edits は変えた欄だけ
 // 表示例は送る口の preview(記録の入口は最初の記録の値)、自分へのテスト送信は毎回新しい鍵、送る鍵は開くたびに 1 つ・成功で作り直す。
-// 全員・ロール・グループの確認に人数の見込みは無い(上限はサーバーが断る)
+// 全員・ロール・グループは確認へ進む時に人数の見込みを取り(公開の hook useRecipientEstimate、自由連絡と同じ)、上限を超えたら送らない。記録の入口は選んだ記録の数なので見込みは無い
 // 公開の hook だけで組む(D191): useSendSteps・useIdempotencyKey・useDefinitionSendOptions / useDefinitionSend / useDefinitionPreview / useDefinitionTest・
-// useAdminSendOptions・useLayoutFieldsForm
+// useAdminSendOptions・useLayoutFieldsForm・useRecipientEstimate
 
 import { useCallback, useMemo, useState } from "react";
 import { useWatch } from "react-hook-form";
@@ -23,6 +23,10 @@ import { useGate } from "@/featureGate/client";
 import type { MessageDefinitionAdminTarget } from "@/lib/messaging";
 
 import { messageChannelLabel } from "../constants/channelLabels";
+import {
+  estimateAdminDefinitionRecipients,
+  type AdminDefinitionEstimateInput,
+} from "../services/client/definitionSendClient";
 import type {
   AdminDefinitionEntry,
   AdminDefinitionOption,
@@ -38,6 +42,8 @@ import { useIdempotencyKey } from "./useIdempotencyKey";
 import { missingVars, varValuesForInput } from "./useSendTemplateText";
 import { scheduleErrorOf } from "./useMessageSendModal";
 import { useSendSteps } from "./useSendSteps";
+import { useRecipientEstimate } from "./useRecipientEstimate";
+import { ADMIN_DEFINITION_ESTIMATE_KEY } from "./messagingKeys";
 
 /** 入口(目的の props は無い、D164) */
 export type DefinitionSendEntry = { type: "records"; recordTarget: string; recordIds: string[] } | { type: "broadcast" };
@@ -245,14 +251,25 @@ export function useDefinitionSendModal({ entry, onSent }: UseDefinitionSendModal
     [isRecords, scheduleMode, scheduledAt, maxDays],
   );
 
-  /** 確認へ進む(文・予約を確かめ直す。人数の見込みは無い) */
+  // 人数の見込み(全員・ロール・グループだけ。自由連絡と同じ公開の hook)
+  const recipientEstimate = useRecipientEstimate<AdminDefinitionEstimateInput>({
+    key: ADMIN_DEFINITION_ESTIMATE_KEY,
+    estimate: estimateAdminDefinitionRecipients,
+  });
+  const { request: requestEstimate, reset: resetEstimate, assertWithinLimit } = recipientEstimate;
+
+  /** 確認へ進む(文・予約を確かめ直し、全員・ロール・グループは人数の見込みを取る) */
   const requestConfirm = useCallback(async () => {
     await assertContent();
     const late = lateOf();
     setScheduleError(late);
     if (late) throw new Error(late);
+    if (!isRecords) {
+      const built = buildEntry();
+      if ("target" in built) await requestEstimate({ message: built.message, target: built.target });
+    }
     toConfirm();
-  }, [assertContent, lateOf, toConfirm]);
+  }, [assertContent, lateOf, isRecords, buildEntry, requestEstimate, toConfirm]);
 
   /** 送る(確認の段から)。成功 = 結果の段、鍵を作り直し、onSent */
   const confirmSend = useCallback(async () => {
@@ -262,12 +279,13 @@ export function useDefinitionSendModal({ entry, onSent }: UseDefinitionSendModal
       backToEdit();
       throw new Error(late);
     }
+    assertWithinLimit();
     const result = await sendMutation(buildSendInput());
     finish(result);
     renewKey();
     onSent?.(result);
     return result;
-  }, [lateOf, backToEdit, sendMutation, buildSendInput, finish, renewKey, onSent]);
+  }, [lateOf, backToEdit, assertWithinLimit, sendMutation, buildSendInput, finish, renewKey, onSent]);
 
   // ---- 変える ----
   const chooseDefinition = useCallback(
@@ -328,7 +346,8 @@ export function useDefinitionSendModal({ entry, onSent }: UseDefinitionSendModal
     setScheduleError(null);
     resetTo(textForm.fields, editValues);
     closePreview();
-  }, [resetSteps, resetTo, textForm.fields, editValues, closePreview]);
+    resetEstimate();
+  }, [resetSteps, resetTo, textForm.fields, editValues, closePreview, resetEstimate]);
 
   /** 開く・閉じる(閉じたら全部を初めに戻す。書きかけの確かめは Modal の confirmOnClose) */
   const setOpen = useCallback(
@@ -399,6 +418,11 @@ export function useDefinitionSendModal({ entry, onSent }: UseDefinitionSendModal
     isTesting: test.isTesting,
     isSending,
     result: steps.result,
+    /** 人数の見込み(全員・ロール・グループの確認の段。記録の入口・まだなら null) */
+    estimate: recipientEstimate.estimate,
+    /** 見込みが人数の上限を超えた(送るを止める) */
+    estimateOverLimit: recipientEstimate.overLimit,
+    isEstimating: recipientEstimate.isEstimating,
     buildContent,
     buildSendInput,
     runPreview,

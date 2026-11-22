@@ -1,6 +1,6 @@
 // src/featureGate/checks/dependencies.test.mjs
 // 依存の検査(D20(b)・L1.12): 閉じられるフォルダ(規則の domains)を外から値で import するファイルは、
-// (1) 自分のドメインの domainEntry.ts の requires (2) 規則の名前で gate.enabled / gate.assert / useGate().enabled
+// (1) 自分のドメインの domainEntry.ts の requires (2) 規則の名前(dependsOn でその規則にたどり着く規則の名前も)で gate.enabled / gate.assert / useGate().enabled
 // (3) その規則で閉じる住所の src/app の下 (4) 同じ規則のフォルダどうし (5) fork の required/<名前> (6) 例外、のどれかでなければ落とす。
 // 判定: ./dependencies.mjs。実行: pnpm test src/featureGate/checks/dependencies.test.mjs
 // - 例外は受け口 src/featureGate/dependencyExceptions/<名前>.ts だけ(上流の項目は 0。上流の違反の縮む表は 0 行になって消した)
@@ -84,6 +84,19 @@ test("fixture: 確かめずに読むと落ち、6 つの形で通る", () => {
   assert.deepEqual(run({ [caller]: IMPORT_WALLET + 'if (!gate.enabled("wallet")) throw 0;\n' }), []);
   assert.deepEqual(run({ [caller]: IMPORT_WALLET + 'gate.assert("coupon");\n' }), [`${caller} → core/wallet`]);
   assert.deepEqual(run({ [caller]: IMPORT_WALLET + 'const ok = useGate().enabled("wallet");\n' }), []);
+  // (2) dependsOn で(推移的に)その規則にたどり着く規則の名前でも通る(子は親が開の時しか開かない)。たどり着かない規則・anyOf は通らない
+  const withChildren = [
+    ...fixtureRules,
+    { name: "walletAnalytics", dependsOn: ["wallet"], pathPatterns: ["/api/admin/analytics/wallet"] },
+    { name: "walletAnalyticsExport", dependsOn: ["walletAnalytics"], pathPatterns: ["/api/admin/analytics/wallet/export"] },
+    { name: "couponAnalytics", dependsOn: ["coupon"], pathPatterns: ["/api/admin/analytics/coupon"] },
+    { name: "anyWallet", anyOf: ["wallet", "coupon"], pathPatterns: ["/any"] },
+  ];
+  const runChildren = (text) => run({ [caller]: IMPORT_WALLET + text }, { rules: withChildren });
+  assert.deepEqual(runChildren('const ok = useGate().enabled("walletAnalytics");\n'), []);
+  assert.deepEqual(runChildren('gate.assert("walletAnalyticsExport");\n'), []);
+  assert.deepEqual(runChildren('const ok = useGate().enabled("couponAnalytics");\n'), [`${caller} → core/wallet`]);
+  assert.deepEqual(runChildren('const ok = useGate().enabled("anyWallet");\n'), [`${caller} → core/wallet`]);
   // (3) その規則で閉じる住所の下(動的セグメント・ルートグループも)
   assert.deepEqual(run({ "src/app/(user)/wallet/[slug]/_screen/loader.ts": IMPORT_WALLET, "src/app/api/wallet/route.ts": IMPORT_WALLET }), []);
   assert.deepEqual(run({ "src/app/(user)/mypage/_screen/loader.ts": IMPORT_WALLET }), ["src/app/(user)/mypage/_screen/loader.ts → core/wallet"]);

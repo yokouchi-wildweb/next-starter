@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 
 import { messageBlocksSchema } from "./blocks";
 import { resolveRendering, type MessageChannelRendering } from "./rendering";
+import { summaryTitle, SUMMARY_TITLE_MAX } from "./summary";
 import { defineMessageLayout } from "./types";
 import { applyLayoutRevisions, fieldsForChannel, layoutValuesSchema, upgradeLayoutValues } from "./values";
 import { fieldValueSchema, MESSAGE_FIELD_TYPES } from "./vocabulary";
@@ -88,6 +89,34 @@ test("中身の検査: 必須を守り、送らない送信チャンネルだけ
   assert.equal(ok(layoutValuesSchema(layout, { channels: ["email"] }), { ...values, extra: "x" }), false);
   assert.deepEqual(Object.keys(fieldsForChannel(layout, "inApp")), ["subject", "body"]);
   assert.deepEqual(Object.keys(fieldsForChannel(layout, "email")), ["subject", "preheader", "body"]);
+});
+
+test("requiredFor(D211): 送る送信チャンネルに当たる時だけ必須、欄はどの送信チャンネルにも渡る", () => {
+  const optionalSubject = defineMessageLayout({
+    key: "simple",
+    label: "シンプル",
+    fields: {
+      subject: { type: "line", label: "件名", requiredFor: ["email"] },
+      body: { type: "paragraph", label: "本文", required: true },
+    },
+    summary: (values) => ({ title: summaryTitle(values.subject, values.body), body: values.body ?? "" }),
+  });
+  const noSubject = { body: "本文" };
+  assert.equal(ok(layoutValuesSchema(optionalSubject, { channels: ["inApp"] }), noSubject), true, "メールを送らなければ件名は任意");
+  assert.equal(ok(layoutValuesSchema(optionalSubject, { channels: ["inApp", "email"] }), noSubject), false, "メールを送るなら件名が要る");
+  assert.equal(ok(layoutValuesSchema(optionalSubject, { channels: ["email"] }), { ...noSubject, subject: "  " }), false, "空白だけの件名");
+  assert.equal(ok(layoutValuesSchema(optionalSubject), noSubject), true, "送信チャンネルを言わなければ任意");
+  assert.deepEqual(Object.keys(fieldsForChannel(optionalSubject, "inApp")), ["subject", "body"], "他の送信チャンネルから隠さない");
+});
+
+test("要約の題: 件名、無ければ本文の最初の空でない行を 40 文字で切り「…」", () => {
+  assert.equal(summaryTitle("件名", "本文"), "件名");
+  assert.equal(summaryTitle(undefined, "\n  1 行目  \n2 行目"), "1 行目");
+  assert.equal(summaryTitle("  ", "本文"), "本文", "空白だけの件名は無い");
+  const long = "あ".repeat(SUMMARY_TITLE_MAX + 5);
+  assert.equal(summaryTitle(null, long), `${"あ".repeat(SUMMARY_TITLE_MAX)}…`);
+  assert.equal(summaryTitle(null, "あ".repeat(SUMMARY_TITLE_MAX)), "あ".repeat(SUMMARY_TITLE_MAX), "ちょうどなら切らない");
+  assert.equal(summaryTitle(undefined, undefined), "");
 });
 
 test("改版の対応の 1 段: 前の鍵を新しい鍵へ移し、null は捨て、新しい鍵に値があれば残す", () => {
