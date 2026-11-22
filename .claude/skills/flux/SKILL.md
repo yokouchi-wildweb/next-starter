@@ -169,7 +169,7 @@ a notice's commit for which upstream declared `hotfix:` is cherry-picked before 
   2. the notice's required_actions, the segment checks (the same 3 as step 6; the picked tree lacks `scripts/runner/phases/` → skip the entry and write it in the report) and verify
   3. put the follow-up changes and the ledger in a commit separate from the pick commit (so the tier below can take only the pick commit)
      - ledger line: `- id:<id> | date:<ISO8601> | commit:<pick の短 sha> | upstream:<git merge-base HEAD <upstream>/<branch> の完全な sha> | picked:<元の commit の完全な sha> | notes:<…>`
-     - never set `upstream:` to the original commit (the ownership check would misread the Tier1 version) | forks with downstream write `relay:` too
+     - never set `upstream:` to the original commit (the ownership check would misread the Tier1 version) | forks with downstream write `relay:` too, judged at the pick (relay.md RELAY JUDGMENT, case "hotfix pick": `relay-check.mjs --pick <元の commit>`)
   4. step 7c `pnpm workflow ownership check` (content equal to base + pick, or a file the pick changed whose content equals any upstream version of it, passes as `picked`) → push → report | a pick has no merge target, so instead of 7c's "skip when there is no intake.txt" decide by:
      - no check (`package.json` lacks `pnpm workflow ownership check`) → skip | write `所有の検査なし(後の区間で届く)` in the report and the ledger notes | do not stop
      - an old check (`git diff --quiet HEAD <upstream>/<branch> -- src/lib/forkOwnership/` shows a diff) → run it, but never stop the pick on 1 / 2 (an old check may not know picks) | write the result in the report and the ledger notes

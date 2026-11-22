@@ -10,7 +10,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readFileSync, renameSync
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
-import { parseHunkRanges, rangesTouch, relayCheck } from "./relay-check.mjs";
+import { parseArgs, parseHunkRanges, pickReferencePoints, rangesTouch, relayCheck } from "./relay-check.mjs";
 
 const lines = (n, prefix = "line") => Array.from({ length: n }, (_, i) => `${prefix} ${i + 1}`).join("\n") + "\n";
 
@@ -245,4 +245,67 @@ test("上流と同じ内容で揃っている → 中継不要", () => {
   } finally {
     r.cleanup();
   }
+});
+
+// 緊急修正の先取り(relay.md RELAY JUDGMENT の先取りの場合): 上流の履歴 base → 間の関係ない commit(other.txt)→ 修正の commit(fix.txt)。
+// fork は base から分かれて other.txt を自分で直しており、修正の commit だけを先取りした(cherry-pick = A)。
+function setupPick({ forkTouchesFixHunk }) {
+  const r = setupRepo();
+  r.write("other.txt", lines(20));
+  r.write("fix.txt", lines(20));
+  const base = r.commit("base");
+  r.edit("other.txt", replaceLine(5, "upstream unrelated change"));
+  r.commit("upstream: unrelated");
+  r.edit("fix.txt", replaceLine(10, "upstream hotfix"));
+  const hotfix = r.commit("upstream: hotfix");
+  r.run("checkout", "-q", "-b", "fork", base);
+  r.edit("other.txt", replaceLine(5, "fork edit"));
+  r.commit("fork: own edits");
+  r.run("cherry-pick", hotfix);
+  // fork の版の修正のファイルが修正の行に接する所で上流と違う(先取りの 3-way で残った fork の改変の形)
+  if (forkTouchesFixHunk) {
+    r.edit("fix.txt", replaceLine(11, "fork edit next to the fix"));
+    r.commit("fork: edit next to the fix");
+  }
+  return { r, hotfix };
+}
+
+test("先取り: P = 元の commit の親・Q = 元の commit なら、先取りが触らないファイル(間の上流の commit が変えた所)に重なりを出さない", () => {
+  const { r, hotfix } = setupPick({ forkTouchesFixHunk: false });
+  try {
+    const { p, q } = pickReferencePoints({ cwd: r.dir, pick: hotfix });
+    assert.equal(q, r.run("rev-parse", hotfix));
+    assert.equal(p, r.run("rev-parse", `${hotfix}^`));
+    const result = relayCheck({ cwd: r.dir, p, q, appliedFrom: "HEAD" });
+    assert.deepEqual(result.overlaps, [], "other.txt は修正の差分に無いので数えない");
+    assert.deepEqual(result.outside, []);
+    assert.equal(result.needed, false);
+    // 順番どおりの区切りの基準(P = 分岐点)で測ると、間の commit の other.txt が重なりに入る(依頼の事例)
+    const base = r.run("rev-list", "--max-parents=0", "HEAD");
+    const naive = relayCheck({ cwd: r.dir, p: base, q, appliedFrom: "HEAD" });
+    assert.deepEqual(naive.overlaps.map((o) => o.path), ["other.txt"]);
+  } finally {
+    r.cleanup();
+  }
+});
+
+test("先取り: fork が修正の行に接する所を変えていれば、修正のファイルに重なりを出す(①)", () => {
+  const { r, hotfix } = setupPick({ forkTouchesFixHunk: true });
+  try {
+    const { p, q } = pickReferencePoints({ cwd: r.dir, pick: hotfix });
+    const result = relayCheck({ cwd: r.dir, p, q, appliedFrom: "HEAD" });
+    assert.deepEqual(result.overlaps.map((o) => o.path), ["fix.txt"]);
+    assert.equal(result.needed, true);
+  } finally {
+    r.cleanup();
+  }
+});
+
+test("引数: --pick は A を省けば HEAD、--p / --q との併用と値の無い --pick は誤り", () => {
+  assert.deepEqual(parseArgs(["--pick", "abc"]), { json: false, pick: "abc", appliedFrom: "HEAD" });
+  assert.equal(parseArgs(["--pick", "abc", "--applied-from", "def"]).appliedFrom, "def");
+  assert.throws(() => parseArgs(["--pick", "abc", "--p", "x"]), /usage/);
+  assert.throws(() => parseArgs(["--pick", "abc", "--q", "x"]), /usage/);
+  assert.throws(() => parseArgs(["--pick", ""]), /usage/);
+  assert.throws(() => parseArgs(["--p", "x", "--q", "y"]), /usage/);
 });

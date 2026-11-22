@@ -6,6 +6,10 @@
 //   P = 上流履歴上で直前の notice の区切り点(無ければ fork 成立点)
 //   Q = その notice の区切り点
 //   A = 区間の merge 直後の HEAD(merge コミット / fast-forward の到達点 / 区間 0 なら区間開始時の HEAD)
+// 緊急修正の先取り: node .claude/skills/flux/relay-check.mjs --pick <元の commit> [--applied-from <A>] [--json]
+//   P = 元の commit の親、Q = 元の commit(上流が変えた範囲 = その修正自身の差分だけ。間の上流の commit を数えない)
+//   A = fork の先取りの commit(省略 = HEAD: 先取りの直後、後追いの変更をコミットする前に判定する)
+//   元の commit = hotfixApply に渡した commit(祖父 notice は直上の Tier の先取りの commit、relay.md HOTFIX)。--p / --q とは併用しない
 // 終了コード: 0 = 中継不要 / 1 = 中継が必要 / 2 = 引数・git のエラー
 //
 // ① 上流のハンク(P→Q の Q 側の行範囲)と fork のハンク(Q→作業ツリーの Q 側の行範囲)が
@@ -137,20 +141,33 @@ export function relayCheck({ cwd = process.cwd(), p, q, appliedFrom }) {
   return { needed: overlaps.length > 0 || outside.length > 0, overlaps, outside };
 }
 
-function parseArgs(argv) {
+const USAGE =
+  "usage: relay-check.mjs --p <P> --q <Q> --applied-from <A> [--json] | relay-check.mjs --pick <元の commit> [--applied-from <A>] [--json]";
+
+export function parseArgs(argv) {
   const args = { json: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--json") args.json = true;
     else if (a === "--p") args.p = argv[++i];
     else if (a === "--q") args.q = argv[++i];
+    else if (a === "--pick") args.pick = argv[++i];
     else if (a === "--applied-from") args.appliedFrom = argv[++i];
     else throw new Error(`unknown argument: ${a}`);
   }
-  if (!args.p || !args.q || !args.appliedFrom) {
-    throw new Error("usage: relay-check.mjs --p <P> --q <Q> --applied-from <A> [--json]");
+  if (args.pick !== undefined) {
+    if (!args.pick || args.p !== undefined || args.q !== undefined) throw new Error(USAGE);
+    return { ...args, appliedFrom: args.appliedFrom ?? "HEAD" };
   }
+  if (!args.p || !args.q || !args.appliedFrom) throw new Error(USAGE);
   return args;
+}
+
+/** 先取りの基準点: P = 元の commit の親、Q = 元の commit(完全な sha に解く) */
+export function pickReferencePoints({ cwd = process.cwd(), pick }) {
+  const q = git(cwd, ["rev-parse", "--verify", `${pick}^{commit}`]).trim();
+  const p = git(cwd, ["rev-parse", "--verify", `${q}^`]).trim();
+  return { p, q };
 }
 
 function main() {
@@ -164,7 +181,8 @@ function main() {
   }
   let result;
   try {
-    result = relayCheck(args);
+    const points = args.pick !== undefined ? pickReferencePoints({ pick: args.pick }) : { p: args.p, q: args.q };
+    result = relayCheck({ ...points, appliedFrom: args.appliedFrom });
   } catch (error) {
     console.error(`relay-check: git failed: ${error.stderr || error.message}`);
     process.exitCode = 2;

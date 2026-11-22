@@ -28,6 +28,7 @@ read when the condition of SKILL.md ATTACHED FILES hits | the rules here act **i
 - original commit of a grandparent notice's `hotfix:` = the commit the direct Tier picked (`commit:` of that id's line in `git show <upstream>/<branch>:.notices/applied/<中間 Tier の名前>.md`) | never take the Tier1 commit directly
 - the direct Tier's ledger has no line (not picked yet) → one line in the overview that it cannot be taken, and go on to the normal segments
 - the pick is the same tool (`pnpm workflow notices hotfixApply <the direct Tier's commit> --upstream=<upstream>/<branch>`): "never changed by the fork" and "the upstream's version" are read against the direct parent (its merge-base, its commit), never Tier1
+- relay judgment of a pick (forks with downstream): judged once at the pick, with the pick's own reference points (RELAY JUDGMENT, case "hotfix pick") → `node .claude/skills/flux/relay-check.mjs --pick <original commit>` | the ledger line of the pick carries its `relay:` | the notice's own segment later finds the id in the ledger and does not judge it again
 - pick-clean fixes (SKILL.md FIXES `pick: clean`) are taken only for notices the direct parent issued | never read a grandparent notice's `pick:` (that mark was tried on Tier1's tree, not the direct Tier's) | when the direct Tier took it ahead, that pick arrives in normal segments in the order of the direct Tier's ledger
 
 ## LEDGER ADDITIONS (SKILL.md step 7a)
@@ -44,11 +45,16 @@ read when the condition of SKILL.md ATTACHED FILES hits | the rules here act **i
 as a middle Tier, decide mechanically **by git diffs only** whether applied upstream notices must be relayed downstream (never judge by interpreting the text)
 - **target forks**: forks with `tier` root / middle in `repo.json` (read as SKILL.md OWN FORK IDENTITY AND LEDGER 5; only reader `forkIds.mjs`) | `tier` leaf = a leaf fork, does nothing | declaration missing / wrong → never guess from the text; STOP (same item of SKILL.md)
 - **target notices**: notices applied in the segment whose `from:` is not your origin (grandparent notices and upstream relay notices included) | a covered id is judged as one with its covers side
+  - a hotfix pick (SKILL.md HOTFIX) is judged at the pick, not in a segment (case "hotfix pick" below) | an id already in the ledger is not applied by a later segment, so it is never judged twice
 - **judgment** (after verify of the segment's step 6, before step 7; per notice | any one of ①-③ hits → relay needed; none hits → `relay:none`):
   - reference points:
     - `Q` = that notice's checkpoint point (the checkpoint point of BUILDING SEGMENTS = `point` of `incoming.mjs`'s output; segment 0 → the adding commit; grandparent notice → the middle Tier's ledger-record commit)
     - `P` = the checkpoint point of the notice right before it in upstream's history (the previous notice's `point`; none → the fork founding point = the output's `forkPoint`)
     - `A` = HEAD right after this segment's step 5 (the merge commit; fast-forward → where it arrived; segment 0 → HEAD at the segment start)
+  - **case "hotfix pick"** (when: once, after the pick's required_actions and verify, before the commit of its follow-up changes and ledger, SKILL.md HOTFIX execute 3):
+    - `P` = the original commit's parent | `Q` = the original commit = the commit hotfixApply took (Tier1's adding commit; a grandparent notice → the direct Tier's pick commit, HOTFIX above) | `A` = the fork's pick commit (HEAD right after hotfixApply)
+    - so the upstream-changed range = the fix's own diff only (the upstream commits between the fork's base and the fix never count)
+    - command: `node .claude/skills/flux/relay-check.mjs --pick <original commit>` (P / Q from it, A = HEAD unless `--applied-from`) | ①-③ and the exclusions as below | write `relay:` on the pick's ledger line
   - ①② come from the script (never compare hunks by hand): `node .claude/skills/flux/relay-check.mjs --p <P> --q <Q> --applied-from <A>` | exit 0 = neither ① nor ② | 1 = hit (`overlap:` / `outside:` lines are the grounds) | 2 = error (stop as a stop condition)
   - **① hunk overlap**: the line ranges upstream changed P→Q and the line ranges where the work tree differs from Q overlap or touch in the same file
     - touching counts too, to match the standard that git's 3-way merge treats as a conflict | files upstream added / deleted and binaries count as whole-file ranges
