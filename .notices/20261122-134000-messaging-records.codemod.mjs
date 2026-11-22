@@ -149,7 +149,7 @@ export const VOCAB = [
   ex("sendTemplateMessage", "sendFreeMessage", "S2", "fork のコードの入口(messagingService.sendFreeMessage)"),
   { ...mem("sendTemplateMessage", "sendFreeMessage", "S2", "形も変わる: messagingService.sendFreeMessage({ origin: { layout } | { id, version }, … })。{ system } は管理画面で選べるレイアウトの鍵へ手で直す"), hand: true },
   { ...mem("template", "origin", "S2", "形も変わる: 自由連絡の出どころ(送る入力・プレビュー・afterSend の引数)。{ system: 鍵 } は { layout: <管理画面で選べるレイアウト> } へ手で直す"), hand: true },
-  ex("AdminBulkSendTemplate", "AdminBulkSendOrigin", "S2", "{ layout } | { id, version, edited }"),
+  ex("AdminBulkSendTemplate", null, "S2", "自由連絡の一括送信は afterSend を呼ばなくなった(D196)。送った後の処理は定義連絡の送る口 POST /api/admin/messaging/definitions/send の記録の入口だけ、引数は MessageRecordTargetSent"),
   ex("AdminMessageTemplateSchema", "AdminMessageOriginSchema", "S2"),
   { ...ex("blankOfKind", "blankLayoutOf", "S2", "形も変わる: blankLayoutOf(layouts) = 管理画面で選べる最初のレイアウト"), hand: true },
   { ...ex("blankTextState", "layoutTextState", "S2", "形も変わる: layoutTextState({ key, label }, start?)"), hand: true },
@@ -162,12 +162,13 @@ export const VOCAB = [
   dir(`${M}/extensions/systemTemplates.ts`, null, "S2", `${S2_SYSTEM}(生成物。pnpm generate extensions が消す)`),
 
   // ── S3 一覧の対象の受け口 bulkSendTargets → 記録の宛先 recordTargets(持ち主のドメイン、連絡定義と同じ道)・resolveUserIds → resolveRecipients
-  ex("MessageBulkSendTarget", "MessageRecordTarget", "S3", `${S3_TARGET}。型は @/lib/messaging へ移った: import の元(services/server/admin/types)を手で替える。項目に messages(この項目で送れる連絡定義の鍵の並び、空も可。名指す定義の adminTargets に records、D217・D218)を手で足す。上流の項目に連絡を足すのは隣の <名前>.override.ts の recordTargetOverride`),
+  ex("MessageBulkSendTarget", "MessageRecordTarget", "S3", `${S3_TARGET}。型は @/lib/messaging へ移った: import の元(services/server/admin/types)を手で替える。項目に messages(この項目で送れる連絡定義の鍵の並び、空も可。名指す定義の adminTargets に records、D217・D218)を手で足す。上流の項目に連絡を足すのは隣の <名前>.override.ts の recordTargetOverride。afterSend の引数(MessageRecordTargetSent)は { recordIds, dispatchId, counts, channels, message, fields } に変わった(values → fields、origin は無い、D196)ので中身を手で直す。afterSend は定義連絡の送る口の記録の入口だけが呼ぶ`),
   ex("bulkSendTargets", null, "S3", `${S3_TARGET}。生成した一覧(extensions/bulkSendTargets.ts)は無くなった: 一覧は src/registry/recordTargetRegistry.ts(pnpm generate registry、絞らない)、読み手は messaging の門番 loadRecordTarget(services/server/domainGate.ts)を通す`),
   ex("bulkSendTargetsList", null, "S3", `${S3_TARGET}。生成した一覧の中の名前(無くなった)`),
   { kind: "code-name", as: "declaration", old: "bulkSendTarget", new: "recordTarget", order: "S3", note: `${S3_TARGET}(項目のファイルの export const)`, in: [`${M}/bulkSendTargets`, "src/features/*/recordTargets"] },
   { ...mem("resolveUserIds", "resolveRecipients", "S3", "形も変わる: (recordIds) → [{ userId, vars, recordIds }](1 人 1 件、D190・D204)。名前は直すので中身を手で直す"), hand: true },
   dir(`${M}/bulkSendTargets`, "src/features/{owner}/recordTargets", "S3", `${S3_TARGET}。--owner <名前>=<ドメイン> で移し先を決める。項目の key は <ドメインのフォルダ名>.<ファイル名> に手で直す(ずれは pnpm generate registry が止める。管理 API の target・adminBulkActions の target も同じ鍵へ)`),
+  ex("BANK_TRANSFER_REVIEW_BULK", null, "S3", "MESSAGING_SOURCES の古い定数(使われていない)。送り元は \"<記録の宛先の鍵>.bulk\"(例 bankTransferReview.reviews.bulk)"),
   dir(`${M}/extensions/bulkSendTargets.ts`, null, "S3", "生成物(受け口 bulkSendTargets は無くなり pnpm generate extensions が消す)。記録の宛先の一覧は src/registry/recordTargetRegistry.ts(pnpm generate registry)"),
 
   // ── 開発の語(D180〜D182。書き換えず一覧に出すだけ)

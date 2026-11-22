@@ -1,7 +1,8 @@
 // src/features/core/bankTransferReview/recordTargets/reviews.ts
 //
 // 記録の宛先(recordTargets、D190): 振込審査の一覧で選んだ審査 → 申告した利用者(1 人 1 件、その人の審査の id をまとめる)。
-// 送った後に選んだ審査の管理メモへ「YYYY/MM/DD「件名」メール送付」を 1 行足す(メールを送ったときだけ。前の一括メールと同じ)。
+// 送った後に選んだ審査の管理メモへ「YYYY/MM/DD「件名」メール送付」を 1 行足す(定義の送信でメールを送ったときだけ、D196)。
+// 自由連絡の一括送信は afterSend を呼ばないので、送る画面を定義の送信へ移すまで(S4・S5)メモは残らない。
 // このドメインが閉じていれば門番が落とす。決済(payment)が閉じていても使えない(enabled)。中身の作り直しは S5
 
 import { eq, inArray } from "drizzle-orm";
@@ -32,9 +33,10 @@ export const recordTarget: MessageRecordTarget = {
     for (const row of rows) byUser.set(row.userId, [...(byUser.get(row.userId) ?? []), row.id]);
     return [...byUser].map(([userId, ids]) => ({ userId, vars: {}, recordIds: ids }));
   },
-  async afterSend({ recordIds, values }) {
-    // 送った中身の件名(汎用のお知らせの subject、差し込む前の字)
-    const subject = typeof values.subject === "string" && values.subject !== "" ? values.subject : undefined;
+  async afterSend({ recordIds, channels, fields }) {
+    // メールを送った時だけ(D196)。件名 = 送った欄の subject(テキストの編集の後、差し込む前の字)
+    if (!channels.includes("email")) return;
+    const subject = typeof fields.subject === "string" && fields.subject !== "" ? fields.subject : undefined;
     if (!subject || recordIds.length === 0) return;
     const today = formatDateJa(new Date(), { format: "YYYY/MM/DD" }) ?? "";
     const memoLine = `${today}「${subject}」メール送付`;

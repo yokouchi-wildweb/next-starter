@@ -1,7 +1,7 @@
 // 管理の送信と読む口の検査(DB・送る口・監査は偽物)
 // - 管理者の再検査(service): admin の利用者と system は通る、他は 403
 // - 一括送信: userIds / target + recordIds、重複を除く、中身は送る画面と同じ { origin, values, edited?, vars? }(D117・D171、専用の値は vars 指令 58)を送る口 sendFreeMessage へ、
-//   カテゴリー(必須、bulk で送れる種別 direct・promotion だけ)、送り元、afterSend(送った欄の中身と出どころ、失敗しても送信は戻さない)、監査 1 行、選択肢
+//   カテゴリー(必須、bulk で送れる種別 direct・promotion だけ)、送り元、記録の宛先は利用者を解くだけ(afterSend は呼ばない)、監査 1 行、選択肢
 // - DTO の前の送る口の送信 = レイアウト(layout)が無い送信。自由連絡の送信(message_key null)は前の送信ではない
 // - 読む口: 絞り込みの検査、keyset の印、DTO(本文は記録の段次第、provider の生の値と誤りの文は出さない、前の送る口の送信)
 // - グループ宛ての送信: 一覧・1 件に宛先のグループ { id(値だけ), name }、名前は 1 ページに 1 回引く、引けなければ null、detail.target は形だけ
@@ -67,7 +67,7 @@ const tplRow = {
   vars: [{ key: "name", alias: "お名前", type: "line" as const, required: true }],
 };
 
-function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: boolean; templatesOpen?: boolean } = {}) {
+function bulkSetup(options: { context?: AuditContext | null; templatesOpen?: boolean } = {}) {
   const sent: Record<string, unknown>[] = [];
   const calls: { fn: string; args: unknown[] }[] = [];
   const audits: AuditRecordInput[] = [];
@@ -82,9 +82,9 @@ function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: bo
       for (const id of ids) byUser.set(`u-${id.replace(/\d$/, "")}`, [...(byUser.get(`u-${id.replace(/\d$/, "")}`) ?? []), id]);
       return [...byUser].map(([userId, recordIds]) => ({ userId, vars: {}, recordIds }));
     },
+    // 自由連絡の一括送信は呼ばない(呼ばれたら after に残る)
     afterSend: async (result) => {
       after.push(result);
-      if (options.afterSendFails) throw new Error("memo failed");
     },
   };
   const deps: AdminBulkSendDeps = {
@@ -129,7 +129,7 @@ test("一括送信(userIds): 重複を除き送る口にレイアウト・欄の
   assert.deepEqual([sent[0].category, sent[0].origin, sent[0].values, sent[0].channels], ["promotion", LAYOUT, MAIL, ["email"]]);
   assert.deepEqual(sent[0].recipients, [{ userId: "a" }, { userId: "b" }]);
   assert.equal(sent[0].source, "messaging.adminBulk");
-  assert.deepEqual(result, { dispatchId: "d1", status: "processing", counts: { recipientCount: 2, channelCounts: {}, queuedCount: 3 }, afterSend: null });
+  assert.deepEqual(result, { dispatchId: "d1", status: "processing", counts: { recipientCount: 2, channelCounts: {}, queuedCount: 3 } });
   assert.equal(audits.length, 1);
   assert.equal(audits[0].action, "messaging.dispatch.bulk_sent");
   assert.equal(audits[0].targetId, "d1");
@@ -139,7 +139,7 @@ test("一括送信(userIds): 重複を除き送る口にレイアウト・欄の
   );
 });
 
-test("一括送信(target): 記録 → 利用者、運営からのご連絡(direct)で、afterSend に記録・送信・数・送った欄の中身・出どころ", async () => {
+test("一括送信(target): 記録 → 利用者、運営からのご連絡(direct)で、項目の afterSend は呼ばない(定義の送信だけ、D196)", async () => {
   const { deps, sent, after, audits } = bulkSetup();
   const values = { ...MAIL, blocks: [...MAIL.blocks, { type: "paragraph", text: "お知らせ" }] };
   const result = await adminBulkSend(deps, {
@@ -153,18 +153,10 @@ test("一括送信(target): 記録 → 利用者、運営からのご連絡(dire
   assert.equal(sent[0].category, "operatorDirect");
   assert.deepEqual(sent[0].recipients, [{ userId: "u-x" }, { userId: "u-y" }]);
   assert.equal(sent[0].source, "review.bulk");
-  assert.deepEqual(after, [
-    { recordIds: ["x1", "x2", "y1"], dispatchId: "d1", counts: { recipientCount: 2, channelCounts: {}, queuedCount: 3 }, values, origin: { layout: "notice" } },
-  ]);
-  assert.deepEqual(result.afterSend, { ok: true });
+  assert.deepEqual(after, []);
+  assert.deepEqual(result.counts, { recipientCount: 2, channelCounts: {}, queuedCount: 3 });
   assert.equal((audits[0].metadata as Record<string, unknown>).recordTarget, "review");
-});
-
-test("afterSend が投げても送信は戻さず結果と監査に失敗を残す", async () => {
-  const { deps, audits } = bulkSetup({ afterSendFails: true });
-  const result = await adminBulkSend(deps, { target: "review", recordIds: ["x1"], ...mail });
-  assert.deepEqual(result.afterSend, { ok: false, error: "memo failed" });
-  assert.deepEqual((audits[0].metadata as Record<string, unknown>).afterSend, { ok: false, error: "memo failed" });
+  assert.equal("afterSend" in (audits[0].metadata as Record<string, unknown>), false);
 });
 
 test("一括送信の入力の誤り・知らない / 使えない target・管理者でない", async () => {
@@ -278,6 +270,7 @@ const dispatchRow = (over: Partial<MessageDispatch> = {}): MessageDispatch =>
     template_id: null,
     template_version: null,
     template_edited: false,
+    edited_fields: null,
     layout: "notice",
     layout_version: 1,
     values: null,

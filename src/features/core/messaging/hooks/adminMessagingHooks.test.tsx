@@ -83,7 +83,7 @@ mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
     }),
     adminBulkSend: async (input: Record<string, unknown>) => {
       sends.push(input);
-      return { dispatchId: "disp-1", status: "completed", counts: { recipientCount: 2, channelCounts: {}, queuedCount: 0 }, afterSend: { ok: true } };
+      return { dispatchId: "disp-1", status: "completed", counts: { recipientCount: 2, channelCounts: {}, queuedCount: 0 } };
     },
   },
 });

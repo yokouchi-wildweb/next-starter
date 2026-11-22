@@ -110,6 +110,8 @@ export type AdminOperationsDeps<Tx> = AdminCheckDeps & {
     resolved: AnyResolvedMessageDefinition,
     input: SendMessageToManyInput,
     source?: MessageDispatchTemplateSource,
+    /** 定義連絡の送信の再送は編集した欄の印を写す(D202) */
+    options?: { editedFields?: readonly string[] | null },
   ) => Promise<SendMessageResult>;
   /** 戻した行を 1 束だけ送る(失敗しても再送は成り立つ。残りは cron) */
   continueSending: (dispatchId: string) => Promise<unknown>;
@@ -344,6 +346,8 @@ export async function adminResendFailed<Tx>(
           : dispatch.message_key === null && dispatch.layout
             ? { layout: dispatch.layout }
             : undefined,
+      // 定義連絡の送信は送った時のテキストの編集の印をそのまま(中身は送信の欄の中身から組んである)
+      dispatch.message_key !== null ? { editedFields: dispatch.edited_fields } : undefined,
     );
     const failed = rows.filter((row) => row.status === "failed").length;
     const unknown = rows.length - failed;

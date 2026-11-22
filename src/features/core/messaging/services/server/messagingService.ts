@@ -9,9 +9,13 @@ import {
   adminBulkSendTest,
   adminBulkDeleteDispatches,
   adminContinueSending,
+  adminDefinitionPreview,
+  adminDefinitionSend,
+  adminDefinitionTest,
   adminDeleteDispatch,
   adminDispatchDeleteSummary,
   adminDispatchPreview,
+  adminRecordTargetOptions,
   adminResendFailed,
   adminSend,
   adminSendEstimate,
@@ -68,6 +72,14 @@ export const messagingService = {
   /** 一括送信のプレビュー・自分へのテスト送信(POST /api/admin/messaging/bulk-send/{preview, test}、門 messagingBroadcast に入れない) */
   adminBulkSendPreview,
   adminBulkSendTest,
+  /**
+   * 定義連絡を管理者が送る(/api/admin/messaging/definitions/**、D190): 送る・プレビュー・自分へのテスト・記録の宛先の選択肢。
+   * 入口 = 記録 { recordTarget, recordIds, message }(門の外)か全員・ロール・グループ { message, target }(門 messagingBroadcast を service が見る)
+   */
+  adminDefinitionSend,
+  adminDefinitionPreview,
+  adminDefinitionTest,
+  adminRecordTargetOptions,
   /** 管理の送信(/api/admin/messaging/send/**): 送る(今か予約)・プレビュー・見込み・自分へのテスト・選択肢 */
   adminSend,
   adminSendPreview,

@@ -87,6 +87,24 @@ export function varTextOf(declaration: Pick<MessageVarDeclaration, "type" | "opt
 }
 
 /**
+ * 管理者が送る画面で入れた値(連絡定義の adminVars、D175・D195)を入力の型で変換する。変換した値は呼び手が連絡定義の vars の zod で検査する。
+ * - 空(undefined・null・"")は既定値。既定値も無ければ { value: undefined }(必須かどうかは定義の zod が見る)
+ * - number = 数、ほかの型 = 型の形の字(date・datetime・url は前後の空白を落とす、select は選択肢の value)
+ * @returns { value } / { problem }(型の形でない)
+ */
+export function adminVarValueOf(
+  input: Pick<MessageVarDeclaration, "type" | "options" | "default">,
+  raw: unknown,
+): { value: string | number | undefined } | { problem: string } {
+  const empty = raw === undefined || raw === null || raw === "";
+  const source = empty ? input.default : raw;
+  if (source === undefined || source === "") return { value: undefined };
+  const text = varTextOf(input, source);
+  if (text === null) return { problem: `型「${MESSAGE_VAR_TYPE_LABELS[input.type]}」の形ではありません` };
+  return { value: input.type === "number" ? Number(text) : text };
+}
+
+/**
  * 値 1 つの zod(送る人が入れた値 → 差し込む字)。空は既定値、必須で既定値も無ければ誤り、任意なら空の字
  */
 export function varValueSchema(declaration: MessageVarDeclaration): z.ZodType<string, z.ZodTypeDef, unknown> {

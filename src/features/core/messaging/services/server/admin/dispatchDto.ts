@@ -70,6 +70,8 @@ export type AdminDispatchDetail = AdminDispatchSummary & {
   templateDeleted: boolean;
   /** 版の文言を直した送信か(D85) */
   templateEdited: boolean;
+  /** 定義連絡の送信で管理者がテキストを編集した欄(レイアウトの欄の鍵、D202)。編集していない・定義連絡でない送信は null */
+  editedFields: string[] | null;
   /** 送信の中身(レイアウトの鍵と送った版・欄の中身、差し込む前の字。詳細のプレビュー)。欄の中身を残していない送信は null */
   content: AdminDispatchContent | null;
   /** 「同じ内容で送る」の写し(自由連絡の送信だけ。定義連絡の送信・前の送る口の送信・中身を残していない送信は null、D193) */
@@ -190,6 +192,7 @@ export function toDispatchDetail(
     templateVersion: row.template_version,
     templateDeleted: row.template_id === null && row.template_version !== null,
     templateEdited: row.template_edited,
+    editedFields: row.edited_fields ?? null,
     content,
     sameAs: sameAsOf(row, content, keep),
     targetUserIds,

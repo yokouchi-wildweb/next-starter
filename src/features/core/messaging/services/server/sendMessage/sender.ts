@@ -28,7 +28,7 @@ import type {
 } from "../../../entities/model";
 import { MESSAGE_EXPAND_DONE, type MessageChannelCounts } from "../../../entities/schema";
 import { buildContent, buildContents, buildRowContent } from "./content";
-import { buildRecipientValues, checkRecipientVars, parseVars, toVariableMap } from "./context";
+import { buildRecipientValues, checkRecipientVars, parseRecordVars, parseVars, toVariableMap } from "./context";
 import {
   resolveChannels,
   resolveDefinition,
@@ -134,6 +134,16 @@ type ManyOptions = {
   resolved?: AnyResolvedMessageDefinition;
   /** 送信に残すテンプレートの出どころ(ある送信は message_key が null) */
   source?: MessageDispatchTemplateSource;
+} & MessageDefinitionSendOptions;
+
+/** 管理の定義の送信だけが渡す物(コードの送信は渡さない) */
+export type MessageDefinitionSendOptions = {
+  /**
+   * 受信者ごとに記録から埋める vars の鍵(定義の recordVars、D195)。送信の vars はこの鍵を除いて、受信者ごとの値はこの鍵を定義の zod で検査する
+   */
+  recordVarKeys?: readonly string[];
+  /** 管理者がテキストを編集した欄(送信の edited_fields、D202。空・省略 = 編集なし) */
+  editedFields?: readonly string[] | null;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -201,14 +211,23 @@ export function createMessageSender(deps: MessageSendDeps) {
       return null;
     }
     const channels = resolveChannels(resolved, input.channels);
-    const vars = parseVars(resolved, input.vars);
-    for (const values of Object.values(input.recipientVars ?? {})) checkRecipientVars(resolved, values);
+    const recordVarKeys = options.recordVarKeys ?? [];
+    const vars = parseVars(resolved, input.vars, recordVarKeys);
+    // 受信者ごとの値: 記録から埋める鍵は定義の zod で検査した値に置き換える(ほかの鍵は上書きできない鍵の検査だけ)
+    let recipientVars = input.recipientVars;
+    if (recordVarKeys.length > 0) {
+      recipientVars = Object.fromEntries(
+        Object.entries(input.recipientVars ?? {}).map(([key, values]) => [key, parseRecordVars(resolved, values, recordVarKeys)]),
+      );
+    } else {
+      for (const values of Object.values(input.recipientVars ?? {})) checkRecipientVars(resolved, values);
+    }
     const policy = recordPolicyOf(resolved);
 
     if (input.idempotencyKey && (await deps.store.idempotencyKeyExists(input.idempotencyKey))) {
       throw new DomainError(DUPLICATE_MESSAGE, { status: 409 });
     }
-    return { resolved, channels, vars, policy };
+    return { resolved, channels, vars, recipientVars, policy };
   }
 
   async function insertDispatch(
@@ -225,9 +244,12 @@ export function createMessageSender(deps: MessageSendDeps) {
       source?: MessageDispatchTemplateSource;
       /** グループ宛ての送り始めに固定した定期計算の版(静的・動的は null) */
       groupVersion?: number | null;
+      /** 管理者がテキストを編集した欄(定義連絡の送信だけ) */
+      editedFields?: readonly string[] | null;
     },
   ): Promise<string> {
     const { channels, vars, policy, recipientCount, queueVars, expanded, source } = values;
+    const editedFields = !source && values.editedFields && values.editedFields.length > 0 ? [...values.editedFields] : null;
     const template = source && "template" in source ? source.template : null;
     const deletedTemplate = source && "deletedTemplate" in source ? source.deletedTemplate : null;
     const actor = deps.actor();
@@ -250,6 +272,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         template_id: template?.id ?? null,
         template_version: template?.version ?? deletedTemplate?.version ?? null,
         template_edited: template?.edited ?? deletedTemplate?.edited ?? false,
+        edited_fields: editedFields,
         layout: resolved.layout,
         layout_version: deps.layouts[resolved.layout] ? layoutVersionOf(deps.layouts[resolved.layout]!) : null,
         // 欄の中身: 組み直しに要る間と残す段の間だけ(vars と同じ決まり)。required・秘密の連絡は残さない
@@ -296,6 +319,8 @@ export function createMessageSender(deps: MessageSendDeps) {
       return { dispatchId: null, status: "disabled", deliveries: [], queuedCount: 0, channelCounts: {} };
     }
     const { resolved, channels, vars, policy } = prepared;
+    // 受信者ごとの値は検査した物(記録から埋める値は zod を通した値)で送る
+    input = { ...input, recipientVars: prepared.recipientVars } as SendMessageToManyInput;
     /** 送信と事件に残す連絡の鍵(テンプレートからの送信は null) */
     const recordKey = options.source ? null : resolved.key;
     const recipients: readonly MessageRecipient[] = input.recipients ?? [];
@@ -333,6 +358,7 @@ export function createMessageSender(deps: MessageSendDeps) {
         queueVars: true,
         expanded: false,
         source: options.source,
+        editedFields: options.editedFields,
         groupVersion: group?.version ?? null,
       });
       return {
@@ -361,6 +387,7 @@ export function createMessageSender(deps: MessageSendDeps) {
       queueVars: queueRest,
       expanded: true,
       source: options.source,
+      editedFields: options.editedFields,
     });
 
     const recipientVarsOf = (key: string) => input.recipientVars?.[key];
@@ -566,13 +593,15 @@ export function createMessageSender(deps: MessageSendDeps) {
     sendMessageToMany: (definition: AnyMessageDefinition, input: SendMessageToManyInput) =>
       sendToMany(definition, input),
     /**
-     * 組み済みの定義で送る(管理の再送が新しい送信として送る時。送信から組んだ定義で、上書きを重ね直さない。テンプレートの送信は同じ出どころを残す)
+     * 組み済みの定義で送る(管理の再送が新しい送信として送る時: 送信から組んだ定義で、上書きを重ね直さない。テンプレートの送信は同じ出どころを残す。
+     * 管理の定義の送信: テキストの編集を重ねた定義で、記録から埋める vars の鍵と編集した欄を渡す)
      */
     sendResolved: (
       resolved: AnyResolvedMessageDefinition,
       input: SendMessageToManyInput,
       source?: MessageDispatchTemplateSource,
-    ) => sendToMany(resolved as AnyMessageDefinition, input, { resolved, source }),
+      options: MessageDefinitionSendOptions = {},
+    ) => sendToMany(resolved as AnyMessageDefinition, input, { resolved, source, ...options }),
 
     /**
      * 描いたプレビュー(管理の送信の確認)。見本の受信者 userId の値で差し込み、送信チャンネルごとに欄と(送信チャンネルが描けるなら)HTML を返す。
@@ -582,13 +611,24 @@ export function createMessageSender(deps: MessageSendDeps) {
     async previewMessage(
       source:
         | { definition: AnyMessageDefinition }
+        | { resolved: AnyResolvedMessageDefinition }
         | { free: { origin: MessageFreeOrigin; values: Record<string, unknown>; category: string } },
-      input: { vars: Record<string, unknown>; channels?: readonly string[]; userId: string | null },
+      input: {
+        vars: Record<string, unknown>;
+        channels?: readonly string[];
+        userId: string | null;
+        /** 見本の受信者の値(管理の定義の送信の記録の入口: 最初の記録から埋める値) */
+        recipientVars?: Record<string, unknown>;
+        /** 記録から埋める vars の鍵(recipientVars のうち定義の zod で検査する鍵) */
+        recordVarKeys?: readonly string[];
+      },
     ): Promise<MessagePreview> {
       let resolved: AnyResolvedMessageDefinition;
       let template: { id: string; version: number } | null = null;
       if ("definition" in source) {
         resolved = await resolveDefinition(source.definition, deps);
+      } else if ("resolved" in source) {
+        resolved = source.resolved;
       } else {
         const { values, category, origin } = source.free;
         const from = await freeSourceOf(origin);
@@ -597,9 +637,13 @@ export function createMessageSender(deps: MessageSendDeps) {
       }
       // 送信チャンネル = カテゴリーの送信チャンネル、input.channels はその中の絞り
       const channels = resolveChannels(resolved, input.channels);
-      const vars = parseVars(resolved, input.vars);
+      const recordVarKeys = input.recordVarKeys ?? [];
+      const vars = parseVars(resolved, input.vars, recordVarKeys);
+      let recipientVars = input.recipientVars;
+      if (recordVarKeys.length > 0) recipientVars = parseRecordVars(resolved, input.recipientVars ?? {}, recordVarKeys);
+      else if (recipientVars) checkRecipientVars(resolved, recipientVars);
       const [user] = input.userId ? await deps.store.findUsers([input.userId]) : [];
-      const values = await buildRecipientValues({ deps, resolved, vars, recipientVars: undefined, user: user ?? null });
+      const values = await buildRecipientValues({ deps, resolved, vars, recipientVars, user: user ?? null });
       const map = toVariableMap(values);
       const category = honoursPreferences(stopContextOf(resolved)) ? resolved.category : undefined;
       const items: MessagePreview["channels"] = [];

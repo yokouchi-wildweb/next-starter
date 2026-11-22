@@ -5,6 +5,7 @@ export {
   MESSAGE_VAR_TYPES,
   MESSAGE_VAR_TYPE_LABELS,
   VAR_TYPE_SUFFIX,
+  adminVarValueOf,
   displayVarValues,
   varDisplayText,
   varTextOf,

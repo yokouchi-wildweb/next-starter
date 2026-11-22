@@ -9,6 +9,7 @@
 - `messagingDispatches`（既定 開）: 送信の読む口・送信の操作・続きを送る（`/api/admin/messaging/dispatches/**`）と画面 `/admin/messaging`
 - `messagingBroadcast`（`dependsOn: ["messagingDispatches"]`、既定 閉）: `/api/admin/messaging/send/**` と送るモーダルの口（送信の一覧「新しく送る」・送信の詳細「同じ内容で送る」。部品が `useGate` で出し分ける）。閉でも送る口と cron の予約の拾いは動く
 - 一括送信 `/api/admin/messaging/bulk-send/**` はどの門にも入れない（管理一覧の一括操作が使うので、画面を閉じても送れる）
+- 定義連絡の送る口 `/api/admin/messaging/definitions/**`: 記録の入口と記録の宛先の選択肢は門の外（一括送信と同じ）。全員・ロール・グループの入口は門 `messagingBroadcast` の中だが、同じ道なので道の印に載せず service が `gate.enabled` で見て閉なら 404（プレビュー・テストも）
 
 ## API
 
@@ -34,10 +35,26 @@
 
 - `GET`: `{ channels, categories, templates, layouts }`（送信チャンネルは送る口の選択肢と同じ、カテゴリーは bulk で送れる種別で `/send/options` と同じ形（`catalog`）、テンプレートは門 `messagingTemplates` が開の時だけ、`layouts` = `/send/options` と同じ（選べるレイアウト → 並べたテンプレートのレイアウト））
 - `POST`: 宛先 `{ userIds }` か `{ target, recordIds }`（10,000 人まで）、中身は `/send` と同じ `origin`・`values`・`edited?`・`vars?`・`category`・`channels?`、`idempotencyKey?`（8〜128 文字）・`source?`（既定 `<target>.bulk`、userIds なら `messaging.adminBulk`）・`reason?`・`isTest?`。予約は無い（`scheduledAt` は 400）。知らない鍵は 400
-  - → `{ dispatchId, status, counts: { recipientCount, channelCounts, queuedCount }, afterSend: { ok: true } | { ok: false, error } | null }`
+  - → `{ dispatchId, status, counts: { recipientCount, channelCounts, queuedCount } }`
 - `POST /preview`・`POST /test`: `/send` と同じ（テストの送り元 `messaging.adminBulk.test`）
-- 記録の宛先 `<domain>/recordTargets/<名前>.ts`（`MessageRecordTarget`、lib/messaging。生成の一覧 `src/registry/recordTargetRegistry.ts`、読み手は門番 `loadRecordTarget` = 無い鍵・閉じたドメイン・`enabled()` が false は 400）: `key`（= `<ドメインのフォルダ名>.<ファイル名>`）・`label`・`enabled?`・`resolveRecipients(recordIds)` → `[{ userId, vars, recordIds }]`（一括送信は userId だけを使う。vars は定義の送る口、指令 05）・`afterSend?({ recordIds, dispatchId, counts, values, origin })`（受け付けの直後に 1 回。`values` = 差し込む前の欄の中身、`origin`（`AdminBulkSendOrigin`）= `{ layout }` か `{ id, version, edited }`。投げても送信は戻らず結果と監査に失敗を残す）。上流 `bankTransferReview.reviews`（振込審査 → 申告した利用者、メールを送ったら管理メモに「YYYY/MM/DD「件名」メール送付」）
-- 監査: `messaging.dispatch.bulk_sent`（送り元・種別・送信チャンネル・数・状態・対象の鍵・afterSend）
+- 記録の宛先 `<domain>/recordTargets/<名前>.ts`（`MessageRecordTarget`、lib/messaging。生成の一覧 `src/registry/recordTargetRegistry.ts`、読み手は門番 `loadRecordTarget` = 無い鍵・閉じたドメイン・`enabled()` が false は 400）: `key`（= `<ドメインのフォルダ名>.<ファイル名>`）・`label`・`enabled?`・`resolveRecipients(recordIds)` → `[{ userId, vars, recordIds }]`（自由連絡の一括送信は userId だけを使う。記録の値 vars と項目の `afterSend` は定義連絡の送る口の記録の入口だけ、D196: 下の「/api/admin/messaging/definitions」）
+- 監査: `messaging.dispatch.bulk_sent`（送り元・種別・送信チャンネル・数・状態・対象の鍵）
+
+### `/api/admin/messaging/definitions/**`（definitionSend.ts、D190・D195・D196・D202）
+
+定義連絡（`messages/<名前>.ts`）を管理者が送る。中身はコードの定義が持ち、画面から受けるのは次だけ: `edits?`（テキストの編集 = レイアウトの欄の鍵 → 値。直せる欄は管理画面のテキストの編集と同じ `adminEditableFields`、required の連絡は 400）・`channels?`（送信チャンネルの絞り: 定義の固定 on はいつも入る、off・カテゴリーの外・空は 400。required は email を外せない）・`vars?`（管理者の値 = 定義の `adminVars` の鍵だけ。入力の型で変換（`adminVarValueOf`、数は数）してから定義の vars の zod で検査、合わない・宣言に無い鍵は 400）・`idempotencyKey`。埋まらない必須の vars は 400
+
+- `POST /definitions/send`（`AdminDefinitionSendInputSchema`）: `entry` = 次のどれか、`edits?`・`channels?`・`vars?`・`idempotencyKey`（必須、8〜128 文字）・`scheduledAt?`・`reason?`。知らない鍵は 400
+  - 記録 `{ recordTarget, recordIds, message }`: 項目（門番 `loadRecordTarget`、無い・閉じた = 400）の `messages` の中の連絡定義だけ（外は 400）、定義の `adminTargets` に `records`。宛先 = `resolveRecipients` の返す形（1 人 1 件、記録ごとかまとめるかは項目、D204。10,000 人まで）、受信者ごとの値 = 記録の値のうち定義の `recordVars` の鍵だけ（定義の zod で検査）。予約は無い（400）。送り元 `<項目の鍵>.bulk`
+  - 全員・ロール・グループ `{ message, target: { type: "all" } | { type: "role", roles } | { type: "group", groupId } }`: 定義の `adminTargets` にその種類。予約は自由連絡と同じ決まり。送り元 `messaging.adminSend`
+  - 連絡定義が無い・連絡のドメインが閉じた = 404、定義が止められている（上書きの enabled: false）= 400
+  - → `{ dispatchId, status, counts: { recipientCount, channelCounts, queuedCount }, afterSend: { ok: true } | { ok: false, error } | null }`（`afterSend` = 記録の入口で項目が持つ時だけ）
+  - 送信の記録: `message_key` + テキストを編集した欄 `edited_fields`（無ければ null、編集の後の字は記録の段が残す時の `values`）。失敗の再送は同じ印を写す
+  - 項目の `afterSend({ recordIds, dispatchId, counts, channels, message, fields })`（記録の入口の送信の受け付けの直後に 1 回。`channels` = 使うと決めた送信チャンネル、`message` = 連絡定義の鍵、`fields` = テキストの編集の後の欄の中身（差し込む前の字）。投げても送信は戻らず結果と監査に失敗を残す）
+- `POST /definitions/preview`: 送ると同じ検査。見本の受信者 = 操作した管理者、記録の入口は選んだ最初の記録の値で組む
+- `POST /definitions/test`: 宛先 = 操作した管理者だけ・`is_test`、記録の入口は最初の記録の値。`afterSend` は呼ばない。送り元 `<送る時の送り元>.test`
+- `GET /definitions/record-targets` → `[{ key, label, messages: [{ key, label }] }]`（門番を通った項目と、読める連絡定義だけ）
+- 監査: `messaging.dispatch.sent` / `scheduled` / `test_sent`（`message`・`entry`（`{ recordTarget, recordCount }` か宛先の指定）・`editedFields`・`channels`・`category`・`kind`・状態・記録の入口は `afterSend`）
 
 ### 送信の読む口（readDispatches.ts・dispatchDto.ts、門 `messagingDispatches`）
 

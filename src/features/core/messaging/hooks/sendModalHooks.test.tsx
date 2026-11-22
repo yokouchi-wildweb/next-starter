@@ -177,7 +177,7 @@ mock.module("@/features/core/messaging/services/client/adminMessagingClient", {
     }),
     adminBulkSend: async (input: unknown) => {
       calls.push(["bulk", input]);
-      return { dispatchId: "b1", status: "queued", counts: { recipientCount: 2, channelCounts: {}, queuedCount: 0 }, afterSend: { ok: true } };
+      return { dispatchId: "b1", status: "queued", counts: { recipientCount: 2, channelCounts: {}, queuedCount: 0 } };
     },
     previewAdminBulkMessage: async (input: unknown) => {
       calls.push(["bulkPreview", input]);
@@ -283,6 +283,7 @@ const SAME_AS_DISPATCH = {
   templateId: null,
   templateVersion: null,
   templateEdited: false,
+  editedFields: null,
   content: { layout: "notice", layoutVersion: 1, values: { subject: "元の件名", blocks: [] } },
   vars: null,
   channels: ["email", "inApp"],

@@ -21,8 +21,6 @@ export const MESSAGING_SOURCES = {
    * 本テンプレートに該当画面は無い（同上、ダウンストリーム向けに維持）。
    */
   SHIPPING_REQUEST_BULK: "shippingRequest.bulk",
-  /** 銀行振込レビュー一覧のバルクアクション「メール一斉送信」 */
-  BANK_TRANSFER_REVIEW_BULK: "bankTransferReview.bulk",
   /** ウォレット失効予告（システム起点: wallet-expiration-notice cron） */
   WALLET_EXPIRATION_PRE_NOTICE: "wallet.expiration.preNotice",
   /** ウォレット失効時の本通知（システム起点: wallet-expiration-notice cron） */

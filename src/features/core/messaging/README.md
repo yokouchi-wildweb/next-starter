@@ -34,6 +34,7 @@ await messagingService.sendMessageToMany(campaign, {
 - 冪等の鍵 `idempotencyKey`: 同じ鍵の 2 回目は送る前に 409（送信の UNIQUE と、保持の掃除で移した鍵の表 `message_idempotency_keys` の両方を見る）。画面はフォームを開くたびに `crypto.randomUUID()`、同じフォームの再送信は同じ鍵。バッチの再実行で送った対象を除くのは `messagingService.existingIdempotencyKeys(keys)`。並走した実行が先に送った時も 409（実例: wallet の失効の知らせ `src/features/core/wallet/services/server/notification/expirationNoticeSender.ts`）
 - cron・CLI からの送信は `runAsSystem`（`@/lib/audit`）の中。送り元 `source` の既定は定義の鍵
 - 予約は `scheduledAt`（過ぎた時刻と `schedule.maxDaysAhead` 日より先は 400）。required と秘密を差し込む連絡は予約・全員宛てにできない（400）
+- 管理者が定義連絡を送る口（記録の宛先から・全員・ロール・グループへ、テキストの編集・送信チャンネルの絞り・管理者の値だけを受ける）は `/api/admin/messaging/definitions/**`（services/server/admin/README.md）。定義の `adminVars`（管理者が入れる値）・`recordVars`（記録から埋める値）・`adminTargets`（送れる宛先）・`channelModes`（送信チャンネルの固定）が受ける物を決める
 
 ### 宛先（target）
 
@@ -81,7 +82,7 @@ export const category: MessageCategory = { key: "itemSoldInApp", label: "出品�
 HTTP の口と返す形は口のフォルダの README:
 
 - 送る口（`sendMessage` / `sendMessageToMany` / `sendFreeMessage`・プレビュー・見込み・間引き・本文の残し方・送信の結果）→ services/server/sendMessage/README.md
-- 管理の口 `/api/admin/messaging/**`（送る・一括送信・送信の読む口・送信の操作・続きを送る・利用者ごとの履歴）→ services/server/admin/README.md
+- 管理の口 `/api/admin/messaging/**`（自由連絡を送る・一括送信・定義連絡を管理者が送る `definitions/**`・送信の読む口・送信の操作・続きを送る・利用者ごとの履歴）→ services/server/admin/README.md
 - テンプレート `/api/admin/messaging/templates/**`・レイアウトのプレビュー `/api/admin/messaging/layouts/preview` → services/server/templates/README.md / テキストの編集 `/api/admin/messaging/overrides/**` → services/server/overrides/README.md
 - 本人の受け取り箱 `/api/me/messaging/inbox/**` → services/server/inbox/README.md / 好み `/api/me/messaging/preferences` → services/server/preferences/README.md / 端末の帳簿 `/api/me/messaging/endpoints` → services/server/endpoints/README.md
 - 配信停止 `/api/messaging/unsubscribe` と確認のページ `/unsubscribe` → services/server/unsubscribe/README.md
@@ -112,7 +113,7 @@ HTTP の口と返す形は口のフォルダの README:
 - `categories/`（`category`: `MessageCategory`）: カテゴリー（種別・送信チャンネル・グループ・表示名・説明）。上流のカテゴリーは隣の `<名前>.override.ts` で `label`・`description`・`channels`・`defaultChannels`（送る画面で最初に入っている送信チャンネル）・`group`・`adminLabel`（管理画面の名前）を変えられる（`key`・`kind` は不可、functional・security の email は外せない = `pnpm check extensions`）
 - `categoryGroups/`（`group`: `MessageCategoryGroup`）: カテゴリーのグループ（好みのページの見出し、同じ種別のカテゴリーだけ、`order` の順）。上流は出荷しない
 - `sources/`（`source`: `MessageSource`）: 送り元の表示名。上流は管理の送り元 4 つ（`adminSend`・`adminSendTest`・`adminBulk`・`adminBulkTest`）。送信の詳細の送り元は `sources/` → 同じ鍵の連絡の `label` → 一括の対象 `<対象>.bulk(.test)` の順に引く（`services/server/admin/sourceLabels.ts`）
-- 記録の宛先は受け口ではない: 持ち主のドメインの `<domain>/recordTargets/<名前>.ts`（`recordTarget`: `MessageRecordTarget`、型は lib/messaging）。管理一覧で選んだ記録 → 宛先（1 人 1 件 `{ userId, vars, recordIds }`）・送った後の処理。鍵 = `<ドメインのフォルダ名>.<ファイル名>`。`pnpm generate registry` が `src/registry/recordTargetRegistry.ts` に集め（絞らない）、読み手は門番 `loadRecordTarget`（`services/server/domainGate.ts`、閉じたドメインを落とす）を通す。fork の物は fork の自分のドメインに置く。上流は `bankTransferReview.reviews`（services/server/admin/README.md）
+- 記録の宛先は受け口ではない: 持ち主のドメインの `<domain>/recordTargets/<名前>.ts`（`recordTarget`: `MessageRecordTarget`、型は lib/messaging）。管理一覧で選んだ記録 → 宛先（1 人 1 件 `{ userId, vars, recordIds }`）・送れる連絡定義の並び `messages`・送った後の処理（定義連絡の送る口の記録の入口だけ、D196）。鍵 = `<ドメインのフォルダ名>.<ファイル名>`。`pnpm generate registry` が `src/registry/recordTargetRegistry.ts` に集め（絞らない）、読み手は門番 `loadRecordTarget`（`services/server/domainGate.ts`、閉じたドメインを落とす）を通す。fork の物は fork の自分のドメインに置く。上流は `bankTransferReview.reviews`（services/server/admin/README.md）
 - `adminBulkActions/`（`bulkAction`: `MessagingDispatchAdminBulkActionItem`、型は `types/adminBulkAction.ts`、client）: 送信一覧の一括操作。上流の既定 = `delete.tsx`（削除）。fork は項目を足す・`<名前>.override.ts` で `enabled`・`order`（作り方: src/lib/tableSuite/README.md「一括操作の受け口」）
 - `subscribers/`（`subscriber`: `MessageSubscriber`）: 送った後の事件の購読（少なくとも 1 回）。上流の項目は無い（services/server/subscribers/README.md）
 

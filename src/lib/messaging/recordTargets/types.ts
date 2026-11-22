@@ -16,11 +16,11 @@ export type MessageRecordRecipient = {
   recordIds: string[];
 };
 
-/** 送った後の処理に渡す結果(管理の一括送信。形は指令 05 で組み直す) */
+/** 送った後の処理に渡す結果(管理の定義の送信の記録の入口、D196) */
 export type MessageRecordTargetSent = {
   /** 選んだ記録の id(全部) */
   recordIds: readonly string[];
-  /** 送信の id(送信を書かなかった時は null) */
+  /** 送信の id(送信を書かなかった時 = 連絡のドメインが閉じた・定義が enabled でない時は null) */
   dispatchId: string | null;
   counts: {
     /** 重複を除いた利用者の数 */
@@ -30,10 +30,12 @@ export type MessageRecordTargetSent = {
     /** cron に任せた配達の数 */
     queuedCount: number;
   };
-  /** 送った欄の中身(レイアウトの欄、差し込む前の字) */
-  values: Record<string, unknown>;
-  /** 中身の出どころ: 選んだレイアウトか、DB のテンプレートの固定した版と直した印 */
-  origin: { layout: string } | { id: string; version: number; edited: boolean };
+  /** 使うと決めた送信チャンネル(連絡定義の固定と管理者の絞りの後。メールを送った時だけ何かを残す、などに使う) */
+  channels: readonly string[];
+  /** 送った連絡定義の鍵 */
+  message: string;
+  /** 送った欄の中身(テキストの編集の後、差し込む前の字。レイアウトの欄の鍵 → 値) */
+  fields: Readonly<Record<string, unknown>>;
 };
 
 /** 記録の宛先の項目(<domain>/recordTargets/<名前>.ts の export const recordTarget) */
@@ -52,7 +54,7 @@ export type MessageRecordTarget = {
   /** 選んだ記録の id → 宛先(1 人 1 件。見つからない記録は飛ばす) */
   resolveRecipients: (recordIds: readonly string[]) => Promise<MessageRecordRecipient[]>;
   /**
-   * 送った後の業務の処理(管理メモの追記など)。送信の受け付けの直後に 1 回呼ぶ。
+   * 送った後の業務の処理(管理メモの追記など)。管理の定義の送信(記録の入口)の受け付けの直後に 1 回呼ぶ(自由連絡の一括送信は呼ばない、D196)。
    * 投げても送信は戻らない(呼び手が失敗として返し、監査ログにも残す)
    */
   afterSend?: (sent: MessageRecordTargetSent) => Promise<void>;
