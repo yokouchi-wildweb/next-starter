@@ -2,8 +2,8 @@
 
 ## Overview
 
-連絡のドメインの hook(画面の流れとデータ)。入口は `hooks/index.ts` だけ(部品・画面・fork はここから読む)。
-送る画面の hook は公開の部品として小さく分けてあり(D191)、上流の送るモーダル(自由連絡の `useMessageSendModal`、定義連絡の汎用のモーダル)もこれだけで組む。fork は同じ hook で自前の送る画面を組める。部品の使い分けは ../components/README.md。
+連絡のドメインの hook(画面の流れとデータ)。**公開 = `hooks/index.ts` が出す物だけ**(D191): 部品・画面・fork はここから読み、中のファイルを直に import しない。index に無い物(二重送信の鍵を作る関数など)は公開ではない。
+送る画面の hook は公開の部品として小さく分けてあり、上流の送るモーダル(自由連絡の `useMessageSendModal`、定義連絡の汎用のモーダルの `useDefinitionSendModal`)もこれだけで組む。fork は上流のモーダルを使わず、同じ hook と部品で目的に合う送る画面を組める(勧める)。どの画面にどれを使うかは ../components/README.md「送る画面の使い分け」、受け取り箱・好み・管理の一覧・テンプレート・テキストの編集の hook は同じ README のそれぞれの節。
 
 ## Usage
 
