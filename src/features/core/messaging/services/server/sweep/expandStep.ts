@@ -118,8 +118,8 @@ async function sharedInAppContent(
     const loaded = await resolvedOfDispatch(deps, dispatch);
     if ("error" in loaded) return null;
     const { resolved } = loaded;
-    // 差し込みの表 = vars ∪ 専用の埋め込み情報の値(テンプレートからの送信、指令 58)
-    const vars = { ...(dispatch.vars ?? {}), ...(dispatch.embedded_values ?? {}) } as Record<string, unknown>;
+    // 差し込みの表 = 送信の vars(定義連絡の vars も DB のテンプレートの専用の値も 1 つの列、D202)
+    const vars = (dispatch.vars ?? {}) as Record<string, unknown>;
     // throttle のある連絡の {{collapsedCount}} は共有の行では 1(全員・ロール宛ては間引かない)
     const throttleValues = resolved.throttle ? { collapsedCount: 1 } : {};
     const allowed = new Set([...Object.keys(vars), ...RECIPIENT_INDEPENDENT_CONTEXT, ...Object.keys(throttleValues)]);

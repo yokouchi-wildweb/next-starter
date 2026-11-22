@@ -270,7 +270,6 @@ const dispatchRow = (over: Partial<MessageDispatch> = {}): MessageDispatch =>
     template_id: null,
     template_version: null,
     template_edited: false,
-    system_template: null,
     layout: "notice",
     layout_version: 1,
     values: null,
@@ -361,6 +360,27 @@ test("DTO: 本文は記録の段次第、provider の生の値と誤りの文は
   assert.equal(toDeliveryRow(deliveryRow({ status: "failed", last_error: "send_threw" }), "meta").errorCode, "send_threw");
   assert.equal(toDeliveryRow(deliveryRow({ status: "sent", last_error: "send_threw" }), "meta").errorCode, null);
   assert.equal(toDeliveryRow(deliveryRow({ status: "failed", last_error: null }), "meta").errorCode, null);
+});
+
+test("DTO sameAs: 「同じ内容で送る」の写しは自由連絡で中身を残した送信だけ(定義連絡・前の送信・中身なしは null、D193)", () => {
+  const values = { subject: "件名" };
+  // 定義連絡の送信: 中身(プレビュー用の content)はあっても写しは答えない
+  const definition = toDispatchDetail(dispatchRow({ values, record: "vars" }), FLAGS);
+  assert.deepEqual(definition.content, { layout: "notice", layoutVersion: 1, values });
+  assert.equal(definition.sameAs, null);
+  // レイアウトを直に選んだ自由連絡: テンプレートの出どころは null、値は記録の段が残す時だけ
+  const layoutSend = toDispatchDetail(dispatchRow({ message_key: null, values, record: "vars", vars: { a: "1" } }), FLAGS);
+  assert.deepEqual(layoutSend.sameAs, { layout: "notice", layoutVersion: 1, values, vars: { a: "1" }, template: null });
+  assert.deepEqual(toDispatchDetail(dispatchRow({ message_key: null, values, vars: { a: "1" } }), FLAGS).sameAs?.vars, {}, "meta は値を写さない");
+  // DB のテンプレートの送信(消されたテンプレートは id null で版の番号は残る)
+  const fromTemplate = toDispatchDetail(
+    dispatchRow({ message_key: null, values, record: "vars", vars: { discount: "30" }, template_id: null, template_version: 2, template_edited: true }),
+    FLAGS,
+  );
+  assert.deepEqual(fromTemplate.sameAs, { layout: "notice", layoutVersion: 1, values, vars: { discount: "30" }, template: { id: null, version: 2, edited: true } });
+  // 中身を残していない送信・前の送る口の送信(レイアウトなし)
+  assert.equal(toDispatchDetail(dispatchRow({ message_key: null }), FLAGS).sameAs, null);
+  assert.equal(toDispatchDetail(dispatchRow({ message_key: null, layout: null, values }), FLAGS).sameAs, null);
 });
 
 test("keyset の印は往復し、壊れた印は 400", () => {

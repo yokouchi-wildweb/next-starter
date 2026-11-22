@@ -54,7 +54,7 @@ const mem = (old, next, order, note = "") => ({ kind: "code-name", as: "member",
 const dir = (old, next, order, note = "") => ({ kind: "path", old, new: next, order, note });
 const word = (old, next, order, match, note = "") => ({ kind: "word", old, new: next, order, match, note });
 
-const S2_DISPATCH = "送信の記録の embedded_values は vars の側へ(AMENDMENT 1)。列の最終の形は S2 が決める(D202)";
+const S2_DISPATCH = "送信の記録の embedded_values は vars の列に 1 つ(D202・AMENDMENT 1)。DB は pnpm task messaging:merge-dispatch-vars を db:push の前に";
 const S2_SYSTEM = "システムテンプレートの廃止(D171・D201): 自由連絡はレイアウトを直に選んで送る。テンプレートは DB の物だけ。手で直す";
 const S3_TARGET = "一覧の対象の受け口 bulkSendTargets → recordTargets(D182 (5)・D190・D195)。項目は持ち主のドメインの recordTargets/<名前>.ts";
 
@@ -127,8 +127,9 @@ export const VOCAB = [
   dir(`${M}/hooks/useEmbeddedInfoTags.ts`, `${M}/hooks/useVarTags.ts`, "S1"),
 
   // ── S2 送信の記録の embedded_values → vars の側・システムテンプレートの廃止
-  mem("embeddedValues", "vars", "S2", S2_DISPATCH),
+  { ...mem("embeddedValues", "vars", "S2", `${S2_DISPATCH}。送信の詳細 AdminDispatchDetail は vars に入る。「同じ内容で送る」の写しは新しい sameAs(自由連絡の送信だけ、sameAs.vars)から読む(D193)`), hand: true },
   mem("embedded_values", "vars", "S2", S2_DISPATCH),
+  word("system_template", null, "S2", "\\bsystem_template\\b", "送信の列 system_template を外した(D171・D202)。その行はレイアウトと欄の中身を持つので自由連絡として読む。コードで読む所・書く所は pnpm typecheck が止める(手で消す)。この行は注釈の中を挙げる"),
   ex("MessageSystemTemplate", null, "S2", S2_SYSTEM),
   ex("systemTemplates", null, "S2", S2_SYSTEM),
   ex("checkSystemTemplates", null, "S2", S2_SYSTEM),

@@ -2,7 +2,7 @@
 //
 // 送信のプレビュー(管理、GET /api/admin/messaging/dispatches/[id]/preview)。送信が送った物を見せる:
 // - 描く物は送信だけから(resolvedOfDispatch: レイアウトの鍵と送った版を今の版へ読み替えた欄の中身・カテゴリー・送信チャンネル。定義・テンプレートを引き直さない)
-// - 差し込み = 送信に残した vars ∪ embedded_values ∪ 共通の文脈(サービス名・URL)。受信者ごとの値({{受信者名}} など)は字のまま
+// - 差し込み = 送信に残した vars ∪ 共通の文脈(サービス名・URL)。受信者ごとの値({{受信者名}} など)は字のまま
 // - 送信チャンネルごとに 送る口と同じ組み立て(buildContent)→ メールは送信チャンネルの preview で HTML、お知らせは client のレイアウトの描き方の材料(欄の中身・要約)
 // - 記録の段で中身を残していない送信(values が無い: record meta・秘密の連絡)・レイアウトが無い・版を読めない送信は cannotRender に理由(送信チャンネルは空)
 // - どのレイアウトでも描く(テンプレートの adminSelectable の絞りは使わない)。service でも管理者を確かめる(D42)
@@ -69,7 +69,7 @@ export async function adminDispatchPreview(deps: AdminDispatchPreviewDeps, id: s
   if (!layout) return empty(RESOLVE_ERRORS.layout_missing);
 
   // 専用の日付・日時は人が読む字に(型の印 <鍵>@type、送る口の content.ts と同じ)
-  const map = displayVarValues(deps.toVariableMap({ ...deps.commonValues(), ...(row.vars ?? {}), ...(row.embedded_values ?? {}) }));
+  const map = displayVarValues(deps.toVariableMap({ ...deps.commonValues(), ...(row.vars ?? {}) }));
   const named = varMap(map, deps.varCatalog(resolved));
   const values = deps.renderValue(resolved.values ?? {}, named) as Record<string, unknown>;
   const category = resolved.category && deps.honoursPreferences(resolved) ? resolved.category : undefined;

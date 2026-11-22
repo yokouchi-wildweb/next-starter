@@ -101,6 +101,7 @@ test("対応表: 形が正しく、指令の行がそろう", () => {
   assert.ok(has("code-name", "SendEmbeddedInputs", "SendVarInputs", "S1"));
   assert.ok(has("path", "src/lib/messaging/embedded", "src/lib/messaging/vars", "S1"));
   assert.ok(has("code-name", "embedded_values", "vars", "S2"));
+  assert.ok(VOCAB.some((r) => r.kind === "word" && r.old === "system_template" && r.new === null && r.order === "S2"));
   assert.ok(has("code-name", "MessageSystemTemplate", null, "S2"));
   assert.ok(has("code-name", "MessageBulkSendTarget", "MessageRecordTarget", "S3"));
   assert.ok(has("code-name", "resolveUserIds", "resolveRecipients", "S3"));

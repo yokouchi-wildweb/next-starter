@@ -23,6 +23,16 @@ import type { DispatchOperationFlags } from "./operations";
 /** 送信の中身(D128): レイアウトの鍵・送った版・欄の中身 */
 export type AdminDispatchContent = { layout: string; layoutVersion: number | null; values: Record<string, unknown> };
 
+/**
+ * 「同じ内容で送る」が写す物(D193)。自由連絡の送信(定義連絡の鍵が無く、レイアウトと欄の中身を残した送信)だけ。
+ * template = DB のテンプレートから送った送信の出どころ(消されたテンプレートは id null、版の番号は残る)、レイアウトを直に選んだ送信は null
+ */
+export type AdminDispatchSameAs = AdminDispatchContent & {
+  /** 送信の埋め込み情報の値(DB のテンプレートの専用の値。秘密の鍵は送る時に落としてある) */
+  vars: Record<string, unknown>;
+  template: { id: string | null; version: number; edited: boolean } | null;
+};
+
 export type AdminDispatchSummary = {
   id: string;
   messageKey: string | null;
@@ -60,8 +70,10 @@ export type AdminDispatchDetail = AdminDispatchSummary & {
   templateDeleted: boolean;
   /** 版の文言を直した送信か(D85) */
   templateEdited: boolean;
-  /** 送信の中身(レイアウトの鍵と送った版・欄の中身、差し込む前の字)。欄の中身を残していない送信は null */
+  /** 送信の中身(レイアウトの鍵と送った版・欄の中身、差し込む前の字。詳細のプレビュー)。欄の中身を残していない送信は null */
   content: AdminDispatchContent | null;
+  /** 「同じ内容で送る」の写し(自由連絡の送信だけ。定義連絡の送信・前の送る口の送信・中身を残していない送信は null、D193) */
+  sameAs: AdminDispatchSameAs | null;
   /** 選んだ利用者への送信の利用者 id(「同じ内容で送る」の写し)。ほかの宛先の形・多すぎる送信は null */
   targetUserIds: string[] | null;
   /** 送り元の表示名(受け口 sources に表示名がある時だけ。画面は送り元の鍵を見せない、D46) */
@@ -70,10 +82,8 @@ export type AdminDispatchDetail = AdminDispatchSummary & {
   actorName: string | null;
   /** 本文(記録の段が vars / full のときだけ。送信チャンネルごとの欄) */
   body: Record<string, unknown> | null;
-  /** 共通の vars の写し(記録の段が vars / full のときだけ) */
+  /** 送信に 1 組の埋め込み情報の値(定義連絡の vars・DB のテンプレートの専用の値。記録の段が vars / full のときだけ) */
   vars: Record<string, unknown> | null;
-  /** DB のテンプレートの専用の埋め込み情報の値(記録の段が vars / full のときだけ。テンプレート以外の送信は null) */
-  embeddedValues: Record<string, string> | null;
   /** 管理の操作ができるか(取り消し・取り下げ・再送、できない時は理由の符号)。一覧には無い */
   operations: DispatchOperationFlags;
 };
@@ -167,6 +177,7 @@ export function toDispatchDetail(
 ): AdminDispatchDetail {
   const { targetUserIds = null, sourceLabel = null, actorName = null, groupNames } = extras;
   const keep = keepsDispatchBody(row.record);
+  const content = row.values && row.layout ? { layout: row.layout, layoutVersion: row.layout_version ?? null, values: row.values } : null;
   return {
     ...toDispatchSummary(row, groupNames),
     record: row.record,
@@ -179,15 +190,29 @@ export function toDispatchDetail(
     templateVersion: row.template_version,
     templateDeleted: row.template_id === null && row.template_version !== null,
     templateEdited: row.template_edited,
-    content: row.values && row.layout ? { layout: row.layout, layoutVersion: row.layout_version ?? null, values: row.values } : null,
+    content,
+    sameAs: sameAsOf(row, content, keep),
     targetUserIds,
     sourceLabel,
     actorName,
     // 前の送る口の送信は記録の段を持たない(写しが前の列の本文を rendered へ移した)→ 段に依らず返す
     body: isOldSend(row) || keep ? row.rendered : null,
     vars: keep ? row.vars : null,
-    embeddedValues: keep ? (row.embedded_values ?? null) : null,
     operations,
+  };
+}
+
+/** 「同じ内容で送る」の写し: 自由連絡(message_key が無い)で中身を残した送信だけ。値は記録の段が残す時だけ写す */
+export function sameAsOf(
+  row: Pick<MessageDispatch, "message_key" | "template_id" | "template_version" | "template_edited" | "vars">,
+  content: AdminDispatchContent | null,
+  keepVars: boolean,
+): AdminDispatchSameAs | null {
+  if (row.message_key !== null || !content) return null;
+  return {
+    ...content,
+    vars: keepVars ? { ...(row.vars ?? {}) } : {},
+    template: row.template_version !== null ? { id: row.template_id, version: row.template_version, edited: row.template_edited } : null,
   };
 }
 

@@ -1,9 +1,9 @@
 // 自由連絡を送る(sendFreeMessage、D117・D125・D128・D171)の検査(メモリの store・掃き出し・テンプレートの読み口は偽物)
-// - レイアウトを直に選んだ物: 送信の message_key は null・system_template null・template_id null・直した印 false、レイアウトと欄の中身(values)。
+// - レイアウトを直に選んだ物: 送信の message_key は null・template_id null・直した印 false、レイアウトと欄の中身(values)。
 //   予約・cron は送信の欄の中身で組み直す。{{displayName}} は差し込み、知らない {{鍵}}・レイアウトでの vars・無いレイアウト・管理画面で選べないレイアウトは 400
 // - DB のテンプレート: 今の版を送信の template_id・template_version に固定(違えば 409)。専用の埋め込み情報の値(vars)が無い・型が合わない 400、
 //   必須で値が無ければ既定値、既定値も無ければ 400。無いテンプレート 404・版の無いテンプレート 409(下書き・取り下げは無い D134・D137)。
-//   値は送信の embedded_values に残り、vars は {}。直した印 = 入力の edited か版の中身との違い
+//   値は送信の vars に残る(定義連絡の vars と同じ 1 つの列、D202)。直した印 = 入力の edited か版の中身との違い
 // - 送信チャンネル = カテゴリーの送信チャンネル ∩ 絞り(外は 400)。種別が自由連絡で送れる物でないカテゴリーは 400
 // - 画像: 中身に自由に入れられる(版に無い画像も)。テンプレートの画像(台帳の持ち主 = テンプレート)は送信が複製を持つ
 // - 欄の中身の無い送信は cron が送らずに止める(values_missing)
@@ -92,7 +92,7 @@ const LAYOUT = { layout: "notice" };
 const V1_VALUES = { subject: "v1 {{discount}}% 引き", blocks: [{ type: "paragraph", text: "{{displayName}}" }] };
 const values = (subject: string, ...paragraphs: string[]) => ({ subject, blocks: paragraphs.map((text) => ({ type: "paragraph", text })) });
 
-test("レイアウト: 送信は message_key null・system_template null、レイアウトと欄の中身、予約の後も cron は送信の中身で送る(宛名は差し込む)", async () => {
+test("レイアウト: 送信は message_key null・template_id null、レイアウトと欄の中身、予約の後も cron は送信の中身で送る(宛名は差し込む)", async () => {
   const { world, deps, channel, sender } = setup();
   const result = await sender.sendFreeMessage({
     origin: LAYOUT,
@@ -105,7 +105,6 @@ test("レイアウト: 送信は message_key null・system_template null、レ�
   assert.equal(result.template, undefined);
   const dispatch = world.store.dispatches[0];
   assert.equal(dispatch.message_key, null);
-  assert.equal(dispatch.system_template, null);
   assert.equal(dispatch.template_id, null);
   assert.equal(dispatch.template_edited, false);
   assert.equal(dispatch.layout, "notice");
@@ -153,14 +152,12 @@ test("DB のテンプレート: 版を送信に固定し(message_key null)、予
   assert.equal(dispatch.template_id, "tpl-1");
   assert.equal(dispatch.template_version, 1);
   assert.equal(dispatch.template_edited, false);
-  assert.equal(dispatch.system_template, null);
   assert.equal(dispatch.message_key, null);
   assert.equal(dispatch.layout, "notice");
   assert.deepEqual(dispatch.values, V1_VALUES);
   assert.equal(dispatch.kind, "promotion");
-  // 専用の値は embedded_values にだけ残る(vars は {}、指令 58)
-  assert.deepEqual(dispatch.vars, {});
-  assert.deepEqual(dispatch.embedded_values, { discount: "20" });
+  // 専用の値は送信の vars に残る(1 つの列、D202)
+  assert.deepEqual(dispatch.vars, { discount: "20" });
 
   versions.push(version(2, "v2 {{discount}}"));
   state.current = 2;
@@ -204,7 +201,7 @@ test("DB のテンプレートの検査: 値が無い・型が違う 400、無�
   assert.equal(ok.status, "completed");
   assert.equal(world.store.dispatches.at(-1)?.template_version, 3);
   assert.equal(world.store.dispatches.at(-1)?.template_edited, false);
-  assert.deepEqual(world.store.dispatches.at(-1)?.embedded_values, { discount: "1", code: "WELCOME" });
+  assert.deepEqual(world.store.dispatches.at(-1)?.vars, { discount: "1", code: "WELCOME" });
 });
 
 test("cron は版を引き直さず送信の物だけで描く: テンプレートが消えても送り、欄の中身の無い送信は止める(values_missing)", async () => {

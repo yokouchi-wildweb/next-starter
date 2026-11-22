@@ -199,7 +199,7 @@ const DISPATCH: AdminDispatchDetail = {
   actorName: "管理者 A",
   body: null,
   vars: null,
-  embeddedValues: null,
+  sameAs: null,
   operations: {
     canDelete: { allowed: true, reason: null },
     canResend: { allowed: false, reason: "no_failed", mode: null, failed: 0, unknown: 0 },
