@@ -167,7 +167,7 @@ fork が上流(親の Tier)の物を変える方法はこの 4 つだけ。印�
 4. 1 行スイッチ: 素の名前 `edit <dir>/<名前>.ts(x)`(向け先を替える)と置き換え `add <dir>/<名前>.replace.{ts,tsx}`
 5. 上書きの対象の点(`overrides`): 隣の上書き `edit <glob の最後の拡張子を .override.ts に>`(多段で下の Tier が親の上書きを書き換える)、`addable` の点は対象そのものも `add <glob>`
 6. route の隣の置き換え: `_layout` / `_screen` の下の `*.replace.{ts,tsx}`・下のリポの枠の宣言 `frame.override.ts`
-7. 生成器: 各 `gate.json` の `regions` = `region`、`outputs` = `generated`(最後: 同じファイルなら生成物が効く。`scripts/runner/gates/README.md`)
+7. 生成器: 各 `phase.json` の `regions` = `region`、`outputs` = `generated`(最後: 同じファイルなら生成物が効く。`scripts/runner/phases/README.md`)
 - scripts の受け口: なし(ドメインのタスク・移行は fork 自身のドメインの `src/domains/<ドメイン>/scripts/{tasks,migrations}/`、`src/lib/task/README.md`。常時実行の例外は門番の受け口 src/featureGate/alwaysOnExceptions/ に移った)
 
 区画は生成器の区画なので、fork が自分の受け口の行を足して作り直しても `pnpm workflow ownership check` は通る(検査は基準の区画を読む)。区画の外の行は手書き。一覧の数(`一覧 N`)には数えない。

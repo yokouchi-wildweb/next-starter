@@ -9,7 +9,7 @@
 
 ```
 pnpm check cache-components                     # next.config.ts の値を見る
-pnpm check cache-components --gate=build:post   # .next の成果物を見る(先に next build)。pnpm build の末尾で毎回回る
+pnpm check cache-components --phase=build:post   # .next の成果物を見る(先に next build)。pnpm build の末尾で毎回回る
 ```
 
 - exit 0 = 通る / 1 = 問題あり / 2 = build の成果物が無い(build:post だけ。未検証で、通過ではない)

@@ -15,7 +15,7 @@ import ts from "typescript";
 
 import { LIB_DIR } from "../../../src/lib/libPackage/index.mjs";
 import { readLibPackage } from "../../../src/lib/libPackage/node.mjs";
-import { globToRegExp } from "../../runner/gates/changed.mjs";
+import { globToRegExp } from "../../runner/phases/changed.mjs";
 
 const SOURCE_RE = /\.(ts|tsx|mts|mjs|js|jsx)$/;
 const SKIP_RE = /(\.test\.|\.spec\.|\.d\.ts$|(^|\/)__tests__\/)/;

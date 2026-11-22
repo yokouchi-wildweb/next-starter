@@ -1,5 +1,5 @@
 // scripts/workflow/rules/lib.ruleGenerated.mjs
-// 生成物の検査の部品(純粋な関数): 生成器の出力の宣言(各 gate.json の outputs)を、追跡中のファイルに当てる。
+// 生成物の検査の部品(純粋な関数): 生成器の出力の宣言(各 phase.json の outputs)を、追跡中のファイルに当てる。
 // 決まり: 生成物は直さず生成元を直す。見分け = 注釈を持てる形式は先頭の生成物の印、持てない JSON・JSONL は生成器の一覧(D135)。
 import { matchesLoad } from "./lib.rulePaths.mjs";
 import { domainNamesOf, isDomainTemplateGlob, normalizeGateOutputs } from "../../../src/lib/districtMap/node.mjs";
@@ -28,7 +28,7 @@ export function expandDomainGlob(glob, domains) {
 
 /**
  * 生成器の出力の宣言 → 追跡中のファイル
- * @param {{ gate: string, outputs: unknown }[]} gates gate.json ごとの outputs
+ * @param {{ gate: string, outputs: unknown }[]} gates phase.json ごとの outputs
  * @param {string[]} files 追跡中のファイル
  * @param {{ dir: string, plural?: string }[]} domains
  * @returns {{ gate: string, glob: string, kind: string, domain: boolean, files: string[], problems: string[] }[]}

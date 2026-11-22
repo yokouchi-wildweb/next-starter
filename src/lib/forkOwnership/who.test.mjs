@@ -270,8 +270,8 @@ describe("型の答え(パスの表、explain.mjs)", () => {
       "region src/registry/**/*.ts  # 生成器の区画",
       "",
     ].join("\n"),
-    "scripts/structure/district-map/gate.json": JSON.stringify({ generate: "generate.mjs", outputs: ["src/registry/district-map.jsonl"] }),
-    "scripts/structure/domain/gate.json": real("scripts/structure/domain/gate.json"),
+    "scripts/structure/district-map/phase.json": JSON.stringify({ generate: "generate.mjs", outputs: ["src/registry/district-map.jsonl"] }),
+    "scripts/structure/domain/phase.json": real("scripts/structure/domain/phase.json"),
     "src/registry/district-map.jsonl": "{}\n",
     // 1 行スイッチ
     "src/domains/core/demo/services/server/onDemoUserCreated.default.ts": "export const onDemoUserCreated = 1;\n",
@@ -349,7 +349,7 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     ["閉じた lib の config", "src/lib/cron/config.ts", { type: "4", write: "src/config/lib/cron.config.ts", keys: null, source: "lib cron" }],
     ["src/config のファイル", "src/config/app/site.config.ts", { type: "4", write: "src/config/app/site.config.ts", keys: null, source: "src/lib/districtMap/extensionPoints.ts configValues" }],
     // 生成物
-    ["生成器の出力(gate.json)", "src/registry/district-map.jsonl", { type: "generated", write: null, keys: null, source: "pnpm generate district-map" }],
+    ["生成器の出力(phase.json)", "src/registry/district-map.jsonl", { type: "generated", write: null, keys: null, source: "pnpm generate district-map" }],
     ["pnpm generate domain が毎回書く(直す元 = domain.json)", "src/domains/sample/entities/drizzle.ts", { type: "generated", write: "src/domains/sample/domain.json", keys: null, source: "pnpm generate domain" }],
     ["pnpm generate domain が毎回書く(直す元 = wrappers/)", "src/domains/sample/services/server/drizzleBase.ts", { type: "generated", write: "src/domains/sample/services/server/wrappers/", keys: null, source: "pnpm generate domain" }],
     ["管理画面の生成物(ルートのフォルダ → ドメイン)", "src/app/admin/(protected)/samples/_screen/loader.ts", { type: "generated", write: "src/domains/sample/domain.json", keys: null, source: "pnpm generate domain" }],

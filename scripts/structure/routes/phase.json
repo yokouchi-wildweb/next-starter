@@ -1,0 +1,1 @@
+{ "check": "check.ts", "generate": "generate.ts", "phases": ["ship", "forge:post"], "after": ["extensions"], "watch": ["src/**", "eslint-rules/resolve-import.mjs", "scripts/structure/routes/**", "tsconfig.json", "package.json", "pnpm-lock.yaml", "scripts/runner/phases/**", "scripts/runner/preload/**"], "outputs": ["src/app/route-map.jsonl"] }

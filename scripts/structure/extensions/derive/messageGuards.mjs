@@ -15,7 +15,7 @@
 // 種別の性質(emailFixed・upstreamDisable)は src/lib/messaging/definition/kinds.ts の MESSAGE_KIND_TRAITS を字面で読む(表は 1 か所)。
 // categories の点が宣言されていない木(messaging の無い木)ではカテゴリーの検査をしない
 // 上書きの鍵(宣言の overrideOf の中か)は ../overrideKeys.mjs、欄・{{鍵}} など値の検査は lib/messaging の validateMessageDefinition(実行時・生成時)。
-// 点 = lib/messaging の extensionPoints.ts の messages(宣言の overrides の glob の対象)。pnpm check extensions(門 build)が回す
+// 点 = lib/messaging の extensionPoints.ts の messages(宣言の overrides の glob の対象)。pnpm check extensions(段階 build)が回す
 
 import { existsSync, readFileSync } from "node:fs";
 import { join, matchesGlob } from "node:path";

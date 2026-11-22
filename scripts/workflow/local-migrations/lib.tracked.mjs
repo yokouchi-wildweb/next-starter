@@ -1,6 +1,6 @@
 // scripts/workflow/local-migrations/lib.tracked.mjs
 // git が追跡している(ステージ済みを含む)git に入れない移行 src/domains/**/scripts/migrations/*.local.ts を返す。
-// 利用者: check.mjs(門 ship)・テスト
+// 利用者: check.mjs(段階 ship)・テスト
 import { execFileSync } from "node:child_process";
 
 export const LOCAL_MIGRATION = /^src\/domains\/(?:.+\/)?scripts\/migrations\/[^/]+\.local\.ts$/;

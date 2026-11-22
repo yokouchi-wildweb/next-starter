@@ -1,5 +1,5 @@
 #!/usr/bin/env tsx
-// scripts/structure/proxies/check.ts — 門 build の門番の検査の入口(pnpm check proxies、設定の議会 L1.44)
+// scripts/structure/proxies/check.ts — 段階 build の門番の検査の入口(pnpm check proxies、設定の議会 L1.44)
 //
 // 門番の検査のうちビルドで止める物をここで順に呼ぶ。検査の本体は src/featureGate/checks に 1 検査 1 ファイル(門番 m107)。
 // 今の検査: 機能を要する設定の値(featureRequirements、設定 D107・D110)・明示的に開けた子の親(explicitChildren、D121)・

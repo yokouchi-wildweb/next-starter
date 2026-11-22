@@ -1,5 +1,5 @@
 // scripts/structure/registry/drizzleKitPin.mjs
-// drizzle-kit の版の固定を確かめる(pnpm check registry の一部。門 build / ship)。値を比べるだけで、何も実行しない。
+// drizzle-kit の版の固定を確かめる(pnpm check registry の一部。段階 build / ship)。値を比べるだけで、何も実行しない。
 // パッチ patches/drizzle-kit@<版>.patch は版に紐づく(README.md「drizzle-kit へのパッチ」)。範囲指定だと別の版が入ってパッチが外れ、
 // db:push が誤った DROP を出しうる。版は上流が README.md の手順で上げる。fork は版を変えない。
 

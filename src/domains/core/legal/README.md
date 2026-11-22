@@ -37,7 +37,7 @@
 
 ## Internals
 
-- 本番の検査 `pnpm check legal`(`pnpm build` の最初に回る `pnpm check --gate=build` に入る): sample の文書が 1 つでもあるまま本番でビルドすると失敗する。Tier1 は警告だけ。判定は事業の素性と同じ部品(`@/lib/business` の `sampleReleaseLevel`)
+- 本番の検査 `pnpm check legal`(`pnpm build` の最初に回る `pnpm check --phase=build` に入る): sample の文書が 1 つでもあるまま本番でビルドすると失敗する。Tier1 は警告だけ。判定は事業の素性と同じ部品(`@/lib/business` の `sampleReleaseLevel`)
 
 ## Verification
 

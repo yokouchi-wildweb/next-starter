@@ -7,7 +7,7 @@
 ## Usage
 
 ```
-pnpm check lib-package               # 不備の行 + 1 行のまとめ(門 build・ship でも回る)
+pnpm check lib-package               # 不備の行 + 1 行のまとめ(段階 build・ship でも回る)
 pnpm check lib-package -- --list     # lib ごとの表(外から中を読む import の数も)
 pnpm check lib-package -- --json     # 同じものを JSON で({ rows, summary }、機械向け)
 pnpm check lib-package -- codemod …  # 動き: 中を読む import を入口へ・出ていった名前を今の入口へ・改名表の改名(下の「動き」)
@@ -197,7 +197,7 @@ package.json の `sideEffects` と、lib のファイル(テスト・.d.ts を�
 - 合成器そのもの(`src/lib/defineConfig` = `COMPOSER_LIB`)には掛けない
 - 設定の合成でない define(crud の defineHiddenColumns など)は当たらない。別の名前の自前の合成は見えない(名前と置き場で見るため)
 
-- 入口 `check.mjs`(gate.json の check)が `checkLibs(root)`(→ `{ checked, skipped, undeclared, problems }`)・`libReport(root)`(→ `{ rows, summary }`)を呼ぶ。部品: `closed.mjs`(状態・中を読む import・設定・合成)・`standalone.mjs`(閉包・tsconfig.json の期待と比べ・型検査)・`configSlots.mjs`(設定の口: 値と描画専用の上書きの置き場と指定子。lint entry/only-entries も読む)・`sideEffects.mjs`・`entries.mjs`(入口の中身)・動きの `declare.mjs`(宣言の道具)・ `moved.mjs` / `codemod.mjs` / `renames.mjs`(改名表 `renames.json`)
+- 入口 `check.mjs`(phase.json の check)が `checkLibs(root)`(→ `{ checked, skipped, undeclared, problems }`)・`libReport(root)`(→ `{ rows, summary }`)を呼ぶ。部品: `closed.mjs`(状態・中を読む import・設定・合成)・`standalone.mjs`(閉包・tsconfig.json の期待と比べ・型検査)・`configSlots.mjs`(設定の口: 値と描画専用の上書きの置き場と指定子。lint entry/only-entries も読む)・`sideEffects.mjs`・`entries.mjs`(入口の中身)・動きの `declare.mjs`(宣言の道具)・ `moved.mjs` / `codemod.mjs` / `renames.mjs`(改名表 `renames.json`)
 
 ## Verification
 

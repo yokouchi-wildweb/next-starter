@@ -1,4 +1,4 @@
-// scripts/workflow/skills/check.mjs — 門 ship の検査(gate.json): .claude/skills の書式(.claude/rules/core/skills.md)
+// scripts/workflow/skills/check.mjs — 段階 ship の検査(phase.json): .claude/skills の書式(.claude/rules/core/skills.md)
 // 実行: pnpm check skills [-- --base <rev>]
 //   exit 0 = 通る(fork が足したスキルの警告と例外の一覧の保留は出すだけ)| 1 = 上流のスキルが書式を破る | 2 = 確かめられない(fork の基準の版が読めない)
 import { existsSync, readFileSync } from "node:fs";

@@ -1,11 +1,11 @@
 // scripts/workflow/rules/generated.mjs — pnpm check rules の生成物の検査(D135)
-// 止める: 上流の生成器の出力の宣言(各 gate.json の outputs)が .claude/rules/core/generated.md の paths に当たらない /
+// 止める: 上流の生成器の出力の宣言(各 phase.json の outputs)が .claude/rules/core/generated.md の paths に当たらない /
 //         毎回の出力(every-run、ドメインの生成器は作り直しの対象のドメインの分)で、注釈を持てる形式なのに先頭に生成物の印が無い
 // 書き場所の一覧の generated の行 = outputs の一致は scripts/structure/extensions/check.mjs が守る(intake.txt の生成区画のずれで止まる)
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { loadGates, scanTargets } from "../../runner/gates/scan.mjs";
+import { loadGates, scanTargets } from "../../runner/phases/scan.mjs";
 import { hasGeneratedMark, MARKABLE, outputFiles, outputsOutsidePaths } from "./lib.ruleGenerated.mjs";
 import { planUnmark } from "../../structure/domain/cli/unmark.mjs";
 import { parsePaths } from "./lib.rulePaths.mjs";
@@ -36,10 +36,10 @@ const generatedPaths = parsePaths(read(`${CORE_DIR}/generated.md`)) ?? [];
 const fails = [];
 let domainEveryRun = 0;
 
-for (const e of entries) for (const p of e.problems) fails.push(`${e.gate}/gate.json: ${p}`);
+for (const e of entries) for (const p of e.problems) fails.push(`${e.gate}/phase.json: ${p}`);
 // paths の照合は上流の生成器だけ(fork が足した生成器の出力に上流の generated.md は届かない。fork の決まりは数えない、D138 と同じ)
 const upstreamGates = new Set(gates.filter((g) => g.upstream).map((g) => g.gate));
-for (const e of outputsOutsidePaths(entries.filter((x) => upstreamGates.has(x.gate)), generatedPaths)) fails.push(`${e.gate}/gate.json の出力 ${e.glob} が ${CORE_DIR}/generated.md の paths に当たらない(paths に足す)`);
+for (const e of outputsOutsidePaths(entries.filter((x) => upstreamGates.has(x.gate)), generatedPaths)) fails.push(`${e.gate}/phase.json の出力 ${e.glob} が ${CORE_DIR}/generated.md の paths に当たらない(paths に足す)`);
 for (const e of entries.filter((x) => x.kind === "every-run")) {
   for (const f of e.files.filter((x) => MARKABLE.test(x))) {
     if (e.domain) domainEveryRun++;

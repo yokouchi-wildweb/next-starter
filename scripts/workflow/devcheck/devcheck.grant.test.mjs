@@ -179,7 +179,7 @@ const ALLOWS = [
   ["pnpm test 'src/lib/screens/routeMap*.test.mjs'", null],
   ["pnpm test --changed", null],
   ["pnpm check skills", null],
-  ["pnpm check --gate=ship", null],
+  ["pnpm check --phase=ship", null],
   ['pnpm workflow peer send build "読んで"', "peer"],
   ["pnpm workflow peer inbox", "peer"],
   ["pnpm workflow peer read 3", "peer"],
@@ -219,7 +219,7 @@ test("出荷の検査の命令(pnpm test・pnpm check)は方針の鍵なしで�
       throw new Error("x");
     },
   });
-  for (const command of ["pnpm test x", "pnpm check --gate=ship"]) {
+  for (const command of ["pnpm test x", "pnpm check --phase=ship"]) {
     assert.equal(verdict(bash(command), allOff), "allow", command);
     assert.equal(decide(bash(command), broken)?.decision, "allow", command);
     assert.equal(verdict(bash(command), fakeDeps({ grant: false })), "none", command);

@@ -1,6 +1,6 @@
 // scripts/structure/cycles/cycles.test.mjs
 // src 全体に静的な値の import の輪が無いこと(D24・D25)、型の import も数えた単位と lib の輪が無いこと(D232)と、判定の契約。
-// 実行: 門 cycles の入口(pnpm check cycles。門 build・ship)。pnpm test は名指しの時だけ回す: pnpm test scripts/structure/cycles/cycles.test.mjs
+// 実行: 門 cycles の入口(pnpm check cycles。段階 build・ship)。pnpm test は名指しの時だけ回す: pnpm test scripts/structure/cycles/cycles.test.mjs
 // (門の入口のテストはテストの段で繰り返さない、D389)
 
 import assert from "node:assert/strict";

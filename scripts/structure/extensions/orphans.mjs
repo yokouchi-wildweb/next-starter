@@ -4,7 +4,7 @@
 //   どれでもなければ「受ける点が無い」、点はあるが対象が無ければ「孤立」。空(空白とコメントだけ)は不在と同じで見ない
 // - .replace: route の _layout / _screen は src/lib/screens の findRouteReplaceProblems(_layout はスイッチの向け先か .default の隣、_screen の下は全部不可)、
 //   それ以外は隣に 1 行スイッチの既定 <名前>.default.ts(x)。fork 所有の _components/ の中は見ない
-// pnpm check extensions(門 build / ship / forge)が回す。書式: ./README.md
+// pnpm check extensions(段階 build / ship / forge)が回す。書式: ./README.md
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, matchesGlob, posix } from "node:path";

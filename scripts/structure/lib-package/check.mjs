@@ -1,6 +1,6 @@
 // scripts/structure/lib-package/check.mjs
 //
-// pnpm check lib-package(門 build・ship)。閉じたかの検査。package.json を持つ lib ごとに(closed.mjs の closedLibProblems):
+// pnpm check lib-package(段階 build・ship)。閉じたかの検査。package.json を持つ lib ごとに(closed.mjs の closedLibProblems):
 //   1. tsconfig.json を package.json の宣言と比べる(無い・食い違う → 直す行を出す。この lib の型検査はしない)
 //   2. その tsconfig.json で型検査する(宣言の外の lib・棚を読む → 落ちる)
 //   3. sideEffects の宣言と副作用を照らす
@@ -105,7 +105,7 @@ function formatTable({ rows, summary }) {
 }
 
 export const USAGE = [
-  "pnpm check lib-package                         閉じたかの検査(門 build・ship)",
+  "pnpm check lib-package                         閉じたかの検査(段階 build・ship)",
   "pnpm check lib-package -- --list | --json      lib ごとの状態の表 / JSON",
   "pnpm check lib-package -- codemod [引数]        閉じた lib の中を読む import を入口へ書き換える(既定 dry-run。-- codemod --help)",
   "pnpm check lib-package -- moved --base <rev> [--head <rev>] [--json]  notice の moved:(ファイル)と imports:(指定子)の表",

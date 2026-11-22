@@ -2,7 +2,7 @@
 
 ## Overview
 
-featureGate の README の Internals を分けた文書(README が 20,000 字を超えるため)。ドメインの開閉・スキーマ・常時実行の入口・依存の検査・門 build の検査・全開スイッチ・守り。
+featureGate の README の Internals を分けた文書(README が 20,000 字を超えるため)。ドメインの開閉・スキーマ・常時実行の入口・依存の検査・段階 build の検査・全開スイッチ・守り。
 
 ## Internals
 
@@ -85,9 +85,9 @@ featureGate の README の Internals を分けた文書(README が 20,000 字を
 - 強さ: 全 Tier で落とす(区切り gate-s3 から。gate-s2 の間は Tier1 でない repo では表示だけだった)。fork の移行は codemod `.notices/20261105-112509-feature-gate-automation.feature-gate-s3.mjs`(今開いている機能の違反を `required/<規則>.ts` に書き出す。閉じた機能の違反は一覧に出すので手で直す。`.notices/README.md` の codemod の節)
 - 限界: 字面だけを見る。別のモジュールを経由した到達、2 の呼び出しが import の使い所を本当に守っているか、機能どうしの前提(payment が閉じれば wallet の画面も閉じる等)はたどらない
 
-### 門 build の検査(pnpm check proxies: 機能を要する設定の値・明示的に開けた子)
+### 段階 build の検査(pnpm check proxies: 機能を要する設定の値・明示的に開けた子)
 
-設定の値が機能を前提にするのに、その機能が規則の値で閉の組み合わせ(例 wallet の `purchaseRestriction: "phoneVerified"` で `phoneVerification` が閉)は、門 build の `pnpm check proxies`(`scripts/structure/proxies/check.ts`、門番の検査をビルドで止める入口）が失敗にする。
+設定の値が機能を前提にするのに、その機能が規則の値で閉の組み合わせ(例 wallet の `purchaseRestriction: "phoneVerified"` で `phoneVerification` が閉)は、段階 build の `pnpm check proxies`(`scripts/structure/proxies/check.ts`、門番の検査をビルドで止める入口）が失敗にする。
 
 - 判定は `checks/featureRequirements.ts`(地区の地図の宣言 → 持ち主の defineConfig の定義に上書きを合成した値 → `configEnabled`、全開スイッチは通さない)
 - 宣言の書き方: `src/config/README.md`「持ち主の宣言 featureRequirements」

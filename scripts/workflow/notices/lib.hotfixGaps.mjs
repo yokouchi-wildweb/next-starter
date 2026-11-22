@@ -39,7 +39,7 @@ export function pnpmScripts(text) {
 }
 
 /** 入口の名指し(package.json の script ではなくファイルで決まる物): `pnpm workflow|ops <対象> <動作>` = scripts/<種類>/<対象>/<動作>.{mjs,js,ts}、
- *  `pnpm check|generate <対象>` = scripts/<分類>/<対象>/gate.json、`pnpm test <パス>` = そのパス(glob は除く)。[{ label, ok(files) }] */
+ *  `pnpm check|generate <対象>` = scripts/<分類>/<対象>/phase.json、`pnpm test <パス>` = そのパス(glob は除く)。[{ label, ok(files) }] */
 export function pnpmEntries(text) {
   const out = new Map();
   const add = (label, ok) => out.has(label) || out.set(label, { label, ok });

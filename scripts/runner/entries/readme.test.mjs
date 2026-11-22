@@ -1,6 +1,6 @@
 // scripts/runner/entries/readme.test.mjs — pnpm test scripts/runner/entries/readme.test.mjs
 // scripts/README.md の名指しが実在するか: リンクとパス・package.json の入口・pnpm ops / workflow の対象と動作・
-// pnpm check / generate の対象(gate.json のあるフォルダ)。README が実装から離れたら落ちる(stale_README)
+// pnpm check / generate の対象(phase.json のあるフォルダ)。README が実装から離れたら落ちる(stale_README)
 
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -30,7 +30,7 @@ function pnpmCommands() {
 const gateTargets = new Set(
   ["structure", "workflow", "runner", "operations"].flatMap((cat) =>
     readdirSync(join(ROOT, "scripts", cat), { withFileTypes: true })
-      .filter((d) => d.isDirectory() && existsSync(join(ROOT, "scripts", cat, d.name, "gate.json")))
+      .filter((d) => d.isDirectory() && existsSync(join(ROOT, "scripts", cat, d.name, "phase.json")))
       .map((d) => d.name),
   ),
 );

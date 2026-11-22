@@ -1,5 +1,5 @@
 #!/usr/bin/env tsx
-// scripts/structure/legal/check.ts — 門 build の検査(pnpm check legal): 法務の文書が例文(sample)のまま本番でビルドしていないか(設定の議会 L1.24)
+// scripts/structure/legal/check.ts — 段階 build の検査(pnpm check legal): 法務の文書が例文(sample)のまま本番でビルドしていないか(設定の議会 L1.24)
 //
 // src/config/domains/legal.config.ts で documents.<kind> が sample(上流の出荷の状態、上流の例文を表示)の文書が 1 つでもあり、段階が本番
 // (@/lib/appEnv の isProduction、APP_ENV が無い・知らない値も本番)なら exit 1。Tier1(fork_id = next-starter、上流のデモ)は警告だけで exit 0。

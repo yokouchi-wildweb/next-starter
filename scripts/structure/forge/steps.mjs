@@ -27,23 +27,23 @@ export const POST_TESTS = [
 ];
 
 /**
- * 段の並び。生成器・検査器は門(scripts/runner/gates)で回す: 各道具の gate.json が乗る門と順序(after)を持つ
- *   pre = pnpm check --gate=forge:pre(role の宣言・domain の --dry-run・extensions の --no-stale)
- *   generate = pnpm generate --gate=forge:pre,forge:post(after の順 role → domain → registry → extensions → routes。cron は生成しない)
- *   post = pnpm check --gate=forge:post(registry・extensions・地区の地図 district-map・routes の地図)+ 門に乗らないテスト(pnpm test <パス>、POST_TESTS)と typecheck(・lint)
- *   deploy = pnpm check --gate=deploy(vercel.json が無ければ cron が飛ばして出す)
+ * 段の並び。生成器・検査器は門(scripts/runner/phases)で回す: 各道具の phase.json が乗る門と順序(after)を持つ
+ *   pre = pnpm check --phase=forge:pre(role の宣言・domain の --dry-run・extensions の --no-stale)
+ *   generate = pnpm generate --phase=forge:pre,forge:post(after の順 role → domain → registry → extensions → routes。cron は生成しない)
+ *   post = pnpm check --phase=forge:post(registry・extensions・地区の地図 district-map・routes の地図)+ 門に乗らないテスト(pnpm test <パス>、POST_TESTS)と typecheck(・lint)
+ *   deploy = pnpm check --phase=deploy(vercel.json が無ければ cron が飛ばして出す)
  * @param {{ lint?: boolean }} options
  * @returns {Step[]}
  */
 export function buildSteps({ lint = false } = {}) {
   return [
-    script("pre", "check", ["--gate=forge:pre"]),
-    script("generate", "generate", ["--gate=forge:pre,forge:post"]),
-    script("post", "check", ["--gate=forge:post"]),
+    script("pre", "check", ["--phase=forge:pre"]),
+    script("generate", "generate", ["--phase=forge:pre,forge:post"]),
+    script("post", "check", ["--phase=forge:post"]),
     ...POST_TESTS.map((paths) => script("post", "test", paths)),
     script("post", "typecheck"),
     ...(lint ? [script("post", "lint")] : []),
-    { ...script("deploy", "check", ["--gate=deploy"]), hint: "vercel.json の crons がタスクとずれていれば pnpm generate cron -- --plan hobby|pro（契約中のプラン）で作り直してコミット" },
+    { ...script("deploy", "check", ["--phase=deploy"]), hint: "vercel.json の crons がタスクとずれていれば pnpm generate cron -- --plan hobby|pro（契約中のプラン）で作り直してコミット" },
   ];
 }
 

@@ -8,7 +8,7 @@
 ## Usage
 
 ```bash
-pnpm check legal        # 門 build
+pnpm check legal        # 段階 build
 ```
 
 - 直し方と決まり: `src/domains/core/legal/README.md`

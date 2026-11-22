@@ -2,7 +2,7 @@
 // 購入の制限(walletConfig.purchaseRestriction、設定の議会 D109・D111)のサーバーでの強制。
 // 財布に入金する購入(purchaseRequest の type 設定 requiresWalletType)の開始・再開で initiatePurchase が呼ぶ。
 // "phoneVerified" なら本人の SMS 認証(phoneVerifiedAt)を phoneVerification の requirePhoneVerification で確かめ、未認証は 403。
-// SMS 認証の機能 phoneVerification が閉のまま "phoneVerified" の組は門 build の pnpm check proxies が止める(featureRequirements)。
+// SMS 認証の機能 phoneVerification が閉のまま "phoneVerified" の組は段階 build の pnpm check proxies が止める(featureRequirements)。
 // 実行時に閉なら黙って通さず 403 で断る(緩めない、D107)
 
 import { walletConfig } from "@/domains/wallet/config";

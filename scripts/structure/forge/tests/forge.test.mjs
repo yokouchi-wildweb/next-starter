@@ -20,35 +20,35 @@ test("段の並び: 門の forge:pre → 門の生成(forge:pre・forge:post)→
   const order = names(steps);
   const at = (name) => order.indexOf(name);
   assert.deepEqual([...new Set(steps.map((step) => step.phase))], ["pre", "generate", "post", "deploy"]);
-  assert.equal(order[0], "check --gate=forge:pre");
-  assert.equal(order[1], "generate --gate=forge:pre,forge:post");
-  assert.equal(order[2], "check --gate=forge:post");
+  assert.equal(order[0], "check --phase=forge:pre");
+  assert.equal(order[1], "generate --phase=forge:pre,forge:post");
+  assert.equal(order[2], "check --phase=forge:post");
   const screens = "test scripts/structure/routes/screens.test.mjs";
-  assert.ok(at("check --gate=forge:post") < at(screens));
+  assert.ok(at("check --phase=forge:post") < at(screens));
   assert.ok(at("test src/wiring/wiring.test.mjs") < at("typecheck"));
   assert.deepEqual(buildSteps().filter((step) => step.script === "test").map((step) => step.args), POST_TESTS);
   assert.ok(!order.some((name) => name.includes("cron")));
-  assert.equal(order.at(-1), "check --gate=deploy");
+  assert.equal(order.at(-1), "check --phase=deploy");
   const withLint = names(buildSteps({ lint: true }));
   assert.equal(withLint.at(-2), "lint");
   assert.equal(withLint.at(-3), "typecheck");
 });
 
-test("デプロイ先の検査: 門 deploy(vercel.json が無ければ cron が飛ばして出す)、落ちたら pnpm generate cron -- --plan を案内", () => {
+test("デプロイ先の検査: 段階 deploy(vercel.json が無ければ cron が飛ばして出す)、落ちたら pnpm generate cron -- --plan を案内", () => {
   const check = buildSteps().at(-1);
   assert.equal(check.script, "check");
-  assert.deepEqual(check.args, ["--gate=deploy"]);
+  assert.deepEqual(check.args, ["--phase=deploy"]);
   const errors = [];
   runSteps([check], { exec: () => false, io: { log: () => {}, error: (m) => errors.push(m) } });
-  assert.match(errors.join("\n"), /デプロイ先の検査「check --gate=deploy」.*pnpm generate cron -- --plan hobby\|pro/);
+  assert.match(errors.join("\n"), /デプロイ先の検査「check --phase=deploy」.*pnpm generate cron -- --plan hobby\|pro/);
 });
 
 test("止まり方: 落ちた段で止まり、後の段を回さない（事前検査で落ちれば生成の段は 1 つも回らない）", () => {
   const steps = buildSteps();
-  const failPre = runSteps(steps, { exec: (step) => step.name !== "check --gate=forge:pre", io: SILENT });
+  const failPre = runSteps(steps, { exec: (step) => step.name !== "check --phase=forge:pre", io: SILENT });
   assert.equal(failPre.ok, false);
   assert.equal(failPre.failed.phase, "pre");
-  assert.ok(!failPre.ran.includes("generate --gate=forge:pre,forge:post"));
+  assert.ok(!failPre.ran.includes("generate --phase=forge:pre,forge:post"));
   const failPost = runSteps(steps, { exec: (step) => step.name !== "test scripts/structure/routes/screens.test.mjs", io: SILENT });
   assert.equal(failPost.failed.name, "test scripts/structure/routes/screens.test.mjs");
   assert.ok(!failPost.ran.includes("typecheck"));

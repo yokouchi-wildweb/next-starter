@@ -44,17 +44,17 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - plain ship: `pnpm workflow notices safePoint quickFiles` first
      - line 1 `<N> quick commits unchecked`, then the files the run of `Ship: quick` commits behind HEAD changed (the walk stops at an unmarked commit or this repo's own safe tag; it walks on through a merge with neither `Ship:` nor `downstream-notice:`, e.g. a work merge a cargo kept, so the side it joined counts too)
      - add those files to the range the checks below look at (the commit range stays yours) | another session's quick change fails a check and the fix is not obvious → STOP | exit 2 → report `quick 分の検査: 未確認(<理由>)` and go on
-   - always: `pnpm check --gate=ship` | failed → fix and rerun (generator drift → `pnpm generate <target>`)
+   - always: `pnpm check --phase=ship` | failed → fix and rerun (generator drift → `pnpm generate <target>`)
      - it runs every check of the generators / checkers on gate ship, in order: role, domain, registry, routes, cron, cycles, config, eslint, and the watched rules (pnpm check rules when `CLAUDE.md` / `.claude/rules/` changed), notices (pnpm check notices when `.notices/` or the ship / flux skills changed)
-     - targets the watch does not hit are skipped with one line; `--all` runs all | `scripts/runner/gates/README.md`
+     - targets the watch does not hit are skipped with one line; `--all` runs all | `scripts/runner/phases/README.md`
    - code changed (`.ts` / `.tsx` / `.js` / `.mjs`): `pnpm typecheck` and `pnpm exec eslint --no-warn-ignored <changed code files>` (an ignored file, e.g. a _template placeholder file, is skipped without a warning)
-   - by where you changed (run every one that applies; checks on the gate = pnpm check registry, pnpm check routes, pnpm check cron, pnpm test scripts/structure/config/moduleLoad.test.mjs, pnpm check eslint, pnpm test scripts/structure/cycles/cycles.test.mjs, pnpm check rules, pnpm check notices are run by `pnpm check --gate=ship` above, never repeat them):
+   - by where you changed (run every one that applies; checks on the gate = pnpm check registry, pnpm check routes, pnpm check cron, pnpm test scripts/structure/config/moduleLoad.test.mjs, pnpm check eslint, pnpm test scripts/structure/cycles/cycles.test.mjs, pnpm check rules, pnpm check notices are run by `pnpm check --phase=ship` above, never repeat them):
      - `pnpm test` skips the tests a gate runs unless named (D389)
      - adding / deleting under `src/lib/`, `src/lib/CATALOG.md` → `pnpm test src/lib/folderCatalog/catalog.test.mjs`
      - `domainEntry.ts`, `domain.json` → registry drift → `pnpm generate registry`
      - `entities/drizzle.ts`, `src/registry/schemaRegistry.ts` → `pnpm test scripts/structure/registry/` | an index changed → write the explanation of the diff `pnpm db:push:check` prints in the report (never run db:push itself)
      - `src/featureGate/rules/`, items of `src/proxies/*.ts`, cron `task.ts` → `pnpm check extensions` (drift → `pnpm generate extensions`) and `FEATURE_GATE_CHECK=all pnpm test src/featureGate scripts/structure/proxies`
-     - adding / deleting / moving pages or routes, changing loaders or guard.ts → rebuild the map (`src/app/route-map.jsonl`) with `pnpm generate routes` and include it in the range, `pnpm test 'src/lib/screens/routeMap*.test.mjs'` (check --gate=ship also checks the map matches)
+     - adding / deleting / moving pages or routes, changing loaders or guard.ts → rebuild the map (`src/app/route-map.jsonl`) with `pnpm generate routes` and include it in the range, `pnpm test 'src/lib/screens/routeMap*.test.mjs'` (check --phase=ship also checks the map matches)
      - `domain.json`, role definitions (`*.role.json`), `*.profile.json` → `pnpm forge` (generation and post-checks in one go; include the generated files, the district map `src/registry/district-map.jsonl` and route-map changes in the range; write table-change guidance in the report)
      - `.claude/skills/` → the `*.test.mjs` beside the changed skill (`node --test <file>`) | a skill deleted or renamed → confirm with `git grep -n "/<旧名>"` that no reference remains (`.notices/` and `docs/journal/` are records, excluded)
      - scripts of `package.json` → run each added / changed script once and see it pass (one that needs a DB, external service or dev server → do not run it, report `未実行: 理由`)
@@ -118,7 +118,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - rejected because the remote moved → `pnpm workflow notices catchUp --onto=<remote>/<branch>` (CATCH UP below), rerun `pnpm check notices` when it applies, push again (the full checks of `--safe` come after the push, so a moving remote never restarts them)
    - then, **with `--safe` only, run the full checks on the pushed HEAD** (a plain ship runs the area checks above instead and makes no tag; `.notices/README.md` section `区切り(checkpoint)と区間適用`, part `セーフポイント`): `pnpm workflow notices safePoint check`
      - upstream does not check intermediate checkpoints (each fork's /flux checks every segment on its side); only the pushed tip of a `--safe` ship gets the full checks
-     - it needs a work tree equal to HEAD and runs on HEAD, in order: `pnpm test` (whole), `pnpm check`, `pnpm typecheck`, `pnpm lint`, the build (`next build` then `pnpm check --gate=build:post`: `pnpm build`'s own head gate is what `pnpm check` just ran); all pass → it records HEAD as checked (used by the tag below) | keep HEAD and the work tree as they are while it runs
+     - it needs a work tree equal to HEAD and runs on HEAD, in order: `pnpm test` (whole), `pnpm check`, `pnpm typecheck`, `pnpm lint`, the build (`next build` then `pnpm check --phase=build:post`: `pnpm build`'s own head gate is what `pnpm check` just ran); all pass → it records HEAD as checked (used by the tag below) | keep HEAD and the work tree as they are while it runs
      - exit 1 (a check failed): no tag | fix it in a new commit and ship that with `--safe` (the push stands) | the fix is not obvious → STOP
      - exit 2 (cannot run: uncommitted changes, a check changed tracked files, etc.): report `セーフポイントなし: <理由>` (no tag)
    - then **tag the safe point** (`--safe` only, when the check passed): `pnpm workflow notices safePoint tag`
@@ -146,7 +146,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 
 ## QUICK SHIP (`--quick`)
 - for every ship but the last of a session | makes no safe point | a run of quick ships is closed by a plain ship (its area checks take in the unchecked quick files, step 2) or a `--safe` ship (full checks on the tip)
-- runs no check except `pnpm check notices` (only when a notice is added or changed): skips step 2 entirely otherwise (`pnpm check --gate=ship` included), step 6's pickCheck, step 7's full checks and tag
+- runs no check except `pnpm check notices` (only when a notice is added or changed): skips step 2 entirely otherwise (`pnpm check --phase=ship` included), step 6's pickCheck, step 7's full checks and tag
 - keeps: steps 0, 1, 3-5 (notice judgment and writing), commit (with the `Ship: quick` trailer), push
 - ship route: anywhere | in a linked worktree → WORKTREE ROUTE below when it applies | the main checkout → a plain `git push`
 
@@ -170,7 +170,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 - `git fetch origin <branch>` → HEAD must equal the push target (`origin/<branch>`; WORKTREE ROUTE: `origin/main`) | HEAD behind or ahead → not this route (ahead = COMMITTED RANGE; behind → STOP: say so)
 - plain:
   - `pnpm workflow notices safePoint quickFiles` | `0 quick commits unchecked` → report `出荷するものなし(検査していない quick の分もなし)` and end
-  - else step 2's checks on those files (`pnpm check --gate=ship`, the code checks and the area checks they hit) | failed → fix in a new commit and ship it as a plain ship (step 1 onward) | the fix is not obvious → STOP
+  - else step 2's checks on those files (`pnpm check --phase=ship`, the code checks and the area checks they hit) | failed → fix in a new commit and ship it as a plain ship (step 1 onward) | the fix is not obvious → STOP
   - all pass → `pnpm workflow notices safePoint quickChecked` (records HEAD; the next `quickFiles` stops there) → step 8's report with `safePoint status` (may propose a safe point)
 - `--safe`:
   - HEAD already carries an own safe tag (`pnpm workflow notices safePoint status` prints `at <tag>`) → report `セーフポイント: 既にある <tag>` and end

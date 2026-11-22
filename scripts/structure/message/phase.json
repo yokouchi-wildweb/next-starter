@@ -1,0 +1,1 @@
+{ "generate": "generate.mjs", "phases": [], "outputs": [{ "glob": "src/domains/**/messages/*.ts", "kind": "write-once", "source": "the written file itself (hand-owned after the first write)" }] }

@@ -1,5 +1,5 @@
 #!/usr/bin/env tsx
-// scripts/structure/business/check.ts — 門 build の検査(pnpm check business): 事業の素性が sample のまま本番でビルドしていないか(設定の議会 D88)
+// scripts/structure/business/check.ts — 段階 build の検査(pnpm check business): 事業の素性が sample のまま本番でビルドしていないか(設定の議会 D88)
 //
 // src/business/business.ts の source が "sample"(上流の出荷の状態、@/business は例の値を返す)で、段階が本番(@/lib/appEnv の isProduction、
 // APP_ENV が無い・知らない値も本番)なら exit 1。Tier1(fork_id = next-starter、上流のデモ)は警告だけで exit 0。own・開発・staging は通す。

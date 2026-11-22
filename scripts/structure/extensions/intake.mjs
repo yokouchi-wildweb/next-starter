@@ -7,7 +7,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, posix } from "node:path";
 
-import { loadGates, scanTargets } from "../../runner/gates/scan.mjs";
+import { loadGates, scanTargets } from "../../runner/phases/scan.mjs";
 import { parseSwitchLayout, APP_DIR, discoverRoutes, listAppFiles } from "../../../src/lib/screens/node.mjs";
 
 import { isListPoint, overrideGlobOf } from "../../../src/lib/districtMap/index.mjs";
@@ -32,7 +32,7 @@ export { overrideGlobOf } from "../../../src/lib/districtMap/index.mjs";
  * @param {{ owner: string, name: string, declaredIn: string, spec: object }[]} points 全拡張点(writer の点・overrides の点・placement の点は受け口を持たない)
  * @param {{ path: string }[]} switches 1 行スイッチ(<dir>/<名前>.ts(x))
  * @param {{ pages?: string[], frameSwitches?: string[], generators?: { name: string, outputs?: string[], regions?: string[] }[] }} [screensAndGenerators]
- *   pages = ルートの page.tsx(型 1、ルートの地図と同じ見つけ方)/ frameSwitches = 枠の 1 行スイッチの layout.tsx / generators = gate.json の outputs・regions
+ *   pages = ルートの page.tsx(型 1、ルートの地図と同じ見つけ方)/ frameSwitches = 枠の 1 行スイッチの layout.tsx / generators = phase.json の outputs・regions
  * @returns {string[]}
  */
 export function intakeRows(points, switches, { pages = [], frameSwitches = [], generators = [] } = {}) {
@@ -48,7 +48,7 @@ export function intakeRows(points, switches, { pages = [], frameSwitches = [], g
     } else entry.plain = true;
     byDir.set(dir, entry);
   }
-  const rows = ["# pnpm generate extensions が拡張点の宣言(extensionPoints.ts)・ルート・1 行スイッチ・生成器の gate.json から書く。手で編集しない(ずれは pnpm check extensions が止める)"];
+  const rows = ["# pnpm generate extensions が拡張点の宣言(extensionPoints.ts)・ルート・1 行スイッチ・生成器の phase.json から書く。手で編集しない(ずれは pnpm check extensions が止める)"];
   // 置き場の点(placement): fork が書いてよい場所とその書き方
   for (const point of points.filter((p) => p.spec.placement !== undefined)) {
     rows.push(`${point.spec.kind} ${point.spec.placement}  # 置き場 ${point.name}(${point.declaredIn})`);
@@ -77,7 +77,7 @@ export function intakeRows(points, switches, { pages = [], frameSwitches = [], g
     if (point.spec.addable) rows.push(`add ${glob}  # fork が足す ${point.name}(上流の物の変更は隣の .override.ts)`);
   }
   rows.push(...FIXED_ROWS);
-  // 生成器(gate.json): region = 書き直しても fork の区画を残すファイル、generated = 丸ごと書くファイル(generated を最後に: 同じファイルなら生成物が効く)
+  // 生成器(phase.json): region = 書き直しても fork の区画を残すファイル、generated = 丸ごと書くファイル(generated を最後に: 同じファイルなら生成物が効く)
   for (const g of generators) for (const glob of g.regions ?? []) rows.push(`region ${glob}  # 生成器 ${g.name} の fork の区画`);
   for (const g of generators) for (const glob of g.outputs ?? []) rows.push(`generated ${glob}  # 生成器 ${g.name} の出力`);
   return rows;
@@ -94,12 +94,12 @@ function readScreens(repoRoot) {
 }
 
 /**
- * gate.json の outputs・regions(門の一覧の無い fixture は空)。並びは門の順(after を満たす順)。
+ * phase.json の outputs・regions(門の一覧の無い fixture は空)。並びは門の順(after を満たす順)。
  * outputs は generated の行になる物だけ(every-run で、ドメインの置き換えを持たない glob。src/lib/districtMap/domainOutputs.mjs intakeOutputGlobs)
  */
 function readGenerators(repoRoot) {
   const scriptsDir = join(repoRoot, "scripts");
-  if (!existsSync(join(scriptsDir, "runner/gates/gates.json"))) return [];
+  if (!existsSync(join(scriptsDir, "runner/phases/phases.json"))) return [];
   return scanTargets(scriptsDir, loadGates(scriptsDir))
     .map((t) => ({ name: t.name, outputs: intakeOutputGlobs(t.decl.outputs), regions: t.decl.regions }))
     .filter((g) => g.outputs.length > 0 || g.regions);

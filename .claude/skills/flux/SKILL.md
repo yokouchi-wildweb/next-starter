@@ -68,7 +68,7 @@ another session or machine may have pushed this fork's branch (a /flux of its ow
 - never move on because "the old usage still works" / "fix it later in a later segment" (later notices are written assuming a fork aligned to the earlier spec)
 - [ ] **all architecture follow-up done**: the fork's code fully follows that segment's upstream changes (the notice's required_actions, the drift sweep, what UPSTREAM CHANGE SWEEP found, changes without a notice too) | no remaining calls of old APIs, compat shims, dependencies on old names / old paths (step 6 sweep and follow-up)
 - [ ] **all data fixes done**: backfills, data migrations, `[user-run]` db:push all run, and the results checked by verify
-- [ ] **checks passed and closed**: the segment checks (step 6: the check entry `pnpm check --gate=ship`, typecheck, lint), the notice's verify and the ownership check (step 7c) passed, the ledger written, committed and pushed
+- [ ] **checks passed and closed**: the segment checks (step 6: the check entry `pnpm check --phase=ship`, typecheck, lint), the notice's verify and the ownership check (step 7c) passed, the ledger written, committed and pushed
 - [ ] **only allowed kinds kept**: the 3 of "segment done" above (`order:` = waiting on an upstream change / `human:` = the human's decision with a reason / `migration:` = migration split into another order), written in the ledger `open:` and the work memo `kept_old:` | nothing else kept
 - a gap found after push (noticed a leftover at the segment-end check, etc.): never move to the next segment; settle it with an extra commit in the same segment (align the follow-up / run the data fix and verify) → redo the segment checks (step 6) and the ownership check (step 7c) → push → check the 4 again
   - never rewrite pushed ledger lines (write what was settled under `こちらの誤り` in the segment report) | the fix needs a fork-specific judgment → stop as a stop condition
@@ -166,7 +166,7 @@ a notice's commit for which upstream declared `hotfix:` is cherry-picked before 
      - `gap <rules|scripts|paths|imports> <物>`: what the fix relies on that the fork's tree lacks (a rule's `paths:` that match nothing, a `pnpm` command of the notice's steps, a path the notice names, a relative import of a file it put in) → write each in the report and the ledger notes; never a stop
        - `gap imports <file>: 先取りしても動かない(…)` = every import of that file is missing, or a name it imports is not exported by a file the fork has (`./lib.mjs (handoffFile が無い)`): the pick cannot run there until a later segment brings them
      - its `notes` line goes into the ledger line's `notes:` as is (`hotfix pick; replaced: …; merged: …; left-out: …; gap: …`)
-  2. the notice's required_actions, the segment checks (the same 3 as step 6; the picked tree lacks `scripts/runner/gates/` → skip the entry and write it in the report) and verify
+  2. the notice's required_actions, the segment checks (the same 3 as step 6; the picked tree lacks `scripts/runner/phases/` → skip the entry and write it in the report) and verify
   3. put the follow-up changes and the ledger in a commit separate from the pick commit (so the tier below can take only the pick commit)
      - ledger line: `- id:<id> | date:<ISO8601> | commit:<pick の短 sha> | upstream:<git merge-base HEAD <upstream>/<branch> の完全な sha> | picked:<元の commit の完全な sha> | notes:<…>`
      - never set `upstream:` to the original commit (the ownership check would misread the Tier1 version) | forks with downstream write `relay:` too
@@ -414,8 +414,8 @@ merge and porting carry the fork's edits as they are | when the destination is u
      - only a migration the human split into another order (`migration:`) is not aligned in this segment (SPLIT A MIGRATION INTO ANOTHER ORDER above)
      - follow-up without a notice, and what could not be swept because the notice had no markers → FINDINGS FOR UPSTREAM (b)
    - **segment checks** (every segment, with or without notices, merge-only ones included, always before the commit; the "segment checks" of pick and hotfix are the same; the check items are written only here and the other places point here): run these 3 in order
-     1. `pnpm check --gate=ship`: the check entry upstream owns (`scripts/runner/gates/`, the same gate as /ship; every check upstream added to the gate runs: generated files, registries, routes, cron, circular imports, config, notices, rules, etc.; targets the range's changes do not hit are skipped with one line)
-        - a segment whose merge-target tree lacks `scripts/runner/gates/` (a version before the entry) → do not run it; write `検査の入口なし(この区間の版には無い)` in the report and the ledger `notes:` and go on with 2 and 3 only
+     1. `pnpm check --phase=ship`: the check entry upstream owns (`scripts/runner/phases/`, the same gate as /ship; every check upstream added to the gate runs: generated files, registries, routes, cron, circular imports, config, notices, rules, etc.; targets the range's changes do not hit are skipped with one line)
+        - a segment whose merge-target tree lacks `scripts/runner/phases/` (a version before the entry) → do not run it; write `検査の入口なし(この区間の版には無い)` in the report and the ledger `notes:` and go on with 2 and 3 only
      2. `pnpm typecheck` (whole; not in the entry)
      3. `pnpm exec eslint <files>` narrowed to the files changed in the segment (`.ts` / `.tsx` / `.js` / `.mjs` changed by the merge and the follow-up) (not in the entry)
      - the ownership check runs separately in step 7c (not in the entry)

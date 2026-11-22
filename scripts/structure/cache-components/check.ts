@@ -1,7 +1,7 @@
 // scripts/structure/cache-components/check.ts
 // cacheComponents の検査の入口(門の対象)。説明は README.md。
-// - 門 build:post(pnpm build の next build の後): build の成果物(.next)を見る。成果物が無い = exit 2(未検証、通過ではない)
-// - それ以外(門 ship・手で pnpm check cache-components): next.config.ts の値を見る
+// - 段階 build:post(pnpm build の next build の後): build の成果物(.next)を見る。成果物が無い = exit 2(未検証、通過ではない)
+// - それ以外(段階 ship・手で pnpm check cache-components): next.config.ts の値を見る
 // 問題あり = exit 1
 
 import { checkBuild, checkConfig } from "./lib.mjs";

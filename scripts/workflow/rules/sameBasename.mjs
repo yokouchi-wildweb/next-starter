@@ -1,7 +1,7 @@
 // scripts/workflow/rules/sameBasename.mjs
 // 1 つのフォルダに同じ名前の <base>.ts と <base>.tsx を置かない決まりの読み手。
 // tsc は同じ名前の組の .ts だけを読み、.tsx を黙って飛ばす(型の誤りが pnpm typecheck で落ちない)。
-// 対象: src/・scripts/・eslint-rules/(servers/ は pnpm の workspace の外なので見ない)。門 ship の pnpm check rules が回す(./check.mjs)
+// 対象: src/・scripts/・eslint-rules/(servers/ は pnpm の workspace の外なので見ない)。段階 ship の pnpm check rules が回す(./check.mjs)
 
 import { execFileSync } from "node:child_process";
 

@@ -50,7 +50,7 @@ test("選ぶ: 既定 = unit + fork、--db で全部、--group でその群、パ
   assert.deepEqual(await pick(["**/*.mjs", "scripts/**"]), ["src/c/c.test.mjs", "scripts/x/x.test.mts"]);
 });
 
-test("門が回すテスト(gate.json の check がテスト・tests の欄)は名指しでない時は除き、除いた本数と門の名を出す。名指しなら回す(D389)", async () => {
+test("門が回すテスト(phase.json の check がテスト・tests の欄)は名指しでない時は除き、除いた本数と門の名を出す。名指しなら回す(D389)", async () => {
   const gateTests = () => new Map([["src/c/c.test.mjs", "cycles"], ["scripts/x/x.test.mts", "notices"]]);
   const sel = (argv) => select(parseArgs(argv), { repo: "/r", files: FILES, changed: noRange, gateTests });
   const all = await sel([]);

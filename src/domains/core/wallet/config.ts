@@ -285,7 +285,7 @@ const defaults: WalletConfig = {
 };
 
 /**
- * 機能を要する値(設定 D107・D110、門 build の pnpm check proxies が見る): 購入に SMS 認証を求めるなら機能 phoneVerification が開いていること。
+ * 機能を要する値(設定 D107・D110、段階 build の pnpm check proxies が見る): 購入に SMS 認証を求めるなら機能 phoneVerification が開いていること。
  * 必須にしたい fork は上書きに purchaseRestriction: "phoneVerified" と書き、pnpm ops features set phoneVerification on
  */
 export const featureRequirements = [

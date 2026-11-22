@@ -4,7 +4,7 @@
 //   群: 既定 = unit + fork、--db で db も、--group=<群>[,<群>] でその群だけ。引数のパス・glob(リポジトリ直下から)で絞る。
 //   --changed: 範囲(門の watch と同じ比べ方)の変更から選ぶ(changed.mjs)。辿れなかったテストは名前を出す。
 //   servers/ の下のテストは名指しの時と、--changed の範囲に servers/ の下の変更がある時だけ候補にする。
-//   門が回すテスト(gate.json の check がテスト・tests の欄)は名指しでない時は回さない(門 1 回、D389。除いた本数を出す)。
+//   門が回すテスト(phase.json の check がテスト・tests の欄)は名指しでない時は回さない(門 1 回、D389。除いた本数を出す)。
 //   --list: 選んだファイルを出すだけ(起動しない)。
 //   終わり方: ファイルのプロセスは node に任せて自然に終える。接続・タイマーが残って終わらないファイルは 1 ファイルの上限で名前付きで落ちる。
 //   --test-force-exit は付けない: 子の報告の終わりが親へ届く前にプロセスを終え、ファイルの後ろのテストが pass にも fail にも数えられず
@@ -22,8 +22,8 @@ import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { changedFiles, globToRegExp } from "../gates/changed.mjs";
-import { gateTestFiles } from "../gates/scan.mjs";
+import { changedFiles, globToRegExp } from "../phases/changed.mjs";
+import { gateTestFiles } from "../phases/scan.mjs";
 import { scanTree, selectChanged } from "./changed.mjs";
 import { GROUPS, NAMED_ONLY, groupOf, listTestFiles, readFlags } from "./scan.mjs";
 
@@ -85,7 +85,7 @@ export async function select(opts, { repo, files, changed = changedFiles, tree =
   const notes = [];
   if (opts.patterns.length) picked = picked.filter((f) => opts.patterns.some((p) => matches(f, p)));
   else {
-    // 門の入口のテスト(gate.json の check がテスト・tests の欄)は門 1 回: 名指しでない時は回さない(D389)
+    // 門の入口のテスト(phase.json の check がテスト・tests の欄)は門 1 回: 名指しでない時は回さない(D389)
     const gated = gateTests(repo);
     const dropped = picked.filter((f) => gated.has(f));
     if (dropped.length) {

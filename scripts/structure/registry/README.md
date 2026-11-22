@@ -104,7 +104,7 @@ drizzle-kit 0.31.x は、特定の書き方の index と一部の列 default を
 
 #### drizzle-kit を更新するとき
 
-パッチは `drizzle-kit@0.31.8` に紐づく。package.json の `drizzle-kit` は範囲でなく `"0.31.8"` ぴったりに固定する(範囲だと別の版が入りパッチが外れる)。`pnpm check registry`(門 build / ship)が package.json の値とパッチのキーの版を比べ、違えば止める(`drizzleKitPin.mjs`)。**fork は版を変えない**(上げるのは上流で、下の手順)。
+パッチは `drizzle-kit@0.31.8` に紐づく。package.json の `drizzle-kit` は範囲でなく `"0.31.8"` ぴったりに固定する(範囲だと別の版が入りパッチが外れる)。`pnpm check registry`(段階 build / ship)が package.json の値とパッチのキーの版を比べ、違えば止める(`drizzleKitPin.mjs`)。**fork は版を変えない**(上げるのは上流で、下の手順)。
 
 バージョンを上げる場合(上流):
 

@@ -30,7 +30,7 @@ const isAllowedPath = (pathname: string): boolean => {
 export const demoModeProxy: ProxyHandler = async (request, ctx) => {
   const pathname = request.nextUrl.pathname;
 
-  // デモモードが無効の場合(デモのページの機能 demoPages が閉でも同じ。有効 + 閉の組は門 build の検査が止める)、/demo-login へのアクセスは404
+  // デモモードが無効の場合(デモのページの機能 demoPages が閉でも同じ。有効 + 閉の組は段階 build の検査が止める)、/demo-login へのアクセスは404
   if (!demoConfig.mode.enabled || !gate.enabled("demoPages")) {
     if (pathname === '/demo-login') {
       return new NextResponse(null, { status: 404 });

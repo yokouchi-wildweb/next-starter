@@ -46,7 +46,7 @@ const defaults: DemoConfig = {
   },
 };
 
-/** 機能を要する値(設定 D110、門 build の pnpm check proxies が見る): デモモードを有効にするならデモのページ(機能 demoPages)が開いていること */
+/** 機能を要する値(設定 D110、段階 build の pnpm check proxies が見る): デモモードを有効にするならデモのページ(機能 demoPages)が開いていること */
 export const featureRequirements = [{ key: "mode.enabled", feature: "demoPages", off: false }] as const satisfies readonly FeatureRequirement[];
 
 export const demoConfigDef = defineConfig<DemoConfig>(defaults, { label: "demo" });

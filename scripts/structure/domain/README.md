@@ -107,7 +107,7 @@
 
 ## API
 
-- 生成されるもの(カテゴリと出力先)・上書きの扱い・出力の種類のデータ(`gate.json` の `outputs`)は `API.md`
+- 生成されるもの(カテゴリと出力先)・上書きの扱い・出力の種類のデータ(`phase.json` の `outputs`)は `API.md`
 
 ## Extension
 

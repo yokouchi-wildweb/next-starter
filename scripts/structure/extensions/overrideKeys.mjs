@@ -3,7 +3,7 @@
 // 上書きのファイルの export(宣言の export)の object のキーを字面で読み(実行しない)、
 // - 素の形: キーは宣言の overrideOf の中だけ(core ロールの enabled・プロフィールの fields は宣言に無いので止まる)
 // - keyedBy の形(domainEntry): キーは隣の対象の export(宣言の keyedBy)のキーの中だけ。値は宣言の 1 つの属性
-// 値の検査(型・cron の式・access の形)は各読み手(scripts/structure/role・src/lib/cron・tsc)。pnpm check extensions(門 build)が回す
+// 値の検査(型・cron の式・access の形)は各読み手(scripts/structure/role・src/lib/cron・tsc)。pnpm check extensions(段階 build)が回す
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

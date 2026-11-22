@@ -42,9 +42,9 @@
 
 管理画面ルートの構造（`page.tsx` / `_screen/` の Screen と loader.ts）は [`src/lib/screens/README.md`](../../../src/lib/screens/README.md)「生成される管理画面ルート（pnpm generate domain）」。
 
-#### 出力の種類のデータ（`gate.json` の `outputs`）
+#### 出力の種類のデータ（`phase.json` の `outputs`）
 
-- 上の表のうち、ファイルごとの種類（`every-run` = 毎回書き直す / `write-once` = 無いときだけ書く）の唯一の元は [`gate.json`](gate.json) の `outputs`。1 行 = `{ glob, kind, source? }`
+- 上の表のうち、ファイルごとの種類（`every-run` = 毎回書き直す / `write-once` = 無いときだけ書く）の唯一の元は [`phase.json`](phase.json) の `outputs`。1 行 = `{ glob, kind, source? }`
   - `glob` はリポジトリ直下からの glob。`{dir}` = ドメインのフォルダ・`{camel}` = フォルダ名・`{Pascal}` = その PascalCase・`{route}` = 管理画面のルートのフォルダ（複数形の kebab-case、決まりの元は `src/lib/districtMap/domainNames.mjs`）。`[id]` の `[` `]` は字そのもの
   - `source` = その生成物を変えたいときに直す物（`{dir}/domain.json`・`{dir}/services/server/wrappers/`・`{dir}/adminBulkActions/`）
 - 受け口の一覧の generated の行にはならない（行になるのは `every-run` でドメインの置き換えを持たない glob だけ。`src/lib/districtMap/domainOutputs.mjs` の `intakeOutputGlobs`）

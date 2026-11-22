@@ -1,5 +1,5 @@
 // 実リポの受け口の一覧(src/lib/forkOwnership/intake.txt): src の下の行は全部生成区画にあり(4 つの型: 画面 = ルートと 1 行スイッチ・
-// 受け口と上書き = 拡張点の宣言・置き場 = placement の宣言・生成物と区画 = 生成器の gate.json)、種類(edit / add / region / append / generated)は
+// 受け口と上書き = 拡張点の宣言・置き場 = placement の宣言・生成物と区画 = 生成器の phase.json)、種類(edit / add / region / append / generated)は
 // 手書きだったときと同じ。手書きの区画に残るのはリポ直下の道具の設定・素材・servers/room・規則と負債だけ
 // 実行: pnpm test scripts/structure/extensions/intakeFromDeclarations.test.mjs
 import assert from "node:assert/strict";
@@ -12,7 +12,7 @@ import { collectPoints, intakeOutputGlobs } from "../../../src/lib/districtMap/n
 import { OVERRIDE_ROOT } from "../../../src/lib/districtMap/index.mjs";
 import { INTAKE_BLOCK_END, INTAKE_BLOCK_START, INTAKE_FILE, matchIntake, parseIntake, readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
 import { FORK_OWNED_DIR } from "../../../src/lib/screens/node.mjs";
-import { loadGates, scanTargets } from "../../runner/gates/scan.mjs";
+import { loadGates, scanTargets } from "../../runner/phases/scan.mjs";
 import { literalGlob, overrideGlobOf } from "./intake.mjs";
 import { checkSwitches } from "./switches.mjs";
 

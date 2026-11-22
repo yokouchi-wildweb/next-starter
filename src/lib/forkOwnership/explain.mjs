@@ -2,7 +2,7 @@
 // 型: 1 丸ごと(1 行スイッチ・画面の page.tsx / 枠の layout.tsx)/ 2 重ね(<対象>.override.ts・frame.override.ts、鍵 = 宣言の overrideOf)/
 //     3 足す(受け口)/ 4 置き場(地区の config の上書き・placement の点)/ 5 自分の版(受け口の一覧の self の行)/ generated(生成器で作り直す)/
 //     own(この fork の物)/ none(/order <直接の親>)。判定の順: generated → 5 → own → 1 → 2 / 3 → 4 → (own | none)。読むのは宣言(extensionPoints.ts)・地区の見つけ方・ルート・1 行スイッチの名前の決まり・
-// 受け口の一覧の kind・生成器の gate.json(pnpm generate domain の出力の種類も scripts/structure/domain/gate.json の outputs)。受け口の一覧の行の注記の文言は読まない。
+// 受け口の一覧の kind・生成器の phase.json(pnpm generate domain の出力の種類も scripts/structure/domain/phase.json の outputs)。受け口の一覧の行の注記の文言は読まない。
 // 仕様: ./README.md「持ち主を調べる(pnpm workflow ownership who)」
 
 import { matchesGlob } from "node:path";

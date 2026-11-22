@@ -33,7 +33,7 @@ district_map: what exists and what each district holds → src/lib/districtMap (
 ## TOOLS (the context and a full set of tools hold up ai_native)
 use: a step a tool covers is never built by hand → run the tool | unsure which → scripts/README.md, the .claude/skills/ descriptions
 - build: pnpm forge (domains, roles, profiles end to end) | pnpm generate \<target\> (domain, role, registry, routes, cron, extensions, styles)
-- check: pnpm check [--gate=ship] | pnpm test [--changed] | pnpm typecheck | pnpm lint = the checks, run only inside /ship and /flux segments | reading, inspecting, trial runs that write nothing and generators are work → core/notices.md checks_in_ship
+- check: pnpm check [--phase=ship] | pnpm test [--changed] | pnpm typecheck | pnpm lint = the checks, run only inside /ship and /flux segments | reading, inspecting, trial runs that write nothing and generators are work → core/notices.md checks_in_ship
 - workflow: pnpm workflow \<area\> (ownership, rules, notices, worktree, devcheck, repo-json …) | ops: pnpm ops \<area\> (setup env, features, db inspect, firestore inspect) | task: pnpm task \<name\> (every ops task, no ad-hoc)
 - running_app: a check that needs the running app → /devcheck (an order's check sheet → /patrol) | what the agent may run = repo.json agent.* policy, never stated here, changed only by /repo-policy
 - skills: /ship (checks, notice, commit, push) | /flux (take a parent's changes) | /order /inbox /wen (orders) | /devcheck /patrol (the running app) | /allow /repo-policy (what the agent may run) | the rest → .claude/skills/

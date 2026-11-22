@@ -45,7 +45,7 @@ test("gaps: entries named by file (pnpm workflow|ops <target> <action>, pnpm che
   assert.deepEqual(pnpmEntries(steps).map((e) => e.label), ["workflow ownership check", "ops db seed", "check registry", "generate domain", "test scripts/structure/config/a.test.mjs"]);
   const notice = `# DOWNSTREAM NOTICE id:y\nrequired_actions:\n${steps}\nrefs: -\n`;
   const scripts = { workflow: "", ops: "", check: "", generate: "", test: "" };
-  const have = ["scripts/workflow/ownership/check.mjs", "scripts/operations/db/seed.ts", "scripts/structure/registry/gate.json", "scripts/structure/domain/gate.json", "scripts/structure/config/a.test.mjs"];
+  const have = ["scripts/workflow/ownership/check.mjs", "scripts/operations/db/seed.ts", "scripts/structure/registry/phase.json", "scripts/structure/domain/phase.json", "scripts/structure/config/a.test.mjs"];
   assert.deepEqual(findGaps({ files: have, packageJson: { scripts }, rules: [], notice }).scripts, []);
   assert.deepEqual(findGaps({ files: have.slice(1, 3), packageJson: { scripts }, rules: [], notice }).scripts, ["workflow ownership check", "generate domain", "test scripts/structure/config/a.test.mjs"]);
 });

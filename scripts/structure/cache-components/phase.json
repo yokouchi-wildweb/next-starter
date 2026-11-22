@@ -1,0 +1,1 @@
+{ "check": "check.ts", "phases": ["ship", "build:post"], "watch": ["next.config.ts", "scripts/structure/cache-components/**", "src/lib/appEnv/**", "src/lib/forkOwnership/**", "src/lib/districtMap/**", "src/lib/libPackage/**", "src/lib/pathPattern/**", "src/lib/screens/**", "src/lib/stringCase/**"] }

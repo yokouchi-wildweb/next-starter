@@ -2,7 +2,7 @@
 
 ## Overview
 
-- `.claude/skills/` のスキル(SKILL.md と付属の指示の .md)が、決まり `.claude/rules/core/skills.md` の書式に沿っているかを確かめます。門 ship に乗ります。
+- `.claude/skills/` のスキル(SKILL.md と付属の指示の .md)が、決まり `.claude/rules/core/skills.md` の書式に沿っているかを確かめます。段階 ship に乗ります。
 
 ## Usage
 
@@ -40,7 +40,7 @@ pnpm check skills [-- --base <rev>]
 - fork = 基準の版(台帳の最後の `upstream:<sha>`、`--base` で上書き)に SKILL.md があるスキルが上流、無いスキルは fork が足した物。fork が足したスキルの誤りと知らない `requires:` の鍵は警告だけ(exit 0)
 - 基準の版が読めない fork は exit 2(確かめられない。通ったことにしない)
 
-- 入口 `check.mjs`(門 ship・`pnpm check skills`。`gate.json` が名指す門の入口なので `pnpm workflow skills` の動作にはならない)が部品 `lib.skillFormat.mjs` で書式を確かめる
+- 入口 `check.mjs`(段階 ship・`pnpm check skills`。`phase.json` が名指す門の入口なので `pnpm workflow skills` の動作にはならない)が部品 `lib.skillFormat.mjs` で書式を確かめる
 
 ## Verification
 

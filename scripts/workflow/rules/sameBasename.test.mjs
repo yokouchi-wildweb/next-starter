@@ -1,6 +1,6 @@
 // scripts/workflow/rules/sameBasename.test.mjs
 // 1 つのフォルダに同じ名前の .ts と .tsx を置かない(tsc が .tsx を黙って飛ばすため)。実行: pnpm test scripts/workflow/rules/sameBasename.test.mjs
-// 門 ship の pnpm check rules でも走る(./check.mjs)
+// 段階 ship の pnpm check rules でも走る(./check.mjs)
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";

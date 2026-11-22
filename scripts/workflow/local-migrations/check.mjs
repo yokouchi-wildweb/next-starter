@@ -1,4 +1,4 @@
-// scripts/workflow/local-migrations/check.mjs — 門 ship の検査(gate.json): git に入れない移行(.local.ts)がコミット・ステージされていないか
+// scripts/workflow/local-migrations/check.mjs — 段階 ship の検査(phase.json): git に入れない移行(.local.ts)がコミット・ステージされていないか
 // .local.ts は下流に流さない緊急のデータ修正の置き場(.gitignore の 1 行、src/lib/task/README.md)。追跡されていれば止める。
 // 直し方: git rm --cached <path>(ファイルは残る)。下流にも要るなら .local を外して notice: を付け、ふつうの移行にする。
 import { join } from "node:path";

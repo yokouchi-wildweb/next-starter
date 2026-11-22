@@ -1,6 +1,6 @@
 // scripts/workflow/notices/safePoint.mjs
 // セーフポイント = 全部の検査(pnpm test 全体・pnpm check・pnpm typecheck・pnpm lint・ビルド)が通って push された先端に付ける
-// ビルドは next build と build の後の門(check --gate=build:post)。pnpm build の頭の門(check --gate=build)は直前の pnpm check が
+// ビルドは next build と build の後の門(check --phase=build:post)。pnpm build の頭の門(check --phase=build)は直前の pnpm check が
 // 全部回すので重ねない(普段の pnpm build — デプロイ・人の手 — は頭の門を持ったまま)
 // 注釈つきの tag `safe/<fork_id>/<YYYYMMDD>-<n>`(fork_id = 付けたリポの repo.json の repo_id、n = その fork_id と日の次の空き番号)。
 // 名前に fork_id が入るので親子の tag は重ならず、見るのは直接の親の `safe/<親の fork_id>/*` だけ。
@@ -44,7 +44,7 @@ export const FULL_CHECKS = [
   "pnpm check",
   "pnpm typecheck",
   "pnpm lint",
-  "pnpm exec next build && pnpm check --gate=build:post",
+  "pnpm exec next build && pnpm check --phase=build:post",
 ];
 export const PASS_FILE = "safe-point-pass";
 

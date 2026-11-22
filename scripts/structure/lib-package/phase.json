@@ -1,0 +1,1 @@
+{ "check": "check.mjs", "phases": ["build", "ship"], "watch": ["src/lib/**", "src/components/**", "src/config/lib/**", "scripts/structure/lib-package/**", "eslint-rules/resolve-import.mjs", "tsconfig.json", "package.json", "pnpm-lock.yaml", "scripts/runner/phases/**", "scripts/runner/preload/**"] }

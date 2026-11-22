@@ -1,4 +1,4 @@
-// 生成器の gate.json の outputs(生成器が出力を宣言する唯一の場所)を読み、pnpm generate domain の出力の種類をパスに当てる純関数の .mjs。
+// 生成器の phase.json の outputs(生成器が出力を宣言する唯一の場所)を読み、pnpm generate domain の出力の種類をパスに当てる純関数の .mjs。
 // outputs の 1 行 = glob の文字列(= every-run)か { glob, kind?, source? }(kind 省略 = every-run)。
 // データは JSON(src から scripts を import しない: 読み手が本文を渡す)。生成器の実際の書き込みとの照合は scripts/structure/domain/tests/outputs.test.mjs、
 // パスの答えは pnpm workflow ownership who(src/lib/forkOwnership/explain.mjs)、受け口の一覧の generated の行は scripts/structure/extensions/intake.mjs。
@@ -13,11 +13,11 @@ import { adminRouteFolderOf } from "./domainNames.mjs";
 /** 出力の種類(毎回書き直す / 無いときだけ書く) */
 export const OUTPUT_KINDS = ["every-run", "write-once"];
 /** pnpm generate domain の出力の宣言の置き場(リポジトリ直下からの相対) */
-export const DOMAIN_OUTPUTS_FILE = "scripts/structure/domain/gate.json";
+export const DOMAIN_OUTPUTS_FILE = "scripts/structure/domain/phase.json";
 
 /**
- * gate.json の outputs を { glob, kind, source? } の並びにそろえる(文字列 = every-run)
- * @param {unknown} outputs gate.json の outputs(undefined = 宣言なし)
+ * phase.json の outputs を { glob, kind, source? } の並びにそろえる(文字列 = every-run)
+ * @param {unknown} outputs phase.json の outputs(undefined = 宣言なし)
  * @returns {{ entries: { glob: string, kind: "every-run" | "write-once", source?: string }[], problems: string[] }} problems は「outputs ...」で始まる理由
  */
 export function normalizeGateOutputs(outputs) {
@@ -49,7 +49,7 @@ export const isDomainTemplateGlob = (/** @type {string} */ glob) => /\{(dir|came
 /**
  * 受け口の一覧の generated の行になる glob: every-run で、ドメインの置き換えを持たない物(write-once は持ち主の手書き、
  * 置き換えを持つ物はドメインに当てて pnpm workflow ownership who が答える)
- * @param {unknown} outputs gate.json の outputs
+ * @param {unknown} outputs phase.json の outputs
  * @returns {string[]}
  */
 export function intakeOutputGlobs(outputs) {
@@ -59,8 +59,8 @@ export function intakeOutputGlobs(outputs) {
 }
 
 /**
- * pnpm generate domain の gate.json の本文から出力の宣言を読む
- * @param {string} text scripts/structure/domain/gate.json の本文
+ * pnpm generate domain の phase.json の本文から出力の宣言を読む
+ * @param {string} text scripts/structure/domain/phase.json の本文
  * @returns {{ outputs: { glob: string, kind: "every-run" | "write-once", source?: string }[], problems: string[] }}
  */
 export function parseDomainOutputs(text) {
