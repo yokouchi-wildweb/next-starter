@@ -1,13 +1,14 @@
 // .notices/20261122-180722-district-stage1.domains-rename.test.mjs
-// 実行: pnpm test .notices(一時フォルダの fixture。git は使わない)
+// 実行: pnpm test .notices(一時フォルダの fixture。--base の例だけ一時フォルダに git の木を作る)
 
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-import { applyRename, planRename, rewriteText } from "./20261122-180722-district-stage1.domains-rename.mjs";
+import { applyRename, mergeBaseReader, parseArgs, planRename, rewriteText } from "./20261122-180722-district-stage1.domains-rename.mjs";
 
 function fixture(files) {
   const root = mkdtempSync(join(tmpdir(), "domains-rename-"));
@@ -218,4 +219,113 @@ test("文字のファイルは NUL を含んでも書き換える(ソースに�
   const plan = planRename(root);
   assert.deepEqual(plan.edits.map((e) => e.path), ["src/domains/core/auth/a.ts"]);
   assert.equal(plan.skipped.binary, 1);
+});
+
+// --base: 取り込みの merge を先に commit した木(鉄道・艦隊の取り込み)でも、merge の途中と同じ 3 方向の merge にする
+const CFG_OLD = "src/config/features/auth.config.ts";
+const CFG_NEW = "src/config/domains/auth.config.ts";
+// a と c の間に変わらない行を挟む(git merge-file が隣り合う変更を 1 つの食い違いにまとめないように)
+const cfg = (dir, a, c) => `// src/config/${dir}/auth.config.ts\nexport default {\n  a: ${a},\n  b1: 2,\n  b2: 2,\n  b3: 2,\n  c: ${c},\n};\n`;
+
+function git(root, ...args) {
+  return execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false", ...args], { cwd: root, encoding: "utf8" }).trim();
+}
+function put(root, path, text) {
+  mkdirSync(dirname(join(root, path)), { recursive: true });
+  writeFileSync(join(root, path), text);
+}
+
+/**
+ * 基準 B(features の値)・fork F(c を変える)・上流 U(domains へ移して a を変える)の木。
+ * committed = 取り込みの merge を commit した後の木(両方の道が残る: 小さいファイルは git が改名と見ず modify/delete になる形)
+ * open = merge の途中(HEAD = F、MERGE_HEAD = U)で同じ作業ツリー
+ * forkA = fork も a を変える(上流と食い違う)
+ */
+function takeIn({ open = false, forkA = 1 } = {}) {
+  const root = mkdtempSync(join(tmpdir(), "domains-rename-base-"));
+  git(root, "init", "-q", "-b", "main");
+  put(root, "src/features/core/auth/index.ts", "export {};\n");
+  put(root, CFG_OLD, cfg("features", 1, 3));
+  git(root, "add", "-A");
+  git(root, "commit", "-q", "-m", "B");
+  const B = git(root, "rev-parse", "HEAD");
+  git(root, "switch", "-q", "-c", "upstream");
+  rmSync(join(root, CFG_OLD));
+  rmSync(join(root, "src/features"), { recursive: true });
+  put(root, "src/domains/core/auth/index.ts", "export {};\n");
+  put(root, CFG_NEW, cfg("domains", 10, 3));
+  git(root, "add", "-A");
+  git(root, "commit", "-q", "-m", "U");
+  const U = git(root, "rev-parse", "HEAD");
+  git(root, "switch", "-q", "main");
+  put(root, CFG_OLD, cfg("features", forkA, 30));
+  git(root, "add", "-A");
+  git(root, "commit", "-q", "-m", "F");
+  // 取り込みの後の作業ツリー: 上流の分は src/domains に、fork が値を変えたファイルは古い道に残る
+  rmSync(join(root, "src/features/core/auth"), { recursive: true });
+  put(root, "src/domains/core/auth/index.ts", "export {};\n");
+  put(root, CFG_NEW, cfg("domains", 10, 3));
+  if (open) writeFileSync(join(root, ".git/MERGE_HEAD"), `${U}\n`);
+  else {
+    git(root, "add", "-A");
+    git(root, "commit", "-q", "-m", "take-in (merge committed)");
+  }
+  return { root, B, U };
+}
+
+test("--base: merge を commit した後でも merge の途中と同じ 3 方向の merge(両方の変更が新しい道に入り、古い道は消える)", () => {
+  const committed = takeIn();
+  const open = takeIn({ open: true });
+  try {
+    const withBase = { baseText: mergeBaseReader(committed.root, { base: committed.B }) };
+    const plan = planRename(committed.root, withBase);
+    assert.deepEqual(plan.stops, []);
+    assert.deepEqual(plan.moves.find((m) => m.to === "src/config/domains")?.items, [{ from: CFG_OLD, to: CFG_NEW, how: "merge" }]);
+    applyRename(committed.root, plan, withBase);
+    assert.equal(read(committed.root, CFG_NEW), cfg("domains", 10, 30));
+    assert.equal(existsSync(join(committed.root, CFG_OLD)), false);
+
+    // merge の途中(MERGE_HEAD)は --base なしで同じ結果
+    const openReader = { baseText: mergeBaseReader(open.root) };
+    const openPlan = planRename(open.root, openReader);
+    assert.deepEqual(openPlan.stops, []);
+    applyRename(open.root, openPlan, openReader);
+    assert.equal(read(open.root, CFG_NEW), read(committed.root, CFG_NEW));
+  } finally {
+    rmSync(committed.root, { recursive: true, force: true });
+    rmSync(open.root, { recursive: true, force: true });
+  }
+});
+
+test("--base なしで merge を commit した木は今までどおり both-exist で止まる。本当の食い違いは --base でも merge-conflict で止まる", () => {
+  const plain = takeIn();
+  const clash = takeIn({ forkA: 2 });
+  try {
+    assert.deepEqual(planRename(plain.root, { baseText: mergeBaseReader(plain.root) }).stops.map((s) => s.kind), ["both-exist"]);
+    const stops = planRename(clash.root, { baseText: mergeBaseReader(clash.root, { base: clash.B }) }).stops;
+    assert.deepEqual(stops.map((s) => [s.kind, s.path]), [["merge-conflict", CFG_OLD]]);
+    assert.equal(read(clash.root, CFG_OLD), cfg("features", 2, 30), "止めた物は書かない");
+  } finally {
+    rmSync(plain.root, { recursive: true, force: true });
+    rmSync(clash.root, { recursive: true, force: true });
+  }
+});
+
+test("MERGE_HEAD があれば --base より MERGE_HEAD の merge-base が勝つ。解けない --base は投げる。引数の読み", () => {
+  const open = takeIn({ open: true });
+  const committed = takeIn();
+  try {
+    // 間違った基準(上流 U)を渡しても、merge の途中は MERGE_HEAD との merge-base(B)で読む
+    const reader = mergeBaseReader(open.root, { base: open.U });
+    assert.equal(reader(CFG_OLD), cfg("features", 1, 3));
+    // merge の途中でない木で解けない --base は投げる(打ち間違いで黙って both-exist に落とさない)
+    assert.throws(() => mergeBaseReader(committed.root, { base: "deadbeef" }), /--base deadbeef は commit に解けません/);
+  } finally {
+    rmSync(open.root, { recursive: true, force: true });
+    rmSync(committed.root, { recursive: true, force: true });
+  }
+  assert.deepEqual(parseArgs(["--apply", "--base", "abc123"]), { apply: true, json: false, base: "abc123" });
+  assert.deepEqual(parseArgs(["--base=abc123", "--json"]), { apply: false, json: true, base: "abc123" });
+  assert.deepEqual(parseArgs([]), { apply: false, json: false, base: null });
+  assert.throws(() => parseArgs(["--base", "--apply"]), /--base には/);
 });

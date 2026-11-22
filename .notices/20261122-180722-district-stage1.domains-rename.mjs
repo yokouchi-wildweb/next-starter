@@ -2,8 +2,11 @@
 // .notices/20261122-180722-district-stage1.domains-rename.mjs
 // ドメインの置き場の改名 features → domains(地区の議会 段 1、D10・D43)。上流(Tier1)も fork も同じ道具で、リポのルートで走らせる。
 // (notice .notices/20261122-180722-district-stage1.md の uses: の道具。fork が取り込みの merge の途中に走らせる。上流は出荷の次の commit で消す)
-// 使い方: node .notices/20261122-180722-district-stage1.domains-rename.mjs [--apply] [--json]
+// 使い方: node .notices/20261122-180722-district-stage1.domains-rename.mjs [--apply] [--json] [--base <sha>]
 //   既定は dry-run(移動・書き換えの計画と止める一覧を出すだけ、何も書かない)。--apply で書き換え → 移動の順に書く。
+//   --base <sha> = 取り込みの merge を先に commit した時(鉄道・艦隊の取り込みなど)の 3 方向の merge の基準(取り込み前の fork と
+//   上流の merge-base: 取り込みの merge commit を M として `git merge-base M^1 M^2`)。merge の途中(MERGE_HEAD がある)なら
+//   MERGE_HEAD との merge-base が勝ち、--base は使わない
 //   何度走らせても同じ結果(2 回目の --apply は何も変えない。止める一覧は残る)
 //
 // 動かす物(フォルダごと。fork が足したファイルも一緒に動く。git の木なら git mv):
@@ -15,7 +18,8 @@
 //   - 移す先に無いファイル → 移す
 //   - 移す先にもあるファイル → 3 方向の merge(git merge-file): 自分 = 書き換えた後の fork の版、基準 = 取り込みの merge の基準
 //     (MERGE_HEAD との merge-base)の版を同じ形で書き換えた物、相手 = 移す先の上流の版。食い違えば書かずに止める(stop: merge-conflict)。
-//     取り込みの merge の途中でない(基準が無い)時は、書き換えた fork の版が移す先と同じなら古い方を消すだけ、違えば止める(stop: both-exist)
+//     merge を先に commit した時は --base の版が基準(同じ 3 方向の merge)。
+//     基準が無い(merge の途中でなく --base も無い)時は、書き換えた fork の版が移す先と同じなら古い方を消すだけ、違えば止める(stop: both-exist)
 //   (小さいファイルは道の行の書き換えで似ている割合が git の改名の見つけの線(50%)を下回り、取り込みで modify/delete の衝突になる。
 //    git の改名の上限 renameLimit の問題ではないので、この道具が新しい道に置く)
 //   ファイルごとに動かした道は git add -A で索引に載せる(取り込みの merge の衝突もここで解ける)
@@ -241,17 +245,30 @@ function listEmpty(abs) {
   return true;
 }
 
-/** 取り込みの merge の基準の版を読む関数(merge の途中でなければ null を返す) */
-export function mergeBaseReader(root) {
+/**
+ * 取り込みの merge の基準の版を読む関数。基準 = merge の途中なら MERGE_HEAD との merge-base(勝つ)、そうでなければ base(--base、
+ * merge を先に commit した取り込みの merge-base)。どちらも無ければ null を返す関数
+ * @param {string} root
+ * @param {{ base?: string | null }} [opts]
+ */
+export function mergeBaseReader(root, { base: given = null } = {}) {
   if (!existsSync(join(root, ".git"))) return () => null;
   const head = spawnSync("git", ["rev-parse", "-q", "--verify", "MERGE_HEAD"], { cwd: root, encoding: "utf8" });
-  if (head.status !== 0) return () => null;
-  const base = spawnSync("git", ["merge-base", "HEAD", "MERGE_HEAD"], { cwd: root, encoding: "utf8" }).stdout.trim();
+  let base = "";
+  if (head.status === 0) base = spawnSync("git", ["merge-base", "HEAD", "MERGE_HEAD"], { cwd: root, encoding: "utf8" }).stdout.trim();
+  else if (given) base = resolveBase(root, given);
   if (!base) return () => null;
   return (path) => {
     const r = spawnSync("git", ["show", `${base}:${path}`], { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
     return r.status === 0 ? r.stdout : null;
   };
+}
+
+/** --base の sha を commit に解く(解けなければ投げる: 打ち間違いの基準で黙って both-exist に落とさない) */
+export function resolveBase(root, given) {
+  const r = spawnSync("git", ["rev-parse", "-q", "--verify", `${given}^{commit}`], { cwd: root, encoding: "utf8" });
+  if (r.status !== 0 || !r.stdout.trim()) throw new Error(`--base ${given} は commit に解けません(取り込みの merge-base: git merge-base <merge commit>^1 <merge commit>^2)`);
+  return r.stdout.trim();
 }
 
 /** 3 方向の merge(git merge-file -p)。戻り: { text, conflicts } */
@@ -279,7 +296,7 @@ function mergeOne(root, from, to, rewriteFile, baseText) {
   if (ours === theirs) return { text: theirs, same: true };
   const baseRaw = baseText(from);
   if (baseRaw === null) {
-    return { stop: { kind: "both-exist", text: `${from} と ${to} の中身が違う(取り込みの merge の基準が無い)`, suggest: `${to} に fork の変更を手で移してから ${from} を消す` } };
+    return { stop: { kind: "both-exist", text: `${from} と ${to} の中身が違う(取り込みの merge の基準が無い)`, suggest: `merge を commit 済みなら --base <取り込みの merge-base> で 3 方向の merge、そうでなければ ${to} に fork の変更を手で移してから ${from} を消す` } };
   }
   const base = rewriteFile(from, baseRaw).text;
   const merged = mergeFile(ours, base, theirs);
@@ -381,14 +398,35 @@ export function applyRename(root, plan, { baseText = mergeBaseReader(root) } = {
   return { moved: plan.moves.map((m) => m.to), edited: plan.edits.length };
 }
 
+/** 引数: --apply / --json / --base <sha>(--base=<sha> も) */
+export function parseArgs(args) {
+  let base = null;
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--base") {
+      base = args[i + 1] && !args[i + 1].startsWith("--") ? args[++i] : "";
+      if (!base) throw new Error("--base には取り込みの merge-base の sha を渡す");
+    } else if (args[i].startsWith("--base=")) base = args[i].slice("--base=".length);
+  }
+  return { apply: args.includes("--apply"), json: args.includes("--json"), base };
+}
+
 function main() {
-  const args = process.argv.slice(2);
   const root = process.cwd();
-  const apply = args.includes("--apply");
-  const plan = planRename(root);
+  let opts;
+  let baseText;
+  try {
+    opts = parseArgs(process.argv.slice(2));
+    baseText = mergeBaseReader(root, { base: opts.base });
+  } catch (error) {
+    console.error(`[domains-rename] ${error.message}`);
+    process.exitCode = 2;
+    return;
+  }
+  const { apply } = opts;
+  const plan = planRename(root, { baseText });
   const result = { mode: apply ? "apply" : "dry-run", ...plan };
-  if (apply) Object.assign(result, applyRename(root, plan));
-  if (args.includes("--json")) {
+  if (apply) Object.assign(result, applyRename(root, plan, { baseText }));
+  if (opts.json) {
     console.log(JSON.stringify(result, null, 2));
     return;
   }
