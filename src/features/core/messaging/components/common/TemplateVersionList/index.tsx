@@ -92,12 +92,12 @@ export function TemplateVersionList({ versions, currentVersion, layouts = [] }: 
               </Stack>
             ))}
           </Stack>
-          {shown.embedded.length > 0 ? (
+          {shown.vars.length > 0 ? (
             <Stack gap="2xs">
               <Span size="sm" tone="muted">
                 埋め込み情報
               </Span>
-              {shown.embedded.map((declaration) => (
+              {shown.vars.map((declaration) => (
                 <Span key={declaration.key} size="sm">
                   {declaration.alias}(<Span size="inherit" className="font-mono">{declaration.key}</Span>・{declaration.type}
                   {declaration.required ? "・必須" : ""})

@@ -13,7 +13,7 @@
 // - 欄の道 = ひな形の欄の鍵(D132)。直せる欄は既定でひな形の全欄(連絡が adminEditableOnly で絞ればその欄だけ。server が決める)。
 //   経路のタブは欄の channels(その欄を使う経路)で絞る。使えない行(経路の無い行)はどのタブにも出す
 // - 欄の値はひな形の欄の中身の形のまま(1行テキスト・段落・並び・組・ラベルと値・ブロックの並び …。入力は部品 LayoutFieldInput)
-// - 埋め込み情報のタグ(部品 EmbeddedInfoTags): 1 件の embedded を共通 / 専用に分けて渡す(useEmbeddedInfoTags)
+// - 埋め込み情報のタグ(部品 EmbeddedInfoTags): 1 件の vars を共通 / 専用に分けて渡す(useVarTags)
 // - 別名で見せる(D133): 画面に出す値(入力・元の文言・使えない名前・プレビュー)の {{鍵}} は一覧の別名があれば {{別名}} で見せる。
 //   直していない欄の比べる元も別名にした値なので、開いただけでは下書きにならない。打った値は {{別名}} のまま保存する(サーバーは別名も通す)
 // - 「すべてデフォルトに戻す」(D136): resetAll = 下書きを捨て、保存してある欄(使えない行も)の全部に戻す印。保存で当たる
@@ -40,7 +40,7 @@ import {
 import type { LayoutPreviewContent } from "../components/common/LayoutPreview";
 
 import { MESSAGE_OVERRIDES_KEY, messageOverrideKey } from "./overrideKeys";
-import { replaceKeysWithAliases, useEmbeddedInfoTags, valueWithAliases } from "./useEmbeddedInfoTags";
+import { replaceKeysWithAliases, useVarTags, valueWithAliases } from "./useVarTags";
 import { useMessageOverride } from "./useMessageOverride";
 
 /** 欄の値(ひな形の欄の中身の形のまま: 文字・数・並び・組・ブロックの並び …) */
@@ -107,8 +107,8 @@ export function useMessageOverrideEditor(messageKey: string) {
   );
 
   const allowedKeys = useMemo(() => detail?.allowedKeys ?? [], [detail]);
-  const embeddedTags = useEmbeddedInfoTags({ catalog: detail?.embedded ?? null });
-  const { aliases } = embeddedTags;
+  const varTags = useVarTags({ catalog: detail?.vars ?? null });
+  const { aliases } = varTags;
   /** 欄の送る時の値(別名で見せる形。下書きの比べる元) */
   const effectiveOf = useCallback((field: AdminOverrideField) => valueWithAliases(toEditable(field.effective), aliases), [aliases]);
   /** 欄のコードの値(元の文言。別名で見せる形) */
@@ -293,7 +293,7 @@ export function useMessageOverrideEditor(messageKey: string) {
     previewContent,
     previewLoading,
     /** 埋め込み情報のタグ(共通 / 専用・押すとコピー) */
-    embeddedTags,
+    varTags,
     /** 使えない行の数(送る時はコードの値) */
     unusableCount: (detail?.fields ?? []).filter((field) => field.unusable).length,
     allowedKeys,
@@ -310,7 +310,7 @@ export function useMessageOverrideEditor(messageKey: string) {
     /** モーダルを閉じる前の確かめ(Modal の confirmOnClose に渡す) */
     closeConfirm: { enabled: hasDrafts, message: "保存していない変更があります。閉じてもよろしいですか？" },
     /** 下書きの中の知らない名前(別名のある名前は別名で) */
-    unknownKeys: (field: AdminOverrideField) => unknownKeysOf(valueOf(field), allowedKeys).map(embeddedTags.aliasOf),
+    unknownKeys: (field: AdminOverrideField) => unknownKeysOf(valueOf(field), allowedKeys).map(varTags.aliasOf),
     /** 欄のコードの値(元の文言、別名で見せる形) */
     codeValueOf,
     saveAll,

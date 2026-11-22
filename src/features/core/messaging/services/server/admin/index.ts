@@ -39,7 +39,7 @@ import {
 import { continueSending } from "../sweep";
 import { buildContent } from "../sendMessage/content";
 import { renderValue, toVariableMap } from "../sendMessage/context";
-import { messageEmbeddedCatalog } from "../sendMessage/enrichers";
+import { messageVarCatalog } from "../sendMessage/enrichers";
 import { stopContextOf } from "../sendMessage/sender";
 import { honoursPreferences } from "../sendMessage/stops";
 import type { AdminCheckDeps } from "./assertAdmin";
@@ -228,7 +228,7 @@ const sendDeps: AdminSendDeps = {
         layout: MessageTemplateVersionTable.layout,
         layoutVersion: MessageTemplateVersionTable.layout_version,
         values: MessageTemplateVersionTable.values,
-        embedded: MessageTemplateVersionTable.embedded,
+        vars: MessageTemplateVersionTable.vars,
       })
       .from(MessageTemplateTable)
       .innerJoin(
@@ -276,7 +276,7 @@ const previewDeps: AdminDispatchPreviewDeps = {
   buildContent: (resolved, channel, map) => buildContent(sendMessageDeps, resolved, channel, map),
   renderValue,
   toVariableMap: (values) => toVariableMap(values),
-  embeddedCatalog: (resolved) => messageEmbeddedCatalog(resolved, sendMessageDeps.enrichers ?? {}),
+  varCatalog: (resolved) => messageVarCatalog(resolved, sendMessageDeps.enrichers ?? {}),
   commonValues: () => sendMessageDeps.context(),
   honoursPreferences: (resolved) => honoursPreferences(stopContextOf(resolved)),
   channelLabel: (channel) => channels[channel]?.label ?? null,

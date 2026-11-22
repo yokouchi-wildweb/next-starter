@@ -9,12 +9,12 @@
 // - 送る口・管理の送信・テンプレートの一覧が読む。検査に通らない受け口は送る口が 500 で止める(黙って送らない)
 
 import {
-  checkEmbeddedCatalog,
-  embeddedCatalog,
+  checkVarCatalog,
+  varCatalog,
   kindTraits,
   kindsWhere,
-  messageEmbeddedDeclarationSchema,
-  type MessageEmbeddedDeclaration,
+  messageVarDeclarationSchema,
+  type MessageVarDeclaration,
   type MessageKind,
   type MessageLayout,
   type MessageSystemTemplate,
@@ -55,13 +55,13 @@ export function checkSystemTemplates(
     if (!isAdminSendableKind(template.kind)) {
       problems.push(`${label}: 種別 ${template.kind} は管理者がその場で送れない(${adminSendableKinds().join(" / ")} のどれか)`);
     }
-    const declarations: MessageEmbeddedDeclaration[] = [];
-    for (const item of template.embedded ?? []) {
-      const parsed = messageEmbeddedDeclarationSchema.safeParse(item);
-      if (parsed.success) declarations.push(parsed.data as MessageEmbeddedDeclaration);
+    const declarations: MessageVarDeclaration[] = [];
+    for (const item of template.vars ?? []) {
+      const parsed = messageVarDeclarationSchema.safeParse(item);
+      if (parsed.success) declarations.push(parsed.data as MessageVarDeclaration);
       else problems.push(`${label}: 専用の埋め込み情報 ${String((item as { key?: unknown }).key)} の宣言が正しくない`);
     }
-    for (const problem of checkEmbeddedCatalog(embeddedCatalog({ own: declarations }))) problems.push(`${label}: ${problem.message}`);
+    for (const problem of checkVarCatalog(varCatalog({ own: declarations }))) problems.push(`${label}: ${problem.message}`);
     if (!layouts[template.layout]) problems.push(`${label}: ひな形 ${template.layout} は layouts の受け口に無い`);
     if (!template.values || typeof template.values !== "object" || Array.isArray(template.values)) {
       problems.push(`${label}: values(白紙の欄の中身)は object で書く`);

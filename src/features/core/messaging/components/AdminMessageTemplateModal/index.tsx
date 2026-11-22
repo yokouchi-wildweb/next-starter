@@ -9,7 +9,7 @@
 // 中身の入力と埋め込み情報は、ひな形・種別・カテゴリーがそろいカテゴリーに経路がある時だけ(D139。それまでは先に選ぶ物の 1 行)。
 // 操作の後は onChanged(返った 1 件と操作)を呼ぶ: 一覧が行を足す・置き換える。作った後は同じモーダルでその 1 件を直す形に変わる。
 // 流れは hook useMessageTemplateModal(取る物・タブ・作った後)・useMessageTemplateForm(書く欄・操作)・useLayoutPreview(プレビュー)・
-// useEmbeddedInfoTags(タグ)。部品は公開の部品だけなので、fork は自分の画面にも同じモーダルを置ける。
+// useVarTags(タグ)。部品は公開の部品だけなので、fork は自分の画面にも同じモーダルを置ける。
 // 書きかけのまま閉じる = confirmOnClose、ページの移動 = hook の中の @/lib/unsavedGuard
 
 "use client";
@@ -38,7 +38,7 @@ import { LayoutFields } from "@/features/core/messaging/components/common/Layout
 import { LayoutPreview } from "@/features/core/messaging/components/common/LayoutPreview";
 import { TemplateEmbeddedInfoModal } from "@/features/core/messaging/components/common/TemplateEmbeddedInfoModal";
 import { TemplateVersionList } from "@/features/core/messaging/components/common/TemplateVersionList";
-import { useEmbeddedInfoTags } from "@/features/core/messaging/hooks/useEmbeddedInfoTags";
+import { useVarTags } from "@/features/core/messaging/hooks/useVarTags";
 import { useLayoutPreview } from "@/features/core/messaging/hooks/useLayoutPreview";
 import { useMessageTemplateForm, type MessageTemplateAction } from "@/features/core/messaging/hooks/useMessageTemplateForm";
 import { useMessageTemplateModal } from "@/features/core/messaging/hooks/useMessageTemplateModal";
@@ -94,7 +94,7 @@ function TemplateModalBody({
 }) {
   const { template, versions } = modal;
   const form = useMessageTemplateForm({ template, options, onCreated: modal.onCreated, onChanged: modal.onChanged });
-  const { fields, embeddedEditor } = form;
+  const { fields, varsEditor } = form;
   const preview = useLayoutPreview({
     layout: fields.layout || null,
     fields: form.layoutFields,
@@ -105,7 +105,7 @@ function TemplateModalBody({
     // 空の欄は見出しの仮の枠で見せる(D127)
     mode: "template",
   });
-  const tags = useEmbeddedInfoTags({ catalog: form.catalog });
+  const tags = useVarTags({ catalog: form.catalog });
   const locked = form.readOnly;
   const [versionsOpen, setVersionsOpen] = useState(false);
 
@@ -116,8 +116,8 @@ function TemplateModalBody({
       own={tags.own}
       onCopy={tags.copy}
       unknownNames={form.unknownNames}
-      onManage={locked ? undefined : embeddedEditor.openEditor}
-      manageCount={embeddedEditor.count}
+      onManage={locked ? undefined : varsEditor.openEditor}
+      manageCount={varsEditor.count}
     />
   );
 
@@ -321,16 +321,16 @@ function TemplateModalBody({
         onConfirm={fields.confirmLayoutChange}
       />
       <TemplateEmbeddedInfoModal
-        open={embeddedEditor.open}
-        onOpenChange={embeddedEditor.setOpen}
-        rows={embeddedEditor.rows}
-        onUpdateRow={embeddedEditor.updateRow}
-        onAddRow={embeddedEditor.addRow}
-        onRemoveRow={embeddedEditor.removeRow}
+        open={varsEditor.open}
+        onOpenChange={varsEditor.setOpen}
+        rows={varsEditor.rows}
+        onUpdateRow={varsEditor.updateRow}
+        onAddRow={varsEditor.addRow}
+        onRemoveRow={varsEditor.removeRow}
         onApply={() => {
-          embeddedEditor.apply();
+          varsEditor.apply();
         }}
-        errors={embeddedEditor.errors}
+        errors={varsEditor.errors}
         readOnly={locked}
       />
     </>

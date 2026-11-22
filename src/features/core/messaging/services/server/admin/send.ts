@@ -3,7 +3,7 @@
 // 管理の送信(D34・D40・D41・D42・D65・D80・D85・D117・D125)。どの送信も『テンプレートを選んで送る』1 つの流れ(その場で書く連絡 = 白紙のシステムテンプレート)。
 // - 中身: template = 出どころ { system: 白紙の鍵 } か { id, version }(DB のテンプレートの読み込んだ版。今の公開版でなければ 409)・
 //   values = ひな形の欄の中身({{鍵}} のまま、ひな形の欄の zod で検査)・edited? = 版の中身から直したか(DB のテンプレートだけ。中身の違いでも付く)・
-//   embedded? = 専用の埋め込み情報の値 { 鍵: 値 }(DB のテンプレートの版かシステムテンプレートの宣言の型で検査、回の embedded_values に残る)。組み方は sendMessage/templateDefinition.ts(fork のコードからは messagingService.sendTemplateMessage)
+//   vars? = 専用の埋め込み情報の値 { 鍵: 値 }(DB のテンプレートの版かシステムテンプレートの宣言の型で検査、回の embedded_values に残る)。組み方は sendMessage/templateDefinition.ts(fork のコードからは messagingService.sendTemplateMessage)
 // - 宛先 target: 全員 / ロール / ユーザーグループ(groupId。門 userGroups が閉・しまった・壊れた・人数の上限は送る口が拒む)/
 //   選んだ利用者(userIds)
 // - カテゴリー(必須): 管理者が送れる種別(announcement・direct・promotion)のカテゴリーの鍵。宛先の種類は種別の性質 adminFreeText で確かめる
@@ -24,7 +24,7 @@ import {
   type MessageAdminTarget,
   type MessageCategory,
   type MessageChannel,
-  type MessageEmbeddedDeclaration,
+  type MessageVarDeclaration,
   type MessageEnricher,
   type MessageLayout,
   type MessageLayoutFields,
@@ -79,7 +79,7 @@ export const adminContentFields = {
   /** 版の中身から直したか(DB のテンプレートだけ。送る口は中身の違いでも直した印を付ける) */
   edited: z.boolean().optional(),
   /** DB のテンプレートの専用の埋め込み情報の値(回に 1 組) */
-  embedded: z.record(z.string(), z.unknown()).optional(),
+  vars: z.record(z.string(), z.unknown()).optional(),
   /** 送るカテゴリー(種別 announcement・direct・promotion) */
   category: z.string().trim().min(1).max(100),
   /** 送る経路(カテゴリーの経路の中の絞り。省略 = 全部。その中に文言の無い経路があれば 400) */
@@ -87,7 +87,7 @@ export const adminContentFields = {
 };
 
 export function checkAdminContent(
-  value: { template: MessageTemplateRef; embedded?: Record<string, unknown>; edited?: boolean },
+  value: { template: MessageTemplateRef; vars?: Record<string, unknown>; edited?: boolean },
   ctx: z.RefinementCtx,
 ): void {
   if ("system" in value.template && value.edited) {
@@ -154,7 +154,7 @@ export type AdminSendOptions = {
     layoutVersion: number;
     values: Record<string, unknown>;
     /** 今の公開版の専用の埋め込み情報の宣言(送る画面が値を入れる) */
-    embedded: MessageEmbeddedDeclaration[];
+    vars: MessageVarDeclaration[];
   }[];
   /** 送れるカテゴリー(種別 announcement・direct・promotion、宛先の種類で絞る。その種別の既定の白紙・最初の送信方法・埋め込み情報の一覧つき) */
   categories: AdminFreeTextCategoryOption[];
@@ -208,7 +208,7 @@ export type AdminContent = {
   template: MessageTemplateRef;
   values: Record<string, unknown>;
   edited?: boolean;
-  embedded?: Record<string, unknown>;
+  vars?: Record<string, unknown>;
   channels?: string[];
   category: string;
 };
@@ -254,7 +254,7 @@ export async function dispatchAdminContent(
     values: content.values,
     category: category.key,
     ...(content.edited !== undefined ? { edited: content.edited } : {}),
-    ...(content.embedded ? { embedded: content.embedded } : {}),
+    ...(content.vars ? { vars: content.vars } : {}),
     ...(content.channels ? { channels: content.channels } : {}),
   });
 }
@@ -311,7 +311,7 @@ export async function previewAdminContent(
   const category = adminContentCategory(deps, input, target);
   return deps.previewMessage(
     { template: { template: input.template, values: input.values, category: category.key } },
-    { vars: input.embedded ?? {}, channels: input.channels, userId },
+    { vars: input.vars ?? {}, channels: input.channels, userId },
   );
 }
 

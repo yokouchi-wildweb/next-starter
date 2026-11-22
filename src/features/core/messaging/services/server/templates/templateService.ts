@@ -18,15 +18,15 @@ import { randomBytes } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 
 import type { AuditRecordInput } from "@/lib/audit";
-import { buildChannelContent, categoryAdminLabel, layoutVersionOf, upgradeLayoutValues, type MessageEmbeddedDeclaration, type MessageEmbeddedEntry, type MessageSystemTemplate } from "@/lib/messaging";
+import { buildChannelContent, categoryAdminLabel, layoutVersionOf, upgradeLayoutValues, type MessageVarDeclaration, type MessageVarEntry, type MessageSystemTemplate } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
 import type { MessageTemplate, MessageTemplateVersion } from "../../../entities/model";
 import { assertAdminActor, type AdminCheckDeps } from "../admin/assertAdmin";
-import { adminSelectableLayouts, checkTemplateFields, templateEmbeddedCatalog, type TemplateCheckDeps } from "./checks";
+import { adminSelectableLayouts, checkTemplateFields, templateVarCatalog, type TemplateCheckDeps } from "./checks";
 import type {
   AdminLayoutPreview,
-  AdminEmbeddedEntry,
+  AdminVarEntry,
   AdminTemplateDetail,
   AdminTemplateOptions,
   AdminTemplatePage,
@@ -83,7 +83,7 @@ export function newTemplateKey(): string {
   return `tpl-${Array.from(bytes, (b) => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]).join("")}`;
 }
 
-function toEntry(entry: MessageEmbeddedEntry): AdminEmbeddedEntry {
+function toEntry(entry: MessageVarEntry): AdminVarEntry {
   return { key: entry.key, alias: entry.alias, source: entry.source, description: entry.description ?? null };
 }
 
@@ -133,7 +133,7 @@ function toVersion(row: MessageTemplateVersion, categoryLabel: CategoryLabelOf):
     layout: row.layout,
     layoutVersion: row.layout_version,
     values: row.values,
-    embedded: row.embedded,
+    vars: row.vars,
     category: row.category,
     categoryLabel: categoryLabel(row.category),
     editedBy: row.edited_by ?? null,
@@ -142,7 +142,7 @@ function toVersion(row: MessageTemplateVersion, categoryLabel: CategoryLabelOf):
 }
 
 /** 版にする中身 */
-type TemplateContent = Pick<MessageTemplate, "category" | "layout" | "layout_version" | "values" | "embedded">;
+type TemplateContent = Pick<MessageTemplate, "category" | "layout" | "layout_version" | "values" | "vars">;
 
 /** 中身が版と同じか(同じなら新しい版を作らない) */
 function sameAsVersion(content: TemplateContent, version: MessageTemplateVersion | null): boolean {
@@ -151,7 +151,7 @@ function sameAsVersion(content: TemplateContent, version: MessageTemplateVersion
     content.layout === version.layout &&
     content.layout_version === version.layout_version &&
     isDeepStrictEqual(content.values, version.values) &&
-    isDeepStrictEqual(content.embedded, version.embedded) &&
+    isDeepStrictEqual(content.vars, version.vars) &&
     content.category === version.category
   );
 }
@@ -177,14 +177,14 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
   const categoryLabel: CategoryLabelOf = (category) => { const found = deps.check().categories[category]; return found ? categoryAdminLabel(found) : null; };
   const actorId = () => deps.context()?.actorId ?? null;
 
-  const catalogOf = (own: readonly MessageEmbeddedDeclaration[]) => templateEmbeddedCatalog(deps.check(), own).map(toEntry);
+  const catalogOf = (own: readonly MessageVarDeclaration[]) => templateVarCatalog(deps.check(), own).map(toEntry);
 
   function detailOf(row: MessageTemplate): AdminTemplateDetail {
     return {
       ...toSummary(row, categoryLabel),
       layoutVersion: row.layout_version,
-      embedded: row.embedded,
-      catalog: catalogOf(row.embedded),
+      vars: row.vars,
+      catalog: catalogOf(row.vars),
     };
   }
 
@@ -196,7 +196,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
       layout: content.layout,
       layout_version: content.layout_version,
       values: content.values,
-      embedded: content.embedded,
+      vars: content.vars,
       category: content.category,
       edited_by: actor,
     });
@@ -275,8 +275,8 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
         return {
           ...toSystemSummary(template),
           layoutVersion: layout ? layoutVersionOf(layout) : 1,
-          embedded: [...(template.embedded ?? [])],
-          catalog: catalogOf(template.embedded ?? []),
+          vars: [...(template.vars ?? [])],
+          catalog: catalogOf(template.vars ?? []),
         };
       }
       return detailOf(await requireRow(id));
@@ -304,7 +304,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
           layout: checked.layout,
           layout_version: checked.layoutVersion,
           values: checked.values,
-          embedded: checked.embedded,
+          vars: checked.vars,
           current_version: 1,
           created_by: actor,
           updated_by: actor,
@@ -345,7 +345,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
           category,
           layout: patch.layout ?? current.layout,
           values: patch.values ?? currentValues(current),
-          embedded: patch.embedded ?? current.embedded,
+          vars: patch.vars ?? current.vars,
         });
         const values = await bindTemplateImages(deps.ledger, tx, { templateId: id, actorUserId: actor, values: checked.values });
         const content: TemplateContent = {
@@ -353,7 +353,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
           layout: checked.layout,
           layout_version: checked.layoutVersion,
           values,
-          embedded: checked.embedded,
+          vars: checked.vars,
         };
         const latest = await deps.store.latestVersion(id, tx);
         const next = sameAsVersion(content, latest) ? null : (latest?.version ?? 0) + 1;

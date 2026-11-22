@@ -1,9 +1,9 @@
 // 送るモーダルの hook useMessageSendModal(と文面の useSendTemplateText)の検査(jsdom の上で描く。client service・門・離れる前の確認は偽物)。
 // - 純粋な関数: scheduleErrorOf / kindsOf / blankOfKind / initialTextOf / sameAsNoteOf / initialTargetOf / overLimitText /
-//   embeddedValuesForInput / missingEmbedded / embeddedPreviewValues
+//   varValuesForInput / missingVars / varPreviewValues
 // - new(D110 D115 D118): 種別を選ぶまで止まる → 種別 → カテゴリー(1 つなら自動)→ 宛先(種別が許す種類だけ)→ テンプレート(その種別の物 + システム)。
 //   読み込み直後は文を固定、専用の埋め込み情報の入力だけ(D119)→ 文面を直す → 直した印(D118)→ 予約の検査 → プレビュー・テスト送信 →
-//   見込み → 確認 → 送る(送る口の入力 { template, values, edited, embedded, category, channels }、鍵を作り直す)・書きかけの確認・閉じると初めに戻る
+//   見込み → 確認 → 送る(送る口の入力 { template, values, edited, vars, category, channels }、鍵を作り直す)・書きかけの確認・閉じると初めに戻る
 // - 『テンプレートを更新』(D120): 直した文を 1 回の保存で新しい版に(D134)、新しい版へつなぎ直し直した印が消える / 変わらなければ unchanged
 // - 種別が 2 つ以上のカテゴリーを持つ時は選ぶ、送信方法はカテゴリーの最初の経路(defaultChannels)。門 messagingTemplates が閉ならシステムだけ
 // - 読み込み: 手で直した後は確かめる / 解除は白紙へ(ひな形が同じなら文を残す)/ システムテンプレートの専用の埋め込み情報
@@ -39,7 +39,7 @@ const template = {
   layout: "notice",
   layoutVersion: 1,
   values: { subject: "{{割引}} 割引", blocks: [{ type: "paragraph", text: "本文" }] },
-  embedded: [discount],
+  vars: [discount],
 };
 const noticeTemplate = {
   id: NOTICE_TEMPLATE_ID,
@@ -50,7 +50,7 @@ const noticeTemplate = {
   layout: "notice",
   layoutVersion: 1,
   values: { subject: "告知", blocks: [] },
-  embedded: [],
+  vars: [],
 };
 const layouts = [
   {
@@ -109,10 +109,10 @@ const categories = [
 ];
 const startAt = { key: "startAt", alias: "開始", type: "line", required: true } as const;
 const systemTemplates = [
-  { ...blankOf("announcement", "シンプル"), kind: "announcement", embedded: [] },
-  { key: "maintenance", label: "メンテナンス", kind: "announcement", layout: "notice", values: { subject: "メンテナンス {{開始}}", blocks: [] }, embedded: [startAt] },
-  { ...blankOf("direct", "個別の白紙"), kind: "direct", embedded: [] },
-  { ...blankOf("promotion", "宣伝の白紙"), kind: "promotion", embedded: [] },
+  { ...blankOf("announcement", "シンプル"), kind: "announcement", vars: [] },
+  { key: "maintenance", label: "メンテナンス", kind: "announcement", layout: "notice", values: { subject: "メンテナンス {{開始}}", blocks: [] }, vars: [startAt] },
+  { ...blankOf("direct", "個別の白紙"), kind: "direct", vars: [] },
+  { ...blankOf("promotion", "宣伝の白紙"), kind: "promotion", vars: [] },
 ];
 const SEND_OPTIONS = {
   channels: [
@@ -294,17 +294,17 @@ test("純粋な関数", () => {
   assert.equal(hooks.blankOfKind(categories as never, "security"), null);
 
   // 専用の埋め込み情報: 数の型は数に、空は送らない / 必須の未入力(既定値のある物は除く)/ プレビューは入れた値(空なら既定値)で埋める
-  assert.deepEqual(text.embeddedValuesForInput([discount, startAt], { discount: "15", startAt: " " }), { discount: 15 });
-  assert.deepEqual(text.missingEmbedded([discount, { ...startAt, default: "明日" }], {}).map((item) => item.key), ["discount"]);
+  assert.deepEqual(text.varValuesForInput([discount, startAt], { discount: "15", startAt: " " }), { discount: 15 });
+  assert.deepEqual(text.missingVars([discount, { ...startAt, default: "明日" }], {}).map((item) => item.key), ["discount"]);
   assert.deepEqual(
-    text.embeddedPreviewValues({ subject: "{{割引}} と {{discount}} と {{表示名}}", blocks: [{ type: "paragraph", text: "{{開始}}" }] }, [discount, { ...startAt, default: "明日" }], {
+    text.varPreviewValues({ subject: "{{割引}} と {{discount}} と {{表示名}}", blocks: [{ type: "paragraph", text: "{{開始}}" }] }, [discount, { ...startAt, default: "明日" }], {
       discount: "15",
     }),
     { subject: "15 と 15 と {{表示名}}", blocks: [{ type: "paragraph", text: "明日" }] },
     "共通の名前(受信者ごと)は書いたまま",
   );
   const untouched = { subject: "{{割引}}" };
-  assert.equal(text.embeddedPreviewValues(untouched, [discount], {}), untouched, "埋める値が無ければそのまま");
+  assert.equal(text.varPreviewValues(untouched, [discount], {}), untouched, "埋める値が無ければそのまま");
 
   // 初めの文面
   const bulk = hooks.initialTextOf(
@@ -323,7 +323,7 @@ test("純粋な関数", () => {
   );
   assert.deepEqual(edited?.source, { type: "template", id: TEMPLATE_ID, name: "春", version: 3 });
   assert.deepEqual([edited?.start, edited?.versionValues, edited?.unlocked], [SAME_AS_DISPATCH.content.values, template.values, true], "直した回は直した文で直す状態から");
-  assert.deepEqual(edited?.embedded, { discount: "30" }, "今の版が宣言する鍵だけ");
+  assert.deepEqual(edited?.vars, { discount: "30" }, "今の版が宣言する鍵だけ");
   const otherKind = hooks.initialTextOf({ type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, templateId: TEMPLATE_ID } } as never, "direct", categories as never, [template] as never);
   assert.equal(otherKind?.source.type, "system", "種別を選び直した後は白紙から");
 
@@ -404,13 +404,13 @@ test("new: 種別 → 宛先 → テンプレートを読み込む(固定)→ �
   assert.deepEqual(m().sendChannels, ["email", "inApp"], "カテゴリーの最初の経路");
   assert.match(m().contentError ?? "", /埋め込み情報「割引」を入力してください/);
   assert.deepEqual(
-    m().embeddedCatalog.map((entry) => [entry.alias, entry.source]),
+    m().varCatalog.map((entry) => [entry.alias, entry.source]),
     [
       ["表示名", "common"],
       ["割引", "own"],
     ],
   );
-  await act(async () => m().text.setEmbedded("discount", "20"));
+  await act(async () => m().text.setVars("discount", "20"));
   assert.equal(m().contentError, null);
   await act(async () => m().toggleChannel("inApp", false));
   assert.deepEqual(m().sendChannels, ["email"]);
@@ -437,7 +437,7 @@ test("new: 種別 → 宛先 → テンプレートを読み込む(固定)→ �
     template: { id: TEMPLATE_ID, version: 3 },
     values: { subject: "{{割引}} 割引!", blocks: [{ type: "paragraph", text: "本文" }] },
     edited: true,
-    embedded: { discount: 20 },
+    vars: { discount: 20 },
     category: "campaign",
     channels: ["email"],
   };
@@ -577,10 +577,10 @@ test("読み込み: 手で直した後は確かめる / 解除は白紙へ(ひ�
   assert.deepEqual(m().text.source, { type: "system", key: "promotion", label: "宣伝の白紙" });
   assert.deepEqual(m().text.values, template.values);
   assert.equal(m().text.locked, false);
-  assert.deepEqual(m().text.state?.embeddedDeclarations, []);
+  assert.deepEqual(m().text.state?.varDeclarations, []);
   assert.deepEqual((m().buildContent() as { template: unknown }).template, { system: "promotion" });
 
-  // システムテンプレート(メンテナンス): 中身と専用の埋め込み情報の入力、送る口に embedded
+  // システムテンプレート(メンテナンス): 中身と専用の埋め込み情報の入力、送る口に vars
   await act(async () => m().setKind("announcement"));
   await act(async () => m().loadTemplate("system:maintenance"));
   assert.equal(m().pendingLoad, "system:maintenance", "解除の後の文(手で触った形)の上に読み込む時も確かめる");
@@ -588,12 +588,12 @@ test("読み込み: 手で直した後は確かめる / 解除は白紙へ(ひ�
   assert.deepEqual(m().text.source, { type: "system", key: "maintenance", label: "メンテナンス" });
   assert.equal(m().text.values.subject, "メンテナンス {{開始}}");
   assert.match(m().contentError ?? "", /埋め込み情報「開始」を入力してください/);
-  await act(async () => m().text.setEmbedded("startAt", "10 時"));
+  await act(async () => m().text.setVars("startAt", "10 時"));
   assert.equal(m().contentError, null);
   assert.deepEqual(m().buildContent(), {
     template: { system: "maintenance" },
     values: { subject: "メンテナンス {{開始}}", blocks: [] },
-    embedded: { startAt: "10 時" },
+    vars: { startAt: "10 時" },
     category: "notice",
     channels: ["email", "inApp"],
   });
@@ -617,7 +617,7 @@ test("sameAs: カテゴリー → 種別・宛先・中身を写す。テンプ�
   assert.deepEqual(t().loadedTemplate, { type: "template", id: TEMPLATE_ID, name: "春", version: 3 }, "今の公開版を読み込む");
   assert.equal(t().text.locked, true);
   assert.deepEqual(t().text.values, template.values);
-  assert.deepEqual(t().text.state?.embedded, { discount: "30" }, "専用の値も写す");
+  assert.deepEqual(t().text.state?.vars, { discount: "30" }, "専用の値も写す");
   assert.equal(t().contentError, null);
   assert.equal(t().sameAsNote, null);
   await fromTemplate.unmount();

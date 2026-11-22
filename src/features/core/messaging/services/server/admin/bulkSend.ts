@@ -2,7 +2,7 @@
 //
 // 管理の一括送信(D40・D42・D80・D81、指令 40 の AMENDMENT 2)。中身は送る画面(/send)と同じ形で、選んだ利用者へ送る。
 // - 宛先: 利用者 id を直に({ userIds })か、受け口 bulkSendTargets の項目で選んだ記録から({ target, recordIds })
-// - 中身: 送る画面(/send)と同じ { template(白紙 { system } か DB のテンプレート { id, version }), values, edited?, embedded?, category, channels? }(D117)。
+// - 中身: 送る画面(/send)と同じ { template(白紙 { system } か DB のテンプレート { id, version }), values, edited?, vars?, category, channels? }(D117)。
 //   検査も組み方も send.ts の部品と同じ(種別、宛先の種類 bulk を種別の性質 adminFreeText で、白紙の種別・古い版 409)。
 //   予約は無い(scheduledAt は 400)
 // - プレビュー・テスト送信: adminBulkSendPreview / adminBulkSendTest(送る画面と同じ。カテゴリーは bulk で送れる物)。門 messagingBroadcast に入れない

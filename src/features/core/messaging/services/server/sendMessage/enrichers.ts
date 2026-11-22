@@ -4,10 +4,10 @@
 // 実行(context.ts)と差し込みの別名(content.ts)が同じこの選び方を使う。lib/messaging だけに依る(送る口の中の import の輪を作らない)
 
 import {
-  embeddedCatalog,
+  varCatalog,
   enricherTargets,
-  type MessageEmbeddedEntry,
-  type MessageEmbeddedName,
+  type MessageVarEntry,
+  type MessageNamedVar,
   type MessageEnricher,
   type MessageKind,
 } from "@/lib/messaging";
@@ -34,8 +34,8 @@ function varEnricherEntries(
   message: { vars?: unknown },
   enrichers: Readonly<Record<string, MessageEnricher>>,
   taken: ReadonlySet<string>,
-): MessageEmbeddedEntry[] {
-  const entries: MessageEmbeddedEntry[] = [];
+): MessageVarEntry[] {
+  const entries: MessageVarEntry[] = [];
   for (const key of varKeysOf(message)) {
     if (taken.has(key)) continue;
     const enricher = Object.values(enrichers).find((item) => key in (item.provides.shape as Record<string, unknown>) && item.aliases?.[key]);
@@ -58,7 +58,7 @@ export function enricherKeysFor(
 }
 
 /** 定義の varNames(D133)→ 一覧の名前(鍵が taken の vars = 共通・enrichers と同じ値は除く。名前の無い鍵も除く) */
-function varNamesOf(message: { vars?: unknown; varNames?: unknown }, taken: ReadonlySet<string>): MessageEmbeddedName[] {
+function varNamesOf(message: { vars?: unknown; varNames?: unknown }, taken: ReadonlySet<string>): MessageNamedVar[] {
   const names = (message.varNames ?? {}) as Readonly<Record<string, { alias?: unknown; description?: unknown } | undefined>>;
   return varKeysOf(message).flatMap((key) => {
     const name = names[key];
@@ -71,11 +71,11 @@ function varNamesOf(message: { vars?: unknown; varNames?: unknown }, taken: Read
  * その連絡で見える共通・enrichers の名前(共通 + 当たる enrichers + enricher と同じ鍵の vars)。vars の名前は入れない
  * (定義の検査が vars の別名の重なりを照らす相手、definition.ts)
  */
-export function messageSharedEmbedded(
+export function messageSharedVars(
   message: { key: string; category: string; kind: MessageKind; throttle?: unknown; vars?: unknown },
   enrichers: Readonly<Record<string, MessageEnricher>>,
-): MessageEmbeddedEntry[] {
-  const base = embeddedCatalog({ enrichers: enrichersFor(message, enrichers), throttle: Boolean(message.throttle) });
+): MessageVarEntry[] {
+  const base = varCatalog({ enrichers: enrichersFor(message, enrichers), throttle: Boolean(message.throttle) });
   return [...base, ...varEnricherEntries(message, enrichers, new Set(base.map((entry) => entry.key)))];
 }
 
@@ -83,11 +83,11 @@ export function messageSharedEmbedded(
  * その連絡の埋め込み情報の一覧(共通 + 当たる enrichers + enricher と同じ鍵の vars + 残りの vars の名前 = 専用、D133)。
  * 差し込みの別名の表(送る口・プレビュー・組み直し)・管理画面のタグに使う。秘密の vars も入る(管理画面は呼び手が除く)
  */
-export function messageEmbeddedCatalog(
+export function messageVarCatalog(
   message: { key: string; category: string; kind: MessageKind; throttle?: unknown; vars?: unknown; varNames?: unknown },
   enrichers: Readonly<Record<string, MessageEnricher>>,
-): MessageEmbeddedEntry[] {
-  const shared = messageSharedEmbedded(message, enrichers);
+): MessageVarEntry[] {
+  const shared = messageSharedVars(message, enrichers);
   const vars = varNamesOf(message, new Set(shared.map((entry) => entry.key)));
-  return [...shared, ...embeddedCatalog({ vars }).filter((entry) => entry.source === "own")];
+  return [...shared, ...varCatalog({ vars }).filter((entry) => entry.source === "own")];
 }

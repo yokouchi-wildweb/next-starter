@@ -20,7 +20,7 @@ import { fieldValueSchema, requiredValue } from "../layout/vocabulary";
 import { MESSAGE_KIND_TRAITS } from "./kinds";
 import { listSecretVarKeys } from "./secret";
 import type { ResolvedMessageDefinition } from "./types";
-import { MESSAGE_COMMON_EMBEDDED } from "../embedded/common";
+import { MESSAGE_COMMON_VARS } from "../vars/common";
 import { COMMON_CONTEXT_KEYS, THROTTLE_CONTEXT_KEYS } from "./validate";
 
 /** 管理画面の欄の値 1 つ(fieldPath = ひな形の欄の鍵、layoutVersion = 保存した時のひな形の版。null = 版の無い古い形の行) */
@@ -65,7 +65,7 @@ export function adminFieldAllowedKeys(resolved: AnyResolved, variableKeys: reado
       ...COMMON_CONTEXT_KEYS,
       ...(resolved.throttle ? THROTTLE_CONTEXT_KEYS : []),
       // 共通の埋め込み情報の日本語の別名(D126。送る口が鍵と同じ値で埋める)
-      ...MESSAGE_COMMON_EMBEDDED.filter((item) => !item.throttleOnly || resolved.throttle).map((item) => item.alias),
+      ...MESSAGE_COMMON_VARS.filter((item) => !item.throttleOnly || resolved.throttle).map((item) => item.alias),
       ...variableKeys,
     ]),
   ];

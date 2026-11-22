@@ -21,7 +21,7 @@ import { layouts } from "../../../extensions/layouts";
 import { buildContent } from "../sendMessage/content";
 import { messageDomainOpen } from "../domainGate";
 import { enricherKeysFor, resolveDefinition } from "../sendMessage/definition";
-import { messageEmbeddedCatalog } from "../sendMessage/enrichers";
+import { messageVarCatalog } from "../sendMessage/enrichers";
 import type { OverrideImageLedger } from "./imageBinding";
 import { storageOverrideImageLedger } from "./imageBindingLedger";
 import { createOverrideService } from "./overrideService";
@@ -64,7 +64,7 @@ const service = createOverrideService({
     const built = await buildContent({ channels, layouts, layoutRenderers: { email: layoutEmails } }, resolved, channel, {});
     return built.content;
   },
-  embeddedCatalog: (resolved) => messageEmbeddedCatalog(resolved, enrichers),
+  varCatalog: (resolved) => messageVarCatalog(resolved, enrichers),
   channelPreview(channel, input) {
     const item = channels[channel];
     return item?.preview ? item.preview({ ...input, messageKey: input.messageKey as never }) : null;

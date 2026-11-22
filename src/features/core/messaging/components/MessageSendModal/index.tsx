@@ -42,7 +42,7 @@ import { SendCategoryChannels } from "@/features/core/messaging/components/commo
 import { SendConfirmView, SendResultView } from "@/features/core/messaging/components/common/SendConfirmView";
 import { SendSchedule } from "@/features/core/messaging/components/common/SendSchedule";
 import { SendEmbeddedInputs, SendTemplatePicker } from "@/features/core/messaging/components/common/SendTemplatePicker";
-import { useEmbeddedInfoTags } from "@/features/core/messaging/hooks/useEmbeddedInfoTags";
+import { useVarTags } from "@/features/core/messaging/hooks/useVarTags";
 import {
   useMessageSendModal,
   type MessageSendMode,
@@ -98,7 +98,7 @@ export function MessageSendModal({
 }: MessageSendModalProps) {
   const { showToast } = useToast();
   const m = useMessageSendModal({ mode, onSent });
-  const tags = useEmbeddedInfoTags({ catalog: m.embeddedCatalog });
+  const tags = useVarTags({ catalog: m.varCatalog });
   const bulk = mode.type === "bulk" ? mode : null;
   const text = m.text;
   /** 『テンプレートを更新』の確かめを出しているか */
@@ -244,10 +244,10 @@ export function MessageSendModal({
                     専用の埋め込み情報
                   </SecTitle>
                   <SendEmbeddedInputs
-                    declarations={text.state.embeddedDeclarations}
-                    values={text.state.embedded}
-                    onChange={text.setEmbedded}
-                    missing={text.missingEmbedded.map((item) => item.key)}
+                    declarations={text.state.varDeclarations}
+                    values={text.state.vars}
+                    onChange={text.setVars}
+                    missing={text.missingVars.map((item) => item.key)}
                   />
                 </Stack>
               ) : null}

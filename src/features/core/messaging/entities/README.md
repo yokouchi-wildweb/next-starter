@@ -12,7 +12,7 @@
 - `message_events`（`delivery.ts`）: provider と内部の事件（追記だけ）。`UNIQUE(provider, provider_event_id)`、`seq`・`dispatch_id`（回と一緒に消える）・`message_key`・`channel`
 - `message_subscriber_cursors` / `message_subscriber_failures`（`subscriber.ts`）: 購読の印と失敗・隔離
 - `message_inbox_items` / `message_inbox_reads` / `message_inbox_read_states`（`inbox.ts`）: お知らせ（全員・ロールは `user_id` null の共有の 1 行、`target_roles` null = 全員 / ほかは受信者ごと。回と一緒に消える。`throttle_key`・`collapsed_count`・`collapsed_dispatch_ids`）、個別の既読、全部既読の watermark
-- `message_templates` / `message_template_versions`（`template.ts`）: テンプレートと版（種類・ひな形 `layout` / `layout_version`・欄の中身 `values`・専用の埋め込み情報の宣言 `embedded`、経路の列は無い。`UNIQUE(template_id, version)`、版は追記だけ）
+- `message_templates` / `message_template_versions`（`template.ts`）: テンプレートと版（種類・ひな形 `layout` / `layout_version`・欄の中身 `values`・専用の埋め込み情報の宣言 `vars`、経路の列は無い。`UNIQUE(template_id, version)`、版は追記だけ）
 - `message_preferences`（`preference.ts`）: 止めた 種類 × 経路 × 種別（止めた時だけ行。`kind` は NOT NULL 既定 `"*"`）。`UNIQUE(user_id, category, channel, kind)`（素の列の uniqueIndex。NULL と NULLS NOT DISTINCT は drizzle-kit の push が往復しないので使わない。衝突の先も 4 列 = `MESSAGE_PREFERENCE_CONFLICT_TARGET`）。`source`・`source_message_key`・`source_dispatch_id`
 - `message_suppressions`（`preference.ts`）: 宛先の停止（`address_hash`）。`UNIQUE(channel, address_hash, scope)`、`scope` `"*"` = 全種類
 - `message_endpoints`（`endpoint.ts`）: 端末の帳簿。`UNIQUE(channel, address)`
@@ -22,8 +22,10 @@
 ## Internals
 
 - `message_key` が null の回 = 前の送る口の回と写した前のお知らせ。件名・本文は `headings`・`rendered`・`channel_counts` にあり、回の読む口はそこから返す。写した前のお知らせの回は `source` `legacy.notification`・`tags` `['legacy']`・`expand_cursor` `"~done"`（cron は拾わない）・`metadata.legacyNotificationId`。受信者ごとの監査ログ（`messaging.message.sent` / `failed`）は前の回だけにある
+- 列 `vars`（テンプレート・版）は前の名前 `embedded` から改名した。前の列がある DB は `pnpm task messaging:rename-template-vars`（`scripts/migrations/rename-template-vars.ts`、冪等）を `pnpm db:push` の前に走らせる（push が先だと列を消して足すので宣言が失われる）
 - 集計の注意: 前の送る口のお知らせは前の回と写した回の 2 つに出る。analytics は `source` `legacy.notification` の回を受け取り箱の既読の数だけに使う
 
 ## Verification
 
 - `pnpm db:push` の後 `pnpm db:push:check` = 0（索引を足した・変えた時）
+- 改名の移行の SQL と判断: `pnpm test src/features/core/messaging/scripts/migrations/rename-template-vars.test.ts`

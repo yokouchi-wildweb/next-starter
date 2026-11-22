@@ -1,5 +1,5 @@
-// src/features/core/messaging/hooks/useEmbeddedInfoTags.ts
-// 埋め込み情報のタグ(部品 EmbeddedInfoTags)の流れ: 一覧(lib の embeddedCatalog が組んだ物)を共通(共通の一覧 + enricher)と専用に分け、
+// src/features/core/messaging/hooks/useVarTags.ts
+// 埋め込み情報のタグ(部品 EmbeddedInfoTags)の流れ: 一覧(lib の varCatalog が組んだ物)を共通(共通の一覧 + enricher)と専用に分け、
 // 押したタグの {{別名}} をコピーして短い知らせを出す(useCopyMessageVariable、D78)。
 // 戻り値の common / own / copy をそのまま部品に渡す。
 // aliasOf / toAliases = 鍵 → 別名(D133): 画面に出す値の {{鍵}} を {{別名}} で見せる時に使う(別名の無い名前はそのまま)
@@ -8,16 +8,16 @@
 
 import { useCallback, useMemo } from "react";
 
-import type { MessageEmbeddedCatalog, MessageEmbeddedEntry } from "@/lib/messaging";
+import type { MessageVarCatalog, MessageVarEntry } from "@/lib/messaging";
 
 import { useCopyMessageVariable } from "./useCopyMessageVariable";
 
-export type UseEmbeddedInfoTagsOptions = {
+export type UseVarTagsOptions = {
   /** 埋め込み情報の一覧(その連絡・テンプレートで書ける名前の全部) */
-  catalog?: MessageEmbeddedCatalog | null;
+  catalog?: MessageVarCatalog | null;
 };
 
-const NO_ENTRIES: readonly MessageEmbeddedEntry[] = [];
+const NO_ENTRIES: readonly MessageVarEntry[] = [];
 
 // lib templateVariables の {{名前}} と同じ形
 const VARIABLE = /\{\{([\p{L}\p{N}_]+)\}\}/gu;
@@ -43,7 +43,7 @@ export function valueWithAliases<T>(value: T, aliases: ReadonlyMap<string, strin
   return walk(value) as T;
 }
 
-export function useEmbeddedInfoTags({ catalog }: UseEmbeddedInfoTagsOptions) {
+export function useVarTags({ catalog }: UseVarTagsOptions) {
   const { common, own } = useMemo(() => {
     const entries = catalog ?? NO_ENTRIES;
     return {

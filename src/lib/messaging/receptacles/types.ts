@@ -10,7 +10,7 @@ import type { ChannelErrorKind } from "../definition/errors";
 import type { MessageChannelRendering } from "../layout/rendering";
 import type { MessageLayout, MessageLayoutSummary, MessageLayoutValues } from "../layout/types";
 import type { MessageKey, MessageKind } from "../definition/types";
-import type { MessageEmbeddedDeclaration } from "../embedded/declaration";
+import type { MessageVarDeclaration } from "../vars/declaration";
 
 // ---------------------------------------------------------------------------
 // channels: 経路(上流の email・inApp・line も fork の経路も同じ形)
@@ -183,7 +183,7 @@ export type MessageEnricher = {
   provides: z.AnyZodObject;
   /**
    * 足す値ごとの日本語の別名(provides の鍵 → 別名、全部の鍵に要る、D126)。文面に {{鍵}} でも {{別名}} でも書ける。
-   * 別名は共通の埋め込み情報・テンプレートの専用の名前と重ならない(embedded/catalog.ts の checkEmbeddedCatalog)
+   * 別名は共通の埋め込み情報・テンプレートの専用の名前と重ならない(vars/catalog.ts の checkVarCatalog)
    */
   aliases: Readonly<Record<string, string>>;
   resolve: (context: MessageEnricherContext) => Promise<Record<string, unknown>> | Record<string, unknown>;
@@ -301,7 +301,7 @@ export type MessageSystemTemplate = {
   /** 白紙の欄の中身(ひな形の欄の zod を通る形。送る時は管理者が書いた中身に替わる。できあがった文面も書ける) */
   values: Record<string, unknown>;
   /** 専用の埋め込み情報の宣言(DB のテンプレートと同じ形。送る人が送る時に値を入れる、例 メンテナンスの開始日時) */
-  embedded?: readonly MessageEmbeddedDeclaration[];
+  vars?: readonly MessageVarDeclaration[];
   /** false = 使わない(テンプレートの一覧・送る画面の選択肢・種別の既定の白紙から外れ、その鍵では送れない。D122)。既定 true。fork は <名前>.override.ts で切る */
   enabled?: boolean;
 };

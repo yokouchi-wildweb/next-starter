@@ -14,7 +14,7 @@
 // 『文面を直す』で全文、『テンプレートの読み込みを解除』で白紙へ、『テンプレートを更新』で新しい版、D118 D119 D120)
 // → 経路の絞り(カテゴリーの経路の中、既定は全部オン)→ 予約(bulk 以外)→ プレビュー(ひな形の描き方 useLayoutPreview がいつも、
 // 「プレビュー」= あなた宛ての表示例を送る口で描く)・自分へのテスト送信 → 見込み → 確認 → 送る → 結果。
-// - 送る口の入力 = { category, channels?, template: { system } | { id, version }, values, edited?, embedded? }(services/server/admin/send.ts)
+// - 送る口の入力 = { category, channels?, template: { system } | { id, version }, values, edited?, vars? }(services/server/admin/send.ts)
 // - 見込み → 確認の段・予約の検査・二重送信を防ぐ鍵(開くたびに 1 つ、送った後に作り直す)はこの hook の中
 // - 書きかけ(dirty)の間: ページを離れる前に確かめる(@/lib/unsavedGuard)。閉じる前の確かめは closeConfirm を Modal の confirmOnClose に渡す
 // - 初めの値(sameAs の写し・bulk の既定)は state に入れず、まだ触っていない物は mode と選択肢から導く(effect で写さない)
@@ -23,7 +23,7 @@ import { useCallback, useMemo, useState } from "react";
 
 import { useGate } from "@/featureGate/client";
 import { useDomainMutation } from "@/lib/crud";
-import type { MessageEmbeddedEntry } from "@/lib/messaging";
+import type { MessageVarEntry } from "@/lib/messaging";
 import { useUnsavedGuard } from "@/lib/unsavedGuard";
 
 import { MESSAGE_CHANNEL_LABELS } from "../constants/channelLabels";
@@ -56,7 +56,7 @@ import { ADMIN_SEND_KEY } from "./sendKeys";
 import { useAdminBulkSendOptions } from "./useAdminBulkSend";
 import { useAdminSendOptions } from "./useAdminSendOptions";
 import { useLayoutPreview } from "./useLayoutPreview";
-import { blankTextState, embeddedPreviewValues, templateTextState, useSendTemplateText, type SendTextState } from "./useSendTemplateText";
+import { blankTextState, varPreviewValues, templateTextState, useSendTemplateText, type SendTextState } from "./useSendTemplateText";
 
 /** 一覧の一括操作の既定のカテゴリー(種別 direct、D81) */
 export const ADMIN_BULK_SEND_DEFAULT_CATEGORY = "operatorDirect";
@@ -136,7 +136,7 @@ export function blankOfKind(categories: readonly AdminFreeTextCategoryOption[], 
 /** 回の専用の埋め込み情報の値(テンプレートの今の版が宣言する鍵だけ) */
 function embeddedOfDispatch(dispatch: AdminDispatchDetail, template: MessageSendTemplate): Record<string, string> {
   const values = dispatch.embeddedValues ?? {};
-  return Object.fromEntries(template.embedded.filter((item) => values[item.key] !== undefined).map((item) => [item.key, String(values[item.key])]));
+  return Object.fromEntries(template.vars.filter((item) => values[item.key] !== undefined).map((item) => [item.key, String(values[item.key])]));
 }
 
 /**
@@ -167,7 +167,7 @@ export function initialTextOf(
       const copyEdited = dispatch.templateEdited && content !== null && content.layout === template.layout;
       return templateTextState(template, {
         ...(copyEdited ? { start: content.values, unlocked: true } : {}),
-        embedded: embeddedOfDispatch(dispatch, template),
+        vars: embeddedOfDispatch(dispatch, template),
       });
     }
   }
@@ -343,7 +343,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const text = useSendTemplateText({ layouts, initial: initialText, channels: sendChannels, templatesOpen, onChange: touchText });
   const sameAsNote = useMemo(() => (optionsLoaded ? sameAsNoteOf(mode, initialText, allTemplates) : null), [optionsLoaded, mode, initialText, allTemplates]);
   /** 埋め込み情報のタグ(共通 + カテゴリーに当たる enrichers + 読み込んだテンプレートの専用) */
-  const embeddedCatalog = useMemo<MessageEmbeddedEntry[]>(
+  const varCatalog = useMemo<MessageVarEntry[]>(
     () => [
       ...(categoryOption?.catalog ?? []).map((entry) => ({
         key: entry.key,
@@ -351,7 +351,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
         source: entry.source,
         ...(entry.description ? { description: entry.description } : {}),
       })),
-      ...(text.state?.embeddedDeclarations ?? []).map((item) => ({ key: item.key, alias: item.alias, source: "own" as const, declaration: item })),
+      ...(text.state?.varDeclarations ?? []).map((item) => ({ key: item.key, alias: item.alias, source: "own" as const, declaration: item })),
     ],
     [categoryOption, text.state],
   );
@@ -359,8 +359,8 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   /** ひな形の実際の描き方のプレビュー(経路のタブ、未入力は仮の文、D114。書く段の間だけ) */
   // 専用の埋め込み情報は入れた値(空なら既定値)で埋めて描く(「あなた宛ての表示例」と同じ。共通・enricher は受信者ごとなので {{名前}} のまま)
   const previewValues = useMemo(
-    () => embeddedPreviewValues(text.values, text.state?.embeddedDeclarations ?? [], text.state?.embedded ?? {}),
-    [text.values, text.state?.embeddedDeclarations, text.state?.embedded],
+    () => varPreviewValues(text.values, text.state?.varDeclarations ?? [], text.state?.vars ?? {}),
+    [text.values, text.state?.varDeclarations, text.state?.vars],
   );
   const layoutPreview = useLayoutPreview({
     layout: text.layout?.key ?? null,
@@ -474,7 +474,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
         template: { id: source.id, version: source.version },
         values,
         edited: text.edited,
-        embedded: text.embeddedForInput ?? {},
+        vars: text.varsForInput ?? {},
         category,
         channels: sendChannels,
       };
@@ -483,7 +483,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
       template: { system: source.key },
       values,
       // 専用を宣言したシステムテンプレート(メンテナンスなど)はその値も送る
-      ...(text.embeddedForInput ? { embedded: text.embeddedForInput } : {}),
+      ...(text.varsForInput ? { vars: text.varsForInput } : {}),
       category,
       channels: sendChannels,
     };
@@ -521,10 +521,10 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
   const contentError = useMemo(() => {
     if (!text.state) return "この種別には白紙のテンプレートが無いため、テンプレートを読み込んでください";
     if (!text.layout) return "テンプレートのひな形を読み込めません(ひな形が無くなった可能性があります)";
-    if (text.missingEmbedded.length > 0) return `埋め込み情報「${text.missingEmbedded.map((item) => item.alias || item.key).join("・")}」を入力してください`;
+    if (text.missingVars.length > 0) return `埋め込み情報「${text.missingVars.map((item) => item.alias || item.key).join("・")}」を入力してください`;
     if (sendChannels.length === 0) return "送信方法を 1 つ以上選んでください";
     return null;
-  }, [text.state, text.layout, text.missingEmbedded, sendChannels]);
+  }, [text.state, text.layout, text.missingVars, sendChannels]);
 
   const targetError = useMemo(() => {
     if (!kind) return kinds.length === 0 ? "送れる種別がありません" : "種別を選んでください";
@@ -711,7 +711,7 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     text,
     layoutPreview,
     /** 埋め込み情報のタグの一覧(共通 + enrichers + 専用) */
-    embeddedCatalog,
+    varCatalog,
     loadTemplate,
     unloadTemplate,
     /** 上書きを確かめている読み込み(入れ物が確かめの Dialog を出す) */

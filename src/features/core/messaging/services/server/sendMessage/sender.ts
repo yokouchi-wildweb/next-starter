@@ -637,7 +637,7 @@ export function createMessageSender(deps: MessageSendDeps) {
      * @throws DomainError(404) テンプレートが無い / (409) 版が無い・今の版でない版 / (400) 白紙・カテゴリー・値・経路・中身・受信者ごとの変数の既定値
      */
     async sendTemplateMessage(input: SendTemplateMessageInput): Promise<SendMessageResult> {
-      const { template: ref, values, edited, category, embedded, ...rest } = input;
+      const { template: ref, values, edited, category, vars, ...rest } = input;
       // 専用の値は出どころの宣言(DB のテンプレートの版・システムテンプレート)の zod で検査する。宣言の無い白紙に値を渡すと 400(知らない鍵)
       const from = await templateSourceOf(ref);
       const resolved = resolveTemplateDefinition(deps, { category, values, channels: rest.channels, source: from });
@@ -654,7 +654,7 @@ export function createMessageSender(deps: MessageSendDeps) {
       const result = await sendToMany(
         resolved as AnyMessageDefinition,
         // 専用の値は定義の vars(版の宣言の zod)で検査して差し込む。回には embedded_values に残す
-        { ...rest, vars: embedded ?? {} } as SendMessageToManyInput,
+        { ...rest, vars: vars ?? {} } as SendMessageToManyInput,
         { resolved, source },
       );
       return "template" in source ? { ...result, template: source.template } : result;

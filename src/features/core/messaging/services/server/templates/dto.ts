@@ -4,8 +4,8 @@
 // 経路は持たない: 送る経路は送る時のカテゴリーの経路
 
 import type {
-  MessageEmbeddedDeclaration,
-  MessageEmbeddedSource,
+  MessageVarDeclaration,
+  MessageVarSource,
   MessageLayoutFields,
   MessageLayoutSummary,
 } from "@/lib/messaging";
@@ -18,10 +18,10 @@ export type AdminChannelOption = {
 };
 
 /** 埋め込み情報の一覧の 1 つ(画面の候補: 鍵・日本語の別名・出どころ・説明) */
-export type AdminEmbeddedEntry = {
+export type AdminVarEntry = {
   key: string;
   alias: string;
-  source: MessageEmbeddedSource;
+  source: MessageVarSource;
   description: string | null;
 };
 
@@ -62,9 +62,9 @@ export type AdminTemplateDetail = AdminTemplateSummary & {
   /** 保存した時のひな形の版 */
   layoutVersion: number;
   /** 専用の埋め込み情報の宣言(システムテンプレートは空) */
-  embedded: MessageEmbeddedDeclaration[];
+  vars: MessageVarDeclaration[];
   /** 文面に書ける埋め込み情報の一覧(共通 + テンプレートに当たる enrichers + 専用) */
-  catalog: AdminEmbeddedEntry[];
+  catalog: AdminVarEntry[];
 };
 
 /** 直した結果(D134): 保存した 1 件と、新しい版を作らなかったか(中身が最新の版と同じ。名前・説明だけの変更も) */
@@ -78,7 +78,7 @@ export type AdminTemplateVersion = {
   layout: string;
   layoutVersion: number;
   values: Record<string, unknown>;
-  embedded: MessageEmbeddedDeclaration[];
+  vars: MessageVarDeclaration[];
   category: string;
   /** 種類の表示名(受け口の label。無ければ null) */
   categoryLabel: string | null;
@@ -105,7 +105,7 @@ export type AdminTemplateOptions = {
   /** 管理者が選べるひな形 */
   layouts: AdminTemplateLayoutOption[];
   /** 専用の宣言の前から書ける埋め込み情報(共通 + テンプレートに当たる enrichers) */
-  baseCatalog: AdminEmbeddedEntry[];
+  baseCatalog: AdminVarEntry[];
 };
 
 /** ひな形のプレビュー(経路 1 つ。保存しない中身を送る口と同じ 3 段で描く、D114) */

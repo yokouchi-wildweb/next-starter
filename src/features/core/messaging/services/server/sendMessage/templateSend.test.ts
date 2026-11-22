@@ -1,7 +1,7 @@
 // テンプレート + 欄の中身で送る(sendTemplateMessage、D117・D125・D128)の検査(メモリの store・掃き出し・テンプレートの読み口は偽物)
 // - 白紙のシステムテンプレート: 回の message_key は null・system_template = 白紙の鍵・template_id null・直した印 false、ひな形と欄の中身(values)。
 //   予約・cron は回の欄の中身で組み直す。{{displayName}} は差し込み、知らない {{鍵}}・白紙での vars・知らない白紙・種別の違うカテゴリーは 400
-// - DB のテンプレート: 今の版を回の template_id・template_version に固定(違えば 409)。専用の埋め込み情報の値(embedded)が無い・型が合わない 400、
+// - DB のテンプレート: 今の版を回の template_id・template_version に固定(違えば 409)。専用の埋め込み情報の値(vars)が無い・型が合わない 400、
 //   必須で値が無ければ既定値、既定値も無ければ 400。無いテンプレート 404・版の無いテンプレート 409(下書き・取り下げは無い D134・D137)。
 //   値は回の embedded_values に残り、vars は {}。直した印 = 入力の edited か版の中身との違い
 // - 経路 = 種類の経路 ∩ 絞り(外は 400)。種別が管理者の送れる物でないカテゴリーは 400
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 
 import { z } from "zod";
 
-import type { MessageEmbeddedDeclaration, MessageEnricher, MessageSystemTemplate } from "@/lib/messaging";
+import type { MessageVarDeclaration, MessageEnricher, MessageSystemTemplate } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
 import { bindInboxImages } from "../inbox/imageBinding";
@@ -48,10 +48,10 @@ const SYSTEM_TEMPLATES: Record<string, MessageSystemTemplate> = {
   direct: { key: "direct", kind: "direct", label: "個別の白紙", layout: "notice", values: { subject: "", blocks: [] } },
 };
 
-const DISCOUNT: MessageEmbeddedDeclaration = { key: "discount", alias: "割引率", type: "number", required: true };
+const DISCOUNT: MessageVarDeclaration = { key: "discount", alias: "割引率", type: "number", required: true };
 
 /** 版の中身 = notice の件名 + 宛名の段落、専用の埋め込み情報の宣言 */
-function version(n: number, title: string, embedded: MessageEmbeddedDeclaration[] = [DISCOUNT]): MessageTemplateVersionSource {
+function version(n: number, title: string, vars: MessageVarDeclaration[] = [DISCOUNT]): MessageTemplateVersionSource {
   return {
     templateId: "tpl-1",
     templateKey: "spring",
@@ -60,7 +60,7 @@ function version(n: number, title: string, embedded: MessageEmbeddedDeclaration[
     layout: "notice",
     layoutVersion: 1,
     values: { subject: title, blocks: [{ type: "paragraph", text: "{{displayName}}" }] },
-    embedded,
+    vars,
   };
 }
 
@@ -134,7 +134,7 @@ test("白紙の検査: 知らない {{鍵}}・宣言の無い白紙への専用�
   const base = { template: BLANK, category: "news", recipients: [{ userId: "u1" }] };
   await rejectsWith(sender.sendTemplateMessage({ ...base, values: values("{{nope}}") }), 400, /nope/);
   // 宣言の無い白紙に専用の値を渡すと 400(知らない鍵)
-  await rejectsWith(sender.sendTemplateMessage({ ...base, values: values("t"), embedded: { a: 1 } }), 400);
+  await rejectsWith(sender.sendTemplateMessage({ ...base, values: values("t"), vars: { a: 1 } }), 400);
   await rejectsWith(sender.sendTemplateMessage({ ...base, template: { system: "none" }, values: values("t") }), 400, /none/);
   await rejectsWith(sender.sendTemplateMessage({ ...base, template: { system: "announcement" }, values: values("t") }), 400, /同じ種別/);
   await rejectsWith(sender.sendTemplateMessage({ ...base, category: "account", values: values("t") }), 400, /announcement・direct・promotion/);
@@ -162,7 +162,7 @@ test("DB のテンプレート: 版を回に固定し(message_key null)、予約
     values: V1_VALUES,
     category: "news",
     recipients: [{ userId: "u1" }],
-    embedded: { discount: 20 },
+    vars: { discount: 20 },
     scheduledAt: later(600),
   });
   assert.equal(result.status, "scheduled");
@@ -192,7 +192,7 @@ test("DB のテンプレート: 版を回に固定し(message_key null)、予約
 
 test("DB のテンプレート: 今送る小さな送信、種別 direct のカテゴリー", async () => {
   const { world, channel, sender } = setup();
-  const result = await sender.sendTemplateMessage({ template: TPL, values: V1_VALUES, recipients: [{ userId: "u2" }], embedded: { discount: "5" }, category: "directTest" });
+  const result = await sender.sendTemplateMessage({ template: TPL, values: V1_VALUES, recipients: [{ userId: "u2" }], vars: { discount: "5" }, category: "directTest" });
   assert.equal(result.status, "completed");
   assert.equal(world.store.dispatches[0].kind, "direct");
   assert.equal(world.store.dispatches[0].message_key, null);
@@ -202,23 +202,23 @@ test("DB のテンプレート: 今送る小さな送信、種別 direct のカ�
 test("DB のテンプレートの検査: 値が無い・型が違う 400、無い 404・消した 404・版が無い 409、必須の値の既定値", async () => {
   const { world, versions, state, sender } = setup();
   const base = { template: TPL, values: V1_VALUES, category: "news", recipients: [{ userId: "u1" }] };
-  await rejectsWith(sender.sendTemplateMessage({ ...base, embedded: {} }), 400, /discount/);
-  await rejectsWith(sender.sendTemplateMessage({ ...base, embedded: { discount: "たくさん" } }), 400, /discount/);
-  await rejectsWith(sender.sendTemplateMessage({ ...base, template: { id: "none", version: 1 }, embedded: { discount: 1 } }), 404);
+  await rejectsWith(sender.sendTemplateMessage({ ...base, vars: {} }), 400, /discount/);
+  await rejectsWith(sender.sendTemplateMessage({ ...base, vars: { discount: "たくさん" } }), 400, /discount/);
+  await rejectsWith(sender.sendTemplateMessage({ ...base, template: { id: "none", version: 1 }, vars: { discount: 1 } }), 404);
   // 消したテンプレート(D137)は無いのと同じ 404
   state.exists = false;
-  await rejectsWith(sender.sendTemplateMessage({ ...base, embedded: { discount: 1 } }), 404);
+  await rejectsWith(sender.sendTemplateMessage({ ...base, vars: { discount: 1 } }), 404);
   state.exists = true;
   // 版の無いテンプレートは送れない(保存 = 公開なので普通は無い、D134)
   state.current = null;
-  await rejectsWith(sender.sendTemplateMessage({ ...base, embedded: { discount: 1 } }), 409);
+  await rejectsWith(sender.sendTemplateMessage({ ...base, vars: { discount: 1 } }), 409);
 
   versions.push(version(3, "{{discount}} {{code}}", [DISCOUNT, { key: "code", alias: "コード", type: "line", required: true }]));
   state.current = 3;
   const v3 = { ...base, template: { id: "tpl-1", version: 3 }, values: values("{{discount}} {{code}}", "{{displayName}}") };
-  await rejectsWith(sender.sendTemplateMessage({ ...v3, embedded: { discount: 1 } }), 400, /code/);
-  versions.at(-1)!.embedded[1] = { ...versions.at(-1)!.embedded[1]!, default: "WELCOME" };
-  const ok = await sender.sendTemplateMessage({ ...v3, embedded: { discount: 1 } });
+  await rejectsWith(sender.sendTemplateMessage({ ...v3, vars: { discount: 1 } }), 400, /code/);
+  versions.at(-1)!.vars[1] = { ...versions.at(-1)!.vars[1]!, default: "WELCOME" };
+  const ok = await sender.sendTemplateMessage({ ...v3, vars: { discount: 1 } });
   assert.equal(ok.status, "completed");
   assert.equal(world.store.dispatches.at(-1)?.template_version, 3);
   assert.equal(world.store.dispatches.at(-1)?.template_edited, false);
@@ -227,8 +227,8 @@ test("DB のテンプレートの検査: 値が無い・型が違う 400、無�
 
 test("cron は版を引き直さず回の物だけで描く: テンプレートが消えても送り、欄の中身の無い回は止める(values_missing)", async () => {
   const { world, deps, channel, versions, sender } = setup();
-  await sender.sendTemplateMessage({ template: TPL, values: V1_VALUES, category: "news", recipients: [{ userId: "u1" }], embedded: { discount: 10 }, scheduledAt: later(60) });
-  await sender.sendTemplateMessage({ template: TPL, values: V1_VALUES, category: "news", recipients: [{ userId: "u2" }], embedded: { discount: 10 }, scheduledAt: later(60) });
+  await sender.sendTemplateMessage({ template: TPL, values: V1_VALUES, category: "news", recipients: [{ userId: "u1" }], vars: { discount: 10 }, scheduledAt: later(60) });
+  await sender.sendTemplateMessage({ template: TPL, values: V1_VALUES, category: "news", recipients: [{ userId: "u2" }], vars: { discount: 10 }, scheduledAt: later(60) });
   versions.splice(0, versions.length);
   world.store.dispatches[1].values = null;
   deps.setNow(later(60));
@@ -280,12 +280,12 @@ test("画像: 管理者が自分で上げた未紐付けの画像は回へ attac
 test("直した印: 版の中身と違えば true(版に無い画像も送れる)、同じでも入力の edited: true なら true", async () => {
   const { world, deps, channel, versions, state, sender } = setup();
   const edited = values("直した {{discount}}", "storage://pub/notification.image/added.png");
-  await sender.sendTemplateMessage({ template: TPL, values: edited, category: "news", recipients: [{ userId: "u1" }], embedded: { discount: 3 }, scheduledAt: later(60) });
+  await sender.sendTemplateMessage({ template: TPL, values: edited, category: "news", recipients: [{ userId: "u1" }], vars: { discount: 3 }, scheduledAt: later(60) });
   const dispatch = world.store.dispatches[0];
   assert.equal(dispatch.template_version, 1);
   assert.equal(dispatch.template_edited, true);
   assert.deepEqual(dispatch.values, edited);
-  const marked = await sender.sendTemplateMessage({ template: TPL, values: V1_VALUES, edited: true, category: "news", recipients: [{ userId: "u2" }], embedded: { discount: 3 } });
+  const marked = await sender.sendTemplateMessage({ template: TPL, values: V1_VALUES, edited: true, category: "news", recipients: [{ userId: "u2" }], vars: { discount: 3 } });
   assert.deepEqual(marked.template, { id: "tpl-1", version: 1, edited: true });
   versions.push(version(2, "v2"));
   state.current = 2;
@@ -298,7 +298,7 @@ test("版は今の版だけ(違えば 409)。絞りの外は 400", async () => {
   const { sender, versions, state } = setup();
   versions.push(version(2, "v2"));
   state.current = 2;
-  const base = { template: { id: "tpl-1", version: 2 }, values: values("v2", "{{displayName}}"), recipients: [{ userId: "u1" }], embedded: { discount: 1 } };
+  const base = { template: { id: "tpl-1", version: 2 }, values: values("v2", "{{displayName}}"), recipients: [{ userId: "u1" }], vars: { discount: 1 } };
   await rejectsWith(sender.sendTemplateMessage({ ...base, template: TPL, category: "news" }), 409, /今の公開版/);
   await rejectsWith(sender.sendTemplateMessage({ ...base, category: "news", channels: ["inApp"] }), 400, /中の絞り/);
   const ok = await sender.sendTemplateMessage({ ...base, category: "newsInApp", channels: ["test"] });
@@ -333,7 +333,7 @@ test("受け口の検査: 上流の白紙 6 つは通る(種別ごとに何本�
       a: { key: "a", kind: "security", label: "警告", layout: "notice", values: {} },
       b: { key: "b", kind: "promotion", label: "宣伝 1", layout: "notice", values: {} },
       c: { key: "c", kind: "promotion", label: "宣伝 2", layout: "none", values: {} },
-      d: { key: "d", kind: "promotion", label: "宣伝 3", layout: "notice", values: {}, embedded: [{ key: "startAt", alias: "", type: "datetime", required: true }] },
+      d: { key: "d", kind: "promotion", label: "宣伝 3", layout: "notice", values: {}, vars: [{ key: "startAt", alias: "", type: "datetime", required: true }] },
     },
     upstreamLayouts,
   );

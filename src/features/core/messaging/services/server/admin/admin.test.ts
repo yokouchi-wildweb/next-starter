@@ -1,6 +1,6 @@
 // 管理の送信と読む口の検査(DB・送る口・監査は偽物)
 // - 管理者の再検査(service): admin の利用者と system は通る、他は 403
-// - 一括送信: userIds / target + recordIds、重複を除く、中身は送る画面と同じ { template, values, edited?, embedded? }(D117、専用の値は embedded 指令 58)を送る口 sendTemplateMessage へ、
+// - 一括送信: userIds / target + recordIds、重複を除く、中身は送る画面と同じ { template, values, edited?, vars? }(D117、専用の値は vars 指令 58)を送る口 sendTemplateMessage へ、
 //   カテゴリー(必須、bulk で送れる種別 direct・promotion だけ)、送り元、afterSend(送った欄の中身と出どころ、失敗しても送信は戻さない)、監査 1 行、選択肢
 // - DTO の前の送る口の回 = ひな形(layout)が無い回。テンプレートから送った回(message_key null)は前の回ではない
 // - 読む口: 絞り込みの検査、keyset の印、DTO(本文は記録の段次第、provider の生の値と誤りの文は出さない、前の送る口の回)
@@ -68,7 +68,7 @@ const tplRow = {
   layout: "notice",
   layoutVersion: 1,
   values: TEMPLATE_VALUES,
-  embedded: [{ key: "name", alias: "お名前", type: "line" as const, required: true }],
+  vars: [{ key: "name", alias: "お名前", type: "line" as const, required: true }],
 };
 
 function bulkSetup(options: { context?: AuditContext | null; afterSendFails?: boolean; templatesOpen?: boolean } = {}) {
@@ -167,12 +167,11 @@ test("一括送信の入力の誤り・知らない / 使えない target・管�
   await bad({ ...mail });
   await bad({ userIds: ["a"], target: "review", recordIds: ["x"], ...mail });
   await bad({ userIds: ["a"], category: "promotion", channels: ["email"] });
-  // 前の形(経路ごとの content・message の包み・email を上に・vars。専用の値は embedded)と予約は 400
+  // 前の形(経路ごとの content・message の包み・email を上に)と予約は 400
   await bad({ userIds: ["a"], category: "promotion", channels: ["email"], content: { email: { subject: "s" } } });
   await bad({ userIds: ["a"], category: "promotion", message: { type: "adhoc", email: { subject: "s", body: "b" } } });
   await bad({ userIds: ["a"], category: "promotion", channels: ["email"], email: { subject: "s", body: "b" } });
   await bad({ userIds: ["a"], ...mail, scheduledAt: "2026-12-01T00:00:00Z" });
-  await bad({ userIds: ["a"], ...mail, vars: { a: 1 } });
   await bad({ target: "nope", recordIds: ["x"], ...mail });
   await bad({ target: "off", recordIds: ["x"], ...mail });
   await bad({ userIds: ["a"], ...mail, kind: "promotion" });
@@ -192,11 +191,11 @@ test("一括送信(DB のテンプレート): 送る画面と同じ形で送る�
     category: "promoPush",
     template: { id: TEMPLATE, version: 2 },
     values: TEMPLATE_VALUES,
-    embedded: { name: "春" },
+    vars: { name: "春" },
   });
   const input = sent[0];
   assert.deepEqual(
-    [input.template, input.values, input.embedded, input.category, input.recipients, input.source],
+    [input.template, input.values, input.vars, input.category, input.recipients, input.source],
     [{ id: TEMPLATE, version: 2 }, TEMPLATE_VALUES, { name: "春" }, "promoPush", [{ userId: "u-x" }], "review.bulk"],
   );
   assert.equal("scheduledAt" in input, false);

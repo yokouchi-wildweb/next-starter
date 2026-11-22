@@ -11,8 +11,8 @@ import type { z } from "zod";
 import type { MessageLayout } from "../layout/types";
 import { layoutValuesSchema } from "../layout/values";
 import type { MessageCategory, MessageCategoryGroup } from "../receptacles/types";
-import { MESSAGE_COMMON_EMBEDDED } from "../embedded/common";
-import { EMBEDDED_ALIAS_PATTERN } from "../embedded/names";
+import { MESSAGE_COMMON_VARS } from "../vars/common";
+import { VAR_ALIAS_PATTERN } from "../vars/names";
 import { MESSAGE_KIND_TRAITS, isMessageKind } from "./kinds";
 import type {
   MessageDefinition,
@@ -21,15 +21,15 @@ import type {
 } from "./types";
 
 /**
- * どの連絡でも差し込める共通の文脈の鍵(送る口が埋める)。一覧(鍵・日本語の別名・説明)は embedded/common.ts の 1 か所
+ * どの連絡でも差し込める共通の文脈の鍵(送る口が埋める)。一覧(鍵・日本語の別名・説明)は vars/common.ts の 1 か所
  * - recipientName / recipientEmail: 受信者
  * - serviceName: サービスの名前(@/business)
  * - appBaseUrl: アプリの起点の URL(getAppBaseUrl)
  */
-export const COMMON_CONTEXT_KEYS: readonly string[] = MESSAGE_COMMON_EMBEDDED.filter((item) => !item.throttleOnly).map((item) => item.key);
+export const COMMON_CONTEXT_KEYS: readonly string[] = MESSAGE_COMMON_VARS.filter((item) => !item.throttleOnly).map((item) => item.key);
 
 /** throttle のある連絡だけで差し込める鍵(まとめた回数) */
-export const THROTTLE_CONTEXT_KEYS: readonly string[] = MESSAGE_COMMON_EMBEDDED.filter((item) => item.throttleOnly).map((item) => item.key);
+export const THROTTLE_CONTEXT_KEYS: readonly string[] = MESSAGE_COMMON_VARS.filter((item) => item.throttleOnly).map((item) => item.key);
 
 /** 上書きで変えられない項目(category は付け替えない D74、kind・defaultChannels は定義に無い、varNames は vars と対 D133) */
 const OVERRIDE_FORBIDDEN_KEYS = ["key", "kind", "vars", "varNames", "required", "category", "defaultChannels"] as const;
@@ -125,7 +125,7 @@ function collectStrings(value: unknown, out: string[]): string[] {
  * - layouts: ひな形の受け口(鍵 → ひな形)。定義の layout を照らし、欄の中身を検査する
  * - channels: 登録された経路の鍵(既定 = 上流の 3 経路 email・inApp・line。送る口は経路の受け口の鍵を渡す)。経路の有無だけに使う
  * - variableKeys: vars と共通の文脈(鍵・別名)の他に {{名前}} で許す名前(送る口が当たる enrichers の provides の鍵と別名を渡す)
- * - embeddedNames: 共通の他にこの連絡で見える埋め込み情報の鍵と別名の組(当たる enrichers と、enricher と同じ鍵の vars)。vars の別名の重なりを照らす
+ * - sharedVarNames: 共通の他にこの連絡で見える埋め込み情報の鍵と別名の組(当たる enrichers と、enricher と同じ鍵の vars)。vars の別名の重なりを照らす
  */
 export function validateMessageDefinition<
   Vars extends z.AnyZodObject,
@@ -137,7 +137,7 @@ export function validateMessageDefinition<
     override?: MessageOverride;
     channels?: readonly string[];
     variableKeys?: readonly string[];
-    embeddedNames?: readonly { key: string; alias: string }[];
+    sharedVarNames?: readonly { key: string; alias: string }[];
   },
 ): MessageDefinitionProblem[] {
   const channels = new Set(options.channels ?? UPSTREAM_CHANNEL_KEYS);
@@ -240,7 +240,7 @@ export function validateMessageDefinition<
     }
   }
 
-  problems.push(...varNameProblems(definition, label, resolved.throttle ? true : false, options.embeddedNames ?? []));
+  problems.push(...varNameProblems(definition, label, resolved.throttle ? true : false, options.sharedVarNames ?? []));
   const varAliases = varKeys.flatMap((key) => {
     const alias = (definition.varNames as Readonly<Record<string, { alias?: unknown }>> | undefined)?.[key]?.alias;
     return typeof alias === "string" && alias !== "" ? [alias] : [];
@@ -253,7 +253,7 @@ export function validateMessageDefinition<
     ...COMMON_CONTEXT_KEYS,
     ...(resolved.throttle ? THROTTLE_CONTEXT_KEYS : []),
     // 共通の埋め込み情報の日本語の別名({{受信者名}} など、D126。送る口が同じ値で埋める)
-    ...MESSAGE_COMMON_EMBEDDED.filter((item) => !item.throttleOnly || resolved.throttle).map((item) => item.alias),
+    ...MESSAGE_COMMON_VARS.filter((item) => !item.throttleOnly || resolved.throttle).map((item) => item.alias),
     ...(options.variableKeys ?? []),
   ]);
   const unknownVariables = new Set<string>();
@@ -277,14 +277,14 @@ function varNameProblems(
   definition: MessageDefinition<z.AnyZodObject>,
   label: string,
   throttle: boolean,
-  embeddedNames: readonly { key: string; alias: string }[],
+  sharedVarNames: readonly { key: string; alias: string }[],
 ): MessageDefinitionProblem[] {
   const problems: MessageDefinitionProblem[] = [];
   const varKeys = Object.keys(definition.vars.shape);
   const names = (definition.varNames ?? {}) as Readonly<Record<string, { alias?: unknown; description?: unknown } | undefined>>;
   const visible = [
-    ...MESSAGE_COMMON_EMBEDDED.filter((item) => !item.throttleOnly || throttle).map((item) => ({ key: item.key, alias: item.alias })),
-    ...embeddedNames,
+    ...MESSAGE_COMMON_VARS.filter((item) => !item.throttleOnly || throttle).map((item) => ({ key: item.key, alias: item.alias })),
+    ...sharedVarNames,
   ];
   for (const key of Object.keys(names)) {
     if (!varKeys.includes(key)) problems.push({ code: "invalid_var_name", message: `${label}: varNames の ${key} は vars に無い` });
@@ -300,7 +300,7 @@ function varNameProblems(
       });
       continue;
     }
-    if (!EMBEDDED_ALIAS_PATTERN.test(alias)) {
+    if (!VAR_ALIAS_PATTERN.test(alias)) {
       problems.push({ code: "invalid_var_name", message: `${label}: vars の ${key} の別名 ${alias} は空白・記号を含まず、英数字以外の字を含めます` });
       continue;
     }

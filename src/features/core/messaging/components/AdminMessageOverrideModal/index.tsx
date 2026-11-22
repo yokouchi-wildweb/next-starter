@@ -64,7 +64,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
         detail ? (
           <Flex align="center" justify="between" gap="md" wrap="wrap">
             <Flex align="center" gap="md" wrap="wrap" className="min-w-0">
-              <EmbeddedInfoPopover common={editor.embeddedTags.common} own={editor.embeddedTags.own} onCopy={editor.embeddedTags.copy} />
+              <EmbeddedInfoPopover common={editor.varTags.common} own={editor.varTags.own} onCopy={editor.varTags.copy} />
               <ConfirmPopover
                 trigger={
                   <Button type="button" size="sm" variant="outline" disabled={!editor.canResetAll || editor.isSaving} data-slot="override-reset-all">
@@ -145,7 +145,7 @@ function OverrideModalBody({ open, onOpenChange, messageKey }: { open: boolean; 
                   <OverrideFieldEditor
                     key={field.path}
                     // 宣言の無い行が文字で見せる保存した値も別名で
-                    field={{ ...field, value: editor.embeddedTags.toAliases(field.value) }}
+                    field={{ ...field, value: editor.varTags.toAliases(field.value) }}
                     value={editor.valueOf(field)}
                     onChange={(value) => editor.setDraft(field, value)}
                     dirty={editor.isDirty(field)}

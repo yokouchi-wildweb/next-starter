@@ -12,17 +12,17 @@ import {
   MESSAGE_KIND_TRAITS,
   type MessageAdminTarget,
   type MessageCategory,
-  type MessageEmbeddedDeclaration,
+  type MessageVarDeclaration,
   type MessageEnricher,
   type MessageKind,
   type MessageSystemTemplate,
 } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
-import { messageEmbeddedCatalog } from "../sendMessage/enrichers";
+import { messageVarCatalog } from "../sendMessage/enrichers";
 import { enabledSystemTemplates, isAdminSendableKind, systemTemplateOfKind } from "../sendMessage/systemTemplates";
 import { TEMPLATE_MESSAGE_KEY } from "../sendMessage/templateDefinition";
-import type { AdminEmbeddedEntry } from "../templates/dto";
+import type { AdminVarEntry } from "../templates/dto";
 
 /**
  * 管理の送信で選んだカテゴリーを確かめて返す。
@@ -58,7 +58,7 @@ export type AdminFreeTextCategoryOption = {
   /** その種別の既定の白紙(受け口の順で種別の最初 = シンプル)(テンプレートを読み込まずに送る時の出どころ { system: 鍵 }、ひな形の鍵と白紙の欄の中身)。受け口に無ければ null */
   systemTemplate: { key: string; label: string; layout: string; values: Record<string, unknown> } | null;
   /** このカテゴリーで送る時に書ける埋め込み情報(共通 + 当たる enrichers。専用はテンプレートの宣言から呼び手が足す) */
-  catalog: AdminEmbeddedEntry[];
+  catalog: AdminVarEntry[];
 };
 
 export function adminFreeTextCategoryOptions(
@@ -79,7 +79,7 @@ export function adminFreeTextCategoryOptions(
         defaultChannels: [...(category.defaultChannels ?? category.channels)],
         targets: [...MESSAGE_KIND_TRAITS[category.kind].adminFreeText],
         systemTemplate: blank ? { key: blank.key, label: blank.label, layout: blank.layout, values: blank.values } : null,
-        catalog: messageEmbeddedCatalog({ key: TEMPLATE_MESSAGE_KEY, category: category.key, kind: category.kind }, enrichers).map((entry) => ({
+        catalog: messageVarCatalog({ key: TEMPLATE_MESSAGE_KEY, category: category.key, kind: category.kind }, enrichers).map((entry) => ({
           key: entry.key,
           alias: entry.alias,
           source: entry.source,
@@ -97,7 +97,7 @@ export type AdminSystemTemplateOption = {
   label: string;
   layout: string;
   values: Record<string, unknown>;
-  embedded: MessageEmbeddedDeclaration[];
+  vars: MessageVarDeclaration[];
 };
 
 /** 管理者が送れる種別の使うシステムテンプレート全部(受け口の順、切った物 enabled: false は出さない。D119・D122) */
@@ -110,6 +110,6 @@ export function adminSystemTemplateOptions(systemTemplates: Readonly<Record<stri
       label: template.label,
       layout: template.layout,
       values: { ...template.values },
-      embedded: [...(template.embedded ?? [])],
+      vars: [...(template.vars ?? [])],
     }));
 }

@@ -78,7 +78,7 @@ function setup(options: { role?: string; systemTemplates?: Record<string, Messag
         created_by: null,
         updated_by: null,
         layout_version: 1,
-        embedded: [],
+        vars: [],
         createdAt: new Date(Date.UTC(2026, 10, 12, 0, 0, clock++)),
         updatedAt: null,
         ...values,
@@ -139,7 +139,7 @@ const input = (extra: Record<string, unknown> = {}) => ({
   category: "promotion",
   layout: "notice",
   values: VALUES,
-  embedded: [DISCOUNT],
+  vars: [DISCOUNT],
   ...extra,
 });
 
@@ -159,7 +159,7 @@ test("作る = 版 1 まで(保存 = 公開)、直す = 中身が違えば新し
   assert.equal(created.createdBy, ADMIN);
   assert.equal("status" in created, false);
   assert.equal(versions.length, 1);
-  assert.deepEqual([versions[0]!.layout, versions[0]!.category, versions[0]!.values, versions[0]!.embedded], ["notice", "promotion", VALUES, [DISCOUNT]]);
+  assert.deepEqual([versions[0]!.layout, versions[0]!.category, versions[0]!.values, versions[0]!.vars], ["notice", "promotion", VALUES, [DISCOUNT]]);
   assert.equal("channels" in versions[0]!, false);
   // 一覧(共通 + テンプレートに当たる enrichers + 専用)
   assert.ok(created.catalog.some((entry) => entry.key === "displayName" && entry.alias === "表示名" && entry.source === "enricher"));
@@ -225,12 +225,12 @@ test("保存時の検査(400)、鍵はサーバーが作る(入力の key は 40
     // 文面の名前は一覧の中だけ
     { values: { subject: "{{unknown}}", blocks: [] } },
     // 専用の宣言: 形・共通の名前と重なる鍵 / 別名・専用どうしの重なり・秘密の型は無い
-    { embedded: [{ key: "discount" }] },
-    { embedded: [{ ...DISCOUNT, key: "bad-key" }] },
-    { embedded: [{ ...DISCOUNT, key: "serviceName" }] },
-    { embedded: [{ ...DISCOUNT, alias: "表示名" }] },
-    { embedded: [DISCOUNT, { ...DISCOUNT, key: "discount2" }] },
-    { embedded: [{ ...DISCOUNT, type: "secret" }] },
+    { vars: [{ key: "discount" }] },
+    { vars: [{ ...DISCOUNT, key: "bad-key" }] },
+    { vars: [{ ...DISCOUNT, key: "serviceName" }] },
+    { vars: [{ ...DISCOUNT, alias: "表示名" }] },
+    { vars: [DISCOUNT, { ...DISCOUNT, key: "discount2" }] },
+    { vars: [{ ...DISCOUNT, type: "secret" }] },
   ];
   for (const extra of cases) await rejectsWith(service.createTemplate(input(extra)), 400);
   assert.equal(templates.length, 0);

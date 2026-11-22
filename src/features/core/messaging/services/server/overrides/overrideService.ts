@@ -15,7 +15,7 @@
 // - プレビュー(D86): 保存した値と未保存の値(values = { 欄の鍵: 値 }、検査を通る物だけ)をコードの値に重ね、文字の欄を印で包んで(previewMarkers.ts)
 //   送る口と同じ組み立て(sendMessage/content.ts)で経路 1 つを描く。経路に preview が無ければ html は null。
 //   ひな形の鍵・その経路の欄の中身(印なし)・要約も返す(お知らせは client のひな形の描き方 layoutInApps が描く)
-// - 1 件は埋め込み情報の一覧(embedded: 共通 + enrichers と enricher と同じ鍵の vars の別名 + 残りの vars)も返す(部品 EmbeddedInfoTags)
+// - 1 件は埋め込み情報の一覧(vars: 共通 + enrichers と enricher と同じ鍵の vars の別名 + 残りの vars)も返す(部品 EmbeddedInfoTags)
 // - service でも管理者を確かめる(D42)
 
 import { isDeepStrictEqual } from "node:util";
@@ -33,7 +33,7 @@ import {
   listSecretVarKeys,
   readAdminFieldValue,
   type AdminFieldCheckOptions,
-  type MessageEmbeddedEntry,
+  type MessageVarEntry,
   type MessageLayout,
 } from "@/lib/messaging";
 import type { AuditRecordInput } from "@/lib/audit";
@@ -72,7 +72,7 @@ export type OverrideServiceDeps = AdminCheckDeps & {
   /** 送る口と同じ組み立ての経路 1 つの中身(差し込みはしない = {{鍵}} のまま) */
   channelContent: (resolved: AnyResolvedMessageDefinition, channel: string) => Promise<Record<string, unknown>>;
   /** その連絡の埋め込み情報の一覧(共通 + 当たる enrichers、日本語の別名つき。無ければ空 = テスト) */
-  embeddedCatalog?: (resolved: AnyResolvedMessageDefinition) => MessageEmbeddedEntry[];
+  varCatalog?: (resolved: AnyResolvedMessageDefinition) => MessageVarEntry[];
   /** 経路のプレビュー(経路の受け口の preview。無い経路は null) */
   channelPreview?: (
     channel: string,
@@ -115,9 +115,9 @@ function channelsOf(resolved: AnyResolvedMessageDefinition, deps: Pick<OverrideS
  * 埋め込み情報の一覧(テンプレートの画面と同じ分け): 共通 = 共通の埋め込み情報 + 当たる enrichers + enricher と同じ鍵の vars(例 wallet の displayName = 表示名)、
  * 専用 = 残りの vars(定義の varNames の別名と説明、D133)。秘密の vars は出さない。共通と同じ鍵の vars(例 serviceNameShort)は共通にだけ出す
  */
-function embeddedOf(resolved: AnyResolvedMessageDefinition, deps: Pick<OverrideServiceDeps, "embeddedCatalog">): MessageEmbeddedEntry[] {
+function varsOf(resolved: AnyResolvedMessageDefinition, deps: Pick<OverrideServiceDeps, "varCatalog">): MessageVarEntry[] {
   const secret = new Set(listSecretVarKeys(resolved.vars));
-  return (deps.embeddedCatalog?.(resolved) ?? []).filter((entry) => entry.source !== "own" || !secret.has(entry.key));
+  return (deps.varCatalog?.(resolved) ?? []).filter((entry) => entry.source !== "own" || !secret.has(entry.key));
 }
 
 function specOf(layout: MessageLayout, key: string): AdminOverrideFieldSpec | null {
@@ -195,7 +195,7 @@ export function createOverrideService(deps: OverrideServiceDeps) {
       category: resolved.category ?? null,
       categoryLabel: resolved.category ? deps.categoryLabel(resolved.category) : null,
       allowedKeys: adminFieldAllowedKeys(resolved, check.variableKeys),
-      embedded: embeddedOf(resolved, deps),
+      vars: varsOf(resolved, deps),
       channels: channelsOf(resolved, deps),
       fields: buildFields(loaded, rows),
     };

@@ -11,10 +11,10 @@ import { SelectInput } from "@/components/Input/Select";
 import { Label } from "@/components/Input/Label";
 import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks/Span";
-import type { MessageEmbeddedDeclaration } from "@/lib/messaging";
+import type { MessageVarDeclaration } from "@/lib/messaging";
 
 export type SendEmbeddedInputsProps = {
-  declarations: readonly MessageEmbeddedDeclaration[];
+  declarations: readonly MessageVarDeclaration[];
   values: Readonly<Record<string, string>>;
   onChange: (key: string, value: string) => void;
   /** 入っていない必須の鍵(印を付ける) */
@@ -24,15 +24,15 @@ export type SendEmbeddedInputsProps = {
 export function SendEmbeddedInputs({ declarations, values, onChange, missing = [] }: SendEmbeddedInputsProps) {
   if (declarations.length === 0) {
     return (
-      <Span size="sm" tone="muted" data-slot="send-embedded-inputs">
+      <Span size="sm" tone="muted" data-slot="send-vars-inputs">
         このテンプレートに専用の埋め込み情報はありません
       </Span>
     );
   }
   return (
-    <Stack gap="sm" data-slot="send-embedded-inputs">
+    <Stack gap="sm" data-slot="send-vars-inputs">
       {declarations.map((declaration) => {
-        const id = `send-embedded-${declaration.key}`;
+        const id = `send-vars-${declaration.key}`;
         const value = values[declaration.key] ?? "";
         // 初期値は選択肢なら表示名で見せる(値の鍵は見せない)
         const defaultText =

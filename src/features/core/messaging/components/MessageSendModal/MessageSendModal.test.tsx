@@ -42,8 +42,8 @@ const baseText = () =>
       start: {},
       versionValues: null,
       unlocked: true,
-      embeddedDeclarations: [],
-      embedded: {},
+      varDeclarations: [],
+      vars: {},
     },
     source: { type: "system", key: "simple", label: "シンプル" },
     layout: { key: "simple", label: "シンプル", fields: {} },
@@ -52,11 +52,11 @@ const baseText = () =>
     locked: false,
     values: {},
     edited: false,
-    missingEmbedded: [],
+    missingVars: [],
     canUpdateTemplate: false,
     isUpdatingTemplate: false,
     unlock: () => events.push("unlock"),
-    setEmbedded: () => {},
+    setVars: () => {},
   }) satisfies Over<SendTemplateTextState>;
 
 /** hook useMessageSendModal の偽物 */
@@ -98,7 +98,7 @@ const baseState = () =>
       error: null,
       incompleteChannels: [],
     },
-    embeddedCatalog: [],
+    varCatalog: [],
     loadTemplate: () => {},
     unloadTemplate: () => {},
     pendingLoad: null,
@@ -146,8 +146,8 @@ const make = (over: Over<MessageSendModalState> = {}) => ({ ...baseState(), ...o
 mock.module("@/features/core/messaging/hooks/useMessageSendModal", {
   namedExports: { useMessageSendModal: () => state as unknown as MessageSendModalState },
 });
-mock.module("@/features/core/messaging/hooks/useEmbeddedInfoTags", {
-  namedExports: { useEmbeddedInfoTags: () => ({ common: [], own: [], copy: async () => {} }) },
+mock.module("@/features/core/messaging/hooks/useVarTags", {
+  namedExports: { useVarTags: () => ({ common: [], own: [], copy: async () => {} }) },
 });
 mock.module("@/components/Overlays/Modal", {
   defaultExport: ({ open, title, children, footer, confirmOnClose }: Record<string, unknown>) => {
@@ -191,7 +191,7 @@ mock.module(`${COMMON}/KindCategoryFields`, { namedExports: { KindCategoryFields
 mock.module(`${COMMON}/SendCategoryChannels`, { namedExports: { SendCategoryChannels: stub("channels") } });
 mock.module(`${COMMON}/SendTargetPicker`, { namedExports: { SendTargetPicker: stub("target") } });
 mock.module(`${COMMON}/SendTemplatePicker`, {
-  namedExports: { SendTemplatePicker: stub("template"), SendEmbeddedInputs: stub("embedded") },
+  namedExports: { SendTemplatePicker: stub("template"), SendEmbeddedInputs: stub("vars") },
 });
 mock.module(`${COMMON}/LayoutFields`, { namedExports: { LayoutFields: stub("layoutFields") } });
 mock.module(`${COMMON}/LayoutPreview`, { namedExports: { LayoutPreview: stub("layoutPreview") } });
@@ -326,17 +326,17 @@ test("テンプレートを読み込んだ直後: 専用の埋め込み情報の
     loadedTemplate: { type: "template", id: "t1", name: "春", version: 2 },
     text: {
       ...baseText(),
-      state: { ...baseText().state, source: { type: "template", id: "t1", name: "春", version: 2 }, unlocked: false, embeddedDeclarations: declarations, embedded: { discount: "10" } },
+      state: { ...baseText().state, source: { type: "template", id: "t1", name: "春", version: 2 }, unlocked: false, varDeclarations: declarations, vars: { discount: "10" } },
       locked: true,
-      missingEmbedded: [{ key: "discount" }],
+      missingVars: [{ key: "discount" }],
     },
   });
   const view = await render(createElement(MessageSendModal, { mode: NEW }));
-  assert.deepEqual(parts(view.container), ["kindCategory", "channels", "target", "template", "embedded", "schedule", "layoutPreview"]);
+  assert.deepEqual(parts(view.container), ["kindCategory", "channels", "target", "template", "vars", "schedule", "layoutPreview"]);
   assert.deepEqual(lastProps.get("template")!.loaded, { type: "template", id: "t1", name: "春", version: 2, edited: false });
-  assert.deepEqual(lastProps.get("embedded")!.declarations, declarations);
-  assert.deepEqual(lastProps.get("embedded")!.values, { discount: "10" });
-  assert.deepEqual(lastProps.get("embedded")!.missing, ["discount"]);
+  assert.deepEqual(lastProps.get("vars")!.declarations, declarations);
+  assert.deepEqual(lastProps.get("vars")!.values, { discount: "10" });
+  assert.deepEqual(lastProps.get("vars")!.missing, ["discount"]);
   assert.match(view.container.textContent ?? "", /文面はテンプレートのまま/);
   await act(async () => button(view.container, "文面を直す")!.click());
   assert.deepEqual(events, ["unlock"]);

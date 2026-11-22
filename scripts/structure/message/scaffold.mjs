@@ -18,7 +18,7 @@ import { CATEGORY_POINT, readCategories } from "../extensions/derive/messageGuar
 import { definitionTemplate } from "./templates.mjs";
 
 const NAME = /^[a-z][A-Za-z0-9]*$/;
-/** 埋め込み情報の別名の形(lib/messaging embedded/names.ts の EMBEDDED_ALIAS_PATTERN と同じ。scripts は src の lib を読まない) */
+/** 埋め込み情報の別名の形(lib/messaging vars/names.ts の VAR_ALIAS_PATTERN と同じ。scripts は src の lib を読まない) */
 const ALIAS = /^(?=.*[^A-Za-z0-9_])[\p{L}\p{N}_]+$/u;
 const MESSAGING_DIR = "src/features/core/messaging";
 const USAGE = "使い方: pnpm generate message -- <domain> <name> --category <key> --label <名前> [--var <鍵>:<別名>:<説明> ...] [--core]";

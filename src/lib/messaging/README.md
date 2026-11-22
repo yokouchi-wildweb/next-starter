@@ -93,17 +93,17 @@ export const messageOverride = {
 - 差し込める鍵 = `vars` の鍵 ∪ 共通の文脈 `COMMON_CONTEXT_KEYS`(`recipientName`・`recipientEmail`・`serviceName`・`appBaseUrl`。送る口が埋める)∪ throttle のある連絡だけ `collapsedCount`
 - enrichers の `provides` の鍵は `validateMessageDefinition(def, { variableKeys })` で足して許す(送る口がその連絡に当たる enrichers の鍵を渡す。当たるか = 当て先 `enricherTargets`、下の受け口)
 
-### 埋め込み情報(embedded/)
+### 埋め込み情報(vars/)
 
 文面に `{{名前}}` で書く値を「埋め込み情報」と呼ぶ。名前は英語の鍵と日本語の別名の 2 つで、どちらで書いても同じ値で埋まる(`{{displayName}}` = `{{表示名}}`)。
 
-- 共通の埋め込み情報 `MESSAGE_COMMON_EMBEDDED`(`embedded/common.ts`、鍵・別名・説明の 1 か所。`COMMON_CONTEXT_KEYS`・`THROTTLE_CONTEXT_KEYS` もここから): `recipientName` 受信者名・`recipientEmail` 受信者のメール・`serviceName` サービス名・`serviceNameShort` サービスの短い名前・`appBaseUrl` サイトのURL・`collapsedCount` まとめた件数(間引きのある連絡だけ)
+- 共通の埋め込み情報 `MESSAGE_COMMON_VARS`(`vars/common.ts`、鍵・別名・説明の 1 か所。`COMMON_CONTEXT_KEYS`・`THROTTLE_CONTEXT_KEYS` もここから): `recipientName` 受信者名・`recipientEmail` 受信者のメール・`serviceName` サービス名・`serviceNameShort` サービスの短い名前・`appBaseUrl` サイトのURL・`collapsedCount` まとめた件数(間引きのある連絡だけ)
 - enrichers は足す値ごとに別名を宣言する(`MessageEnricher.aliases`、provides の全部の鍵に要る)。上流の `displayName` は「表示名」
-- 専用の埋め込み情報(テンプレートが宣言する)`MessageEmbeddedDeclaration` = `{ key, alias, type, options?, required, default? }`。型 `line`(1行テキスト)・`number`・`date`(YYYY-MM-DD)・`datetime`(ISO 8601、時差つき)・`url`・`select`(`options` の value)。保存の検査 `messageEmbeddedDeclarationSchema`、送る時の値の検査 `embeddedValueSchema` / `embeddedValuesSchema`(空は既定値、必須で既定値も無ければ誤り、差し込む字にする)
-- 一覧 `embeddedCatalog({ own, vars, enrichers, throttle })` = 共通 + 当たる enrichers + 専用(テンプレートの宣言 `own`、コードの連絡の vars の名前 `vars` = 定義の varNames)。`checkEmbeddedCatalog` が止める: 鍵の形(英字で始まる英数字)・別名の形(空白・記号なし、英数字以外の字を含む)・鍵の重なり・別名の重なり(専用どうしも共通・enrichers の名前とも)・enrichers の別名の欠け
-- 日付・日時の専用の値: 残す値は ISO のまま。`embeddedValuesSchema` が隣に型の印 `<鍵>@type`(`EMBEDDED_TYPE_SUFFIX`、書式 {{名前}} に拾われない)を出し、回の値と一緒に残る。差し込む時に `displayEmbeddedValues` が人が読む字にする(`embeddedDisplayText`: 2026年12月1日 / 2026年12月1日 11:00、日本時間)
-- 差し込み: `findEmbedded(文面, 一覧)` = 書かれた名前を鍵に直した並びと一覧に無い名前(保存・送る前に拒む)。`embeddedVariableMap(鍵 → 値, 一覧)` = 別名の行を足した表(`replaceVariables` に渡す)
-- 定義の検査(`validateMessageDefinition`)と管理画面の値の鍵(`adminFieldAllowedKeys`)は共通の別名と vars の別名(管理画面は秘密を除く)を通す(enrichers の鍵と別名は呼び手が `variableKeys` で、vars の別名と照らす鍵と別名の組は `embeddedNames` で渡す)。送る口は差し込みの表に別名の行を足し、テンプレートの保存・送る前の検査は一覧で名前を確かめる(features/core/messaging)
+- 専用の埋め込み情報(テンプレートが宣言する)`MessageVarDeclaration` = `{ key, alias, type, options?, required, default? }`。型 `line`(1行テキスト)・`number`・`date`(YYYY-MM-DD)・`datetime`(ISO 8601、時差つき)・`url`・`select`(`options` の value)。保存の検査 `messageVarDeclarationSchema`、送る時の値の検査 `varValueSchema` / `varValuesSchema`(空は既定値、必須で既定値も無ければ誤り、差し込む字にする)
+- 一覧 `varCatalog({ own, vars, enrichers, throttle })` = 共通 + 当たる enrichers + 専用(テンプレートの宣言 `own`、コードの連絡の vars の名前 `vars` = 定義の varNames)。`checkVarCatalog` が止める: 鍵の形(英字で始まる英数字)・別名の形(空白・記号なし、英数字以外の字を含む)・鍵の重なり・別名の重なり(専用どうしも共通・enrichers の名前とも)・enrichers の別名の欠け
+- 日付・日時の専用の値: 残す値は ISO のまま。`varValuesSchema` が隣に型の印 `<鍵>@type`(`VAR_TYPE_SUFFIX`、書式 {{名前}} に拾われない)を出し、回の値と一緒に残る。差し込む時に `displayVarValues` が人が読む字にする(`varDisplayText`: 2026年12月1日 / 2026年12月1日 11:00、日本時間)
+- 差し込み: `findVar(文面, 一覧)` = 書かれた名前を鍵に直した並びと一覧に無い名前(保存・送る前に拒む)。`varMap(鍵 → 値, 一覧)` = 別名の行を足した表(`replaceVariables` に渡す)
+- 定義の検査(`validateMessageDefinition`)と管理画面の値の鍵(`adminFieldAllowedKeys`)は共通の別名と vars の別名(管理画面は秘密を除く)を通す(enrichers の鍵と別名は呼び手が `variableKeys` で、vars の別名と照らす鍵と別名の組は `sharedVarNames` で渡す)。送る口は差し込みの表に別名の行を足し、テンプレートの保存・送る前の検査は一覧で名前を確かめる(features/core/messaging)
 
 ### 定義の読み手の検査(validateMessageDefinition)
 
@@ -177,7 +177,7 @@ export const messageOverride = {
   - fork は上流の種類の `<名前>.override.ts` で `label`・`adminLabel`・`description`・`channels`・`defaultChannels`・`group` を変えられる(鍵・種別は不可)
 - `MessageCategoryGroup`(種類のグループ、`messaging/categoryGroups/<名前>.ts` の `export const group`): `key`・`label`・`order`。見出しだけで停止の単位ではない。上流は出荷しない
 - `MessageSource`(送り元): `key`・`label`
-- `MessageSystemTemplate`(システムテンプレート、`messaging/templates/<名前>.ts` の `export const systemTemplate`): `key`・`kind`(管理者がその場で送れる種別 = 性質 `adminFreeText` がある物。1 つの種別に何本でも、受け口の順で使う物の最初がその種別の既定の白紙)・`label`・`layout`・`values`(白紙かできあがった文面)・`embedded?`(専用の埋め込み情報の宣言、DB のテンプレートと同じ形・同じ検査)。
+- `MessageSystemTemplate`(システムテンプレート、`messaging/templates/<名前>.ts` の `export const systemTemplate`): `key`・`kind`(管理者がその場で送れる種別 = 性質 `adminFreeText` がある物。1 つの種別に何本でも、受け口の順で使う物の最初がその種別の既定の白紙)・`label`・`layout`・`values`(白紙かできあがった文面)・`vars?`(専用の埋め込み情報の宣言、DB のテンプレートと同じ形・同じ検査)。
   - `enabled?`(false = 使わない: 一覧・送る画面の選択肢・既定の白紙から外れ、その鍵では送れない。送れる種別ごとに使う物が 1 本は要る)。管理画面で直せない・消せない。fork は `<名前>.override.ts` で `label` と `enabled` だけ変えられる。上流は 6 本(種別ごとにシンプル `simple`・リッチ `notice` の白紙。templates/README.md)
 - `MessageSubscriber`(送った後の購読): `key`・`on`(事件の種類)・`filter?`(連絡の鍵・経路)・`handle(事件の束)`(事件の id + 購読の鍵で冪等に。投げると次回もう一度渡る)
 

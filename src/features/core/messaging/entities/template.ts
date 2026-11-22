@@ -16,7 +16,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-import type { MessageEmbeddedDeclaration } from "@/lib/messaging";
+import type { MessageVarDeclaration } from "@/lib/messaging";
 
 export const MessageTemplateTable = pgTable(
   "message_templates",
@@ -35,8 +35,8 @@ export const MessageTemplateTable = pgTable(
     /** ひな形の欄の中身（{{鍵}} / {{別名}} のまま） */
     values: jsonb("values").$type<Record<string, unknown>>().notNull(),
     /** 専用の埋め込み情報の宣言（送る人が送る時に値を入れる） */
-    embedded: jsonb("embedded")
-      .$type<MessageEmbeddedDeclaration[]>()
+    vars: jsonb("vars")
+      .$type<MessageVarDeclaration[]>()
       .notNull()
       .default([]),
     /** 最新の版の番号（null = まだ版がない） */
@@ -66,8 +66,8 @@ export const MessageTemplateVersionTable = pgTable(
     layout: text("layout").notNull(),
     layout_version: integer("layout_version").notNull().default(1),
     values: jsonb("values").$type<Record<string, unknown>>().notNull(),
-    embedded: jsonb("embedded")
-      .$type<MessageEmbeddedDeclaration[]>()
+    vars: jsonb("vars")
+      .$type<MessageVarDeclaration[]>()
       .notNull()
       .default([]),
     category: text("category").notNull(),

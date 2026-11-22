@@ -1,4 +1,4 @@
-// src/lib/messaging/embedded/catalog.ts
+// src/lib/messaging/vars/catalog.ts
 //
 // 埋め込み情報の一覧(1 つの連絡・テンプレートで書ける名前の全部): 共通 + 当たる enrichers の provides + 専用(テンプレートの宣言・コードの連絡の vars)。
 // - 鍵と日本語の別名のどちらでも書ける。名前(鍵・別名)は一覧の中で重ならない(D126: 別名は専用どうしも共通・enrichers とも重ならない)
@@ -6,46 +6,46 @@
 // - collapsedCount は間引きのある連絡だけ(throttle: true)
 
 import type { MessageEnricher } from "../receptacles/types";
-import { MESSAGE_COMMON_EMBEDDED, type MessageEmbeddedName } from "./common";
-import type { MessageEmbeddedDeclaration } from "./declaration";
-import { EMBEDDED_ALIAS_PATTERN, EMBEDDED_KEY_PATTERN } from "./names";
+import { MESSAGE_COMMON_VARS, type MessageNamedVar } from "./common";
+import type { MessageVarDeclaration } from "./declaration";
+import { VAR_ALIAS_PATTERN, VAR_KEY_PATTERN } from "./names";
 
-export type MessageEmbeddedSource = "common" | "enricher" | "own";
+export type MessageVarSource = "common" | "enricher" | "own";
 
 /** 一覧の 1 つ(source = 共通 / enricher(鍵 = enricher の鍵)/ 専用 = テンプレートの宣言かコードの連絡の vars) */
-export type MessageEmbeddedEntry = {
+export type MessageVarEntry = {
   key: string;
   alias: string;
-  source: MessageEmbeddedSource;
+  source: MessageVarSource;
   description?: string;
   /** enricher の鍵(source enricher だけ) */
   enricher?: string;
   /** 専用の宣言(source own だけ) */
-  declaration?: MessageEmbeddedDeclaration;
+  declaration?: MessageVarDeclaration;
 };
 
-export type MessageEmbeddedCatalog = readonly MessageEmbeddedEntry[];
+export type MessageVarCatalog = readonly MessageVarEntry[];
 
-export type MessageEmbeddedProblemCode =
+export type MessageVarProblemCode =
   | "invalid_key"
   | "invalid_alias"
   | "duplicate_key"
   | "duplicate_alias"
   | "missing_enricher_alias";
 
-export type MessageEmbeddedProblem = { code: MessageEmbeddedProblemCode; message: string };
+export type MessageVarProblem = { code: MessageVarProblemCode; message: string };
 
 /**
  * 一覧を組む。enrichers = その連絡・テンプレートに当たる enrichers(当て先で選んだ後)。own = 専用の宣言。
  * vars = コードの連絡の vars の名前(定義の varNames、D133。専用として並べる)
  */
-export function embeddedCatalog(input: {
-  own?: readonly MessageEmbeddedDeclaration[];
-  vars?: readonly MessageEmbeddedName[];
+export function varCatalog(input: {
+  own?: readonly MessageVarDeclaration[];
+  vars?: readonly MessageNamedVar[];
   enrichers?: readonly Pick<MessageEnricher, "key" | "provides" | "aliases">[];
   throttle?: boolean;
-}): MessageEmbeddedEntry[] {
-  const entries: MessageEmbeddedEntry[] = MESSAGE_COMMON_EMBEDDED.filter((item) => !item.throttleOnly || input.throttle).map(
+}): MessageVarEntry[] {
+  const entries: MessageVarEntry[] = MESSAGE_COMMON_VARS.filter((item) => !item.throttleOnly || input.throttle).map(
     (item) => ({ key: item.key, alias: item.alias, source: "common", description: item.description }),
   );
   for (const enricher of input.enrichers ?? []) {
@@ -62,14 +62,14 @@ export function embeddedCatalog(input: {
   return entries;
 }
 
-const sourceLabel = (entry: MessageEmbeddedEntry) =>
+const sourceLabel = (entry: MessageVarEntry) =>
   entry.source === "common" ? "共通" : entry.source === "enricher" ? `enricher ${entry.enricher}` : "専用";
 
 /** 一覧の問題(空 = 通る): 鍵・別名の形、鍵の重なり、別名の重なり(ほかの鍵・別名と同じ名前)、enricher の別名の欠け */
-export function checkEmbeddedCatalog(catalog: MessageEmbeddedCatalog): MessageEmbeddedProblem[] {
-  const problems: MessageEmbeddedProblem[] = [];
-  const names = new Map<string, MessageEmbeddedEntry>();
-  const claim = (name: string, entry: MessageEmbeddedEntry, kind: "key" | "alias") => {
+export function checkVarCatalog(catalog: MessageVarCatalog): MessageVarProblem[] {
+  const problems: MessageVarProblem[] = [];
+  const names = new Map<string, MessageVarEntry>();
+  const claim = (name: string, entry: MessageVarEntry, kind: "key" | "alias") => {
     const other = names.get(name);
     if (other) {
       problems.push({
@@ -81,7 +81,7 @@ export function checkEmbeddedCatalog(catalog: MessageEmbeddedCatalog): MessageEm
     names.set(name, entry);
   };
   for (const entry of catalog) {
-    if (!EMBEDDED_KEY_PATTERN.test(entry.key)) {
+    if (!VAR_KEY_PATTERN.test(entry.key)) {
       problems.push({ code: "invalid_key", message: `${sourceLabel(entry)}の鍵 ${entry.key} は英字で始まる英数字で書きます` });
     }
     claim(entry.key, entry, "key");
@@ -95,7 +95,7 @@ export function checkEmbeddedCatalog(catalog: MessageEmbeddedCatalog): MessageEm
       }
       continue;
     }
-    if (!EMBEDDED_ALIAS_PATTERN.test(entry.alias)) {
+    if (!VAR_ALIAS_PATTERN.test(entry.alias)) {
       problems.push({ code: "invalid_alias", message: `${sourceLabel(entry)}の別名 ${entry.alias} は空白・記号を含まず、英数字以外の字を含めます` });
       continue;
     }
@@ -105,6 +105,6 @@ export function checkEmbeddedCatalog(catalog: MessageEmbeddedCatalog): MessageEm
 }
 
 /** 名前(鍵か別名)→ 鍵(一覧に無ければ null) */
-export function resolveEmbeddedName(catalog: MessageEmbeddedCatalog, name: string): string | null {
+export function resolveVarName(catalog: MessageVarCatalog, name: string): string | null {
   return catalog.find((entry) => entry.key === name || entry.alias === name)?.key ?? null;
 }

@@ -226,11 +226,11 @@ test("SendEmbeddedInputs: 専用の埋め込み情報の欄 / 必須と未入力
   assert.match(text, /\{\{割引\}\}/, "書ける名前は {{別名}}");
   assert.doesNotMatch(text, /プラン \*/, "任意は印なし");
   assert.equal(text.match(/入力してください/g)?.length, 1, "未入力の印は missing の鍵だけ");
-  const discount = inputs.get("send-embedded-discount")!;
+  const discount = inputs.get("send-vars-discount")!;
   assert.equal(discount.type, "number");
   assert.equal(discount.value, "10");
-  assert.equal(inputs.get("send-embedded-plan")!.placeholder, "初期値: ゴールド", "選択肢の既定値は表示名で");
-  assert.ok(inputs.get("send-embedded-until"), "日付の型は日付の入力");
+  assert.equal(inputs.get("send-vars-plan")!.placeholder, "初期値: ゴールド", "選択肢の既定値は表示名で");
+  assert.ok(inputs.get("send-vars-until"), "日付の型は日付の入力");
   (discount.onChange as (e: { target: { value: string } }) => void)({ target: { value: "20" } });
   assert.deepEqual(changes, [["discount", "20"]]);
   await view.unmount();

@@ -1,5 +1,5 @@
 // 保存されたテンプレートの hook の検査(jsdom の上で描く。client service・toast・離れる前の確認は偽物)。
-// - compactLayoutValues / canonicalJson / emptyEmbeddedDraft(純粋な関数)
+// - compactLayoutValues / canonicalJson / emptyVarDraft(純粋な関数)
 // - useMessageTemplates: 種別を渡し、先頭は cursor なし → 続きは nextCursor
 // - useMessageTemplateForm(作る): 種別を先に選ばない(D110)→ 種別でカテゴリーを自動(D118)・ひな形が 1 つなら自動 → 中身(ひな形の欄)/
 //   書きかけの印と離れる前の確認 / 知らない {{名前}} = 共通 + 専用の外 / 専用の埋め込み情報のモーダル / 保存 = 1 回の POST(鍵なし、D134)・作った id
@@ -70,7 +70,7 @@ const detail = (extra: Record<string, unknown> = {}) => ({
   // DB の jsonb は鍵を並べ直して返す(フォームの宣言の順と違う。書きかけの判定は順に依らない、J142)
   values: { blocks: [], subject: "{{discount}} 割引" },
   layoutVersion: 1,
-  embedded: [{ key: "discount", alias: "割引", type: "number", required: true }],
+  vars: [{ key: "discount", alias: "割引", type: "number", required: true }],
   catalog: [],
   hasUnpublishedChanges: false,
   ...extra,
@@ -163,7 +163,7 @@ const mount = async <T,>(useHook: () => T) => {
   return { value: () => latest.current!, unmount: () => act(async () => root.unmount()) };
 };
 
-test("compactLayoutValues / canonicalJson / emptyEmbeddedDraft", () => {
+test("compactLayoutValues / canonicalJson / emptyVarDraft", () => {
   // 空の欄(空白だけの文字・0 個の並び・中が全部空の object)は落とす。0 や false は空でない
   assert.deepEqual(
     pure.compactLayoutValues({ subject: "s", heading: " ", blocks: [], cta: { label: "", url: "" }, count: 0, on: false }),
@@ -176,7 +176,7 @@ test("compactLayoutValues / canonicalJson / emptyEmbeddedDraft", () => {
   );
   assert.equal(pure.canonicalJson({ b: 1, a: [2, 1] }), '{"a":[2,1],"b":1}');
   assert.notEqual(pure.canonicalJson([1, 2]), pure.canonicalJson([2, 1]));
-  assert.deepEqual(pure.emptyEmbeddedDraft(), { key: "", alias: "", type: "line", required: false, default: "", options: [] });
+  assert.deepEqual(pure.emptyVarDraft(), { key: "", alias: "", type: "line", required: false, default: "", options: [] });
 });
 
 test("useMessageTemplates: 種別を渡し、cursor で続きを取る", async () => {
@@ -247,24 +247,24 @@ test("useMessageTemplateForm(作る): 種別 → カテゴリー(自動)→ ひ�
   assert.deepEqual(toasts.at(-1), ["使えない埋め込み情報があります: coupon", "error"]);
 
   // 専用の埋め込み情報のモーダル: 適用は検査を通った時だけ(共通の名前と重なる行は止める)
-  await act(async () => form().embeddedEditor.openEditor());
-  await act(async () => form().embeddedEditor.addRow());
-  await act(async () => form().embeddedEditor.updateRow(0, { key: "displayName", alias: "クーポン" }));
+  await act(async () => form().varsEditor.openEditor());
+  await act(async () => form().varsEditor.addRow());
+  await act(async () => form().varsEditor.updateRow(0, { key: "displayName", alias: "クーポン" }));
   let applied = true;
   await act(async () => {
-    applied = form().embeddedEditor.apply();
+    applied = form().varsEditor.apply();
   });
   assert.equal(applied, false);
-  assert.ok(form().embeddedEditor.errors.length > 0);
-  assert.equal(form().embeddedEditor.open, true);
-  assert.equal(form().embeddedEditor.count, 0);
-  await act(async () => form().embeddedEditor.updateRow(0, { key: "coupon", alias: "クーポン" }));
+  assert.ok(form().varsEditor.errors.length > 0);
+  assert.equal(form().varsEditor.open, true);
+  assert.equal(form().varsEditor.count, 0);
+  await act(async () => form().varsEditor.updateRow(0, { key: "coupon", alias: "クーポン" }));
   await act(async () => {
-    applied = form().embeddedEditor.apply();
+    applied = form().varsEditor.apply();
   });
   assert.equal(applied, true);
-  assert.equal(form().embeddedEditor.open, false);
-  assert.equal(form().embeddedEditor.count, 1);
+  assert.equal(form().varsEditor.open, false);
+  assert.equal(form().varsEditor.count, 1);
   assert.deepEqual(form().unknownNames, []);
 
   await act(async () => {
@@ -279,7 +279,7 @@ test("useMessageTemplateForm(作る): 種別 → カテゴリー(自動)→ ひ�
         category: "marketing",
         layout: "notice",
         values: { subject: "{{coupon}} {{表示名}} {{displayName}}" },
-        embedded: [{ key: "coupon", alias: "クーポン", type: "line", required: false }],
+        vars: [{ key: "coupon", alias: "クーポン", type: "line", required: false }],
       },
     ],
   ]);
@@ -293,7 +293,7 @@ test("useMessageTemplateForm(作る): 種別 → カテゴリー(自動)→ ひ�
 
 // 直す 1 件は描くたびに作らない(呼び手は SWR の同じ値を渡す。毎回新しい物は書く欄を作り直し続ける)
 const EDITING = detail();
-const SYSTEM_BLANK = detail({ id: "system:announcement", system: true, kind: "announcement", category: "", embedded: [] });
+const SYSTEM_BLANK = detail({ id: "system:announcement", system: true, kind: "announcement", category: "", vars: [] });
 
 test("useMessageTemplateForm(直す): 開いた時は書きかけでない・1 回の PATCH(新しい版 / 変更はありません)・版を取り直す・削除", async () => {
   const changed: [string, string][] = [];
@@ -330,7 +330,7 @@ test("useMessageTemplateForm(直す): 開いた時は書きかけでない・1 �
         category: "marketing",
         layout: "notice",
         values: { subject: "{{discount}} 割引" },
-        embedded: [{ key: "discount", alias: "割引", type: "number", required: true }],
+        vars: [{ key: "discount", alias: "割引", type: "number", required: true }],
       },
     ],
   ]);
