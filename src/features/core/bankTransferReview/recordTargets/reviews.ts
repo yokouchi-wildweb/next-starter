@@ -17,6 +17,8 @@ import type { MessageRecordTarget } from "@/lib/messaging";
 export const recordTarget: MessageRecordTarget = {
   key: "bankTransferReview.reviews",
   label: "振込審査",
+  // 送れる連絡定義(S5 で振込審査の連絡定義を足して並べる)
+  messages: [],
   // 振込審査の表は決済(payment)の地区。画面の機能 bankTransferReview(payment に dependsOn)も開いていること
   enabled: () => gate.enabled("payment") && gate.enabled("bankTransferReview"),
   async resolveRecipients(recordIds) {

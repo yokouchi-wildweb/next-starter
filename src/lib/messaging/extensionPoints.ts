@@ -16,4 +16,13 @@ export const extensionPoints = {
     side: "server",
     overrideOf: ["label", "values", "extras", "enabled", "adminEditableOnly", "record", "throttle", "category", "channelModes"],
   },
+  // 上書きの対象: 各ドメインの記録の宛先 recordTargets/<名前>.ts(直下だけ。集めるのは pnpm generate registry、型 ./recordTargets/types.ts)。
+  // fork は隣の <名前>.override.ts(export const recordTargetOverride = { … } satisfies MessageRecordTargetOverride)で
+  // messages(この項目で送れる連絡定義の並び)だけを丸ごと差し替える(D217)。名指しの先の実在と adminTargets の records は生成器が確かめる
+  recordTargets: {
+    overrides: "src/features/**/recordTargets/*.ts",
+    export: "recordTargetOverride",
+    side: "server",
+    overrideOf: ["messages"],
+  },
 } as const;

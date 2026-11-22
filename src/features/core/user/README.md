@@ -374,6 +374,7 @@ const SORT_OPTIONS = [...DEFAULT_USER_LIST_SORT_OPTIONS, { label: "保有コイ�
 - 表示名の予約名: `reservedNames/README.md`
 - 管理一覧の一括操作: 受け口 `adminBulkActions/`(Usage「一括更新」)
 - ロールの上書き: `<JSON の名前>.override.ts`(Usage「ロールを足す」)
+- 記録の宛先 `recordTargets/users.ts`(鍵 `user.users`、D192・D217): 利用者の一覧で選んだ利用者 → 本人(1 人 1 件、記録から埋める値なし、無い・削除済みは飛ばす)。上流は送れる連絡定義 `messages` が空。fork は隣の `users.override.ts`(`export const recordTargetOverride = { messages: [...] } satisfies MessageRecordTargetOverride`)で並べるか、自分のドメインに項目を置く。並べる連絡定義は `adminTargets` に `records` を持つこと(`pnpm generate registry` が止める)。型と集め方: src/lib/messaging/README.md「記録の宛先」
 
 ## Internals
 

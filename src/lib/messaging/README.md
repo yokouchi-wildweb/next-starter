@@ -195,11 +195,13 @@ export const messageOverride = {
 
 管理一覧で選んだ記録 → 宛先を解く項目(D190・D195・D204)。受け口ではなく、連絡定義と同じ道で集める:
 
-- 置き場: 持ち主のドメインの `<domain>/recordTargets/<名前>.ts` に `export const recordTarget: MessageRecordTarget = { key, label, enabled?, resolveRecipients, afterSend? }`。fork の物は fork の自分のドメインに置く(上流のドメインの記録でも、requires を付けて自分のドメインに。D26)
+- 置き場: 持ち主のドメインの `<domain>/recordTargets/<名前>.ts` に `export const recordTarget: MessageRecordTarget = { key, label, messages, enabled?, resolveRecipients, afterSend? }`。fork の物は fork の自分のドメインに置く(上流のドメインの記録でも、requires を付けて自分のドメインに。D26)
 - 鍵 = `<ドメインのフォルダ名>.<ファイル名>` の文字列リテラル(場所とずれる・重なる = `pnpm generate registry` が止める)。管理 API の `target`、送り元の既定 `<鍵>.bulk`
 - `resolveRecipients(recordIds)` → `MessageRecordRecipient[]` = `{ userId, vars, recordIds }`(1 人 1 件。記録ごとか、まとめるかは項目が決める)。`vars` = 記録から埋める連絡の値
 - `afterSend?(sent: MessageRecordTargetSent)`: 送信の受け付けの直後に 1 回(投げても送信は戻らない)
-- 生成の一覧 `src/registry/recordTargetRegistry.ts`(`MessageRecordTargetRegistry` = 鍵 → `{ key, domain, target: () => import }`、絞らない)。読み手は messaging の門番 `loadRecordTarget`(`recordTargetOpen` = 項目の domain の門。閉じていれば null)を通す
+- `messages`: この項目で送れる連絡定義の鍵の並び(文字列リテラルの配列。空も可、D217)。どの鍵も連絡定義があり、その定義の `adminTargets` に `records` があること(書いていない = records)。外れたら `pnpm generate registry` が項目(上書きならそのファイル)と鍵を名指して止める(D218)
+- 上書き: fork は隣の `<名前>.override.ts` に `export const recordTargetOverride = { messages: [...] } satisfies MessageRecordTargetOverride` で `messages` だけを丸ごと差し替える(上書きの点 = `extensionPoints.ts` の `recordTargets`、ほかの鍵は `pnpm check extensions` が止める)。上流の項目(`user.users`・`bankTransferReview.reviews`)に連絡を足す道
+- 生成の一覧 `src/registry/recordTargetRegistry.ts`(`MessageRecordTargetRegistry` = 鍵 → `{ key, domain, target: () => import, override?: () => import }`、絞らない)。読み手は messaging の門番 `loadRecordTarget`(`recordTargetOpen` = 項目の domain の門。閉じていれば null。上書きの `messages` を重ねて返す)を通す
 
 ## Internals
 
