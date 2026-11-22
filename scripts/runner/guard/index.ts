@@ -3,10 +3,11 @@
 //
 // 向き先: 既定は開発。--env <development|staging|production> で選ぶ(ENV_FILE を渡せばそのファイル。名前の段階は --env と一致すること)。
 // 読むファイル = ENV_FILE ?? .env.<段階>(+ あれば .env.<段階>.local を上に重ねる、個人の上書き・秘密)。
-// 止める: ファイルが無い / 段階の印 APP_ENV が無い・知らない値 / 印とファイル名の段階が違う / 本番と開発が同じ DB(host と DB 名)/
+// 止める: ファイルが無い / 段階の印 APP_ENV が無い・知らない値 / 印とファイル名の段階が違う /
 //   本番の DB に書くのに本番の DATABASE_URL が空(リリース前 = 未設定)。.env.production が無いことは本番を指した時だけ止める。
 //   シェルから継いだ DATABASE_URL が向き先のファイルの DATABASE_URL と別の DB(host と DB 名)を指す(値は上書きしないので、
 //   止めないと検査はファイルの DB、実際の接続は継いだ DB になる)。
+// 注意の 1 行だけ(止めない、D433): 本番を指して本番と開発が同じ DB(host と DB 名)。人が許した本番の書き込みを止めない。
 // ホストの env(本番ホストで env ファイルを置かず環境変数を直接渡す): ファイルが無く、環境変数の APP_ENV が向き先と同じ時だけ、その値で進む
 //   (本番は --env production の明示と確認が要る。例 Vercel 以外のスケジューラ = pnpm task --due --env production)。
 // 本番に書く: 手で打つ(TTY)なら「production」と打たせる(--confirm=production は人の省略)。非対話(TTY なし・CI・エージェント)は
@@ -195,7 +196,8 @@ export function resolveTarget(argv: readonly string[], options: ResolveOptions, 
     if (options.db && prodDb === null) throw new GuardError(`${options.what}: 本番の DATABASE_URL が空です(リリース前 = 未設定。DB に書けません)`);
     const dev = readValues(io, ".env.development");
     const devDb = dbIdentity(dev?.DATABASE_URL);
-    if (prodDb !== null && devDb !== null && prodDb === devDb) throw new GuardError(`本番と開発が同じ DB(${prodDb})を指しています。開発と本番は別の DB にする(Neon ならブランチ)`);
+    // 止めない(D433: 守る物は本番の確認とデータの消える文の問いが持つ)。開発の作業も本番の DB に書くことを知らせる
+    if (prodDb !== null && devDb !== null && prodDb === devDb) io.say(`注意: 本番と開発が同じ DB(${prodDb})を指しています — 開発の作業もこの DB に書きます。分けるなら Neon のブランチ`);
   }
   if (options.write && stage === "production") confirmProduction(flags, io, options.what, options.kind ?? "deploy");
   else if (flags.confirm !== null && flags.confirm !== stage) throw new GuardError(`--confirm=${flags.confirm} は向き先(${stage})と違います`);

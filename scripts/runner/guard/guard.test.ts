@@ -76,9 +76,11 @@ test(".env.production が無いことは本番を指した時だけ止める", (
   assert.throws(() => resolveTarget(["--env", "production"], W, io({ ".env.development": DEV })), /\.env\.production がありません/);
 });
 
-test("本番: 開発と同じ DB は止める、本番の DB が空は DB に書く時だけ未設定で止める(同じ DB の判定には掛けない)", () => {
+test("本番: 開発と同じ DB は注意の 1 行で通る(D433)、本番の DB が空は DB に書く時だけ未設定で止める(同じ DB の判定には掛けない)", () => {
   const same = { ".env.development": DEV, ".env.production": "APP_ENV=production\nDATABASE_URL=postgres://other:pw@dev.example/app\n" };
-  assert.throws(() => resolveTarget(["--env", "production", "--confirm=production"], W, io(same)), /同じ DB\(dev\.example\/app\)/);
+  const sameIo = io(same);
+  assert.doesNotThrow(() => resolveTarget(["--env", "production", "--confirm=production"], W, sameIo));
+  assert.ok(sameIo.said.some((l) => /注意: 本番と開発が同じ DB\(dev\.example\/app\)/.test(l)));
   const empty = { ".env.development": DEV, ".env.production": "APP_ENV=production\nDATABASE_URL=\n" };
   assert.throws(() => resolveTarget(["--env", "production", "--confirm=production"], W, io(empty)), /本番の DATABASE_URL が空/);
   assert.doesNotThrow(() => resolveTarget(["--env", "production", "--confirm=production"], { write: true, what: "メール" }, io(empty)));
