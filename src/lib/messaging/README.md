@@ -85,6 +85,12 @@ export const messageOverride = {
 - `layout`(必須): レイアウトの鍵(`src/features/core/messaging/layouts/<名前>/`。上流は simple・notice・link・welcome・statement・alert)。受け口に無い鍵は誤り: 字面は `pnpm check extensions`(messageGuards)、実行時は `validateMessageDefinition` の `layouts`(`unknown_layout`)。無効(`disabled`)のレイアウトも誤り(`disabled_layout`)。上書きで変えられない
 - `values`: レイアウトの欄の中身(欄の鍵 → 値。文字列に `{{鍵}}` を書ける)。レイアウトの欄の zod(`layoutValuesSchema`、カテゴリーの送信チャンネルで使う欄だけ必須)を通る(`invalid_values`)。検査の前に空を「無い」にする(`normalizeLayoutValues` / `normalizeFieldValue`: 画像の空文字・ボタン / リンクの全部が空・空の並び。ボタンの片方だけ空・URL の無いリンクは空の側の誤り)
 - `extras`: fork が足す欄の入れ物
+- 管理者が送る時の宣言(D175・D195。どれも省略でき、今の上流の定義は書かない):
+  - `adminVars`: 管理者が画面で入れる vars `{ [vars の鍵]: { type, options?, required, default? } }`(`MessageVarInput` = DB のテンプレートの専用の埋め込み情報と同じ型: line・number・date・datetime・url・select。別名は `varNames`)
+  - `recordVars`: 記録の宛先が記録から引く vars(同じ形。`resolveRecipients` の `vars`)
+  - 同じ鍵が両方にある = `var_origin_overlap`(鍵を名指す)/ vars に無い鍵 = `unknown_var_origin` / 秘密の値(`secretVar`)を管理者が入れる = `secret_admin_var` / 型の形の誤り(select の options・既定値)= `invalid_var_input`。どちらにも無い vars はコードだけが渡す(管理者の送る口は required の値が埋まらなければ断る)
+  - `adminTargets`: 管理者が送れる宛先 `records`(記録の宛先がこの定義を名指す)・`all`・`role`・`group`。書かない = `["records"]`(全員・ロール・グループは書いた時だけ。種別では縛らない)。ほかの値 = `invalid_admin_target`
+- `channelModes`: 送信チャンネルの固定 `{ [送信チャンネル]: "on" | "off" | "free" }`(D212、書かない = free)。集まりはカテゴリーが決め、定義はその中を固定するだけ。送る口の `resolveChannels` が効かせる: コードの送信は off を落とす / 管理者の絞りは free の中から選び、on はいつも入り、off を名指すと 400(既定のオンはカテゴリーの `defaultChannels`、D213)。分け方は `definitionChannels(resolved)` → `{ on, free, off }`。カテゴリーの外 = `unknown_channel_mode` / 全部 off = `channel_all_off` / required か `emailFixed` の種別の email を off = `email_off_fixed`
 - 管理者が書いて送る連絡(自由連絡): `messagingService.sendFreeMessage`(カテゴリー + 管理画面で選べるレイアウト(`isLayoutAdminSelectable` = `adminSelectable` で無効でない)か DB のテンプレート(無効のレイアウトの物は 400) + 欄の中身)
 
 ### 差し込み({{鍵}})
@@ -121,6 +127,8 @@ export const messageOverride = {
 - `unknown_variable`: 欄の中身の `{{鍵}}` が vars ∪ 共通の文脈に無い
 - `invalid_throttle`: throttle.by が vars に無い・seconds が正でない
 - `override_forbidden_key`: 上書きが key・kind・vars・required・category・defaultChannels を持つ
+- `var_origin_overlap` / `unknown_var_origin` / `secret_admin_var` / `invalid_var_input` / `invalid_admin_target`: 管理者が送る時の宣言(定義の項目の adminVars・recordVars・adminTargets)
+- `unknown_channel_mode` / `channel_all_off` / `email_off_fixed`: 送信チャンネルの固定(channelModes)
 
 ### 管理画面の欄の値(adminFields.ts)
 

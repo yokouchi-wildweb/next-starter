@@ -12,12 +12,17 @@ import { isLayoutUsable, type MessageLayout } from "../layout/types";
 import { layoutValuesSchema } from "../layout/values";
 import type { MessageCategory, MessageCategoryGroup } from "../receptacles/types";
 import { MESSAGE_COMMON_VARS } from "../vars/common";
+import { messageVarDeclarationSchema } from "../vars/declaration";
 import { VAR_ALIAS_PATTERN } from "../vars/names";
+import { definitionChannels } from "./channels";
 import { MESSAGE_KIND_TRAITS, isMessageKind } from "./kinds";
-import type {
-  MessageDefinition,
-  MessageOverride,
-  ResolvedMessageDefinition,
+import { isSecretVar } from "./secret";
+import {
+  MESSAGE_CHANNEL_MODES,
+  MESSAGE_DEFINITION_ADMIN_TARGETS,
+  type MessageDefinition,
+  type MessageOverride,
+  type ResolvedMessageDefinition,
 } from "./types";
 
 /**
@@ -54,7 +59,15 @@ export type MessageDefinitionProblemCode =
   | "kind_throttle"
   | "missing_var_name"
   | "invalid_var_name"
-  | "var_name_clash";
+  | "var_name_clash"
+  | "var_origin_overlap"
+  | "unknown_var_origin"
+  | "secret_admin_var"
+  | "invalid_var_input"
+  | "invalid_admin_target"
+  | "unknown_channel_mode"
+  | "channel_all_off"
+  | "email_off_fixed";
 
 export type MessageDefinitionProblem = {
   code: MessageDefinitionProblemCode;
@@ -204,6 +217,8 @@ export function validateMessageDefinition<
       add("unknown_channel", `${label}: カテゴリー ${definition.category} の送信チャンネル ${channel} は登録されていない`);
     }
   }
+  problems.push(...channelModeProblems(resolved, label, traits.emailFixed));
+  problems.push(...declarationProblems(definition, label));
   // レイアウトと欄の中身(D122・D125): カテゴリーの送信チャンネルで使う欄だけを検査する
   const values = (resolved.values ?? {}) as Record<string, unknown>;
   const layout = typeof definition.layout === "string" ? options.layouts[definition.layout] : undefined;
@@ -270,6 +285,78 @@ export function validateMessageDefinition<
     add("unknown_variable", `${label}: {{${key}}} は vars にも共通の文脈にも無い`);
   }
 
+  return problems;
+}
+
+/**
+ * 送信チャンネルの固定(channelModes、D212)の問題: カテゴリーの送信チャンネルの外・知らない値・全部 off・
+ * required(D195)か email を外せない種別(emailFixed)の email を off。上書きを重ねた後の定義で見る
+ */
+function channelModeProblems(
+  resolved: Pick<ResolvedMessageDefinition, "channels" | "channelModes" | "required" | "kind" | "category">,
+  label: string,
+  emailFixed: boolean,
+): MessageDefinitionProblem[] {
+  const problems: MessageDefinitionProblem[] = [];
+  const modes = resolved.channelModes ?? {};
+  for (const [channel, mode] of Object.entries(modes)) {
+    if (!resolved.channels.includes(channel)) {
+      problems.push({ code: "unknown_channel_mode", message: `${label}: channelModes の ${channel} はカテゴリー ${resolved.category} の送信チャンネル(${resolved.channels.join(" / ")})に無い` });
+    } else if (!(MESSAGE_CHANNEL_MODES as readonly string[]).includes(mode)) {
+      problems.push({ code: "unknown_channel_mode", message: `${label}: channelModes の ${channel} は on / off / free のどれか(${String(mode)})` });
+    }
+  }
+  const split = definitionChannels(resolved);
+  if (resolved.channels.length > 0 && split.on.length + split.free.length === 0) {
+    problems.push({ code: "channel_all_off", message: `${label}: channelModes で送信チャンネルが全部 off(送れない)` });
+  }
+  if (split.off.includes("email") && (resolved.required || emailFixed)) {
+    problems.push({
+      code: "email_off_fixed",
+      message: `${label}: ${resolved.required ? "required の連絡" : `種別 ${resolved.kind} の連絡`}は email を off にできない`,
+    });
+  }
+  return problems;
+}
+
+/**
+ * 管理者が送る時の宣言(D175・D195)の問題: adminVars / recordVars の鍵が vars に無い・両方にある・秘密の値を管理者が入れる・
+ * 入力の型の形(選択肢は options が要る、既定値が型の形)/ adminTargets が records・all・role・group の外
+ */
+function declarationProblems(definition: MessageDefinition<z.AnyZodObject>, label: string): MessageDefinitionProblem[] {
+  const problems: MessageDefinitionProblem[] = [];
+  const shape = definition.vars.shape as Readonly<Record<string, z.ZodTypeAny>>;
+  const admin = (definition.adminVars ?? {}) as Readonly<Record<string, unknown>>;
+  const record = (definition.recordVars ?? {}) as Readonly<Record<string, unknown>>;
+  for (const [field, map] of [
+    ["adminVars", admin],
+    ["recordVars", record],
+  ] as const) {
+    for (const [key, input] of Object.entries(map)) {
+      if (!(key in shape)) {
+        problems.push({ code: "unknown_var_origin", message: `${label}: ${field} の ${key} は vars に無い` });
+        continue;
+      }
+      if (field === "adminVars" && isSecretVar(shape[key]!)) {
+        problems.push({ code: "secret_admin_var", message: `${label}: 秘密の値 ${key}(secretVar)は管理者が入れられない(adminVars に書かない)` });
+      }
+      const parsed = messageVarDeclarationSchema.safeParse({ key, alias: "別名", ...(input as object) });
+      if (!parsed.success) {
+        const detail = parsed.error.issues.map((issue) => issue.message).join(" / ");
+        problems.push({ code: "invalid_var_input", message: `${label}: ${field} の ${key} の入力の型が正しくない(${detail})` });
+      }
+    }
+  }
+  for (const key of Object.keys(admin)) {
+    if (key in record) {
+      problems.push({ code: "var_origin_overlap", message: `${label}: vars の ${key} が adminVars と recordVars の両方にある(管理者が入れるか記録から引くかのどちらか 1 つ)` });
+    }
+  }
+  for (const target of definition.adminTargets ?? []) {
+    if (!(MESSAGE_DEFINITION_ADMIN_TARGETS as readonly string[]).includes(target)) {
+      problems.push({ code: "invalid_admin_target", message: `${label}: adminTargets の ${String(target)} は records / all / role / group のどれか` });
+    }
+  }
   return problems;
 }
 

@@ -2,7 +2,7 @@
 
 import type { z } from "zod";
 
-
+import type { MessageVarDeclaration } from "../vars/declaration";
 import type { MessageKind } from "./kinds";
 
 export type { MessageKind } from "./kinds";
@@ -44,6 +44,28 @@ export type MessageVarName = {
 
 /** vars の全部の鍵の名前(鍵が欠けると型の誤り) */
 export type MessageVarNames<Vars extends z.AnyZodObject> = { readonly [K in VarKeys<Vars>]: MessageVarName };
+
+/**
+ * vars の値 1 つの入力の型(D175。DB のテンプレートの専用の埋め込み情報と同じ型: 1 行の文・数・日付・日時・URL・選択肢)。
+ * 別名は varNames が持つ。管理者が入れる値(adminVars)も記録から引く値(recordVars)も型を書く
+ */
+export type MessageVarInput = Omit<MessageVarDeclaration, "key" | "alias">;
+
+/**
+ * 管理者が送る時の宛先(D175・D190): records = 記録の宛先(recordTargets の項目がこの定義を名指す)/ all・role・group = 全員・ロール・ユーザーグループ。
+ * 定義が宣言しない = ["records"](全員・ロール・グループは書いた時だけ)
+ */
+export const MESSAGE_DEFINITION_ADMIN_TARGETS = ["records", "all", "role", "group"] as const;
+export type MessageDefinitionAdminTarget = (typeof MESSAGE_DEFINITION_ADMIN_TARGETS)[number];
+/** adminTargets を書かない定義の宛先 */
+export const DEFAULT_DEFINITION_ADMIN_TARGETS: readonly MessageDefinitionAdminTarget[] = ["records"];
+
+/**
+ * 送信チャンネルの固定(D212): on = いつも送る(管理者も外せない)/ off = 使わない(コードの送信でも落とす)/ free = 管理者が選べる(既定)。
+ * 書けるのはカテゴリーの送信チャンネルだけ(集まりはカテゴリーが決める、D197)
+ */
+export const MESSAGE_CHANNEL_MODES = ["on", "off", "free"] as const;
+export type MessageChannelMode = (typeof MESSAGE_CHANNEL_MODES)[number];
 
 /**
  * レイアウトの欄の中身(欄の鍵 → 値、D122)。文字列の中に {{鍵}} を書ける(送る時に vars・共通の文脈・enrichers の値を差し込む)
@@ -92,6 +114,17 @@ export type MessageDefinition<
   values: MessageLayoutValuesSource;
   /** fork が足す欄の入れ物(描き方の .replace が読む) */
   extras?: Record<string, unknown>;
+  /**
+   * 管理者が送る時に画面で入れる vars(鍵 → 入力の型、D175・D195)。recordVars と同じ鍵は検査が止める。
+   * どちらにも無い vars はコードだけが渡す(管理者の送る口は required の値が埋まらなければ断る)
+   */
+  adminVars?: { readonly [K in VarKeys<Vars>]?: MessageVarInput };
+  /** 記録の宛先が記録から引く vars(鍵 → 入力の型、D195。resolveRecipients の vars)。adminVars と同じ鍵は検査が止める */
+  recordVars?: { readonly [K in VarKeys<Vars>]?: MessageVarInput };
+  /** 管理者が送れる宛先(D175)。無い = ["records"] */
+  adminTargets?: readonly MessageDefinitionAdminTarget[];
+  /** 送信チャンネルの固定(送信チャンネルの鍵 → on / off / free、D212)。書かない送信チャンネルは free */
+  channelModes?: Readonly<Record<string, MessageChannelMode>>;
 };
 
 /**

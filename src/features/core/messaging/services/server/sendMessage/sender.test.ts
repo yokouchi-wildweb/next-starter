@@ -656,6 +656,42 @@ test("送信チャンネルはカテゴリーから(D86): channels はその送�
   assert.equal(store.dispatches.length, 2);
 });
 
+test("送信チャンネルの固定(D212): コードの送信は off を落とし、管理の絞りは on を必ず含め off は 400(resolveChannels)", async () => {
+  const fixed = (channelModes: Record<string, "on" | "off" | "free">) =>
+    defineTestMessage({
+      key: "shop.fixed",
+      label: "テストの連絡",
+      category: "newsInApp",
+      vars: z.object({ item: z.string() }),
+      layout: "card",
+      values: { title: "{{item}}", body: "{{item}}" },
+      channelModes,
+    });
+  const store = createMemoryStore();
+  store.users.push({ id: "u2", name: "利用者2", email: null });
+  store.endpoints.push({ userId: "u2", channel: "test", address: "addr-u2" });
+  const testChannel = createTestChannel();
+  const inApp = createTestChannel("inApp");
+  inApp.resolveAddresses = async (ids) => ids.map((userId) => ({ userId, address: userId }));
+  const deps = createDeps({ store, channels: { test: testChannel, inApp } });
+  const sender = createMessageSender(deps);
+  // コードの送信: off の test は使わない(黙って落とす)
+  await sender.sendMessage(fixed({ test: "off" }), { recipient: { userId: "u2" }, vars: { item: "a" } });
+  assert.deepEqual(store.dispatches[0].channels, ["inApp"]);
+  assert.equal(testChannel.calls.flat().length, 0);
+  // 管理の絞り: on はいつも入る(選ばなくても)、free だけを選べる
+  await sender.sendMessage(fixed({ test: "on" }), { recipient: { userId: "u2" }, vars: { item: "b" }, channels: ["inApp"] });
+  assert.deepEqual(store.dispatches[1].channels, ["test", "inApp"]);
+  await sender.sendMessage(fixed({ test: "on" }), { recipient: { userId: "u2" }, vars: { item: "c" }, channels: ["test"] });
+  assert.deepEqual(store.dispatches[2].channels, ["test"]);
+  // off を名指すと 400(送信を書かない)
+  await assertDomainError(sender.sendMessage(fixed({ test: "off" }), { recipient: { userId: "u2" }, vars: { item: "d" }, channels: ["test", "inApp"] }), 400);
+  assert.equal(store.dispatches.length, 3);
+  // 固定なし = 全部 free(今の上流の定義のまま)
+  await sender.sendMessage(fixed({}), { recipient: { userId: "u2" }, vars: { item: "e" } });
+  assert.deepEqual(store.dispatches[3].channels, ["test", "inApp"]);
+});
+
 test("種別の性質(D80): 記録の既定は種別から、security は苦情の停止を越えて届き好みを見ない", async () => {
   const store = createMemoryStore();
   store.users.push({ id: "u2", name: "利用者2", email: "u2@example.test" });
