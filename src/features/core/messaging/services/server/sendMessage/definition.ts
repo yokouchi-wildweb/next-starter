@@ -11,6 +11,7 @@ import type { z } from "zod";
 import {
   adminEditableFields,
   applyAdminFieldValues,
+  definitionChannels,
   isLayoutAdminSelectable,
   isLayoutUsable,
   resolveMessageDefinition,
@@ -119,9 +120,11 @@ export async function resolveDefinition(
 }
 
 /**
- * 使う送信チャンネルを決める: カテゴリーの送信チャンネル(D86)。requested = その送信だけの絞り(管理の手で送る時・テンプレートの版の送信チャンネル)。
- * カテゴリーの外の送信チャンネルと空の絞りは拒む(足すことはできない)。止められない連絡から email は外せない。
- * 描けない送信チャンネルは組み立て(sendMessage/content.ts)が送信を書く前に止める
+ * 使う送信チャンネルを決める: カテゴリーの送信チャンネル(D86)に連絡定義の固定(channelModes、D212)を当てる。
+ * - コードの送信(requested なし): カテゴリーの送信チャンネルから off を落とした全部(on と free)
+ * - 管理の手で送る時・テンプレートの版の送信チャンネル(requested): その送信だけの絞り。カテゴリーの外・off の送信チャンネルと空の絞りは拒む
+ *   (足すことはできない)。on はいつも入る(管理者は自由な物だけを選ぶ、D213)
+ * 止められない連絡から email は外せない。描けない送信チャンネルは組み立て(sendMessage/content.ts)が送信を書く前に止める
  * @throws DomainError(400)
  */
 export function resolveChannels(
@@ -129,6 +132,8 @@ export function resolveChannels(
   requested: readonly string[] | undefined,
 ): string[] {
   const allowed = [...resolved.channels] as string[];
+  const { on, off } = definitionChannels(resolved);
+  const usable = allowed.filter((key) => !off.includes(key));
   if (requested !== undefined) {
     const list = [...new Set(requested)];
     if (list.length === 0) {
@@ -141,9 +146,13 @@ export function resolveChannels(
         { status: 400 },
       );
     }
-    return checkEmail(resolved, allowed.filter((key) => list.includes(key)));
+    const fixedOff = list.filter((key) => off.includes(key));
+    if (fixedOff.length > 0) {
+      throw new DomainError(`送信チャンネル ${fixedOff.join(", ")} はこの連絡では使いません(連絡定義の固定 off、${resolved.key})`, { status: 400 });
+    }
+    return checkEmail(resolved, usable.filter((key) => list.includes(key) || on.includes(key)));
   }
-  return checkEmail(resolved, allowed);
+  return checkEmail(resolved, usable);
 }
 
 function checkEmail(resolved: AnyResolvedMessageDefinition, list: string[]): string[] {

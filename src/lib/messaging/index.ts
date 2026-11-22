@@ -32,17 +32,22 @@ export type {
   MessageRecordTargetSent,
 } from "./recordTargets/types";
 export type {
+  MessageChannelMode,
   MessageDefinition,
+  MessageDefinitionAdminTarget,
   MessageKey,
   MessageKind,
   MessageOverride,
   MessageLayoutValuesSource,
   MessageRecord,
   MessageThrottle,
+  MessageVarInput,
   MessageVarName,
   MessageVarNames,
   ResolvedMessageDefinition,
 } from "./definition/types";
+export { DEFAULT_DEFINITION_ADMIN_TARGETS, MESSAGE_CHANNEL_MODES, MESSAGE_DEFINITION_ADMIN_TARGETS } from "./definition/types";
+export { channelModeOf, definitionChannels } from "./definition/channels";
 export {
   COMMON_CONTEXT_KEYS,
   THROTTLE_CONTEXT_KEYS,

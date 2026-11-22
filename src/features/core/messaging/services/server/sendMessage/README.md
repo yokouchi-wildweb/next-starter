@@ -46,7 +46,7 @@
 - 出どころ `origin` = レイアウト `{ layout: 鍵 }`（管理画面で選べる `adminSelectable` の物だけ。無い・ほかのレイアウトは 400、`sender.ts` の `freeSourceOf`）か DB のテンプレート `{ id, version }`（型 `MessageFreeOrigin`）。管理用の連絡定義は持たない
 - 送信: `message_key` は null（定義の鍵は `TEMPLATE_MESSAGE_KEY` = `messaging.template`。送信にも事件にも書かない）。出どころはレイアウト（`layout`）だけか `template_id`・`template_version`
 - カテゴリー（必須）の種別は自由連絡で送れる種別（性質 `adminFreeText` がある announcement・direct・promotion、`adminSendableKinds`）。種別はカテゴリーから（レイアウトは種別を持たない）。誤りは 400
-- **送信チャンネル = カテゴリーの送信チャンネル ∩ その送信の絞り（`channels`）**。カテゴリーの外・空の絞りは 400
+- **送信チャンネル = カテゴリーの送信チャンネル − 定義の off 固定 ∩ その送信の絞り（`channels`）**（`resolveChannels`、連絡定義の `channelModes` D212）。コードの送信は off を黙って落とす。絞りは free の中から選び on はいつも入る。カテゴリーの外・off・空の絞りは 400
 - `values` = レイアウトの欄の中身（選んだレイアウト、DB のテンプレートは版のレイアウト）。レイアウトの欄の zod で検査し、`{{鍵}}`・`{{別名}}` = 埋め込み情報の一覧（共通 + 当たる enrichers + 版の専用の宣言）の中だけ（知らない名前・名前の重なりは 400）。上書きは重ねない
 - 専用の別名（`{{開始日時}}`）は定義にする前に `{{鍵}}` へ書き換える（送信の `values` は鍵だけ: cron の組み直しは宣言を引き直さない）
 - 直した印 `template_edited` = 入力の `edited: true` か、送る中身（書き換えの前）が版の中身（今のレイアウトの版へ読み替えた物）と違う（false は信じない。レイアウトの送りはいつも false、`edited: true` は 400）

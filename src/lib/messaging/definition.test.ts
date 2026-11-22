@@ -21,6 +21,7 @@ import {
   kindTraits,
   kindsWhere,
   resolveMessageDefinition,
+  secretVar,
   validateMessageCategories,
   validateMessageDefinition,
   type MessageCategory,
@@ -307,6 +308,32 @@ test("vars の名前(varNames、D133): 全部の鍵に別名と説明、vars に
   assert.ok(codes(validate({ ...reply, varNames: { ...reply.varNames, nope: { alias: "無い", description: "x" } } } as never)).includes("invalid_var_name"));
   // 上書きで変えられない
   assert.ok(codes(validate(reply, { override: { varNames: {} } as never })).includes("override_forbidden_key"));
+});
+
+test("管理者が送る時の宣言(D175・D195): adminVars と recordVars の同じ鍵は鍵を名指して止める、vars に無い鍵・秘密の値・入力の型の誤り・宛先の誤り", () => {
+  const line = { type: "line", required: true } as const;
+  assert.deepEqual(codes(validate({ ...reply, adminVars: { senderName: line }, recordVars: { roomId: line }, adminTargets: ["records", "all"] })), []);
+  const overlap = validate({ ...reply, adminVars: { roomId: line }, recordVars: { roomId: line } });
+  assert.deepEqual(codes(overlap), ["var_origin_overlap"]);
+  assert.match(overlap[0]!.message, /^chat\.reply: vars の roomId が adminVars と recordVars の両方にある/);
+  assert.deepEqual(codes(validate({ ...reply, recordVars: { nope: line } } as never)), ["unknown_var_origin"]);
+  assert.deepEqual(codes(validate({ ...reply, adminVars: { senderName: { type: "select", required: true } } })), ["invalid_var_input"]);
+  assert.deepEqual(codes(validate({ ...reply, adminTargets: ["everyone"] } as never)), ["invalid_admin_target"]);
+  // 秘密の値は管理者が入れられない(記録から引くのはよい)
+  const withSecret = { ...verification, vars: z.object({ verificationUrl: secretVar(z.string().url()) }) };
+  assert.ok(codes(validate(defineMessage({ ...withSecret, adminVars: { verificationUrl: { type: "url", required: true } } }))).includes("secret_admin_var"));
+  assert.ok(!codes(validate(defineMessage({ ...withSecret, recordVars: { verificationUrl: { type: "url", required: true } } }))).includes("secret_admin_var"));
+});
+
+test("送信チャンネルの固定(channelModes、D212): カテゴリーの外・全部 off・required か emailFixed の種別の email off は止める", () => {
+  assert.deepEqual(codes(validate({ ...reply, channelModes: { email: "off", inApp: "on" } })), []);
+  assert.deepEqual(codes(validate({ ...reply, channelModes: { line: "on" } })), ["unknown_channel_mode"]);
+  assert.deepEqual(codes(validate({ ...reply, channelModes: { inApp: "always" } } as never)), ["unknown_channel_mode"]);
+  assert.deepEqual(codes(validate({ ...reply, channelModes: { inApp: "off", email: "off" } })), ["channel_all_off"]);
+  // required(verification)と email を外せない種別(security の alert)
+  assert.ok(codes(validate(defineMessage({ ...verification, channelModes: { email: "off" } }))).includes("email_off_fixed"));
+  const security = defineMessage({ ...reply, key: "chat.alert", category: "alert", adminEditableOnly: undefined, throttle: undefined, channelModes: { email: "off" } });
+  assert.ok(codes(validate(security)).includes("email_off_fixed"));
 });
 
 test("ChannelError は lib/mail と同じ 3 分類を持つ Error", () => {
