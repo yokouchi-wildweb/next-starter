@@ -410,7 +410,7 @@ test("入力の変換(Claude Code の形)と出力", () => {
 test("方針の鍵 = 種類 + フックだけの種類 peer(計画の候補には出さない。検査は種類でも鍵でもない、D272)、このリポの repo.json は通常 auto・危険な 3 つ manual(書いていない鍵の既定は manual、D265)", async () => {
   assert.deepEqual(POLICY_KEYS, [...KIND_NAMES, "peer"]);
   assert.ok(!KIND_NAMES.includes("peer"));
-  assert.deepEqual(await loadPolicy(path.join(TOOL_DIR, "../../..")), { ...ALL_AUTO, db_push: "manual", env_production: "manual", deploy: "manual" });
+  assert.deepEqual(await loadPolicy(path.join(TOOL_DIR, "../../..")), { ...ALL_AUTO, db_push: "manual", env_production: "manual", deploy: "manual", intervene: "manual" });
 });
 
 test("固定の止め: repo.json の直接の書き換え(Edit / Write とシェルの書き込み)は止め、専用の命令と読むだけは通す", () => {
