@@ -1,7 +1,7 @@
 // src/app/api/me/messaging/inbox/[id]/route.ts
 //
 // 本人に見える 1 件の詳細(自分の行か、見える共有の行だけ。見えない行は 404)。門なし = 常に開(D57)
-// GET → InboxItemDetailDto(一覧の形 + ひな形の鍵・版・欄の中身・お知らせの欄の宣言。描けない行は要約だけ、指令 60)
+// GET → InboxItemDetailDto(一覧の形 + レイアウトの鍵・版・欄の中身・inApp の欄の宣言。描けない行は要約だけ、指令 60)
 
 import { NextResponse } from "next/server";
 

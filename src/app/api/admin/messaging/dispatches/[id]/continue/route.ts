@@ -1,6 +1,6 @@
 // src/app/api/admin/messaging/dispatches/[id]/continue/route.ts
 //
-// 管理者向け: 回を 1 束だけ進める(続きを送る。processing の回だけ、他は 409)。監査ログに 1 行
+// 管理者向け: 送信を 1 束だけ進める(続きを送る。processing の送信だけ、他は 409)。監査ログに 1 行
 // 返す形: { expanded, claimed, sent, failed, completed }
 //
 // POST /api/admin/messaging/dispatches/[id]/continue

@@ -1,7 +1,7 @@
 // src/lib/mail/errors.test.ts
 //
-// メールの送信の失敗の分類(MailSendErrorKind)が、連絡の経路の失敗の分類(lib/messaging の ChannelErrorKind)と
-// 同じ語彙であることの検査(経路 email は MailSendError の kind をそのまま ChannelError に渡す)。
+// メールの送信の失敗の分類(MailSendErrorKind)が、連絡の送信チャンネルの失敗の分類(lib/messaging の ChannelErrorKind)と
+// 同じ語彙であることの検査(送信チャンネル email は MailSendError の kind をそのまま ChannelError に渡す)。
 // 実行: pnpm test src/lib/mail/errors.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";

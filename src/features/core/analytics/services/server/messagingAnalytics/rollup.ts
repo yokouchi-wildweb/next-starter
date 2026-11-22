@@ -1,10 +1,10 @@
 // src/features/core/analytics/services/server/messagingAnalytics/rollup.ts
 // 連絡の日まとめ(rollup)のメトリクス。1 指標 = 1 つの鍵 messaging.<measure>(flow)、dims {channel, messageKey, category}。
-// - 数え方は集計の口(service.ts)と同じ store・同じ送りの組(回を送った日の cohort、配信停止は止めた日)
+// - 数え方は集計の口(service.ts)と同じ store・同じ送りの組(送信した日の cohort、配信停止は止めた日)
 // - 1 日分の読み込み(4 つの問い合わせ)は同じ日を計算する指標で共有する(短い memo)
 // - enabled は受け口の項目が値に書く(常時実行の入口の検査が項目の値を見る): 集計の口と同じ門 messagingAnalytics、
 //   開封・クリックは計測 messagingTracking も
-// - lookbackDays: 回の数・配信停止 = cron の既定、到達・bounce・苦情 7、開封・クリック 14、既読 30(送った日に遅れて足される)
+// - lookbackDays: 送信の数・配信停止 = cron の既定、到達・bounce・苦情 7、開封・クリック 14、既読 30(送った日に遅れて足される)
 // skipped_no_address / skipped_throttled は日まとめにしない(集計の口だけ)
 
 import type { RollupDayContext, RollupMetricConfig, RollupMetricValue } from "../rollup/types";

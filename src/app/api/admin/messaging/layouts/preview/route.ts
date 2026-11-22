@@ -1,6 +1,6 @@
 // src/app/api/admin/messaging/layouts/preview/route.ts
 //
-// 管理者向け: ひな形のプレビュー(テンプレートの作る・直す画面と送る画面、D114)。
+// 管理者向け: レイアウトのプレビュー(テンプレートの作る・直す画面と送る画面、D114)。
 // テンプレート(messagingTemplates)と送る画面(messagingBroadcast)のどちらも閉なら 404
 //
 // POST /api/admin/messaging/layouts/preview   body { layout, channel, category?, values }

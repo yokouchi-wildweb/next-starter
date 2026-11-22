@@ -109,7 +109,7 @@ async function playGacha(userId: string, cost: number) {
 
 ### 管理者操作時のユーザー通知
 
-管理画面からの残高変更（`POST /api/admin/wallet/[userId]/adjust`）時と一括付与（`pnpm task wallet:bulk-grant` の notify）時に、ユーザーの受け取り箱へ知らせ（連絡 `wallet.adjustmentNotice`、お知らせ = inApp）を送れる。管理画面の操作は操作タイプ別にフラグで制御:
+管理画面からの残高変更（`POST /api/admin/wallet/[userId]/adjust`）時と一括付与（`pnpm task wallet:bulk-grant` の notify）時に、ユーザーの受け取り箱へ知らせ（連絡 `wallet.adjustmentNotice`、inApp）を送れる。管理画面の操作は操作タイプ別にフラグで制御:
 
 ```typescript
 // src/features/core/wallet/config.ts の既定(fork は src/config/features/wallet.config.ts で上書き)
@@ -157,7 +157,7 @@ async function playGacha(userId: string, cost: number) {
 - 書き方: 全員を 1 つの transaction で `bulkAdjustByUsers` に通す(額ごとにまとめる、INCREMENT、`source_type` admin_action、1 つの `request_batch_id`、監査 `wallet.balance.bulk_adjusted_by_users` は額の組ごと)。1 人でも書けなければ全部戻す
 - 種類: `grant` = 付与の種類 `admin_adjustment`、`compensation` = `compensation`。区分はどちらも `admin_adjustment`(発行には数えない)
 - 飛ばす: 知らない id・削除済みのユーザー。先に止める: 額が正の整数でない・同じユーザーが 2 回・空・1 回 10,000 人超え(1 つの transaction で財布を行ロックするため。ファイルを分ける)・知らない通貨・理由なし
-- `--notify`: commit の後に 1 人ずつ残高変更のお知らせ(`sendAdjustmentNotification`、お知らせの機能が閉じていれば送らない)。送れなくても付与は戻さない
+- `--notify`: commit の後に 1 人ずつ残高変更の inApp の知らせ(`sendAdjustmentNotification`、inApp が閉じていれば送らない)。送れなくても付与は戻さない
 - もっと大きな相手(全員・条件で選ぶ)は今までどおり一括の job(`createWalletBulkAdjustJob`)。このコマンドは id の並びだけを受ける
 
 ### 失効間近の照会（失効予告 UI・通知のデータソース）

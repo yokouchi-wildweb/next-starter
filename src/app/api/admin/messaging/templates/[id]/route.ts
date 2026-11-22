@@ -3,9 +3,9 @@
 // 管理者向け: テンプレート 1 件(中身 = 最新の版と同じ)。門 messagingTemplates が閉なら 404
 //
 // GET   /api/admin/messaging/templates/[id]   AdminTemplateDetail
-// PATCH /api/admin/messaging/templates/[id]   直して公開する { name?, description?, category?, layout?, values?, vars? }(ひな形を替える時は values も)
+// PATCH /api/admin/messaging/templates/[id]   直して公開する { name?, description?, category?, layout?, values?, vars? }(レイアウトを替える時は values も)
 //   → AdminTemplateSaveResult(中身が最新の版と違えば新しい版、同じなら unchanged: true。D134)
-// DELETE /api/admin/messaging/templates/[id]  消す → { id, deleted: true }(版も消え、送った回は残る。システムテンプレートは 409、D137)
+// DELETE /api/admin/messaging/templates/[id]  消す → { id, deleted: true }(版も消え、送信は残る)
 
 import { gate } from "@/featureGate";
 import { createApiRoute } from "@/wiring/apiRoute";

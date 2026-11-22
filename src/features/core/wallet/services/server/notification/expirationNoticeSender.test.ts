@@ -1,7 +1,7 @@
 // 失効の知らせの送り手(sendExpirationNoticeJobs)の検査。DB・送る口・設定は偽物
-// - 送信済みの鍵(回の表と鍵の移し先の表、messagingService.existingIdempotencyKeys)は送らずに alreadySent
+// - 送信済みの鍵(送信の表と鍵の移し先の表、messagingService.existingIdempotencyKeys)は送らずに alreadySent
 // - 宛先の絞り込み(削除済み・demo・状態・メールの無い人からメールを外す)
-// - 送る口へ定義・経路・鍵・送り元と、宛名(名前が無ければ「お客様」)・サービスの短い名前を足した vars を渡す
+// - 送る口へ定義・送信チャンネル・鍵・送り元と、宛名(名前が無ければ「お客様」)・サービスの短い名前を足した vars を渡す
 // - sent か queued(送り直し待ち)があれば sent、409 は alreadySent、他は failed
 // 実行: pnpm test src/features/core/wallet/services/server/notification/expirationNoticeSender.test.ts
 import { before, mock, test } from "node:test";
@@ -77,7 +77,7 @@ test("送信済みを除き、絞り込んでから送る口へ渡す", async ()
     source: "wallet.expiration.preNotice",
     idempotencyKey: "k-u1",
   });
-  // 経路は渡さない(種類が決める。メールの無い人のメールの行は送る口が no_address にする)、名前が無ければ「お客様」
+  // 送信チャンネルは渡さない(カテゴリーが決める。メールの無い人のメールの行は送る口が no_address にする)、名前が無ければ「お客様」
   assert.equal("channels" in calls[1].input, false);
   assert.equal((calls[1].input.vars as Record<string, string>).displayName, "お客様");
   assert.equal(calls[0].message, message);

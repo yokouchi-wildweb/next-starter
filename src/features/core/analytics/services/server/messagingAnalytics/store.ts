@@ -1,12 +1,12 @@
 // src/features/core/analytics/services/server/messagingAnalytics/store.ts
 // 連絡の集計の SQL(読むだけ。messaging の表を参照し、messaging からは analytics を読まない)。
 //
-// 送りの組(回):
-// - 基準の時刻 = 回を送った時刻 COALESCE(scheduled_at, created_at)。開封・既読・到達もこの日に数える(同じ組の率)
-// - status scheduled / cancelled は外す、is_test は外す、取り下げた回は数える
-// - source legacy.notification(写した前のお知らせ)の回は既読の数だけに使う(送り・到達の数に入れない)
+// 送りの組(送信):
+// - 基準の時刻 = 送信した時刻 COALESCE(scheduled_at, created_at)。開封・既読・到達もこの日に数える(同じ組の率)
+// - status scheduled / cancelled は外す、is_test は外す、取り下げた送信は数える
+// - source legacy.notification(写した前のお知らせ)の送信は既読の数だけに使う(送り・到達の数に入れない)
 // - created_at の索引を使うため created_at も範囲で絞る(予約は最大 schedule.maxDaysAhead 日前に作られる)
-// 配信停止は止めた時刻で数える(前のトークン・好みのページの停止は回に結び付かない)。
+// 配信停止は止めた時刻で数える(前のトークン・好みのページの停止は送信に結び付かない)。
 // raw SQL に JS の Date は入れない(ISO の文字列で渡す)。
 
 import { inArray, sql, type SQL } from "drizzle-orm";
@@ -37,7 +37,7 @@ import type {
   UnsubscribeCountRow,
 } from "./types";
 
-/** 写した前のお知らせの回の source(既読の数だけに使う) */
+/** 写した前のお知らせの送信の source(既読の数だけに使う) */
 export const LEGACY_NOTIFICATION_SOURCE = "legacy.notification";
 
 const D = MessageDispatchTable;
@@ -74,7 +74,7 @@ function periodExpr(scope: MessagingQueryScope, time: SQL): SQL {
     : sql`'cur'`;
 }
 
-/** 回の WHERE(送りの組)。withLegacy = 写した前のお知らせの回も入れる(既読) */
+/** 送信の WHERE(送りの組)。withLegacy = 写した前のお知らせの送信も入れる(既読) */
 export function dispatchWhere(scope: MessagingQueryScope, options: { withLegacy: boolean }): SQL {
   const { from, to } = windowOf(scope);
   const createdFloor = new Date(from.getTime() - messagingConfig.schedule.maxDaysAhead * DAY_MS);
@@ -95,7 +95,7 @@ export function dispatchWhere(scope: MessagingQueryScope, options: { withLegacy:
   return sql.join(parts, sql` AND `);
 }
 
-/** 回を元にした軸の値(channel は行の経路で分けるので null) */
+/** 送信を元にした軸の値(channel は行の送信チャンネルで分けるので null) */
 function dispatchGroupExpr(scope: MessagingQueryScope): SQL {
   switch (scope.groupBy) {
     case "date":
@@ -117,7 +117,7 @@ function dispatchGroupExpr(scope: MessagingQueryScope): SQL {
   }
 }
 
-/** タグの軸は回のタグごとに 1 行(タグの無い回は null の 1 行) */
+/** タグの軸は送信のタグごとに 1 行(タグの無い送信は null の 1 行) */
 function tagJoin(scope: MessagingQueryScope): SQL {
   return scope.groupBy === "tag" ? sql`LEFT JOIN LATERAL unnest(${D.tags}) AS tag_axis(tag) ON true` : sql``;
 }
@@ -183,7 +183,7 @@ async function deliveryCounts(scope: MessagingQueryScope): Promise<DeliveryCount
 }
 
 /**
- * 既読の数(お知らせ = inApp)。受信者ごとの行 = 既読の行か watermark ≥ 公開の時刻。
+ * 既読の数(inApp)。受信者ごとの行 = 既読の行か watermark ≥ 公開の時刻。
  * 共有の行(全員・ロール)= 見られる利用者(ロール・後から登録した人の扱い)のうち、既読の行か watermark ≥ 公開の時刻の人の数
  */
 async function readCounts(scope: MessagingQueryScope): Promise<ReadCountRow[]> {
@@ -226,7 +226,7 @@ async function readCounts(scope: MessagingQueryScope): Promise<ReadCountRow[]> {
   }));
 }
 
-/** 配信停止の行の軸の値(回に結んだ値。template / tag は残っている回から引く) */
+/** 配信停止の行の軸の値(送信に結んだ値。template / tag は残っている送信から引く) */
 function unsubscribeGroupExpr(
   scope: MessagingQueryScope,
   columns: { time: SQL; category: SQL; messageKey: SQL; dispatchId: SQL },
@@ -257,7 +257,7 @@ async function unsubscribeRows(
 ): Promise<UnsubscribeCountRow[]> {
   const { from, to } = windowOf(scope);
   const parts: SQL[] = [];
-  // 回ごとのビューは結んだ回で数える(止めた時刻で絞らない)
+  // 送信ごとのビューは結んだ送信で数える(止めた時刻で絞らない)
   if (scope.groupBy === "dispatch") {
     parts.push(scope.dispatchIds && scope.dispatchIds.length > 0 ? sql`${source.dispatchId} IN (${idList(scope.dispatchIds)})` : sql`false`);
   } else {

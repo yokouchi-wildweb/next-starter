@@ -1,10 +1,10 @@
 // src/app/api/admin/messaging/overrides/[key]/preview/route.ts
 //
-// 管理者向け: 文言の編集のプレビュー(D86)。門 messagingOverrides が閉なら 404
+// 管理者向け: テキストの編集のプレビュー(D86)。門 messagingOverrides が閉なら 404
 //
-// POST /api/admin/messaging/overrides/[key]/preview   body { channel, values: { "<経路.欄>": 値 } }
-//   → { channel, html, text }: 送る時の値に未保存の値を重ね、連絡の描き方で描いた HTML(文字の欄に data-field="<経路.欄>")。
-//   経路にプレビューが無ければ html は null。保存はしない
+// POST /api/admin/messaging/overrides/[key]/preview   body { channel, values: { "<送信チャンネル.欄>": 値 } }
+//   → { channel, html, text }: 送る時の値に未保存の値を重ね、連絡の描き方で描いた HTML(文字の欄に data-field="<送信チャンネル.欄>")。
+//   送信チャンネルにプレビューが無ければ html は null。保存はしない
 
 import { gate } from "@/featureGate";
 import { createApiRoute } from "@/wiring/apiRoute";

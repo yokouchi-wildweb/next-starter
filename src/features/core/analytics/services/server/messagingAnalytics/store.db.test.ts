@@ -1,5 +1,5 @@
 // src/features/core/analytics/services/server/messagingAnalytics/store.db.test.ts
-// 連絡の集計の SQL の実 DB テスト(読むだけ)。全部の分け方(期間・日・軸・回)で開発 DB に問い合わせ、SQL が通って行の形が合うことを確かめる。
+// 連絡の集計の SQL の実 DB テスト(読むだけ)。全部の分け方(期間・日・軸・送信)で開発 DB に問い合わせ、SQL が通って行の形が合うことを確かめる。
 // DATABASE_URL が無ければ全件 skip。列が無ければ失敗する(先に pnpm db:push。配信停止の出どころの列は指令 32 の push)。
 // 実行: pnpm test --db src/features/core/analytics/services/server/messagingAnalytics/store.db.test.ts
 
@@ -37,7 +37,7 @@ describe("messagingAnalytics の SQL(実 DB、読むだけ)", { skip }, () => {
   });
 
   for (const groupBy of GROUPS) {
-    test(`分け方 ${groupBy}: 回・配達・既読の問い合わせが通り、期間の印が cur / prev`, async () => {
+    test(`分け方 ${groupBy}: 送信・配達・既読の問い合わせが通り、期間の印が cur / prev`, async () => {
       const scope: Scope = { current: { from, to }, previous, groupBy, granularity: "day", timezone: "Asia/Tokyo", filter: {} };
       const rows = await Promise.all([store.dispatchCounts(scope), store.deliveryCounts(scope), store.readCounts(scope)]);
       for (const row of rows.flat()) assert.ok(row.period === "cur" || row.period === "prev");
@@ -50,7 +50,7 @@ describe("messagingAnalytics の SQL(実 DB、読むだけ)", { skip }, () => {
     });
   }
 
-  test("絞りつき・回ごと・回の頁・テンプレートの名前", async () => {
+  test("絞りつき・送信ごと・送信の頁・テンプレートの名前", async () => {
     const filter = { channel: "email", messageKey: "shop.notice", category: "news" };
     const scope: Scope = { current: { from, to }, groupBy: "none", granularity: "week", timezone: "UTC", filter };
     await Promise.all([store.dispatchCounts(scope), store.deliveryCounts(scope), store.readCounts(scope)]);

@@ -1,6 +1,6 @@
 // src/app/api/admin/messaging/overrides/[key]/route.ts
 //
-// 管理者向け: 1 連絡の文言の上書き(AdminOverrideMessageDetail)。門 messagingOverrides が閉なら 404
+// 管理者向け: 1 連絡のテキストの編集(AdminOverrideMessageDetail)。門 messagingOverrides が閉なら 404
 //
 // GET    /api/admin/messaging/overrides/[key]                  全欄(コードの値・管理画面の値・印・使ってよい {{鍵}})
 // PUT    /api/admin/messaging/overrides/[key]                  body { fields: [{ fieldPath, value } | { fieldPath, reset: true }] } 直した欄をまとめて保存

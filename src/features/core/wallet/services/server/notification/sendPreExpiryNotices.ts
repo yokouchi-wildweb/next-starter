@@ -82,7 +82,7 @@ export async function sendPreExpiryNotices(options: {
         await advanceCheckpoint(name, expiresFrom);
       }
       if (expiresTo.getTime() <= expiresFrom.getTime()) continue;
-      // 段の連絡(省略 = 上流 wallet.expiringNotice。経路はその連絡の種類が決める)
+      // 段の連絡(省略 = 上流 wallet.expiringNotice。送信チャンネルはその連絡のカテゴリーが決める)
       const message = await noticeMessageOf(stage.messageKey, expiringNoticeMessage);
 
       try {

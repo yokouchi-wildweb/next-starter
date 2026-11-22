@@ -1,11 +1,11 @@
 // scripts/structure/message/scaffold.mjs
-// 新しい連絡の定義 messages/<名前>.ts を無い時だけ書く(pnpm generate message の中身)。描き方はひな形(messaging/layouts)が持つ。
+// 新しい連絡の定義 messages/<名前>.ts を無い時だけ書く(pnpm generate message の中身)。描き方はレイアウト(messaging/layouts)が持つ。
 // 引数: <domain> <name> --category <key> --label <名前> [--var <鍵>:<別名>:<説明> ...] [--core](名前 = 管理画面に出す連絡の名前、必須 D46。
 //   --var = vars の値 1 つの鍵・日本語の別名・説明、繰り返せる・任意 D133。無ければ vars は空)
-//(種別と経路は種類から引く D81・D86。種類 = 利用者から見て 1 つの出来事 D79)
+//(種別と送信チャンネルはカテゴリーから引く D81・D86。カテゴリー = 利用者から見て 1 つの出来事 D79)
 // - 引数なし = 何もしない(pnpm generate の一括でも回る)。質問はしない
 // - exit 2(書かない): 知らない引数・domain が features の地区(src/features の下のフォルダ、地区の地図の読み手で読む)に無い・名前が camelCase でない・
-//   core のドメインに --core が無い(fork の持ち場の外)・--category が無い・category が受け口に無い・種類の経路が経路の受け口に無い・
+//   core のドメインに --core が無い(fork の持ち場の外)・--category が無い・category が受け口に無い・カテゴリーの送信チャンネルが送信チャンネルの受け口に無い・
 //   --var の形が違う(鍵が camelCase でない・別名の形・説明が空・鍵か別名の重なり)
 // - 既にあるファイルは触らない(理由を出す)。書いた時だけ呼び手が src/registry を作り直す
 // 雛形: ./templates.mjs
@@ -22,10 +22,10 @@ const NAME = /^[a-z][A-Za-z0-9]*$/;
 const ALIAS = /^(?=.*[^A-Za-z0-9_])[\p{L}\p{N}_]+$/u;
 const MESSAGING_DIR = "src/features/core/messaging";
 const USAGE = "使い方: pnpm generate message -- <domain> <name> --category <key> --label <名前> [--var <鍵>:<別名>:<説明> ...] [--core]";
-/** 種類の名前の付け方の案内(D79) */
+/** カテゴリーの名前の付け方の案内(D79) */
 const NAMING =
-  "種類 = 利用者から見て 1 つの出来事(「〜した時」と言える単位: 例 likeReceived・itemSold・passwordReset・pointExpiring)。" +
-  "ドメイン・機能の単位(shop・account・wallet)にはしない。無ければ先に src/features/core/messaging/categories/<名前>.ts を足す(種別と経路を持つ)";
+  "カテゴリー = 利用者から見て 1 つの出来事(「〜した時」と言える単位: 例 likeReceived・itemSold・passwordReset・pointExpiring)。" +
+  "ドメイン・機能の単位(shop・account・wallet)にはしない。無ければ先に src/features/core/messaging/categories/<名前>.ts を足す(種別と送信チャンネルを持つ)";
 
 /** 受け口の項目の名前(<dir>/<名前>.ts(x) か <名前>/index.ts(x)) */
 function receptacleItemNames(repoRoot, dir) {
@@ -84,7 +84,7 @@ export function parseArgs(argv) {
       if (arg === "--category") options.category = value;
       else options.label = value;
     } else if (arg === "--kind" || arg === "--channels") {
-      return { ok: false, reason: `${arg} は無くなりました(種別と経路は種類 --category から引く)` };
+      return { ok: false, reason: `${arg} は無くなりました(種別と送信チャンネルはカテゴリー --category から引く)` };
     } else if (arg.startsWith("-")) return { ok: false, reason: `知らない引数です: ${arg}` };
     else positional.push(arg);
   }
@@ -128,7 +128,7 @@ export function runMessageScaffold(repoRoot, argv) {
   const known = receptacleItemNames(repoRoot, `${MESSAGING_DIR}/channels`);
   const unknown = channels.filter((channel) => !known.includes(channel));
   if (channels.length === 0 || unknown.length > 0) {
-    return fail(`種類 ${category} の経路 ${unknown.join(", ") || "(空)"} は経路の受け口に無い(${known.join(" / ")})`);
+    return fail(`カテゴリー ${category} の送信チャンネル ${unknown.join(", ") || "(空)"} は送信チャンネルの受け口に無い(${known.join(" / ")})`);
   }
 
   const key = `${domain}.${name}`;

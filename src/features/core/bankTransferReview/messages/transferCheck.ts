@@ -5,8 +5,8 @@
 // 管理の定義の送る口 POST /api/admin/messaging/definitions/send(記録の入口)で送る。コードからは送らない。
 // 記録から埋める値(recordVars): 宛名・選んだ審査の金額と申告日(同じ人の審査はまとめるので「、」でつないだ字)。
 // 管理者は送る時に件名・本文などのテキストを編集する(本文の既定は書き出しだけ)。
-// カテゴリー bankTransferCheck(種別 transactional、メール・お知らせとも既定で入、D165)。
-// レイアウト statement: メールは件名・本文、お知らせの一覧は短い本文(前の一括メールのお知らせの文)
+// カテゴリー bankTransferCheck(種別 transactional、email・inApp とも既定で入、D165)。
+// レイアウト statement: メールは件名・本文、inApp の一覧は短い本文(前の一括メールのお知らせの文)
 
 import { z } from "zod";
 

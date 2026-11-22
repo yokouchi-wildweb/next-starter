@@ -1,6 +1,6 @@
 // src/features/core/wallet/services/server/wrappers/bulkGrant.db.test.ts
-// 一括付与と補填(bulkGrant)の実 DB テスト: 人ごとの額・1 つの束・種類と区分・飛ばす人・先に止める・全部戻す・お知らせ・束ごとの取り消し。
-// 開発 DB に一時のユーザー(provider_uid `test-bulk-grant:<乱数>`)を作り、終了時にユーザー(財布・ロットは cascade)・履歴・お知らせを消す。
+// 一括付与と補填(bulkGrant)の実 DB テスト: 人ごとの額・1 つの束・種類と区分・飛ばす人・先に止める・全部戻す・inApp の知らせ・束ごとの取り消し。
+// 開発 DB に一時のユーザー(provider_uid `test-bulk-grant:<乱数>`)を作り、終了時にユーザー(財布・ロットは cascade)・履歴・inApp の知らせを消す。
 // 監査の行は残る。DATABASE_URL が無ければ全件 skip。
 // 実行: pnpm test --db src/features/core/wallet/services/server/wrappers/bulkGrant.db.test.ts
 
@@ -63,7 +63,7 @@ describe("bulkGrant(実 DB)", { skip }, () => {
     cleanup = async () => {
       const ids = (await db.select({ id: UserTable.id }).from(UserTable).where(like(UserTable.providerUid, `${TAG}:%`))).map((r) => r.id);
       if (ids.length > 0) {
-        // 知らせの回(配達・受け取り箱の行は回と一緒に消える)
+        // 知らせの送信(配達・受け取り箱の行は送信と一緒に消える)
         const dispatchIds = (
           await db.select({ id: MessageDeliveryTable.dispatch_id }).from(MessageDeliveryTable).where(inArray(MessageDeliveryTable.user_id, ids))
         ).map((r) => r.id);

@@ -209,7 +209,7 @@ export const renderer: MilestoneRendererDefinition = {
     <MilestoneNotifications results={purchaseInfo.milestoneResults} />
   ) : null}
   ```
-- 画面に出さない: 定義の `onAchieved` で別の経路(アプリ内通知など)へ送る
+- 画面に出さない: 定義の `onAchieved` で別の送信チャンネル(inApp など)へ送る
 
 ## API
 

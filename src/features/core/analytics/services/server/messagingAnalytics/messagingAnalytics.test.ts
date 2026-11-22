@@ -1,8 +1,8 @@
 // 連絡の集計(messagingAnalytics)の検査。SQL の部分は偽物の store、送りの組の SQL の形は PgDialect で組み立てて確かめる。
-// - summary: 経路を足した数・同じ組の率・前の期間と変化率、開封・クリックは計測が閉なら null(0 と区別)
+// - summary: 送信チャンネルを足した数・同じ組の率・前の期間と変化率、開封・クリックは計測が閉なら null(0 と区別)
 // - 配達の行が保持の日数を過ぎた範囲は delivered〜clicked が null(detailRetained false)
-// - series は空のバケットも 0 で埋める。breakdown: 経路の軸は行の経路、結び付きの無い配信停止は key null、テンプレートの見出し、知らない軸は 400
-// - dispatches: 回の管理が閉なら空、回ごとの数、cursor
+// - series は空のバケットも 0 で埋める。breakdown: 送信チャンネルの軸は行の送信チャンネル、結び付きの無い配信停止は key null、テンプレートの見出し、知らない軸は 400
+// - dispatches: 送信の管理が閉なら空、送信ごとの数、cursor
 // - 送りの組の SQL: is_test・予約 / 取り消しを外し、legacy.notification は既読(withLegacy)の時だけ入る、Date を値に入れない
 // 実行: pnpm test src/features/core/analytics
 import { test } from "node:test";
@@ -66,7 +66,7 @@ function setup(options: { tracking?: boolean; dispatches?: boolean; store?: Mess
   return { store, analytics };
 }
 
-test("summary: 経路を足した数、同じ組の率、前の期間と変化率", async () => {
+test("summary: 送信チャンネルを足した数、同じ組の率、前の期間と変化率", async () => {
   const store = fakeStore();
   const { analytics } = setup({ store });
   const result = await analytics.getSummary(RANGE);
@@ -112,7 +112,7 @@ test("配達の行が保持の日数を過ぎた範囲は delivered〜clicked �
   assert.equal(result.metrics.delivered, null);
   assert.equal(result.metrics.bounced, null);
   assert.equal(result.metrics.rates.deliveredRate, null);
-  // 回の数・既読・配信停止は残る
+  // 送信の数・既読・配信停止は残る
   assert.equal(result.metrics.sent, 18);
   assert.equal(result.metrics.read, 5);
 });
@@ -144,7 +144,7 @@ test("series: 粒度のバケットを全部返し、データの無いバケッ
   assert.ok(result.history.every((day) => day.detailRetained));
 });
 
-test("breakdown: 経路の軸は行の経路、結び付きの無い配信停止は key null、テンプレートは見出し、知らない軸は 400", async () => {
+test("breakdown: 送信チャンネルの軸は行の送信チャンネル、結び付きの無い配信停止は key null、テンプレートは見出し、知らない軸は 400", async () => {
   const channel = await setup().analytics.getBreakdown({ ...RANGE, axis: "channel" });
   assert.deepEqual(channel.entries.map((entry) => entry.key), ["inApp", "email"]);
   const email = channel.entries.find((entry) => entry.key === "email")!;
@@ -188,7 +188,7 @@ test("breakdown: 経路の軸は行の経路、結び付きの無い配信停止
   );
 });
 
-test("dispatches: 回の管理が閉なら空、開なら回ごとの数と cursor", async () => {
+test("dispatches: 送信の管理が閉なら空、開なら送信ごとの数と cursor", async () => {
   const closed = await setup({ dispatches: false }).analytics.getDispatches(RANGE);
   assert.deepEqual(closed.items, []);
   assert.equal(closed.dispatchesEnabled, false);

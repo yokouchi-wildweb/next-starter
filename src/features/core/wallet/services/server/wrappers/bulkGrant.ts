@@ -36,7 +36,7 @@ export type BulkGrantParams = {
   kind: BulkGrantKind;
   /** 履歴の reason と監査に残る理由(必須) */
   reason: string;
-  /** commit の後に 1 人ずつお知らせを送る */
+  /** commit の後に 1 人ずつ inApp の知らせを送る */
   notify?: boolean;
   dryRun?: boolean;
 };
@@ -48,7 +48,7 @@ export type BulkGrantResult = {
   granted: Array<{ userId: string; amount: number }>;
   skipped: Array<{ userId: string; why: string }>;
   total: number;
-  /** お知らせの処理を通った人数(お知らせの機能が閉じていれば送らずに数える) */
+  /** 知らせの処理を通った人数(inApp が閉じていれば送らずに数える) */
   notified: number;
   notifyFailed: Array<{ userId: string; error: string }>;
 };

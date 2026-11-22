@@ -1,7 +1,7 @@
 // src/features/core/analytics/hooks/useMessagingAnalyticsDispatches.ts
-// 連絡の集計の回ごとの指標(無限スクロール、カーソルのモード。送った時刻の新しい順)。期間・絞りが変われば先頭から取り直す。
+// 連絡の集計の送信ごとの指標(無限スクロール、カーソルのモード。送った時刻の新しい順)。期間・絞りが変われば先頭から取り直す。
 // 画面は @/components/Widgets/InfiniteScrollList に items / hasMore / sentinelRef を渡す。
-// dispatchesEnabled(回の管理 messagingDispatches が開か)・trackingEnabled(開封・クリックの計測が開か)は直近の応答の値(まだ無ければ null)
+// dispatchesEnabled(送信の管理 messagingDispatches が開か)・trackingEnabled(開封・クリックの計測が開か)は直近の応答の値(まだ無ければ null)
 
 "use client";
 

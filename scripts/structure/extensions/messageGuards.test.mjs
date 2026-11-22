@@ -1,11 +1,11 @@
 // scripts/structure/extensions/messageGuards.test.mjs
 // 連絡の字面の守り(./derive/messageGuards.mjs)と、連絡の上書きの点(lib/messaging の extensionPoints.ts の messages)。
-// 一時ディレクトリの fork(acme、祖先 parent)の木で planExtensions を回す。種類の点(messaging の categories)・種別の性質の表は本物を写す。
+// 一時ディレクトリの fork(acme、祖先 parent)の木で planExtensions を回す。カテゴリーの点(messaging の categories)・種別の性質の表は本物を写す。
 // - 定義だけ・正しい上書き・項目 0 は通る
-// - category: 全部の定義に必須・受け口の鍵。上書きで付け替えられ(D166・D167)、守りは付け替えた後のカテゴリーで見る / layout: 全部の定義に必須・ひな形の受け口のフォルダの名前
-// - required の定義: 種類の経路に email・adminEditable が空・throttle が無い / required への上書き: enabled:false・adminEditable・throttle を止める
+// - category: 全部の定義に必須・受け口の鍵。上書きで付け替えられ(D166・D167)、守りは付け替えた後のカテゴリーで見る / layout: 全部の定義に必須・レイアウトの受け口のフォルダの名前
+// - required の定義: カテゴリーの送信チャンネルに email・adminEditable が空・throttle が無い / required への上書き: enabled:false・adminEditable・throttle を止める
 // - 上流の functional の連絡は上書きで止められない(fork の木の core の定義)
-// - 種類の上書き: functional・security の email は外せない、group は受け口の鍵で同じ種別だけ
+// - カテゴリーの上書き: functional・security の email は外せない、group は受け口の鍵で同じ種別だけ
 // - 守りに関わる値がリテラルでない・定義の形が違う(export const message が無い)を止める / views/ の下は対象外
 // 実行: pnpm test scripts/structure/extensions/messageGuards.test.mjs
 
@@ -133,16 +133,16 @@ test("channelModes(送信チャンネルの固定、D212): required か email �
   assert.deepEqual(problemsOf({ [`${M}a.ts`]: definition('channelModes: { email: "off" },', "notice"), [`${M}a.override.ts`]: override('category: "account", channelModes: {}') }), []);
 });
 
-test("layout: 全部の定義に必須・ひな形の受け口のフォルダの名前。上書きでは変えられない", () => {
-  expectOne({ [`${M}a.ts`]: definition("").replace('  layout: "notice",\n', "") }, `${M}a.ts`, /layout\(ひな形の鍵: notice\)を書く/);
-  expectOne({ [`${M}a.ts`]: definition("").replace('layout: "notice"', 'layout: "nope"') }, `${M}a.ts`, /layout "nope" はひな形の受け口に無い\(notice\)/);
+test("layout: 全部の定義に必須・レイアウトの受け口のフォルダの名前。上書きでは変えられない", () => {
+  expectOne({ [`${M}a.ts`]: definition("").replace('  layout: "notice",\n', "") }, `${M}a.ts`, /layout\(レイアウトの鍵: notice\)を書く/);
+  expectOne({ [`${M}a.ts`]: definition("").replace('layout: "notice"', 'layout: "nope"') }, `${M}a.ts`, /layout "nope" はレイアウトの受け口に無い\(notice\)/);
   expectOne({ [`${M}a.ts`]: definition("").replace('layout: "notice"', "layout: LAYOUT") }, `${M}a.ts`, /layout はリテラル|リテラル/);
   const problems = problemsOf({ [`${M}a.ts`]: OPTIONAL, [`${M}a.override.ts`]: override('layout: "notice"') });
   assert.equal(problems.length, 1, problems.join(" / "));
   assert.match(problems[0], /layout は上書きできない/);
 });
 
-test("required の定義: 種類の経路に email・adminEditableOnly・throttle を止める", () => {
+test("required の定義: カテゴリーの送信チャンネルに email・adminEditableOnly・throttle を止める", () => {
   expectOne({ [`${M}a.ts`]: definition("required: true,", "inAppOnly") }, `${M}a.ts`, /"email" を含める/);
   expectOne({ [`${M}a.ts`]: definition('required: true,\n  adminEditableOnly: ["email.subject"],') }, `${M}a.ts`, /adminEditableOnly は付けられない/);
   expectOne(
@@ -168,7 +168,7 @@ test("上流の functional の連絡は止められない(required でなくて�
   assert.deepEqual(problemsOf({ [`${M}a.ts`]: OPTIONAL, [`${M}a.override.ts`]: override("enabled: false") }), []);
 });
 
-test("種類の上書き: functional・security の email は外せない、group は受け口の鍵で同じ種別だけ", () => {
+test("カテゴリーの上書き: functional・security の email は外せない、group は受け口の鍵で同じ種別だけ", () => {
   expectOne({ [`${C}account.override.ts`]: categoryOverride('channels: ["inApp"]') }, `${C}account.override.ts`, /email は外せない/);
   expectOne({ [`${C}alert.override.ts`]: categoryOverride('channels: ["inApp"]') }, `${C}alert.override.ts`, /email は外せない/);
   assert.deepEqual(problemsOf({ [`${C}notice.override.ts`]: categoryOverride('channels: ["inApp"], label: "知らせ"') }), []);

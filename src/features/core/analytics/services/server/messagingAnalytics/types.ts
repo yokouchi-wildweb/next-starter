@@ -18,9 +18,9 @@ export type MessagingAnalyticsParams = DateRangeParams & MessagingAnalyticsFilte
 
 /**
  * 指標の数。null = 測れない(開封・クリック: 計測 messagingTracking が閉 / 配達の行ごとの指標: 配達の行が保持の日数を過ぎた)
- * - targeted / sent / failed / skippedNoAddress / suppressed / skippedThrottled: 回の channel_counts(全員宛ての行の無い数・共有のお知らせも入る)
+ * - targeted / sent / failed / skippedNoAddress / suppressed / skippedThrottled: 送信の channel_counts(全員宛ての行の無い数・共有の inAppも入る)
  * - delivered / bounced / complained / opened / clicked: 配達の行
- * - read: お知らせの既読(inApp)。inAppSent = その分母
+ * - read: inApp の既読。inAppSent = その分母
  * - unsubscribed: 配信停止の行(止めた時刻で数える)
  */
 export type MessagingCounts = {
@@ -110,7 +110,7 @@ export type MessagingDispatchRow = {
   /** 送った時刻(予約なら予約の時刻)ISO */
   sentAt: string;
   status: string;
-  /** 管理者が削除した回(D88) */
+  /** 管理者が削除した送信(D88) */
   deleted: boolean;
   metrics: MessagingMetrics;
 };
@@ -118,7 +118,7 @@ export type MessagingDispatchRow = {
 export type MessagingDispatchesResponse = MessagingRangeResponse & {
   items: MessagingDispatchRow[];
   nextCursor: string | null;
-  /** 回の管理(messagingDispatches)が閉なら false で items は空 */
+  /** 送信の管理(messagingDispatches)が閉なら false で items は空 */
   dispatchesEnabled: boolean;
   trackingEnabled: boolean;
 };
@@ -161,17 +161,17 @@ export type MessagingQueryScope = {
   current: { from: Date; to: Date };
   /** 前の期間(無い = 当期だけ) */
   previous?: { from: Date; to: Date };
-  /** 分け方: none = 期間だけ、date = 粒度のバケット、軸、dispatch = 回、rollup = 日まとめの dims */
-  /** rollup = 日まとめの dims(group = JSON [message_key, category]、経路は行の channel) */
+  /** 分け方: none = 期間だけ、date = 粒度のバケット、軸、dispatch = 送信、rollup = 日まとめの dims */
+  /** rollup = 日まとめの dims(group = JSON [message_key, category]、送信チャンネルは行の channel) */
   groupBy: "none" | "date" | MessagingBreakdownAxis | "dispatch" | "rollup";
   granularity: Granularity;
   timezone: string;
   filter: MessagingAnalyticsFilter;
-  /** groupBy dispatch の時の回 */
+  /** groupBy dispatch の時の送信 */
   dispatchIds?: readonly string[];
 };
 
-/** 回ごとのビューの回の行 */
+/** 送信ごとのビューの送信の行 */
 export type DispatchPageRow = {
   id: string;
   messageKey: string | null;
@@ -190,7 +190,7 @@ export type MessagingAnalyticsStore = {
   deliveryCounts: (scope: MessagingQueryScope) => Promise<DeliveryCountRow[]>;
   readCounts: (scope: MessagingQueryScope) => Promise<ReadCountRow[]>;
   unsubscribeCounts: (scope: MessagingQueryScope) => Promise<UnsubscribeCountRow[]>;
-  /** 回の頁(送った時刻の新しい順、keyset) */
+  /** 送信の頁(送った時刻の新しい順、keyset) */
   dispatchPage: (params: {
     from: Date;
     to: Date;

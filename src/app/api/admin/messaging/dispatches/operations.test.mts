@@ -1,5 +1,5 @@
 // src/app/api/admin/messaging/dispatches/operations.test.mts
-// 回の操作の口の検査(Factory・messaging の service は偽物): DELETE [id](削除、D88)・bulk-delete・delete-summary・[id]/resend。
+// 送信の操作の口の検査(Factory・messaging の service は偽物): DELETE [id](削除、D88)・bulk-delete・delete-summary・[id]/resend。
 // 取り消し・取り下げの口(cancel / retract)は削除に置き換わって無い。
 // [] のフォルダの中のテストは pnpm test が拾わないので、ここに置く。
 // - 宣言: 操作の口が access { roleCategories: ["admin"] }(門 messagingDispatches は住所の前方一致で proxy が閉じる)

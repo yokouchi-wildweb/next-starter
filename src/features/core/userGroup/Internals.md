@@ -33,7 +33,7 @@
 ### 時間の上限
 
 - 数え・見込み・列挙は取引の中で `SET LOCAL statement_timeout`（`evaluation.timeoutMs`）を掛けて読む。Postgres の取り消し（57014）は 503 にする
-- 連絡の送信の固定は `memberWhere` が返す `timeoutMs` を連絡の側が savepoint の中で掛ける（時間切れなら回を取り消す）
+- 連絡の送信の固定は `memberWhere` が返す `timeoutMs` を連絡の側が savepoint の中で掛ける（時間切れなら送信を取り消す）
 - 管理画面の一覧の動的グループの人数は 1 件 `admin.listCountTimeoutMs`・1 ページ合計 `admin.listCountBudgetMs` で数え、超えた分は「未計算」
 
 ### 定期計算（cron `user-group-recompute`）

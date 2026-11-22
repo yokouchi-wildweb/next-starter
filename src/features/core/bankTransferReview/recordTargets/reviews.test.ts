@@ -82,7 +82,7 @@ test("宛先: 1 人 1 件にまとめ、宛名・金額・申告日を「、」�
   ]);
 });
 
-test("afterSend: お知らせだけの送信はメモを書かない(D196)", async () => {
+test("afterSend: inApp だけの送信はメモを書かない(D196)", async () => {
   await recordTarget.afterSend!(sent(["inApp"]));
   assert.equal(transactions, 0);
   assert.deepEqual(updates, []);
