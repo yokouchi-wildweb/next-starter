@@ -19,6 +19,16 @@ type SpSidebarProps = {
 
 const noop = () => {};
 
+/**
+ * 開いた直後の自動フォーカスを板そのものへ向ける。
+ * Radix の既定は板の中の最初のフォーカスできる要素(リンクは除く)= 最初のカテゴリーで、その onFocus が子メニューを開き、
+ * 375px では左へ出る子メニューが背景を覆う。板(role=dialog、tabIndex -1)に置けば何も開かず、Tab で入れば今まで通り開く
+ */
+const focusPanel = (event: Event) => {
+  event.preventDefault();
+  (event.currentTarget as HTMLElement | null)?.focus();
+};
+
 /** SP のサイドバー: 右から出る板(Sheet)。印 admin-sidebar は板と背景の 2 つ(frame.css が隠す部位) */
 export function SpSidebar({ width, isOpen, onClose, content }: SpSidebarProps) {
   return (
@@ -32,6 +42,7 @@ export function SpSidebar({ width, isOpen, onClose, content }: SpSidebarProps) {
       title="メニュー"
       titleSrOnly
       showCloseButton={false}
+      onOpenAutoFocus={focusPanel}
       // 子メニューは板の左へはみ出して開く(submenuPlacement left)ので、板の本体で切らない(スクロールは BaseSidebar が持つ)
       scrollable={false}
       className="md:hidden border-l-0"

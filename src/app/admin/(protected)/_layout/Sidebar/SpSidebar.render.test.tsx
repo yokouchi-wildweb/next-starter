@@ -1,10 +1,11 @@
 // 管理の SP のサイドバー(Overlays/Sheet の side right)の検査(jsdom の上で開いて読む)。
 // - 閉じている間は描かない / 開くと右の板(幅 = サイドバーの幅、層 navigation、背景 backdrop、md:hidden)、印 admin-sidebar は板と背景の 2 つ
 // - 中身は殻の placement "sp" / width を useAdminSidebarFrame() で読み、close() と背景を押すと onClose
+// - 開いた直後のフォーカスは板そのもの: フォーカスで開く子メニュー(BaseSidebar のカテゴリーと同じ作り)は開かず、フォーカスが来れば開く
 // 実行: pnpm test "src/app/admin/(protected)/_layout/Sidebar/SpSidebar.render.test.tsx"
 import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
-import { createElement } from "react";
+import { createElement, useState } from "react";
 import { JSDOM } from "jsdom";
 const dom = new JSDOM("<!doctype html><html><body></body></html>", { pretendToBeVisual: true });
 const g = globalThis as Record<string, unknown>;
@@ -78,6 +79,38 @@ test("閉じている間は描かず、開くと右の板と背景に admin-side
     overlay.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true, button: 0 }));
   });
   assert.equal(closed, 2);
+
+  act(() => root.unmount());
+  host.remove();
+});
+
+test("開いた直後は子メニューが開かない(フォーカスは板)、メニューにフォーカスが来れば今まで通り開く", async () => {
+  // BaseSidebar のカテゴリーと同じ作り: tabIndex 0 の menuitem が onFocus で子メニューを開く(リンクは Radix の自動フォーカスの対象外)
+  const Category = () => {
+    const [open, setOpen] = useState(false);
+    return createElement(
+      "span",
+      { tabIndex: 0, role: "menuitem", "aria-haspopup": true, "aria-expanded": open, onFocus: () => setOpen(true) },
+      "カテゴリー",
+    );
+  };
+  const content = createElement("nav", null, createElement("a", { href: "/admin" }, "ホーム"), createElement(Category));
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const root = createRoot(host);
+
+  act(() => root.render(createElement(SpSidebar, { width: 192, isOpen: true, onClose: () => {}, content })));
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 0));
+  });
+  const panel = document.querySelector("[role=dialog]") as HTMLElement;
+  const item = panel.querySelector("[role=menuitem]") as HTMLElement;
+  assert.equal(document.activeElement, panel);
+  assert.equal(item.getAttribute("aria-expanded"), "false");
+  assert.equal(panel.querySelector('[aria-expanded="true"]'), null);
+
+  act(() => item.focus());
+  assert.equal(item.getAttribute("aria-expanded"), "true");
 
   act(() => root.unmount());
   host.remove();

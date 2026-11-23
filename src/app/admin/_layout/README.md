@@ -44,7 +44,7 @@
   - `AdminProtectedLayout`: サイドバー開閉ボタン + ResizableArea(sidebar / footer の props)
   - `ResizableArea`: サイドバー幅の調整 + 本文 + Footer
   - `Footer`
-  - `Sidebar/`: BaseSidebar(枠の部品 + メニュー。中身は useAdminMenu = src/domains/core/admin/menu/)・PcSidebar・SpSidebar(PC の列 / SP のドロワーの殻)・frameValues.ts(枠の値: アイコンの有無・枠のリンク・ログアウトのアイコン)
+  - `Sidebar/`: BaseSidebar(枠の部品 + メニュー。中身は useAdminMenu = src/domains/core/admin/menu/)・PcSidebar・SpSidebar(PC の列 / SP のドロワーの殻。SP は開いた直後のフォーカスを板そのものへ向け、フォーカスで開く子メニューを開けない)・frameValues.ts(枠の値: アイコンの有無・枠のリンク・ログアウトのアイコン)
 
 ### data-slot の一覧
 
