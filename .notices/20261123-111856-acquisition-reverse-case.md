@@ -4,6 +4,7 @@ date: 2026-11-23T11:18:56+09:00
 severity: action-required
 checkpoint: acquisition-reverse-case
 fixes: 20261111-141433-acquisition-config-home
+pick: -
 resolves: 20261119-112400-acquisition-notice-reverse-case
 change: notice 20261111-141433-acquisition-config-home now names the reverse case (body corrected): a fork with the rule userAcquisition open and the old ACQUISITION_CONFIG.enabled false starts recording by that merge alone; no code change
 why: since that notice, recording (touch cookie in the proxy, signup attribution, GA4 channel table) follows the gate rule userAcquisition only; its step 2 said "enabled: false → nothing to do", true only while the rule is closed, so a fork that kept the rule open (switches userAcquisition: true) with enabled: false began recording signup attribution without deciding to
