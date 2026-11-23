@@ -77,6 +77,10 @@ read by: /ship (SKILL.md STEPS points here for steps 0, 1 and 3-6) | a caller th
 
 ## QUICK SHIP (`--quick`)
 - for every ship but the last of a session | makes no safe point | a run of quick ships is closed by a plain ship (its area checks take in the unchecked quick files, step 2) or a `--safe` ship (full checks on the tip)
-- runs no check except `pnpm check notices` (only when a notice is added or changed): skips step 2 entirely otherwise (`pnpm check --phase=ship` included), step 6's pickCheck, step 7's full checks and tag
+- runs no check except `pnpm check notices` (only when a notice is added or changed), runs the ship generators (below): skips step 2 entirely otherwise (`pnpm check --phase=ship` included), step 6's pickCheck, step 7's full checks and tag
 - keeps: steps 0, 1, 3-5 (notice judgment and writing), commit (with the `Ship: quick` trailer), push
+- generated outputs (a generator is work, not a check, D357): before step 3, `pnpm generate --phase=ship` — the generators whose watch the range hits rewrite their outputs (a few seconds; nothing changes when they are fresh)
+  - put every file it changed into the range (they are this commit's own: a lib config needs its district-map row, a domain.json its generated files), so a quick commit, and a notice's checkpoint on it, never carries a stale generated file
+  - with `hotfix`: leave `src/app/route-map.jsonl` and `pnpm-lock.yaml` out (`git restore` them; per-fork contents, the hotfix rule) | it fails (exit 1, e.g. a domain.json error) → fix the source and run it again | the fix is not obvious → STOP
+  - why: quick skips step 2, so before this a stale output went out until a later plain ship's checks caught it, and forks stopped at a checkpoint in between got it (order 20261119-111917-district-map-stale-at-ship)
 - ship route: anywhere | in a linked worktree → SKILL.md WORKTREE ROUTE when it applies | the main checkout → a plain `git push`
