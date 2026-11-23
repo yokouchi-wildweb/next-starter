@@ -463,7 +463,9 @@ function ActionSection({
         cancelLabel="キャンセル"
         confirmVariant="success"
         confirmDisabled={confirming}
-        onConfirm={() => void confirm()}
+        onConfirm={async () => {
+          await confirm();
+        }}
       />
 
       {/* 拒否確認モーダル (理由入力フォーム付き) */}
