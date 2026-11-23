@@ -4,7 +4,7 @@
 
 - Lucide と同じ API で、プロジェクト固有アイコンを一元管理する仕組み。画像 / SVG を同じ使い方に揃える
 - 読む所: ファイルごと(入口の index は無い) | `@/components/Icons/createImageIcon`・`@/components/Icons/createSvgIcon`・`@/components/Icons/definitions`(アイコン)・`@/components/Icons/types`(型 `CustomIcon` / `CustomIconProps` / `IconComponent`)
-- アイコンの定義: `src/components/Icons/definitions.ts`
+- アイコンの定義: 上流は `src/components/Icons/definitions.ts`。fork は `definitions.ts` を編集せず、この棚の直下に自分の単位のファイル(例 `src/components/Icons/MyCoinIcon.tsx`、`src/components/CATALOG.md` の自分の節に 1 行)を足して定義する
 - 画像: `public/assets/icons/` に置き、パスは `iconPath()`(`src/utils/assets.ts`)で作る
 - 使う時・足す時の決まりは札 .claude/rules/items/components/Icons.md にある
 
@@ -27,6 +27,19 @@ import { iconPath } from "@/utils/assets";
 import { createImageIcon } from "@/components/Icons/createImageIcon";
 
 export const BrandIcon = createImageIcon(iconPath("brand.svg"), "BrandIcon");
+```
+
+### fork が自分のアイコンを足す
+
+- 1) 画像を `public/assets/icons/` に置く | 2) 棚の直下に自分の単位のファイルを足す(`definitions.ts` は上流の物) | 3) `src/components/CATALOG.md` の自分の節に 1 行 | 4) `@/components/Icons/<名前>` から使う
+- 上書きが棚のアイコンを読める設定(`overrideImports` に `@/components/Icons`): 利用者の枠のメニュー(`src/config/layout/user.ui.config.ts`)・wallet の通貨のアイコン(`src/config/domains/wallet.ui.config.ts` の `currencyIcons`)
+
+```tsx
+// src/components/Icons/MyCoinIcon.tsx(fork の単位)
+import { iconPath } from "@/utils/assets";
+import { createImageIcon } from "@/components/Icons/createImageIcon";
+
+export const MyCoinIcon = createImageIcon(iconPath("my-coin.png"), "MyCoinIcon");
 ```
 
 ### SVG アイコンを足す

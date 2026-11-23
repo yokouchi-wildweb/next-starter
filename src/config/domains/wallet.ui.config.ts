@@ -1,6 +1,7 @@
 // src/config/domains/wallet.ui.config.ts
 // ウォレットの描画専用の設定の上書き(持ち主 src/domains/core/wallet/config.ui.ts だけが読む)。キーと既定: 持ち主の config.ui.ts
 // 通貨のアイコンを変える・足す: `import { Ticket } from "lucide-react";` と `export default { currencyIcons: { my_ticket: Ticket } } satisfies WalletUiOverride;`
+// 画像のアイコン: 棚に自分の単位 src/components/Icons/<名前>.tsx(createImageIcon、src/components/CATALOG.md の自分の節に 1 行)を置き、`import { MyCoinIcon } from "@/components/Icons/<名前>";` で指す
 import type { WalletUiOverride } from "@/domains/wallet/config.ui";
 
 export default {} satisfies WalletUiOverride;

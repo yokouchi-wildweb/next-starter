@@ -4,17 +4,17 @@
 // [!!] 通貨を足した・消した場合は currencyIcons も揃えること(足した通貨のアイコンは上書きで書く)
 
 import { CircleDollarSign, Coins } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
+import type { IconComponent } from "@/components/Icons/types";
 import override from "@/config/domains/wallet.ui.config";
 import { defineConfig, type OverrideOf } from "@/lib/defineConfig";
 
-/** 上書きの中で読んでよい指定子(アイコンの部品) */
-export const overrideImports = ["lucide-react"] as const;
+/** 上書きの中で読んでよい指定子(アイコンの部品)。@/components/Icons = 棚のアイコン(fork の画像アイコンは棚の自分の単位のファイル、札 items/components/Icons.md) */
+export const overrideImports = ["lucide-react", "@/components/Icons"] as const;
 
 export type WalletUiConfig = {
   /** 通貨種別 → アイコン(キー = walletType) */
-  currencyIcons: Record<string, LucideIcon>;
+  currencyIcons: Record<string, IconComponent>;
 };
 
 const defaults: WalletUiConfig = {
