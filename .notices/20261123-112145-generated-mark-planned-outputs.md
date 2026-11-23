@@ -4,6 +4,7 @@ date: 2026-11-23T11:21:45+09:00
 severity: info
 checkpoint: generated-mark-planned-outputs
 fixes: 20261119-024228-v2-content
+pick: -
 resolves: 20261121-044514-generated-mark-check-when-condition
 change: pnpm check rules (generated-mark check) counts a domain generator's every-run output only when the generator actually writes it for that domain (the same plan as pnpm generate domain, no write) — a conditional output (e.g. components/common/{Pascal}DetailModal.tsx, only with useDetailModal) of a domain whose condition is false is no longer a generated file
 why: the check matched scripts/structure/domain/phase.json globs alone; a fork's hand-written part with the same name in a domain where the generator never writes it failed as "mark missing"
