@@ -116,7 +116,7 @@ push_roundtrip (MANDATORY when adding/changing an index): after `pnpm db:push` (
 - never `sql\`${col} DESC\`` (use .desc()) or plain columns mixed with sql expressions in one index | push may lock tables → maintenance / low traffic | → core/db.md
 setting (core): admin changes it while running = setting, fixed at deploy or structural = config | values that mean nothing apart are one key with parts | keys and sections → items/domains/setting.md
 - each key has one home per repo: the admin + DB by default, or code when listed in the setting config's codeValues (→ items/domains/setting.md code_values) | no other switch
-field_types: a fieldType's meaning = only the table src/lib/domain/fields/fieldTypes.mjs | never compare or list fieldType names outside it (lint field-type-guard) | → core/domain-definition.md field_types
+field_types: a fieldType's meaning = only the table src/lib/domain/fields/fieldTypes.mjs | never compare or list fieldType names outside it (lint field-type-guard: error in Tier1, warn in forks) | → core/domain-definition.md field_types
 domain_config: client = \<domain\>/entities/display.ts domainDisplay, never domain.json (lint client-no-domain-json) | server: one domain = its domain.json + normalizeDomainJsonConfig, all domains = @/wiring/domainConfig | → core/components.md domain_config
 config_utils: src/lib/domain/ (extractFields, getRelationsOf and the other *Of functions take a domain copy; client index.ts, server server.ts)
 inspect: DB / Firestore investigation → pnpm ops db inspect | pnpm ops firestore inspect (usage: scripts/README.md)
@@ -149,7 +149,7 @@ principle: a fork may build any look and any capability | it does not copy behav
 - unpaginated full-fetch of user-scale data (base.search without limit; the default limit 100 silently drops rows) → page/limit + infinite scroll | list() only for small fixed master data
 - business.url (@/business) as runtime origin (the official URL for mail / SEO) → getAppBaseUrl() from @/lib/url | never build an origin from Host / X-Forwarded-Host (host header injection)
 - messages to users never through lib/mail send() or a channel directly → messagingService: a plugs/messages/\<name\>.ts definition → sendMessage / sendMessageToMany, | send() = the mail channel only (lint import-boundaries/mail-send-via-messaging) | ref: src/domains/core/messaging/README.md
-- stage from NODE_ENV or a direct process.env.APP_ENV read → @/lib/appEnv (lint app-env/single-reader) | env files, production guard → core/scripts.md
+- stage from NODE_ENV or a direct process.env.APP_ENV read → @/lib/appEnv (lint app-env/single-reader: error in Tier1, warn in forks) | env files, production guard → core/scripts.md
 
 ## PROXY (Next.js 16 proxy, NOT middleware.ts)
 entry: src/proxy.ts | stages maintenance → mode → gate → redirect → main (src/proxies; gate and redirect = its skeleton) + items \<domain\>/plugs/proxyHandlers|proxyDecorators|proxyRedirects/\<name\>.ts | user = ctx.user() only (point proxyUser) | chain, items → core/proxy.md
