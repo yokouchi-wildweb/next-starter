@@ -64,7 +64,13 @@ describe("実リポジトリの intake.txt", () => {
   test("代表のパスが期待の kind になる", () => {
     /** @type {[string, string | null][]} */
     const cases = [
-      ["package.json", "edit"],
+      ["package.json", "append"],
+      ["firebase.json", "append"],
+      [".mcp.json", "append"],
+      ["pnpm-lock.yaml", "generated"],
+      [".gitignore", "marker"],
+      [".env.example", "marker"],
+      ["README.md", null],
       ["src/config/app/app-features.config.ts", "edit"],
       ["src/styles/palette.css", "edit"],
       ["src/styles/core/global.css", null],
@@ -101,8 +107,12 @@ describe("実リポジトリの intake.txt", () => {
       ["src/domains/core/userProfile/profiles/index.ts", null],
       ["src/domains/core/user/roles/editor.role.json", "add"],
       ["src/registry/district-map.jsonl", "generated"],
-      ["eslint.config.mjs", null],
-      ["eslint.config.fork.mjs", "edit"],
+      ["eslint.config.mjs", "self"],
+      ["eslint.config.core.mjs", null],
+      ["next.config.ts", "self"],
+      ["next.config.core.ts", null],
+      ["playwright.config.ts", "self"],
+      ["playwright.config.core.ts", null],
       ["tsconfig.json", null],
       ["AGENTS.md", null],
       ["public/assets/imgs/logos/default.png", "edit"],
@@ -172,6 +182,9 @@ describe("judge", () => {
       "marker .claude/rules/shortcuts.md  # r",
       "append src/lib/CATALOG.md  # r",
       "append .claude/rules/lineage.md  # r",
+      "append package.json  # r",
+      "append .mcp.json  # r",
+      "marker .gitignore  # r",
       "debt src/domains/core/mail/templates/**  # r",
     ].join("\n"),
   );
@@ -408,6 +421,40 @@ describe("judge", () => {
     const path = "src/lib/CATALOG.md";
     assert.equal(run({ status: "M", path }, base, `${base}\n## fork\n- src/lib/b — y\n`).reason, "append");
     assert.equal(run({ status: "M", path }, base, base.replace("x", "z")).reason, "not-append");
+  });
+
+  test("M(append *.json): 鍵を足すだけ / 上流の鍵を消す・値を変える・配列を変える・読めない = 違反(鍵の道を出す)", () => {
+    const base = JSON.stringify({ mcpServers: { playwright: { command: "npx", args: ["@playwright/mcp@latest"] } } }, null, 2);
+    const path = ".mcp.json";
+    const one = (/** @type {unknown} */ head) => run({ status: "M", path }, base, typeof head === "string" ? head : JSON.stringify(head, null, 2));
+    assert.equal(one({ mcpServers: { playwright: { command: "npx", args: ["@playwright/mcp@latest"] }, mine: { type: "http" } } }).reason, "append", "鍵を足す(入れ子)");
+    assert.equal(one({ mcpServers: { playwright: { args: ["@playwright/mcp@latest"], command: "npx", env: { X: "1" } } } }).reason, "append", "鍵の順・入れ子の鍵の追加");
+    const changed = one({ mcpServers: { playwright: { command: "pnpm", args: ["@playwright/mcp@latest"] } } });
+    assert.equal(changed.reason, "json-upstream-key");
+    assert.equal(changed.verdict, "violation");
+    assert.equal(changed.jsonKey, "mcpServers.playwright.command");
+    assert.equal(one({ mcpServers: { playwright: { command: "npx", args: ["@playwright/mcp@latest", "--browser=chromium"] } } }).jsonKey, "mcpServers.playwright.args", "配列は同じであること");
+    assert.equal(one({ mcpServers: {} }).jsonKey, "mcpServers.playwright", "上流の鍵を消す");
+    assert.equal(one("{ broken").reason, "json-unparsed");
+  });
+
+  test("M(append package.json): name と依存 4 欄の上流の依存の版は変えてよい、依存を消す・ほかの値を変えるのは違反(D304)", () => {
+    const base = JSON.stringify({ name: "next-starter", scripts: { dev: "next dev" }, dependencies: { next: "16.0.0" }, devDependencies: { eslint: "^9" }, pnpm: { overrides: { sharp: "0.34" } } }, null, 2);
+    const path = "package.json";
+    const one = (/** @type {Record<string, unknown>} */ head) => run({ status: "M", path }, base, JSON.stringify({ ...JSON.parse(base), ...head }, null, 2));
+    assert.equal(one({ name: "acme", dependencies: { next: "16.1.0", vexflow: "^4" }, scripts: { dev: "next dev", mine: "x" } }).reason, "append", "name・依存の版・鍵の追加");
+    assert.equal(one({ devDependencies: { eslint: "^10" } }).reason, "append");
+    assert.equal(one({ dependencies: {} }).jsonKey, "dependencies.next", "上流の依存を消す");
+    assert.equal(one({ scripts: { dev: "next dev --turbo" } }).jsonKey, "scripts.dev");
+    assert.equal(one({ pnpm: { overrides: { sharp: "0.35" } } }).jsonKey, "pnpm.overrides.sharp", "pnpm 欄は例外でない");
+    assert.equal(run({ status: "M", path: "src/x/package.json" }, base, base.replace("next-starter", "x")).reason, "outside-intake", "直下の package.json だけが受け口");
+  });
+
+  test("M(marker): .gitignore の印の行より下だけ", () => {
+    const base = "node_modules\n\n# fork entries below (upstream never edits below this line)\n";
+    const path = ".gitignore";
+    assert.equal(run({ status: "M", path }, base, `${base}.sentry\n`).reason, "marker");
+    assert.equal(run({ status: "M", path }, base, `.sentry\n${base}`).reason, "above-marker");
   });
 
   test("M(append): 基準の最後の行に同じ行で書き足す = not-append、改行の後なら append", () => {

@@ -151,7 +151,9 @@ function generatedOf(path, view) {
   if (rule?.kind === "generated" || rule?.kind === "region") {
     const generator = view.generators().find((g) => g.globs.includes(rule.glob));
     const command = generator ? `pnpm generate ${generator.name}` : null;
-    return answer("generated", { source: command, how: rule.kind === "region" ? "fork の区画(fork entries の対)の中だけ書き、外は生成器が書く" : "手で直さない。生成器で作り直す" });
+    // 生成器の宣言に無い生成物(pnpm-lock.yaml = pnpm が作る)は行の理由が作り方を言う
+    const how = rule.kind === "region" ? "fork の区画(fork entries の対)の中だけ書き、外は生成器が書く" : command || !rule.note ? "手で直さない。生成器で作り直す" : `手で直さない。${rule.note}`;
+    return answer("generated", { source: command, how });
   }
   const { outputs, domains } = view.domainOutputs();
   const hit = matchDomainOutput(path, outputs, domains.filter((d) => d.generate));

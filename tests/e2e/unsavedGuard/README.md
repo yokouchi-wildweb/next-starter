@@ -9,7 +9,7 @@
 1. `pnpm workflow dev-admin run`(確認用の管理者を用意する。何度打ってもよい)
 2. dev server を立てる(`pnpm workflow dev-tab run`。`scripts/workflow/dev-tab/README.md`)
 3. `E2E_BASE_URL=http://localhost:<port> pnpm e2e tests/e2e/unsavedGuard`
-   - 1 つのブラウザだけ: `E2E_BASE_URL=… pnpm exec playwright test -c playwright.config.default.ts tests/e2e/unsavedGuard --project=chromium`(`pnpm e2e tests/e2e/unsavedGuard -- --project=…` では絞れない)
+   - 1 つのブラウザだけ: `E2E_BASE_URL=… pnpm exec playwright test tests/e2e/unsavedGuard --project=chromium`(`pnpm e2e tests/e2e/unsavedGuard -- --project=…` では絞れない)
 
 - CI だけ `webServer` で `pnpm dev` を立てる(`CI` があるとき)
 - ブラウザの準備: `pnpm exec playwright install chromium firefox webkit`(webkit は OS のライブラリが要る)
@@ -20,12 +20,12 @@
 受入のテスト全体の置き場と設定:
 
 - 受入のテストは `tests/e2e/<機能>/`(spec とこの README を同じフォルダに置く)
-- 上流の設定は `playwright.config.default.ts`(`testDir: tests/e2e`)。上流は素の `playwright.config.ts` を出さない: 素の名前は fork の物(`.default` と素の名前の組)。fork は自分の `playwright.config.ts` で `.default` を読んで足す(自分の spec の置き場・ブラウザなど)
-- 上流の `package.json` の `e2e`(`pnpm e2e`)は `-c playwright.config.default.ts` で上流の設定を指す
+- 設定の本体は Tier1 の `playwright.config.core.ts`(`testDir: tests/e2e`)。素の `playwright.config.ts` は各リポの自分の版(型 5 self): 本体を読んで足す(自分の spec の置き場・ブラウザなど)か、読まずに自分の設定を書く。Tier1 の版は本体をそのまま使う
+- `pnpm e2e`(`playwright test`)は素の `playwright.config.ts` を読む
 
 ## Internals
 
-- 画面を閉じる門番の規則が閉じている間は spec が理由を出して skip する(`tests/e2e/featureGate.ts` の `skipWhileClosed("<規則>")`、この spec は `sampleDomain` と `demoPages`。除外の一覧は持たない)。読むのはサーバーと同じ答え(判定の入口の `rules` = 規則の値 + 全開スイッチ + 依存先、runner の側。サーバーには聞かない)。スイッチは `playwright.config.default.ts` が開発の env(`ENV_FILE`、既定 `.env.development`)から読む: 上流の開発は `FEATURE_GATE_OPEN=all` で全部回る
+- 画面を閉じる門番の規則が閉じている間は spec が理由を出して skip する(`tests/e2e/featureGate.ts` の `skipWhileClosed("<規則>")`、この spec は `sampleDomain` と `demoPages`。除外の一覧は持たない)。読むのはサーバーと同じ答え(判定の入口の `rules` = 規則の値 + 全開スイッチ + 依存先、runner の側。サーバーには聞かない)。スイッチは `playwright.config.core.ts` が開発の env(`ENV_FILE`、既定 `.env.development`)から読む: 上流の開発は `FEATURE_GATE_OPEN=all` で全部回る
 - ログインは `pnpm workflow dev-admin run` の管理者(開発用 DB)。パスワードは env ファイル(`ENV_FILE`、既定 `.env.development`)の `AUTH_JWT_SECRET` から dev-admin と同じ式で出す。ログインには回数の上限(15 分に 5 回)があるので、cookie を OS の一時フォルダに置き 30 分使い回す。サーバーに届かない・ログインできない・行が足りないときは理由を出して skip する
 - データは開発用 DB のサンプル(変えてよい): 送信はサンプルタグの名前を、表の書きかけはサンプルの名前を書き換える。取り込みは同じ画面でエクスポートした ZIP を使い、要求は止めたまま中止する(サーバーに届かない)。取り込みと並び替えの保存待ちは、API の応答を `page.route` で止めて作る
 

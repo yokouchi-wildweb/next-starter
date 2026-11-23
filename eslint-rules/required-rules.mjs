@@ -1,7 +1,7 @@
 // eslint-rules/required-rules.mjs
 //
 // 全 Tier の必須の ESLint 規則の一覧(upstream の物)。
-// fork の eslint.config.fork.mjs は eslint.config.mjs の最後に読まれるので、ここに載る規則を off / warn にできてしまう。
+// 各リポの eslint.config.mjs(型 5 self)は本体 eslint.config.core.mjs の後ろに自分の設定を足すので、ここに載る規則を off / warn にできてしまう。
 // pnpm check eslint(scripts/structure/eslint/requiredRules.mjs、pnpm build から呼ぶ)が、fork の設定を含めた最終の設定で
 // 各規則が代表のファイルに error のまま掛かっているかを確かめ、外れていれば止める。
 //

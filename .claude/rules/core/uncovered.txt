@@ -3,21 +3,24 @@
 # 足すのは決まりを書く物が本当に無い場所だけ(決まりがあるなら core のファイルの paths を広げる) | 新しく作った置き場だけに当たる 1 行は、置き場を作ったのと同じコミットで足してよい(窓口を通さない、core/design.md authoring)
 public/**  # 配る画像・静的ファイル。資産のパスの直書きは lint が見る
 drizzle/.gitkeep  # drizzle の出力の空のフォルダを残すだけの印(ほかの .gitkeep は置き場の決まりのファイルの paths に当たる)
-package.json  # 依存とスクリプトの宣言。足す手順は各道具の README
-pnpm-lock.yaml  # package.json に従う生成物
+package.json  # 依存とスクリプトの宣言(fork は鍵を足すだけ: core/ownership.md root_files)。足す手順は各道具の README
+pnpm-lock.yaml  # package.json から pnpm が作る生成物(衝突は pnpm install)
 pnpm-workspace.yaml  # ワークスペースの宣言
-.gitignore  # git の除外
-.env.example  # 環境変数の見本。値の決まりは appEnv と各 lib の README
+.gitignore  # git の除外(fork の行は印の行より下)
+.env.example  # 環境変数の見本(fork の行は印の行より下)。値の決まりは appEnv と各 lib の README
 .prettierrc  # 整形の設定
-.mcp.json  # MCP の接続の設定
-next.config.ts  # Next.js のビルドの設定
+.mcp.json  # MCP の接続の設定(fork は鍵を足すだけ、マシンごとの指定は ~/.claude.json)
+next.config.ts  # Next.js のビルドの設定(型 5 self、本体 next.config.core.ts を読む)
+next.config.core.ts  # Next.js のビルドの設定の Tier1 の本体
 postcss.config.mjs  # PostCSS の設定
 tsconfig.json  # 型の検査の設定
 tsconfig.typecheck.json  # 型の検査の設定
-eslint.config.mjs  # lint の設定(規則の中身は eslint-rules/ で scripts の決まりが当たる)
-eslint.config.fork.mjs  # fork の lint の設定
+eslint.config.mjs  # lint の設定(型 5 self、本体 eslint.config.core.mjs を読む)
+eslint.config.core.mjs  # lint の設定の Tier1 の本体(規則の中身は eslint-rules/ で scripts の決まりが当たる)
+playwright.config.ts  # 受入のテストの設定(型 5 self、本体 playwright.config.core.ts を読む)
+playwright.config.core.ts  # 受入のテストの設定の Tier1 の本体
 drizzle.config.ts  # drizzle-kit の接続の設定
-firebase.json  # Firebase の配置の設定
+firebase.json  # Firebase の配置の設定(fork は鍵を足すだけ)
 firestore.rules.example  # Firestore の規則の見本
 storage.rules  # Firebase Storage の規則(拒否だけ)
 patches/**  # 依存への当て布(pnpm patch の出力)

@@ -15,7 +15,7 @@
     "ops": "node scripts/runner/entries/run.mjs operations",
     "workflow": "node scripts/runner/entries/run.mjs workflow",
     "forge": "node scripts/structure/forge/run.mjs",
-    "e2e": "playwright test -c playwright.config.default.ts",
+    "e2e": "playwright test",
     "db:push": "npx tsx --import ./scripts/runner/preload/serverOnly.mjs scripts/operations/db/push.ts",
     "db:push:check": "npx tsx --import ./scripts/runner/preload/serverOnly.mjs scripts/operations/db/check-schema-roundtrip.ts",
     "live": "npx tsx scripts/operations/deploy/app.ts",

@@ -1,20 +1,17 @@
 # 受け口の一覧(fork が書き換えてよい場所)。upstream が持ち、検査は取り込み済みの upstream 側の版を読む
 # 書式: <kind> <glob>  # 理由 | `!<glob>` = その前までに当たった規則を外す | 最後に当たった規則が効く
 # kind: edit(書き換え可)/ add(足すのは可、基準にあるファイルの書き換えは違反)/ region(fork entries の対の中だけ)/ marker(`fork entries below` の行より下だけ)
-#       append(基準の中身を先頭に残したままの追記だけ)/ generated(生成物、書き換えを問わない)/ debt(upstream の負債)
+#       append(基準の中身を先頭に残したままの追記だけ。*.json は鍵を足すだけ: 上流の鍵の値を変えない・消さない、例外は judge.mjs JSON_FREE_KEYS)/ generated(生成物、書き換えを問わない)/ debt(upstream の負債)
 #       self(型 5: 各リポが自分の版を持つ。1 ファイル 1 行・ぴったりのパス、行を足すのは Tier1 だけ。vercel.json は持たなくてよい self)
 # どの kind でも、基準にあるファイルの削除・rename は違反。仕様: README.md「受け口の一覧」
 
-# リポジトリ直下(依存・ビルド・接続の設定は fork が足すのを避けられない)
-edit package.json  # 依存・スクリプトの追加
-edit pnpm-lock.yaml  # package.json に従う
-edit .gitignore  # fork の除外の追加
-edit .env.example  # fork の環境変数の見本
-edit next.config.ts  # fork のビルド設定
-edit .mcp.json  # エージェントの接続設定
-edit README.md  # fork のプロジェクトの説明
-edit eslint.config.fork.mjs  # fork の ESLint の設定(eslint.config.mjs が読み足す。eslint.config.mjs 自体は upstream)
-edit firebase.json  # fork の Firebase の配備設定(firestore のルール・インデックスを足す。storage は upstream の全拒否のまま)
+# リポジトリ直下(3 つの形: コードの設定 = 素の名前の固有型(下の self の行、本体 <道具>.config.core.<拡張子> は上流)/ JSON = 鍵を足すだけ / 行のファイル = 印の行より下。README.md は上流だけ = 行なし)
+append package.json  # 依存・スクリプトの鍵を足すだけ(上流の値は変えない。例外: name・依存 4 欄の上流の依存の版の範囲、D304)
+generated pnpm-lock.yaml  # package.json から pnpm が作る(衝突は pnpm install で作り直す)
+marker .gitignore  # fork の除外は印の行より下
+marker .env.example  # fork の環境変数の見本は印の行より下
+append .mcp.json  # エージェントの接続の鍵を足すだけ(上流の値は変えない。マシンごとの指定は ~/.claude.json)
+append firebase.json  # fork の Firebase の配備設定の鍵を足すだけ(firestore のルール・インデックス。storage は upstream の全拒否のまま)
 # tsconfig.json は受け口の外(paths の不足は upstream で直す、L1.8)。AGENTS.md も外(Next が書き足す区画は生成器の区画として除く)
 
 # 素材(src の外)
@@ -260,11 +257,14 @@ generated src/lib/zLayer/generated/ownLayers.ts  # 生成器 styles の出力
 region servers/room/src/registry.ts  # ルーム定義の登録点(【下流編集点】)
 edit servers/room/wrangler.toml  # pnpm ops room init が作る fork の Worker の設定(upstream には無い。.example だけ)
 
-# 規則(自分の版 = 型 5 self、札、業務の全体像)
+# 自分の版(型 5 self: 規則・名前・直下のコードの設定)、札、業務の全体像
 self .claude/rules/project.md  # このリポの概要と段だけの情報(型 5)
 self .claude/rules/behavior.md  # 作業の決まり(型 5)
 self repo.json  # リポの名前と段・方針(forkIds.mjs、型 5)
 self vercel.json  # Vercel の設定(型 5、持たなくてよい: Vercel にデプロイするリポだけ。crons は pnpm generate cron の出力、他の鍵は手書き)
+self next.config.ts  # Next の設定(型 5。Tier1 の本体 next.config.core.ts を読み、足す・包む・外す)
+self eslint.config.mjs  # ESLint の設定(型 5。Tier1 の本体 eslint.config.core.mjs を読み、後ろに足す。必須の規則は pnpm check eslint が守る)
+self playwright.config.ts  # 受入のテストの設定(型 5。Tier1 の本体 playwright.config.core.ts を読んで足す。読まなくてもよい)
 add .claude/rules/items/**  # 自分の品目の札(.claude/rules/core/design.md cards。上の段の札は直さない)
 add .claude/rules/service/**  # 業務を定める段の業務の全体像(上の段の物は中間層の物も直さない。Tier1 は書かないので upstream には無い)
 marker .claude/rules/shortcuts.md  # 印より下が fork

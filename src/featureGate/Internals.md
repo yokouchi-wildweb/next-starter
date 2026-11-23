@@ -122,7 +122,7 @@ FEATURE_GATE_OPEN=coupon,wallet    # 名前の規則だけ開く(区切りは , 
 | 門番の口(`gate.*`)・proxy・`useGate` | 効く | `rules` | 開けた機能の画面・API を見る |
 | `pnpm db:push` / `db:push:check` の表 | 効く | `rules` | 開けた機能の表を作る(開発の DB だけ。`ENV_FILE` の env ファイルの `APP_ENV` で決まる: `.env.development` なら全 Tier、`APP_ENV=production` か値なしのファイルなら Tier1 だけ) |
 | `pnpm ops db seed`・`pnpm ops db clear` | 効く | node の `gate.enabled`・`closedTables(rules)` | 表と同じ答え |
-| 受入のテスト `pnpm e2e` の skip(`tests/e2e/featureGate.ts`) | 効く | `rules` | サーバーと同じ答え。runner は `playwright.config.default.ts` で開発の env(`ENV_FILE`、既定 `.env.development`)を読む |
+| 受入のテスト `pnpm e2e` の skip(`tests/e2e/featureGate.ts`) | 効く | `rules` | サーバーと同じ答え。runner は `playwright.config.core.ts`(素の `playwright.config.ts` が読む)で開発の env(`ENV_FILE`、既定 `.env.development`)を読む |
 | `pnpm ops features list` | 見せ方 | `rules` + `configEnabled` + `ownEnabled` + `isOpenedBySwitch` + `switchMissingDependencies` | 規則の値で閉・スイッチで開を「閉 → 開(スイッチ)」と出す。名前指定で開けたが依存先が閉なら足りない名前を出す。`--json` は `enabled`・`configEnabled`・`ownEnabled`・`openedBySwitch`・`switchMissing` |
 | `pnpm generate cron` / `pnpm check cron`・`pnpm task` | 効かない | `configPath` | `vercel.json` と照合が env で揺れない。スイッチで開けた機能の cron は `vercel.json` に載らない(route は開くので手で叩けば動く) |
 | `pnpm generate routes` | 効かない | `configRules` | コミットする `route-map.jsonl` が env で揺れない |

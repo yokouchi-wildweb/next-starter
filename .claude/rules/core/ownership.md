@@ -10,11 +10,17 @@ paths:
 > **ROLE**: loaded when writing ownership data (repo.json, permits, ledger, CATALOG.md, lineage.md, the ownership lib) | holds who owns what (CORE_FILES, fork_ownership)
 > Tier1-owned: forks never edit (gap → /order next-starter)
 
-core (= CORE, approval required): CLAUDE.md, core/ (.claude/rules/core/), src/domains/core/ (core domains, core roles), src/styles/core/**, src/styles/README.md, src/components/, src/proxy.ts, src/proxies/ + src/featureGate/ (files a fork added = fork-owned, extensions/ = generated), scripts/structure/domain/ | per path → pnpm workflow ownership who
+core (= CORE, approval required): CLAUDE.md, core/ (.claude/rules/core/), root \<tool\>.config.core.\<ext\>, src/domains/core/ (core domains, core roles), src/styles/core/**, src/styles/README.md, src/components/, src/proxy.ts, src/proxies/ + src/featureGate/ (files a fork added = fork-owned, extensions/ = generated), scripts/structure/domain/ | per path → pnpm workflow ownership who
+- root config bodies: next.config.core.ts, eslint.config.core.mjs, playwright.config.core.ts (each repo's plain version reads them: root_files)
 - servers and wiring: servers/room/src/core/, servers/room/src/index.ts, src/wiring/ (files a fork added = fork-owned)
 - routes and libs: src/app/**/{_screen,_layout}/** of upstream routes (\<name\>.replace files beside them = fork-owned) | libs in the Tier1 section of src/lib/CATALOG.md (libs a fork added = fork-owned)
 downstream_owned (upstream never edits after creation): root src/styles/*.css (entry global.css, palette / typography / overrides.css, gradient.css = pnpm generate styles output of config/lib/gradient.config.ts), page.tsx / frame layout.tsx of switched routes, _components/** and \<name\>.replace files of upstream routes, \<target\>.override.ts (cron: task.override.ts)
 - not downstream-owned: a generated admin route's hand-owned _components/ = the domain owner's (core/generated.md)
+root_files: the repo root holds only files a tool reads there by name and the repo-wide entry documents (the rest goes in folders) | untracked local files (.env.development …) are outside this rule
+- 3 forms a fork changes a root file by: code configs (next.config.ts, eslint.config.mjs, playwright.config.ts) = type 5 self reading the core body | JSON (package.json, .mcp.json, firebase.json) = add keys only (intake append) | line files (.gitignore, .env.example) = below the `fork entries below` marker
+  - JSON exceptions: package.json name and the version ranges of upstream deps in dependencies / devDependencies / optionalDependencies / peerDependencies (keys stay) | a machine-specific MCP setting → ~/.claude.json, never .mcp.json
+  - pnpm-lock.yaml = generated (conflict → pnpm install) | README.md and every root file with no intake row = upstream only
+- a new root file: pick its form, and in the same commit its intake row (when one is needed) and its cover line (a rule's paths or core/uncovered.txt)
 intake: every place a fork may write in parent files = src/lib/forkOwnership/intake.txt (kinds: edit / add / region / marker / append / generated / debt / self) | src/config/** = an intake point too (the fork may edit it; upstream edits it as well, rules: config below)
 config: src/config/ = values, or a zero-arg function that only returns env (process.env.X joined with ?? / ||) (logic → domain utils or lib) | value changes OK | structure changes (add/remove keys, type change, rename) need approval
 - config_values: one config values file (src/config/**/\<name\>.config.ts, type 4; not a type-2 .override.ts) per owner, 1:1 (pnpm check config-overrides) | upstream ships the owner's config.ts and its empty config values file in the same commit, and deletes / renames them together

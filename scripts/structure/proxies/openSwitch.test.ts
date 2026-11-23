@@ -6,7 +6,7 @@
 // - 依存(dependsOn): 判定は ruleList.ts の 1 か所で依存先まで解く(rules・configRules の両方)。名前指定のスイッチは依存先を開けず、
 //   足りない名前を値ごとに 1 回 console.warn し pnpm ops features list に出す(D34・L3.1)
 // - 入口: 門番の中で生成一覧 extensions/rules を値で読むのも、規則の .enabled() を直に呼ぶのも ruleList.ts だけ(字面の検査、テストは除く)
-// - next.config.ts の FEATURE_GATE_TIER1 = readForkIdentity(repoRoot).isTier1
+// - next.config.core.ts(素の next.config.ts が読む本体)の FEATURE_GATE_TIER1 = readForkIdentity(repoRoot).isTier1
 // - 効く範囲(L2.3): 効かせる = 門番の口・useGate・db:push / db:push:check の表・seed・pnpm ops db clear・pnpm ops features list の開閉 /
 //   効かせない(規則の値) = pnpm generate cron / pnpm check cron・pnpm generate routes・FEATURE_GATE_CHECK の検査・codemod(pnpm ops features set と required/ は config を書く道具で開閉を読まない)
 // 閉じた状態は生成一覧の規則の enabled を一時的に差し替えて作る(config の値に依らない)。実行: pnpm test scripts/structure/proxies/openSwitch.test.ts(src から scripts を読めないので、道具の配線も見るこのテストは scripts/ の側に置く)
@@ -357,8 +357,8 @@ test("入口: 門番の中で規則の .enabled() を直に呼ぶのは ruleList
   assert.ok(!VALUE_IMPORT_OF_RULES.test('import type { FeatureName } from "./extensions/rules";'));
 });
 
-test("next.config.ts: FEATURE_GATE_TIER1 を build 時に fork_id から計算して env に inline する", async () => {
-  const config = (await import("../../../next.config")) as {
+test("next.config.core.ts: FEATURE_GATE_TIER1 を build 時に fork_id から計算して env に inline する", async () => {
+  const config = (await import("../../../next.config.core")) as {
     featureGateTier1: string;
     default: { env?: Record<string, string> };
   };

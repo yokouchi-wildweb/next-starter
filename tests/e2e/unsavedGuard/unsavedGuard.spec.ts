@@ -1,4 +1,4 @@
-// tests/e2e/unsavedGuard/unsavedGuard.spec.ts — pnpm e2e tests/e2e/unsavedGuard(chromium・firefox・webkit、設定 playwright.config.default.ts)
+// tests/e2e/unsavedGuard/unsavedGuard.spec.ts — pnpm e2e tests/e2e/unsavedGuard(chromium・firefox・webkit、設定 playwright.config.ts → playwright.config.core.ts)
 // 未保存の編集の守り(src/lib/unsavedGuard)の受入を、実際の画面で確かめる(テストだけのルートは作らない):
 // - 管理のサンプルタグ編集(AppForm、自動保存なし): 編集済みから棚の Link(サイドバー)・router.push(前後の項目へ移る ItemNavigator)・
 //   router.back の代わりのブラウザの戻る / 進む・再読み込み・タブを閉じる × 留まる / 移る、送信は聞かない

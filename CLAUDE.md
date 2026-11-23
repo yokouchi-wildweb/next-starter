@@ -64,7 +64,7 @@ items/<lib|domains|components>/<name>.md: item card (what / use / change / rules
 service/<business>.md: business overview of a tier that defines a business (domains, relations, flows, terms), always loaded | written by that tier, never edited below (check) | not src/business (= business identity values)
 lineage.md: rules a tier passes to its downstream, one section per tier, never edit an ancestor's section (→ /order <its owner>) | ref: lineage.md preamble
 shortcuts.md, term-aliases.md: upstream above the `fork entries below` marker, own below | other own rules: in .claude/rules/ outside core/, plain names, never restate core | Tier1's own rule files = core/, items/ and its self files
-self_files (CHANGE_TYPES 5): .claude/rules/project.md (overview + tier-only info), .claude/rules/behavior.md (work rules), repo.json (machine values, written only through its command, read only via forkIds.mjs), vercel.json (only a repo that deploys to Vercel) | → core/design.md self_files
+self_files (CHANGE_TYPES 5): .claude/rules/project.md (overview + tier-only info), .claude/rules/behavior.md (work rules), repo.json (machine values, written only through its command, read only via forkIds.mjs), root code configs (read the core body), vercel.json (only a repo that deploys to Vercel) | → core/design.md self_files
 
 ## CHANGE_TYPES (the only five ways to change what a parent owns: the owner declares, the repo below uses)
 types: 1 replace = switch \<name\>.ts → \<name\>.default, fork \<name\>.replace (a screen: a plain _components/\<X\>Screen.tsx, no mark; a frame: _layout/\<Layout\>.replace) | 2 override = \<target\>.override.ts, declared keys only | 3 add = an item in your own plugs/\<point\>/ | 4 counterpart = src/styles/, src/config/ | 5 self = same path, each repo writes its own version (self_files)
@@ -127,8 +127,10 @@ doctrine: new domains default dbEngine "Neon" | Firestore = realtime delivery on
 servers: standalone programs outside Next/Vercel live in servers/\<name\>/ (own package.json, not in the pnpm workspace) | src→servers forbidden
 
 ## CORE_FILES (ownership: who edits what)
-core (= CORE, approval required): CLAUDE.md, core/, src/domains/core/ (core domains, core roles), src/styles/core/, src/components/, src/proxy.ts, src/proxies/, src/featureGate/, src/wiring/, upstream routes' _screen / _layout, libs in the Tier1 section of src/lib/CATALOG.md | files the fork added = fork-owned | per path → pnpm workflow ownership who
+core (= CORE, approval required): CLAUDE.md, core/, root \<tool\>.config.core.\<ext\>, src/domains/core/ (core domains, core roles), src/styles/core/, src/components/, src/proxy.ts, src/proxies/, src/featureGate/, src/wiring/, upstream routes' _screen / _layout, libs in the Tier1 section of src/lib/CATALOG.md | files the fork added = fork-owned | per path → pnpm workflow ownership who
 - full list → core/ownership.md
+root_files: the root holds only files a tool reads there by name and repo-wide entry docs | a fork changes one by 3 forms: code configs = type 5 self | JSON = add keys only (exceptions: package.json name, upstream dep versions) | line files = below the marker | pnpm-lock.yaml generated (pnpm install) | README.md and rowless root files = upstream only | → core/ownership.md root_files
+- a new root file: its form, intake row and cover line in the same commit
 downstream_owned (upstream never edits after creation): root src/styles/*.css, page.tsx / frame layout.tsx of switched routes, _components/** and \<name\>.replace files of upstream routes, \<target\>.override.ts | exceptions → core/ownership.md
 intake: every place a fork may write in parent files = src/lib/forkOwnership/intake.txt (kinds: edit / add / region / marker / append / generated / debt / self) | src/config/** too (both sides edit it: config below)
 config: src/config/ = values, or a zero-arg function that only returns env (process.env.X joined with ?? / ||) (logic → domain utils or lib) | value changes OK | structure changes (add/remove keys, type change, rename) need approval

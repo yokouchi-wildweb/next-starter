@@ -49,7 +49,7 @@
       "business",
       "legal",
       "message",
-      "cache-components"
+      "next-config"
     ],
     "workflow": [
       "worktree",

@@ -24,6 +24,7 @@ const MARKER_LINE = /fork entries below/;
  *   permitLine?: number,
  *   fingerprints?: { base: string, head: string },
  *   permitDraft?: string,
+ *   jsonKey?: string,
  * }} OwnershipEntry 1 ファイルの判定(verdict = ok | violation | permitted。permit 以下は checkPermits と judgeFork が足す)
  */
 
@@ -56,6 +57,8 @@ export const REASONS = {
   "region-markers": "violation", // fork の区画の印が壊れている
   "above-marker": "violation", // 印より上も書き換えた(印が無い)
   "not-append": "violation", // 基準の中身を変えた
+  "json-unparsed": "violation", // append の *.json が JSON として読めない(基準か fork の版)
+  "json-upstream-key": "violation", // append の *.json で上流の鍵を消したか、上流の値を変えた(鍵を足すだけ。例外は JSON_FREE_KEYS)
   debt: "violation", // upstream の負債の箇所(一時許可で通す)
   "middle-tier": "ok", // 中間 Tier 以下の物(Tier1 の版に無いファイル)の書き換え・削除・rename(D29。check.mjs が付け替える、参考の一覧)
   picked: "ok", // 親の緊急修正を pick しただけの差(台帳の picked:。check.mjs が付け替える)
@@ -77,16 +80,110 @@ const headUntilMarker = (/** @type {string | null} */ text) => {
   return index === -1 ? null : lines.slice(0, index + 1).join("\n");
 };
 
+/**
+ * append の *.json で上流の値を変えてよい鍵(D304)。リポ直下からのパス → トップの鍵 → 値を変えてよい深さ
+ *   "self" = その鍵の値そのもの(package.json の name: fork の名前)
+ *   "children" = その鍵の下の各鍵の値(依存の 4 欄: 上流の依存の版の範囲。pnpm update・pnpm add で上げてよい。鍵を消すのは違反)
+ * @type {Readonly<Record<string, Readonly<Record<string, "self" | "children">>>>}
+ */
+export const JSON_FREE_KEYS = {
+  "package.json": {
+    name: "self",
+    dependencies: "children",
+    devDependencies: "children",
+    optionalDependencies: "children",
+    peerDependencies: "children",
+  },
+};
+
+const isPlainObject = (/** @type {unknown} */ value) => typeof value === "object" && value !== null && !Array.isArray(value);
+
+/**
+ * 値の深い同値(JSON の値だけ: 鍵の順は問わない)
+ * @returns {boolean}
+ */
+function jsonEqual(/** @type {unknown} */ a, /** @type {unknown} */ b) {
+  if (Array.isArray(a) || Array.isArray(b)) {
+    return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((item, i) => jsonEqual(item, b[i]));
+  }
+  if (isPlainObject(a) && isPlainObject(b)) {
+    const ka = Object.keys(/** @type {object} */ (a));
+    const kb = Object.keys(/** @type {object} */ (b));
+    return ka.length === kb.length && ka.every((key) => Object.hasOwn(/** @type {object} */ (b), key) && jsonEqual(/** @type {any} */ (a)[key], /** @type {any} */ (b)[key]));
+  }
+  return a === b;
+}
+
+/**
+ * 基準の鍵を全部 head が持ち、値が同じか(head は鍵を足してよい: 対象はオブジェクトの下だけ再帰)。最初に違った鍵の道(a.b.c)を返す
+ * @param {unknown} base
+ * @param {unknown} head
+ * @param {string[]} path
+ * @param {(path: string[]) => "self" | "children" | null} freeAt
+ * @returns {string | null}
+ */
+function firstUpstreamChange(base, head, path, freeAt) {
+  const free = freeAt(path);
+  if (free === "self") return null;
+  if (isPlainObject(base)) {
+    if (!isPlainObject(head)) return path.join(".") || "(全体)";
+    for (const [key, value] of Object.entries(/** @type {object} */ (base))) {
+      const next = [...path, key];
+      if (!Object.hasOwn(/** @type {object} */ (head), key)) return next.join(".");
+      // children: 鍵は残す、値は変えてよい
+      if (free === "children") continue;
+      const found = firstUpstreamChange(value, /** @type {any} */ (head)[key], next, freeAt);
+      if (found !== null) return found;
+    }
+    return null;
+  }
+  return jsonEqual(base, head) ? null : path.join(".") || "(全体)";
+}
+
+/**
+ * append の *.json: 鍵を足すだけ(上流の鍵を消さない・上流の値を変えない。JSON_FREE_KEYS の例外だけ変えてよい)
+ * @param {string} path
+ * @param {string} baseText
+ * @param {string} headText
+ * @returns {{ reason: string, jsonKey?: string }}
+ */
+export function judgeJsonAppend(path, baseText, headText) {
+  let base;
+  let head;
+  try {
+    base = JSON.parse(baseText);
+    head = JSON.parse(headText);
+  } catch {
+    return { reason: "json-unparsed" };
+  }
+  const free = JSON_FREE_KEYS[path] ?? {};
+  const freeAt = (/** @type {string[]} */ keys) => (keys.length === 1 ? (free[keys[0]] ?? null) : null);
+  const jsonKey = firstUpstreamChange(base, head, [], freeAt);
+  return jsonKey === null ? { reason: "append" } : { reason: "json-upstream-key", jsonKey };
+}
+
 const withoutTrailingNewlines = (/** @type {string} */ text) => text.replace(/\n+$/, "");
 
 /**
  * 基準にあるファイルの書き換えの reason
  * @param {{ kind: string | null } | null} rule
+ * @param {string} path
+ * @param {string} baseText
+ * @param {string} headText
+ * @returns {{ reason: string, jsonKey?: string }}
+ */
+function judgeModified(rule, path, baseText, headText) {
+  if (rule?.kind === "append" && path.endsWith(".json")) return judgeJsonAppend(path, baseText, headText);
+  return { reason: judgeModifiedReason(rule, baseText, headText) };
+}
+
+/**
+ * @param {{ kind: string | null } | null} rule
  * @param {string} baseText
  * @param {string} headText
  * @returns {string}
  */
-function judgeModified(rule, baseText, headText) {
+function judgeModifiedReason(rule, baseText, headText) {
   const kind = rule?.kind ?? null;
   if (kind === "edit") return "intake";
   if (kind === "self") return "self";
@@ -153,6 +250,8 @@ export function judge({ changes, baseText, headText, baseLibs, baseHasCore = fal
     let clash;
     /** @type {string | undefined} */
     let unitFolder;
+    /** @type {string | undefined} */
+    let jsonKey;
     if (status === "A") {
       const lib = libNameOf(change.path);
       const unit = places ? placeUnitOf(change.path, places) : null;
@@ -184,9 +283,9 @@ export function judge({ changes, baseText, headText, baseLibs, baseHasCore = fal
     } else if (places && isDefaultName(change.path)) {
       reason = "default-edit";
     } else {
-      reason = judgeModified(rule, baseText(change.path) ?? "", headText(change.path) ?? "");
+      ({ reason, jsonKey } = judgeModified(rule, change.path, baseText(change.path) ?? "", headText(change.path) ?? ""));
     }
-    return { ...change, status, kind: rule?.kind ?? null, reason, verdict: REASONS[reason], ...(clash ? { clash } : {}), ...(unitFolder ? { unitFolder } : {}) };
+    return { ...change, status, kind: rule?.kind ?? null, reason, verdict: REASONS[reason], ...(clash ? { clash } : {}), ...(unitFolder ? { unitFolder } : {}), ...(jsonKey ? { jsonKey } : {}) };
   });
 
   /** @type {Record<string, number>} */

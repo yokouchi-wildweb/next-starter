@@ -31,7 +31,7 @@ pnpm generate terms           # 表から .claude/rules/core/terms.md を作り�
 ### 見る所と見ない所
 
 - 文脈ファイル: `CLAUDE.md`・`AGENTS.md`・`.claude/rules/**`・`.claude/skills/**`
-- 道具: `scripts/**`・`eslint-rules/**`・`eslint.config.mjs`・`package.json`
+- 道具: `scripts/**`・`eslint-rules/**`・`eslint.config.mjs`・`eslint.config.core.mjs`・`package.json`
 - 見ない: このフォルダ(表とテストが誤りの字面を持つ)・表から描いた `.claude/rules/core/terms.md`(意味の中に旧い語を「旧: …」として持つ)・名前が `renames.json` のファイル(改名の記録)・バイナリ。出荷済みの notice・`docs/journal` は見る所の外
 
 ### 語の表の描き(core/terms.md)

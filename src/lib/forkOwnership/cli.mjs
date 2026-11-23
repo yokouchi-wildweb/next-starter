@@ -38,6 +38,8 @@ const LABELS = {
   "region-markers": "fork の区画の印が壊れている",
   "above-marker": "印より上の書き換え",
   "not-append": "基準の中身の書き換え(追記でない)",
+  "json-unparsed": "JSON として読めない(鍵を足すだけの JSON のファイル)",
+  "json-upstream-key": "上流の鍵を消したか上流の値を変えた(JSON は鍵を足すだけ)",
   debt: "upstream の負債の箇所(一時許可が要る)",
   "middle-tier": "中間 Tier 以下の物の書き換え・削除・rename(参考)",
   picked: "親の緊急修正の pick(台帳の picked:)",
@@ -154,7 +156,7 @@ function print(result, { verbose }) {
     lines.push("", "違反(受け口へ移す・元に戻す・一時許可のどれかで片付ける):");
     for (const entry of violations) {
       const path = entry.from ? `${entry.from} → ${entry.path}` : entry.path;
-      lines.push(`  [${entry.reason}] ${path}${entry.clash ? `(基準の ${entry.clash} と同じ単位)` : ""}${entry.permit && entry.permit !== "none" ? ` — ${PERMIT_STATES[entry.permit]}` : ""}`);
+      lines.push(`  [${entry.reason}] ${path}${entry.clash ? `(基準の ${entry.clash} と同じ単位)` : ""}${entry.jsonKey ? `(鍵 ${entry.jsonKey})` : ""}${entry.permit && entry.permit !== "none" ? ` — ${PERMIT_STATES[entry.permit]}` : ""}`);
       lines.push(`    許可の下書き: ${entry.permitDraft}`);
     }
   }

@@ -8,7 +8,9 @@ import { closeTmp, commitAll, git, makeFork, makeParent, openTmp, write } from "
 
 const PROJECT = ".claude/rules/project.md";
 const BEHAVIOR = ".claude/rules/behavior.md";
-const files = (/** @type {string} */ project, /** @type {string | null} */ behavior, repo = "{}\n") => ({ [PROJECT]: project, [BEHAVIOR]: behavior, "repo.json": repo });
+/** 直下のコードの設定 3 本(型 5、D299)。中身は見ないので 1 行の版 */
+const CONFIGS = { "next.config.ts": 'export { default } from "./next.config.core";\n', "eslint.config.mjs": 'export { default } from "./eslint.config.core.mjs";\n', "playwright.config.ts": 'export { default } from "./playwright.config.core";\n' };
+const files = (/** @type {string} */ project, /** @type {string | null} */ behavior, repo = "{}\n") => ({ [PROJECT]: project, [BEHAVIOR]: behavior, "repo.json": repo, ...CONFIGS });
 const kinds = (/** @type {{ problems: { kind: string, path: string }[] }} */ result) => result.problems.map((problem) => `${problem.kind} ${problem.path}`);
 const askKinds = (/** @type {{ asks: { kind: string, path: string }[] }} */ result) => result.asks.map((ask) => `${ask.kind} ${ask.path}`);
 
@@ -17,7 +19,7 @@ describe("selfProblems(純な判定)", () => {
     assert.equal(SELF_CHECK_DEFAULT, true);
   });
 
-  test("Tier1: 必ず持つ 3 つがあり self の行がちょうど 4 行(持たなくてよい vercel.json は無くてよい)なら問題なし", () => {
+  test("Tier1: 必ず持つ 6 つがあり self の行がちょうど 7 行(持たなくてよい vercel.json は無くてよい)なら問題なし", () => {
     const result = selfProblems({ isTier1: true, selfRows: [...SELF_FILES], head: files("a", "b"), merge: null, parentNow: null });
     assert.deepEqual(result, { problems: [], asks: [], unverified: [] });
   });
@@ -28,7 +30,7 @@ describe("selfProblems(純な判定)", () => {
     assert.deepEqual(SELF_OPTIONAL, ["vercel.json"]);
     const rows = selfProblems({ isTier1: true, selfRows: [...SELF_REQUIRED], head: files("a", "b"), merge: null, parentNow: null });
     assert.deepEqual(kinds(rows), ["self-rows src/lib/forkOwnership/intake.txt"]);
-    assert.match(rows.problems[0].message, /4 行でない\(足りない: vercel\.json\)/);
+    assert.match(rows.problems[0].message, /7 行でない\(足りない: vercel\.json\)/);
   });
 
   test("ファイルが無い = self-missing、行の集合が違う = self-rows", () => {
@@ -106,7 +108,7 @@ describe("pnpm workflow ownership check --self(作り物の親と fork)", () => 
     closeTmp();
   });
 
-  const SELF_INTAKE = "edit src/config/**  # 値\nappend src/lib/CATALOG.md  # 目録\nself .claude/rules/project.md  # 概要\nself .claude/rules/behavior.md  # 作業の決まり\nself repo.json  # 名前と段\nself vercel.json  # Vercel の設定\n";
+  const SELF_INTAKE = `edit src/config/**  # 値\nappend src/lib/CATALOG.md  # 目録\n${SELF_FILES.map((path) => `self ${path}  # 型 5\n`).join("")}`;
 
   /** 親の project.md / behavior.md が変わった版を -X theirs で取り込んだ fork(親の版が入った状態) */
   function forkAfterTakingParent() {
@@ -114,6 +116,7 @@ describe("pnpm workflow ownership check --self(作り物の親と fork)", () => 
     write(parent, "src/lib/forkOwnership/intake.txt", SELF_INTAKE);
     write(parent, PROJECT, "# project\nparent overview\n");
     write(parent, BEHAVIOR, "# behavior\nparent rules\n");
+    for (const [path, text] of Object.entries(CONFIGS)) write(parent, path, text);
     commitAll(parent, "self files");
     const fork = makeFork(parent);
     write(fork, PROJECT, "# project\nchild overview\n");

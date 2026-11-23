@@ -32,6 +32,7 @@ const EDIT_BY_KIND = {
   region: "fork の区画(fork entries start … end)の中だけ",
   marker: "`fork entries below` の行より下だけ",
   append: "基準の中身を先頭に残した追記だけ",
+  "append-json": "鍵を足すだけ(上流の鍵を消さない・上流の値を変えない。例外は judge.mjs JSON_FREE_KEYS: package.json の name・依存 4 欄の上流の依存の版の範囲)",
   generated: "生成物: 生成器で作り直す(手で直さない)",
 };
 
@@ -93,7 +94,7 @@ export function describePath({ path, inBase, inHead, inTier1, middleName, intake
   const tier = !inBase ? (inHead ? "fork" : "missing") : inTier1 ? "tier1" : "middle";
   /** @type {{ kind: string, tier: ExplainTier, forkId?: string | null }} */
   const owner = { kind: rule?.kind === "generated" && tier !== "missing" ? "generated" : tier, tier, ...(tier === "middle" ? { forkId: middleName } : {}) };
-  const editHow = rule?.kind ? EDIT_BY_KIND[rule.kind] : undefined;
+  const editHow = rule?.kind ? EDIT_BY_KIND[rule.kind === "append" && path.endsWith(".json") ? "append-json" : rule.kind] : undefined;
 
   /** @type {{ action: string, how: string, path?: string }[]} */
   const allowed = [];

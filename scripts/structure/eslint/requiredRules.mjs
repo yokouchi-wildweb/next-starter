@@ -1,6 +1,6 @@
 // scripts/structure/eslint/requiredRules.mjs
 //
-// 全 Tier の必須の ESLint 規則(eslint-rules/required-rules.mjs)が、fork の eslint.config.fork.mjs を最後に読んだ
+// 全 Tier の必須の ESLint 規則(eslint-rules/required-rules.mjs)が、各リポの eslint.config.mjs(本体の後ろに自分の設定を足した物)を読んだ
 // 最終の設定でも error のままかを確かめる。pnpm check eslint(pnpm build の段階 check --phase=build が回す)。
 // 失敗: 規則が off / warn になっている・規則が設定に無い・代表のファイルが無い(example: true の行を除く)。
 // fork が規則を足す・一覧の外を緩めるのは止めない。
@@ -60,7 +60,7 @@ async function main() {
   }
   console.error("[check eslint] 全 Tier の必須の ESLint 規則が error ではありません(eslint-rules/required-rules.mjs):");
   for (const { rule, file, problem } of problems) console.error(`  - ${rule} @ ${file}: ${problem}`);
-  console.error("  fork の eslint.config.fork.mjs でこの規則を off / warn にしていないか確かめてください。行ごとの例外は理由付きの eslint-disable で。");
+  console.error("  このリポの eslint.config.mjs(本体の後ろの自分の設定)でこの規則を off / warn にしていないか確かめてください。行ごとの例外は理由付きの eslint-disable で。");
   process.exit(1);
 }
 

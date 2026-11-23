@@ -3,7 +3,7 @@
 // 理由つきで skip する(除外の一覧を持たない: spec が自分の画面を閉じる規則の名前を渡す。例 sampleDomain・demoPages)。
 // 読むのはサーバーと同じ答え(判定の入口 @/featureGate/ruleList の rules = 規則の値 + 全開スイッチ FEATURE_GATE_OPEN + 依存先。門番の口と同じ一覧。
 // @/featureGate/node は .mjs の道具を連れてきて Playwright の読み込みで落ちるので読まない)。runner の側で読み、
-// サーバーには聞かない。スイッチの値は playwright.config.default.ts が開発の env(ENV_FILE、既定 .env.development)から読む。
+// サーバーには聞かない。スイッチの値は playwright.config.core.ts が開発の env(ENV_FILE、既定 .env.development)から読む。
 // 上流の開発は FEATURE_GATE_OPEN=all(全部回る)、スイッチが空なら規則の値のまま(fork の既定)
 
 import { test } from "@playwright/test";

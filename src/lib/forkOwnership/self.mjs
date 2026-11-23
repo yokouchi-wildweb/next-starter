@@ -1,6 +1,6 @@
-// 型 5 self の検査(各リポが自分の版を持つファイル: 必ず持つ 3 つ + 持たなくてよい vercel.json、D295)。中身は見ない: 落とすのは 3 つだけ
+// 型 5 self の検査(各リポが自分の版を持つファイル: 必ず持つ 6 つ + 持たなくてよい vercel.json、D295・D299)。中身は見ない: 落とすのは 3 つだけ
 //   1 self-missing   必ず持つファイルが無い(持たなくてよい物は無くてよい = Vercel にデプロイしないリポ)
-//   2 self-rows      受け口の一覧の self の行が決まった 4 行ちょうどでない
+//   2 self-rows      受け口の一覧の self の行が決まった 7 行ちょうどでない
 //   3 self-overview  Tier1 でないリポの project.md(概要)が直接の親の今の版と同じまま
 // 落とさず聞く物(asks、/flux が人に聞く。D280):
 //   self-parent-lost 取り込みの前は自分の版(前に取り込んだ親の版と違う)だったのに、取り込みで親の版と同じになった
@@ -8,8 +8,11 @@
 // 既定は入(SELF_CHECK_DEFAULT)。pnpm workflow ownership check がいつも走らせる。--no-self で外す(調べる時だけ)。
 // git から入力を集めるのは check.mjs(collectSelf)、ここは純な判定だけ。仕様: ./README.md「受け口の一覧(intake.txt)」
 
-/** 必ず持つ self */
-export const SELF_REQUIRED = [".claude/rules/project.md", ".claude/rules/behavior.md", "repo.json"];
+/**
+ * 必ず持つ self。直下のコードの設定 3 本(D299)は Tier1 の本体 <道具>.config.core.<拡張子> を読み、足す・包む・外す
+ * (playwright は読まなくてよい)。Tier1 の版は本体をそのまま使う
+ */
+export const SELF_REQUIRED = [".claude/rules/project.md", ".claude/rules/behavior.md", "repo.json", "next.config.ts", "eslint.config.mjs", "playwright.config.ts"];
 /** 持たなくてよい self(持つなら自分の版。vercel.json = Vercel にデプロイするリポだけ、crons は pnpm generate cron の出力) */
 export const SELF_OPTIONAL = ["vercel.json"];
 /** self の全部(受け口の一覧の self の行・取り込みで親の版になったかの問い・中継の対象外はこれを読む) */

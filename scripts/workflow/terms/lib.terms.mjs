@@ -1,7 +1,7 @@
 // scripts/workflow/terms/lib.terms.mjs — 語の表(terms.json)の読みと、必ず誤りの言い換えの当たりを探す部品(純関数と走査)、
 // 人と agent が読む語の表 .claude/rules/core/terms.md の描き。入口は check.mjs・generate.mjs
 //
-// 見る所: Tier1 の文脈ファイル(CLAUDE.md・AGENTS.md・.claude/rules/**・.claude/skills/**)と Tier1 の道具(scripts/**・eslint-rules/**・eslint.config.mjs・package.json)
+// 見る所: Tier1 の文脈ファイル(CLAUDE.md・AGENTS.md・.claude/rules/**・.claude/skills/**)と Tier1 の道具(scripts/**・eslint-rules/**・eslint.config.mjs・eslint.config.core.mjs・package.json)
 // 見ない所: 表そのものとこのフォルダ(誤りの字面を持つ)・表から描いた core/terms.md(旧い語を「旧: …」として持つ)・改名の記録(名前が renames.json のファイル)・バイナリ
 // 誤りの行の種類: text = 正規表現で本文を探す / identifier = 道具のコードの中の名前(語の境目で一致)
 // 誤りの行の範囲 in: context = 文脈ファイルだけ / tools = 道具だけ / both
@@ -21,7 +21,7 @@ const CODE = /\.(mjs|cjs|js|ts|tsx|mts|cts)$/;
 export function areaOf(path) {
   if (path.startsWith(SELF_DIR) || path === TERMS_MD || /(^|\/)renames\.json$/.test(path) || BINARY.test(path)) return null;
   if (path === "CLAUDE.md" || path === "AGENTS.md" || path.startsWith(".claude/rules/") || path.startsWith(".claude/skills/")) return "context";
-  if (path.startsWith("scripts/") || path.startsWith("eslint-rules/") || path === "eslint.config.mjs" || path === "package.json") return "tools";
+  if (path.startsWith("scripts/") || path.startsWith("eslint-rules/") || path === "eslint.config.mjs" || path === "eslint.config.core.mjs" || path === "package.json") return "tools";
   return null;
 }
 
@@ -72,7 +72,7 @@ export function listScanned(root, only = null) {
       walk(rel ? `${rel}/${entry.name}` : entry.name);
     }
   };
-  for (const start of ["CLAUDE.md", "AGENTS.md", ".claude/rules", ".claude/skills", "scripts", "eslint-rules", "eslint.config.mjs", "package.json"]) walk(start);
+  for (const start of ["CLAUDE.md", "AGENTS.md", ".claude/rules", ".claude/skills", "scripts", "eslint-rules", "eslint.config.mjs", "eslint.config.core.mjs", "package.json"]) walk(start);
   return out.filter((p) => areaOf(p) && (!only || only.has(p))).sort();
 }
 
