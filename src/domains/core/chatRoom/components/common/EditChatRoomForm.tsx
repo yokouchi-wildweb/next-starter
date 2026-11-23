@@ -41,6 +41,7 @@ export default function EditChatRoomForm({ chatRoom, redirectPath = "/" }: Props
       router.push(redirectPath);
     } catch (error) {
       showToast(err(error, "更新に失敗しました"), "error");
+      throw error;
     }
   };
 

@@ -43,6 +43,7 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
       router.push(redirectPath);
     } catch (error) {
       showToast(err(error, "更新に失敗しました"), "error");
+      throw error;
     }
   };
 

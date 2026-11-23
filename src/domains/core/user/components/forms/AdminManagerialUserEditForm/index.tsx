@@ -56,6 +56,7 @@ export default function ManagerialUserEditForm({
       router.push(redirectPath);
     } catch (error) {
       showToast(err(error, "ユーザー更新に失敗しました"), "error");
+      throw error;
     }
   };
 

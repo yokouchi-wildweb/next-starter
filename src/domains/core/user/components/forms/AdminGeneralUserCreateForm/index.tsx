@@ -53,6 +53,7 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
       router.push(redirectPath);
     } catch (error) {
       showToast(err(error, "ユーザー登録に失敗しました"), "error");
+      throw error;
     }
   };
 

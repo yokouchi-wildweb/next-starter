@@ -42,6 +42,7 @@ export default function EditSampleTagForm({ sampleTag, redirectPath = "/" }: Pro
       router.push(redirectPath);
     } catch (error) {
       showToast(err(error, "更新に失敗しました"), "error");
+      throw error;
     }
   };
 

@@ -39,6 +39,7 @@ export default function CreateSampleForm({ redirectPath = "/" }: Props) {
       router.push(redirectPath);
     } catch (error) {
       showToast(err(error, "登録に失敗しました"), "error");
+      throw error;
     }
   };
 

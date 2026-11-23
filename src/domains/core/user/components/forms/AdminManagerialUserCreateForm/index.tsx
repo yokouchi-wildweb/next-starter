@@ -61,6 +61,7 @@ export default function ManagerialUserCreateForm({
       router.push(redirectPath);
     } catch (error) {
       showToast(err(error, "ユーザー登録に失敗しました"), "error");
+      throw error;
     }
   };
 

@@ -131,6 +131,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose, onSuccess 
       onSuccess?.();
     } catch (error) {
       showToast(err(error, `${currencyLabel}の操作に失敗しました`), "error");
+      throw error;
     } finally {
       lockRef.current = false;
     }

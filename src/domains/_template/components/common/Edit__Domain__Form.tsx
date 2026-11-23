@@ -41,6 +41,7 @@ export default function Edit__Domain__Form({ __domain__, redirectPath = "/" }: P
       router.push(redirectPath);
     } catch (error) {
       showToast(err(error, "更新に失敗しました"), "error");
+      throw error;
     }
   };
 

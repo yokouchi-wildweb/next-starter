@@ -47,6 +47,7 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
       router.push(redirectPath);
     } catch (error) {
       showToast(err(error, "デモユーザーの作成に失敗しました"), "error");
+      throw error;
     }
   };
 
