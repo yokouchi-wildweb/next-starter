@@ -16,9 +16,12 @@ not_here: typing into another tab (reconnecting Remote Control included) → /in
    - a council, team or any other program → the exact command after `--`, as named or as its own docs give it (this skill knows no team; a launcher that needs a picker cannot pick here → give it its arguments)
 2. run `pnpm workflow agent-terminal open [--cwd=<dir>] [--name=<name>] [-- <command…>]`
 3. exit 3 → it opened nothing: show the printed line the user types themselves
+   - exit 4 → the tab opened but its command failed at once: never say it opened | show the printed screen lines and the exit, then fix the arguments (e.g. the id) and open again, or tell the user
+   - exit 0 with `命令がすぐ終わりました` → the command ended at once with exit 0 (a launcher that does not attach): report it with its last lines
 4. REPORT, always, also when you opened it on your own judgment
 
 ## REPORT
 ```
 <何を>を開きました — <開いた所>(見る: <attach の命令>)
 ```
+- failed at once (exit 4): `<何を>の起動がすぐ失敗しました(exit <n>) — <画面の最後の行>`

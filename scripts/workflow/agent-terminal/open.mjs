@@ -6,8 +6,11 @@
 // サーバー: --socket=<名前> = tmux -L <名前> / 呼んだ会話が tmux の中 = 同じサーバー / ほか = 既定のサーバー(AGENT_TERMINAL=none でも開く)。
 // セッション名 = --name、無ければ cwd のフォルダ名(使える字だけ、重なれば -2、-3 …)。
 // 出す 1 行: どこに開いたかと attach の命令。tmux が無ければ開かず、人が打つ 1 行を出す。
-// 終了コード: 0 = 開いた / 1 = 使い方の誤り / 3 = 開けない(tmux が無い・tmux が失敗)。説明: scripts/workflow/agent-terminal/README.md
+// 命令つきの時は開いた後に最長 5 秒、命令の終わった印を見る: 出たら「すぐ終わりました」とその画面の最後の行を出す(開けたとは言わない)。
+// 終了コード: 0 = 開いた(命令が exit 0 ですぐ終わった時も)/ 1 = 使い方の誤り / 3 = 開けない(tmux が無い・tmux が失敗)/
+// 4 = 開いたが命令がすぐ失敗した(exit 0 以外)。説明: scripts/workflow/agent-terminal/README.md
 
+import { spawnSync } from "node:child_process";
 import { existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,8 +21,22 @@ const USAGE = "使い方: pnpm workflow agent-terminal open [--cwd=<dir>] [--nam
 
 const quote = (s) => (/^[A-Za-z0-9_./:=@%+-]+$/.test(s) ? s : `'${s.replace(/'/g, `'\\''`)}'`);
 const cleanName = (s) => s.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "session";
+const ENDED = /^\(命令が終わりました: exit (\d+)\)$/;
 
-export function runOpen(args, env = process.env, print = console.log) {
+// endedOf(server, name, waitMs) → { code, tail } when the pane shows the command's end mark within waitMs (polled every 0.5 s), else null.
+// tail = the last lines before the mark (up to 8, blank ones dropped)
+function endedOf(server, name, waitMs) {
+  const until = Date.now() + waitMs;
+  for (;;) {
+    const lines = (tmuxAt(server, ["capture-pane", "-p", "-J", "-S", "-200", "-t", name]).stdout ?? "").split("\n").map((l) => l.trimEnd());
+    const at = lines.findIndex((l) => ENDED.test(l));
+    if (at >= 0) return { code: Number(lines[at].match(ENDED)[1]), tail: lines.slice(0, at).filter(Boolean).slice(-8) };
+    if (Date.now() >= until) return null;
+    spawnSync("sleep", ["0.5"]);
+  }
+}
+
+export function runOpen(args, env = process.env, print = console.log, waitMs = 5000) {
   const at = args.indexOf("--");
   const opts = at < 0 ? args : args.slice(0, at);
   const command = at < 0 ? [] : args.slice(at + 1);
@@ -59,7 +76,15 @@ export function runOpen(args, env = process.env, print = console.log) {
     print(`open: tmux が開けませんでした(${(r.stderr || "").trim() || `exit ${r.status}`})。人が新しい端末で打つ 1 行: cd ${quote(cwd)} && ${run}`);
     return 3;
   }
-  print(`open: 開きました — ${server.label} のセッション ${name}(cwd ${cwd}、${command.length ? `命令 ${run}` : `Remote Control の名前 ${name}`})。見る: ${server.label} attach -t ${quote(name)}`);
+  const where = `${server.label} のセッション ${name}(cwd ${cwd}、${command.length ? `命令 ${run}` : `Remote Control の名前 ${name}`})`;
+  const ended = command.length ? endedOf(server, name, waitMs) : null;
+  if (ended) {
+    print(`open: 命令がすぐ終わりました(exit ${ended.code}) — ${where}。画面の最後:${ended.tail.length ? "" : " (出力なし)"}`);
+    for (const l of ended.tail) print(`  | ${l}`);
+    print(`見る: ${server.label} attach -t ${quote(name)}`);
+    return ended.code === 0 ? 0 : 4;
+  }
+  print(`open: 開きました — ${where}。見る: ${server.label} attach -t ${quote(name)}`);
   return 0;
 }
 
