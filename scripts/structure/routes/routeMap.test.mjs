@@ -58,12 +58,13 @@ export const ${name} = createLoader({
 const ROOT_GUARD = `import "server-only";
 import { defineRootGuard } from "@/wiring/pageGuard";
 
-export const { guard, createLoader, extend } = defineRootGuard({ access: "public" });`;
+export const { guard, createLoader, guardMetadata, extend } = defineRootGuard({ access: "public" });`;
 const childGuard = (parentPath, policy) => `import "server-only";
 import { extend as extendParent } from "${parentPath}";
 
-export const { guard, createLoader, extend } = extendParent(${policy});`;
-const GUARD_LAYOUT = `import { guard } from "./guard";
+export const { guard, createLoader, guardMetadata, extend } = extendParent(${policy});`;
+const GUARD_LAYOUT = `import { guard, guardMetadata } from "./guard";
+export const generateMetadata = guardMetadata({ robots: { index: false, follow: false } });
 export default async function L({ children }) {
   await guard();
   return <>{children}</>;
@@ -239,8 +240,9 @@ test("buildRouteMap: guard.ts の範囲の layout が guard() を呼ばない・
   assert.ok(missing.problems.some((p) => p.includes("guard() を呼んでいない")));
   const legacy = buildRouteMap(
     healthyTree({
-      "src/app/admin/layout.tsx": `import { guard } from "./guard";
+      "src/app/admin/layout.tsx": `import { guard, guardMetadata } from "./guard";
 import { authGuard } from "@/domains/core/auth/services/server/authorization";
+export const generateMetadata = guardMetadata();
 export default async function L({ children }) {
   await guard();
   await ${"authGuard"}({ allowRoles: ["admin"] });
@@ -249,6 +251,33 @@ export default async function L({ children }) {
     }),
   );
   assert.ok(legacy.problems.some((p) => p.includes("authGuard")));
+});
+
+test("buildRouteMap: guard.ts の範囲の layout が metadata を守りの後で出さない(guardMetadata 無し・静的な metadata)と生成失敗", () => {
+  const noGuardMetadata = buildRouteMap(
+    healthyTree({
+      "src/app/admin/layout.tsx": `import { guard } from "./guard";
+export const metadata = { title: "管理" };
+export default async function L({ children }) {
+  await guard();
+  return children;
+}`,
+    }),
+  );
+  assert.ok(noGuardMetadata.problems.some((p) => p.includes("metadata を守りの後で出していない")));
+  const both = buildRouteMap(
+    healthyTree({
+      "src/app/admin/layout.tsx": `import { guard, guardMetadata } from "./guard";
+export const generateMetadata = guardMetadata();
+export const metadata = { robots: { index: false } };
+export default async function L({ children }) {
+  await guard();
+  return children;
+}`,
+    }),
+  );
+  assert.ok(both.problems.some((p) => p.includes("metadata を守りの後で出していない")));
+  assert.deepEqual(buildRouteMap(healthyTree()).problems, []);
 });
 
 test("buildRouteMap: 無効な feature-gate の規則に当たるルートは gatedOff に最初のパターン(鎖は verified 必須)", () => {

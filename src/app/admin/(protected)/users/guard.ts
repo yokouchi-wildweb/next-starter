@@ -6,7 +6,7 @@ import "server-only";
 
 import { extend as extendAdmin } from "../guard";
 
-export const { guard, createLoader, extend } = extendAdmin({
+export const { guard, createLoader, guardMetadata, extend } = extendAdmin({
   access: { roles: ["admin"] },
   redirectTo: "/admin",
   forbiddenRedirectTo: "/admin",

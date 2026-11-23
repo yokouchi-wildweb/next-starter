@@ -4,7 +4,10 @@
 
 import type { ReactNode } from "react";
 
-import { guard } from "./guard";
+import { guard, guardMetadata } from "./guard";
+
+// 先に守りを通してから metadata を返す(断られた訪問者の応答に配下のページの題名を出さない)
+export const generateMetadata = guardMetadata();
 
 export default async function UserProtectedLayout({
   children,

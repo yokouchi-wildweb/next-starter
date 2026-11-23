@@ -2,7 +2,6 @@
 //
 // 方針(管理者カテゴリ・初期セットアップの誘導)は隣の guard.ts。
 
-import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { clientGateState } from "@/featureGate";
@@ -10,11 +9,13 @@ import { AdminCommandGateBridge } from "@/domains/core/adminCommand";
 import { GateProvider } from "@/featureGate/client";
 
 import { AdminProtectedLayout } from "./_layout/AdminProtectedLayout";
-import { guard } from "./guard";
+import { guard, guardMetadata } from "./guard";
 
-// 検索エンジンに載せない(robots noindex・nofollow、配下の全ページが継承する)。守られた範囲は、cacheComponents では
-// 未ログインでも 307 ではなく本文の中の転送で 200 になりうる(中身は出ない)ので、その応答を索引させない
-export const metadata: Metadata = { robots: { index: false, follow: false } };
+// 先に守りを通してから metadata を返す(断られた訪問者の応答に配下のページの題名を出さない。Next は根からページへ順に解き、
+// 断りは redirect / notFound を投げて解決ごと止める)。許された時は robots noindex・nofollow を配下の全ページが継承する。
+// 断られた応答(cacheComponents では 200 + 本文の中の転送)の索引避けは proxy の飾り admin/plugs/proxyDecorators/noindex.ts の
+// X-Robots-Tag(/admin 以下の全部の応答)
+export const generateMetadata = guardMetadata({ robots: { index: false, follow: false } });
 
 export default async function AdminLayout({
   children,

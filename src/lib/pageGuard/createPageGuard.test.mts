@@ -197,3 +197,22 @@ test("createLoader: allows は別の access を同じ利用者で評価する", 
   currentUser = null;
   assert.deepEqual(await load({}), [false, false, false]);
 });
+
+test("guardMetadata: 断られた訪問者には guard() と同じ redirect / notFound を投げ、base を返さない(配下のページの題名を出さない)", async () => {
+  const base = { robots: { index: false, follow: false } };
+  const run = (range: typeof adminRange) => async () => range.guardMetadata(base)();
+  assert.equal(await as(null, run(adminRange)), `redirect:/admin/login?returnTo=${encodeURIComponent("/mypage/account")}`);
+  assert.equal(await as(active, run(adminRange)), `redirect:/admin/login?returnTo=${encodeURIComponent("/mypage/account")}`);
+  const bare = root.extend({ access: { roles: ["admin"] } });
+  assert.equal(await as(null, async () => bare.guardMetadata()()), "notFound");
+  usersExist = false;
+  assert.equal(await as(null, run(adminRange)), "redirect:/admin/setup");
+  usersExist = true;
+});
+
+test("guardMetadata: 許された訪問者には base を返す(省略は空)", async () => {
+  currentUser = active;
+  assert.deepEqual(await userRange.guardMetadata({ robots: { index: false, follow: false } })(), { robots: { index: false, follow: false } });
+  assert.deepEqual(await userRange.guardMetadata()(), {});
+  assert.deepEqual(await root.guardMetadata()(), {});
+});

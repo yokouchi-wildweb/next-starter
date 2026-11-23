@@ -2,7 +2,10 @@
 
 import type { ReactNode } from "react";
 
-import { guard } from "./guard";
+import { guard, guardMetadata } from "./guard";
+
+// 先に守りを通してから metadata を返す(この範囲で断られた訪問者に配下のページの題名を出さない)
+export const generateMetadata = guardMetadata();
 
 /**
  * ユーザー管理画面のレイアウト

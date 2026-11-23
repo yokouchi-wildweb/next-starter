@@ -9,7 +9,7 @@ Next.js App Router のルートディレクトリ。Route Group を活用して�
 | `(user)/` | ユーザー向けフロントエンド |
 | `(marketing)/` | ランディングページ等。`(user)/` の枠(ヘッダー・フッター)の外の兄弟の枝。枠は `_layout/MarketingLayout`(既定は素通し、`_layout/README.md`) |
 | `admin/` | 管理者向け画面(守られた範囲 `(protected)/` の layout は noindex) |
-| `debug/` | デバッグ用画面（管理者カテゴリ + デバッガーロール限定。範囲は `debug/guard.ts`、layout は `await guard()` と noindex） |
+| `debug/` | デバッグ用画面（管理者カテゴリ + デバッガーロール限定。範囲は `debug/guard.ts`、layout は `await guard()` と守りの後の metadata `guardMetadata`(noindex)。断られた応答の索引避けは proxy の `X-Robots-Tag`） |
 | `api/` | API ルート |
 | `_mounts/` | root layout が 1 度だけ描く、子を包まない部品(SDK を包む lib を読むので棚 src/components に置けない物。`_mounts/README.md`) |
 
@@ -137,7 +137,7 @@ src/app/
 │   ├── layout.tsx          ← ユーザー側の枠(1 行スイッチ → _layout/)
 │   ├── (protected)/
 │   │   ├── guard.ts        ← 範囲の方針(ログイン必須・status 別の行き先)。root の src/app/guard.ts を extend
-│   │   └── layout.tsx      ← await guard() の 1 行。枠はガードの外 = (user)/layout.tsx
+│   │   └── layout.tsx      ← await guard() の 1 行 + generateMetadata = guardMetadata()。枠はガードの外 = (user)/layout.tsx
 │   ├── (public)/ (auth)/ (legal)/   ← layout なし。(user) の枠をそのまま継ぐ
 │   └── demo/ maintenance/
 ├── (marketing)/
@@ -146,7 +146,7 @@ src/app/
 ├── admin/                  ← URL フォルダの layout(枠 = 1 行スイッチ → _layout/。ガードは (protected)/ の layout)
 └── debug/
     ├── guard.ts            ← 管理者カテゴリ + デバッガーの範囲
-    └── layout.tsx          ← await guard() の 1 行
+    └── layout.tsx          ← await guard() の 1 行 + generateMetadata = guardMetadata()
 ```
 
 - layout はサーバー側でデータを取らない（services/server・DB・loader を import しない。認可は authorization の関数だけ）。取得は loader で行う。lint `page-authz`、詳細: [auth README「置き場所の検査」](../domains/core/auth/README.md)

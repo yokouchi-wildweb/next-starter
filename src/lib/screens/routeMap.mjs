@@ -9,6 +9,7 @@ import {
   checkAdminPageScreen,
   checkScreenLoaderCall,
   layoutCallsGuard,
+  layoutGuardsMetadata,
   parseGuardFile,
   parseLoaderGuard,
   parseSwitchLayout,
@@ -158,6 +159,11 @@ function checkLayout(layoutFile, fileSet, read) {
     const needsCall = policy && policy.access !== "public";
     if (needsCall && !sources.some(([, src]) => layoutCallsGuard(src))) {
       problems.push(`${layoutFile}: 隣の guard.ts があるのに guard() を呼んでいない(await guard() の 1 行)`);
+    }
+    if (needsCall && !sources.some(([, src]) => layoutGuardsMetadata(src))) {
+      problems.push(
+        `${layoutFile}: 隣の guard.ts があるのに metadata を守りの後で出していない(export const generateMetadata = guardMetadata(…)、静的な metadata は書かない)`,
+      );
     }
   }
   return problems;

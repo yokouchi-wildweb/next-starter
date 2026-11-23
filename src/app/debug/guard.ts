@@ -7,7 +7,7 @@ import "server-only";
 
 import { extend as extendRoot } from "@/app/guard";
 
-export const { guard, createLoader, extend } = extendRoot({
+export const { guard, createLoader, guardMetadata, extend } = extendRoot({
   access: { roleCategories: ["admin"], roles: ["debugger"] },
   redirectTo: "/login",
   forbiddenRedirectTo: "/login",

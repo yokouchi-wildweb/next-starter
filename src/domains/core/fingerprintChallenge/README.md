@@ -103,7 +103,7 @@ const url = `${getAppBaseUrl()}/verify/${token}`;
 // getAppBaseUrl は @/lib/url（事業の素性の url(@/business)を実行時のオリジンにしない）
 ```
 
-- ページの守り: `/verify/[token]` は **`(user)/(protected)` の外** に置き、専用の範囲の guard.ts（root の extend で `{ access: "authenticated", allowStatuses: ["active", "suspended"], redirectTo: "/login", returnBack: true }`）と `await guard()` の layout を置く。`(protected)` の範囲は active 限定のため、suspended ユーザーが回答に辿り着けない
+- ページの守り: `/verify/[token]` は **`(user)/(protected)` の外** に置き、専用の範囲の guard.ts（root の extend で `{ access: "authenticated", allowStatuses: ["active", "suspended"], redirectTo: "/login", returnBack: true }`）と `await guard()` + `generateMetadata = guardMetadata()` の layout を置く。`(protected)` の範囲は active 限定のため、suspended ユーザーが回答に辿り着けない
 
 ### トークン無しの回答ページ（本人スコープ経路）
 

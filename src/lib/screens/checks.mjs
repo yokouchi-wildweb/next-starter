@@ -1007,8 +1007,8 @@ export const GUARD_POLICY_KEYS = ["access", "allowStatuses", "redirectTo", "forb
  */
 export function parseGuardFile(source) {
   const src = stripComments(source);
-  const exportsAll = /export\s+const\s*\{\s*guard\s*,\s*createLoader\s*,\s*extend\s*\}\s*=/.test(src);
-  const problems = exportsAll ? [] : ["guard.ts は `export const { guard, createLoader, extend } = …` の形にする"];
+  const exportsAll = /export\s+const\s*\{\s*guard\s*,\s*createLoader\s*,\s*guardMetadata\s*,\s*extend\s*\}\s*=/.test(src);
+  const problems = exportsAll ? [] : ["guard.ts は `export const { guard, createLoader, guardMetadata, extend } = …` の形にする"];
   const root = namedImportSource(src, "defineRootGuard");
   let parentImport = null;
   let callee;
@@ -1043,4 +1043,18 @@ export function layoutCallsGuard(source) {
   const src = stripComments(source);
   const imp = namedImportSource(src, "guard");
   return Boolean(imp && imp.source === "./guard" && /\bawait\s+guard\s*\(\s*\)/.test(src));
+}
+
+/**
+ * layout が metadata を守りの後で出すか: `./guard` の guardMetadata で `export const generateMetadata = guardMetadata(…)` を書き、
+ * 静的な `export const metadata` を持たない(断られた訪問者の応答に配下のページの題名を出さないため。Next は根からページへ順に解く)
+ * @param {string} source
+ * @returns {boolean}
+ */
+export function layoutGuardsMetadata(source) {
+  const src = stripComments(source);
+  const imp = namedImportSource(src, "guardMetadata");
+  const exported = /export\s+const\s+generateMetadata\s*=\s*guardMetadata\s*\(/.test(src);
+  const staticMetadata = /export\s+const\s+metadata\b/.test(src);
+  return Boolean(imp && imp.source === "./guard" && exported && !staticMetadata);
 }

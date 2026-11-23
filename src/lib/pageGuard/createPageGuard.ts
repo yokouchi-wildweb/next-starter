@@ -2,8 +2,9 @@
 //
 // ページの守りの汎用版。束(利用者の解き方・access の評価・現在パス・前提の判定)を受けて root の範囲を作る。
 // 範囲は方針の段(root → 子 → 孫)の並びで、子は親の extend で 1 段足すだけ(全段を順に評価 = 親子 AND、子は狭めるだけ)。
-// 方針の値は外へ出さない(返すのは guard / createLoader / extend の 3 つ)。
+// 方針の値は外へ出さない(返すのは guard / createLoader / guardMetadata / extend の 4 つ)。
 
+import type { Metadata } from "next";
 import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
 
@@ -118,9 +119,15 @@ function buildGuard<TUser extends PageGuardUser>(
     };
   };
 
+  // 範囲の layout の generateMetadata: guard() と同じ判定を先に通す(断られた訪問者に題名を返さない)
+  const guardMetadata = (base: Metadata = {}) => async (): Promise<Metadata> => {
+    await enforceRange();
+    return base;
+  };
+
   const extend = (policy: PageGuardPolicy): PageGuard<TUser> => buildGuard(deps, [...levels, policy]);
 
-  return { guard, createLoader, extend };
+  return { guard, createLoader, guardMetadata, extend };
 }
 
 /**

@@ -4,6 +4,8 @@
 // lib/pageGuard は利用者の解き方・access の評価・現在パス・前提の判定を自分で import せず、ここで決めた形で受け取る。
 // 束を作るのは持ち主のドメイン(点 pageGuardUser の項目、上流は domains/core/auth)、結ぶのは生成物 src/wiring/pageGuard.ts(./wire.ts)。
 
+import type { Metadata } from "next";
+
 import type { DomainApiAccessRule } from "@/lib/domainAccess";
 
 /** access の評価結果(API の Factory と同じ語彙) */
@@ -88,6 +90,12 @@ export type PageGuard<TUser extends PageGuardUser = PageGuardUser> = {
   createLoader: <TProps, TKey extends readonly LoaderKeyValue[] = [], TData = void>(
     config: PageLoaderConfig<TProps, TKey, TData, TUser>,
   ) => (props: TProps) => Promise<TData>;
+  /**
+   * 範囲の layout の generateMetadata を作る(layout が `export const generateMetadata = guardMetadata({...})` の 1 行)。
+   * 先に guard() と同じ判定を通し、断られた訪問者には redirect / notFound で止める(base を返さない)。
+   * Next は metadata を根からページへ順に解くので、範囲の layout で断ればその下のページの題名は応答に出ない
+   */
+  guardMetadata: (base?: Metadata) => () => Promise<Metadata>;
   /** 子の範囲(子 guard.ts)を作る。親の方針と AND */
   extend: (policy: PageGuardPolicy) => PageGuard<TUser>;
 };

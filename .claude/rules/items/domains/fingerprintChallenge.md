@@ -9,7 +9,7 @@ use: fingerprintChallenge (requires deviceFingerprint: open both)
 change: counterpart → open in src/config/featureGate/switches.config.ts (config.ts has no on/off key) | process values in src/config/domains/fingerprintChallenge.config.ts
 rules:
 using:
-- challenge_page_range: an answer page lives outside (user)/(protected) under its own range guard.ts whose allowStatuses = the config challenge.answerableStatuses + an `await guard()` layout (the protected range is active only) | the general rule = core/screens.md status_pages
+- challenge_page_range: an answer page lives outside (user)/(protected) under its own range guard.ts whose allowStatuses = the config challenge.answerableStatuses + a guarded layout (core/screens.md range_layout) (the protected range is active only) | the general rule = core/screens.md status_pages
 - challenge_evidence: view and behavior signals are client-sourced reference evidence | cross-check them with userLoginEvent, never treat them as proof
 editing:
 - challenge_token_once: the raw token comes only in the issue response | the DB keeps its SHA-256 only, token_hash stays in hiddenColumns
