@@ -89,10 +89,12 @@ const active = listNotices(NOTICES);
 const done = listNotices(DONE);
 // 出荷済みの id = 本文の最後の版が有るもの(作業ツリーか履歴。区間が閉じて消した本文も履歴に残る、D350)
 const shipped = lastNoticeFields(repoRoot);
-// まだコミットされていない notice(= いま出荷しようとしているもの)
+// まだコミットされていない notice(= いま出荷しようとしているもの)。新しい本文(未追跡・追加)だけ:
+// 出荷済みの本文の書き直し(D351、説明の直し)は出荷前ではない(moved: の移動元・タスクの名前は足した commit の木の話)
 const pending = new Set(
   git(["status", "--porcelain", "--untracked-files=all", "--", NOTICES])
     .split("\n")
+    .filter((l) => l.startsWith("??") || l.startsWith("A"))
     .map((l) => l.slice(3).trim())
     .filter((p) => p && !p.startsWith(`${DONE}/`) && !p.startsWith(`${NOTICES}/applied/`)),
 );
