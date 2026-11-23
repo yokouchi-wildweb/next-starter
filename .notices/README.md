@@ -22,7 +22,7 @@
 ## Usage
 
 - **出荷(上流側)**: `/ship` スキル。コミット・push のたびに、検査 → 下流への影響の判定 → 要るなら notice を合成して `.notices/<id>.md` に書き出す(前に出荷したものの修正なら `fixes:` を付ける)→ `pnpm check notices` → 変更本体と同じコミット → push の前の並べ替え(`pnpm workflow notices reorder`)→ push、までを行う。`/flux` と対になる(`/ship` が書く欄と `/flux` が読む欄はこの文書のスキーマで揃える。欄を足すときは両方のスキル・`scripts/workflow/notices/notices.test.mjs`・欄の並び(`.claude/skills/flux/incoming.mjs` の `ROW_KEYS`)・読む側(`.claude/skills/flux/incoming.mjs`、`src/lib/forkOwnership/check.mjs`、`scripts/workflow/notices/noticeFields.mjs`)を同じコミットで直す)。
-- **中継(中間 Tier)**: 下流を持つ fork(`.claude/rules/project.md` の `downstream: yes`)の `/flux` が、適用した上流 notice ごとに中継の要否を git の差分で判定し、必要な区間だけ `covers:` 付きの中継 notice を下書きする(下記「中継(relay)」)。`/flux relay` はこの判定の導入前に適用した未判定の旧 notice の後始末用。
+- **中継(中間 Tier)**: 下流を持つ fork(`.claude/rules/project.md` の `downstream: yes`)の `/flux` が、適用した上流 notice ごとに中継の要否を git の差分で判定し、必要な区間だけ `covers:` 付きの中継 notice を下書きする(下記「中継(relay)」)。
 - **受領・適用(下流側)**: `/flux` スキル。upstream の fetch → 未適用 notice を checkpoint ごとの区間に分割 → 全区間の概観(1 行ずつ)と**次の区間だけ**の詳細な適用計画を提示 → 承認 → その区間の merge・コード修正・DB 操作・検証・台帳記録・コミット・push → 次の区間の計画を出して止まる。承認は区間ごと(区間の終わりの `go` = 次の区間の計画の承認)で、`/flux all` は最初の区間の承認の後、区間ごとに計画と実行を繰り返して最後まで進める(`/flux next` は既定の別名)。fork が移動元を編集した大きな `moved:` の移植を含む区間は、`all` の途中でも手前で止まる。`/flux status` で状態確認のみ。notice の有無にかかわらず区間の上流差分から使い方の変わった部品・lib・core を洗い出し、fork 側の使用箇所を同じ区間で揃え、区間ごとに typecheck / lint を通してから commit する(古い使い方を残すのはユーザーが判断したときだけ)。notice が無いのに追従が要った変更は「上流への所見」で notice 漏れとして返る。承認後でも、取り込む変更がその fork を壊す・db 差分が破壊的・notice と実態が食い違う等の**停止条件**に当たれば区間を commit せずに止まって選択肢を示す(押し切らない)。最終報告には「上流への所見」(上流のバグ・notice のズレ・/order <上流リポ> 候補)を常設。
 - 対応が不要な通常の変更には notice を作らない。ただコミットされて merge で流れていくだけでよい。
 
@@ -273,7 +273,7 @@ T1→T2→T3 の構成では、T1 の notice は T2 が merge した時点で T2
 - 結果は台帳の各行の `relay:` 欄に明示する: `relay:none`(中継不要)/ `relay:<中継 notice id>`(中継した)。欄が無い = 判定導入前の未判定。
 - 中継が必要な notice が区間に 1 件以上あれば、/flux がその区間で中継 notice を 1 件下書きし(合成規則は `.claude/skills/flux/relay.md`「RELAY NOTICE COMPOSITION」、判定の根拠 = ①② の該当ファイル・行範囲と ③ の逸脱を `notes:` に載せる)、区間の適用コミットに含める。中継 notice の追加 commit と台帳記録 commit が同じになるので、下流の区切り点がぶれない。
 - 中身の無い中継 notice は作らない。中継不要の notice は `relay:none` だけで閉じる。
-- 未判定の旧台帳行(`relay:` 欄が無く、どの `covers:` にも無い)は /flux が件数を報告し、`/flux relay` でまとめて中継 notice に covers して閉じる(基準点が古く差分判定できないため)。
+- 未判定の旧台帳行(`relay:` 欄が無く、どの `covers:` にも無い)は /flux が件数を報告し、次のコミットで他の作業より先に、まとめて中継 notice の covers: に入れて閉じる(基準点が古く差分判定できないため。`.claude/skills/flux/relay.md` の unjudged)。
 
 ## Internals
 

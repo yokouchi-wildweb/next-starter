@@ -81,13 +81,13 @@ as a middle Tier, decide mechanically **by git diffs only** whether applied upst
   - ids of your ledger with no `relay:` field, whose `from:` is not your origin, and in no `covers:` of notices from your origin (inherited ids and ids with no notice in the history excluded)
   - one or more → one line in the report:
     ```
-    中継未判定の旧 notice が N 件あります: <id>, ...。`/flux relay` で中継 notice を下書きします
+    中継未判定の旧 notice が N 件あります: <id>, ...。次のコミットで covers: に入れた中継 notice を下書きします
     ```
-  - **while unjudged is not 0, flux is not done** (a reason to stop, not advice; CLAUDE.md REPO_LINK relay): close it by running `/flux relay` in the same sortie, or else never report completion | 0 → print nothing
+  - **while unjudged is not 0, flux is not done** (a reason to stop, not advice; CLAUDE.md REPO_LINK relay): close it in the same sortie by the relay-forgotten step below (a relay notice whose `covers:` = the unjudged ids, by RELAY NOTICE COMPOSITION; their reference points are old, so cover them all, those without follow-up work included), or else never report completion | 0 → print nothing
 - **relay forgotten** (the segment's commit lacked the relay draft / the judgment was skipped) noticed → in the next commit, put the relay judgment and draft before any other work
 
 ## RELAY NOTICE COMPOSITION
-- rules shared by drafting in RELAY JUDGMENT and RELAY MODE below | schema and general writing rules: `.claude/skills/ship/notice.md` NOTICE COMPOSITION (English, machine-to-machine file, written out without asking first)
+- rules for drafting in RELAY JUDGMENT and for closing unjudged ids | schema and general writing rules: `.claude/skills/ship/notice.md` NOTICE COMPOSITION (English, machine-to-machine file, written out without asking first)
 - never guess the material; collect it from:
   - the upstream notice body (change / required_actions / moved / verify)
   - `notes:` of that id's line in your ledger (deviations, ported moves, resolved conflicts, added hooks, etc.)
@@ -95,7 +95,7 @@ as a middle Tier, decide mechanically **by git diffs only** whether applied upst
   - your edits to upstream files that hit files that notice touched: `git diff --stat <upstream>/<branch> HEAD -- <notice が触ったファイル>` (spots where downstream receives this fork's version)
 
 composition:
-- `covers:` = ids passed from RELAY JUDGMENT (relay mode: every unjudged id, in history order)
+- `covers:` = ids passed from RELAY JUDGMENT (closing unjudged ids: every unjudged id, in history order)
 - `moved:` = every covered one's `moved:` + the moves you made in the relayed work (check with ledger notes and `git diff -M --name-status`)
 - `fixes:` = the covered side's `fixes:`, if any, included (so downstream /flux can read fix relations ahead)
 - `change:` = `<自分> applied N <上流> notices: <id> in <sha>, ...` + your side's diffs that affect downstream (port destinations, your own moves, new extension points)
@@ -110,13 +110,6 @@ composition:
 - `checkpoint:` = a label is required (a relay notice is one resting point for downstream)
 - `refs:` = the covered upstream notice paths, the ledger-record commit, your ledger path
 - after writing, pass `pnpm check notices`
-
-## RELAY MODE (`/flux relay`)
-close **unjudged** old notices applied before relay judgment existed by bundling them into a relay notice (their reference points are old, so no diff judgment is possible) | no merge, no application
-1. no own fork ledger (SKILL.md OWN FORK IDENTITY AND LEDGER) → report `中継対象なし` and end
-2. compute the unjudged ids (unjudged of RELAY JUDGMENT above) | 0 → report `未判定の notice はありません` and end (write nothing)
-3. write them out as one relay notice by RELAY NOTICE COMPOSITION above | old notices cannot be judged mechanically, so cover them all, those without follow-up work included
-4. report: the written path and the covered ids, with `中身は台帳 notes と commit から組み立てた下書きなので、確認・編集してからコミットしてください(コミットは /ship)` | ids put in covers drop out of unjudged (the ledger is not rewritten)
 
 ## EDGE CASES
 - an id in `covers:` is in no notice of the upstream tip's history list: include that id in the report (never skip silently) | applying the covers-side notice itself goes on; that id is not recorded in the ledger

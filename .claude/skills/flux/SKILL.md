@@ -1,7 +1,7 @@
 ---
 name: flux
 description: On the downstream (fork) side, take in upstream changes and follow up DOWNSTREAM NOTICEs - fetch → split unapplied notices into segments per checkpoint → overview of all segments + a detailed plan of only the next one (incl. the upstream change sweep and the fork's follow-up) → approval → that segment's merge, code fixes, DB, backfill, verification, ledger, commit, push → present the next segment's plan and stop | Approval per segment; n = n segments at a time, all = without stopping, to POSITION = end the sortie there, light = continue light segments without approval; a segment with a fix (fixes:) ahead stops and says so (a fix upstream marked pick: clean is cherry-picked right after its segment); tells this fork's follow-up state exactly whenever run; the pair of upstream's /ship
-argument-hint: "[steps:<呼び手の手順書>] [status | status --chain | relay | [<n> | all] [to <checkpoint|commit>] [light] | notice id (省略で 1 区間ずつ止まりながら merge + 適用)]"
+argument-hint: "[steps:<呼び手の手順書>] [status | status --chain | [<n> | all] [to <checkpoint|commit>] [light] | notice id (省略で 1 区間ずつ止まりながら merge + 適用)]"
 disable-model-invocation: true
 ---
 
@@ -13,7 +13,7 @@ the following files in this folder hold rules needed only by forks / segments th
   - the direct upstream is a middle Tier (OWN FORK IDENTITY AND LEDGER 5 below)
   - any notice in the tree (applied ones included) or incoming has `covers:`
   - own `tier` is root or middle (OWN FORK IDENTITY AND LEDGER 5 below; declaration missing / wrong → stop there)
-  - mode is `status --chain` or `relay`
+  - mode is `status --chain`
 - **the caller's steps file** (argument `steps:<path>`, a tool that runs /flux its own way): read it **first, before anything else**, and follow it | where it says nothing, this skill holds as written | it says itself where the ledger, the checks and the push happen (and any modes or cues of its own)
 - **`patterns.md`** (the 4 merge patterns: Backport / Refine / Handoff / Rejoin): read before the overview of every run that builds segments | the plan names a pattern where it applies, in its line form, and takes the usual approval
 - **`moved.md`** (porting moves / renames): any notice of the next segment (covers side and covered side included) has `moved:` → read it before that segment's detailed plan (step 2)
@@ -241,7 +241,6 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
   - before a segment that is not light, stop as default and get approval (STOP) | the first segment's plan always gets approval | stop conditions, heavy segments and the end point still apply
 - **`status`**: state report only | list fetch + unmerged commit count + overview of all segments (one line each, as in step 2) + the results of inherited / ledger matching, then end | **never merge or apply anything** (no detailed plan either)
 - **`status --chain`**: report only the relay state per grandparent notice (no merge, no application) | output form → relay.md
-- **`relay`**: a middle Tier drafts relay notices bundling the unjudged old notices it applied before relay judgment existed (no merge, no application) | steps → relay.md RELAY MODE
 - **`steps:<path>`** (combinable with every mode): a calling tool's steps file, read first (ATTACHED FILES) | the words after it are read as that file says (its own modes or cues), the rest as here
 - **notice id / file name**: only that notice; do FULL FLOW from step 5 on (no merge; targets a notice already in the tree; no segment split)
 
