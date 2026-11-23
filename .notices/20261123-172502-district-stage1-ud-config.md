@@ -4,6 +4,7 @@ date: 2026-11-23T17:25:02+09:00
 severity: action-required
 checkpoint: district-stage1-ud-config
 fixes: 20261122-180722-district-stage1
+pick: -
 resolves: 20261123-170928-domains-rename-ud-config
 change: .notices/20261122-180722-district-stage1.domains-rename.mjs, during an open merge (MERGE_HEAD), also takes a fork-changed file under src/features, src/config/features or .claude/rules/items/features that is missing from the work tree but present in HEAD and different from the merge base (git's modify/delete, UD, with the old-path copy gone): HEAD's version is "ours" in the same 3-way merge with the new path (no new path → HEAD's version, rewritten, is placed there); a conflict stops as merge-conflict naming `git show HEAD:<old path>`; the old path's unmerged index entry is cleared by the tool's git add -A. The dry-run counts them ("うち木に無い fork の版(HEAD)"). New stop head-only: such a file while the target folder does not exist yet.
 why: listFiles skipped paths missing from the work tree, so these files kept the upstream version at the new path and the fork's lines were lost silently (oripa-do: 10 config files, found only by a typecheck error)
