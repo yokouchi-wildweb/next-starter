@@ -27,7 +27,7 @@ test("覆い: 書き場所の一覧の行は glob そのものか代表のパス
 });
 
 test("fork にだけある場所: 所有の道具の場所と書き場所の一覧の場所", () => {
-  const intake = parseIntakeRows("generated vercel.json\nedit src/config/**\n");
+  const intake = parseIntakeRows("self vercel.json\nedit src/config/**\n");
   assert.ok(isForkPlace(".fork-ownership/**", intake));
   assert.ok(isForkPlace(".notices/applied/**", intake));
   assert.ok(isForkPlace("vercel.json", intake));

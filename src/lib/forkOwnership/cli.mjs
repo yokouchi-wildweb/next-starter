@@ -44,7 +44,7 @@ const LABELS = {
   "permit-same-as-base": "一時許可の残骸: 基準と同じに戻った",
   "permit-unused": "一時許可の残骸: 違反の無いファイル",
   lineage: ".claude/rules/lineage.md の並び・鍵の誤り",
-  self: "型 5 self の問題(project.md・behavior.md・repo.json)",
+  self: "型 5 self の問題(project.md・behavior.md・repo.json、持つなら vercel.json)",
 };
 
 /** @type {Readonly<Record<string, string | undefined>>} */

@@ -9,6 +9,7 @@ change: override = src/app/api/cron/<name>/task.override.ts (schedule, disabled;
 rules:
 using:
 - cron_wiring (MANDATORY): 1 task = 1 folder src/app/api/cron/<name>/ (task.ts: UTC cron `schedule` + run → domain fn; 1-line route.ts; a fork retimes or turns it off with task.override.ts), no list file | vercel.json crons = `pnpm generate cron` output only (the Vercel build fails on a mismatch) | upstream add / remove / retime → notice
+  - vercel.json itself is type 5 self: each repo that deploys to Vercel commits its own (other keys hand-written), a take-in conflict keeps its version then pnpm generate cron (core/design.md self_files)
 - budgeted_cron (MANDATORY): sweeps over unbounded-growth tables use runBudgetedBatches + createDeadline (@/lib/cron); read models refresh via createIncrementalRefresh (domains/incrementalRefresh)
 - task_wiring_only: task.ts only wires which domain function runs when; the logic lives in domains/**/services/server, long ops notes in that domain's README
 - run_dynamic_import: `run` imports its domain function dynamically (reading task.ts loads no DB)

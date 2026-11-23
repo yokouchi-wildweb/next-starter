@@ -28,6 +28,7 @@ use: write these words with these meanings | `-` = no Japanese word decided | th
 - add: 増設型 | 変え方 3: 増設点に項目を足す
 - counterpart: 対置型 | 変え方 4: 持ち主のファイルと対になる場所に自分の版の値のファイルを置く(src/config の設定値・根の CSS、旧: placement)
 - self: 固有型 | 変え方 5: 各リポが自分の版を持つファイル
+- CHANGE_TYPES: 変更形式 | 親が持つ物を fork 側で変える、ただ 5 つの方法(差替型・上書型・増設型・対置型・固有型)。どこを変えてよいかは持ち主が宣言する
 - replace point: 差替点 | ちょうど 1 つ要る点(常設のドメインが既定を差し、fork は差し替える)
 - override point: 上書点 | 上書型で宣言された点(上書きしてよいキー)
 - receptacle: 増設点 | 0 個以上の項目を並べる点(旧: 受け口)。型 = 変え方、点 = 上流が宣言した場所

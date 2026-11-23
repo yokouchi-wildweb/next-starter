@@ -64,7 +64,7 @@ items/<lib|domains|components>/<name>.md: item card (what / use / change / rules
 service/<business>.md: business overview of a tier that defines a business (domains, relations, flows, terms), always loaded | written by that tier, never edited below (check) | not src/business (= business identity values)
 lineage.md: rules a tier passes to its downstream, one section per tier, never edit an ancestor's section (→ /order <its owner>) | ref: lineage.md preamble
 shortcuts.md, term-aliases.md: upstream above the `fork entries below` marker, own below | other own rules: in .claude/rules/ outside core/, plain names, never restate core | Tier1's own rule files = core/, items/ and its self files
-self_files (CHANGE_TYPES 5): .claude/rules/project.md (overview + tier-only info), .claude/rules/behavior.md (work rules), repo.json (machine values, written only through its command, read only via forkIds.mjs) | → core/design.md self_files
+self_files (CHANGE_TYPES 5): .claude/rules/project.md (overview + tier-only info), .claude/rules/behavior.md (work rules), repo.json (machine values, written only through its command, read only via forkIds.mjs), vercel.json (only a repo that deploys to Vercel) | → core/design.md self_files
 
 ## CHANGE_TYPES (the only five ways to change what a parent owns: the owner declares, the repo below uses)
 types: 1 replace = switch \<name\>.ts → \<name\>.default, fork \<name\>.replace (a screen: a plain _components/\<X\>Screen.tsx, no mark; a frame: _layout/\<Layout\>.replace) | 2 override = \<target\>.override.ts, declared keys only | 3 add = an item in your own plugs/\<point\>/ | 4 counterpart = src/styles/, src/config/ | 5 self = same path, each repo writes its own version (self_files)
@@ -199,7 +199,7 @@ scope: rules that apply even outside that item | detail in its card and README
 - fingerprint: opt-in default OFF, signals are reference evidence, never proof → items/domains/{deviceFingerprint,fingerprintChallenge}.md
 - storage_metadata (MANDATORY): image purposes default metadata "strip", "keep" only when the original is needed → items/lib/storage.md
 - ops_tasks: all via `pnpm task <name>`, no ad-hoc | tasks → core/scripts.md
-- cron_wiring (MANDATORY): 1 task = 1 folder src/app/api/cron/\<name\>/ (task.ts + 1-line route.ts), no list file | vercel.json crons = `pnpm generate cron` output only | upstream add / remove / retime → notice | → items/lib/cron.md
+- cron_wiring (MANDATORY): 1 task = 1 folder src/app/api/cron/\<name\>/ (task.ts + 1-line route.ts), no list file | vercel.json crons = `pnpm generate cron` output only (the file is each deploying repo's own, 5 self) | upstream add / remove / retime → notice | → items/lib/cron.md
 - budgeted_cron (MANDATORY): sweeps over unbounded-growth tables use runBudgetedBatches + createDeadline (@/lib/cron); read models refresh via createIncrementalRefresh → items/lib/cron.md
 - analytics_perf: before adding per-domain caches or snapshot tables → withAnalyticsCache or analytics rollups → items/domains/analytics.md
 - ai_agent: generic runtime src/lib/ai/, each agent owns its safety boundary → items/lib/{ai,dbAgent}.md

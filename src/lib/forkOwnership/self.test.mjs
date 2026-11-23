@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
 import { runCheck } from "./check.mjs";
-import { SELF_CHECK_DEFAULT, SELF_FILES, selfProblems } from "./self.mjs";
+import { SELF_CHECK_DEFAULT, SELF_FILES, SELF_OPTIONAL, SELF_REQUIRED, selfProblems } from "./self.mjs";
 import { closeTmp, commitAll, git, makeFork, makeParent, openTmp, write } from "./testRepos.mjs";
 
 const PROJECT = ".claude/rules/project.md";
@@ -17,9 +17,18 @@ describe("selfProblems(純な判定)", () => {
     assert.equal(SELF_CHECK_DEFAULT, true);
   });
 
-  test("Tier1: 3 つのファイルがあり self の行がちょうど 3 行なら問題なし", () => {
+  test("Tier1: 必ず持つ 3 つがあり self の行がちょうど 4 行(持たなくてよい vercel.json は無くてよい)なら問題なし", () => {
     const result = selfProblems({ isTier1: true, selfRows: [...SELF_FILES], head: files("a", "b"), merge: null, parentNow: null });
     assert.deepEqual(result, { problems: [], asks: [], unverified: [] });
+  });
+
+  test("持たなくてよい vercel.json: あってもなくても問題なし、self の行から抜けたら self-rows(足りない vercel.json)", () => {
+    const held = selfProblems({ isTier1: true, selfRows: [...SELF_FILES], head: { ...files("a", "b"), "vercel.json": "{}\n" }, merge: null, parentNow: null });
+    assert.deepEqual(held, { problems: [], asks: [], unverified: [] });
+    assert.deepEqual(SELF_OPTIONAL, ["vercel.json"]);
+    const rows = selfProblems({ isTier1: true, selfRows: [...SELF_REQUIRED], head: files("a", "b"), merge: null, parentNow: null });
+    assert.deepEqual(kinds(rows), ["self-rows src/lib/forkOwnership/intake.txt"]);
+    assert.match(rows.problems[0].message, /4 行でない\(足りない: vercel\.json\)/);
   });
 
   test("ファイルが無い = self-missing、行の集合が違う = self-rows", () => {
@@ -97,7 +106,7 @@ describe("pnpm workflow ownership check --self(作り物の親と fork)", () => 
     closeTmp();
   });
 
-  const SELF_INTAKE = "edit src/config/**  # 値\nappend src/lib/CATALOG.md  # 目録\nself .claude/rules/project.md  # 概要\nself .claude/rules/behavior.md  # 作業の決まり\nself repo.json  # 名前と段\n";
+  const SELF_INTAKE = "edit src/config/**  # 値\nappend src/lib/CATALOG.md  # 目録\nself .claude/rules/project.md  # 概要\nself .claude/rules/behavior.md  # 作業の決まり\nself repo.json  # 名前と段\nself vercel.json  # Vercel の設定\n";
 
   /** 親の project.md / behavior.md が変わった版を -X theirs で取り込んだ fork(親の版が入った状態) */
   function forkAfterTakingParent() {

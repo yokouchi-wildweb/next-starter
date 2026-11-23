@@ -2,7 +2,7 @@
 # 書式: <kind> <glob>  # 理由 | `!<glob>` = その前までに当たった規則を外す | 最後に当たった規則が効く
 # kind: edit(書き換え可)/ add(足すのは可、基準にあるファイルの書き換えは違反)/ region(fork entries の対の中だけ)/ marker(`fork entries below` の行より下だけ)
 #       append(基準の中身を先頭に残したままの追記だけ)/ generated(生成物、書き換えを問わない)/ debt(upstream の負債)
-#       self(型 5: 各リポが自分の版を持つ。1 ファイル 1 行・ぴったりのパス、行を足すのは Tier1 だけ)
+#       self(型 5: 各リポが自分の版を持つ。1 ファイル 1 行・ぴったりのパス、行を足すのは Tier1 だけ。vercel.json は持たなくてよい self)
 # どの kind でも、基準にあるファイルの削除・rename は違反。仕様: README.md「受け口の一覧」
 
 # リポジトリ直下(依存・ビルド・接続の設定は fork が足すのを避けられない)
@@ -232,7 +232,6 @@ add src/app/**/_layout/**/*.replace.{ts,tsx}  # 枠の部品の丸ごと置き�
 add src/app/**/_screen/**/*.replace.{ts,tsx}  # Screen の丸ごと置き換え(_screen の隣の <名前>.replace)
 add src/app/**/frame.override.ts  # 枠の宣言(下のリポ。相手 = 上流のルート。ルートを作ったリポの宣言は frame.ts、src/app/_layout/frame/README.md)
 region src/registry/**/*.ts  # 生成器 registry の fork の区画
-generated vercel.json  # 生成器 cron の出力
 generated src/domains/core/userProfile/entities/profiles/**  # 生成器 role の出力
 generated src/registry/serviceRegistry.ts  # 生成器 registry の出力
 generated src/registry/storagePurposeRegistry.ts  # 生成器 registry の出力
@@ -265,6 +264,7 @@ edit servers/room/wrangler.toml  # pnpm ops room init が作る fork の Worker 
 self .claude/rules/project.md  # このリポの概要と段だけの情報(型 5)
 self .claude/rules/behavior.md  # 作業の決まり(型 5)
 self repo.json  # リポの名前と段・方針(forkIds.mjs、型 5)
+self vercel.json  # Vercel の設定(型 5、持たなくてよい: Vercel にデプロイするリポだけ。crons は pnpm generate cron の出力、他の鍵は手書き)
 add .claude/rules/items/**  # 自分の品目の札(.claude/rules/core/design.md cards。上の段の札は直さない)
 add .claude/rules/service/**  # 業務を定める段の業務の全体像(上の段の物は中間層の物も直さない。Tier1 は書かないので upstream には無い)
 marker .claude/rules/shortcuts.md  # 印より下が fork

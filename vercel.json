@@ -1,0 +1,33 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/cron/audit-log-prune",
+      "schedule": "5 18 * * *"
+    },
+    {
+      "path": "/api/cron/audit-log-recover-dead-letter",
+      "schedule": "10 * * * *"
+    },
+    {
+      "path": "/api/cron/messaging-retention",
+      "schedule": "45 18 * * *"
+    },
+    {
+      "path": "/api/cron/messaging-send-sweep",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/messaging-subscribers",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/storage-sweep",
+      "schedule": "35 * * * *"
+    },
+    {
+      "path": "/api/cron/user-login-event-prune",
+      "schedule": "30 18 * * *"
+    }
+  ]
+}

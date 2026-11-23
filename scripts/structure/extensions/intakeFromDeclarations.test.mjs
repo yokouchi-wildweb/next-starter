@@ -57,7 +57,6 @@ test("宣言・1 行スイッチ・生成器から作れる行は生成区画に
     "region src/registry/**/*.ts",
     "generated src/registry/serviceRegistry.ts",
     "generated src/**/extensions/**",
-    "generated vercel.json",
     "edit src/domains/core/auth/plugs/frameSession/session.ts",
     "edit src/app/(user)/layout.tsx",
     "edit src/app/(user)/(protected)/wallet/[[]slug[]]/page.tsx",
@@ -74,7 +73,7 @@ test("手書きの区画: src の下の行も生成物の行も無い(残るの�
   const hand = rules.filter((r) => !inBlock(r));
   assert.deepEqual(hand.filter((r) => r.glob.startsWith("src/")).map(key), []);
   assert.deepEqual(hand.filter((r) => r.kind === "generated").map(key), []);
-  assert.deepEqual(rules.filter(inBlock).filter((r) => !r.glob.startsWith("src/") && r.glob !== "vercel.json").map(key), [], "生成区画は src の下(と生成物の vercel.json)だけ");
+  assert.deepEqual(rules.filter(inBlock).filter((r) => !r.glob.startsWith("src/")).map(key), [], "生成区画は src の下だけ(vercel.json は型 5 self の手書きの行、D295)");
 });
 
 test("効く種類(最後に当たった行)は生成区画へ移す前と同じ(印の付いた意図した変化を除く): 見本のパス", () => {
@@ -111,7 +110,7 @@ test("効く種類(最後に当たった行)は生成区画へ移す前と同じ
     "src/registry/serviceRegistry.ts": "generated",
     "src/registry/handList.ts": "region",
     "src/app/route-map.jsonl": "generated",
-    "vercel.json": "generated",
+    "vercel.json": "self",
     "src/wiring/dbAgent.ts": "generated",
     "src/lib/mail/generated/themeColors.ts": "generated",
     "src/domains/core/user/entities/display.ts": "generated",
