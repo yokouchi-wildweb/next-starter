@@ -1,0 +1,12 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/lib/appEnv": ["../appEnv"],
+      "@/lib/appEnv/*": ["../appEnv/*"],
+      "@/lib/errors": ["../errors"],
+      "@/lib/errors/*": ["../errors/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"]
+}

@@ -7,7 +7,7 @@ import { createRequestMemo } from "@/lib/requestMemo";
  * createCrudService が返すサービスのうち、テーブルの行を変更し得るものを列挙する。
  * サービスに存在しないメソッド名（オプション未指定で生成されない conditional 系）は無視される。
  */
-const WRITE_METHOD_NAMES = [
+export const WRITE_METHOD_NAMES = [
   "create",
   "update",
   "systemUpdate",

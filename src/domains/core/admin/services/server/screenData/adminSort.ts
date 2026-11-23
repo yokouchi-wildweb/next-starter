@@ -4,13 +4,13 @@
 
 import "server-only";
 
-import type { PaginatedResult, SearchParams } from "@/lib/crud";
+import type { BoundedSearchParams, PaginatedResult } from "@/lib/crud";
 
 /**
  * 並び替えが service に要求する最小の形(sortOrderField を持つドメインの searchForSorting)
  */
 export type AdminSortService<T> = {
-  searchForSorting(params: SearchParams): Promise<PaginatedResult<T>>;
+  searchForSorting(params: BoundedSearchParams): Promise<PaginatedResult<T>>;
 };
 
 export type AdminSortScreenData<T> = {

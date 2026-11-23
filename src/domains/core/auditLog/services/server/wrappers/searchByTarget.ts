@@ -1,11 +1,11 @@
 // src/domains/core/auditLog/services/server/wrappers/searchByTarget.ts
 
-import type { PaginatedResult, SearchParams } from "@/lib/crud";
+import type { BoundedSearchParams, PaginatedResult } from "@/lib/crud";
 
 import type { AuditLog } from "@/domains/core/auditLog/entities/model";
 import { auditLogBase } from "../drizzleBase";
 
-export type SearchByTargetParams = Omit<SearchParams, "where"> & {
+export type SearchByTargetParams = Omit<BoundedSearchParams, "where"> & {
   /**
    * ターゲット ID を絞り込みたい場合に指定。targetType と組み合わせて使う。
    * 省略時は targetType に紐づく全レコードを返す。
@@ -23,7 +23,7 @@ export type SearchByTargetParams = Omit<SearchParams, "where"> & {
  */
 export async function searchByTarget(
   targetType: string,
-  params: SearchByTargetParams = {},
+  params: SearchByTargetParams,
 ): Promise<PaginatedResult<AuditLog>> {
   const { targetId, ...rest } = params;
 

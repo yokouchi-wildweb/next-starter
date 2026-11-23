@@ -60,3 +60,61 @@ test("eslint.config.mjs: src のコードに当たり、テストには当たら
   assert.equal(await count("src/app/(user)/foo/_screen/FooScreen.tsx"), 1);
   assert.equal(await count("src/domains/sample/services/server/cached.test.ts"), 0);
 });
+
+const MARK = "// 生成物・編集不可: pnpm generate cache が src/domains/sample/domain.json の cache から生成する\n";
+const BASE = `import { base } from "./drizzleBase";\n`;
+
+test("rule remote-only-generated: 手書きの remote を止め、生成物・lib/cacheTags・普通の use cache・private は通す", () => {
+  ruleTester.run("remote-only-generated", plugin.rules["remote-only-generated"], {
+    valid: [
+      { code: `${MARK}${BASE}async function get(id: string) {\n  "use cache: remote";\n  return base.get(id);\n}`, filename: file },
+      { code: `export async function Banner() {\n  "use cache";\n  return "x";\n}`, filename: file },
+      { code: `export async function load() {\n  "use cache: private";\n  return 1;\n}`, filename: file },
+      { code: `export async function sharedRead() {\n  "use cache: remote";\n  return 1;\n}`, filename: path.join(repoRoot, "src/lib/cacheTags/sharedRead.ts") },
+    ],
+    invalid: [
+      { code: `export async function load() {\n  "use cache: remote";\n  return 1;\n}`, filename: file, errors: [{ messageId: "remote" }] },
+      { code: `"use cache: remote";\nexport async function load() {\n  return 1;\n}`, filename: file, errors: [{ messageId: "remote" }] },
+      { code: `export const load = async () => {\n  "use cache: remote";\n  return 1;\n};`, filename: file, errors: [{ messageId: "remote" }] },
+    ],
+  });
+});
+
+test("rule no-data-read-in-cache: 共有の cache の中の DB を読む物の直の呼び出しを止め、生成物・範囲の外・private・型だけは通す", () => {
+  ruleTester.run("no-data-read-in-cache", plugin.rules["no-data-read-in-cache"], {
+    valid: [
+      { code: `${MARK}${BASE}async function get(id: string) {\n  "use cache: remote";\n  return base.get(id);\n}`, filename: file },
+      { code: `${BASE}export async function load(id: string) {\n  return base.get(id);\n}`, filename: file },
+      { code: `${BASE}export async function load(id: string) {\n  "use cache: private";\n  return base.get(id);\n}`, filename: file },
+      { code: `import type { base } from "./drizzleBase";\nimport { format } from "@/lib/date";\nexport async function load(at: string) {\n  "use cache";\n  return format(at);\n}`, filename: file },
+    ],
+    invalid: [
+      { code: `${BASE}export async function load(id: string) {\n  "use cache";\n  return base.get(id);\n}`, filename: file, errors: [{ messageId: "dataRead", data: { directive: "use cache", name: "base" } }] },
+      { code: `import { db } from "@/lib/drizzle";\nexport async function load() {\n  "use cache";\n  return db.select().from(x);\n}`, filename: file, errors: [{ messageId: "dataRead", data: { directive: "use cache", name: "db" } }] },
+      { code: `import { settingService } from "@/domains/core/setting/services/server/settingService";\nexport async function load() {\n  "use cache";\n  const f = async () => settingService.read();\n  return f();\n}`, filename: file, errors: [{ messageId: "dataRead", data: { directive: "use cache", name: "settingService" } }] },
+      { code: `"use cache";\nimport { createCrudService } from "@/lib/crud/server";\nexport async function load() {\n  return createCrudService(t, {});\n}`, filename: file, errors: [{ messageId: "dataRead" }] },
+    ],
+  });
+});
+
+test("rule no-manual-revalidate: next/cache の unstable_cache・revalidateTag・updateTag を lib/cacheTags の外で止め、cacheLife・cacheTag は通す", () => {
+  ruleTester.run("no-manual-revalidate", plugin.rules["no-manual-revalidate"], {
+    valid: [
+      { code: `import { revalidateTag } from "next/cache";\nrevalidateTag("x", { expire: 0 });`, filename: path.join(repoRoot, "src/lib/cacheTags/context.ts") },
+      { code: `import { cacheLife, cacheTag } from "next/cache";\ncacheLife("days");\ncacheTag("x");`, filename: file },
+      { code: `import type { unstable_cache } from "next/cache";`, filename: file },
+    ],
+    invalid: [
+      { code: `import { unstable_cache } from "next/cache";`, filename: file, errors: [{ messageId: "manual", data: { name: "unstable_cache" } }] },
+      { code: `import { revalidateTag as drop, updateTag } from "next/cache";`, filename: file, errors: [{ messageId: "manual", data: { name: "revalidateTag" } }, { messageId: "manual", data: { name: "updateTag" } }] },
+    ],
+  });
+});
+
+test("eslint.config.mjs: 3 つの規則が src のコードに当たる", async () => {
+  const eslint = new ESLint({ cwd: repoRoot, overrideConfigFile: path.join(repoRoot, "eslint.config.mjs") });
+  const code = `import { unstable_cache } from "next/cache";\nimport { base } from "./drizzleBase";\nexport async function load(id: string) {\n  "use cache: remote";\n  return base.get(id) ?? unstable_cache;\n}\n`;
+  const [result] = await eslint.lintText(code, { filePath: path.join(repoRoot, "src/domains/sample/services/server/cached.ts") });
+  const rules = new Set(result.messages.map((m) => m.ruleId));
+  for (const rule of ["use-cache/remote-only-generated", "use-cache/no-data-read-in-cache", "use-cache/no-manual-revalidate"]) assert.ok(rules.has(rule), rule);
+});

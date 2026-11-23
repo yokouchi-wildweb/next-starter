@@ -3,7 +3,8 @@
 import { NextResponse } from "next/server";
 
 import { createDomainRoute } from "@/wiring/apiRoute";
-import type { SearchParams, WithOptions } from "@/lib/crud";
+import { resolveSearchLimit } from "@/lib/crud";
+import type { BoundedSearchParams, WithOptions } from "@/lib/crud";
 
 import {
   BadRequestError,
@@ -49,9 +50,9 @@ export const GET = createDomainRoute<any, DomainParams>(
       const hasManyLimit = parsePositiveInteger(query.get("hasManyLimit"), "hasManyLimit");
 
       // サービスへ渡す SearchParams を組み立て
-      const searchParams: SearchParams & WithOptions = {};
+      // limit は既定 100・上限 1000(超えれば 400)。server の search は limit 必須
+      const searchParams: BoundedSearchParams & WithOptions = { limit: resolveSearchLimit(limit) };
       if (typeof page === "number") searchParams.page = page;
-      if (typeof limit === "number") searchParams.limit = limit;
       if (orderBy) searchParams.orderBy = orderBy;
       if (searchQuery) searchParams.searchQuery = searchQuery;
       if (searchFields) searchParams.searchFields = searchFields;

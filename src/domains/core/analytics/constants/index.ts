@@ -43,19 +43,23 @@ export const MAX_PURCHASE_RANKING_LIMIT = 100;
 export const MAX_DISTRIBUTION_BOUNDARIES = 20;
 
 // ============================================================================
-// サーバーサイド集計キャッシュ（withAnalyticsCache）
+// サーバーサイド集計キャッシュ（withAnalyticsCache、共有の置き場 "use cache: remote"）
 // ============================================================================
 
-/** 当日を含む範囲のキャッシュTTL（ミリ秒）。鮮度優先で短め */
-export const DEFAULT_ANALYTICS_CACHE_TTL_LIVE_MS = 60 * 1000;
+/** 当日を含む範囲の寿命（秒）。鮮度優先で短め */
+export const DEFAULT_ANALYTICS_CACHE_LIVE_SECONDS = 60;
 
 /**
- * 確定済み範囲（過去日のみ）のキャッシュTTL（ミリ秒）。
+ * 確定済み範囲（過去日のみ）の寿命（秒）。
  *
  * immutable にはしない: バックフィル・ロールアップ再計算・集計除外の遡及適用で
- * 過去バケットの値も書き換わり得るため、長期だが有限のTTLに留める。
+ * 過去バケットの値も書き換わり得るため、長期だが有限の寿命 + 札で消す（invalidateAnalyticsCache）。
  */
-export const DEFAULT_ANALYTICS_CACHE_TTL_CLOSED_MS = 12 * 60 * 60 * 1000;
+export const DEFAULT_ANALYTICS_CACHE_CLOSED_SECONDS = 12 * 60 * 60;
 
-/** キャッシュの最大エントリ数（超過時はLRUで古いものから破棄） */
-export const ANALYTICS_CACHE_MAX_ENTRIES = 500;
+/**
+ * 読みごとに変える寿命の上限（秒）。ドメインの宣言 cache の上限と同じ
+ * （確定済み = 札で消す tagged の 30 日、当日 = 書き込みを追わない ttl の 1 時間。scripts/structure/domain/spec/cache.mjs）
+ */
+export const MAX_ANALYTICS_CACHE_CLOSED_SECONDS = 30 * 24 * 60 * 60;
+export const MAX_ANALYTICS_CACHE_LIVE_SECONDS = 60 * 60;

@@ -18,6 +18,13 @@ import { ROUTE_MAP_FILE, parseRouteMapJsonl } from "../../../src/lib/screens/nod
 
 import { checkBuild, checkConfig, checkShells, resolveConfig } from "./lib.mjs";
 
+/**
+ * project id が無い時に設定を解く代わりの値。rewrites の Firebase の認証の転送は project id がある時だけ作られる(next.config.core.ts)。
+ * 約束は形(/__/:path* → https://<project>.web.app/__/:path*)なので、env の有る無し(offline の段階は外す)によらず形を確かめる。
+ * この検査の process の中だけ。env に値があればその値で解く
+ */
+const STAND_IN_FIREBASE_PROJECT_ID = "next-config-check";
+
 async function main() {
   if (process.env.PHASE === "build:post") {
     const result = checkBuild(".next");
@@ -42,6 +49,7 @@ async function main() {
     console.log(`✓ 殻: 殻に入れない範囲 ${shells.holePages} ページに見える文字・メニューなし、公開の会員の枠のページ ${shells.framedPages} 本の殻に枠あり`);
     return;
   }
+  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||= STAND_IN_FIREBASE_PROJECT_ID;
   const plain = (await import("../../../next.config")) as { default: unknown };
   const core = (await import("../../../next.config.core")) as { imageRemotePatterns: Record<string, unknown>[] };
   const config = await resolveConfig(plain.default, { phase: PHASE_PRODUCTION_BUILD, defaultConfig: defaultConfig as Record<string, unknown> });

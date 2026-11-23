@@ -60,5 +60,9 @@ export const REQUIRED_ESLINT_RULES = [
   // cacheComponents と両立しない segment config(有効化の区切りから全 Tier error。fork が false に戻す・緩める道を残さない)
   // 共有の use cache の中で利用者・権限を引数の外から読まない(cacheComponents の解禁と同時、全 Tier error)
   { rule: "use-cache/no-principal-outside-args", files: ["src/domains/core/auth/services/server/registration.ts", "src/app/(user)/layout.tsx"] },
+  // 共有の読みのキャッシュの標準の形(区切り cc-cache-standard から全 Tier error。手書きの remote・cache の中の DB の読み・直の消し)
+  { rule: "use-cache/remote-only-generated", files: ["src/domains/core/auth/services/server/registration.ts", "src/app/(user)/layout.tsx"] },
+  { rule: "use-cache/no-data-read-in-cache", files: ["src/domains/core/auth/services/server/registration.ts", "src/app/(user)/layout.tsx"] },
+  { rule: "use-cache/no-manual-revalidate", files: ["src/domains/core/auth/services/server/registration.ts", "src/lib/crud/drizzle/cacheTags.ts"] },
   { rule: "segment-config/cc-incompatible", files: ["src/app/(user)/(public)/services/page.tsx", "src/app/(user)/layout.tsx", "src/app/api/health/route.ts"] },
 ];

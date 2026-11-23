@@ -4,12 +4,12 @@
 
 import "server-only";
 
-import type { PaginatedResult, SearchParams, WithOptions } from "@/lib/crud";
+import type { BoundedSearchParams, PaginatedResult, SearchParams, WithOptions } from "@/lib/crud";
 import { settingService } from "@/domains/core/setting/services/server/settingService";
 
 /** 一覧が service に要求する最小の形(createCrudService の search) */
 export type AdminListService<T> = {
-  search(params: SearchParams & WithOptions): Promise<PaginatedResult<T>>;
+  search(params: BoundedSearchParams & WithOptions): Promise<PaginatedResult<T>>;
 };
 
 /**

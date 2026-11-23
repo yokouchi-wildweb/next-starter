@@ -7,6 +7,9 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
+import { CACHE_FILE } from "../spec/cache.mjs";
+
 const NOT_DOMAIN_DIRS = new Set(["_template", "core"]);
 
 /**
@@ -122,4 +125,41 @@ export function createWorkspace(rootDir = process.cwd()) {
     listDomains,
     readTemplate,
   };
+}
+
+// ---------------------------------------------------------------------------
+// cache の宣言の読み(全ドメイン: generate: false と domain.json の無いドメインも)。検査は checks/cacheDeclarations.mjs(読まない)
+// ドメインの一覧は今の木の地区(lib/districtMap の readDistrictMapAt。生成物 district-map.jsonl は他の生成器の入力にしない)
+// ---------------------------------------------------------------------------
+
+/** 今の木のドメインの地区(kind domains)を読む */
+export function readDomainRows(rootDir) {
+  return readDistrictMapAt(rootDir).districts.filter((row) => row.kind === "domains");
+}
+
+const readJson = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
+
+/**
+ * 宣言を 1 ドメインずつ読む(domain.json の "cache" か cache.json。両方・置き場の誤り・読めない JSON は problem)
+ * @returns {Array<{ row: object, config: object | null, cache: object | null, source: string | null, problem: string | null }>}
+ */
+export function readCacheDeclarations(rootDir, rows = readDomainRows(rootDir)) {
+  return rows.map((row) => {
+    const dir = path.join(rootDir, row.dir);
+    const cacheFile = path.join(dir, CACHE_FILE);
+    const hasCacheFile = fs.existsSync(cacheFile);
+    const jsonFile = path.join(dir, "domain.json");
+    const config = row.domainJson && fs.existsSync(jsonFile) ? readJson(jsonFile) : null;
+    const inJson = Boolean(config) && config.cache !== undefined;
+    const none = { row, config, cache: null, source: null };
+    if (inJson && hasCacheFile) return { ...none, problem: `cache は domain.json の "cache" か ${CACHE_FILE} のどちらか 1 つに書いてください(両方ある)` };
+    if (config && hasCacheFile) return { ...none, problem: `domain.json のあるドメインは ${CACHE_FILE} でなく domain.json の "cache" に書いてください` };
+    if (!inJson && !hasCacheFile) return { ...none, problem: null };
+    if (inJson) return { row, config, cache: config.cache, source: `${row.dir}/domain.json`, problem: null };
+    try {
+      return { row, config, cache: readJson(cacheFile), source: `${row.dir}/${CACHE_FILE}`, problem: null };
+    } catch (error) {
+      return { ...none, problem: `${CACHE_FILE} が JSON として読めません: ${error.message}` };
+    }
+  });
 }

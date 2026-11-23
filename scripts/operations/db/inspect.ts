@@ -8,11 +8,12 @@ guardEntry({ write: process.argv[2] === "query", db: true, what: `pnpm ops db in
 
 import postgres from "postgres";
 
-import { rowsAsJson, splitJsonFlag } from "./lib.inspect";
+import { rowsAsJson, seqScanRows, splitJsonFlag, splitMinRows, SEQ_SCAN_DEFAULT_MIN_ROWS, SEQ_SCAN_FLAG_ROWS } from "./lib.inspect";
+import type { SeqScanStatRow } from "./lib.inspect";
 
 const sql = postgres(process.env.DATABASE_URL!, { prepare: false });
 
-type Command = "query" | "tables" | "describe" | "count";
+type Command = "query" | "tables" | "describe" | "count" | "seqscans";
 
 function printTable(rows: Record<string, unknown>[]) {
   if (rows.length === 0) {
@@ -138,8 +139,34 @@ async function countRows(tableName?: string) {
   }
 }
 
+/** seq scan で多く読まれている表(index を足すか cache の宣言にする材料)。統計を読むだけ */
+async function listSeqScans(minRows: number | undefined, json: boolean) {
+  const [reset] = await sql`SELECT stats_reset FROM pg_stat_database WHERE datname = current_database()`;
+  const stats = (await sql`
+    SELECT relname AS "table",
+           n_live_tup AS live_rows,
+           seq_scan,
+           seq_tup_read AS seq_rows_read,
+           COALESCE(idx_scan, 0) AS idx_scan
+    FROM pg_stat_user_tables
+    WHERE schemaname = 'public'
+  `) as unknown as SeqScanStatRow[];
+  const rows = seqScanRows(stats, { minRows });
+  if (json) {
+    console.log(rowsAsJson(rows));
+    return;
+  }
+  const since = reset?.stats_reset ? new Date(reset.stats_reset as string).toISOString() : "不明";
+  console.log(`統計の始まり: ${since}(Neon は compute の停止・再起動で統計が消える。数はその後の分)`);
+  console.log(
+    `表: 生きている行 ${minRows ?? SEQ_SCAN_DEFAULT_MIN_ROWS} 以上、seq scan で読んだ行の多い順。flagged = seq scan が index scan より多く、1 回で ${SEQ_SCAN_FLAG_ROWS} 行以上を読む(index か cache の宣言を考える)\n`,
+  );
+  printTable(rows.map((row) => ({ ...row, flagged: row.flagged ? "yes" : "" })));
+}
+
 async function main() {
-  const { args, json } = splitJsonFlag(process.argv.slice(2));
+  const { args: withoutJson, json } = splitJsonFlag(process.argv.slice(2));
+  const { args, minRows } = splitMinRows(withoutJson);
   const command = args[0] as Command;
   const param = args.slice(1).join(" ");
 
@@ -168,6 +195,10 @@ async function main() {
       await countRows(param || undefined);
       break;
 
+    case "seqscans":
+      await listSeqScans(minRows, json);
+      break;
+
     default:
       console.log(`
 データベースCLIツール
@@ -177,6 +208,7 @@ async function main() {
   pnpm ops db inspect tables            テーブル一覧を表示
   pnpm ops db inspect describe <table>  テーブル構造を表示
   pnpm ops db inspect count [table]     行数を表示（テーブル省略で全テーブル）
+  pnpm ops db inspect seqscans [--min-rows=<n>] [--json]  seq scan で多く読まれている表(読むだけ、既定 1000 行以上の表)
 
 例:
   pnpm ops db inspect query "SELECT * FROM users LIMIT 5"

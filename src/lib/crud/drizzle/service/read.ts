@@ -5,11 +5,22 @@ import { db } from "@/lib/drizzle";
 import { eq, SQL, and, sql } from "drizzle-orm";
 import type { InferSelectModel } from "drizzle-orm";
 import type { PgTable, AnyPgColumn } from "drizzle-orm/pg-core";
-import type { SearchParams, CountParams, CountResult, PaginatedResult, WithOptions } from "../../types";
+import { DomainError } from "@/lib/errors";
+import type { BoundedSearchParams, CountParams, CountResult, PaginatedResult, WithOptions } from "../../types";
 import { buildOrderBy, buildRelationWhere, buildWhere, runQuery, buildSearchWhere, buildSearchRankOrderBy, normalizeSearchRankSpec, composeSearchOrderBy } from "../query";
 import type { ExtraWhereClause, ExtraOrderByClause } from "../types";
 import { hydrateBelongsToManyRelations } from "../belongsToMany";
 import type { ServiceContext } from "./context";
+
+/**
+ * 型(BoundedSearchParams)を通らない呼び出し(any で受けたサービス・登録表から引いたサービス)の limit の抜けを止める。
+ * 既定で黙って行を落とさない: 外から来る limit は resolveSearchLimit で解いてから渡す
+ */
+function assertSearchLimit(limit: unknown): asserts limit is number {
+  if (!Number.isInteger(limit) || (limit as number) <= 0) {
+    throw new DomainError("search の limit は正の整数が必須です(外から来る limit は resolveSearchLimit で解く)", { status: 500 });
+  }
+}
 
 export function createReadMethods<TTable extends PgTable & { id: AnyPgColumn }, TCreate extends Record<string, any>>(ctx: ServiceContext<TTable, TCreate>) {
   type Select = InferSelectModel<TTable>;
@@ -123,10 +134,10 @@ export function createReadMethods<TTable extends PgTable & { id: AnyPgColumn }, 
       const [{ count }] = await (finalWhere ? totalQuery.where(finalWhere) : totalQuery);
       return { total: Number(count) };
     },
-    async search(params: SearchParams & WithOptions & ExtraWhereClause & ExtraOrderByClause = {}): Promise<PaginatedResult<Select>> {
+    async search(params: BoundedSearchParams & WithOptions & ExtraWhereClause & ExtraOrderByClause): Promise<PaginatedResult<Select>> {
       const {
         page = 1,
-        limit = 100,
+        limit,
         orderBy = serviceOptions.defaultOrderBy,
         searchQuery,
         searchFields = serviceOptions.defaultSearchFields,
@@ -138,6 +149,7 @@ export function createReadMethods<TTable extends PgTable & { id: AnyPgColumn }, 
         withCount,
         hasManyLimit,
       } = params;
+      assertSearchLimit(limit);
 
       let finalWhere = buildWhere(table, where);
       // extraWhere（Drizzle SQL条件）を合成
@@ -221,10 +233,10 @@ export function createReadMethods<TTable extends PgTable & { id: AnyPgColumn }, 
       const [{ count }] = await (finalWhere ? totalQuery.where(finalWhere) : totalQuery);
       return { total: Number(count) };
     },
-    async searchWithDeleted(params: SearchParams & WithOptions & ExtraWhereClause & ExtraOrderByClause = {}): Promise<PaginatedResult<Select>> {
+    async searchWithDeleted(params: BoundedSearchParams & WithOptions & ExtraWhereClause & ExtraOrderByClause): Promise<PaginatedResult<Select>> {
       const {
         page = 1,
-        limit = 100,
+        limit,
         orderBy = serviceOptions.defaultOrderBy,
         searchQuery,
         searchFields = serviceOptions.defaultSearchFields,
@@ -236,6 +248,7 @@ export function createReadMethods<TTable extends PgTable & { id: AnyPgColumn }, 
         withCount,
         hasManyLimit,
       } = params;
+      assertSearchLimit(limit);
 
       let finalWhere = buildWhere(table, where);
       // extraWhere（Drizzle SQL条件）を合成

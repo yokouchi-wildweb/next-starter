@@ -7,7 +7,8 @@ import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { auditLogBase } from "@/domains/core/auditLog/services/server";
-import type { SearchParams } from "@/lib/crud";
+import { resolveSearchLimit } from "@/lib/crud";
+import type { BoundedSearchParams } from "@/lib/crud";
 
 import {
   BadRequestError,
@@ -33,9 +34,8 @@ export const GET = createApiRoute(
       const where = parseWhere(query.get("where"));
       const searchQuery = query.get("searchQuery") ?? undefined;
 
-      const searchParams: SearchParams = {};
+      const searchParams: BoundedSearchParams = { limit: resolveSearchLimit(limit) };
       if (typeof page === "number") searchParams.page = page;
-      if (typeof limit === "number") searchParams.limit = limit;
       if (orderBy) searchParams.orderBy = orderBy;
       if (where) searchParams.where = where;
       if (searchQuery) searchParams.searchQuery = searchQuery;

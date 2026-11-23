@@ -70,7 +70,7 @@ export const metric: RollupMetricConfig = {
 - 日次: Vercel Cron が 1 日 1 回呼ぶ（`vercel.json` のエントリは `pnpm generate cron` が生成）。手動は `pnpm task analytics-rollup-daily` または `GET /api/cron/analytics-rollup-daily`。昨日を含む直近3日（メトリクスの `lookbackDays` が長ければその日数 = max(`lookbackDays`, 実行の日数)）を冪等に再計算し、遅延到着データと実行漏れを自己修復する。遅れて足されるデータ（開封・既読など）を持つメトリクスだけ `lookbackDays` を長くする
 - 新規メトリクス登録時・遡及修正時: `pnpm task analytics:rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]`（from 省略時 = `backfillFrom`、to 省略時 = 昨日）
 - **集計除外の遡及適用**: 専用機構はない。compute が除外を織り込んでいる前提で、該当期間のバックフィルを再実行すれば整合する（書き込みは日単位 delete → insert の冪等 upsert）
-- 書き込み後は同一インスタンスの `withAnalyticsCache` キャッシュを自動 invalidate する（他インスタンスは TTL 満了で追随）
+- 書き込み後は `invalidateAnalyticsCache()` で集計のキャッシュの札を積む（cron の route の中なら要求の終わりに全インスタンスから消える。`pnpm task` のバックフィルは入口の外で記録の 1 行、確定済みの寿命 12 時間で切れる）
 
 ### 読み取り
 
@@ -102,7 +102,7 @@ const series = await readRolledDailySeries({
 - 確定日はロールアップ行から、当日は `compute` のライブ実行値をマージ（`includeLive: false` で無効化可）
 - granularity は `day` / `week` / `month`（`hour` は `GranularityNotSupportedError`。日次行が最小単位のため）
 - `range.timezone` はメトリクスの timezone（既定 `Asia/Tokyo`）と一致必須（バケット境界の整合のため）
-- `withAnalyticsCache` と合成可能（キャッシュが手前、ロールアップが奥。当日を含む範囲は短TTL側に自動判定されるため相性が良い）
+- `withAnalyticsCache` と合成可能（キャッシュが手前、ロールアップが奥。当日を含む範囲は短い寿命の側に自動判定されるため相性が良い）
 - 既存のライブ集計サービスのシグネチャは変更しない。メトリクス単位で読み取りパスをロールアップへ**段階的に**置き換える
 
 ### 連絡の日まとめ（`messaging.*`、上流の組み込み）

@@ -225,6 +225,7 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
   期間中に飛んだ回は取り戻さない（次の時刻の回が走る）
 - **最初の文は connection()**: route の作り手（`createCronRoute`）は認証・門・enabled より前に `await connection()`（next/server）を待つ。
   cacheComponents の build は request を読む前に返す 200（closed / disabled）を静的な応答に焼き付けるため（cacheComponents off では何も変えない）。route.ts の側には書かない
+- **入口が包む文脈**: route は本体を監査の system の文脈(`runAsSystem`)と共有の読みのキャッシュの札の範囲(`runWithCacheTags`、`src/lib/cacheTags`)で包む。タスクの書き込みが積んだ札は本体の後にまとめて消える。`pnpm task` で走らせた時は Next の外なので消せず、記録の 1 行(寿命で切れる)
 - **配線漏れの防止**: `vercel.json` は人が書かない。タスクの増減で生成結果とずれると、Vercel 上のビルド
   （`pnpm build` の冒頭の段階 `pnpm check --phase=build` が cron の検査を `--vercel-build` で回す）と `pnpm live` 系(`pnpm live`・`pnpm live:room`・`pnpm live:all`)が止まる。漏れたまま本番が動き続けることはない
 

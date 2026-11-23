@@ -58,6 +58,17 @@ export type DomainConfigOptionals = {
     write?: string | { roles?: string[]; roleCategories?: string[] };
     operations?: Record<string, string | { roles?: string[]; roleCategories?: string[] }>;
   };
+  // 共有の読みのキャッシュの宣言（domain.json の無いドメインは同じ形の <domain>/cache.json）。
+  // JSON インポートの型推論（string）と相性を保つため緩い型で宣言する。厳密な型は ./cache の DomainCacheDeclaration、
+  // 形と上限の検査は scripts/structure/domain/checks/cache.mjs（pnpm check domain）
+  cache?: {
+    mode?: string;
+    life?: string | { stale?: number; revalidate?: number; expire?: number };
+    get?: boolean;
+    list?: { limit?: number };
+    reads?: Array<{ name?: string; where?: unknown; orderBy?: unknown; limit?: number; mode?: string; life?: unknown }>;
+    readsDomains?: string[];
+  };
   // false = 手で管理し pnpm generate domain は何も書かない（省略 = true）。生成器だけが読む
   generate?: boolean;
   // 開発者のメモ（どの階層にも書ける。生成器も client の写しも読まず、動作に効かない）

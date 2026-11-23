@@ -173,18 +173,20 @@ export const GET = createApiRoute(
 
 ### レスポンスキャッシュ（withAnalyticsCache）
 
-- `services/server/utils/analyticsCache.ts` が提供する透過ラッパー。「過去日のみで構成される確定済み範囲は長期TTL、当日を含む範囲は短TTL」を `ResolvedDateRange` から自動判定してインスタンス内メモリにキャッシュする
+- 公開の入口 `services/server/analyticsCache.ts`(本体は `utils/analyticsCache.ts`)。集計を名前で定義し、共有のキャッシュ(`"use cache: remote"`、`@/lib/cacheTags/server` の `defineSharedRead`)で覚える読みを返す。「過去日のみで構成される確定済み範囲は長い寿命、当日を含む範囲は短い寿命」を `ResolvedDateRange` から自動判定する。全インスタンスで 1 つの値を共有する
+- 定義はモジュールの頭で 1 回。名前は集計ごとに 1 つ(札 `analytics:<name>` と鍵の一部)。鍵 = 名前 + 読みの引数(range を含む)。結果を変える値は全部引数に入れる(閉じ込めた値は鍵に入らない)
 
 ```typescript
-import { withAnalyticsCache } from "./utils/analyticsCache";
+import { withAnalyticsCache } from "./analyticsCache";
+
+// 引数は直列化できる値だけ(素のオブジェクト・配列・Date。クラスのインスタンス・関数は不可)
+const cachedWalletSummary = withAnalyticsCache(
+  "walletHistory.summary",
+  (range: ResolvedDateRange, walletType: string) => computeWalletSummary(range, walletType),
+);
 
 export async function getWalletSummary(params: DateRangeParams & WalletTypeFilter) {
-  const range = resolveDateRange(params);
-  return withAnalyticsCache(
-    // key = クエリ結果に影響する全パラメータ（range は自動合成される）
-    { key: ["walletHistory.summary", params.walletType ?? ""], range },
-    () => computeWalletSummary(range, params),
-  );
+  return cachedWalletSummary(resolveDateRange(params), params.walletType ?? "");
 }
 ```
 
@@ -264,11 +266,13 @@ export const AnalyticsCacheTable = pgTable(
 
 ### レスポンスキャッシュの挙動
 
-- **確定済み判定**: `range.dateTo` が `range.timezone` 上の「今日」より前なら確定済み（TTL 既定 12時間）。当日を含むなら短TTL（既定 60秒）。TTL は `ttlClosedMs` / `ttlLiveMs` オプション、既定値は `constants/index.ts` で調整可
-- **immutable ではない**: バックフィル・ロールアップ再計算・集計除外の遡及適用で過去バケットも書き換わり得るため、確定済みでも有限TTL。値を書き換えた直後は `invalidateAnalyticsCache(keyPrefix?)` を呼ぶ（同一インスタンスのみ即時。他インスタンスはTTL満了で追随）
-- **in-flight 共有**: 同一キーの同時リクエストは計算を1回に集約する（ダッシュボードの並列取得対策）
-- **例外はキャッシュしない**: fn が reject した場合エントリは破棄される
-- **スコープ**: インスタンス内メモリLRU（最大 `ANALYTICS_CACHE_MAX_ENTRIES` 件）。サーバーレス多インスタンス間では共有されない（許容仕様）
+- **確定済み判定**: `range.dateTo` が `range.timezone` 上の「今日」より前なら確定済み（寿命 既定 12時間）。当日を含むなら短い寿命（既定 60秒）。読みごとの寿命は 3 つ目の引数 `{ closedSeconds?, liveSeconds? }`（上限: 確定済み 30 日・当日 1 時間 = ドメインの宣言 cache の tagged / ttl と同じ。超えると定義の時に投げる）、既定値は `constants/index.ts`
+- **immutable ではない**: バックフィル・ロールアップ再計算・集計除外の遡及適用で過去バケットも書き換わり得るため、確定済みでも有限の寿命。値を書き換えた直後は `invalidateAnalyticsCache(name?)`（公開の入口 `services/server/analyticsCache.ts`。省略 = 全集計の札 `analytics`、name = その集計の札 `analytics:<name>`）を呼ぶ。札は入口（routeFactory・cron の route）が要求の終わりに消し、全インスタンスに届く。集計の除外の条件を書き換えた fork も呼ぶ（`services/server/exclusion/README.md`）
+- **入口の外**: `pnpm task`（`analytics:rollup-backfill` 等）は Next の要求の外なので札を消せず、記録の 1 行（`cache tags not revalidated outside a request`）を出す。確定済みの寿命（既定 12 時間）で切れる（永続の再送は作らない）
+- **置き場が止まった時**: `readThrough` で集計を直に計算して返す（記録の 1 行 `cache read fell back to the database`）
+- **同時の取りこぼし**: 同じ鍵の同時のリクエストはそれぞれ計算する（インスタンスの中の相乗りは無い。最初に終わった値が覚えられる）
+- **例外はキャッシュしない**: compute が reject した時は覚えない
+- **スコープ**: Vercel の Runtime Cache（`"use cache: remote"`）。1 項目 2 MB まで・札 128 まで（`src/domains/README.md` の cache の大きさの手引き）
 - **無効化エスケープハッチ**: 環境変数 `ANALYTICS_CACHE=disabled` で全キャッシュ素通し（デバッグ用）
 - **組み込みサービスには未適用**: 鮮度特性の変更を暗黙に持ち込まないため、上流の組み込み API はラップしていない。負荷の高いエンドポイント（複合ダッシュボード等）から呼び手が順に包む
 

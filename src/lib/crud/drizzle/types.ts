@@ -1,5 +1,6 @@
 // src/lib/crud/drizzle/types.ts
 
+import type { CrudCacheTagsOption } from "./cacheTags";
 import type { SQL } from "drizzle-orm";
 import type { PgTable, AnyPgColumn } from "drizzle-orm/pg-core";
 import type { AuditRecorder } from "@/lib/audit";
@@ -183,4 +184,12 @@ export type CrudServiceOptions<TData extends Record<string, any>> = CrudServiceB
    * 対象基準・注意点: src/lib/requestMemo/README.md
    */
   requestMemo?: boolean;
+  /**
+   * 共有の読みのキャッシュの札(src/lib/cacheTags)を書き込みで積む(既定: 積まない)。
+   * domain = 地区の地図のドメイン名(domain.json の cache / cache.json の宣言を持つドメイン。生成器が書く)。
+   * 書き込みのメソッドが終わりに `<domain>` と行の札 `<domain>:<id>`(id の分からない書き込みは行の全部の札
+   * `<domain>:*`)を積み、入口(routeFactory・cron)が要求の終わりにまとめて消す。
+   * createCrudService を経由しない生 SQL の書き込みの後は `service.markCacheTags(ids?)` を呼ぶ。
+   */
+  cacheTags?: CrudCacheTagsOption;
 };

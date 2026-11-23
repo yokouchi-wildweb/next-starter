@@ -350,7 +350,7 @@ export const POST = createApiRoute(
   - `routeFactoryRateLimit` = レート制限、ちょうど 1 つ(`required`)。上流の項目 `domains/core/rateLimit/plugs/routeFactoryRateLimit/ipRate.ts`(1 行スイッチ、差替点 `rateLimitRouteFactoryRateLimit`)
   - `routeFactoryDevice` = 登録端末、0〜1 個(`max: 1`)。上流の項目 `domains/core/pairedDevice/plugs/routeFactoryDevice/pairedDevice.ts`(端末の種類ごとの型は値を持たない欄 `types` で運ぶ)。pairedDevice が閉じれば門番が外し「端末なし」
   - 結ぶのは `src/wiring/apiRoute.ts`(一覧を `gate.plugs` で絞って渡す。ドメインを読まない、D22)
-- `runRoute` はハンドラを `runWithAuditContext`(どの深さからでも `getAuditContext()` で actor / IP / UA を取れる)と `runWithUserDirtyTracking`(`markUserDirty` した対象をハンドラの後に反映)で包む
+- `runRoute` はハンドラを `runWithAuditContext`(どの深さからでも `getAuditContext()` で actor / IP / UA を取れる)と `runWithUserDirtyTracking`(`markUserDirty` した対象をハンドラの後に反映)と `runWithCacheTags`(書き込みが積んだ共有の読みのキャッシュの札をハンドラの後にまとめて消す、`src/lib/cacheTags`)で包む。端末の route(createDeviceRoute)も同じ 2 つを端末の監査の文脈の内側で敷き直す
 - `makeRouteCore`（共通の前後処理）→ `makeCreateApiRoute` / `makeDomainRoutes` / `makeCreateMeRoute` / `makeCreateDeviceRoute` / `makeEnforceAccessRule`
 
 ## Verification

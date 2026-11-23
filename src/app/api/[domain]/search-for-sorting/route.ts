@@ -1,7 +1,8 @@
 // src/app/api/[domain]/search-for-sorting/route.ts
 
 import { createDomainRoute } from "@/wiring/apiRoute";
-import type { SearchParams } from "@/lib/crud";
+import { resolveSearchLimit } from "@/lib/crud";
+import type { BoundedSearchParams, SearchParams } from "@/lib/crud";
 
 type DomainParams = { domain: string };
 
@@ -15,7 +16,9 @@ export const POST = createDomainRoute<any, DomainParams>(
   },
   async (req, { service }) => {
     const body = await req.json();
-    const searchParams: SearchParams = body ?? {};
+    const requested: SearchParams = body ?? {};
+    // limit は既定 100・上限 1000(超えれば 400)。server の search は limit 必須
+    const searchParams: BoundedSearchParams = { ...requested, limit: resolveSearchLimit(requested.limit) };
     return service.searchForSorting(searchParams);
   },
 );

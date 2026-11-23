@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { userService } from "@/domains/core/user/services/server/userService";
 import type { SearchWithProfileParams } from "@/domains/core/user/services/server/wrappers/searchWithProfile";
+import { resolveSearchLimit } from "@/lib/crud";
 
 import {
   BadRequestError,
@@ -46,9 +47,8 @@ export const GET = createApiRoute(
       const withRelations = parseWithRelations(query.get("withRelations"));
       const withCount = parseBooleanFlag(query.get("withCount"), "withCount");
 
-      const searchParams: SearchWithProfileParams = {};
+      const searchParams: SearchWithProfileParams = { limit: resolveSearchLimit(limit) };
       if (typeof page === "number") searchParams.page = page;
-      if (typeof limit === "number") searchParams.limit = limit;
       if (orderBy) searchParams.orderBy = orderBy;
       if (searchQuery) searchParams.searchQuery = searchQuery;
       if (where) searchParams.where = where;

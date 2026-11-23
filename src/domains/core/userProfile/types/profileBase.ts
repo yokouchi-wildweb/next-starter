@@ -2,7 +2,7 @@
 // プロフィールベースサービスの型定義
 
 import type { SQL } from "drizzle-orm";
-import type { SearchParams, PaginatedResult, WithOptions } from "@/lib/crud";
+import type { BoundedSearchParams, PaginatedResult, WithOptions } from "@/lib/crud";
 import type { ExtraWhereClause } from "@/lib/crud/server";
 
 /**
@@ -18,7 +18,7 @@ export type ProfileBase = {
   upsert: (data: Record<string, unknown>) => Promise<Record<string, unknown>>;
   // createCrudService から継承（検索・一覧）
   search: (
-    params?: SearchParams & WithOptions & ExtraWhereClause,
+    params: BoundedSearchParams & WithOptions & ExtraWhereClause,
   ) => Promise<PaginatedResult<Record<string, unknown>>>;
   list: (options?: WithOptions) => Promise<Record<string, unknown>[]>;
   query: <T extends Record<string, unknown> = Record<string, unknown>>(

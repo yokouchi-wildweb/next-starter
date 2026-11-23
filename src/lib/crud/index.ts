@@ -10,3 +10,7 @@ export * from "./components";
 export * from "./presenters";
 export * from "./types";
 export * from "./orderBy";
+
+// 外から来る search の limit の既定と上限(server の search は limit 必須、BoundedSearchParams)。純粋な関数なので画面側の入口にも置く
+export { resolveSearchLimit, DEFAULT_SEARCH_LIMIT, MAX_SEARCH_LIMIT } from "./searchLimit";
+export type { ResolveSearchLimitOptions } from "./searchLimit";

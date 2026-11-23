@@ -10,7 +10,7 @@ change: add → analyticsRollupMetrics / analyticsCoinIssuanceSources / analytic
 rules:
 using:
 - db_side_aggregation: → core/services.md db_aggregation (aggregation.ts holds changeRate only)
-- cache_key: a withAnalyticsCache key has every result-changing param
+- cache_key: withAnalyticsCache(name, compute) is defined once at module top, one name per aggregation | every result-changing param is an argument of the returned read (captured values are not in the key) | arguments and results serializable
 - rollup_choice: rollup = full-history scans, long series | light GROUP BY → cache first
 - rollup_off: switch a metric off by `enabled`, never compute returning [] (screens stop calling it too)
 - rollup_exclusion: a metric's compute applies exclusions itself
@@ -19,6 +19,7 @@ using:
 - coin_source_abs: aggregate() returns absolute values
 - grant_reason: counted grants write reasonKey or reasonCategory
 - exclusion_satellite: row exclusions = a fork satellite table by row id, never a column / index on a core table
+- exclusion_invalidate: right after adding, removing or back-applying an exclusion (the fork's tables), call invalidateAnalyticsCache() from services/server/analyticsCache.ts (whole cache, name → that aggregation only) | it marks tags that the entry clears on every instance at the request's end | outside an entry (pnpm task) it logs one line and the life bounds it (closed 12 h, live 1 min)
 - balance_series: balance series → getWalletBalanceSeries, never copy its SQL
 editing:
 - builtin_no_cache: built-in APIs stay outside withAnalyticsCache

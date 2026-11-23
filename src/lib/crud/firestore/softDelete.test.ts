@@ -108,7 +108,7 @@ const plain = () => createFirestoreCrudService<{ id?: string; name?: string; del
 const stored = (path: string, id: string) => docsOf(path).get(id);
 const visibleIds = async (service: ReturnType<typeof soft>) => ({
   list: (await service.list()).map((row) => row.id).sort(),
-  search: (await service.search()).results.map((row) => row.id).sort(),
+  search: (await service.search({ limit: 100 })).results.map((row) => row.id).sort(),
   count: (await service.count()).total,
 });
 

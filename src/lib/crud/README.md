@@ -67,6 +67,9 @@ createCrudService<TTable, TCreate>(table, {
   // リクエストスコープメモ化（既定: false）
   requestMemo?: boolean,
 
+  // 共有の読みのキャッシュの札を書き込みで積む（既定: 積まない、Drizzle のみ、後述）
+  cacheTags?: { domain: string },
+
   // ファイル台帳との連動（Drizzle のみ、`storageIntegration/README.md`）
   storage?: CrudStorageBinding,
 
@@ -101,6 +104,16 @@ createCrudService<TTable, TCreate>(table, {
 - 対象基準: identity-stable かつ高 fan-in な行（例: user のセッションユーザー行、
   setting のグローバル設定）のみ。list / search はメモ化されない
 - 詳細・注意点: `src/lib/requestMemo/README.md`
+
+### cacheTags（共有の読みのキャッシュの札を書き込みで積む）
+
+`cacheTags: { domain }` にすると、書き込みのメソッド（requestMemo と同じ一覧）が終わり（成功でも throw でも）に、そのドメインの札を積む（`src/lib/cacheTags`）。積んだ札は入口（routeFactory・cron）が要求の終わりにまとめて消す。
+
+- domain = 地区の地図のドメイン名。cache の宣言（domain.json の `"cache"` / `cache.json`）を持つドメインに付ける
+- id の分かる書き込み（create・upsert・duplicate は戻り値、update・systemUpdate・delete・restore・hardDelete は引数、`bulk*ByIds`・bulkUpdate・bulkUpsert は一括の id）= ドメインの札 `<domain>` + 行の札 `<domain>:<id>`
+- id の分からない書き込み（`*ByQuery`・replaceByQuery・reorder・initializeSortOrder・searchForSorting・関係の一括・truncateAll）と、戻り値から id を取る書き込みの throw = ドメインの札 + 行の全部の札 `<domain>:*`（get の覚えが全部消える）
+- `createCrudService` を経由しない生 SQL の書き込みの後は `service.markCacheTags(ids?)`（ids 無し = 行の全部の札）。option の無いサービスでは何もしない
+- 積むのはメソッドの return の時点、消すのは要求の終わり（ロールバックした分は余分に消すだけ）。範囲の外（pnpm task・seed）では消せず、記録の 1 行（`src/lib/cacheTags/README.md`）
 
 ### systemColumns と特権書き込み（systemUpdate / systemBulkUpdateByQuery）
 
@@ -232,12 +245,17 @@ defineHiddenColumns(UserTable, ["localPassword"]);
 
 | メソッド | 引数 | 戻り値 | 備考 |
 |----------|------|--------|------|
-| `search(params?)` | SearchParams & WithOptions & ExtraWhereClause & ExtraOrderByClause | PaginatedResult | メインの検索メソッド |
-| `searchWithDeleted(params?)` | 同上 | PaginatedResult | 論理削除レコードも含む |
+| `search(params)` | BoundedSearchParams & WithOptions & ExtraWhereClause & ExtraOrderByClause | PaginatedResult | メインの検索メソッド。`limit` 必須(下) |
+| `searchWithDeleted(params)` | 同上 | PaginatedResult | 論理削除レコードも含む |
 | `count(params?)` | CountParams & ExtraWhereClause | CountResult | 件数のみ取得（レコード不要時に最適） |
 | `countWithDeleted(params?)` | 同上 | CountResult | 論理削除レコードも含めた件数 |
 | `query(baseQuery, options?, countQuery?)` | カスタム SELECT | PaginatedResult | サーバー専用。JOIN 等の自由なクエリ |
-| `searchForSorting(params?)` | SearchParams & ExtraWhereClause | PaginatedResult | sort_order NULL を自動初期化 |
+| `searchForSorting(params)` | BoundedSearchParams & ExtraWhereClause | PaginatedResult | sort_order NULL を自動初期化 |
+
+- search の `limit` は必須(`BoundedSearchParams = SearchParams & { limit: number }`)。省いた呼び出しは型で止まり、型を通らない呼び出し(any・登録表から引いたサービス)は実行時に 500。今までの既定 100 で黙って行が落ちることは無い
+- 外(HTTP の要求)から来る limit は `resolveSearchLimit(limit, { fallback?, max? })`(`@/lib/crud`、既定 100・上限 1000、上限を超えれば 400。切り詰めない)で解いてから渡す。汎用の search の route はそうしている
+- 1 件を見る読みは `limit: 1`、件数だけは `count`、行の全部が要る読みは明示の上限(例: 1 人 1 通貨 1 行の財布 = 通貨の数)と上限を超えた時の扱いを書く
+- client の `search`(HTTP)の `SearchParams` の limit は任意のまま(server が既定で解く)
 
 #### バルク操作
 
@@ -334,7 +352,7 @@ const inserted = await service.replaceByQuery(
 
 ### サービスの組み立て（drizzle/service/・firestore/）
 
-- `createCrudService` は共有の状態(context: 関係の設定・論理削除の列・特権書き込みの検査・リレーション展開・監査)を 1 つ作り、操作の群(read / write / bulk / upsert / table / sort)を 1 つのサービスにまとめてから、集まり → ストレージ連動 → 集まりの複製 → リクエストメモ → 秘匿カラムの順に包む
+- `createCrudService` は共有の状態(context: 関係の設定・論理削除の列・特権書き込みの検査・リレーション展開・監査)を 1 つ作り、操作の群(read / write / bulk / upsert / table / sort)を 1 つのサービスにまとめてから、集まり → ストレージ連動 → 集まりの複製 → リクエストメモ → キャッシュの札 → 秘匿カラムの順に包む
 - 自分の他のメソッドを `this` で呼ぶ物(duplicate・duplicateWithIdMap・searchForSorting)は組み立ての中に置く。`this` は呼ばれたサービス(包みの後)なので、複製の create もストレージ連動と集まりを通る
 - `createFirestoreCrudService` も同じ形(context + read / write / bulk、duplicate は組み立て)
 

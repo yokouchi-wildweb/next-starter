@@ -11,7 +11,7 @@ import type { SQL } from "drizzle-orm";
 import { UserTable } from "@/domains/core/user/entities/drizzle";
 import { normalizeDomainJsonConfig } from "@/lib/domain";
 import rawUserConf from "@/domains/core/user/domain.json";
-import type { SearchParams, PaginatedResult, WithOptions, WhereExpr } from "@/lib/crud";
+import type { BoundedSearchParams, PaginatedResult, WithOptions, WhereExpr } from "@/lib/crud";
 import type { ExtraWhereClause } from "@/lib/crud/server";
 import type { User } from "@/domains/core/user/entities";
 import { getProfileConfig } from "@/domains/core/userProfile/utils/configHelpers";
@@ -19,7 +19,7 @@ import { profileTables } from "@/domains/core/userProfile/extensions/profileTabl
 import { buildWhere } from "@/lib/crud/server";
 import { base } from "../drizzleBase";
 
-export type SearchWithProfileParams = SearchParams & WithOptions & ExtraWhereClause & {
+export type SearchWithProfileParams = BoundedSearchParams & WithOptions & ExtraWhereClause & {
   /** プロフィールフィールドの構造化フィルタ（WhereExpr DSL） */
   profileWhere?: WhereExpr;
 };
@@ -66,7 +66,7 @@ export type SearchWithProfileParams = SearchParams & WithOptions & ExtraWhereCla
  */
 export async function searchWithProfile(
   role: string,
-  params: SearchWithProfileParams = {},
+  params: SearchWithProfileParams,
 ): Promise<PaginatedResult<User>> {
   const { searchQuery, profileWhere } = params;
 

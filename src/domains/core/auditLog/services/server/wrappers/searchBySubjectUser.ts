@@ -1,6 +1,6 @@
 // src/domains/core/auditLog/services/server/wrappers/searchBySubjectUser.ts
 
-import type { PaginatedResult, SearchParams } from "@/lib/crud";
+import type { BoundedSearchParams, PaginatedResult } from "@/lib/crud";
 
 import type { AuditLog } from "@/domains/core/auditLog/entities/model";
 import { auditLogBase } from "../drizzleBase";
@@ -18,7 +18,7 @@ import { auditLogBase } from "../drizzleBase";
  */
 export async function searchBySubjectUser(
   subjectUserId: string,
-  params: Omit<SearchParams, "where"> = {},
+  params: Omit<BoundedSearchParams, "where">,
 ): Promise<PaginatedResult<AuditLog>> {
   return auditLogBase.search({
     ...params,

@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuditContext, runWithAuditContext } from "@/lib/audit/server";
 import { isDomainError, toDomainErrorBody } from "@/lib/errors";
 import { runWithUserDirtyTracking } from "@/lib/userDirty";
+import { runWithCacheTags } from "@/lib/cacheTags/server";
 
 import type { ApiRouteBaseConfig, NextRouteHandler, RouteAccess, RouteCore } from "./createApiRoute";
 import type { RouteAuthenticatedDevice, RouteDeviceDeps, RouteUserBase, RouteUserDeps } from "./deps";
@@ -185,9 +186,10 @@ export function makeCreateDeviceRoute<
               user: null,
               operator: null,
             });
-          // 監査の主体を端末にする。userDirty の flush も端末の context の中で終わるよう、内側で敷き直す
+          // 監査の主体を端末にする。userDirty の flush も端末の context の中で終わるよう、内側で敷き直す。
+          // 共有の読みのキャッシュの札(cacheTags)も同じ所で敷き、handler の後にまとめて消す
           const baseContext = getAuditContext();
-          const runAsDevice = () => runWithUserDirtyTracking(run);
+          const runAsDevice = () => runWithCacheTags(() => runWithUserDirtyTracking(run));
 
           try {
             const result = baseContext

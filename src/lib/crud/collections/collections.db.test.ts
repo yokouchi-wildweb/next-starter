@@ -773,7 +773,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
 
     // 射影
     assert.deepEqual((await collParent.get(target.id)).items, refs);
-    const searched = await collParent.search({ where: { field: "id", op: "eq", value: target.id } });
+    const searched = await collParent.search({ where: { field: "id", op: "eq", value: target.id }, limit: 100 });
     assert.deepEqual(searched.results[0].items, refs);
 
     // 先頭 1 件の SQL: "aZ" と "aa" だけの主 → C の順では "aZ" が先

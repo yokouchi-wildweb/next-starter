@@ -251,6 +251,8 @@ generated src/styles/core/gradient.css  # 生成器 styles の出力
 generated src/styles/gradient.css  # 生成器 styles の出力
 generated src/styles/z-layer.css  # 生成器 styles の出力
 generated src/lib/zLayer/generated/ownLayers.ts  # 生成器 styles の出力
+generated src/domains/core/*/services/server/cachedReads.ts  # 生成器 cache の出力
+generated src/domains/*/services/server/cachedReads.ts  # 生成器 cache の出力
 # === AUTO-GENERATED intake END ===
 
 # 登録(fork entries の対の中だけ)

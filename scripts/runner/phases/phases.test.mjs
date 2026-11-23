@@ -125,15 +125,17 @@ test("features: 機能が閉じていれば飛ばし、飛ばしたことを必�
   assert.equal(f.exec(["check"]).code, 2);
 });
 
-test("build の守り: build に乗る check が fetch・net・dns に届こうとしたら落とし宣言を拒む(例外を握りつぶしても)/ 届かない物は通る / DB の env は空", (t) => {
+test("build の守り: build に乗る check が fetch・net・dns に届こうとしたら落とし宣言を拒む(例外を握りつぶしても)/ 届かない物は通る / 外部の env は外す(空の文字でなく未設定)", (t) => {
   const f = fixture(t);
   f.add("structure", "bundle", { check: "check.mjs", phases: ["build"] }, { "check.mjs": "try { await fetch('http://127.0.0.1:9') } catch {}\nprocess.exit(0)\n" });
   f.add("structure", "cycles", { check: "check.mjs", phases: ["build"] }, { "check.mjs": "import net from 'node:net'; net.connect(9, '127.0.0.1')\n" });
-  f.add("structure", "config", { check: "check.mjs", phases: ["build"] }, { "check.mjs": "process.exit(process.env.DATABASE_URL ? 1 : 0)\n" });
+  f.add("structure", "config", { check: "check.mjs", phases: ["build"] }, { "check.mjs": "process.exit('DATABASE_URL' in process.env || 'NEXT_PUBLIC_FIREBASE_PROJECT_ID' in process.env ? 1 : 0)\n" });
   f.add("structure", "domain", { check: "check.mjs", phases: ["ship"] }, { "check.mjs": "try { await fetch('http://127.0.0.1:9') } catch {}\nprocess.exit(0)\n" });
-  const prev = process.env.DATABASE_URL;
-  process.env.DATABASE_URL = "postgres://x";
-  t.after(() => (prev === undefined ? delete process.env.DATABASE_URL : (process.env.DATABASE_URL = prev)));
+  for (const [key, value] of [["DATABASE_URL", "postgres://x"], ["NEXT_PUBLIC_FIREBASE_PROJECT_ID", "proj"]]) {
+    const prev = process.env[key];
+    process.env[key] = value;
+    t.after(() => (prev === undefined ? delete process.env[key] : (process.env[key] = prev)));
+  }
   const r = f.exec(["check", "--phase=build"]);
   assert.equal(r.code, 1);
   assert.match(r.out, /structure\/bundle: build に宣言した検査が外に届いた\(fetch\)/);

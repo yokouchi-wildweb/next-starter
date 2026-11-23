@@ -1,7 +1,7 @@
 // src/lib/crud/firestore/read.ts
 // 読みの群: list / get / count / search と、論理削除済みも含める *WithDeleted
 
-import type { SearchParams, CountParams, CountResult, PaginatedResult } from "../types";
+import type { BoundedSearchParams, CountParams, CountResult, PaginatedResult } from "../types";
 import { buildSearchQuery } from "./query";
 import type { FirestoreContext } from "./context";
 import { convertTimestamps } from "./timestamps";
@@ -57,8 +57,8 @@ export function createFirestoreReadMethods<T extends { id?: string; createdAt?: 
      * returned `total` represents the number of fetched documents (not the
      * absolute match count).
      */
-    async search(params: SearchParams = {}): Promise<PaginatedResult<Select>> {
-      const { page = 1, limit = 100 } = params;
+    async search(params: BoundedSearchParams): Promise<PaginatedResult<Select>> {
+      const { page = 1, limit } = params;
       let q = buildSearchQuery(getCol(), params, options);
       if (useSoftDelete) {
         q = q.where("deletedAt", "==", null);
@@ -72,8 +72,8 @@ export function createFirestoreReadMethods<T extends { id?: string; createdAt?: 
         .map((d) => convertTimestamps({ id: d.id, ...(d.data() as T) } as Select));
       return { results, total };
     },
-    async searchWithDeleted(params: SearchParams = {}): Promise<PaginatedResult<Select>> {
-      const { page = 1, limit = 100 } = params;
+    async searchWithDeleted(params: BoundedSearchParams): Promise<PaginatedResult<Select>> {
+      const { page = 1, limit } = params;
       const q = buildSearchQuery(getCol(), params, options);
       const snap = await q.get();
       const docs = snap.docs;

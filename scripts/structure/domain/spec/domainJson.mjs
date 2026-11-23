@@ -14,7 +14,7 @@ export const TOP_LEVEL_KEYS = new Set([
   "domainConfigVersion", "singular", "plural", "label", "dbEngine", "idType", "relations", "useCreatedAt", "useUpdatedAt",
   "useSoftDelete", "sortOrderField", "fields", "fieldGroups", "searchFields", "searchRank", "defaultOrderBy", "tableFields",
   "useDetailModal", "addToAdminDataMenu", "useDuplicateButton", "useImportExport", "useAutoSave", "compositeUniques", "indexes",
-  "systemColumns", "hiddenColumns", "apiAccess", "generate", "audit", COMMENT_KEY,
+  "systemColumns", "hiddenColumns", "apiAccess", "generate", "audit", "cache", COMMENT_KEY,
 ]);
 
 /** 旧キー → 今のキー（移行の案内に使う） */

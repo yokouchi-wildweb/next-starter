@@ -7,11 +7,12 @@ import { inArray } from "drizzle-orm";
 import { DomainError } from "@/lib/errors";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import type { PgTable, AnyPgColumn } from "drizzle-orm/pg-core";
-import type { SearchParams, PaginatedResult, DuplicateOptions, WithOptions } from "../../types";
+import type { BoundedSearchParams, PaginatedResult, DuplicateOptions, WithOptions } from "../../types";
 import { buildOrderBy } from "../query";
 import { buildDuplicateData, resolveConflictTarget } from "../utils";
 import type { CrudServiceOptions, DbTransaction, ExtraWhereClause } from "../types";
 import { applyRequestMemo } from "../requestMemo";
+import { applyCacheTags } from "../cacheTags";
 import { applyHiddenColumns } from "../hiddenColumns";
 import { applyStorageBinding } from "../../storageIntegration/applyStorageBinding";
 import { applyCollectionDuplicate, applyCollections } from "../../collections/applyCollections";
@@ -76,7 +77,7 @@ export function createCrudService<
      * @param params - 検索パラメータ
      * @returns 検索結果（NULL が初期化済み）
      */
-    async searchForSorting(params: SearchParams & WithOptions & ExtraWhereClause): Promise<PaginatedResult<Select>> {
+    async searchForSorting(params: BoundedSearchParams & WithOptions & ExtraWhereClause): Promise<PaginatedResult<Select>> {
       if (!sortOrderColumn) {
         throw new DomainError(
           "searchForSorting() requires sortOrderColumn to be configured in service options.",
@@ -152,5 +153,9 @@ export function createCrudService<
   const withCollectionDuplicate: typeof withStorage = serviceOptions.collections?.length
     ? applyCollectionDuplicate(withStorage, serviceOptions.collections)
     : withStorage;
-  return applyHiddenColumns(applyRequestMemo(withCollectionDuplicate, serviceOptions.requestMemo === true), table);
+  // cacheTags: 書き込みのメソッドが終わりにこのドメインの札を積む(消すのは入口の runWithCacheTags)。memo の外側で包む
+  return applyHiddenColumns(
+    applyCacheTags(applyRequestMemo(withCollectionDuplicate, serviceOptions.requestMemo === true), serviceOptions.cacheTags),
+    table,
+  );
 }

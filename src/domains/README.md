@@ -105,10 +105,46 @@ business ドメインの `entities/` は `pnpm generate domain` が生成する�
 | systemColumns | string[] | ⚪ No | `systemUpdate` / `systemBulkUpdateByQuery`（特権書き込み）で書き込みを許可するカラムの allowlist（Neon のみ）。Zod スキーマ外のシステム管理カラム（`ended_at` 等）をサービス層から正規経路で書き込むための宣言。**未宣言時は system 系メソッドは常に throw（fail-closed）**。詳細: `src/lib/crud/README.md` |
 | hiddenColumns | string[] | ⚪ No | 秘匿カラム（APIキー・トークン等「DB には保持するがレスポンスに決して含めない」カラム、Neon のみ）。プロパティ名（camelCase）で指定すると `pnpm generate domain` が `entities/drizzle.ts` に `defineHiddenColumns()` を出力し、サービスの**全戻り値**・他ドメインの **withRelations 展開**から該当カラムが null 置換される。秘匿値をサーバー内部で読む場合は `services/server/` に直接 drizzle の専用ファインダーを作ること（例: user の `findByIdWithSecrets`）。詳細: `src/lib/crud/README.md` の hiddenColumns 節 |
 | audit | object | ⚪ No | 監査ログ（`createCrudService` の `audit` のうち JSON で書ける部分。`targetType`・`actionPrefix` は `enabled: false` 以外で必須、`trackedFields` は camelCase の列名、recorder は生成器が渡す、Neon のみ）。`generate: false` のドメインでは効かないので `drizzleBase.ts` に手で書く |
+| cache | object | ⚪ No | 共有の読みのキャッシュの宣言（下の「cache（共有の読みのキャッシュの宣言）」）。domain.json の無いドメインは同じ形を `<domain>/cache.json` に書く。`generate: false` のドメインにも効く（検査は `pnpm check domain`）、Neon のみ |
 | closable | — | — | 無い。書くと生成器が止める。機能として閉じるには `src/featureGate/rules/<名前>.ts` に規則を書き `domains` にこのドメインを入れる。どの規則にも載せず常に開くなら、ドメインの `extensionPoints.ts` に常設の宣言 `export const alwaysOpen = true`(どちらも無いと `pnpm generate district-map` が止める、注文 35) |
 | apiAccess | ApiAccess | ⚪ No | 汎用 API（`/api/[domain]/**`）のアクセス制御（Extension の「ApiAccess（汎用 API アクセス制御）」）。**未宣言時は admin カテゴリのみ許可（fail-closed）** |
 | generate | boolean | ⚪ No | 生成するか（既定 true）。true = `pnpm forge` / `pnpm generate domain` がそのドメインの生成物を全部作り直す（手の実装は wrappers/ 等に置いて載せ替える）、false = 手で管理し、生成器は何も書かない（README.md の Internals「生成カテゴリ」）。区分ごとの `generateFiles` は廃止（書いてあると生成が止まる）。fork が true / false を決めるときは `pnpm check domain -- --compare`（手の変更・新しい入口・表の書き直しを出す。`scripts/structure/domain/README.md`「generate の旗を決める」） |
 | $comment | string \| string[] | ⚪ No | 開発者のメモ（JSON にはコメントが無いため）。トップレベル・Relation・Field・collection・FieldGroup のどこにでも書ける（下の「開発者のメモ（$comment）」） |
+
+#### cache（共有の読みのキャッシュの宣言）
+
+- 何を書くか: このドメインのどの読みを要求をまたぐ共有のキャッシュにするか・書き込みで消すか時間で切れるか・寿命・他のどのドメインの書き込みでも消すか。包んだ読みの関数は生成器が出す（手で `"use cache: remote"` を書かない）
+- 置き場: domain.json の `"cache"`、domain.json の無いドメインは同じ形の `<domain>/cache.json`（両方は不可、domain.json のあるドメインの cache.json も不可）。`generate` の値に関わらず効く
+- `mode`（必須）: `"tagged"` = 書き込みで札（`cacheTagOf(domain)`・`cacheTagOf(domain, id)`、`src/lib/cacheTags`）を消す / `"ttl"` = 書き込みで消さず短い寿命で切れる
+- `life`（必須、寿命は必ず有限）: cacheLife の preset 名（`minutes` / `hours` / `days` / `weeks` / `max`、`default` は寿命が無限・`seconds` は覚えないので不可）か `{ stale?, revalidate?, expire }`（秒、`expire` 必須、stale ≤ revalidate ≤ expire）
+  - 上限: `tagged` は 30 日（`weeks` まで、書き忘れた読むドメインの分の古さを受ける上限）、`ttl` は 1 時間（`minutes` まで）
+- `get`（既定 true）: `base.get(id)` を包む（行の札 `<domain>:<id>`）
+- `list`: `{ limit }` = 上限つきの list を包む（`limit` は 1〜1000）
+- `reads`: 条件を宣言で固めた名前付きの読み `[{ name, where?, orderBy?, limit, mode?, life? }]`（`base.search` の固定の引数、引数を取らない）
+  - `name` = 小文字で始まる英数字、重複なし、`get` / `list` は不可 | `where` = crud の WhereExpr（`{ field, op, value }`・`{ and: [...] }`・`{ or: [...] }`、`field` は camelCase の列名）| `orderBy` = `[[列, "ASC"|"DESC", ("FIRST"|"LAST")?], ...]` | `limit` 必須（1〜1000）| `mode` / `life` は頭の値を継ぎ、上書きもできる
+  - 利用者の打った語など鍵の数に上限の無い search と、wrappers/ の手書きの読み（actor で絞る等）は宣言しない（包まない）
+- `readsDomains`: この読みが読む他のドメイン（地区の地図の名前、camelCase）。そのドメインの書き込みの札でも消える。自分は書かない（自分の札は必ず付く）
+- 例:
+
+```json
+"cache": {
+  "mode": "tagged",
+  "life": "days",
+  "list": { "limit": 100 },
+  "reads": [
+    { "name": "published", "where": { "field": "isPublished", "op": "eq", "value": true }, "orderBy": [["createdAt", "DESC"]], "limit": 20 }
+  ],
+  "readsDomains": ["user"]
+}
+```
+
+- 置き場が止まった時: 生成した読みは `readThrough`(`@/lib/cacheTags/server`)で包まれ、置き場(cacheHandlers の remote)が投げたら DB を直に読んで返す(記録の 1 行 `cache read fell back to the database`)。Next は handler の `get` の失敗を包まず描画の失敗にする(確かめ: 投げる handler で包まない読みは 500、包んだ読みは 200)。fork が自分の handler を書く時も、中の失敗は拾って `undefined`(取りこぼし)を返す
+- 覚える値の大きさ(Vercel の Runtime Cache、地域ごと): 1 項目 2 MB まで・8 KB 単位で読み書きの課金・1 項目の札は 128 まで(readsDomains は 100 個まで)・Hobby は月に読み 1M / 書き 200K で止まる(チーム 1 つで共有)
+  - list と名前付きの読みの limit は 1000 まで: 1 行 2 KB なら 1000 行で 2 MB に届く。大きな列(本文・JSON)を持つ表は limit を小さく、一覧に要る列だけの名前付きの読みにはしない(列は選べない: base の行が丸ごと入る)
+  - `life` の `seconds`(revalidate 1 秒)は読むたびに作り直すのと同じで覚えない(確かめ、検査が止める)。短い寿命は `{ revalidate, expire }` の秒か `minutes`
+  - 他の地域への消しの届き方は未測(地域は入れない)。書き込みの直後の読みは同じ地域では新しい値(確かめ: preview の 3 つのインスタンス)
+- 生成: `pnpm generate cache` が `<domain>/services/server/cachedReads.ts`（`<camel>CachedReads` の get・list・名前付きの読み）を書く。宣言のあるドメインの `drizzleBase.ts` の base は `cacheTags: { domain: "<camel>" }` を持つ（`generate: true` は `pnpm generate domain` が書く、手で管理するドメインは手で書く。無いと生成器が止まる）。読み方: `scripts/structure/cache/README.md`
+- 検査: `pnpm check domain`（全ドメイン、`scripts/structure/domain/checks/cache.mjs`）| 型: `src/lib/domain/types/cache.ts` の `DomainCacheDeclaration` | 既定を埋めた形: `scripts/structure/domain/spec/cache.mjs` の `normalizeCacheDeclaration`
 
 #### 開発者のメモ（$comment）
 

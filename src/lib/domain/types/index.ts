@@ -9,3 +9,4 @@ export * from "./registry";
 export * from "./display";
 export * from "./domainConfig";
 export * from "./domainField";
+export * from "./cache";

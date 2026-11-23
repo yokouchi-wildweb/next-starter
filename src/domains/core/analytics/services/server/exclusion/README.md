@@ -39,3 +39,9 @@ export const provider: AnalyticsExclusionProvider = {
   stock: ({ userId }) =>
     sql`${userId} NOT IN (SELECT ${ex.user_id} FROM ${ex} WHERE ${ex.status} = 'applied')`,
 };
+
+### 除外を書き換えた後のキャッシュ
+
+- 除外の条件(fork の表: 除外の行・対象者・status)を足す・外す・遡及適用した直後に `invalidateAnalyticsCache()`(`@/domains/core/analytics/services/server/analyticsCache`)を呼ぶ。集計のキャッシュ(withAnalyticsCache)は確定済みの範囲を 12 時間覚えるので、呼ばないとその間は除外の前の集計が出る
+- 呼ぶ場所: 除外を書き換える fork のサービスの、書き込みの後(トランザクションの外)。名前で絞らず全部を消す(どの集計が除外を読むかは項目からは分からない)
+- 届く範囲: 札を積み、入口(routeFactory・cron の route)が要求の終わりに共有のキャッシュから消す = 全インスタンス。入口の外(pnpm task)で書き換えた時は記録の 1 行で、確定済みの寿命(12 時間)で切れる

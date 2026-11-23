@@ -133,6 +133,13 @@ export type SearchParams = {
   relationWhere?: RelationFilter[];
 };
 
+/**
+ * server の search / searchWithDeleted / searchForSorting が受ける形: limit は必須(省くと既定で黙って行が落ちるのを型で止める)。
+ * HTTP など外から来る limit は resolveSearchLimit(@/lib/crud/server)で既定と上限を当ててから渡す。
+ * 行の全部が要る読みは明示の上限と、上限を超えた時の扱いを書く(黙って落とさない)
+ */
+export type BoundedSearchParams = SearchParams & { limit: number };
+
 export type PaginatedResult<T> = {
   results: T[];
   total: number;

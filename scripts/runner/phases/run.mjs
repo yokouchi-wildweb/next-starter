@@ -5,7 +5,8 @@
 //   各対象の入口(phase.json の check / generate のファイル)を、.mjs/.js は node、.ts は tsx(+ server-only の下駄)で起動する。
 //   引数は入口にそのまま渡し、env PHASE=<段階 | ->を付ける。
 //   features の機能が閉じていれば飛ばし「機能 <名前> が閉じているので飛ばした」を必ず出す。
-//   offline の段階(build・build:post)に乗る対象の check は、DB・外部の env を空にし netGuard.mjs を preload して起動し、外に届こうとしたら落とす。
+//   offline の段階(build・build:post)に乗る対象の check は、DB・外部の env を外し(未設定にする。"" は値なので `??` に残り、
+//   "https://${id}.web.app" のような組み立てを壊す)、netGuard.mjs を preload して起動し、外に届こうとしたら落とす。
 //   watch の段階(phases.json の "watch": true、今は ship)で選んだ対象のうち phase.json に watch を持つ物は、範囲(上流の追跡先か
 //   origin/<枝>、無ければ origin/HEAD との分岐点から HEAD まで + 作業ツリー・未追跡)の変更が watch の glob に当たらなければ飛ばし、
 //   飛ばしたことを 1 行出す。範囲が決まらなければ回す。--all で watch を見ずに全部回す。名前で呼んだ対象は watch を見ない。
@@ -114,7 +115,7 @@ export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(rep
     }
     const offline = mode === "check" && (t.decl.phases ?? []).some((g) => offlinePhases.includes(g));
     const env = { ...process.env, PHASE: phaseList?.find((g) => (t.decl.phases ?? []).includes(g)) ?? "-" };
-    if (offline) for (const k of Object.keys(env)) if (OFFLINE_ENV.test(k)) env[k] = "";
+    if (offline) for (const k of Object.keys(env)) if (OFFLINE_ENV.test(k)) delete env[k];
     const [cmd, args] = command(repo, join(t.dir, t.decl[mode]), offline);
     const r = spawnSync(cmd, [...args, ...pass], { cwd: repo, env, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
     if (r.stdout) process.stdout.write(r.stdout);

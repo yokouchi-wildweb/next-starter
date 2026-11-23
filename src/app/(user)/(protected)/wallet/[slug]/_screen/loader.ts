@@ -14,7 +14,7 @@ import type { ScreenProps } from "@/lib/screens";
 import { requireUserRecord } from "@/domains/core/user/services/server/userService";
 import type { Wallet } from "@/domains/core/wallet/entities";
 import { walletService } from "@/domains/core/wallet/services/server/walletService";
-import { getCurrencyConfigBySlug } from "@/domains/core/wallet/utils/currency";
+import { VALID_WALLET_TYPES, getCurrencyConfigBySlug } from "@/domains/core/wallet/utils/currency";
 import { createLoader } from "@/app/(user)/(protected)/guard";
 
 export type WalletBalanceScreenParams = { slug: string };
@@ -46,7 +46,11 @@ export const loadWalletBalanceScreen = createLoader({
       notFound();
     }
     const record = await requireUserRecord(user, "/login");
-    const balances = await walletService.search({ where: { field: "user_id", op: "eq", value: record.id } });
+    // 1 人 1 通貨 1 行(wallets_user_type_idx、type の enum は設定の通貨)なので、行は通貨の数まで
+    const balances = await walletService.search({
+      where: { field: "user_id", op: "eq", value: record.id },
+      limit: VALID_WALLET_TYPES.length,
+    });
     return {
       slug,
       walletType: config.walletType,

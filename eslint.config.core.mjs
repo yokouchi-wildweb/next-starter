@@ -123,6 +123,10 @@ const config = [
     plugins: { "use-cache": useCachePlugin },
     rules: {
       "use-cache/no-principal-outside-args": "error",
+      // 共有の読みのキャッシュの標準の形(D52・D53 K1): 手書きの remote・cache の中の DB の直の読み・next/cache の直の消しを止める
+      "use-cache/remote-only-generated": "error",
+      "use-cache/no-data-read-in-cache": "error",
+      "use-cache/no-manual-revalidate": "error",
     },
   },
   // 層の境目の import を実パスで検査する(エイリアス・相対・"src/…"・サブパス・dynamic import も同じ)。全 Tier error。

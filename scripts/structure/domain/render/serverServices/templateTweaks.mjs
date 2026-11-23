@@ -45,6 +45,11 @@ export function buildAuditOption(audit) {
   return isAuditActive(audit) ? `  // 監査ログ（domain.json の audit）\n  audit: ${auditLiteral(audit)},\n` : "";
 }
 
+/** 共有の読みのキャッシュの札(domain.json の cache の宣言があるドメインだけ、src/lib/crud の option cacheTags) */
+export function buildCacheTagsOption(camel, cache) {
+  return cache !== undefined ? `  // 書き込みが共有の読みのキャッシュの札を積む（domain.json の cache、包んだ読みは pnpm generate cache の cachedReads.ts）\n  cacheTags: { domain: "${camel}" },\n` : "";
+}
+
 /** CreateSchema が空になるか（全フィールドが formInput: "none" かつ belongsTo / belongsToMany が無い） */
 export function hasEmptyCreateSchema(config) {
   if (!config) return false;

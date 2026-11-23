@@ -16,6 +16,7 @@
 
 import { NextResponse, connection } from "next/server";
 import { runAsSystem } from "@/lib/audit/server";
+import { runWithCacheTags } from "@/lib/cacheTags/server";
 import { verifyCronRequest } from "./auth";
 import type { CronTaskDefinition } from "./types";
 import { cronTaskPath } from "./vercelCrons";
@@ -131,7 +132,8 @@ export function createCronRoute<T extends Record<string, unknown> = Record<strin
     // ドメインの関数は runAsSystem を呼ばない(入れ子でも安全だが、包む所を 1 つにする)
     const requestId = crypto.randomUUID();
     try {
-      const result = await runAsSystem(() => options.handler(), { requestId });
+      // 共有の読みのキャッシュの札(cacheTags)の範囲も入口が敷く: タスクの書き込みが積んだ札を終わりにまとめて消す
+      const result = await runAsSystem(() => runWithCacheTags(() => options.handler()), { requestId });
       const durationMs = Date.now() - startedAt;
       console.log(
         JSON.stringify({ level: "info", scope: "cron", task: options.name, ok: true, requestId, durationMs, ...result }),

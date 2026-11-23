@@ -241,7 +241,7 @@ describe("並びの鍵の照合順序（COLLATE \"C\"）", { skip }, () => {
     ]);
     assert.deepEqual((await intService.list()).map((row: Row) => row.name), ["one", "two", "ten"]);
     assert.deepEqual(
-      (await intService.search({ orderBy: [["sort_order", "DESC", "LAST"]] })).results.map((row: Row) => row.name),
+      (await intService.search({ orderBy: [["sort_order", "DESC", "LAST"]], limit: 100 })).results.map((row: Row) => row.name),
       ["ten", "two", "one"],
     );
     assert.deepEqual((await noSort.list()).map((row: Row) => row.name), ["ten", "two", "one"]);

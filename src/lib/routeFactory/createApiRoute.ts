@@ -10,6 +10,7 @@ import { RECAPTCHA_DEBUG, RECAPTCHA_V2_INTERNALS, RECAPTCHA_V3_INTERNALS, verify
 import { isDomainError, toDomainErrorBody } from "@/lib/errors";
 import { readClientIp } from "@/lib/request";
 import { runWithUserDirtyTracking } from "@/lib/userDirty";
+import { runWithCacheTags } from "@/lib/cacheTags/server";
 
 import type { RouteGateDeps, RouteRateLimitDeps, RouteServerErrorDeps, RouteUserBase, RouteUserDeps } from "./deps";
 import { accessDenialResponse } from "./enforceAccess";
@@ -411,8 +412,11 @@ export function makeRouteCore<TCategory extends string = string>(
         // markUserDirty(userId) された対象を、業務TXのコミット後（handler 完了後）に
         // flush する。flush の中身（再計算等）は下流が registerUserDirtyFlushHandler で差し込む。
 
+        //
+        // 共有の読みのキャッシュの札の範囲(cacheTags)も同じ所に敷く。handler の中の書き込みが積んだ札を、
+        // handler の後(成功でも throw でも)にまとめて revalidateTag(expire 0)する(src/lib/cacheTags)。
         const result = await runWithAuditContext(auditContext, () =>
-          runWithUserDirtyTracking(() => handler(req, { params }, grant)),
+          runWithCacheTags(() => runWithUserDirtyTracking(() => handler(req, { params }, grant))),
         );
 
         // 将来の拡張ポイント:

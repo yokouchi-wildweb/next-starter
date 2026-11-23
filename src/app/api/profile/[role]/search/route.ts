@@ -4,7 +4,8 @@ import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { getProfileBase } from "@/domains/core/userProfile/utils/profileBaseHelpers";
-import type { SearchParams, WithOptions } from "@/lib/crud";
+import { resolveSearchLimit } from "@/lib/crud";
+import type { BoundedSearchParams, WithOptions } from "@/lib/crud";
 import {
   BadRequestError,
   parseOrderBy,
@@ -45,9 +46,8 @@ export const GET = createApiRoute<Params>(
       const withRelations = parseWithRelations(query.get("withRelations"));
       const withCount = parseBooleanFlag(query.get("withCount"), "withCount");
 
-      const searchParams: SearchParams & WithOptions = {};
+      const searchParams: BoundedSearchParams & WithOptions = { limit: resolveSearchLimit(limit) };
       if (typeof page === "number") searchParams.page = page;
-      if (typeof limit === "number") searchParams.limit = limit;
       if (orderBy) searchParams.orderBy = orderBy;
       if (searchQuery) searchParams.searchQuery = searchQuery;
       if (searchFields) searchParams.searchFields = searchFields;

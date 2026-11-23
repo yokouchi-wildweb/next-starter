@@ -16,6 +16,7 @@
 - src/lib/audit — 監査ログ基盤(ALS コンテキスト・diff・denylist)
 - src/lib/business — 事業の素性(サービス名・会社・ロゴ・メールの差出人)の型・例の値(examples/)・受付係の判定 resolveBusiness・本番の検査(sample のまま本番のビルドを止める)。読み手は @/business(src/wiring/business.ts が src/business/business.ts と結ぶ)
 - src/lib/browserStorage — localStorage / sessionStorage のクライアントと React フック
+- src/lib/cacheTags — 書き込みの要求で捨てるキャッシュの札(ドメイン・ドメイン:行 id)を集め、要求の終わりにまとめて revalidateTag(expire 0)。範囲の外は投げずに記録の 1 行。入口 "."(札の名前 cacheTagOf)・"./server"(markCacheTags・runWithCacheTags)
 - src/lib/clarity — Microsoft Clarity 解析タグ
 - src/lib/cn — Tailwind className 結合(clsx + tailwind-merge、独自トークンのクラス群登録)
 - src/lib/cron — /api/cron/* 定期タスク基盤(1 タスク 1 フォルダの task.ts から vercel.json を生成・検査)と CLI 実行、時間予算付きの再開可能ループ runBudgetedBatches

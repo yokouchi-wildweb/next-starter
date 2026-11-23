@@ -122,15 +122,13 @@ const nextConfig: NextConfig = {
     return config;
   },
   async rewrites() {
+    // Firebase Auth handler をプロキシ。project id が未設定(Firebase を使わない・未設定の env)の時は作らない
+    // (作ると "https://undefined.web.app" = 他人のサイトへ /__/* を流す)。検査は代わりの id で形を確かめる(scripts/structure/next-config)
     const firebaseProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
     return {
-      fallback: [
-        {
-          // Firebase Auth handler をプロキシ
-          source: "/__/:path*",
-          destination: `https://${firebaseProjectId}.web.app/__/:path*`,
-        },
-      ],
+      fallback: firebaseProjectId
+        ? [{ source: "/__/:path*", destination: `https://${firebaseProjectId}.web.app/__/:path*` }]
+        : [],
     };
   },
 };

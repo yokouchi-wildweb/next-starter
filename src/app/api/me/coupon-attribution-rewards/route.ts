@@ -14,7 +14,8 @@ import {
   type CouponAttributionRewardForRecipient,
 } from "@/domains/core/couponAttributionReward/entities/model";
 import { couponAttributionRewardConfig } from "@/domains/couponAttributionReward/config";
-import type { PaginatedResult, SearchParams } from "@/lib/crud";
+import { resolveSearchLimit } from "@/lib/crud";
+import type { BoundedSearchParams, PaginatedResult } from "@/lib/crud";
 import { BadRequestError, parsePositiveInteger } from "@/app/api/[domain]/search/utils";
 
 const DEFAULT_LIMIT = 20;
@@ -30,9 +31,10 @@ export const GET = createMeRoute(
     try {
       const query = req.nextUrl.searchParams;
       const page = parsePositiveInteger(query.get("page"), "page") ?? 1;
-      const limit = Math.min(parsePositiveInteger(query.get("limit"), "limit") ?? DEFAULT_LIMIT, MAX_LIMIT);
+      // 上限を超えた limit は 400(黙って切り詰めない)
+      const limit = resolveSearchLimit(parsePositiveInteger(query.get("limit"), "limit"), { fallback: DEFAULT_LIMIT, max: MAX_LIMIT });
 
-      const searchParams: SearchParams = {
+      const searchParams: BoundedSearchParams = {
         where: ownerWhere(user, "recipient_user_id"),
         page,
         limit,

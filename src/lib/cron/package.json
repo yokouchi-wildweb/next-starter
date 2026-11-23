@@ -4,5 +4,5 @@
     "./node": "./node.ts",
     "./points": "./points.ts"
   },
-  "libs": ["appEnv", "audit", "districtMap"]
+  "libs": ["appEnv", "audit", "cacheTags", "districtMap"]
 }

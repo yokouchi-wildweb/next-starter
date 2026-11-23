@@ -16,7 +16,8 @@ import {
   auditLogBase,
   buildUserVisibleActionsWhere,
 } from "@/domains/core/auditLog/services/server";
-import type { SearchParams, WhereExpr } from "@/lib/crud";
+import { resolveSearchLimit } from "@/lib/crud";
+import type { BoundedSearchParams, WhereExpr } from "@/lib/crud";
 
 import {
   BadRequestError,
@@ -62,9 +63,8 @@ export const GET = createMeRoute(
         ],
       };
 
-      const searchParams: SearchParams = { where };
+      const searchParams: BoundedSearchParams = { where, limit: resolveSearchLimit(limit) };
       if (typeof page === "number") searchParams.page = page;
-      if (typeof limit === "number") searchParams.limit = limit;
 
       return auditLogBase.search(searchParams);
     } catch (error) {

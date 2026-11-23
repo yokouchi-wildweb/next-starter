@@ -23,6 +23,12 @@
       "@/lib/audit/*": [
         "../audit/*"
       ],
+      "@/lib/cacheTags": [
+        "../cacheTags"
+      ],
+      "@/lib/cacheTags/*": [
+        "../cacheTags/*"
+      ],
       "@/lib/cn": [
         "../cn"
       ],

@@ -3,5 +3,5 @@
     ".": "./index.ts",
     "./points": "./points.ts"
   },
-  "libs": ["audit", "crud", "defineConfig", "domain", "domainAccess", "errors", "recaptcha", "request", "stringCase", "userDirty"]
+  "libs": ["audit", "cacheTags", "crud", "defineConfig", "domain", "domainAccess", "errors", "recaptcha", "request", "stringCase", "userDirty"]
 }

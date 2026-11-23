@@ -101,6 +101,7 @@
   - 生成は止まらないが、未知の `fieldType` は列名としてそのまま出力され、未知の `formInput` はフォームに出ないので直す
   - 知らないキーは同じキーをドメインごとに 1 行（件数と最初の 3 か所）にまとめ、他の警告の後ろに並べる
   - 開発者のメモは `"$comment"`（どの階層でも通り、生成物にも写しにも出ない。`src/domains/README.md`「開発者のメモ（$comment）」）
+- `cache の宣言: 問題 <n> 件` で `pnpm check domain` が落ちる → 全ドメイン（`generate: false`・domain.json の無いドメインも）の cache の宣言（domain.json の `"cache"` か `<domain>/cache.json`）の誤り（読み `domain/workspace.mjs`、検査 `checks/cacheDeclarations.mjs`・`checks/cache.mjs`）。文のとおりに直す（規則: [src/domains/README.md](../../../src/domains/README.md)「cache（共有の読みのキャッシュの宣言）」）
 - `domain.json` が壊れている（JSON として読めない） → 直してから再実行
 - `テンプレートのトークンが置換されていません` → 管理画面テンプレートに未対応のトークンが残っている。テンプレートを直す
 - `src/registry/district-map.jsonl` が `pnpm check district-map` で落ちる → `pnpm generate district-map`（または forge）で作り直してコミット
