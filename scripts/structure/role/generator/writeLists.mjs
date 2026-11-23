@@ -388,7 +388,7 @@ function renderProfileBases(profiles) {
   ].join("\n");
 }
 
-/** ロールの一覧のファイルにある並び（生成は 1 ロールずつ消して末尾に足す） */
+/** ロールの一覧のファイルにある並び（= pg enum user_role の値の並び。今あるロールは動かさず、新しい ID だけ末尾に足す） */
 function readRoleEntries() {
   if (!fs.existsSync(ROLES_LIST_PATH)) return [];
   const content = fs.readFileSync(ROLES_LIST_PATH, "utf8");
@@ -418,9 +418,18 @@ function writeRoles(entries) {
   fs.writeFileSync(ROLES_LIST_PATH, content);
 }
 
-/** ロールの一覧の末尾に足す（同じ ID があれば先に外す） */
+/**
+ * ロールを一覧に載せる。載っていればその場所のまま書き直し、無ければ末尾に足す。
+ * 一覧の並びは DB の enum の並び: 今ある値を動かすと drizzle-kit が DROP TYPE と列の書き直しを出す（足すだけなら ADD VALUE）
+ */
 export function addRoleToList(roleConfig) {
-  writeRoles([...readRoleEntries().filter((e) => e.id !== roleConfig.id), { id: roleConfig.id }]);
+  const entries = readRoleEntries();
+  writeRoles(entries.some((e) => e.id === roleConfig.id) ? entries : [...entries, { id: roleConfig.id }]);
+}
+
+/** 一覧をこの並びで書き直す（pnpm generate role -- --order。DB の enum の並びに合わせる唯一の道。検査は呼ぶ側） */
+export function writeRoleOrder(roleIds) {
+  writeRoles(roleIds.map((id) => ({ id })));
 }
 
 /** ロールの一覧から外す。外したら true */

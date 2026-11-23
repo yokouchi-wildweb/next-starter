@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 // scripts/structure/role/generate.mjs
 // ロール設定からファイルを生成するスクリプト
-// 使い方: node generate.mjs <roleId> | node generate.mjs --all（coreRoles/・roles/ の全 *.role.json）
+// 使い方: node generate.mjs <roleId> | node generate.mjs --all（coreRoles/・roles/ の全 *.role.json）| node generate.mjs --order <id,…>（一覧をその並びにして全部を作り直す）
 // 書く前に checks/ の検査を通す（問題は全件並べて止める。警告は表示して進む）
 
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
-import { addRoleToList, registeredRoleIds, writeProfileLists } from "./generator/writeLists.mjs";
+import { addRoleToList, registeredRoleIds, writeProfileLists, writeRoleOrder } from "./generator/writeLists.mjs";
 import { cleanupProfile } from "./generator/cleanupProfile.mjs";
 import { cleanupRole } from "./generator/cleanupRole.mjs";
 // 新しいジェネレーター
@@ -131,12 +131,12 @@ export default async function generate(roleId, options = {}) {
 
   // ロール登録（profileOnly でない場合のみ）
   if (!profileOnly) {
-    // クリーンアップ（冪等性のため、既存エントリを削除してから追加）
+    // クリーンアップ（冪等性のため生成物を消してから作る。一覧の行は外さない: 場所 = enum user_role の並び）
     console.log("\n[1/4] 既存エントリをクリーンアップ中...");
     // hasProfile: false でもプロフィール設定が残っているロールは、プロフィールの生成物を消さない（警告だけ）。
     // 消すと一覧が消えたファイルを読み続けて型検査が壊れる。プロフィールを消すのは pnpm generate role -- --delete / pnpm generate role -- --delete-profile
     const keepProfile = !roleConfig.hasProfile && checkInput.profile !== null;
-    cleanupRole(roleId, { includeProfile: !keepProfile, deleteEntity: true, updateHasProfile: false, silent: true });
+    cleanupRole(roleId, { includeProfile: !keepProfile, deleteEntity: true, updateHasProfile: false, silent: true, keepInList: true });
     console.log("✓ クリーンアップ完了");
 
     // 2. ロールの一覧を更新
@@ -247,18 +247,51 @@ export async function generateAll() {
   console.log(`=== 全 ${roleIds.length} ロールの生成完了 ===`);
 }
 
+/**
+ * --order の並びの問題（空なら無し）: ディスクの全ロールをちょうど 1 回ずつ
+ * @param {string[]} ids 指定の並び
+ * @param {string[]} [onDisk] ディスクのロール
+ */
+export function roleOrderIssues(ids, onDisk = roleIdsOnDisk()) {
+  const unknown = ids.filter((id) => !onDisk.includes(id));
+  const duplicated = ids.filter((id, index) => ids.indexOf(id) !== index);
+  const missing = onDisk.filter((id) => !ids.includes(id));
+  return [
+    ...(unknown.length ? [`ロール設定の無い ID: ${unknown.join(", ")}`] : []),
+    ...(duplicated.length ? [`2 回以上ある ID: ${[...new Set(duplicated)].join(", ")}`] : []),
+    ...(missing.length ? [`並びに無いロール: ${missing.join(", ")}（全ロールを 1 回ずつ並べる）`] : []),
+  ];
+}
+
+/**
+ * ロールの一覧をこの並びにして全ロールを作り直す（DB の enum user_role の並びに合わせる。並びは pnpm ops db inspect で読む）。
+ * 並びに問題があれば何も書かずに止める
+ */
+export async function generateInOrder(ids) {
+  const issues = [...roleOrderIssues(ids), ...checkAllRoles()];
+  if (issues.length > 0) throw Object.assign(new Error(issues.join("\n")), { exitCode: 2 });
+  writeRoleOrder(ids);
+  await generateAll();
+}
+
 // 直接実行された場合
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const arg = process.argv[2];
 
   if (!arg) {
-    console.error("使用方法: node generate.mjs <roleId> | node generate.mjs --all");
+    console.error("使用方法: node generate.mjs <roleId> | node generate.mjs --all | node generate.mjs --order <id,…>");
     console.error("例: node generate.mjs reviewer");
     process.exit(1);
   }
 
-  (arg === "--all" ? generateAll() : generate(arg)).catch((err) => {
+  const orderArg = arg === "--order" ? process.argv[3] : undefined;
+  if (arg === "--order" && !orderArg) {
+    console.error("使用方法: node generate.mjs --order <id,id,…>（全ロールを 1 回ずつ、DB の enum の並びで）");
+    process.exit(2);
+  }
+  const run = arg === "--order" ? generateInOrder(orderArg.split(",").map((id) => id.trim()).filter(Boolean)) : arg === "--all" ? generateAll() : generate(arg);
+  run.catch((err) => {
     console.error("エラー:", err.message);
-    process.exit(1);
+    process.exit(err.exitCode ?? 1);
   });
 }

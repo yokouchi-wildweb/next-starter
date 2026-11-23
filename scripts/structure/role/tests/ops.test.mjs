@@ -1,4 +1,4 @@
-// pnpm generate role -- --delete・pnpm generate role -- --delete-profile・pnpm generate role -- --toggle・pnpm generate role -- --profile の引数と止まり方の契約テスト（既定は対話なし、-i のときだけ対話）。
+// pnpm generate role -- --order・pnpm generate role -- --delete・pnpm generate role -- --delete-profile・pnpm generate role -- --toggle・pnpm generate role -- --profile の引数と止まり方の契約テスト（既定は対話なし、-i のときだけ対話）。
 // コマンドはスクリプトの置き場からリポジトリのルートを決めるので、一時ディレクトリに要るものを写して、そこで実行する。
 // 標準入力は空にして、対話が出ない（待たない）ことも見る。実行: pnpm test scripts/structure/role/tests/ops.test.mjs
 // 写すコードは走らせる命令から import で届くファイル(copyByImports)、手書きの一覧は命令が読むデータと命令の置き場だけ。
@@ -172,6 +172,50 @@ test("上書き: pnpm generate role が重ね、JSON は変えない。不正は
   fs.unlinkSync(coreRolePath("user.role.override.ts"));
   assert.equal(run("deleteProfile.mjs", "user", "--confirm", "user", "--remove-json").status, 0);
   assert.equal(fs.existsSync(profileOverride), false);
+});
+
+test("ロールの一覧の並び(= enum user_role): 今あるロールの作り直しは場所のまま、新しいロールは末尾、--order はその並びに書き直し、知らない ID・重複・抜けは書かずに 2", () => {
+  const rolesFile = path.join(root, "src/domains/core/user/extensions/roles.ts");
+  const order = () => [...fs.readFileSync(rolesFile, "utf8").matchAll(/^import \w+Role from "@\/domains\/core\/user\/(?:coreRoles|roles)\/([\w-]+)\.role\.json";$/gm)].map(([, id]) => id);
+  const before = order();
+  assert.ok(before.length >= 3);
+
+  // 今あるロールの作り直し(先頭と真ん中)で並びは変わらない
+  for (const id of [before[0], before[1]]) {
+    const regenerated = run("generate.mjs", id);
+    assert.equal(regenerated.status, 0, regenerated.stderr);
+    assert.deepEqual(order(), before);
+  }
+
+  // 新しいロールは末尾
+  fs.writeFileSync(rolePath("zeta.role.json"), JSON.stringify({ id: "zeta", label: "ゼータ", category: "user", hasProfile: false }));
+  assert.equal(run("generate.mjs", "zeta").status, 0);
+  assert.deepEqual(order(), [...before, "zeta"]);
+
+  // --order: その並びに書き直して全部を作り直す
+  const reversed = [...before, "zeta"].reverse();
+  const reordered = run("generate.mjs", "--order", reversed.join(","));
+  assert.equal(reordered.status, 0, reordered.stderr);
+  assert.deepEqual(order(), reversed);
+
+  // 知らない ID・重複・抜けは止まり、何も書かない
+  const content = fs.readFileSync(rolesFile, "utf8");
+  for (const [ids, message] of [
+    [[...reversed, "nobody"], /ロール設定の無い ID: nobody/],
+    [[...reversed, reversed[0]], /2 回以上ある ID/],
+    [reversed.slice(1), /並びに無いロール/],
+  ]) {
+    const refused = run("generate.mjs", "--order", ids.join(","));
+    assert.equal(refused.status, 2, ids.join(","));
+    assert.match(refused.stderr, message);
+    assert.equal(fs.readFileSync(rolesFile, "utf8"), content);
+  }
+  assert.equal(run("generate.mjs", "--order").status, 2);
+
+  // 元に戻す
+  assert.equal(run("generate.mjs", "--order", [...before, "zeta"].join(",")).status, 0);
+  assert.equal(run("deleteRole.mjs", "zeta", "--confirm", "zeta", "--remove-json").status, 0);
+  assert.deepEqual(order(), before);
 });
 
 test("pnpm generate role -- --profile: ID か --all が必須、見つからない = 1", () => {

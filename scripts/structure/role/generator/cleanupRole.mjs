@@ -12,9 +12,10 @@ import { removeRoleFromList } from "./writeLists.mjs";
  * @param {boolean} options.deleteEntity - エンティティファイルも削除するか（デフォルト: true）
  * @param {boolean} options.updateHasProfile - hasProfile を false に更新するか（デフォルト: true）
  * @param {boolean} options.silent - ログ出力を抑制するか（デフォルト: false）
+ * @param {boolean} options.keepInList - ロールの一覧から外さないか（デフォルト: false。作り直しは true: 一覧の場所 = enum の並びを保つ）
  */
 export function cleanupRole(roleId, options = {}) {
-  const { includeProfile = true, deleteEntity = true, updateHasProfile = true, silent = false } = options;
+  const { includeProfile = true, deleteEntity = true, updateHasProfile = true, silent = false, keepInList = false } = options;
 
   const log = silent ? () => {} : console.log;
 
@@ -23,7 +24,7 @@ export function cleanupRole(roleId, options = {}) {
   log(`ロール "${roleId}" のクリーンアップ中...`);
 
   const results = {
-    roleList: removeRoleFromList(roleId),
+    roleList: keepInList ? false : removeRoleFromList(roleId),
     profile: null,
   };
 
