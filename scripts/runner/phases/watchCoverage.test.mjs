@@ -63,7 +63,7 @@ const READS = {
   // scripts/structure/proxies のテストを回す = テストが読む src 全体)
   proxies: { entries: ["scripts/structure/proxies/check.ts", "scripts/structure/proxies/testGate.mjs"], data: ["src/**", "scripts/structure/proxies/**"] },
   // next の設定の約束(素の next.config.ts と本体、それが読む段階・fork の名の読み手)。成果物の検査(build:post)は .next を読む
-  "next-config": { entries: ["scripts/structure/next-config/check.ts"], data: ["next.config.ts", "next.config.core.ts", "src/app/route-map.jsonl"] },
+  "next-config": { entries: ["scripts/structure/next-config/check.ts"], data: ["next.config.ts", "next.config.core.ts", "src/app/route-map.jsonl", "src/app/**/loader.ts"] },
   "admin-menu": { entries: ["scripts/structure/admin-menu/check.ts"], data: ["src/domains/core/admin/menu/**", "src/app/route-map.jsonl"] },
   // 宣言した lib の package.json・tsconfig.json・config.ts と、型検査が辿る lib・棚・上書き(--list の repo 全体の走査は落とす道でないので含めない)
   "lib-package": { entries: ["scripts/structure/lib-package/check.mjs"], data: ["src/lib/**", "src/components/**", "src/config/lib/**"] },

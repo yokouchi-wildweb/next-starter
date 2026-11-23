@@ -100,7 +100,7 @@ DB 制約を使わないため、既存データに重複があっても有効�
   （`renamed` の userId 一覧）をもとに `plugs/messages/<名前>.ts` の定義 + `messagingService.sendMessage` / `sendMessageToMany` で通知するのは
   ダウンストリームの責務
 - セッション JWT の name クレームは古いまま残る。 リネーム後、DB 参照
-  （loader の ctx.user・`requireUserRecord` 経由）の画面は即反映されるが、JWT クレームの name を表示に
+  （loader の getUser()・`requireUserRecord` 経由）の画面は即反映されるが、JWT クレームの name を表示に
   使っている箇所は再ログインまで旧名が見える（実害は表示のみ）
 
 ### プロフィール横断検索

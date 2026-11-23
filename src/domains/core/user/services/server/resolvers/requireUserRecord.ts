@@ -15,7 +15,7 @@ const getUserRecord = cache(async (userId: string): Promise<User | null> => {
 });
 
 /**
- * loader の主体(guard.ts の createLoader が渡す ctx.user)から本人のユーザーレコードを引く。
+ * loader の主体(guard.ts の createLoader の文脈の await getUser())から本人のユーザーレコードを引く。
  * 主体が無い・レコードが無い(削除済み等)なら redirectTo へ。ページの loader が本人の列(email・電話番号等)を要るときに使う
  * (主体の解決と認可は createLoader が済ませている。ここはレコードの取得だけ)
  */

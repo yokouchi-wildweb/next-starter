@@ -8,5 +8,4 @@ import { createLoader } from "@/app/guard";
 
 export const loadDemoFadeSliderScreen = createLoader({
   access: "public",
-  load: async (): Promise<void> => {},
 });

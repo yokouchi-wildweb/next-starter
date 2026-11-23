@@ -11,5 +11,4 @@ import { createLoader } from "@/app/guard";
 
 export const loadSignupClosedScreen = createLoader({
   access: "public",
-  load: async (): Promise<void> => {},
 });

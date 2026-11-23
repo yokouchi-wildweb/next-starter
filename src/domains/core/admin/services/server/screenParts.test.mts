@@ -59,7 +59,7 @@ test("関連選択肢: 拒否された関連先は取得せず空、許可され
   });
   const fallback = await fetchAdminRelationOptions(relationConfig, {
     resolveTarget: (domain) => (domain === "sample_category" ? target(domain, "public") : target(domain, { roles: ["admin"] })),
-    allows: (rule) => rule === "public",
+    allows: async (rule) => rule === "public",
   });
   const [byDomain] = Object.values(fallback);
   assert.deepEqual(byDomain, { sample_category: [{ id: "sample_category-1" }], sample_tag: [] });
@@ -73,7 +73,7 @@ test("関連選択肢: 拒否のログは開発環境だけ 1 行(ドメイン�
   try {
     const deps = {
       resolveTarget: () => ({ access: "none" as const, list: async () => [] }),
-      allows: () => false,
+      allows: async () => false,
     };
     for (const stage of ["production", "staging", undefined]) {
       await withAppEnv(stage, () => fetchAdminRelationOptions({ relations: [relationConfig.relations[0]] }, deps));
@@ -92,7 +92,7 @@ test("関連選択肢: 全件取得する関連が無ければ {}(取得も評�
     resolveTarget: () => {
       throw new Error("呼ばれない");
     },
-    allows: () => {
+    allows: async () => {
       throw new Error("呼ばれない");
     },
   });

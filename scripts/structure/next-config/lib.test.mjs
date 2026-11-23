@@ -9,7 +9,7 @@ import { test } from "node:test";
 
 import { ROUTE_MAP_FILE, parseRouteMapJsonl } from "../../../src/lib/screens/node.mjs";
 
-import { USER_FRAME_PART_SLOTS, checkBuild, checkConfig, checkShells, frameRootHidden, isHoleRange, isUserFrame, readShellBody, resolveConfig, shellPath, stripSlots } from "./lib.mjs";
+import { USER_FRAME_PART_SLOTS, checkBuild, checkConfig, checkShells, frameRootHidden, isHoleRange, isUserFrame, loaderShellMode, readShellBody, resolveConfig, shellPath, stripHiddenSegments, stripSlots, unrevealedSegments } from "./lib.mjs";
 
 const repoRoot = join(import.meta.dirname, "../../..");
 
@@ -267,4 +267,73 @@ test("checkShells: 公開の会員の枠が未公開の区画の中なら名指�
   } finally {
     rmSync(dist, { recursive: true, force: true });
   }
+});
+
+test("loaderShellMode: load を省いた = no-load、shell: true = shell、それ以外(load あり・createLoader に組を渡す)= null", () => {
+  assert.equal(loaderShellMode('export const loadX = createLoader({ access: "public" });'), "no-load");
+  assert.equal(loaderShellMode('export const loadX = createLoader({\n  access: "public",\n  shell: true,\n  load: async () => 1,\n});'), "shell");
+  assert.equal(loaderShellMode('export const loadX = createLoader({ access: "public", load: async () => db() });'), null);
+  assert.equal(loaderShellMode('export const loadX = createLoader(adminListParts("sample"));'), null);
+  // コメントの中の load: は数えない
+  assert.equal(loaderShellMode('// load: は省く\nexport const loadX = createLoader({ access: "public" });'), "no-load");
+});
+
+test("stripHiddenSegments: 未公開の区画を中身ごと除く(入れ子の div を数える)", () => {
+  assert.equal(stripHiddenSegments('<p>a</p><div hidden id="S:1"><div><b>x</b></div></div><p>b</p>'), "<p>a</p><p>b</p>");
+  assert.equal(stripHiddenSegments("<p>a</p>"), "<p>a</p>");
+});
+
+test("checkShells: shell: true の公開のページは殻の本文に中身があること(load を省いただけのページは見ない)、守りの鎖の shell: true は問題", () => {
+  const dist = mkdtempSync(join(tmpdir(), "cc-shell-decl-"));
+  const repo = mkdtempSync(join(tmpdir(), "cc-shell-decl-src-"));
+  try {
+    const withLoader = (r, file) => ({ ...r, chain: [...r.chain, { kind: "loader", file }] });
+    const putLoader = (file, text) => {
+      mkdirSync(dirname(join(repo, file)), { recursive: true });
+      writeFileSync(join(repo, file), text);
+    };
+    putLoader("src/app/(user)/terms/_screen/loader.ts", 'export const loadTerms = createLoader({ access: "public", shell: true, load: async () => 1 });');
+    putLoader("src/app/(user)/verify/_screen/loader.ts", 'export const loadVerify = createLoader({ access: "public" });');
+    putLoader("src/app/(user)/(protected)/mypage/_screen/loader.ts", 'export const loadMy = createLoader({ access: "public", shell: true, load: async () => 1 });');
+    const rows = [
+      withLoader(row("/terms", "src/app/(user)/terms/page.tsx", ["public"]), "src/app/(user)/terms/_screen/loader.ts"),
+      withLoader(row("/verify", "src/app/(user)/verify/page.tsx", ["public"]), "src/app/(user)/verify/_screen/loader.ts"),
+      withLoader(row("/mypage", "src/app/(user)/(protected)/mypage/page.tsx", [{ roleCategories: ["user"] }, "public"]), "src/app/(user)/(protected)/mypage/_screen/loader.ts"),
+    ];
+    const put = (path, html) => {
+      const file = shellPath(dist, path);
+      mkdirSync(dirname(file), { recursive: true });
+      writeFileSync(file, html);
+    };
+    const framed = (body) =>
+      `<body><div data-slot="app-container" data-frame-root=""><div data-frame-part="" class="contents"><header data-slot="header">ロゴ</header></div><div data-frame-part="" class="contents">${body}</div></div>`;
+    put("/mypage", framed('<template id="B:0"></template>'));
+    // load を省いただけのページは本文が穴でも見ない(宣言ではない)
+    put("/verify", framed('<template id="B:2"></template>'));
+    // 本文が穴のまま(区画の中)
+    put("/terms", `${framed('<template id="B:1"></template>')}<div hidden id="S:1"><main>規約</main></div>`);
+    let r = checkShells(dist, rows, { repoRoot: repo });
+    assert.ok(r.problems.some((p) => p.startsWith("/terms: ") && p.includes("shell: true")));
+    assert.ok(!r.problems.some((p) => p.startsWith("/verify: ")));
+    assert.ok(r.problems.some((p) => p.startsWith("/mypage: ") && p.includes("shell: true")));
+    // 本文が殻に入れば通る(守りの鎖の shell: true は残る)
+    put("/terms", framed("<main>規約</main>"));
+    r = checkShells(dist, rows, { repoRoot: repo });
+    assert.deepEqual(r.problems.map((p) => p.split(":")[0]), ["/mypage"]);
+  } finally {
+    rmSync(dist, { recursive: true, force: true });
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+test("unrevealedSegments: 殻の中の $RC が開く区画は除く(外枠・本文はその場で見える)", () => {
+  const frame = '<div data-slot="app-container" data-frame-root=""><main>規約</main></div>';
+  const revealedInShell = `<body><template id="B:9"></template><div hidden id="S:9">${frame}</div><script>$RC("B:9","S:9")</script>`;
+  assert.deepEqual(unrevealedSegments(revealedInShell), []);
+  assert.equal(frameRootHidden(revealedInShell), false);
+  assert.match(stripHiddenSegments(revealedInShell), /規約/);
+  const waiting = `<body><template id="B:3"></template><div hidden id="S:3">${frame}<template id="P:4"></template></div>`;
+  assert.equal(unrevealedSegments(waiting).length, 1);
+  assert.equal(frameRootHidden(waiting), true);
+  assert.doesNotMatch(stripHiddenSegments(waiting), /規約/);
 });

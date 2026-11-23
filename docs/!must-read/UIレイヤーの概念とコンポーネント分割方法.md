@@ -122,7 +122,7 @@ loader の形を固定している理由:
 
 サーバー側ロジックの無いページ（法的文書、クライアントが hook で取るだけのページ）も access だけの loader を持ちます（ルート地図が全ページの守りの鎖を確かめるため）。
 
-具体的な規則（`server-only`、範囲の guard.ts、`createLoader` の access と key、主体 `ctx.user`、命名）・契約・下流の差し替え手順: `src/lib/screens/README.md`
+具体的な規則（`server-only`、範囲の guard.ts、`createLoader` の access と key、主体 `await getUser()`、命名）・契約・下流の差し替え手順: `src/lib/screens/README.md`
 
 ---
 

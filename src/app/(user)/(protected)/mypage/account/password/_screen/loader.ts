@@ -28,7 +28,8 @@ export type MyPageAccountPasswordScreenData = {
 
 export const loadMyPageAccountPasswordScreen = createLoader({
   access: "authenticated",
-  load: async ({ user }): Promise<MyPageAccountPasswordScreenData> => {
+  load: async ({ getUser }): Promise<MyPageAccountPasswordScreenData> => {
+    const user = await getUser();
     if (!isAccountItemEditable("password")) {
       redirect(ACCOUNT_PATH);
     }

@@ -30,7 +30,7 @@ async function main() {
       process.exit(1);
     }
     console.log(`✓ cacheComponents=true で build、/api の下に静的な route は無い(静的な route ${result.staticRoutes} 本)`);
-    const shells = checkShells(".next", parseRouteMapJsonl(readFileSync(ROUTE_MAP_FILE, "utf8")));
+    const shells = checkShells(".next", parseRouteMapJsonl(readFileSync(ROUTE_MAP_FILE, "utf8")), { repoRoot: "." });
     if (!shells) {
       console.error("未検証: .next/server/app に殻の HTML が無い(先に next build)");
       process.exit(2);

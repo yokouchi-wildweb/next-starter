@@ -10,7 +10,7 @@ const createLoader = (def: Def & { access: unknown }) => {
   accesses.push(def.access);
   return async (props: unknown) => {
     const keys = def.key ? await def.key(props) : [];
-    return def.load({ user: null }, ...keys);
+    return def.load({ getUser: async () => null }, ...keys);
   };
 };
 mock.module("@/app/guard", { namedExports: { createLoader } });

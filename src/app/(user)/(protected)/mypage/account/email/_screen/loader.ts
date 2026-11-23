@@ -23,7 +23,8 @@ export type MyPageAccountEmailScreenData = {
 
 export const loadMyPageAccountEmailScreen = createLoader({
   access: "authenticated",
-  load: async ({ user }): Promise<MyPageAccountEmailScreenData> => {
+  load: async ({ getUser }): Promise<MyPageAccountEmailScreenData> => {
+    const user = await getUser();
     if (!isAccountItemEditable("email")) {
       redirect(ACCOUNT_PATH);
     }

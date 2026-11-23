@@ -55,6 +55,8 @@ const payload = behavior.getPayload();
 behavior.reset();
 ```
 
+- 計測の開始時刻はマウントの effect で入れる(描画の中で時刻・乱数を読まない: 殻に入るページで server と client の描画が食い違う)
+
 ## Related
 
 - 蓄積・照合: [`domains/core/deviceFingerprint`](../../domains/core/deviceFingerprint/README.md)

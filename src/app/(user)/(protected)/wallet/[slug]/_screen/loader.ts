@@ -39,7 +39,8 @@ export type WalletBalanceScreenData = {
 export const loadWalletBalanceScreen = createLoader({
   access: "authenticated",
   key: async (props: ScreenProps<WalletBalanceScreenParams>): Promise<[string]> => [(await props.params).slug],
-  load: async ({ user }, slug): Promise<WalletBalanceScreenData> => {
+  load: async ({ getUser }, slug): Promise<WalletBalanceScreenData> => {
+    const user = await getUser();
     const config = getCurrencyConfigBySlug(slug);
     if (!config) {
       notFound();

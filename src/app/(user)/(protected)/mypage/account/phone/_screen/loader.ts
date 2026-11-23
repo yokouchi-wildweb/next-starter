@@ -31,7 +31,8 @@ export type MyPageAccountPhoneScreenData = {
 
 export const loadMyPageAccountPhoneScreen = createLoader({
   access: "authenticated",
-  load: async ({ user }): Promise<MyPageAccountPhoneScreenData> => {
+  load: async ({ getUser }): Promise<MyPageAccountPhoneScreenData> => {
+    const user = await getUser();
     if (!isAccountItemEditable("phone")) {
       redirect(ACCOUNT_PATH);
     }

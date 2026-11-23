@@ -12,7 +12,7 @@ import { byKey } from "@/domains/core/admin/menu/byKey";
 import { buildAdminDashboard } from "../../buildAdminDashboard";
 import type { AdminDashboardData } from "../../types";
 
-/** 見る人(loader の ctx.user。省略 = ロール指定のあるセクションは描かない) */
+/** 見る人(loader の文脈の getUser() の値。省略 = ロール指定のあるセクションは描かない) */
 export type AdminDashboardViewer = { role?: string | null };
 
 /**

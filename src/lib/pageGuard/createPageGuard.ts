@@ -7,6 +7,7 @@
 import type { Metadata } from "next";
 import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
+import { connection } from "next/server";
 
 import type {
   LoaderKeyValue,
@@ -101,17 +102,34 @@ function buildGuard<TUser extends PageGuardUser>(
     await enforceRange();
   };
 
+  // 遅らせる鎖: 範囲の全段とページが public で、前提の判定(setup 誘導)の無い鎖。範囲の評価を先に回さない(public は誰でも通る)。
+  // 既定は load の前に connection() を待つ(request 時に読む。build の事前の描画で DB・保管庫を読まない、古い値を殻に焼かない)。
+  // load の無い loader は何も待たずに返り、`shell: true` を宣言した load は待たずに走る(どちらも殻に入る。宣言の可否は検査が名指す)
+  const rangeIsLazy = levels.every((level) => level.access === "public" && !level.setupRedirectTo);
+
   const createLoader = <TProps, TKey extends readonly LoaderKeyValue[] = [], TData = void>(
     config: PageLoaderConfig<TProps, TKey, TData, TUser>,
   ) => {
+    const lazy = rangeIsLazy && config.access === "public";
+    const statuses =
+      config.allowStatuses ?? [...levels].reverse().find((level) => level.allowStatuses)?.allowStatuses;
     // cache のキーはプリミティブ(Next は page と generateMetadata に別の props を渡すため props ではキーにならない)
     const run = cache(async (...key: TKey): Promise<TData> => {
-      const user = await enforceRange();
-      await enforcePageAccess(deps, levels, config.access, config.allowStatuses, user);
-      const statuses =
-        config.allowStatuses ?? [...levels].reverse().find((level) => level.allowStatuses)?.allowStatuses;
-      const allows = (rule: PageAccess) => deps.evaluateAccess(rule, user, { allowStatuses: statuses }) === "granted";
-      return config.load({ user: principalFor(deps, user, statuses), allows }, ...key);
+      // 利用者はこの呼び出しの中で 1 回だけ解く(getUser と allows で共有)。遅らせない鎖は先に全段 → ページの access を評価する
+      let resolved: Promise<TUser | null> | undefined;
+      const resolveOnce = () => (resolved ??= deps.resolveUser());
+      if (!lazy) {
+        const user = await enforceRange();
+        await enforcePageAccess(deps, levels, config.access, config.allowStatuses, user);
+        resolved = Promise.resolve(user);
+      }
+      const load = config.load;
+      if (!load) return undefined as TData;
+      if (lazy && !config.shell) await connection();
+      const getUser = async () => principalFor(deps, await resolveOnce(), statuses);
+      const allows = async (rule: PageAccess) =>
+        deps.evaluateAccess(rule, await resolveOnce(), { allowStatuses: statuses }) === "granted";
+      return load({ getUser, allows }, ...key);
     });
     return async (props: TProps): Promise<TData> => {
       const key = config.key ? await config.key(props) : ([] as unknown as TKey);

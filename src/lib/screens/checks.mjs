@@ -634,7 +634,8 @@ function isInvertedLoaderImport(source, loaderPath) {
  * - `import "server-only"` / React の `cache()` / `load<Xxx>` の export
  * - `cache()` は中身が純粋(URL 解釈だけ・redirect だけ)でも必須。一律にして「後から取得を足したときの付け忘れ」を無くす
  * - DTO 型は loader が所有する: `_components/` や Screen からの import(type 含む)は不可
- * - 主体は guard.ts の createLoader が load の ctx.user で渡す(セッション API の import は lint page-authz/session-api-callsite が止める。
+ * - shell: true の宣言は checkShellDeclaration が見る(DB・保管庫・request を読まない load だけ)
+ * - 主体は guard.ts の createLoader が load の文脈の getUser() で渡す(セッション API の import は lint page-authz/session-api-callsite が止める。
  *   フォルダ名 `(protected)` による判定は持たない)
  * @param {string} source loader の内容
  * @param {{ path?: string }} [options] path = repo 相対パス(相対 import の解決に使う)
@@ -650,6 +651,28 @@ export function checkLoaderFile(source, options) {
   for (const m of src.matchAll(/\b(?:import|export)\b[^"'`;]*?\bfrom\s*["']([^"']+)["']/g)) {
     if (isInvertedLoaderImport(m[1], path)) problems.push(`${m[1]} を import している(DTO 型は loader が定義し、部品・Screen 側が loader から import する)`);
   }
+  problems.push(...checkShellDeclaration(src));
+  return problems;
+}
+
+/** shell: true の loader が読んではいけない物(DB・保管庫・request)の import 元 */
+const SHELL_FORBIDDEN_IMPORTS = [/\/services\/server(\/|$)/, /^@\/lib\/storage(\/|$)/, /^@\/lib\/drizzle(\/|$)/, /\/entities\/drizzle$/, /^next\/headers$/];
+
+/**
+ * `shell: true`(load が DB・保管庫・request を読まない宣言、lib/pageGuard)の可否を字面で見る。宣言した loader が
+ * (a) DB・保管庫・request の部品を import している (b) key を持つ(params・searchParams = request)(c) load で getUser・allows を使う、なら問題。
+ * 範囲が遅らせる鎖か(public で setup 誘導なし)は build:post の殻の検査が route-map の鎖で見る
+ * @param {string} src コメントを除いた loader の文
+ * @returns {string[]}
+ */
+export function checkShellDeclaration(src) {
+  if (!/\bshell\s*:\s*true\b/.test(src)) return [];
+  const problems = [];
+  for (const m of src.matchAll(/\bimport\s+(?!type\b)[^"'`;]*?\bfrom\s*["']([^"']+)["']/g)) {
+    if (SHELL_FORBIDDEN_IMPORTS.some((re) => re.test(m[1]))) problems.push(`shell: true なのに ${m[1]} を import している(DB・保管庫・request を読む load は宣言しない: 既定の request 時に戻す)`);
+  }
+  if (/\bkey\s*:/.test(src)) problems.push("shell: true なのに key がある(params・searchParams は request。宣言を外す)");
+  if (/\b(getUser|allows)\b/.test(src)) problems.push("shell: true なのに load が getUser・allows を使う(利用者は request。宣言を外す)");
   return problems;
 }
 

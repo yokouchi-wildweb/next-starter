@@ -29,7 +29,8 @@ export type MyPageAccountProfileScreenData = {
 
 export const loadMyPageAccountProfileScreen = createLoader({
   access: "authenticated",
-  load: async ({ user }): Promise<MyPageAccountProfileScreenData> => {
+  load: async ({ getUser }): Promise<MyPageAccountProfileScreenData> => {
+    const user = await getUser();
     if (!isAccountItemEditable("profile")) {
       redirect(ACCOUNT_PATH);
     }

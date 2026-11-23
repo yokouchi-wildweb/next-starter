@@ -75,7 +75,7 @@ function relationTarget(domain: string): AdminRelationTarget {
 }
 
 /** 関連選択肢（全件取得する関連が無ければ {}）。関連先ごとに list の access を取得前に評価する */
-const relationOptions = (domainConfig: AdminRelationOptionsConfig | undefined, allows: (rule: DomainApiAccessRule) => boolean) =>
+const relationOptions = (domainConfig: AdminRelationOptionsConfig | undefined, allows: (rule: DomainApiAccessRule) => Promise<boolean>) =>
   domainConfig ? fetchAdminRelationOptions(domainConfig, { resolveTarget: relationTarget, allows }) : Promise.resolve({});
 
 export type AdminListScreenProps = { searchParams: Promise<ListPageSearchParams> };

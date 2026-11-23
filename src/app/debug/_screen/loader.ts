@@ -11,5 +11,4 @@ import { createLoader } from "@/app/debug/guard";
 
 export const loadDebugIndexScreen = createLoader({
   access: { roleCategories: ["admin"], roles: ["debugger"] },
-  load: async (): Promise<void> => {},
 });

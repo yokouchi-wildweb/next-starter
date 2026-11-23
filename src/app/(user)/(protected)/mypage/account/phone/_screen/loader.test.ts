@@ -5,12 +5,12 @@ import { before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { pathToFileURL } from "node:url";
 
-// guard の createLoader は偽物: access の評価を飛ばし、key → load({ user }, ...key) を直に呼ぶ
+// guard の createLoader は偽物: access の評価を飛ばし、key → load({ getUser }, ...key) を直に呼ぶ
 let currentUser: Record<string, unknown> | null = null;
 type Def = { key?: (props: unknown) => Promise<unknown[]>; load: (ctx: unknown, ...keys: unknown[]) => unknown };
 const createLoader = (def: Def) => async (props: unknown) => {
   const keys = def.key ? await def.key(props) : [];
-  return def.load({ user: currentUser }, ...keys);
+  return def.load({ getUser: async () => currentUser }, ...keys);
 };
 mock.module("@/app/(user)/(protected)/guard", { namedExports: { createLoader } });
 

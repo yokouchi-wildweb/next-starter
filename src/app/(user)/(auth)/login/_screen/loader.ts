@@ -4,8 +4,8 @@
 //
 // 仕様: 範囲 root(src/app/guard.ts)の createLoader(access public)。
 // searchParams.returnTo を内部パスに限定して(open redirect 対策、外部 URL は "/" に倒す)ログイン後の遷移先にする。
-// 利用可能な status(USER_AVAILABLE_STATUSES = active)でログイン済み(public の ctx.user が非 null)ならその遷移先へ redirect する。
-// active 以外(suspended / inactive / pending 等)のセッションは ctx.user が null になり、ログイン済み扱いにせずフォームを見せる
+// 利用可能な status(USER_AVAILABLE_STATUSES = active)でログイン済み(public の getUser() が非 null)ならその遷移先へ redirect する。
+// active 以外(suspended / inactive / pending 等)のセッションは getUser() が null になり、ログイン済み扱いにせずフォームを見せる
 // (別アカウントでログインし直せるようにする)。
 
 import "server-only";
@@ -35,7 +35,8 @@ export const loadLoginScreen = createLoader({
     const { returnTo } = await props.searchParams;
     return [typeof returnTo === "string" ? returnTo : undefined];
   },
-  load: async ({ user }, rawReturnTo): Promise<LoginScreenData> => {
+  load: async ({ getUser }, rawReturnTo): Promise<LoginScreenData> => {
+    const user = await getUser();
     const redirectTo = sanitizeRedirectPath(rawReturnTo, DEFAULT_REDIRECT_PATH);
     if (user) {
       redirect(redirectTo);

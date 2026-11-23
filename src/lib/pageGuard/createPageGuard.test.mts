@@ -3,15 +3,30 @@
 // - 範囲は段の並びで親子 AND(子は狭めるだけ)。setup 誘導・未認証・status 別・権限不足の行き先、無ければ notFound
 // - loader は範囲とページの access を単独で評価し、拒否なら load を呼ばない。public の主体は利用可能な status のときだけ
 // - key が返すプリミティブが load に渡る
+// - 全段 public で setup 誘導の無い鎖は、load が getUser()・allows() を呼んだ時だけ利用者を解く(それ以外は先に評価)
+// - その鎖の既定は load の前に connection()。load の無い loader と shell: true の load は待たない(殻に入る)
 // - access の評価は差し込む関数(束の evaluateAccess)。ここでは auth の評価と同じ答えを返す小さな代わりを置く
 //   (閉じた lib は features を読まない。本物の評価 evaluateApiAccessRule は auth のテストが見る)
 // 実行: pnpm test src/lib/pageGuard/createPageGuard.test.mts
 
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { mock, test } from "node:test";
 
-import { createPageGuard } from "./createPageGuard.ts";
+import nextServer from "next/server";
+
 import type { PageAccess, PageAccessDecision } from "./types.ts";
+
+// 遅らせる鎖の既定は load の前に next/server の connection() を待つ。Next のリクエストの外(ここ)では throw するので、呼ばれた数を数える物にする
+let connectionCalls = 0;
+mock.module("next/server", {
+  namedExports: {
+    ...nextServer,
+    connection: async () => {
+      connectionCalls += 1;
+    },
+  },
+});
+const { createPageGuard } = await import("./createPageGuard.ts");
 
 type FakeUser = { userId: string; role: string; status: string };
 
@@ -36,11 +51,15 @@ function evaluateAccess(
   return "forbidden";
 }
 let currentUser: FakeUser | null = null;
+let resolveCalls = 0;
 let currentPath: string | null = "/mypage/account";
 let usersExist = true;
 
 const defineRootGuard = createPageGuard<FakeUser>({
-  resolveUser: async () => currentUser,
+  resolveUser: async () => {
+    resolveCalls += 1;
+    return currentUser;
+  },
   evaluateAccess,
   availableStatuses: AVAILABLE_STATUSES,
   getRequestPathname: async () => currentPath,
@@ -155,8 +174,8 @@ test("createLoader: public の主体は利用可能な status のときだけ非
   const seen: Array<string | null> = [];
   const load = root.createLoader({
     access: "public",
-    load: async ({ user }) => {
-      seen.push(user?.userId ?? null);
+    load: async ({ getUser }) => {
+      seen.push((await getUser())?.userId ?? null);
     },
   });
   for (const user of [null, active, inactive, suspendedAdmin]) await as(user, () => load({}));
@@ -165,7 +184,7 @@ test("createLoader: public の主体は利用可能な status のときだけ非
   const withInactive = root.createLoader({
     access: "public",
     allowStatuses: ["active", "inactive"],
-    load: async ({ user }) => user?.userId ?? null,
+    load: async ({ getUser }) => (await getUser())?.userId ?? null,
   });
   currentUser = inactive;
   assert.equal(await withInactive({}), "u2");
@@ -188,7 +207,7 @@ test("createLoader: key のプリミティブが load に渡る", async () => {
 test("createLoader: allows は別の access を同じ利用者で評価する", async () => {
   const load = root.createLoader({
     access: "public",
-    load: async ({ allows }) => [allows({ roles: ["admin"] }), allows("authenticated"), allows("none")],
+    load: async ({ allows }) => [await allows({ roles: ["admin"] }), await allows("authenticated"), await allows("none")],
   });
   currentUser = admin;
   assert.deepEqual(await load({}), [true, true, false]);
@@ -196,6 +215,95 @@ test("createLoader: allows は別の access を同じ利用者で評価する", 
   assert.deepEqual(await load({}), [false, true, false]);
   currentUser = null;
   assert.deepEqual(await load({}), [false, false, false]);
+});
+
+test("createLoader: 全段 public の鎖は getUser・allows を呼ばなければ利用者を解かない", async () => {
+  const load = root.createLoader({ access: "public", load: async () => "data" });
+  currentUser = active;
+  resolveCalls = 0;
+  assert.equal(await load({}), "data");
+  assert.equal(resolveCalls, 0);
+});
+
+test("createLoader: 全段 public の鎖で getUser と allows を呼ぶと、利用者を 1 回だけ解いて共有する", async () => {
+  const load = root.createLoader({
+    access: "public",
+    load: async ({ getUser, allows }) => [(await getUser())?.userId ?? null, await allows("authenticated"), (await getUser())?.userId ?? null],
+  });
+  currentUser = active;
+  resolveCalls = 0;
+  assert.deepEqual(await load({}), ["u1", true, "u1"]);
+  assert.equal(resolveCalls, 1);
+});
+
+test("createLoader: setup 誘導のある段・public でない段かページの鎖は load の前に評価する", async () => {
+  const order: string[] = [];
+  const track = <T,>(range: typeof root, access: PageAccess) =>
+    range.createLoader({
+      access,
+      load: async () => {
+        order.push(`load:${resolveCalls}`);
+        return "data" as T;
+      },
+    });
+  // 段に setup 誘導(public の子でも親の段が先)
+  resolveCalls = 0;
+  usersExist = false;
+  assert.equal(await as(null, () => track(widenedChild, "public")({})), "redirect:/admin/setup");
+  usersExist = true;
+  // ページの access が public でない(root の下でも先に評価、未認証は notFound)
+  assert.equal(await as(null, () => track(root, "authenticated")({})), "notFound");
+  // 範囲が public でない: 通った時も load の前に 1 回解いている
+  resolveCalls = 0;
+  assert.equal(await as(active, () => track(userRange, "public")({})), "ok");
+  assert.deepEqual(order, ["load:1"]);
+});
+
+test("createLoader: 全段 public の鎖でも getUser は利用できない status で null、allows は status で断る", async () => {
+  const load = root.createLoader({
+    access: "public",
+    load: async ({ getUser, allows }) => [(await getUser())?.userId ?? null, await allows("authenticated")],
+  });
+  currentUser = inactive;
+  assert.deepEqual(await load({}), [null, false]);
+});
+
+test("createLoader: 遅らせる鎖の既定は load の前に connection() を待つ", async () => {
+  const order: string[] = [];
+  const load = root.createLoader({
+    access: "public",
+    load: async () => {
+      order.push(`load:${connectionCalls}`);
+      return "data";
+    },
+  });
+  connectionCalls = 0;
+  assert.equal(await load({}), "data");
+  assert.deepEqual(order, ["load:1"]);
+});
+
+test("createLoader: load の無い loader は利用者も connection も読まずに undefined を返す", async () => {
+  const load = root.createLoader({ access: "public" });
+  connectionCalls = 0;
+  resolveCalls = 0;
+  currentUser = active;
+  assert.equal(await load({}), undefined);
+  assert.equal(connectionCalls, 0);
+  assert.equal(resolveCalls, 0);
+  // 守りの鎖では load が無くても先に評価する(未認証は redirect)
+  assert.equal(await as(null, () => userRange.createLoader({ access: "public" })({})), `redirect:/login?returnTo=${encodeURIComponent("/mypage/account")}`);
+});
+
+test("createLoader: shell: true の load は connection を待たない、守りの鎖では評価も今どおり", async () => {
+  const load = root.createLoader({ access: "public", shell: true, load: async () => "static" });
+  connectionCalls = 0;
+  assert.equal(await load({}), "static");
+  assert.equal(connectionCalls, 0);
+  // 守りの鎖では shell は意味を持たない(connection の要らない鎖、評価は先)
+  const guarded = userRange.createLoader({ access: "public", shell: true, load: async () => "x" });
+  assert.equal(await as(null, () => guarded({})), `redirect:/login?returnTo=${encodeURIComponent("/mypage/account")}`);
+  assert.equal(await as(active, () => guarded({})), "ok");
+  assert.equal(connectionCalls, 0);
 });
 
 test("guardMetadata: 断られた訪問者には guard() と同じ redirect / notFound を投げ、base を返さない(配下のページの題名を出さない)", async () => {

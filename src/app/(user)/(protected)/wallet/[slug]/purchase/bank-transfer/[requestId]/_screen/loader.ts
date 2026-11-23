@@ -56,7 +56,8 @@ export const loadWalletPurchaseBankTransferScreen = createLoader({
     const { slug, requestId } = await props.params;
     return [slug, requestId];
   },
-  load: async ({ user }, slug, requestId): Promise<WalletPurchaseBankTransferScreenData> => {
+  load: async ({ getUser }, slug, requestId): Promise<WalletPurchaseBankTransferScreenData> => {
+    const user = await getUser();
     // slug の妥当性検証を兼ねて通貨設定を取得
     const currency = getCurrencyConfigBySlug(slug);
     if (!currency) {

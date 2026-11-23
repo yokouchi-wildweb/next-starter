@@ -36,8 +36,8 @@ export type AdminRelationTarget = {
 export type AdminRelationOptionsDeps = {
   /** 関連先ドメイン名(domain.json の表記)から access と取得を引く。引けなければ throw(設定ミスを黙って通さない) */
   resolveTarget: (domain: string) => AdminRelationTarget;
-  /** access をこのリクエストの利用者で評価する(loader の ctx.allows) */
-  allows: (rule: DomainApiAccessRule) => boolean;
+  /** access をこのリクエストの利用者で評価する(loader の文脈の allows、非同期) */
+  allows: (rule: DomainApiAccessRule) => Promise<boolean>;
 };
 
 /**
@@ -55,7 +55,7 @@ export async function fetchAdminRelationOptions(
   const lists = await Promise.all(
     domains.map(async (domain) => {
       const target = deps.resolveTarget(domain);
-      if (!deps.allows(target.access)) {
+      if (!(await deps.allows(target.access))) {
         if (isDevelopment()) {
           console.info(`[admin] 関連選択肢 "${domain}" は list の access で拒否したため取得しません(選択肢は空)`);
         }

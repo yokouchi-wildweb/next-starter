@@ -3,7 +3,7 @@
 // 規則と差し替え手順: src/lib/screens/README.md §4
 //
 // 仕様: 未知のセクションキーは 404。セクションに allowRoles があれば、そのロール以外は /admin へ redirect する
-// (範囲 admin/(protected) の createLoader が管理者カテゴリを評価済み。ここはセクション単位の追加制限で、ctx.allows で判定する)。全体設定(global)を取得する。
+// (範囲 admin/(protected) の createLoader が管理者カテゴリを評価済み。ここはセクション単位の追加制限で、allows() で判定する)。全体設定(global)を取得する。
 // codeKeys = コードで持つキー(設定ドメインの config の codeValues。欄を読み取り専用にする)。
 
 import "server-only";
@@ -36,13 +36,14 @@ export const loadAdminSettingSectionScreen = createLoader({
     const { section } = await props.params;
     return [section];
   },
-  load: async ({ allows, user }, sectionKey): Promise<AdminSettingSectionScreenData> => {
+  load: async ({ allows, getUser }, sectionKey): Promise<AdminSettingSectionScreenData> => {
+    const user = await getUser();
     // 閉じたドメインの節は無いのと同じ(404)
     const section = openSections(gate.plugs)[sectionKey];
     if (!section) notFound();
 
     if (section.allowRoles && section.allowRoles.length > 0) {
-      if (!allows({ roles: [...section.allowRoles] })) redirect("/admin");
+      if (!(await allows({ roles: [...section.allowRoles] }))) redirect("/admin");
     }
 
     const setting = (await getSettingForActor(user!)) as Setting; // 範囲の guard が管理者カテゴリを確かめ済み

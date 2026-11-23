@@ -2,7 +2,7 @@
 //
 // 点 pageGuardUser(ページの守りの利用者の束、ちょうど 1 つ、宣言 src/lib/pageGuard/extensionPoints.ts)に差す上流の既定。
 // 常設の auth が差す(D53)。呼び手は隣の 1 行スイッチ ./session.ts(fork は差替点 authPageGuardUser で ./session.replace.ts に替える)。
-// 結ぶのは生成物 src/wiring/pageGuard.ts(defineRootGuard)。guard.ts・loader・業務コードは直接使わない(loader は ctx.user を使う)
+// 結ぶのは生成物 src/wiring/pageGuard.ts(defineRootGuard)。guard.ts・loader・業務コードは直接使わない(loader は文脈の getUser() を使う)
 
 import type { SessionUser } from "@/domains/core/auth/entities/session";
 import { evaluateApiAccessRule } from "@/domains/core/auth/services/server/apiAccess";

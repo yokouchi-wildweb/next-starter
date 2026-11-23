@@ -11,5 +11,4 @@ import { createLoader } from "@/app/admin/(protected)/guard";
 
 export const loadAdminAuditLogsScreen = createLoader({
   access: { roleCategories: ["admin"] },
-  load: async (): Promise<void> => {},
 });

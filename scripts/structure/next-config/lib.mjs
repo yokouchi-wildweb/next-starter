@@ -164,25 +164,62 @@ export function readShellBody(html) {
 }
 
 /**
- * 殻の外枠(data-frame-root)が未公開の区画(`<div hidden id="S:n">`、Suspense の中身が届いて差し替わるのを待つ物)の中にあるか。
- * 中にある = 枠は殻の DOM に入っても、同じ境界の読み手(Suspense の無い部品)が届くまで見えない
+ * 殻の中で開かれない区画(`<div hidden id="S:n">` … 対応する `</div>`)の範囲の一覧。
+ * 中身の揃った区画は殻の中の `$RC("B:x","S:n")` がその場で開くので除く(開くのは流れの後 = 穴の読み手を待つ区画だけを返す)
  * @param {string} html 殻の HTML
+ * @returns {Array<[number, number]>} [開きタグの位置, 閉じの後ろ]
  */
-export function frameRootHidden(html) {
-  const root = html.search(/\sdata-frame-root(=|\s|>)/);
-  if (root < 0) return false;
-  for (const m of html.matchAll(/<div hidden(?:="")? id="S:[^"]*"[^>]*>/g)) {
-    if (m.index > root) break;
-    // この区画の閉じ(div の入れ子を数える)が外枠より後ろなら、外枠は区画の中
+export function unrevealedSegments(html) {
+  const revealed = new Set([...html.matchAll(/\$RC\(\s*"B:[^"]*"\s*,\s*"(S:[^"]*)"\s*\)/g)].map((m) => m[1]));
+  const ranges = [];
+  for (const m of html.matchAll(/<div hidden(?:="")? id="(S:[^"]*)"[^>]*>/g)) {
+    if (revealed.has(m[1])) continue;
+    // 区画の閉じ(div の入れ子を数える)
     const tags = /<div\b[^>]*>|<\/div>/g;
     tags.lastIndex = m.index + m[0].length;
     let depth = 1;
     let tag;
     while (depth > 0 && (tag = tags.exec(html))) depth += tag[0] === "</div>" ? -1 : 1;
-    const close = depth === 0 ? tags.lastIndex : html.length;
-    if (close > root) return true;
+    ranges.push([m.index, depth === 0 ? tags.lastIndex : html.length]);
   }
-  return false;
+  return ranges;
+}
+
+/**
+ * 殻の外枠(data-frame-root)が殻の中で開かれない区画(unrevealedSegments)の中にあるか。
+ * 中にある = 枠は殻の DOM に入っても、同じ境界の読み手(Suspense の無い部品)が届く流れの終わりまで見えない
+ * @param {string} html 殻の HTML
+ */
+export function frameRootHidden(html) {
+  const root = html.search(/\sdata-frame-root(=|\s|>)/);
+  if (root < 0) return false;
+  return unrevealedSegments(html).some(([open, close]) => open < root && root < close);
+}
+
+/**
+ * 殻の中で開かれない区画(unrevealedSegments)を中身ごと除く(殻を開いた時に見える物だけを残す)
+ * @param {string} html
+ */
+export function stripHiddenSegments(html) {
+  let out = "";
+  let cursor = 0;
+  for (const [open, close] of unrevealedSegments(html)) {
+    if (open < cursor) continue; // 除いた区画の中の区画
+    out += html.slice(cursor, open);
+    cursor = close;
+  }
+  return out + html.slice(cursor);
+}
+
+/**
+ * loader の文が殻に入る宣言をしているか(lib/pageGuard の createLoader): "no-load" = load を省いた / "shell" = `shell: true` / null = 既定(request 時)
+ * @param {string} source loader の文(コメント込みでよい)
+ */
+export function loaderShellMode(source) {
+  const src = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+  if (!/\bcreateLoader\(\s*\{/.test(src)) return null;
+  if (/\bshell\s*:\s*true\b/.test(src)) return "shell";
+  return /\bload\s*:/.test(src) ? null : "no-load";
 }
 
 /**
@@ -241,12 +278,14 @@ export function stripSlots(html, slots) {
  * - 公開の範囲で会員の枠の下のページ(殻のあるもの、[param] を除く)の殻に、会員の枠(data-frame-root と部位の包み data-frame-part)がある。
  *   無い = どこかの読みが Suspense の外に出て、枠ごと root の穴に落ちた
  * - その枠が殻の未公開の区画(hidden の S:n)の外にある。中 = 枠と同じ境界に Suspense の無い読み手があり、流れの終わりまで見えない
+ * - shell: true を宣言した公開のページ(loaderShellMode)は殻の本文に中身がある。守りの鎖の shell: true は問題(load を省いただけのページは見ない)
  * 殻に入れない範囲で殻の無いページ = 動的になった(殻を作らない)ので、閉じた機能のページ(gatedOff)のほかは問題
  * @param {string} distDir .next
  * @param {Array<{ path: string, gatedOff?: unknown, chain?: unknown[] }>} rows route-map.jsonl の行
+ * @param {{ repoRoot?: string }} [options] loader のファイルを読む根(既定 = 今のディレクトリ)
  * @returns {{ problems: string[], holePages: number, publicPages: number, framedPages: number } | null} 殻の HTML が 1 本も無ければ null(未検証)
  */
-export function checkShells(distDir, rows) {
+export function checkShells(distDir, rows, { repoRoot = "." } = {}) {
   const appDir = join(distDir, "server", "app");
   if (!existsSync(appDir) || !readdirSync(appDir, { recursive: true }).some((f) => String(f).endsWith(".html"))) return null;
   const problems = [];
@@ -254,7 +293,19 @@ export function checkShells(distDir, rows) {
   let framedPages = 0;
   for (const row of rows) {
     const file = shellPath(distDir, row.path);
+    const loaderFile = (row.chain ?? []).find((link) => link.kind === "loader")?.file;
+    const mode = loaderFile && existsSync(join(repoRoot, loaderFile)) ? loaderShellMode(readFileSync(join(repoRoot, loaderFile), "utf8")) : null;
     if (!isHoleRange(row)) {
+      // shell: true を宣言した公開のページは、殻の本文の側(枠の部位・殻の中で開かれない区画を除く)に中身がある。
+      // 無い = 宣言したのに request を読む部品がページにある(宣言の誤り)。load を省いただけのページは宣言ではないので見ない
+      // (Screen の部品が Suspense の内側で searchParams 等を読むページは穴に残ってよい。遅くなるだけで正しさは変わらない)
+      if (mode === "shell" && !row.path.includes("[") && !row.gatedOff && existsSync(file)) {
+        const html = readFileSync(file, "utf8");
+        const visible = stripHiddenSegments(isUserFrame(row) ? stripSlots(html, USER_FRAME_PART_SLOTS) : html);
+        if (!readShellBody(visible).text) {
+          problems.push(`${row.path}: loader が shell: true を宣言しているのに、殻の本文に中身が無い(ページの読みが穴に残っている: Screen・部品の request の読みを Suspense の内側へ、データ・request を読むなら宣言を外す)`);
+        }
+      }
       // 殻のあるページだけ(閉じた機能 gatedOff のページも build されて殻があれば見る。[param] のページは殻が params で穴になりうる)
       if (!isUserFrame(row) || row.path.includes("[") || !existsSync(file)) continue;
       framedPages += 1;
@@ -268,6 +319,7 @@ export function checkShells(distDir, rows) {
       continue;
     }
     holePages += 1;
+    if (mode === "shell") problems.push(`${row.path}: 殻に入れない範囲(守りの鎖)の loader が shell: true を宣言している(意味を持たない: 外す)`);
     if (!existsSync(file)) {
       if (!row.gatedOff) problems.push(`${row.path}: 殻の HTML が無い(${file})。ページが殻を作らない形になった`);
       continue;

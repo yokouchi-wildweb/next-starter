@@ -54,7 +54,7 @@ export const loadAdminSampleEditScreen = createLoader(
 - `fetchAdminList(service, page, searchQuery, options?)`: 設定の 1 ページ件数で `service.search`
 - `fetchAdminEdit(service, id, returnTo, fallbackPath)`: `service.get`、無ければ `notFound()`、戻り先は `sanitizeRedirectPath`(`@/lib/url`)
 - `fetchAdminSort(service, sortOrderColumn)`: `service.searchForSorting`
-- `fetchAdminRelationOptions(domainConfig, { resolveTarget, allows })`: フォームの関連選択肢を SWRConfig の fallback の形で返す
+- `fetchAdminRelationOptions(domainConfig, { resolveTarget, allows })`: フォームの関連選択肢を SWRConfig の fallback の形で返す(`allows` は loader の文脈の非同期の `allows` をそのまま渡す)
 - `service` の型は構造的（`search` / `get` / `searchForSorting` を持てばよい）
 - どのファイルも `import "server-only"`
 
@@ -70,7 +70,7 @@ access:
 
 - どの関連を読むか = `src/lib/domain/relations/relationOptions.mjs` の `getStaticRelations`（belongsTo と表側の belongsToMany のうち `asyncCombobox` / `asyncMultiSelect` / `custom` 以外）。クライアントの `useRelationOptions` と生成器が同じ判定を使う
 - どのキーで渡すか = 同じ helper の `relationOptionsKey`。`useRelationOptions` が同じキーで `useSWR` するので、SSR の結果が初回描画の選択肢になる
-- 関連先ごとの access = 関連先の serviceRegistry の `list`（read）を、取得の前に loader の `ctx.allows` で評価する。拒否された関連先は取得せず空配列（その関連の選択肢だけ空。画面は出る）
+- 関連先ごとの access = 関連先の serviceRegistry の `list`（read）を、取得の前に loader の文脈の `await allows(rule)`(非同期)で評価する。拒否された関連先は取得せず空配列（その関連の選択肢だけ空。画面は出る）
 - 拒否で飛ばしたとき、開発環境（段階が development、`@/lib/appEnv`）だけサーバーログに 1 行（関連先のドメイン名だけ。利用者・取得データは出さない。ルートの地図 `src/app/route-map.jsonl`・lint には出さない）
 - 関連先の service は wiring が serviceRegistry から遅延読み込みで引く（クライアントが叩く `GET /api/<domain>` と同じ解決経路）
 

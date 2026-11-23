@@ -8,5 +8,4 @@ import { createLoader } from "@/app/guard";
 
 export const loadDemoDummyPaymentScreen = createLoader({
   access: "public",
-  load: async (): Promise<void> => {},
 });

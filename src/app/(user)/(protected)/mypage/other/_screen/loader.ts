@@ -11,5 +11,4 @@ import { createLoader } from "@/app/(user)/(protected)/guard";
 
 export const loadMyPageOtherScreen = createLoader({
   access: "authenticated",
-  load: async (): Promise<void> => {},
 });

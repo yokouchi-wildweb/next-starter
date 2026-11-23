@@ -14,5 +14,8 @@ export type AdminHomeScreenData = { sections: AdminDashboardData };
 
 export const loadAdminHomeScreen = createLoader({
   access: { roleCategories: ["admin"] },
-  load: async ({ user }): Promise<AdminHomeScreenData> => ({ sections: await loadAdminDashboardData({ role: user?.role }) }),
+  load: async ({ getUser }): Promise<AdminHomeScreenData> => {
+    const user = await getUser();
+    return { sections: await loadAdminDashboardData({ role: user?.role }) };
+  },
 });

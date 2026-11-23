@@ -106,8 +106,9 @@ type CaptureState = {
   visibilityHiddenCount: number;
 };
 
-const newCaptureState = (): CaptureState => ({
-  startedAt: Date.now(),
+// 開始時刻は描画の外で入れる(描画中に Date.now() を読むと、殻に入るページで server と client の描画が食い違う: React #418)
+const newCaptureState = (startedAt: number): CaptureState => ({
+  startedAt,
   fields: new Map(),
   focusOrder: [],
   pointer: newPointerState(),
@@ -143,7 +144,12 @@ export type BehavioralCapture = {
 };
 
 export function useBehavioralCapture(): BehavioralCapture {
-  const stateRef = useRef<CaptureState>(newCaptureState());
+  // 描画では時刻を読まない: 開始時刻はマウントの effect で入れる(計測はマウントから。意味は前と同じ)
+  const stateRef = useRef<CaptureState>(newCaptureState(0));
+
+  useEffect(() => {
+    stateRef.current.startedAt = Date.now();
+  }, []);
 
   useEffect(() => {
     const onVisibilityChange = () => {
@@ -284,7 +290,7 @@ export function useBehavioralCapture(): BehavioralCapture {
   }, []);
 
   const reset = useCallback(() => {
-    stateRef.current = newCaptureState();
+    stateRef.current = newCaptureState(Date.now());
   }, []);
 
   return { containerProps, getPayload, reset };

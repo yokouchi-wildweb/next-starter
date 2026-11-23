@@ -60,7 +60,7 @@ src/app/(user)/
 1 対 1 の意味:
 - ユーザー向けページは必ず Screen を 1 つ持つ（0 も 2 以上も無し）。上流も fork も同じ
 - 下流が上流のルートを差し替えるときは `_components/` に自分の画面を置き、page.tsx を向ける（上の「fork の物は `_components/`」）。差し替え画面も 1 ページ 1 つ
-- Screen と loader は 1 対 1（データの無いページも access だけの loader を持つ）。Screen とセクションコンテナは 1 対 多
+- Screen と loader は 1 対 1（データの無いページも access だけの loader を持つ。load は省く）。Screen とセクションコンテナは 1 対 多
 - loader はルートの中に閉じる。複数のドメインを組み合わせるページ（user + userProfile など）でも、どのドメインにも置かずそのルートの `_screen/loader.ts` に書く。複数ルートで共通する判定はドメインの `utils/` に置いて各 loader から呼ぶ
 - 対象外: API だけ。デモ（`(user)/demo/**`）も管理画面（`/admin/**`、手書きも pnpm generate domain 由来も）も対象
 
@@ -83,7 +83,7 @@ src/app/(user)/(protected)/points/
 ├── page.tsx                      export { PointsScreen as default } from "./_screen/PointsScreen";
 └── _screen/
     ├── PointsScreen.tsx          本体の最上位で loadPointsScreen(props) を await → 自ドメインのセクションコンテナを描く
-    └── loader.ts                 最寄りの guard.ts の createLoader({ access, key?, load })(データが無くても access だけの loader を置く)
+    └── loader.ts                 最寄りの guard.ts の createLoader({ access, key?, load?, shell? })(データが無くても access だけの loader を置く)
 ```
 
 画面の一覧へ手で足す登録は無い。`pnpm test scripts/structure/routes/screens.test.mjs` が page.tsx を自動検出し、スイッチ形であること・Screen が存在し Server Component であること・Screen が同じルートの loader を最上位で await すること・loader の規律を検査する。ルート地図（`src/app/route-map.jsonl`）は生成物なので、ページを足したら `pnpm generate routes` で書き直してコミットする（鎖（page → Screen → loader → 最寄りの guard.ts → root）を辿れないページは生成失敗。コミットした地図とのずれは `pnpm check routes` が出荷の門で止める。Internals の「ルート地図（`src/app/route-map.jsonl`）」）。
@@ -270,10 +270,12 @@ export const loadWalletBalanceScreen = createLoader({
 ```
 
 - 作り方は**最寄りの guard.ts の `createLoader`** だけ（ページの dir から上へ最初の guard.ts。ルート地図が確かめる）。`access` は必須で `public` / `authenticated` / `{ roles, roleCategories }` / `none`（`custom` は無い）。範囲の方針とページの `access` を取得前に評価し、拒否なら `load` を呼ばない（未認証 → 範囲の `redirectTo`、権限不足 → `forbiddenRedirectTo`、行き先が無い・`none` → notFound）
-- データの無い Screen にも access だけの loader を置く（`load: async (): Promise<void> => {}`）。地図の鎖は loader を通って範囲に届く
+- データの無い Screen にも access だけの loader を置く（`createLoader({ access })`、load は省く）。地図の鎖は loader を通って範囲に届く
 - `key(props)` は params / searchParams から cache のキーのプリミティブを取り出す（データは取らない）。返り値の型は `Promise<[...]>` で明示する。キーの要らない loader は `key` を省く（呼び出しは `loadXScreen(props)`）
-- 主体は `load({ user, allows }, ...key)` の `user`（DB 同期の利用者、リクエスト内 1 回）。`access: "public"` では Cookie があり利用可能な status のときだけ非 null。利用できない status の利用者を案内するページ（`/restricted`・`/reactivate`）は `allowStatuses` にその status を書く。本人の列（email・電話番号等）が要るなら `requireUserRecord(user, redirectTo)`（`@/domains/core/user/services/server/userService`）
-- `allows(rule)` は別の access を同じ利用者で評価する（取得前の追加の判定。例: 管理画面の関連先ごとの list の access、設定のセクション単位のロール）
+- 主体は `load({ getUser, allows }, ...key)` の `await getUser()`（DB 同期の利用者、呼んだ時に解きリクエスト内 1 回）。`access: "public"` では Cookie があり利用可能な status のときだけ非 null。利用できない status の利用者を案内するページ（`/restricted`・`/reactivate`）は `allowStatuses` にその status を書く。本人の列（email・電話番号等）が要るなら `requireUserRecord(await getUser(), redirectTo)`（`@/domains/core/user/services/server/userService`）
+- `await allows(rule)` は別の access を同じ利用者で評価する（取得前の追加の判定。例: 管理画面の関連先ごとの list の access、設定のセクション単位のロール）
+- `getUser()`・`allows()` は利用者が要る時だけ呼ぶ: 範囲の全段とページが `public` で setup 誘導の無い鎖は、呼ばなければセッションを読まない（[lib/pageGuard README](../pageGuard/README.md) の Internals）
+- その鎖の load は既定で request 時（`connection()` の後、build で走らない）。load を省いた loader は殻に入る。load が DB・保管庫・request（`key`・`getUser`・`allows`）を読まないなら `shell: true` を書いて殻に入れる（`checkLoaderFile` と build:post の殻の検査が誤った宣言を名指す）。DB を読むページは殻に入れない（速さはキャッシュの標準で出す）
 - セッション・ガード API（`getSessionUser`・`getTokenOnlySession` 等）は loader でも import しない（lint `page-authz/session-api-callsite`、全 Tier error）。ページ層でセッションを読むのは guard.ts の作り手だけ
 - **DTO 型は loader が所有する**: 返り値型 `<Name>ScreenData`、入力型 `<Name>ScreenParams` / `<Name>ScreenSearchParams` は loader で定義して export し、Screen も部品も loader から `import type` する（`./loader` / `../_screen/loader`。client 部品から server-only モジュールを `import type` するのはコンパイル時に消えるので問題ない）。**loader は `_components/` や Screen から import しない**（型だけでも不可。契約の返り値型を契約外の部品が決める逆転になる）。`checkLoaderFile` が検査する
 - 置き場は**そのルートの `_screen/loader.ts`**（ファイル名固定、1 ルート 1 loader）。Screen からは `./loader` で import する。どのドメインにも置かない（複数ドメインを組み合わせるページも、redirect だけのページも同じ）

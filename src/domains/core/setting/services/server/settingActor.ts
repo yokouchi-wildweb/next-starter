@@ -1,5 +1,5 @@
 // src/domains/core/setting/services/server/settingActor.ts
-// 管理者向けの読み書き(ロールごとに許されたキーだけ)と公開の読み。主体は呼び手(route の ctx.user・loader)が渡す。
+// 管理者向けの読み書き(ロールごとに許されたキーだけ)と公開の読み。主体は呼び手(route の ctx.user・loader の getUser())が渡す。
 // セクションの定義(アイコン)を読むので settingService とは分ける(settingService は proxy から読まれる)。
 
 import { DomainError } from "@/lib/errors";

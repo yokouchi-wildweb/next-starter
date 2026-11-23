@@ -11,5 +11,4 @@ import { createLoader } from "@/app/guard";
 
 export const loadReactivateCompleteScreen = createLoader({
   access: "public",
-  load: async (): Promise<void> => {},
 });

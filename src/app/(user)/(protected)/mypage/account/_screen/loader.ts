@@ -16,5 +16,8 @@ export type MyPageAccountScreenData = { user: User };
 
 export const loadMyPageAccountScreen = createLoader({
   access: "authenticated",
-  load: async ({ user }): Promise<MyPageAccountScreenData> => ({ user: await requireUserRecord(user, "/login") }),
+  load: async ({ getUser }): Promise<MyPageAccountScreenData> => {
+    const user = await getUser();
+    return { user: await requireUserRecord(user, "/login") };
+  },
 });

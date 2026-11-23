@@ -494,6 +494,25 @@ test("checkLoaderFile: createLoader 製(Factory が cache を張る)も cache() 
   assert.ok(checkLoaderFile(bad).length >= 2);
 });
 
+test("checkLoaderFile: shell: true は DB・保管庫・request を読まない load だけ(import・key・getUser / allows を名指す)", () => {
+  const base = `import "server-only";\nimport { createLoader } from "@/app/guard";\n`;
+  const ok = `${base}import { gate } from "@/featureGate";\nexport const loadDemoIndexScreen = createLoader({ access: "public", shell: true, load: async () => ({ pages: gate.filter([]) }) });`;
+  assert.deepEqual(checkLoaderFile(ok), []);
+  const typeOnly = `${base}import type { Setting } from "@/domains/core/setting/services/server/settingService";\nexport const loadX = createLoader({ access: "public", shell: true, load: async (): Promise<Setting | null> => null });`;
+  assert.deepEqual(checkLoaderFile(typeOnly), []);
+  const db = `${base}import { sampleService } from "@/domains/sample/services/server/sampleService";\nexport const loadX = createLoader({ access: "public", shell: true, load: async () => sampleService.list() });`;
+  assert.ok(checkLoaderFile(db).some((p) => p.includes("services/server")));
+  const storage = `${base}import { getLatestManifest } from "@/lib/storage/server";\nexport const loadX = createLoader({ access: "public", shell: true, load: async () => getLatestManifest() });`;
+  assert.ok(checkLoaderFile(storage).some((p) => p.includes("@/lib/storage")));
+  const keyed = `${base}export const loadX = createLoader({ access: "public", shell: true, key: async (props) => [(await props.searchParams).q], load: async (_c, q) => q });`;
+  assert.ok(checkLoaderFile(keyed).some((p) => p.includes("key")));
+  const user = `${base}export const loadX = createLoader({ access: "public", shell: true, load: async ({ getUser }) => getUser() });`;
+  assert.ok(checkLoaderFile(user).some((p) => p.includes("getUser")));
+  // 宣言の無い loader は見ない(既定の request 時)
+  const plain = `${base}import { sampleService } from "@/domains/sample/services/server/sampleService";\nexport const loadX = createLoader({ access: "public", load: async () => sampleService.list() });`;
+  assert.deepEqual(checkLoaderFile(plain), []);
+});
+
 test("checkLoaderFile: DTO 型は loader が所有する(_components / Screen からの import は type でも不可)", () => {
   const base = `import "server-only";\nimport { cache } from "react";\n`;
   const ok = `${base}import type { ScreenProps } from "@/lib/screens";\nimport { userService } from "@/domains/core/user/services/server/userService";\nexport type WinReportScreenData = { reports: string[] };\nexport const loadWinReportScreen = cache(async () => ({ reports: [] }));`;

@@ -4,7 +4,7 @@
 //
 // 仕様: 範囲 root(src/app/guard.ts)の createLoader(access public)。/admin/login は admin/(protected) の外。
 // searchParams.returnTo を内部パスに限定して(open redirect 対策、外部 URL は "/admin" に倒す)ログイン後の遷移先にする。
-// 管理者カテゴリかつ利用可能な status でログイン済み(ctx.allows で判定)ならその遷移先へ redirect する。
+// 管理者カテゴリかつ利用可能な status でログイン済み(allows() で判定)ならその遷移先へ redirect する。
 
 import "server-only";
 
@@ -35,7 +35,7 @@ export const loadAdminLoginScreen = createLoader({
   },
   load: async ({ allows }, rawReturnTo): Promise<AdminLoginScreenData> => {
     const redirectTo = sanitizeRedirectPath(rawReturnTo, DEFAULT_REDIRECT_PATH);
-    if (allows({ roleCategories: ["admin"] })) {
+    if (await allows({ roleCategories: ["admin"] })) {
       redirect(redirectTo);
     }
     return { redirectTo };
