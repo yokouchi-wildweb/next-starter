@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-import { applyRename, mergeBaseReader, parseArgs, planRename, rewriteText } from "./20261122-180722-district-stage1.domains-rename.mjs";
+import { applyRename, headOnlyForkFiles, mergeBaseReader, parseArgs, planRename, rewriteText } from "./20261122-180722-district-stage1.domains-rename.mjs";
 
 function fixture(files) {
   const root = mkdtempSync(join(tmpdir(), "domains-rename-"));
@@ -328,4 +328,68 @@ test("MERGE_HEAD があれば --base より MERGE_HEAD の merge-base が勝つ�
   assert.deepEqual(parseArgs(["--base=abc123", "--json"]), { apply: false, json: true, base: "abc123" });
   assert.deepEqual(parseArgs([]), { apply: false, json: false, base: null });
   assert.throws(() => parseArgs(["--base", "--apply"]), /--base には/);
+});
+
+// merge の途中の modify/delete(UD): 小さい設定ファイルは git が改名と見ず、fork が変えた古い道の版が作業の木から消えることがある
+// (oripa-do の段 1 の取り込みで 10 ファイル)。HEAD の fork の版を自分として 3 方向の merge に入れ、fork の行を落とさない
+function openUdMerge({ gitRm = false } = {}) {
+  const root = mkdtempSync(join(tmpdir(), "domains-rename-ud-"));
+  git(root, "init", "-q", "-b", "main");
+  put(root, "src/features/core/auth/index.ts", "export {};\n");
+  put(root, CFG_OLD, cfg("features", 1, 3));
+  put(root, "src/config/features/plain.config.ts", "export default { p: 1 };\n");
+  git(root, "add", "-A");
+  git(root, "commit", "-q", "-m", "B");
+  git(root, "switch", "-q", "-c", "upstream");
+  git(root, "mv", "src/features", "src/domains");
+  git(root, "mv", "src/config/features/plain.config.ts", "src/config/domains/plain.config.ts");
+  rmSync(join(root, CFG_OLD));
+  put(root, CFG_NEW, cfg("domains", 10, 3));
+  git(root, "add", "-A");
+  git(root, "commit", "-q", "-m", "U");
+  git(root, "switch", "-q", "main");
+  put(root, CFG_OLD, cfg("features", 1, 30));
+  git(root, "commit", "-q", "-am", "F");
+  try {
+    git(root, "merge", "-q", "upstream");
+  } catch {
+    // 衝突で止まる(modify/delete)のが期待どおり
+  }
+  assert.match(git(root, "status", "--porcelain", "--", CFG_OLD), /^UD /);
+  if (gitRm) git(root, "rm", "-q", "--", CFG_OLD);
+  else rmSync(join(root, CFG_OLD));
+  return root;
+}
+
+test("merge の途中の modify/delete で古い道の fork の版が木から消えていても、HEAD の版で 3 方向の merge して fork の行を残す", () => {
+  for (const gitRm of [false, true]) {
+    const root = openUdMerge({ gitRm });
+    try {
+      const reader = { baseText: mergeBaseReader(root) };
+      const headOnly = headOnlyForkFiles(root, reader.baseText);
+      assert.deepEqual([...headOnly.keys()], [CFG_OLD], "fork が変えていない物(plain・auth/index.ts)は拾わない");
+      const plan = planRename(root, { ...reader, headOnly });
+      assert.deepEqual(plan.stops, []);
+      assert.deepEqual(plan.moves.find((m) => m.to === "src/config/domains")?.items, [{ from: CFG_OLD, to: CFG_NEW, how: "merge", head: true }]);
+      applyRename(root, plan, { ...reader, headOnly });
+      assert.equal(read(root, CFG_NEW), cfg("domains", 10, 30), "上流の a と fork の c が両方入る");
+      assert.equal(git(root, "status", "--porcelain", "--", CFG_OLD), "", "古い道の衝突は解けている");
+      assert.equal(git(root, "ls-files", "-u"), "");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+});
+
+test("木に無い fork の版で上流と食い違えば merge-conflict で止め、移す先は書かない", () => {
+  const root = openUdMerge();
+  try {
+    put(root, CFG_NEW, cfg("domains", 10, 4)); // 上流も c を変えた形
+    const plan = planRename(root, { baseText: mergeBaseReader(root) });
+    assert.deepEqual(plan.stops.map((s) => [s.kind, s.path]), [["merge-conflict", CFG_OLD]]);
+    assert.match(plan.stops[0].suggest, /git show HEAD:src\/config\/features\/auth\.config\.ts/);
+    assert.equal(read(root, CFG_NEW), cfg("domains", 10, 4));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
