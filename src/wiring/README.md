@@ -23,6 +23,7 @@
 - `loader.ts`・`route.ts`・cron の `task.ts`・`src/app/api/**` の補助ファイル（例 `data-migration/_shared/`）
 - `guard.ts` は `@/wiring/pageGuard`（守りの作り手）だけ
 - root の `src/app/layout.tsx` は `@/wiring/AppProviders` だけ（データに届くのは中の AuthSessionProvider = 名前付き例外）
+  - `AppProviders` は Suspense の外で描かれ、殻（build で焼く最初の HTML）に入る。中の Provider は本体で request（セッション・URL）を読まず、読む部分は Suspense の内側の子に置く。枠と本文（children）は AppProviders の内側の Suspense で request ごとに流し込む
 - Screen・page.tsx・layout・`_layout/`・`_components/` の部品は不可。`src/proxies/**`・`src/proxy.ts` は既存の契約で可
 
 ## API

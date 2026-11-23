@@ -3,7 +3,7 @@
 //
 // 重い部品(既定の Header / Footer、BottomNav、未読モーダル)と useHeaderHeight は目印の要素にモックし、
 // 枠そのもの(BackgroundLayer・外枠 app-container・本文の包み・並び順・表示制御の Provider)は本物を描く。
-// 期待値のうち config の値に依る部分(背景の 3 値・ボトムナビの高さ)はその場の config から、外枠の隠す印は枠の表
+// 期待値のうち config の値に依る部分(背景の 3 値・ボトムナビの高さ)はその場の config から、部位の包みの隠す印は枠の表
 // (extensions/frameTable.ts。静的描画は app router の外なので segments = [] = 枠の根の宣言の行)から組み立てるので、
 // config や枠の宣言を変えた fork でも通る。upstream の部品そのものの固定の HTML(既定の背景)は Tier1 でだけ見る。
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await・import.meta 不可 → before() で import、__dirname で解決)
@@ -145,8 +145,23 @@ const BODY_WRAPPER_CLASS = "flex-1 min-h-0 pt-[var(--app-header-height,0px)] pl-
 const BODY_WRAPPER_TAG = `<div data-component="Flex" class="flex gap-(--space-none) flex-col items-stretch justify-start flex-nowrap ${BODY_WRAPPER_CLASS}">`;
 const withWrappers = (html: string) =>
   html.replace('<div class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)] pl-[var(--app-safe-area-left)] pr-[var(--app-safe-area-right)]">', BODY_WRAPPER_TAG);
+/** 部位の包み(FramePart、殻の区切り cc-shell-frame の注文 28 / D56)の開きタグ。枠の表の印を持つ(静的描画は segments = [] の行) */
+const PART_OPEN = () => `<div data-component="Block" data-frame-part=""${rootHideAttr()} class="contents">`;
+/**
+ * 殻の区切り(注文 28 / D56)で既定の DOM に入った差分: 枠の根は URL を読まないので、外枠の隠す印(data-frame-hide・data-frame-fill)は外れ、
+ * ヘッダー・本文の包み・フッター・ボトムナビ(スペーサーごと)がそれぞれ部位の包みに入って同じ印を持つ。
+ * 既定のボトムナビの高さは値の変数 --app-bottom-nav-height-value(描かれた時に styles/core/frame.css が --app-bottom-nav-height へ移す)
+ */
+const withFrameParts = (html: string) =>
+  html
+    .replace(`data-frame-root=""${rootHideAttr()}`, 'data-frame-root=""')
+    .replace("--app-bottom-nav-height:", "--app-bottom-nav-height-value:")
+    .replace("<x-header></x-header>", `${PART_OPEN()}<x-header></x-header></div>`)
+    .replace(`${BODY_WRAPPER_TAG}CHILD</div>`, `${PART_OPEN()}${BODY_WRAPPER_TAG}CHILD</div></div>`)
+    .replace("<x-footer></x-footer>", `${PART_OPEN()}<x-footer></x-footer></div>`)
+    .replace("<x-spacer></x-spacer><x-bottomnav></x-bottomnav>", `${PART_OPEN()}<x-spacer></x-spacer><x-bottomnav></x-bottomnav></div>`);
 const frameDims = () =>
-  withWrappers(withSpacingScale(withoutLegacyMarks(withoutHeaderVar(withSlotsAndSafeArea(withFrameRoot(withBottomNavVar(BEFORE_SWITCH)))))));
+  withFrameParts(withWrappers(withSpacingScale(withoutLegacyMarks(withoutHeaderVar(withSlotsAndSafeArea(withFrameRoot(withBottomNavVar(BEFORE_SWITCH))))))));
 
 const render = (node: ReactNode) => renderToStaticMarkup(node);
 
@@ -167,12 +182,13 @@ const tagOf = (html: string, slot: string) => html.match(new RegExp(`<[a-z][^>]*
 /** 本文の包み(印なし。class で探す) */
 const BODY_WRAPPER = "flex-1 min-h-0 pt-[var(--app-header-height,0px)]";
 
-test("props なしの UserLayout は外枠の属性・高さ変数・部品の並びを持つ(ボトムナビの値は config から、隠す印は枠の表から)", () => {
+test("props なしの UserLayout は外枠の属性・高さ変数・部品の並びを持つ(ボトムナビの値は config から、隠す印は枠の表から部位の包みに)", () => {
   const html = render(<UserLayout>CHILD</UserLayout>);
   const root = tagOf(html, "app-container");
   assert.ok(root.includes('data-frame-root=""'), "外枠に data-frame-root が無い");
-  assert.ok(root.includes(`--app-bottom-nav-height:${bottomNavValue()}`));
-  assert.ok(root.includes(rootHideAttr()), "外枠に枠の表の隠す印が無い");
+  assert.ok(root.includes(`--app-bottom-nav-height-value:${bottomNavValue()}`));
+  assert.equal(root.includes("data-frame-hide") || root.includes("data-frame-fill"), false, "枠の根は URL を読まない(隠す印は部位の包み)");
+  assert.equal(html.split(PART_OPEN()).length - 1, 4, "ヘッダー・本文・フッター・ボトムナビの 4 つの部位の包みに枠の表の印が無い");
   assert.equal(html.includes("<span hidden"), false, "Hide* の印が残っている");
   assert.ok(html.includes(configBackground()), "config の値で描いた背景が無い");
   const order = ['data-slot="app-container"', "<x-header>", BODY_WRAPPER, "CHILD", "<x-footer>", "<x-spacer>", "<x-bottomnav>", "<x-modal>"];
@@ -181,7 +197,7 @@ test("props なしの UserLayout は外枠の属性・高さ変数・部品の�
   assert.deepEqual([...positions].sort((a, b) => a - b), positions, "並び順が既定と違う");
 });
 
-test("props なしの UserLayout は 1 行スイッチ化の前と同じ DOM を描く(背景は枠の設定 layout.background の値で描いた BackgroundLayer。枠の差分は外枠の --app-bottom-nav-height・data-frame-root・枠の表の隠す印だけ。固定の HTML、Tier1 のみ)", tier1Only, () => {
+test("props なしの UserLayout は 1 行スイッチ化の前と同じ DOM を描く(背景は枠の設定 layout.background の値で描いた BackgroundLayer。枠の差分は区切りごとの変換だけ。固定の HTML、Tier1 のみ)", tier1Only, () => {
   assert.notEqual(withFrameRoot(BEFORE_SWITCH), BEFORE_SWITCH);
   assert.equal(render(<UserLayout>CHILD</UserLayout>), defaultLayout());
 });
@@ -233,25 +249,28 @@ test("slot に null を渡すとその部品を描かない(bottomNav はスペ�
   assert.equal(html.includes("--app-bottom-nav-height"), false);
   assert.ok(tagOf(html, "app-container").includes('data-frame-root=""'));
   assert.ok(html.includes("CHILD"));
+  assert.equal(html.split(PART_OPEN()).length - 1, 1, "null の slot は部位の包みも描かない(本文の包みだけ)");
 });
 
 test("slot がすべて null の時の固定の HTML(Tier1 のみ)", tier1Only, () => {
   assert.equal(
     render(allNull()),
     '<div data-component="Flex" class="flex gap-(--space-none) flex-col items-stretch justify-start flex-nowrap my-0 min-h-[var(--viewport-height,100dvh)] text-foreground" ' +
-      'data-slot="app-container" data-frame-root=""' + rootHideAttr() + ">" +
-      BODY_WRAPPER_TAG + "CHILD</div><x-modal></x-modal></div>",
+      'data-slot="app-container" data-frame-root="">' +
+      PART_OPEN() + BODY_WRAPPER_TAG + "CHILD</div></div><x-modal></x-modal></div>",
   );
 });
 
-test("既定のボトムナビの項目が空ならスペーサーもボトムナビも描かず、--app-bottom-nav-height も書かない(:root の 0px)", () => {
+test("既定のボトムナビの項目が空ならスペーサーもボトムナビも描かず、--app-bottom-nav-height も書かない(値の変数だけ。:root の 0px)", () => {
   bottomItems.current = [];
   try {
     const html = render(<UserLayout>CHILD</UserLayout>);
     assert.equal(html.includes("<x-spacer>"), false, "スペーサーが残っている");
     assert.equal(html.includes("<x-bottomnav>"), false, "ボトムナビが残っている");
-    assert.equal(html.includes("--app-bottom-nav-height"), false);
-    assert.ok(html.includes("<x-footer></x-footer><x-modal></x-modal></div>"), "フッターと未読のモーダルは残る");
+    assert.equal(html.includes("--app-bottom-nav-height:"), false);
+    // data-slot="bottom-nav" が無いので styles/core/frame.css の :has() は値を移さない
+    assert.equal(html.includes('data-slot="bottom-nav"'), false);
+    assert.ok(html.includes(`<x-footer></x-footer></div>${PART_OPEN()}</div><x-modal></x-modal></div>`), "フッターと未読のモーダルは残る");
     // 要素を渡したときはその要素の物として高さを書く(項目は既定のボトムナビの物)
     assert.ok(tagOf(render(<UserLayout bottomNav={<nav id="b" />}>CHILD</UserLayout>), "app-container").includes(`--app-bottom-nav-height:${bottomNavValue()}`));
   } finally {
@@ -259,10 +278,10 @@ test("既定のボトムナビの項目が空ならスペーサーもボトム�
   }
 });
 
-test("bottomNav に要素を渡しても --app-bottom-nav-height は 枠の設定の bottomMenu.height で、外枠の隠す印も同じ(差し替えも枠の宣言に従う)", () => {
+test("bottomNav に要素を渡しても --app-bottom-nav-height は 枠の設定の bottomMenu.height で、部位の包みの隠す印も同じ(差し替えも枠の宣言に従う)", () => {
   const html = render(<UserLayout bottomNav={<nav id="b" />}>CHILD</UserLayout>);
   assert.ok(tagOf(html, "app-container").includes(`--app-bottom-nav-height:${bottomNavValue()}`));
-  assert.ok(tagOf(html, "app-container").includes(rootHideAttr()));
+  assert.ok(html.includes(`${PART_OPEN()}<nav id="b"></nav></div>`));
 });
 
 test("banner の省略と null は同じ(既定なし): 帯・スペーサー・--app-banner-height を描かない", () => {
@@ -287,7 +306,7 @@ test("banner に要素を渡すとヘッダーより前の固定の帯に描き�
 
 test("banner なしの HTML に帯とスペーサーと変数を足しただけ(固定の HTML、Tier1 のみ)", tier1Only, () => {
   const html = render(<UserLayout banner={<p id="promo">PROMO</p>}>CHILD</UserLayout>);
-  assert.ok(html.includes(`style="${bottomNavVar().slice(1)};--app-banner-height:0px"`));
+  assert.ok(html.includes(`style="${bottomNavVar().slice(1).replace("--app-bottom-nav-height:", "--app-bottom-nav-height-value:")};--app-banner-height:0px"`));
   assert.equal(
     html.replace(BANNER_TAG, "").replace(BANNER_SPACER_TAG, "").replace(";--app-banner-height:0px", ""),
     defaultLayout(),
@@ -297,7 +316,7 @@ test("banner なしの HTML に帯とスペーサーと変数を足しただけ(
 test("未読のモーダル(受け取り箱の部品)を外枠の末尾に置く。枠は門を読まない(門 messagingInbox は部品の hook が見る)", () => {
   gateReads.length = 0;
   const html = render(<UserLayout>CHILD</UserLayout>);
-  assert.ok(html.includes("<x-bottomnav></x-bottomnav><x-modal></x-modal></div>"));
+  assert.ok(html.includes("<x-bottomnav></x-bottomnav></div><x-modal></x-modal></div>"));
   assert.deepEqual(gateReads, [], "枠は門を読まない");
 });
 

@@ -4,7 +4,7 @@
 //    見出しの印は source が枠の中のもの(user-page-title)も入る。見出しの印と描画の照合は src/components/TextBlocks/headingSlots.test.tsx
 //    = 部位の一覧(src/app/_layout/frame/parts.mjs)の利用者の枠と Main。隠せる部位 ⊂ 一覧。Primitives の部品の data-slot と衝突しない。data-frame-part は残らない
 // 2. frame.css の利用者の規則が狙う id が既定の枠部品に実在し、外枠に data-frame-root がある(規則と部位の一覧の一致は parts.test.mjs)
-// 3. 根の結線: UserLayout が共通の読み手 useFrameAttributes に自分の表を渡す。上流の宣言(frame.ts だけ、全 Tier)の解決結果と、生成の表との一致(Tier1 だけ: fork の表は frame.override.ts を含む)
+// 3. 根の結線: UserLayout の部位の包み FramePart(中で共通の読み手 useFrameAttributes)に自分の表を渡す。上流の宣言(frame.ts だけ、全 Tier)の解決結果と、生成の表との一致(Tier1 だけ: fork の表は frame.override.ts を含む)
 // (読み手そのものの検査は src/app/_layout/frame/useFrameAttributes.test.tsx)
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await・import.meta 不可 → before() で import、__dirname で解決)
 import { before, test } from "node:test";
@@ -70,11 +70,12 @@ test("frame.css の利用者の規則は id を狙わず、外枠に data-frame-
   assert.ok(read(`${LAYOUT}/UserLayout.tsx`).includes('data-frame-root=""'));
 });
 
-test("根の結線: UserLayout は共通の読み手に (user) の表を渡す", () => {
+test("根の結線: UserLayout は部位の包み FramePart に (user) の表を渡し、枠の根では URL を読まない(殻に入る、D56)", () => {
   const src = read(`${LAYOUT}/UserLayout.tsx`);
-  assert.ok(src.includes('import { useFrameAttributes } from "@/app/_layout/frame/useFrameAttributes";'));
+  assert.ok(src.includes('import { FramePart } from "@/app/_layout/frame/FramePart";'));
   assert.ok(src.includes('import { frameTable } from "./extensions/frameTable";'));
-  assert.ok(src.includes("useFrameAttributes(frameTable)"));
+  assert.equal(src.split("<FramePart table={frameTable}>").length - 1, 4, "ヘッダー・本文・フッター・ボトムナビの 4 つ");
+  assert.equal(src.includes("useFrameAttributes("), false, "枠の根で読み手を呼ばない");
 });
 
 /**

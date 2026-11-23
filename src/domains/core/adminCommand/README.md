@@ -134,6 +134,11 @@ const handleSearchChange = (value: string) => {
 
 - Provider が包むのはパレットと GlobalComponent だけ（管理者になってから読み込むため）
 
+### セッションの読み
+
+- `AdminCommandProvider` の本体はセッションを読まない。管理者かどうかは、Provider の中の何も描かない子（`<Suspense fallback={null}>` の内側）が `useAuthSession` で読み、Provider の状態に渡す（読む前は管理者でない扱い = 読み込まない・パレットを開かない）
+- 理由: root の Provider の入れ子（`src/wiring/AppProviders.tsx`）は殻（build で焼く最初の HTML）に入る。本体がセッションの promise を待つと、殻が作れず build が止まる（auth の `AuthSessionClientProvider` と同じ形）
+
 ## Verification
 
 - 門番の絞り込み: `pnpm test src/domains/core/adminCommand/base/navigationGate.test.tsx`

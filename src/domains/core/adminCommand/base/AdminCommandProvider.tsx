@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "@/lib/unsavedGuard";
 
 import { useAuthSession } from "@/domains/core/auth/hooks/useAuthSession";
@@ -21,13 +21,14 @@ type AdminCommandProviderProps = AdminCommandLists & {
  * - ショートカットキー監視
  * - パレット表示制御
  * - 管理者になってからカテゴリ・プラグインを読み込む
+ * - セッションは本体で読まない(Suspense の内側の AdminRoleWatcher が読んで isAdmin を渡す)。root の Provider の入れ子は
+ *   殻(build で焼く最初の HTML)に入るので、本体がセッションの promise を待つと殻が作れない(注文 8・10 と同じ形)
  */
 export function AdminCommandProvider({ children, categories, plugins }: AdminCommandProviderProps) {
-  const { user } = useAuthSession();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
-
-  const isAdmin = getRoleCategory(user?.role ?? "") === "admin";
+  // セッションを読む前は false(未ログインと同じ = 読み込まない・パレットを開かない)
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loaded, setLoaded] = useState<LoadedAdminCommand | null>(null);
   // 移動の候補の絞り込み(管理の枠の中の AdminCommandGateBridge が登録する。外では null = 絞らない)
   const [navigationFilter, setNavigationFilterState] = useState<NavigationFilter | null>(null);
@@ -111,6 +112,19 @@ export function AdminCommandProvider({ children, categories, plugins }: AdminCom
     <AdminCommandContext.Provider value={contextValue}>
       {children}
       {wrappedAdminContent}
+      <Suspense fallback={null}>
+        <AdminRoleWatcher onChange={setIsAdmin} />
+      </Suspense>
     </AdminCommandContext.Provider>
   );
+}
+
+/** セッションの利用者が管理者かを Provider に伝える。何も描かない(Suspense の内側で読む) */
+function AdminRoleWatcher({ onChange }: Readonly<{ onChange: (isAdmin: boolean) => void }>) {
+  const { user } = useAuthSession();
+  const isAdmin = getRoleCategory(user?.role ?? "") === "admin";
+  useEffect(() => {
+    onChange(isAdmin);
+  }, [isAdmin, onChange]);
+  return null;
 }

@@ -2,7 +2,7 @@
 
 ## Overview
 
-ルートの隣の小さな宣言ファイルで「そのルートで枠のどの部位を隠すか・本文が画面の高さを埋めるか(fill)」を書き、`pnpm generate extensions` が親の鎖を解決した表を枠ごとに生成する。利用者の枠(`(user)` の UserLayout)と管理の枠(`admin` の AdminLayout)が、共通の読み手 `useFrameAttributes(<自分の表>)` でそれぞれの表を読み、外枠の属性 `data-frame-hide` / `data-frame-fill` にする。
+ルートの隣の小さな宣言ファイルで「そのルートで枠のどの部位を隠すか・本文が画面の高さを埋めるか(fill)」を書き、`pnpm generate extensions` が親の鎖を解決した表を枠ごとに生成する。利用者の枠(`(user)` の UserLayout)と管理の枠(`admin` の AdminLayout)が、共通の読み手 `useFrameAttributes(<自分の表>)` でそれぞれの表を読み、印の属性 `data-frame-hide` / `data-frame-fill` にする。印を付ける所は、利用者の枠 = 部位ごとの包み `FramePart`(枠の根は URL を読まず殻に入る)、管理の枠 = 外枠(殻に入れない、D50)。
 
 原則: 隣に置く宣言・差し替え・上書きは相手を名指す(ファイル名かキー)。隣に何があるかで意味を変えない。
 
@@ -46,7 +46,8 @@ export const frame = {
 ### 読み手
 
 - 入口 `@/app/_layout/frame`(`index.ts`、re-export だけ)。型 `FrameDeclaration` / `FrameValue`(利用者の枠)・`AdminFrameDeclaration` / `AdminFrameValue`(管理の枠)・表の行の型、部位の一覧 `FRAME_SLOTS` / `FRAME_ROOTS` / `FRAME_DEVICES` / `hideableParts`、照合 `matchFrame`
-- `useFrameAttributes(table)`("use client" の hook)= `matchFrame(useSelectedLayoutSegments(), table)` → 外枠の属性(型 `FrameAttributes`)。client なので `index.ts` から re-export せず、`@/app/_layout/frame/useFrameAttributes` から直に import する
+- `useFrameAttributes(table)`("use client" の hook)= `matchFrame(useSelectedLayoutSegments(), table)` → 印の属性(型 `FrameAttributes`)。client なので `index.ts` から re-export せず、`@/app/_layout/frame/useFrameAttributes` から直に import する
+- `FramePart({ table, children })`("use client")= `<Suspense fallback={null}>` の内側で `useFrameAttributes(table)` を読み、`display: contents` の包み `[data-frame-part]` に印を付けて子を描く。利用者の枠が隠しうる部位と本文の包みごとに使う。部位は自分の包みの印で隠れ、外枠の変数と fill は `src/styles/core/frame.css` の外枠の `:has()` が包みの印を読む(D56)。`@/app/_layout/frame/FramePart` から直に import する
 - `resolve.mjs`(純関数): 宣言の形の検査・重ね(親の鎖)・表の照合 `matchFrame`。生成器と実行時の読み手が共有する
 
 ### 生成する表

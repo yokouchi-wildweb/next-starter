@@ -2,12 +2,16 @@
 // next の設定の検査の判定。実行: pnpm test scripts/structure/next-config/lib.test.mjs(段階の next-config の check も回す)
 
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-import { checkBuild, checkConfig, resolveConfig } from "./lib.mjs";
+import { ROUTE_MAP_FILE, parseRouteMapJsonl } from "../../../src/lib/screens/node.mjs";
+
+import { USER_FRAME_PART_SLOTS, checkBuild, checkConfig, checkShells, frameRootHidden, isHoleRange, isUserFrame, readShellBody, resolveConfig, shellPath, stripSlots } from "./lib.mjs";
+
+const repoRoot = join(import.meta.dirname, "../../..");
 
 const CORE_PATTERNS = [{ protocol: "https", hostname: "firebasestorage.googleapis.com", pathname: "/v0/b/bucket/o/**" }];
 /** 本体のままの設定(解いた後)と、check.ts が呼んだ rewrites()・generateBuildId() の答え */
@@ -96,6 +100,170 @@ test("checkBuild: 成果物が無ければ null、true で /api の静的な rou
     assert.equal(r.problems.length, 2);
     assert.ok(r.problems[0].startsWith("/api/health:"));
     assert.ok(r.problems[1].startsWith("/api/x/y:"));
+  } finally {
+    rmSync(dist, { recursive: true, force: true });
+  }
+});
+
+/** route-map の行の形(page と guard だけ) */
+const row = (path, pageFile, guards, extra = {}) => ({
+  path,
+  chain: [{ kind: "page", file: pageFile }, ...guards.map((access) => ({ kind: "guard", file: "x/guard.ts", policy: { access } }))],
+  ...extra,
+});
+
+/** 空の殻(今の上流の形: 見える文字なし、穴の template と script だけ) */
+const EMPTY_SHELL = '<html><head><script>theme()</script></head><body><div hidden><template id="B:0"></template></div><script>self.__next_f.push([1,"x"])</script>';
+
+test("isHoleRange: public でない guard の鎖と、管理の枠(src/app/admin/ の下)のページが殻に入れない範囲", () => {
+  assert.equal(isHoleRange(row("/", "src/app/(user)/page.tsx", ["public"])), false);
+  assert.equal(isHoleRange(row("/mypage", "src/app/(user)/(protected)/mypage/page.tsx", [{ roleCategories: ["admin", "user"] }, "public"])), true);
+  assert.equal(isHoleRange(row("/admin", "src/app/admin/(protected)/page.tsx", [{ roleCategories: ["admin"] }, "public"])), true);
+  assert.equal(isHoleRange(row("/admin/login", "src/app/admin/login/page.tsx", ["public"])), true);
+  assert.equal(isHoleRange(row("/debug", "src/app/debug/page.tsx", [{ roles: ["debugger"] }, "public"])), true);
+});
+
+test("isHoleRange: 今の route-map の範囲の数(保護の鎖 + 管理の枠の公開のページ)", () => {
+  const rows = parseRouteMapJsonl(readFileSync(join(repoRoot, ROUTE_MAP_FILE), "utf8"));
+  const hole = rows.filter(isHoleRange);
+  const guarded = rows.filter((r) => r.chain.some((l) => l.kind === "guard" && l.policy?.access !== "public"));
+  const adminPublic = hole.filter((r) => !guarded.includes(r)).map((r) => r.path).sort();
+  assert.ok(guarded.length > 0);
+  assert.equal(hole.length, guarded.length + adminPublic.length);
+  for (const path of adminPublic) assert.ok(path.startsWith("/admin/"), path);
+});
+
+test("readShellBody: script・style・template・noscript の外の文字・メニューとリンク・data-frame-root を読む", () => {
+  assert.deepEqual(readShellBody(EMPTY_SHELL), { frameRoot: false, text: "", navs: [] });
+  const framed = readShellBody('<body><div data-frame-root="" data-x><nav>メニュー</nav></div><noscript>JS</noscript></body>');
+  assert.equal(framed.frameRoot, true);
+  assert.equal(framed.text, "メニュー");
+  assert.deepEqual(framed.navs, ["<nav>"]);
+  // 文字の無いリンク(アイコンだけ)・role の付いたメニューも拾う。abbr・aside・template の中は拾わない
+  assert.deepEqual(readShellBody('<body><a href="/admin/users"><svg></svg></a><div role="navigation"></div><aside></aside><abbr></abbr><template><a href="/x"></a></template>').navs, ['<a href="/admin/users">', '<div role="navigation">']);
+  assert.equal(readShellBody("<body><p>a&nbsp;b</p></body>").text, "a b");
+  assert.equal(readShellBody('<body><div data-frame-rooted=""></div></body>').frameRoot, false);
+  // 穴の残る殻は </body> で閉じない
+  assert.deepEqual(readShellBody('<html><body class="x"><div hidden><template id="B:1"></template></div><div data-frame-root="">漏れ</div><script>x()</script>'), { frameRoot: true, text: "漏れ", navs: [] });
+});
+
+test("shellPath: / は index.html、[param] は名前のまま", () => {
+  assert.equal(shellPath(".next", "/"), join(".next", "server", "app", "index.html"));
+  assert.equal(shellPath(".next", "/admin/users/[id]"), join(".next", "server", "app", "admin", "users", "[id].html"));
+});
+
+test("checkShells: 殻が無ければ null、殻に入れない範囲の文字・メニューとリンク・殻の無いページを名指し、空の外枠・公開の範囲・閉じた機能は見ない", () => {
+  const dist = mkdtempSync(join(tmpdir(), "cc-shell-"));
+  try {
+    const rows = [
+      row("/", "src/app/(user)/page.tsx", ["public"]),
+      row("/admin", "src/app/admin/(protected)/page.tsx", [{ roleCategories: ["admin"] }, "public"]),
+      row("/admin/login", "src/app/admin/login/page.tsx", ["public"]),
+      row("/mypage", "src/app/(user)/(protected)/mypage/page.tsx", [{ roleCategories: ["user"] }, "public"]),
+      row("/mypage/wallet", "src/app/(user)/(protected)/mypage/wallet/page.tsx", [{ roleCategories: ["user"] }, "public"], { gatedOff: "wallet" }),
+    ];
+    assert.equal(checkShells(dist, rows), null);
+    const put = (path, html) => {
+      const file = shellPath(dist, path);
+      mkdirSync(dirname(file), { recursive: true });
+      writeFileSync(file, html);
+    };
+    put("/", '<body><div data-frame-root=""><div data-frame-part="">公開の枠</div></div></body>');
+    put("/admin", EMPTY_SHELL);
+    // 空の外枠の入れ物は殻に入ってよい(D55)
+    put("/admin/login", '<body><div data-slot="admin-app-container" data-frame-root=""><div><template id="P:4"></template></div></div><script>x()</script>');
+    put("/mypage", EMPTY_SHELL);
+    assert.deepEqual(checkShells(dist, rows), { problems: [], holePages: 4, publicPages: 1, framedPages: 1 });
+
+    put("/admin", '<body><div data-frame-root=""><nav>利用者</nav></div></body>');
+    put("/admin/login", '<body><div data-frame-root=""><a href="/admin/users"><svg></svg></a></div></body>');
+    rmSync(shellPath(dist, "/mypage"));
+    const r = checkShells(dist, rows);
+    assert.equal(r.problems.length, 4);
+    assert.ok(r.problems[0].startsWith("/admin: ") && r.problems[0].includes("利用者"));
+    assert.ok(r.problems[1].startsWith("/admin: ") && r.problems[1].includes("<nav>"));
+    assert.ok(r.problems[2].startsWith("/admin/login: ") && r.problems[2].includes("/admin/users"));
+    assert.ok(r.problems[3].startsWith("/mypage: ") && r.problems[3].includes("殻の HTML が無い"));
+  } finally {
+    rmSync(dist, { recursive: true, force: true });
+  }
+});
+
+test("isUserFrame: page のファイルが src/app/(user)/ の下", () => {
+  assert.equal(isUserFrame(row("/", "src/app/(user)/page.tsx", ["public"])), true);
+  assert.equal(isUserFrame(row("/entry", "src/app/(marketing)/entry/page.tsx", ["public"])), false);
+  assert.equal(isUserFrame(row("/admin", "src/app/admin/(protected)/page.tsx", ["public"])), false);
+});
+
+test("stripSlots: data-slot の要素を中身ごと除く(入れ子・void・/> を数える)、ほかは残す", () => {
+  const html =
+    '<body><header data-slot="header"><div><a href="/">ロゴ</a><img src="x"><svg><path d="M0"/></svg></div></header>' +
+    '<div data-frame-part=""><main>本文</main></div><footer data-slot="footer"><p>規約</p></footer>' +
+    '<div data-slot="bottom-nav" class="s"></div><nav data-slot="bottom-nav"><a href="/a">A</a></nav><i>後</i>';
+  assert.equal(stripSlots(html, USER_FRAME_PART_SLOTS), '<body><div data-frame-part=""><main>本文</main></div><i>後</i>');
+  assert.equal(stripSlots(html, []), html);
+});
+
+test("checkShells: 公開の会員の枠のページの殻に枠が無ければ名指し、ログイン必須の範囲は会員の枠の部位を除いた本文で見る(D57)", () => {
+  const dist = mkdtempSync(join(tmpdir(), "cc-shell-frame-"));
+  try {
+    const rows = [
+      row("/", "src/app/(user)/page.tsx", ["public"]),
+      row("/items/[id]", "src/app/(user)/items/[id]/page.tsx", ["public"]),
+      row("/entry", "src/app/(marketing)/entry/page.tsx", ["public"]),
+      row("/mypage", "src/app/(user)/(protected)/mypage/page.tsx", [{ roleCategories: ["user"] }, "public"]),
+    ];
+    const put = (path, html) => {
+      const file = shellPath(dist, path);
+      mkdirSync(dirname(file), { recursive: true });
+      writeFileSync(file, html);
+    };
+    const FRAMED = (body) =>
+      `<body><div data-slot="app-container" data-frame-root=""><div data-frame-part="" class="contents"><header data-slot="header"><a href="/">ロゴ</a></header></div>` +
+      `<div data-frame-part="" class="contents">${body}</div><div data-frame-part="" class="contents"><footer data-slot="footer"><a href="/terms">規約</a> © 2025</footer></div></div>`;
+    put("/", FRAMED("<main>トップ</main>"));
+    put("/items/[id]", EMPTY_SHELL);
+    put("/entry", EMPTY_SHELL);
+    put("/mypage", FRAMED('<div><template id="B:0"></template></div>'));
+    assert.deepEqual(checkShells(dist, rows), { problems: [], holePages: 1, publicPages: 3, framedPages: 1 });
+
+    // 枠が root の穴に落ちた公開のページ・保護された本文が殻に出たログイン必須のページ
+    put("/", EMPTY_SHELL);
+    put("/mypage", FRAMED('<main>残高 1,000 円<a href="/mypage/wallet">履歴</a></main>'));
+    const r = checkShells(dist, rows);
+    assert.equal(r.problems.length, 3);
+    assert.ok(r.problems[0].startsWith("/: ") && r.problems[0].includes("枠"));
+    assert.ok(r.problems[1].startsWith("/mypage: ") && r.problems[1].includes("残高"));
+    assert.ok(r.problems[2].startsWith("/mypage: ") && r.problems[2].includes("/mypage/wallet"));
+  } finally {
+    rmSync(dist, { recursive: true, force: true });
+  }
+});
+
+test("frameRootHidden: 外枠が未公開の区画(hidden の S:n)の中なら true、外か区画が先に閉じていれば false", () => {
+  const frame = '<div data-slot="app-container" data-frame-root=""><div data-frame-part=""><header>ロゴ</header></div></div>';
+  assert.equal(frameRootHidden(`<body>${frame}<template id="B:0"></template></body>`), false);
+  assert.equal(frameRootHidden(`<body><template id="B:3"></template><div hidden id="S:3"><div class="x">${frame}</div></div></body>`), true);
+  // 区画が外枠より前に閉じている(別の区画)・区画の入れ子の中の div を数える
+  assert.equal(frameRootHidden(`<body><div hidden id="S:1"><div><div></div></div></div>${frame}</body>`), false);
+  assert.equal(frameRootHidden(`<body><div hidden id="S:2"><div></div><div>${frame}</div></div></body>`), true);
+  // 外枠が無ければ false(枠の有無は別の判定)
+  assert.equal(frameRootHidden("<body><main>x</main></body>"), false);
+});
+
+test("checkShells: 公開の会員の枠が未公開の区画の中なら名指す", () => {
+  const dist = mkdtempSync(join(tmpdir(), "cc-shell-hidden-"));
+  try {
+    const rows = [row("/", "src/app/(user)/page.tsx", ["public"])];
+    const file = shellPath(dist, "/");
+    mkdirSync(dirname(file), { recursive: true });
+    const frame = '<div data-slot="app-container" data-frame-root=""><div data-frame-part="" class="contents"><header>ロゴ</header></div></div>';
+    writeFileSync(file, `<body><template id="B:3"></template><div hidden id="S:3">${frame}</div>`);
+    const r = checkShells(dist, rows);
+    assert.equal(r.problems.length, 1);
+    assert.ok(r.problems[0].startsWith("/: ") && r.problems[0].includes("未公開の区画"));
+    writeFileSync(file, `<body>${frame}<template id="B:3"></template>`);
+    assert.deepEqual(checkShells(dist, rows).problems, []);
   } finally {
     rmSync(dist, { recursive: true, force: true });
   }

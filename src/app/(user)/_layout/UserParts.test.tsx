@@ -2,7 +2,7 @@
 // 全 Tier で見るのは印・属性を含むかの判定。fork の config の値や無害な追加で落とさない。固定の HTML は upstream(Tier1)でだけ見る。
 // 実行: pnpm test src/app/(user)/_layout/UserParts.test.tsx(UserLayout.test.tsx と同じ方式: tsx + node:test のモジュールモック + react-dom/server の静的描画)
 //
-// Header は useHeaderData・Brand・Pc / Sp のナビ部品を目印にモックし、HeaderShell と CTA の Button は本物を描く
+// Header は useHeaderMenu・useHeaderNavItems・Brand・Pc / Sp のナビ部品を目印にモックし、HeaderShell と CTA の Button は本物を描く
 // (SpNavigation の目印は footer prop を子として描く = SP メニュー下部に何が渡ったかを見る)。
 // BottomNav は useBottomNavItems・next/navigation をモックし、項目の部品は本物を描く(表示制御の context はもう読まない)。
 // UserPage の幅の既定が config に従うことは UserPageDefault.test.tsx(config をモックするため別ファイル)。
@@ -23,19 +23,23 @@ const here = (path: string) => pathToFileURL(join(__dirname, path)).href;
 
 /** ヘッダーのナビ項目(既定 = 1 件。空のときナビの部品を描かないことは test ごとに書き換えて戻す) */
 const headerItems: { current: readonly unknown[] } = { current: [{ key: "about", label: "概要", href: "/about" }] };
+// 既定のヘッダーは器(useHeaderMenu、request を読まない)とメニュー項目(useHeaderNavItems、Suspense の内側)を分けて読む(殻の区切り、注文 28)
+const headerMenu = () => ({
+  logoLink: "/",
+  showIcons: false,
+  isMenuOpen: true,
+  openMenu: () => {},
+  closeMenu: () => {},
+  toggleMenu: () => {},
+  headerRef: { current: null },
+  headerOffset: 0,
+});
 mock.module(here("./hooks/index.ts"), {
   namedExports: {
-    useHeaderData: () => ({
-      navItems: headerItems.current,
-      logoLink: "/",
-      showIcons: false,
-      isMenuOpen: true,
-      openMenu: () => {},
-      closeMenu: () => {},
-      toggleMenu: () => {},
-      headerRef: { current: null },
-      headerOffset: 0,
-    }),
+    useHeaderMenu: headerMenu,
+    useHeaderNavItems: () => headerItems.current,
+    useCloseMenuOnNavigate: () => {},
+    useHeaderData: () => ({ navItems: headerItems.current, ...headerMenu() }),
   },
 });
 mock.module(here("./Header/Brand.tsx"), { namedExports: { Brand: marker("brand") } });
@@ -220,7 +224,8 @@ test("ヘッダーのナビ項目が空ならナビの部品(PC のナビ・SP �
   try {
     const html = render(<UserNavigation />);
     for (const part of ["<x-pcnav>", "<x-spswitch>", "<x-spnav>"]) assert.equal(html.includes(part), false, `${part} が残っている`);
-    assert.equal(html.includes('data-slot="header-center"'), false, "空の header-center が残っている");
+    // 中央の器(header-center)は殻に入る側なので残る(項目はセッションで変わり、届く前に場所が動かない。注文 28)
+    assert.match(html, /data-slot="header-center"[^>]*><\/div>/, "header-center の器が空で残らない");
     assert.ok(tagOf(html, "header").includes('data-slot="header"'));
     assert.ok(html.includes("<x-brand>"));
     assert.equal(count(html, CTA), 1, "ヘッダー右の CTA だけ残る");

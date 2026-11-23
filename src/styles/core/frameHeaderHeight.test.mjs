@@ -92,9 +92,15 @@ test("管理の初期値は行の高さの値 --admin-header-row-height を読�
   assert.deepEqual(declared, [], "frame.css は行の高さの値を定義しない(config.css だけ)");
 });
 
+// 隠す印を持つ所(D56): 利用者 = 部位の包みの印を外枠の :has() で読む / 管理 = 外枠の属性
+const hideSelector = (part, device) =>
+  part === "header"
+    ? `[data-frame-root][data-slot="app-container"]:has([data-frame-part][data-frame-hide~="header-${device}"])`
+    : `[data-frame-root][data-frame-hide~="${part}-${device}"]`;
+
 test("宣言でヘッダーを隠す端末は 0(!important)", () => {
   for (const [part, device, media] of [["header", "sp", SP_MEDIA], ["header", "pc", PC_MEDIA], ["admin-header", "sp", SP_MEDIA], ["admin-header", "pc", PC_MEDIA]]) {
-    const body = valueAt(frameCss, `[data-frame-root][data-frame-hide~="${part}-${device}"]`, media, "--app-header-height");
+    const body = valueAt(frameCss, hideSelector(part, device), media, "--app-header-height");
     assert.equal(declOf(body ?? "", "--app-header-height"), "0px !important", `${part}-${device}`);
   }
 });

@@ -38,7 +38,7 @@ export function AcmeUserLayout({ children }: { children: ReactNode }) {
 export { AcmeUserLayout as default } from "./_layout/UserLayout.replace";
 ```
 
-3. 枠の構造そのもの(部品の並びや外枠)を変えるときだけ、UserLayout.tsx を `UserLayout.replace.tsx` へコピーして編集する(外枠の `data-frame-root` と `useFrameAttributes(frameTable)` の属性、部位の `data-slot` は残す。無いと枠の宣言が効かない)
+3. 枠の構造そのもの(部品の並びや外枠)を変えるときだけ、UserLayout.tsx を `UserLayout.replace.tsx` へコピーして編集する(外枠の `data-frame-root`、隠しうる部位と本文の包みの `FramePart`、部位の `data-slot` は残す。無いと枠の宣言が効かない。枠の根でセッションや URL を読まない = 殻に入る)
 - 組み立てでガードを書かない(範囲の守りは layout の隣の guard.ts の guard() だけ)。組み立て(スイッチ先)が旧ガード(authGuard 等)を呼ぶとルート地図の生成が失敗する(`pnpm generate routes`、src/lib/screens/README.md「ルート地図（`src/app/route-map.jsonl`）」)
 
 ### fill のページ(本文が画面の高さを埋める)
@@ -128,7 +128,11 @@ slot で足りない構造の違いは `.replace` のコピーで持つ。
 
 #### useHeaderData
 
-ヘッダーに必要なデータ・状態を全て提供します。
+ヘッダーに必要なデータ・状態を全て提供します(下の 3 つを合わせた形)。header slot に渡した要素は枠の部位の包み(`FramePart`)の Suspense の内側に入るので、セッションや URL を読んでもよい。
+
+- `useHeaderMenu()`: 開閉・`headerRef`・`headerOffset`・`logoLink`・`showIcons`(request を読まない)
+- `useHeaderNavItems()`: メニュー項目(セッションで変わる。既定のヘッダーは Suspense の内側で読み、器は殻に入る)
+- `useCloseMenuOnNavigate(closeMenu)`: 住所が変わったらメニューを閉じる(URL を読む。effect で閉じる)
 
 ```tsx
 import { useHeaderData } from "@/app/(user)/_layout/hooks";
@@ -220,6 +224,8 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 
 枠はドメインを値も型も読まない。部品は持ち主のドメインの `plugs/<点>/<名前>.tsx` に `export const part`(型 `FramePart`、`@/app/_layout/types`)で置き、`pnpm generate extensions`。閉じたドメインの部品は門番(`useGate().plugs`)が名前ごと一覧から外す。fork が枠を差し替えても同じ一覧(`./extensions/<点>.ts`)を `@/app/_layout/FrameParts` で描ける。
 
+- 枠の中の差し込み(点の部品・header / footer / bottomNav / banner / background の slot)は全部 Suspense(fallback null)の内側で描かれる: セッション・URL を読んでよく、読んでも殻の枠を止めない(点の部品は `FrameParts` が項目ごとに、slot は部位の包み `FramePart` か UserLayout が包む)。包みの無い読み手が枠の境界にあると、枠は殻の DOM に入っても流れの終わりまで隠れる(build の殻の検査が名指す)
+
 - `userHeaderActions`: ヘッダーの右側(fork が `actions` を渡さないとき、既定の CTA の前)。並びは項目の `export const order` → `<差す側>/<名前>`。上流の項目は 0
 - `userOverlays`: 外枠の末尾に重ねる部品。上流は messaging の未読のお知らせのモーダル
 - `userMenuItems`: ヘッダー(PC のナビ・SP のメニュー)とボトムナビのメニュー項目。差す側は `<ドメイン>/plugs/userMenuItems/<名前>.ts` に `export const item`(型 `UserMenuPlugItem`、`@/app/(user)/_layout/points`)= `{ menu: "header" | "bottomNav", audience: "authenticated" | "guest" | "all", after?: <設定の項目の鍵>, entry: <そのメニューの項目> }`。自分のコード(一覧・カタログ)から `entry` を組み立ててよい(設定の上書きは字面の値だけのまま)
@@ -272,7 +278,7 @@ fork だけのキーは上書きファイルの `export type Extra` に型を足
 
 高さとカレントの色は枠の設定 `bottomMenu`(`./config.ts`)、メニュー項目は描画用の `bottomMenu`(`./config.ui.ts`)。出し入れは枠の宣言の `bottomNav`(既定 = スマホだけ: `src/app/(user)/frame.ts`)。
 
-- 今の認証の状態の項目が空(`[]`)なら、既定のボトムナビ(slot 省略)はスペーサーごと描かず、`--app-bottom-nav-height` も書かない(0px。GlobalToast・`useFrameDimsStyle` も 0 を読む)。枠の宣言はルートごとで認証の状態に依れないので、認証で出し分けるときは項目を空にする
+- 今の認証の状態の項目が空(`[]`)なら、既定のボトムナビ(slot 省略、`BottomNav/DefaultBottomNav`)はスペーサーごと描かず、`--app-bottom-nav-height` も 0px のまま(GlobalToast・`useFrameDimsStyle` も 0 を読む)。枠の宣言はルートごとで認証の状態に依れないので、認証で出し分けるときは項目を空にする
 
 ```tsx
 // src/config/layout/user.ui.config.ts(type 省略 = リンク項目。配列は丸ごと置き換わる)
@@ -307,7 +313,7 @@ export default {
 |------|----|--------|
 | `--app-header-height` | ヘッダー(`[data-slot="header"]` / `[data-slot="admin-header"]`。差し替えたヘッダーもこの印で測られる)の高さ。初期値 = 今の行の高さ(外枠ごと・端末ごと、測る前の最初の表示とページを移る間に使う)、測った値が上書きする。枠の宣言で隠している端末は 0px | 初期値と隠す間の 0 は `src/styles/core/frame.css`、測った値は UserLayout・AdminLayout の外枠の inline(`useHeaderHeight()` が値を返した時だけ) |
 | `--app-banner-height` | banner の実測の高さ。banner が無い時は書かない(0px) | UserLayout の外枠の inline(banner がある時だけ) |
-| `--app-bottom-nav-height` | `calc(bottomMenu.height px + var(--app-safe-area-bottom))` = ボトムナビが実際に覆う高さ(`bottomMenu.height` は枠の設定 `./config.ts`。iOS では下の safe-area ぶん高い)。`bottomNav={null}` の時と、既定のボトムナビの項目が空の時は書かない(0px)。ルートの枠の宣言(既定は PC で隠す)で隠している間は 0px(`!important` で上書き) | UserLayout の外枠の inline / 0 は `src/styles/core/frame.css` |
+| `--app-bottom-nav-height` | `calc(bottomMenu.height px + var(--app-safe-area-bottom))` = ボトムナビが実際に覆う高さ(`bottomMenu.height` は枠の設定 `./config.ts`。iOS では下の safe-area ぶん高い)。`bottomNav={null}` の時と、既定のボトムナビの項目が空の時は 0px。ルートの枠の宣言(既定は PC で隠す)で隠している間は 0px(`!important` で上書き) | 要素を渡した時は UserLayout の外枠の inline。既定のボトムナビは外枠の inline の値 `--app-bottom-nav-height-value` を、描かれた時(`[data-slot="bottom-nav"]` がある時)に `src/styles/core/frame.css` が外枠の `:has()` で移す。0 も同じファイル |
 | `--app-safe-area-top/right/bottom/left` | 端末の切り欠き(CSS の env() の safe-area-inset-*、無ければ 0px)。env() を直接書くのはこの定義だけ | `src/styles/core/config.css` の `:root` |
 
 - 既定値(0px と safe-area)は `src/styles/core/config.css` の `:root`。Admin は header だけを書き、ほかは :root の既定を継ぐ
@@ -334,10 +340,11 @@ export const frame = {
 
 - 隠せる部位: `header` / `headerNav`(ヘッダーは残る)/ `footer` / `bottomNav`(スペーサーごと)。端末 `sp` = 40rem 未満 / `pc` = 40rem 以上
 - 枠の全体の既定 = `src/app/(user)/frame.ts` の `layout:`(上流: ボトムナビを PC で隠す = スマホだけ。同じファイルの `page:` はトップページ / の fill)。fork が変えるときは隣に `frame.override.ts`
-- 仕組み: `pnpm generate extensions` が宣言を解決して `extensions/frameTable.ts` を作り、UserLayout が共通の読み手 `useFrameAttributes(frameTable)`(`src/app/_layout/frame/useFrameAttributes.ts`、`matchFrame(useSelectedLayoutSegments(), frameTable)`)で今のルートの行を外枠 `#user-app-container` の属性 `data-frame-hide="<部位>-<sp|pc> …"` / `data-frame-fill` にする。
-  - `src/styles/core/frame.css`(手書きの静的な規則、`:has()` なし)がその属性で部位を `display: none` にし、fill では外枠を確定高さ + `overflow: clip` にする。
+- 仕組み: `pnpm generate extensions` が宣言を解決して `extensions/frameTable.ts` を作り、UserLayout がヘッダー・本文の包み・フッター・ボトムナビをそれぞれ部位の包み `FramePart`(`src/app/_layout/frame/FramePart.tsx`、中で `useFrameAttributes(frameTable)` = `matchFrame(useSelectedLayoutSegments(), frameTable)`)で包み、今のルートの行を包みの属性 `data-frame-hide="<部位>-<sp|pc> …"` / `data-frame-fill` にする。
+  - 枠の根(外枠)は URL もセッションも読まない(殻 = build で焼く最初の HTML に入る)。判定は部位ごとに包みの中で読むので、ルートの段が request で決まる時([id] 等)も部位と判定が同じ塊で届く(Suspense の内側、ちらつかない)
+  - `src/styles/core/frame.css`(手書きの静的な規則)が包みの印の下の部位を `display: none` にし、外枠の変数(ヘッダー・ボトムナビの高さの 0)と fill の確定高さ + `overflow: clip` は外枠の `:has()` が包みの印を読む(D56)
   - 部品はアンマウントしない
-- 効く時点: 属性は外枠そのものに付くので初回の HTML に入る(JavaScript なしでも効く)。client 遷移では loading.tsx の間から次のルートの宣言に切り替わる。戻る・進むも同じ
+- 効く時点: 印は部位の包みに付き、URL が固定のルートでは殻(初回の HTML)に入る(JavaScript なしでも効く)。client 遷移では loading.tsx の間から次のルートの宣言に切り替わる。戻る・進むも同じ
 - 狙う先: 部位の印 `[data-slot="<部位>"]`(下の「data-slot の一覧」)だけで全部隠せる。差し替えた部品は外側の要素に `data-slot="<部位>"` を付ければ従う
 - 寸法変数: ボトムナビを隠している間、外枠の `--app-bottom-nav-height` は 0px
 - 部位の一覧と CSS の規則の一致・読み手の行の選び方は `src/app/_layout/frame` のテスト(`pnpm test src/app/_layout/frame/`)、一覧と要素の data-slot の照合と表の結線は `UserFrame.test.tsx`(`pnpm test 'src/app/(user)/_layout/'`)

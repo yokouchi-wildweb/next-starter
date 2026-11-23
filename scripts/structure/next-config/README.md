@@ -5,15 +5,17 @@
 - Next の設定の約束を見る段階の対象です(D300)。各リポの素の `next.config.ts`(型 5 self)は Tier1 の本体 `next.config.core.ts` を読み、足す・包む・外す。読み忘れた・外しすぎた版が黙って約束を落とさないよう、解いた最後の設定を見ます(ESLint の必須の規則 `pnpm check eslint` と同じ作り)
 - 上流も fork も同じ道具が回ります(fork ごとの入切は無い)(cacheComponents の検査を広げた物)
 - 2 つの判定を持ちます。段階 `build`・`ship` は解いた設定を、段階 `build:post`(`pnpm build` の next build の後)は build の成果物を見ます
+- build の成果物の判定には殻の検査が入ります。殻 = 全員に同じ物が配られる、build で焼いた最初の HTML です。管理・ログイン必須・debug の範囲のページの殻に、見える文字とメニュー・リンクが無いことを見ます(段 3 で殻に入れるのは会員の枠と公開の範囲のページだけ)。「枠」は見える物で、空の外枠の入れ物(`data-frame-root` の div)は殻に入ってよい(D55)。ログイン必須の範囲でも、全員に同じ会員の枠(ロゴ・ヘッダーの器・フッター)は殻に入ってよく、その部位を除いた本文の側を見る(D57)。
+- 逆向きに、公開の範囲で会員の枠の下のページの殻に会員の枠が入っていることも見ます(どこかの読みが Suspense の外に出ると、枠ごと root の穴に落ちて殻が空になる)。
 
 ## Usage
 
 ```
 pnpm check next-config                     # 素の next.config.ts を解いた設定を見る
-pnpm check next-config --phase=build:post  # .next の成果物を見る(先に next build)。pnpm build の末尾で毎回回る
+pnpm check next-config --phase=build:post  # .next の成果物と殻を見る(先に next build)。pnpm build の末尾で毎回回る
 ```
 
-- exit 0 = 通る / 1 = 問題あり / 2 = build の成果物が無い(build:post だけ。未検証で、通過ではない)
+- exit 0 = 通る / 1 = 問題あり / 2 = build の成果物か殻の HTML が無い(build:post だけ。未検証で、通過ではない)
 
 ## API
 
@@ -26,6 +28,10 @@ pnpm check next-config --phase=build:post  # .next の成果物を見る(先に 
   - `rewrites` に Firebase の認証の転送 `/__/:path*` → `https://<project>.web.app/__/:path*`(配列でも beforeFiles / afterFiles / fallback の組でもよい)
   - `cacheComponents` が `true`・`partialPrefetching` が boolean(段 3 までは false。書かないと Next が警告)
 - `checkBuild(distDir)`(lib.mjs): `<distDir>/required-server-files.json` の `config.cacheComponents` が `true`・`<distDir>/prerender-manifest.json` の `routes` に `/api` の下の route が無い(静的に焼き付いた API = build の表の ○)。成果物が無ければ null
+- `checkShells(distDir, rows)`(lib.mjs): `rows` = `src/app/route-map.jsonl` の行。戻り値 `{ problems, holePages, publicPages, framedPages }`。公開の範囲で会員の枠の下(`isUserFrame`)のページ(殻のあるもの、`[param]` を除く)は殻に `data-frame-root` と部位の包み `data-frame-part` があり、外枠が未公開の区画の外にあること(`frameRootHidden`、`framedPages` = 見た本数)。殻に入れない範囲(`isHoleRange`)のページごとに、殻の HTML(`shellPath`)の body に見える文字とメニュー・リンク(`readShellBody`: script・style・template・noscript の外の文字と `nav`・`a`・`role="navigation"`)が無いこと、殻の HTML があること(無い = ページが殻を作らない形になった。閉じた機能のページ `gatedOff` は飛ばす)を見る。`.next/server/app` に殻の HTML が 1 本も無ければ null
+- `isUserFrame(row)`: page のファイルが `src/app/(user)/` の下(会員の枠 UserLayout の下) | `stripSlots(html, slots)`: data-slot が slots の要素を中身ごと除く。会員の枠の下のログイン必須の範囲は `USER_FRAME_PART_SLOTS`(header・footer・bottom-nav)を除いてから文字・リンクを見る(D57)
+- `isHoleRange(row)`: 鎖に `public` でない guard がある(保護の範囲)か、ページが管理の枠 `src/app/admin/` の下にある(`/admin/login`・`/admin/setup` も)。殻に入れない範囲(D50: 管理・ログイン必須・debug)
+- `shellPath(distDir, path)`: `<distDir>/server/app/<path>.html`(`/` は `index.html`、`[param]` は名前のまま) | `frameRootHidden(html)`: 外枠が殻の未公開の区画(`<div hidden id="S:n">`、Suspense の中身が届くのを待つ区画)の中なら true。中 = 枠は殻の DOM に入っても、同じ境界の Suspense の無い読み手(点の部品・slot)が届く流れの終わりまで見えない(div の入れ子を数えて区画の閉じを探す) | `readShellBody(html)`: `{ frameRoot, text, navs }`(frameRoot は公開の範囲の判定用、殻に入れない範囲では問題にしない)。穴の残る殻は `</body>` で閉じないので、`<body>` から終わりまでを読む
 
 ## Extension
 
@@ -38,6 +44,11 @@ pnpm check next-config --phase=build:post  # .next の成果物を見る(先に 
 - 段階 `build` は offline(DB・外部の env を空にして回る)。設定を読み込むだけで、外へは届かない
 - 静的に焼き付いた API: request を読む前に返す GET は cacheComponents の build で ○ になり、応答が build の時の値に固まる。route.ts は wiring の Factory(`createApiRoute` 等、cron は `createCronTaskRoute`)で書けば、Factory の芯が最初に `connection()` を待つので焼き付かない(src/lib/routeFactory/README.md)
 - fork の取り込み(/flux)の区間の検査は build をしないので、/flux で効くのは `ship` の段階の設定の判定。成果物の判定は fork の `pnpm build`(Vercel の build も)と /ship --safe の全部の検査で効く
+- build:post は offline の段階(DB・外部の env を空にして回る)。この判定は .next のファイルを読むだけ
+- 殻に入れない範囲を殻で見る理由: 殻は全員(未ログインも)に同じ物が配られるので、管理のメニューや保護された本文が殻に入ると未ログインの応答に載る。見える部分(メニュー・リンク・本文)は Suspense の内側(穴)に置き、request ごとに流し込む
+- 空の外枠を許す理由(D55): 中身の無い入れ物は何も見せない。root の Provider を殻へ出すと管理の枠の外側(`AdminLayout` の外枠の div)は殻に入るが、サイドバー・メニューは管理の守り(`guard()`)の内側で穴のまま
+- 会員の枠が殻に入る理由: root の children の Suspense の中身は、ページの読みを `(user)/loading.tsx` の境界が受けるので完了し、枠(根は URL もセッションも読まない)が殻に焼かれる。ログインで変わる部分(ヘッダーのメニュー・ボトムナビの項目)と本文は穴
+- ログイン必須の範囲の会員の枠を許す理由(D57): 枠は全員に同じ物で、未ログインに見せてはいけない物(保護された本文)は穴のまま
 
 ## Verification
 

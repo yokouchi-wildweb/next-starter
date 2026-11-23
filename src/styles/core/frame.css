@@ -2,10 +2,12 @@
  * src/styles/core/frame.css
  * 枠の部位の出し入れ(手書き・生成しない)。
  *
- * 外枠 [data-frame-root](利用者 = UserLayout の外枠 app-container / 管理 = AdminLayout の外枠 admin-app-container)に、今のルートの宣言
- * (各ルートの枠の宣言 frame.ts / frame.override.ts → 枠ごとの表)を読み手が属性で付ける
- * (共通の読み手 src/app/_layout/frame/useFrameAttributes.ts。各枠の根が自分の表を渡す):
+ * 今のルートの宣言(各ルートの枠の宣言 frame.ts / frame.override.ts → 枠ごとの表)を読み手が印の属性にする
+ * (共通の読み手 src/app/_layout/frame/useFrameAttributes.ts。各枠が自分の表を渡す):
  *   data-frame-hide = 隠す印 `<部位>-<sp|pc>` の空白区切り / data-frame-fill = 本文が画面の高さを埋める
+ * 印の置き場: 利用者の枠 = 部位ごとの包み [data-frame-part](src/app/_layout/frame/FramePart.tsx。枠の根は URL を読まず殻に入るので、
+ * 部位が自分の判定を持って届く)。部位は自分の包みの印で隠れ、外枠の変数と fill は外枠の :has() が包みの印を読む。
+ * 管理の枠 = 外枠 [data-frame-root](AdminLayout の外枠 admin-app-container)の属性(管理の枠は殻に入れない、D50)
  * 部位 = src/app/_layout/frame/parts.mjs の隠せる部位(利用者の枠は接頭辞なし、管理の枠は admin-)。狙う先 = 部位の hideSlots の
  * [data-slot="<名前>"] だけで隠せる(Primitives/Button は display: contents の包みが名前を持つ)。差し替えた部品は外側の要素に
  * data-slot="<部位>" を付ければ従う。
@@ -41,44 +43,53 @@
   }
 }
 
+/*
+ * 利用者の枠の既定のボトムナビ: 描かれた時(外枠の中に data-slot="bottom-nav" がある時)だけ、UserLayout が外枠に置いた値
+ * --app-bottom-nav-height-value(config の高さ + 下の safe-area)を --app-bottom-nav-height にする。項目が空で描かない時は :root の 0px。
+ * slot に要素を渡した時は UserLayout が外枠の inline で --app-bottom-nav-height を書く(こちらは当たらない)
+ */
+[data-frame-root][data-slot="app-container"]:has([data-slot="bottom-nav"]) {
+  --app-bottom-nav-height: var(--app-bottom-nav-height-value, 0px);
+}
+
 @media (width < 40rem) {
-  [data-frame-root][data-frame-hide~="header-sp"] [data-slot="header"] {
+  [data-frame-part][data-frame-hide~="header-sp"] [data-slot="header"] {
     display: none;
   }
-  [data-frame-root][data-frame-hide~="header-sp"] {
+  [data-frame-root][data-slot="app-container"]:has([data-frame-part][data-frame-hide~="header-sp"]) {
     --app-header-height: 0px !important;
   }
-  [data-frame-root][data-frame-hide~="header-nav-sp"] [data-slot="header-nav"] {
+  [data-frame-part][data-frame-hide~="header-nav-sp"] [data-slot="header-nav"] {
     display: none;
   }
-  [data-frame-root][data-frame-hide~="footer-sp"] [data-slot="footer"] {
+  [data-frame-part][data-frame-hide~="footer-sp"] [data-slot="footer"] {
     display: none;
   }
-  [data-frame-root][data-frame-hide~="bottom-nav-sp"] [data-slot="bottom-nav"] {
+  [data-frame-part][data-frame-hide~="bottom-nav-sp"] [data-slot="bottom-nav"] {
     display: none;
   }
-  [data-frame-root][data-frame-hide~="bottom-nav-sp"] {
+  [data-frame-root][data-slot="app-container"]:has([data-frame-part][data-frame-hide~="bottom-nav-sp"]) {
     --app-bottom-nav-height: 0px !important;
   }
 }
 
 @media (width >= 40rem) {
-  [data-frame-root][data-frame-hide~="header-pc"] [data-slot="header"] {
+  [data-frame-part][data-frame-hide~="header-pc"] [data-slot="header"] {
     display: none;
   }
-  [data-frame-root][data-frame-hide~="header-pc"] {
+  [data-frame-root][data-slot="app-container"]:has([data-frame-part][data-frame-hide~="header-pc"]) {
     --app-header-height: 0px !important;
   }
-  [data-frame-root][data-frame-hide~="header-nav-pc"] [data-slot="header-nav"] {
+  [data-frame-part][data-frame-hide~="header-nav-pc"] [data-slot="header-nav"] {
     display: none;
   }
-  [data-frame-root][data-frame-hide~="footer-pc"] [data-slot="footer"] {
+  [data-frame-part][data-frame-hide~="footer-pc"] [data-slot="footer"] {
     display: none;
   }
-  [data-frame-root][data-frame-hide~="bottom-nav-pc"] [data-slot="bottom-nav"] {
+  [data-frame-part][data-frame-hide~="bottom-nav-pc"] [data-slot="bottom-nav"] {
     display: none;
   }
-  [data-frame-root][data-frame-hide~="bottom-nav-pc"] {
+  [data-frame-root][data-slot="app-container"]:has([data-frame-part][data-frame-hide~="bottom-nav-pc"]) {
     --app-bottom-nav-height: 0px !important;
   }
 }
@@ -90,7 +101,7 @@
  * overflow-hidden ではなく overflow-clip の理由は AdminLayout(src/app/admin/_layout)のコメント参照
  * (scroll container 化による focus 駆動スクロールの抑止)。
  */
-[data-frame-root][data-slot="app-container"][data-frame-fill] {
+[data-frame-root][data-slot="app-container"]:has(> [data-frame-part][data-frame-fill]) {
   height: var(--viewport-height, 100dvh);
   min-height: 0;
   overflow: clip;

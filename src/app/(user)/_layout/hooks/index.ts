@@ -4,11 +4,12 @@
  * カスタムヘッダー・フッター作成時に使用するフックを提供
  */
 
-export { useHeaderData } from "./useHeaderData";
+export { useHeaderData, useHeaderMenu, useHeaderNavItems, useCloseMenuOnNavigate } from "./useHeaderData";
 export type {
   HeaderNavItem,
   DeviceVisibility,
   UseHeaderDataReturn,
+  UseHeaderMenuReturn,
 } from "./useHeaderData";
 
 export { useFooterData } from "./useFooterData";

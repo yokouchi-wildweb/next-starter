@@ -2,7 +2,7 @@
 // next の設定の検査の判定(純関数)。入口は check.ts、説明は README.md。
 // 各リポの素の next.config.ts(型 5 self)を解いた最後の設定に、上流の約束が残っているかを見る(eslint の requiredRules と同じ作り、D300)。
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 /**
@@ -120,4 +120,162 @@ export function checkBuild(distDir) {
     );
   }
   return { problems, staticRoutes: routes.length };
+}
+
+/**
+ * 殻に入れない範囲(D50: 管理・ログイン必須・debug)のページか。
+ * 鎖に public でない guard がある(保護の範囲)か、ページが管理の枠(src/app/admin/ の下。/admin/login・/admin/setup も)にある
+ * @param {{ chain?: Array<{ kind: string, file?: string, policy?: { access?: unknown } }> }} row route-map.jsonl の 1 行
+ * @returns {boolean}
+ */
+export function isHoleRange(row) {
+  const chain = row?.chain ?? [];
+  if (chain.some((link) => link.kind === "guard" && link.policy?.access !== "public")) return true;
+  const page = chain.find((link) => link.kind === "page");
+  return typeof page?.file === "string" && page.file.startsWith("src/app/admin/");
+}
+
+/**
+ * 殻の HTML の道(.next/server/app/<path>.html、/ は index.html、[param] は名前のまま)
+ * @param {string} distDir
+ * @param {string} path route-map の path
+ */
+export function shellPath(distDir, path) {
+  return join(distDir, "server", "app", `${path === "/" ? "/index" : path}.html`);
+}
+
+/**
+ * HTML の body から、script・style・template・noscript の外の見える文字と、メニュー・リンク(nav・a・role="navigation")を取り出す
+ * @param {string} html
+ * @returns {{ frameRoot: boolean, text: string, navs: string[] }} navs = 見つけたメニュー・リンクの開きタグ(先頭 80 字)
+ */
+export function readShellBody(html) {
+  // 穴の残る殻は </body> を持たない(流し込みが閉じる)ので、<body> から </body> か終わりまで
+  const bodyMatch = /<body[^>]*>([\s\S]*?)(?:<\/body>|$)/i.exec(html);
+  const body = bodyMatch ? bodyMatch[1] : "";
+  const markup = body.replace(/<(script|style|template|noscript)\b[\s\S]*?<\/\1>/gi, "");
+  const navs = (markup.match(/<(?:nav|a)\b[^>]*>|<[a-z][^>]*\srole="navigation"[^>]*>/gi) ?? []).map((tag) => tag.slice(0, 80));
+  const visible = markup
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;|&#160;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return { frameRoot: /\sdata-frame-root(=|\s|>)/.test(body), text: visible, navs };
+}
+
+/**
+ * 殻の外枠(data-frame-root)が未公開の区画(`<div hidden id="S:n">`、Suspense の中身が届いて差し替わるのを待つ物)の中にあるか。
+ * 中にある = 枠は殻の DOM に入っても、同じ境界の読み手(Suspense の無い部品)が届くまで見えない
+ * @param {string} html 殻の HTML
+ */
+export function frameRootHidden(html) {
+  const root = html.search(/\sdata-frame-root(=|\s|>)/);
+  if (root < 0) return false;
+  for (const m of html.matchAll(/<div hidden(?:="")? id="S:[^"]*"[^>]*>/g)) {
+    if (m.index > root) break;
+    // この区画の閉じ(div の入れ子を数える)が外枠より後ろなら、外枠は区画の中
+    const tags = /<div\b[^>]*>|<\/div>/g;
+    tags.lastIndex = m.index + m[0].length;
+    let depth = 1;
+    let tag;
+    while (depth > 0 && (tag = tags.exec(html))) depth += tag[0] === "</div>" ? -1 : 1;
+    const close = depth === 0 ? tags.lastIndex : html.length;
+    if (close > root) return true;
+  }
+  return false;
+}
+
+/**
+ * 会員の枠(src/app/(user)/ の UserLayout)の下のページか
+ * @param {{ chain?: Array<{ kind: string, file?: string }> }} row
+ */
+export function isUserFrame(row) {
+  const page = (row?.chain ?? []).find((link) => link.kind === "page");
+  return typeof page?.file === "string" && page.file.startsWith("src/app/(user)/");
+}
+
+/** 会員の枠の部位(殻に入ってよい、D57): この data-slot の要素は中身ごと除いて本文を見る */
+export const USER_FRAME_PART_SLOTS = ["header", "footer", "bottom-nav"];
+
+const VOID_TAGS = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
+
+/**
+ * HTML から data-slot が slots のどれかの要素を中身ごと除く(タグの入れ子を数える。void の要素と /> で閉じる要素は数えない)
+ * @param {string} html
+ * @param {readonly string[]} slots
+ * @returns {string}
+ */
+export function stripSlots(html, slots) {
+  const tagRe = /<(\/?)([a-zA-Z][a-zA-Z0-9-]*)\b[^>]*?(\/?)>/g;
+  let out = "";
+  let cursor = 0;
+  let skipDepth = 0;
+  let skipStart = -1;
+  let depth = 0;
+  for (const m of html.matchAll(tagRe)) {
+    const [tag, closing, name, selfClosing] = m;
+    const isVoid = VOID_TAGS.has(name.toLowerCase()) || selfClosing === "/";
+    if (skipStart < 0) {
+      if (!closing && !isVoid && slots.some((slot) => tag.includes(` data-slot="${slot}"`))) {
+        out += html.slice(cursor, m.index);
+        skipStart = m.index;
+        skipDepth = depth;
+        depth += 1;
+      } else if (!isVoid) depth += closing ? -1 : 1;
+      continue;
+    }
+    if (isVoid) continue;
+    depth += closing ? -1 : 1;
+    if (closing && depth === skipDepth) {
+      cursor = m.index + tag.length;
+      skipStart = -1;
+    }
+  }
+  return skipStart >= 0 ? out : out + html.slice(cursor);
+}
+
+/**
+ * build の成果物の殻を見る(D50・D55・D57):
+ * - 殻に入れない範囲(isHoleRange)のページの殻に、見える文字とメニュー・リンク(nav・a)が無い。「枠」は見える物(D55): 空の外枠の入れ物は入ってよい。
+ *   会員の枠の下のログイン必須の範囲は、全員に同じ会員の枠の部位(USER_FRAME_PART_SLOTS)を除いた本文の側で見る(D57)
+ * - 公開の範囲で会員の枠の下のページ(殻のあるもの、[param] を除く)の殻に、会員の枠(data-frame-root と部位の包み data-frame-part)がある。
+ *   無い = どこかの読みが Suspense の外に出て、枠ごと root の穴に落ちた
+ * - その枠が殻の未公開の区画(hidden の S:n)の外にある。中 = 枠と同じ境界に Suspense の無い読み手があり、流れの終わりまで見えない
+ * 殻に入れない範囲で殻の無いページ = 動的になった(殻を作らない)ので、閉じた機能のページ(gatedOff)のほかは問題
+ * @param {string} distDir .next
+ * @param {Array<{ path: string, gatedOff?: unknown, chain?: unknown[] }>} rows route-map.jsonl の行
+ * @returns {{ problems: string[], holePages: number, publicPages: number, framedPages: number } | null} 殻の HTML が 1 本も無ければ null(未検証)
+ */
+export function checkShells(distDir, rows) {
+  const appDir = join(distDir, "server", "app");
+  if (!existsSync(appDir) || !readdirSync(appDir, { recursive: true }).some((f) => String(f).endsWith(".html"))) return null;
+  const problems = [];
+  let holePages = 0;
+  let framedPages = 0;
+  for (const row of rows) {
+    const file = shellPath(distDir, row.path);
+    if (!isHoleRange(row)) {
+      // 殻のあるページだけ(閉じた機能 gatedOff のページも build されて殻があれば見る。[param] のページは殻が params で穴になりうる)
+      if (!isUserFrame(row) || row.path.includes("[") || !existsSync(file)) continue;
+      framedPages += 1;
+      const html = readFileSync(file, "utf8");
+      const { frameRoot } = readShellBody(html);
+      if (!frameRoot || !html.includes(" data-frame-part=")) {
+        problems.push(`${row.path}: 公開の範囲の会員の枠のページの殻に枠(data-frame-root と部位の包み data-frame-part)が無い。枠より外か枠の根で request を読んでいる(読む部分を Suspense の内側へ)`);
+      } else if (frameRootHidden(html)) {
+        problems.push(`${row.path}: 公開の範囲の会員の枠が殻の未公開の区画(<div hidden id="S:n">)の中にあり、流れの終わりまで見えない。枠と同じ境界に Suspense の無い読み手(点の部品・slot)がある(その読み手を Suspense の内側へ)`);
+      }
+      continue;
+    }
+    holePages += 1;
+    if (!existsSync(file)) {
+      if (!row.gatedOff) problems.push(`${row.path}: 殻の HTML が無い(${file})。ページが殻を作らない形になった`);
+      continue;
+    }
+    const html = readFileSync(file, "utf8");
+    const { text, navs } = readShellBody(isUserFrame(row) ? stripSlots(html, USER_FRAME_PART_SLOTS) : html);
+    if (text) problems.push(`${row.path}: 殻に入れない範囲(D50)のページの殻に見える文字がある(「${text.slice(0, 60)}」)。読む部分を Suspense の内側(穴)へ戻す`);
+    if (navs.length > 0) problems.push(`${row.path}: 殻に入れない範囲(D50)のページの殻にメニュー・リンクがある(${navs[0]})。メニューを Suspense の内側(穴)へ戻す`);
+  }
+  return { problems, holePages, publicPages: rows.length - holePages, framedPages };
 }

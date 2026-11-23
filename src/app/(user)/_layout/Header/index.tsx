@@ -1,13 +1,13 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { type ReactNode, Suspense } from "react";
 
 import { Button } from "@/components/Button/Button";
 import { Section } from "@/components/Layout/Section";
 import { FrameParts } from "@/app/_layout/FrameParts";
 
 import { userHeaderActions } from "../extensions/userHeaderActions";
-import { useHeaderData } from "../hooks";
+import { type HeaderNavItem, useCloseMenuOnNavigate, useHeaderMenu, useHeaderNavItems } from "../hooks";
 import { Brand } from "./Brand";
 import { HeaderShell } from "./HeaderShell";
 import { PcNavigation } from "./Pc/PcNavigation";
@@ -31,19 +31,12 @@ export type UserNavigationProps = {
 };
 
 export const UserNavigation = ({ leading, actions, menuActions }: UserNavigationProps = {}) => {
-  const {
-    navItems,
-    showIcons,
-    isMenuOpen,
-    closeMenu,
-    toggleMenu,
-    headerRef,
-    headerOffset,
-  } = useHeaderData();
+  // 器(ロゴ・右の部品・メニューの開閉)は request を読まない = 枠の殻に入る。
+  // メニュー項目はセッションで変わるので、項目を使う 3 か所(PC のナビ・SP の開閉ボタン・SP のパネル)はそれぞれ Suspense の内側で読む
+  const { showIcons, isMenuOpen, closeMenu, toggleMenu, headerRef, headerOffset } = useHeaderMenu();
 
   // ヘッダーとナビを隠す端末・ページ(各ルートの枠の宣言 frame.ts / frame.override.ts)では styles/core/frame.css が display: none にする。
   // 項目が空(例: ログイン中の項目を [] にした fork)なら、ナビの部品(PC のナビ・SP の開閉ボタンとパネル)を描かない
-  const hasNav = navItems.length > 0;
   return (
     <Section
       as="header"
@@ -58,7 +51,7 @@ export const UserNavigation = ({ leading, actions, menuActions }: UserNavigation
             <Brand />
           </>
         }
-        center={hasNav ? <PcNavigation items={navItems} showIcons={showIcons} /> : undefined}
+        center={<NavItems render={(items) => <PcNavigation items={items} showIcons={showIcons} />} />}
         right={
           <>
             {actions === undefined ? (
@@ -73,30 +66,55 @@ export const UserNavigation = ({ leading, actions, menuActions }: UserNavigation
             ) : (
               actions
             )}
-            {hasNav && <SpNavSwitch isMenuOpen={isMenuOpen} onToggle={toggleMenu} />}
+            <NavItems render={() => <SpNavSwitch isMenuOpen={isMenuOpen} onToggle={toggleMenu} />} />
           </>
         }
       />
 
-      {hasNav && (
-        <SpNavigation
-          isOpen={isMenuOpen}
-          items={navItems}
-          showIcons={showIcons}
-          onClose={closeMenu}
-          headerOffset={headerOffset}
-          footer={
-            menuActions === undefined ? (
-              /* SP版: メニュー下部にCTAボタン */
-              <Button variant="default" className="w-full">
-                お問い合わせ
-              </Button>
-            ) : (
-              menuActions
-            )
-          }
-        />
-      )}
+      <NavItems
+        render={(items) => (
+          <SpNavigation
+            isOpen={isMenuOpen}
+            items={items}
+            showIcons={showIcons}
+            onClose={closeMenu}
+            headerOffset={headerOffset}
+            footer={
+              menuActions === undefined ? (
+                /* SP版: メニュー下部にCTAボタン */
+                <Button variant="default" className="w-full">
+                  お問い合わせ
+                </Button>
+              ) : (
+                menuActions
+              )
+            }
+          />
+        )}
+      />
+      <Suspense fallback={null}>
+        <CloseMenuOnNavigate closeMenu={closeMenu} />
+      </Suspense>
     </Section>
   );
 };
+
+/** メニュー項目を読んで(セッション)、空でなければ render を描く。Suspense の内側で読む(ヘッダーの器は待たない) */
+function NavItems({ render }: Readonly<{ render: (items: HeaderNavItem[]) => ReactNode }>) {
+  return (
+    <Suspense fallback={null}>
+      <NavItemsReader render={render} />
+    </Suspense>
+  );
+}
+
+function NavItemsReader({ render }: Readonly<{ render: (items: HeaderNavItem[]) => ReactNode }>) {
+  const items = useHeaderNavItems();
+  return items.length > 0 ? render(items) : null;
+}
+
+/** 住所が変わったらメニューを閉じる。何も描かない(URL を読むので Suspense の内側) */
+function CloseMenuOnNavigate({ closeMenu }: Readonly<{ closeMenu: () => void }>) {
+  useCloseMenuOnNavigate(closeMenu);
+  return null;
+}

@@ -79,7 +79,7 @@ export default function RootLayout({
       </head>
 
       <body suppressHydrationWarning className="antialiased font-sans">
-        {/* 殻の外へ: URL を読む葉(usePathname)と Provider(セッション・門番)の下は request ごとに流し込む。fallback null = 見た目は変えない */}
+        {/* 殻の外へ: URL を読む葉(usePathname)は request ごとに流し込む。fallback null = 見た目は変えない */}
         <Suspense fallback={null}>
           <SiteThemeSync />
         </Suspense>
@@ -95,11 +95,10 @@ export default function RootLayout({
         <GlobalToast />
         {/* Provider の入れ子は src/wiring/AppProviders.tsx(Tooltip → reCAPTCHA → 認証セッション → 管理コマンド → 画像ビューア) */}
         {/* 門番の client への受け渡し: 利用者の枠の値をここで計算して渡す(管理の枠は admin の守りの layout が包み直す) */}
-        <Suspense fallback={null}>
-          <AppProviders gate={clientGateState("user")}>
-            {children}
-          </AppProviders>
-        </Suspense>
+        {/* Provider の入れ子は殻に入る(本体で request を読まない)。枠と本文(children)は request ごとに流し込む */}
+        <AppProviders gate={clientGateState("user")}>
+          <Suspense fallback={null}>{children}</Suspense>
+        </AppProviders>
         <Suspense fallback={null}>
           <RedirectToastProvider />
         </Suspense>

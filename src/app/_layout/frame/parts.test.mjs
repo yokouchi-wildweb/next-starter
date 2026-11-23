@@ -77,11 +77,11 @@ const rulesOf = (css) => {
 const MEDIA = { sp: "@media (width < 40rem)", pc: "@media (width >= 40rem)" };
 const FRAME_CSS = "src/styles/core/frame.css";
 
-test("frame.css の隠す規則 = 両方の枠の隠せる部位 × 端末(過不足なし)、印は [data-slot] だけ、:has() なし", () => {
+/** 隠す印を持つ所(D56): 利用者の枠 = 部位の包み [data-frame-part](枠の根は URL を読まず殻に入る)/ 管理の枠 = 外枠 [data-frame-root](殻に入れない、D50) */
+const MARK_HOLDER = { user: "[data-frame-part]", admin: "[data-frame-root]" };
+
+test("frame.css の隠す規則 = 両方の枠の隠せる部位 × 端末(過不足なし)、狙う先は [data-slot] だけ、印は利用者 = 部位の包み・管理 = 外枠", () => {
   const css = read(FRAME_CSS);
-  const body = css.replace(/\/\*[\s\S]*?\*\//g, "");
-  assert.equal(body.includes(":has("), false, "子が親を変える :has() は使わない");
-  assert.equal(body.includes("data-frame-part"), false, "部位の印は data-slot だけ");
   const hides = rulesOf(css).filter((r) => r.decl.startsWith("display: none"));
   const tokenOf = (selector) => /\[data-frame-hide~="([^"]+)"\]/.exec(selector)?.[1] ?? `?${selector}`;
   const expected = Object.keys(FRAME_ROOTS).flatMap((root) => hideableParts(root).flatMap(({ slot }) => FRAME_DEVICES.map((d) => `${slot}-${d}`)));
@@ -91,9 +91,10 @@ test("frame.css の隠す規則 = 両方の枠の隠せる部位 × 端末(過�
     const device = token.endsWith("-sp") ? "sp" : "pc";
     const slot = token.slice(0, -3);
     assert.equal(rule.media, MEDIA[device], `${token} は ${MEDIA[device]} の中`);
-    const prefix = `[data-frame-root][data-frame-hide~="${token}"] `;
-    assert.ok(rule.selector.startsWith(prefix), `${token} は外枠の属性から狙う`);
-    const part = Object.keys(FRAME_ROOTS).flatMap((root) => hideableParts(root)).find((p) => p.slot === slot);
+    const root = Object.keys(FRAME_ROOTS).find((r) => hideableParts(r).some((p) => p.slot === slot));
+    const prefix = `${MARK_HOLDER[root]}[data-frame-hide~="${token}"] `;
+    assert.ok(rule.selector.startsWith(prefix), `${token} は ${MARK_HOLDER[root]} の印から狙う`);
+    const part = hideableParts(root).find((p) => p.slot === slot);
     // 狙う先 = hideSlots の data-slot だけ(1 つなら素のまま、複数なら :is() に並べる)。id では狙わない
     const target = rule.selector.slice(prefix.length);
     const targets = (/^:is\((.*)\)$/.exec(target)?.[1] ?? target).split(",").map((t) => t.trim());
@@ -145,14 +146,21 @@ test("隠す対象は全部 data-slot で狙える: 隠せる部位ごとに、�
   }
 });
 
-test("frame.css: ボトムナビを隠す間は --app-bottom-nav-height を 0、利用者の fill は外枠の属性で確定高さ", () => {
+test("frame.css: 利用者の枠の外枠の変数と fill は外枠の :has() が部位の包みの印を読む(D56)。ボトムナビは描かれた時だけ値、隠す間は 0", () => {
   const rules = rulesOf(read(FRAME_CSS));
+  const userRoot = '[data-frame-root][data-slot="app-container"]';
   for (const device of FRAME_DEVICES) {
-    const zero = rules.find((r) => r.selector === `[data-frame-root][data-frame-hide~="bottom-nav-${device}"]`);
+    const zero = rules.find((r) => r.selector === `${userRoot}:has([data-frame-part][data-frame-hide~="bottom-nav-${device}"])`);
     assert.equal(zero?.media, MEDIA[device]);
     assert.equal(zero?.decl, "--app-bottom-nav-height: 0px !important;");
+    const header = rules.find((r) => r.selector === `${userRoot}:has([data-frame-part][data-frame-hide~="header-${device}"])`);
+    assert.equal(header?.media, MEDIA[device]);
+    assert.equal(header?.decl, "--app-header-height: 0px !important;");
   }
-  const fill = rules.find((r) => r.selector === '[data-frame-root][data-slot="app-container"][data-frame-fill]');
+  const drawn = rules.find((r) => r.selector === `${userRoot}:has([data-slot="bottom-nav"])`);
+  assert.ok(drawn && drawn.media === null, "既定のボトムナビを描いた時に値を移す規則が無い");
+  assert.equal(drawn.decl, "--app-bottom-nav-height: var(--app-bottom-nav-height-value, 0px);");
+  const fill = rules.find((r) => r.selector === `${userRoot}:has(> [data-frame-part][data-frame-fill])`);
   assert.ok(fill && fill.media === null, "利用者の fill の規則が無い");
   assert.match(fill.decl, /height: var\(--viewport-height, 100dvh\);\s*min-height: 0;\s*overflow: clip;/);
   assert.ok(read("src/styles/core/index.css").includes('@import "./frame.css";'), "index.css が frame.css を読まない");

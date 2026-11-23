@@ -1,6 +1,12 @@
 /**
  * カスタムヘッダー用のデータ・状態を提供するフック
  *
+ * 3 つに分かれる(既定のヘッダー ../Header は分けて使い、枠の殻に入る部分で request を読まない):
+ * - useHeaderMenu: メニューの開閉・ヘッダーの要素と高さ(request を読まない)
+ * - useHeaderNavItems: メニュー項目(セッションで変わる。Suspense の内側で読む)
+ * - useCloseMenuOnNavigate: 住所が変わったらメニューを閉じる(URL を読む。Suspense の内側で読む)
+ * useHeaderData = 3 つを合わせた今までの形(カスタムヘッダー用。UserLayout の header slot の要素は枠の部位の包みの Suspense の内側に入る)
+ *
  * 設定: 枠の設定 ../config.ts の header(値)と ../config.ui.ts の header(メニュー項目・ログアウトのアイコン)
  * 差した項目: 点 userMenuItems(menu "header")を設定の項目に重ねる(ログアウトの前)
  */
@@ -57,18 +63,43 @@ export type UseHeaderDataReturn = {
 // フック実装
 // ============================================
 
+/** メニューの開閉・ヘッダーの要素と高さ(request を読まない) */
+export type UseHeaderMenuReturn = Omit<UseHeaderDataReturn, "navItems">;
+
 export const useHeaderData = (): UseHeaderDataReturn => {
+  const menu = useHeaderMenu();
+  const navItems = useHeaderNavItems();
+  const pathname = usePathname();
+
+  // パス変更時にメニューを閉じる(前回の render の pathname と比べて render 中に調整する)
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
+    menu.closeMenu();
+  }
+
+  return { navItems, ...menu };
+};
+
+/**
+ * 住所が変わったらメニューを閉じる(URL を読むので、既定のヘッダーは Suspense の内側の何も描かない子で呼ぶ)。
+ * 親(メニューの状態の持ち主)の state を変えるので render 中ではなく effect で(最初の住所では閉じない)
+ */
+export const useCloseMenuOnNavigate = (closeMenu: () => void): void => {
+  const pathname = usePathname();
+  const prevPathname = useRef(pathname);
+  useEffect(() => {
+    if (prevPathname.current === pathname) return;
+    prevPathname.current = pathname;
+    closeMenu();
+  }, [pathname, closeMenu]);
+};
+
+/** メニューの開閉・ヘッダーの要素と高さ。request を読まない(枠の殻に入る部分で使える) */
+export const useHeaderMenu = (): UseHeaderMenuReturn => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [headerOffset, setHeaderOffset] = useState(0);
   const headerRef = useRef<HTMLElement | null>(null);
-  const pathname = usePathname();
-
-  // 認証・ログアウト(点 frameSession の項目、上流は auth。枠はドメインを読まない)
-  const session = useFrameSession();
-  const { isAuthenticated } = session.useSession();
-  const { logout, isLoading: isLogoutLoading } = session.useLogout({
-    redirectTo: userLayoutConfig.header.logout.redirectTo,
-  });
 
   // メニュー開閉
   const closeMenu = useCallback(() => {
@@ -82,13 +113,6 @@ export const useHeaderData = (): UseHeaderDataReturn => {
   const toggleMenu = useCallback(() => {
     setIsMenuOpen((prev) => !prev);
   }, []);
-
-  // パス変更時にメニューを閉じる(前回の render の pathname と比べて render 中に調整する)
-  const [prevPathname, setPrevPathname] = useState(pathname);
-  if (prevPathname !== pathname) {
-    setPrevPathname(pathname);
-    setIsMenuOpen(false);
-  }
 
   // PCサイズになったらメニューを閉じる
   useEffect(() => {
@@ -150,7 +174,27 @@ export const useHeaderData = (): UseHeaderDataReturn => {
     };
   }, [isMenuOpen]);
 
-  // ナビゲーションメニュー項目(設定の項目 + 差した項目)
+  return {
+    logoLink: userLayoutConfig.header.logoLink,
+    showIcons: userLayoutConfig.header.menuIconsEnabled,
+    isMenuOpen,
+    openMenu,
+    closeMenu,
+    toggleMenu,
+    headerRef,
+    headerOffset,
+  };
+};
+
+/** ナビゲーションメニュー項目(設定の項目 + 差した項目 + ログアウト)。セッションで変わる(Suspense の内側で読む) */
+export const useHeaderNavItems = (): HeaderNavItem[] => {
+  // 認証・ログアウト(点 frameSession の項目、上流は auth。枠はドメインを読まない)
+  const session = useFrameSession();
+  const { isAuthenticated } = session.useSession();
+  const { logout, isLoading: isLogoutLoading } = session.useLogout({
+    redirectTo: userLayoutConfig.header.logout.redirectTo,
+  });
+
   const plugged = usePluggedMenuItems("header");
   const navItems = useMemo<HeaderNavItem[]>(() => {
     const baseItems: HeaderNavItem[] = mergeMenuItems<HeaderNavItem>(
@@ -173,15 +217,5 @@ export const useHeaderData = (): UseHeaderDataReturn => {
     return baseItems;
   }, [isAuthenticated, isLogoutLoading, logout, plugged]);
 
-  return {
-    navItems,
-    logoLink: userLayoutConfig.header.logoLink,
-    showIcons: userLayoutConfig.header.menuIconsEnabled,
-    isMenuOpen,
-    openMenu,
-    closeMenu,
-    toggleMenu,
-    headerRef,
-    headerOffset,
-  };
+  return navItems;
 };
