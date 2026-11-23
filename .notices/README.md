@@ -36,7 +36,7 @@ from: <upstream repo> | branch:<branch> | commit:<short sha>
 date: <ISO8601>
 severity: breaking | action-required | info
 checkpoint: <label | ->
-checkpoint_at: <commit>   (only on a few shipped notices whose body was completed later in the same push; written once by Tier1; omit otherwise)
+checkpoint_at: <commit>   (only on a few shipped notices whose segment (the body, or the row of the old index .notices/shipped/) was completed later in the same push; written once by Tier1; omit otherwise)
 moved: <old path> -> <new path>; ...   (only when the change moves/renames files or dirs; omit otherwise)
 covers: <upstream notice id>, ...   (relay notices only: upstream notice ids this notice subsumes; omit otherwise)
 fixes: <notice id | commit:<sha>>, ...   (only when this change fixes something shipped earlier; omit otherwise)
