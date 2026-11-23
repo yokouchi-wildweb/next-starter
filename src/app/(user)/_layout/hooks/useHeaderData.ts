@@ -2,6 +2,7 @@
  * カスタムヘッダー用のデータ・状態を提供するフック
  *
  * 設定: 枠の設定 ../config.ts の header(値)と ../config.ui.ts の header(メニュー項目・ログアウトのアイコン)
+ * 差した項目: 点 userMenuItems(menu "header")を設定の項目に重ねる(ログアウトの前)
  */
 
 "use client";
@@ -14,6 +15,8 @@ import { useFrameSession } from "@/app/_layout/useFrameSession";
 import { userLayoutConfig } from "../config";
 import { userLayoutUiConfig } from "../config.ui";
 import type { NavigationMenuItem } from "../Header/types";
+import { mergeMenuItems } from "./mergeMenuItems";
+import { usePluggedMenuItems } from "./usePluggedMenuItems";
 
 // ============================================
 // 型定義
@@ -147,11 +150,14 @@ export const useHeaderData = (): UseHeaderDataReturn => {
     };
   }, [isMenuOpen]);
 
-  // ナビゲーションメニュー項目
+  // ナビゲーションメニュー項目(設定の項目 + 差した項目)
+  const plugged = usePluggedMenuItems("header");
   const navItems = useMemo<HeaderNavItem[]>(() => {
-    const baseItems: HeaderNavItem[] = isAuthenticated
-      ? [...userLayoutUiConfig.header.authenticatedMenuItems]
-      : [...userLayoutUiConfig.header.guestMenuItems];
+    const baseItems: HeaderNavItem[] = mergeMenuItems<HeaderNavItem>(
+      isAuthenticated ? userLayoutUiConfig.header.authenticatedMenuItems : userLayoutUiConfig.header.guestMenuItems,
+      plugged,
+      isAuthenticated,
+    );
 
     // ログアウトボタンを追加（認証済み＆フラグONの場合）
     if (isAuthenticated && userLayoutConfig.header.logout.show) {
@@ -165,7 +171,7 @@ export const useHeaderData = (): UseHeaderDataReturn => {
     }
 
     return baseItems;
-  }, [isAuthenticated, isLogoutLoading, logout]);
+  }, [isAuthenticated, isLogoutLoading, logout, plugged]);
 
   return {
     navItems,

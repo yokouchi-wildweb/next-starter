@@ -222,6 +222,9 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 
 - `userHeaderActions`: ヘッダーの右側(fork が `actions` を渡さないとき、既定の CTA の前)。並びは項目の `export const order` → `<差す側>/<名前>`。上流の項目は 0
 - `userOverlays`: 外枠の末尾に重ねる部品。上流は messaging の未読のお知らせのモーダル
+- `userMenuItems`: ヘッダー(PC のナビ・SP のメニュー)とボトムナビのメニュー項目。差す側は `<ドメイン>/plugs/userMenuItems/<名前>.ts` に `export const item`(型 `UserMenuPlugItem`、`@/app/(user)/_layout/points`)= `{ menu: "header" | "bottomNav", audience: "authenticated" | "guest" | "all", after?: <設定の項目の鍵>, entry: <そのメニューの項目> }`。自分のコード(一覧・カタログ)から `entry` を組み立ててよい(設定の上書きは字面の値だけのまま)
+  - 並び: 設定の項目の後、`after` の鍵の項目の直後(無い・設定に無い鍵 = 末尾。ヘッダーはログアウトの前)。同じ位置は項目の `export const order` → `<差す側>/<名前>`。上流は項目を差さない(差さない fork は今のまま)
+  - 重ね方は `./hooks/mergeMenuItems.ts`、差した項目を門番で絞るのは `./hooks/usePluggedMenuItems.ts`(`useHeaderData` と `BottomNav/useBottomNavItems` が使う)
 - ログインの状態とログアウト(ヘッダーのメニュー・ボトムナビの出し分け)は根の枠の点 `frameSession`(ちょうど 1 つ、上流は auth)を `@/app/_layout/useFrameSession` で読む
 
 ### 設定ファイル
@@ -248,7 +251,7 @@ fork だけのキーは上書きファイルの `export type Extra` に型を足
 | `header.authenticatedMenuItems` | config.ui.ts | ログイン中ユーザー用メニュー(`HeaderMenuItem[]`) |
 | `header.guestMenuItems` | config.ui.ts | 未ログインユーザー用メニュー |
 
-メニューの配列は上書きで丸ごと置き換わる。バッジは項目の `badge`(固定の ReactNode)で渡す。
+メニューの配列は上書きで丸ごと置き換わる。バッジは項目の `badge`(固定の ReactNode)で渡す。自分のコードから作る項目は点 `userMenuItems`(上の「名前付きの増設点」)で差す。
 
 - 今の認証の状態の項目が空(`[]`)なら、ナビの部品(PC のナビ・SP の開閉ボタンとメニューのパネル)を描かない。ヘッダー・ブランド・右の CTA は残る(例: ログイン中のメニューをボトムナビだけに出す)
 
@@ -295,6 +298,8 @@ export default {
 | `bottomMenu.activeColorType` | config.ts | カレントの色(primary / secondary / accent) |
 | `bottomMenu.authenticatedMenuItems` | config.ui.ts | ログイン中ユーザー用メニュー |
 | `bottomMenu.guestMenuItems` | config.ui.ts | 未ログインユーザー用メニュー |
+
+- 自分のコードから作る項目は点 `userMenuItems`(上の「名前付きの増設点」、`menu: "bottomNav"`)で差す
 
 ### 寸法の CSS 変数
 

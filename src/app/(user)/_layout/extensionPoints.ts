@@ -14,6 +14,16 @@ export const extensionPoints = {
     side: "client",
     order: "declared",
   },
+  // ヘッダー(PC のナビ・SP のメニュー)とボトムナビのメニュー項目: <ドメイン>/plugs/userMenuItems/<名前>.ts の export const item(型 UserMenuPlugItem)。
+  // 設定の項目の後、item.after の鍵の直後に並ぶ(無い = 末尾)。同じ位置は項目の export const order → <差す側>/<名前>。上流は項目を差さない
+  userMenuItems: {
+    change: "add",
+    plugs: true,
+    export: "item",
+    type: { from: "@/app/(user)/_layout/points", name: "UserMenuPlugItem" },
+    side: "client",
+    order: "declared",
+  },
   // 枠に重ねる部品(ダイアログ・案内): <ドメイン>/plugs/userOverlays/<名前>.tsx。上流は messaging の受け取り箱の未読の案内
   userOverlays: {
     change: "add",

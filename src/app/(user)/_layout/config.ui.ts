@@ -90,6 +90,36 @@ export type BottomNavMenuItem = {
 export type BottomNavItem = BottomNavLinkItem | BottomNavMenuItem;
 
 // ============================================
+// 差したメニュー項目(点 userMenuItems)
+// ============================================
+
+/** 差した項目を出す相手: ログイン中・未ログイン・両方 */
+export type UserMenuAudience = "authenticated" | "guest" | "all";
+
+/**
+ * 点 userMenuItems の項目(差す側の <ドメイン>/plugs/userMenuItems/<名前>.ts の export const item)。
+ * 設定の項目(上の authenticatedMenuItems / guestMenuItems)の後に、after の鍵の項目の直後へ並ぶ(無い・知らない鍵 = 末尾。ヘッダーはログアウトの前)。
+ * 同じ位置の項目は点の並び(export const order → <差す側>/<名前>)。差す側は自分のコード(一覧・カタログ)から item を組み立ててよい
+ *
+ * @example
+ * export const item: UserMenuPlugItem = { menu: "header", audience: "authenticated", after: "home", entry: { key: "training", label: "トレーニング", children: buildChildren() } };
+ */
+export type UserMenuPlugItem =
+  | {
+      readonly menu: "header";
+      readonly audience: UserMenuAudience;
+      /** この鍵の設定の項目の直後に置く(省略 = 末尾) */
+      readonly after?: string;
+      readonly entry: HeaderMenuItem;
+    }
+  | {
+      readonly menu: "bottomNav";
+      readonly audience: UserMenuAudience;
+      readonly after?: string;
+      readonly entry: BottomNavItem;
+    };
+
+// ============================================
 // フッター
 // ============================================
 
