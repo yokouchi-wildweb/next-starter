@@ -178,11 +178,11 @@ export type RunAgentOptions = {
   messages: AgentChatMessage[];
   /** 使用可能なツール群 */
   tools: AgentToolDefinition[];
-  /** モデルID (省略時 AI_AGENT_CONFIG.model) */
+  /** モデルID (省略時 aiConfig.model) */
   model?: string;
-  /** 最大往復回数 (省略時 AI_AGENT_CONFIG.maxIterations) */
+  /** 最大往復回数 (省略時 aiConfig.maxIterations) */
   maxIterations?: number;
-  /** 1往復あたりの最大出力トークン (省略時 AI_AGENT_CONFIG.maxTokensPerStep) */
+  /** 1往復あたりの最大出力トークン (省略時 aiConfig.maxTokensPerStep) */
   maxTokensPerStep?: number;
   /** 中断シグナル (SSE クライアント切断時に abort される) */
   signal?: AbortSignal;
