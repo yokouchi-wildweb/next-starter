@@ -534,6 +534,7 @@ const { items, total, isFetchingMore, hasMore, sentinelRef } = useMyRows({ obser
 - `selectBulkActions(items, { list, can })` が絞って並べ（`list` 省略 = `lists` を持つ項目は出さない、`can` 省略 = `access` を持つ項目は出さない）、`<BulkActionItems items selection onDone? />` が描く。項目の `onDone` は選択を外してから容器の `onDone` を呼ぶ。容器はドメインのフック（`useUserAdminBulkActions(list)` など）で、`@/domains/core/admin/hooks/useDomainAdminBulkActions` の `useDomainAdminBulkActions<自分の項目の型>("<ドメイン>")` が返す項目にこの 2 つを使う
 - よくある一括変更は `@/lib/crud` の作成関数で数行: `bulkFieldAction`（列挙型の列）・`bulkBelongsToAction`・`bulkRelationAction`（多対多。`mode: "replace" | "add"`）・`bulkDeleteAction`。ボタン（`Bulk*Button`）は成功で `router.refresh()` する
 - 汎用の一括ボタンは**副作用の無い列だけ**。記録が必須の操作（状態の一括変更など）は上流が専用のサービス・API と作成関数で出す
+  - 上流の専用の作成関数: `bulkUserStatusAction`(状態のまとめての変更、`@/domains/core/user/components/AdminUserBulkStatusAction`)・`bulkWalletGrantAction`(まとめての付与・補填、`@/domains/core/wallet/components/AdminWalletBulkGrantAction`)。どちらも確かめ(dryRun)→ 実行。上流の一覧には差していない(項目は fork が足す)
 
 ```tsx
 // src/domains/core/user/plugs/adminBulkActions/userTags.tsx（上流の既定の項目）

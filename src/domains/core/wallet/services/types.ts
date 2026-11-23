@@ -235,3 +235,31 @@ export type ExpiringLotsPayload = {
   totalExpiring: number;
   withinDays: number;
 };
+
+// まとめての付与・補填(walletService.bulkGrant、運用コマンド wallet:bulk-grant、管理の API POST /api/admin/wallet/bulk/grant)。画面(hook)も読むのでここに置く
+
+/** 種類: grant = 付与(付与の種類 admin_adjustment)、compensation = お詫び・補填(compensation) */
+export type BulkGrantKind = "grant" | "compensation";
+
+export type BulkGrantParams = {
+  walletType: WalletTypeValue;
+  grants: Array<{ userId: string; amount: number }>;
+  kind: BulkGrantKind;
+  /** 履歴の reason と監査に残る理由(必須) */
+  reason: string;
+  /** commit の後に 1 人ずつ inApp の知らせを送る */
+  notify?: boolean;
+  dryRun?: boolean;
+};
+
+export type BulkGrantResult = {
+  dryRun: boolean;
+  /** 付けた行の request_batch_id(取り消しの --batch に渡す。dryRun では null) */
+  requestBatchId: string | null;
+  granted: Array<{ userId: string; amount: number }>;
+  skipped: Array<{ userId: string; why: string }>;
+  total: number;
+  /** 知らせの処理を通った人数(inApp が閉じていれば送らずに数える) */
+  notified: number;
+  notifyFailed: Array<{ userId: string; error: string }>;
+};

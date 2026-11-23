@@ -3,7 +3,7 @@
 import { createApiClient } from "@/lib/crud";
 import type { ApiClient } from "@/lib/crud";
 import type { User } from "@/domains/core/user/entities";
-import type { UserStatus } from "@/domains/core/user/types";
+import type { BulkChangeStatusParams, BulkChangeStatusResult, UserStatus } from "@/domains/core/user/types";
 import type { UserRoleType } from "@/domains/core/user/constants/role";
 import type { CreateUserInput, UpdateUserInput } from "../types";
 import type { SearchParams, PaginatedResult, WithOptions, WhereExpr } from "@/lib/crud";
@@ -21,6 +21,16 @@ export type ChangeStatusInput = {
 async function changeStatus(userId: string, data: ChangeStatusInput): Promise<User> {
   const response = await axios.patch<User>(`/api/admin/user/${userId}/status`, data);
   return response.data;
+}
+
+/** 選んだ利用者の状態のまとめての変更(1 回 = userConfig.bulkUpdate.maxIds 人まで。分けて送るのは hook useBulkChangeUserStatus) */
+async function bulkChangeStatus(params: BulkChangeStatusParams): Promise<BulkChangeStatusResult> {
+  try {
+    const response = await axios.post<BulkChangeStatusResult>("/api/admin/user/bulk/status", params);
+    return response.data;
+  } catch (error) {
+    throw normalizeHttpError(error);
+  }
 }
 
 export type ChangeRoleInput = {
@@ -150,6 +160,7 @@ async function checkAccountRegistered(
 export const userClient = {
   ...baseClient,
   changeStatus,
+  bulkChangeStatus,
   changeRole,
   softDelete,
   hardDelete,

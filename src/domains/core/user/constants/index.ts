@@ -37,6 +37,7 @@ export {
   formatUserStatusLabel,
   USER_AVAILABLE_STATUSES,
   USER_REGISTERED_STATUSES,
+  BULK_STATUS_TARGETS,
 } from "./status";
 
 // 型定義（types からの再エクスポート）

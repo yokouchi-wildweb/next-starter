@@ -16,7 +16,7 @@ import { and, eq, inArray } from "drizzle-orm";
 
 import { UserTable } from "@/domains/core/user/entities/drizzle";
 import { VALID_WALLET_TYPES } from "@/domains/core/wallet/utils/currency";
-import type { WalletTypeValue } from "@/domains/core/wallet/types/field";
+import type { BulkGrantKind, BulkGrantParams, BulkGrantResult } from "@/domains/core/wallet/services/types";
 import { WalletHistoryTable } from "@/domains/core/walletHistory/entities/drizzle";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
@@ -27,31 +27,8 @@ import { runWithTransaction } from "./utils";
 /** 1 回の上限(1 つの transaction で財布を行ロックするため。超えるならファイルを分ける) */
 export const MAX_BULK_GRANT_USERS = 10_000;
 
-export const BULK_GRANT_KINDS = { grant: "admin_adjustment", compensation: "compensation" } as const;
-export type BulkGrantKind = keyof typeof BULK_GRANT_KINDS;
-
-export type BulkGrantParams = {
-  walletType: WalletTypeValue;
-  grants: Array<{ userId: string; amount: number }>;
-  kind: BulkGrantKind;
-  /** 履歴の reason と監査に残る理由(必須) */
-  reason: string;
-  /** commit の後に 1 人ずつ inApp の知らせを送る */
-  notify?: boolean;
-  dryRun?: boolean;
-};
-
-export type BulkGrantResult = {
-  dryRun: boolean;
-  /** 付けた行の request_batch_id(取り消しの --batch に渡す。dryRun では null) */
-  requestBatchId: string | null;
-  granted: Array<{ userId: string; amount: number }>;
-  skipped: Array<{ userId: string; why: string }>;
-  total: number;
-  /** 知らせの処理を通った人数(inApp が閉じていれば送らずに数える) */
-  notified: number;
-  notifyFailed: Array<{ userId: string; error: string }>;
-};
+/** 種類 → 付与の種類(reason_key)。型 BulkGrantKind は画面からも読む services/types.ts */
+export const BULK_GRANT_KINDS = { grant: "admin_adjustment", compensation: "compensation" } as const satisfies Record<BulkGrantKind, string>;
 
 const CHUNK = 500;
 

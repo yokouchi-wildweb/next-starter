@@ -10,35 +10,15 @@
 // 呼び手: 運用コマンド pnpm task user:bulk-change-status。後で管理画面からも同じ関数を呼ぶ(L1.34)
 
 import type { User } from "@/domains/core/user/entities";
-import type { UserStatus } from "@/domains/core/user/types";
+import type { BulkChangeStatusParams, BulkChangeStatusResult } from "@/domains/core/user/types";
+import { BULK_STATUS_TARGETS } from "@/domains/core/user/constants/status";
 import { getRoleCategory } from "@/domains/core/user/utils/roleHelpers";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 import { base } from "../drizzleBase";
 import { afterStatusChange, changeStatus } from "./changeStatus";
 
-/** 一括で変えてよい先(withdrawn・pending は止める) */
-export const BULK_STATUS_TARGETS = ["active", "inactive", "suspended", "banned", "security_locked"] as const satisfies readonly UserStatus[];
-
 const CHUNK = 200;
-
-export type BulkChangeStatusParams = {
-  userIds: string[];
-  newStatus: UserStatus;
-  /** 監査に残る理由(必須) */
-  reason: string;
-  /** この状態の人だけ変える(並びを絞るだけ。並びに無い人には届かない) */
-  onlyFrom?: UserStatus;
-  dryRun?: boolean;
-};
-
-export type BulkChangeStatusResult = {
-  dryRun: boolean;
-  /** 変えた(dryRun では変える)人 */
-  changed: Array<{ userId: string; from: UserStatus }>;
-  skipped: Array<{ userId: string; why: string }>;
-  failed: Array<{ userId: string; error: string }>;
-};
 
 /** 先に止める誤り(何も読まない・書かない) */
 function assertParams(params: BulkChangeStatusParams): void {

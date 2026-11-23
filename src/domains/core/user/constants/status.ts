@@ -50,3 +50,6 @@ export const USER_REGISTERED_STATUSES: readonly UserStatus[] = [
   "banned",
   "security_locked",
 ];
+
+/** まとめて変えてよい先(userService.bulkChangeStatus・管理の API・一括操作の部品が読む 1 か所)。withdrawn(退会の流れ)と pending(登録の途中)は除く */
+export const BULK_STATUS_TARGETS = ["active", "inactive", "suspended", "banned", "security_locked"] as const satisfies readonly UserStatus[];

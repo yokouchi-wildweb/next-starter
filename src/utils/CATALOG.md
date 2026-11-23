@@ -15,6 +15,7 @@
 - src/utils/hash — scrypt による文字列のハッシュと照合
 - src/utils/log — 段階つきの開発用ログ
 - src/utils/math — 範囲の乱数・決まった種の乱数・確率の判定
+- src/utils/runInChunks — 長い並びを束に分けて順に処理し、途中の失敗で止めて済んだ束を返す(ChunkRunError)
 - src/utils/string — 空文字の null への正規化・日本語の切り詰め(truncateJapanese)
 - src/utils/url — 入力された URL を href に渡してよいかの判定
 - src/utils/xShare — X(Twitter)の投稿インテントの URL と開く操作

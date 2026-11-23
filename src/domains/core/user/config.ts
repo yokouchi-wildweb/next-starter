@@ -74,6 +74,7 @@ export type UserConfig = {
    * ユーザーの一括更新（userService.bulkUpdateByIds / bulkUpdate）。
    * fields に無い列は 400 で拒否する。表示名・ステータス・ロール・メール・電話番号・パスワード・isDemo は
    * wrappers の処理が要るので足さない。
+   * maxIds は管理のまとめての付与(POST /api/admin/wallet/bulk/grant)・状態の変更(POST /api/admin/user/bulk/status)の 1 回の上限も兼ねる。
    */
   bulkUpdate: {
     fields: readonly UserBulkUpdateField[];

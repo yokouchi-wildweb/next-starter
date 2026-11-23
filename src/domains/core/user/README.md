@@ -68,6 +68,14 @@ fork がロールを変える上書き（core ロールは `label`・`hasProfile
   - ユーザーは id の並びかファイルで渡す(状態で全員を拾う形は無い)。`--from` は渡した並びを「今その状態の人だけ」に絞るだけ
   - 止める鍵は無い: 打ち直すと既に変わった人を飛ばすので、途中で落ちても同じ指定で打ち直せる。実行は `task_runs` に記録され、監査の requestId = その行の id
 - サービス: `userService.bulkChangeStatus`(引数と戻り値は [API.md](./API.md))。管理画面から呼ぶときも同じ関数
+- 管理の API: `POST /api/admin/user/bulk/status`(管理者のみ、body = サービスの引数 `{ userIds, newStatus, reason, onlyFrom?, dryRun? }`、戻り値 = サービスの結果)。1 回は `userConfig.bulkUpdate.maxIds` 人まで(既定 1000、超えると 400。多い時は画面側で分けて送る)。上流は画面を作らない: fork が画面から dry-run → 確かめ → 本番の順に呼ぶ
+- 画面から: `useBulkChangeUserStatus().trigger({ userIds, newStatus, reason, onlyFrom?, dryRun? })`(`userClient.bulkChangeStatus` を上限ずつの束に分けて順に送り、結果をまとめて返す。途中の束の失敗は `ChunkRunError`(`@/utils/runInChunks`)= 何束目まで済んだかと済んだ束の結果)
+- 一括操作の部品: `bulkUserStatusAction(meta, options?)`(`@/domains/core/user/components/AdminUserBulkStatusAction`)= 変える先・絞り・理由 → 確かめる(dryRun)→ 実行の小窓つきの `BulkActionItem`。上流は項目を差さない。fork は一覧のドメインの `plugs/adminBulkActions/<名前>.tsx` に 1 項目:
+
+```tsx
+// <fork のドメイン>/plugs/adminBulkActions/userStatus.tsx
+export const bulkAction: UserAdminBulkActionItem = bulkUserStatusAction<User, AdminBulkActionAccess>({ key: "userStatus", lists: ["general"], order: 50 });
+```
 - 1 人ずつ `changeStatus` と同じ道: users の更新・遷移の履歴(trigger `admin_change_status`)・監査 `user.status.changed` を 1 人 1 transaction で書き、確定の後に banned / security_locked のセッション失効とロック解除の監査(`afterStatusChange`)。1 人の失敗は他の人を戻さない
 - 変えられる先: `active` / `inactive` / `suspended` / `banned` / `security_locked`。`withdrawn`(退会の流れ `withdraw` がある)と `pending`(登録の途中)は先に止める
 - 飛ばす: 知らない id・削除済み・既にその状態・`--from` でない・管理者のカテゴリのロール(管理者は 1 人ずつの画面で)
@@ -175,7 +183,8 @@ const result = await userClient.searchWithProfile("contributor", {
 |------|------|------|
 | タグを足す / 外す（既存のタグは残す） | `useBulkAddUserTags` / `useBulkRemoveUserTags` の `trigger(userIds, tagIds)` | 1 文の SQL。再追加は何もしない |
 | `adminMemo`、タグの置き換え | `useBulkUpdateByIdsUser`（同じ値）/ `useBulkUpdateUser`（行ごとに違う値） | `base` の一括更新。全件成功か全件失敗か |
-| `status` / `role` | 1 人ずつ `useChangeUserStatus` / `useChangeUserRole` | 一括の経路は無い |
+| `status` | まとめて `useBulkChangeUserStatus`(下の「状態をまとめて変える」)/ 1 人ずつ `useChangeUserStatus` | 1 人 1 transaction。汎用の一括更新には載せない |
+| `role` | 1 人ずつ `useChangeUserRole` | 一括の経路は無い |
 | `name` / `email` / `phoneNumber` / パスワード | 1 人ずつ `useUpdateUser` | 一括の経路は無い |
 
 - 認可: 汎用 API の `ADMIN_ONLY`（管理者のみ）

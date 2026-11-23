@@ -99,3 +99,6 @@ export type {
   BuildMypageMenuInput,
   BuiltMypageMenu,
 } from "./mypageMenu";
+
+// 状態のまとめての変更の引数と結果(README Usage「状態をまとめて変える」)
+export type { BulkChangeStatusParams, BulkChangeStatusResult } from "./bulkStatus";
