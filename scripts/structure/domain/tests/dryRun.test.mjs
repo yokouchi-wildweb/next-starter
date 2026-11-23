@@ -8,6 +8,7 @@ import { spawnSync } from "node:child_process";
 import { createDomainContext } from "../domain/context.mjs";
 import { createWorkspace } from "../domain/workspace.mjs";
 import { describeOutput, reportDryRun, summarizeDryRun } from "../pipeline/dryRun.mjs";
+import { everyRunPathsOf, planGenerateAll } from "../pipeline/generateAll.mjs";
 import { planDomain } from "../pipeline/plan.mjs";
 import { ALL_GENERATE_OPTIONS } from "../spec/categories.mjs";
 import { file, patch, writeOnce } from "../render/output.mjs";
@@ -55,4 +56,18 @@ test("CLI: --dry-run は --generate と併用、対話なしで一覧を出す�
   assert.equal(ok.status, 0, ok.stderr);
   assert.match(ok.stdout, /\[dry-run\] sampleTag: 変更なし \d+（serviceRegistry\.ts は実行時に作り直す）/);
   assert.doesNotMatch(ok.stdout, /更新しました|生成しました/);
+});
+
+test("一括生成の計画(planGenerateAll・everyRunPathsOf): 書かずに、生成器が毎回書き直すファイルだけを返す(条件つきの出力は条件が真のドメインだけ)", () => {
+  const workspace = createWorkspace(repoRoot);
+  const silent = { log: () => {}, warn: () => {} };
+  const before = fs.statSync(path.join(repoRoot, "src/domains/sample/entities/drizzle.ts")).mtimeMs;
+  const paths = everyRunPathsOf(planGenerateAll(workspace, ["sample", "sampleTag"], null, null, silent).plans, repoRoot);
+  // sample は useDetailModal: true、sampleTag は無し → DetailModal は sample だけ
+  assert.ok(paths.has("src/domains/sample/components/common/SampleDetailModal.tsx"));
+  assert.ok(!paths.has("src/domains/sampleTag/components/common/SampleTagDetailModal.tsx"));
+  assert.ok(paths.has("src/domains/sampleTag/components/common/SampleTagFields.tsx"));
+  // 無いときだけ書く物(write-once)は入らない
+  assert.ok(!paths.has("src/domains/sample/services/server/sampleService.ts"));
+  assert.equal(fs.statSync(path.join(repoRoot, "src/domains/sample/entities/drizzle.ts")).mtimeMs, before, "書かない");
 });

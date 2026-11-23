@@ -1,6 +1,6 @@
 // scripts/workflow/rules/generated.mjs — pnpm check rules の生成物の検査(D135)
 // 止める: 上流の生成器の出力の宣言(各 phase.json の outputs)が .claude/rules/core/generated.md の paths に当たらない /
-//         毎回の出力(every-run、ドメインの生成器は作り直しの対象のドメインの分)で、注釈を持てる形式なのに先頭に生成物の印が無い
+//         毎回の出力(every-run、ドメインの生成器は作り直しの対象のドメインで生成の計画が実際に書く分)で、注釈を持てる形式なのに先頭に生成物の印が無い
 // 書き場所の一覧の generated の行 = outputs の一致は scripts/structure/extensions/check.mjs が守る(intake.txt の生成区画のずれで止まる)
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -8,6 +8,8 @@ import { join } from "node:path";
 import { loadPhases, scanTargets } from "../../runner/phases/scan.mjs";
 import { hasGeneratedMark, MARKABLE, outputFiles, outputsOutsidePaths } from "./lib.ruleGenerated.mjs";
 import { planUnmark } from "../../structure/domain/cli/unmark.mjs";
+import { createWorkspace } from "../../structure/domain/domain/workspace.mjs";
+import { everyRunPathsOf, planGenerateAll } from "../../structure/domain/pipeline/generateAll.mjs";
 import { parsePaths } from "./lib.rulePaths.mjs";
 import { CORE_DIR } from "./lib.ruleRepo.mjs";
 
@@ -31,9 +33,20 @@ const domains = existsSync(join(root, DISTRICT_MAP))
       })
   : [];
 
-const entries = outputFiles(gates, files, domains);
-const generatedPaths = parsePaths(read(`${CORE_DIR}/generated.md`)) ?? [];
 const fails = [];
+// ドメインの生成器がこの木で実際に毎回書き直すファイル = 一括生成と同じ計画(書かない)。条件つきの出力(useDetailModal など)を
+// 宣言の glob だけで数えると、生成器が書かない同じ名の手書きの部品が「印が無い」で止まる。計画を組めない(domain.json の誤りなど)= 判定できないので止める
+let planned = null;
+try {
+  const workspace = createWorkspace(root);
+  const silent = { log: () => {}, warn: () => {} };
+  planned = everyRunPathsOf(planGenerateAll(workspace, workspace.listDomains(), null, null, silent).plans, root);
+} catch (error) {
+  fails.push(`ドメインの生成の計画を組めない(生成物の印を判定できない。pnpm generate domain -- --dry-run で確かめて直す): ${error instanceof Error ? error.message : String(error)}`);
+}
+
+const entries = outputFiles(gates, files, domains, planned);
+const generatedPaths = parsePaths(read(`${CORE_DIR}/generated.md`)) ?? [];
 let domainEveryRun = 0;
 
 for (const e of entries) for (const p of e.problems) fails.push(`${e.gate}/phase.json: ${p}`);

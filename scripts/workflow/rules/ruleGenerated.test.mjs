@@ -36,6 +36,24 @@ test("出力の宣言 → ファイル: 文字列は every-run、generate:false 
   assert.equal(outputFiles([{ gate: "g", outputs: "x" }], [], [])[0].problems.length, 1);
 });
 
+test("ドメインの every-run は生成の計画が書くファイルだけ: 条件が偽のドメインの同じ名の手書きの部品は生成物と数えない", () => {
+  const gates = [
+    {
+      gate: "structure/domain",
+      outputs: [
+        { glob: "{dir}/components/common/{Pascal}DetailModal.tsx", kind: "every-run" },
+        { glob: "{dir}/seed.ts", kind: "write-once" },
+      ],
+    },
+  ];
+  const files = ["src/domains/on/components/common/OnDetailModal.tsx", "src/domains/off/components/common/OffDetailModal.tsx", "src/domains/off/seed.ts"];
+  const domains = [{ dir: "src/domains/on" }, { dir: "src/domains/off" }];
+  const planned = new Set(["src/domains/on/components/common/OnDetailModal.tsx"]);
+  assert.deepEqual(outputFiles(gates, files, domains, planned).map((e) => e.files), [["src/domains/on/components/common/OnDetailModal.tsx"], ["src/domains/off/seed.ts"]]);
+  // 計画なし(null) = 宣言の glob のまま
+  assert.deepEqual(outputFiles(gates, files, domains)[0].files, ["src/domains/on/components/common/OnDetailModal.tsx", "src/domains/off/components/common/OffDetailModal.tsx"]);
+});
+
 test("generated の paths に当たらない宣言を挙げる", () => {
   const entries = [{ glob: "src/registry/a.ts" }, { glob: "{dir}/entities/schema.ts" }, { glob: "src/lib/x/generated/y.ts" }];
   assert.deepEqual(outputsOutsidePaths(entries, ["src/registry/**", "src/domains/**"]).map((e) => e.glob), ["src/lib/x/generated/y.ts"]);

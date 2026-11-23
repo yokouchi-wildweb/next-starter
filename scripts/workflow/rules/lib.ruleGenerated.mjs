@@ -31,16 +31,21 @@ export function expandDomainGlob(glob, domains) {
  * @param {{ gate: string, outputs: unknown }[]} gates phase.json ごとの outputs
  * @param {string[]} files 追跡中のファイル
  * @param {{ dir: string, plural?: string }[]} domains
+ * @param {Set<string> | null} [domainEveryRun] ドメインの生成器がこの木で実際に毎回書き直すファイル(生成の計画、pipeline/generateAll.mjs everyRunPathsOf)。
+ *   ドメインの雛形の every-run の宣言はこれに入るファイルだけを数える: 宣言の glob は条件(例 useDetailModal の時だけの DetailModal)を持たないので、
+ *   生成器が書かない同じ名の手書きの部品を生成物と読み違えない。null = 絞らない(宣言の glob のまま)
  * @returns {{ gate: string, glob: string, kind: string, domain: boolean, files: string[], problems: string[] }[]}
  */
-export function outputFiles(gates, files, domains) {
+export function outputFiles(gates, files, domains, domainEveryRun = null) {
   const out = [];
   for (const { gate, outputs } of gates) {
     const { entries, problems } = normalizeGateOutputs(outputs);
     if (problems.length) out.push({ gate, glob: "-", kind: "-", domain: false, files: [], problems });
     for (const e of entries) {
       const globs = expandDomainGlob(e.glob, domains);
-      out.push({ gate, glob: e.glob, kind: e.kind, domain: isDomainTemplateGlob(e.glob), files: files.filter((f) => globs.some((g) => matchesLoad(f, g))), problems: [] });
+      const domain = isDomainTemplateGlob(e.glob);
+      const planned = domain && e.kind === "every-run" && domainEveryRun ? (f) => domainEveryRun.has(f) : () => true;
+      out.push({ gate, glob: e.glob, kind: e.kind, domain, files: files.filter((f) => globs.some((g) => matchesLoad(f, g)) && planned(f)), problems: [] });
     }
   }
   return out;

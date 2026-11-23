@@ -2,6 +2,8 @@
 // serviceRegistry.ts は最後に 1 回だけ作り直す。
 // 主と従属の組（pairs.mjs）を一度解き、この実行で書き出す従属も加えて、従属を所有する主の直前に並べる（それ以外の順は変えない）
 
+import path from "node:path";
+
 import { assertDomainFolderNames } from "../checks/domainFolder.mjs";
 import { applyOutputs } from "./apply.mjs";
 import { reportDryRun, summarizeDryRun } from "./dryRun.mjs";
@@ -18,13 +20,15 @@ function bufferedIo(io) {
 }
 
 /**
+ * 一括生成の組み立て(書かない): 全件の検査 → 組を解く → ドメインごとの生成物(Output)。runGenerateAll の 1 段目で、
+ * 生成物の印の検査(scripts/workflow/rules/generated.mjs)も同じ計画を読む(生成器が実際に書くファイルだけを生成物と数える)
  * @param {import("../domain/workspace.mjs").Workspace} workspace
  * @param {string[]} selectedDomains フォルダ名
  * @param {Record<string, boolean> | null} manualGenerate 手動選択（null = 各 domain.json の generate で決まるカテゴリ）
  * @param {string[] | null} only --only
- * @param {{ dryRun?: boolean, io?: { log: Function, warn: Function } }} [options]
+ * @param {{ log: Function, warn: Function }} [io]
  */
-export function runGenerateAll(workspace, selectedDomains, manualGenerate, only, { dryRun = false, io = console } = {}) {
+export function planGenerateAll(workspace, selectedDomains, manualGenerate, only, io = console) {
   // 途中のドメインで止まって生成が半端に残らないよう、ループの前に全件を検査する
   // 手で管理（generate: false）のドメインは検査もしない（生成器を一切通さない）
   assertDomainFolderNames(workspace, selectedDomains.filter((domain) => !isHandManaged(workspace.readConfigLenient(workspace.configPath(domain)))));
@@ -33,8 +37,6 @@ export function runGenerateAll(workspace, selectedDomains, manualGenerate, only,
   // 選んだドメインの組の全員（この実行で書き出す従属・選んだ従属の主）を加え、従属 → 主の順に並べる
   const domains = orderWithPairs(pairs, [...new Set(selectedDomains.flatMap((domain) => groupOf(pairs, domain)))]);
   printPairNotices(pairs, domains, io);
-
-  // 1. 全ドメインの生成物を組み立てる（ここで検査に落ちれば何も書かない）
   const plans = domains.map((domain) => {
     const { buffer, flush } = bufferedIo(io);
     const ctx = loadDomainForGenerate(workspace, domain, buffer, pairs.pending.has(domain) ? { config: pairs.pending.get(domain) } : {});
@@ -42,6 +44,31 @@ export function runGenerateAll(workspace, selectedDomains, manualGenerate, only,
     ctx.collectionChildren = collectionChildrenOf(workspace, pairs, domain);
     return { domain, ctx, gen, outputs: planDomain(ctx, workspace, gen), flush };
   });
+  return { pairs, domains, plans };
+}
+
+/**
+ * 計画の毎回書き直す出力(Output の kind "file")のパス(リポの根からの相対、/ 区切り)
+ * @param {{ outputs: import("../render/output.mjs").Output[] }[]} plans
+ * @param {string} rootDir
+ * @returns {Set<string>}
+ */
+export function everyRunPathsOf(plans, rootDir) {
+  return new Set(
+    plans.flatMap((plan) => plan.outputs.filter((o) => o.kind === "file").map((o) => path.relative(rootDir, o.path).split(path.sep).join("/"))),
+  );
+}
+
+/**
+ * @param {import("../domain/workspace.mjs").Workspace} workspace
+ * @param {string[]} selectedDomains フォルダ名
+ * @param {Record<string, boolean> | null} manualGenerate 手動選択（null = 各 domain.json の generate で決まるカテゴリ）
+ * @param {string[] | null} only --only
+ * @param {{ dryRun?: boolean, io?: { log: Function, warn: Function } }} [options]
+ */
+export function runGenerateAll(workspace, selectedDomains, manualGenerate, only, { dryRun = false, io = console } = {}) {
+  // 1. 全ドメインの生成物を組み立てる（ここで検査に落ちれば何も書かない）
+  const { pairs, domains, plans } = planGenerateAll(workspace, selectedDomains, manualGenerate, only, io);
   const registryGenerated = plans.some((plan) => plan.gen.registry);
 
   // 2. 書いた後の状態で登録表が作れるかを先に確かめる
