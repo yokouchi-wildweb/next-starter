@@ -4,6 +4,7 @@ date: 2026-11-23T14:00:50+09:00
 severity: info
 checkpoint: bank-transfer-confirm-promise
 fixes: 20261108-170003-admin-screen-hooks
+pick: clean
 resolves: 20261123-135842-bank-transfer-confirm-promise
 change: the approve dialog of the admin bank-transfer review (src/app/admin/(protected)/bank-transfer-reviews/[status]/_screen/BankTransferReviewDetailModal.tsx) passes a Promise to Dialog onConfirm again (`async () => { await confirm(); }` instead of `() => void confirm()`), so Dialog shows its pending state and locks the button until the approve request ends
 why: the void wrapper from admin-screen-hooks gave Dialog no Promise: a fast double click sent the approve API twice (the second failed on the state check with an error toast; no double approval)
