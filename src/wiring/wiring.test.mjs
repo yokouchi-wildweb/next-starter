@@ -31,7 +31,7 @@ const srcDir = join(repoRoot, "src");
 const wiringDir = join(srcDir, "wiring");
 
 /** src/wiring に置けるファイル（目録） */
-const WIRING_FILES = ["AppProviders.tsx", "README.md", "apiRoute.ts", "business.ts", "cron.ts", "cronRoute.ts", "dbAgent.ts", "domainConfig.ts", "domainRegistry.ts", "formSuite.ts", "googleTag.ts", "pageGuard.ts", "routeFactory.test.mts", "routeFactory.ts", "serverErrorReport.ts", "startup.ts", "wiring.test.mjs"];
+const WIRING_FILES = ["AppProviders.tsx", "README.md", "apiRoute.ts", "backends.ts", "business.ts", "cron.ts", "cronRoute.ts", "dbAgent.ts", "domainConfig.ts", "domainRegistry.ts", "formSuite.ts", "googleTag.ts", "pageGuard.ts", "routeFactory.test.mts", "routeFactory.ts", "serverErrorReport.ts", "startup.ts", "wiring.test.mjs"];
 
 /** wiring を import してよい場所（src 相対の接頭辞） */
 const ALLOWED_IMPORTER_PREFIXES = ["app/", "proxies/"];

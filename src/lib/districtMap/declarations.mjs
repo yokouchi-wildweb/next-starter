@@ -18,6 +18,14 @@ export const WIRE_NAME = "wire";
  * 常設 = どの機能の規則にも載らず常に開くドメイン。宣言はドメインだけ(lib・枠などは止める)。点の欄 alwaysOn(門番を掛けずに読む一覧)とは別の物
  */
 export const ALWAYS_OPEN_NAME = "alwaysOpen";
+/**
+ * ドメインが要るバックエンドの能力の宣言の名前(同じ extensionPoints.ts の export const backendRequirements = ["<口>.<語>", …]、D29・D36)。
+ * 字面だけ、ドメインだけ。生成器が開いているドメインの分だけ選択表の provides と照らす
+ */
+export const BACKEND_REQUIREMENTS_NAME = "backendRequirements";
+/** 選ぶ点の項目の宣言と本体の export の名前(<持ち主>/plugs/<点>/<名前>.ts の export const declaration / adapter、D9・D29) */
+export const BACKEND_DECLARATION_NAME = "declaration";
+export const BACKEND_ADAPTER_NAME = "adapter";
 /** ドメインの地区の置き場(常設の宣言を持てるのはこの下の宣言だけ) */
 const DOMAINS_ROOT = "src/domains/";
 /** 宣言を探す範囲(リポジトリ直下からの相対) */
@@ -47,7 +55,7 @@ const WRITERS = ["role:generate"];
 const TARGETS = ["wiring"];
 /** 組み込みの変換(一覧の項目に付け足す値)。fork が足す口は無い */
 export const DERIVES = ["featureTables", "settingSections"];
-const KEYS = ["change", "plugs", "max", "required", "order", "stages", "skeletonStages", "default", "dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn", "literalKeys", "files", "shape", "pureImports", "requireText", "overrideOf", "writer", "overrides", "addable", "placement", "kind", "keyedBy", "itemsOf"];
+const KEYS = ["change", "plugs", "max", "required", "order", "stages", "skeletonStages", "default", "dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn", "literalKeys", "files", "shape", "pureImports", "requireText", "overrideOf", "writer", "overrides", "addable", "placement", "kind", "keyedBy", "itemsOf", "select"];
 /**
  * 点の変え方の型(CHANGE_TYPES 1〜4、地区の議会 D20・D35)。どの点も change を書く(段 2 の宣言の 2 段の 1 段目)。
  * add = 増設点(dir か files の受け口、writer の一覧も fork が項目を足す点)/ override = 上書点(overrides)/ counterpart = 対置点(placement)/
@@ -64,6 +72,12 @@ const OVERRIDE_TARGET_KEYS = ["change", "overrides", "side", "overrideOf", "adda
 const PLUGS_DENIED = ["dir", "ignore"];
 /** 差替点が持てるキー */
 const REPLACE_KEYS = ["change", "default", "type", "side"];
+/** 選ぶ点(select を持つ plugs の点、D36)が持てるキー */
+const SELECT_POINT_KEYS = ["change", "plugs", "export", "type", "side", "select", "pureImports"];
+/** select の中のキー */
+const SELECT_KEYS = ["port", "optional", "words", "compat"];
+/** 能力の名前 "<口>.<語>"(D29) */
+export const CAPABILITY_NAME = /^[a-z][A-Za-z0-9]*\.[a-z][A-Za-z0-9]*$/;
 const POINT_NAME = /^[a-z][A-Za-z0-9]*$/;
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
@@ -189,6 +203,8 @@ function checkPoint(name, value) {
     if (point.itemsOf !== undefined && (!isString(point.itemsOf) || !POINT_NAME.test(point.itemsOf) || point.files === undefined)) problems.push(`${name}: itemsOf は同じ宣言の plugs の点の名前で、files と一緒に(その点の項目のフォルダの別のファイルを読む)`);
   } else if (point.itemsOf !== undefined) problems.push(`${name}: itemsOf は plugs の点だけ`);
   else if (!isString(point.dir) || point.dir.startsWith("/") || point.dir.split("/").includes("..")) problems.push(`${name}: dir は持ち主のフォルダからの相対パス("." = 持ち主の直下)`);
+  // select: 選ぶ点(D9・D36)。change add の plugs の点に足すと、項目のうち選択表が指す 1 つだけを生成物が re-export する
+  if (point.select !== undefined) problems.push(...checkSelect(name, point));
   if (!isString(point.export) || !IDENTIFIER.test(point.export)) problems.push(`${name}: export は項目が export する名前`);
   if (typeof point.type !== "object" || point.type === null || Array.isArray(point.type) || !isString(point.type.from) || !isString(point.type.name) || !IDENTIFIER.test(point.type.name)) {
     problems.push(`${name}: type は { from: "<import 元>", name: "<型の名前>" }`);
@@ -228,6 +244,49 @@ function checkPoint(name, value) {
     if (names.length === 0 || !names.every((n) => stages.includes(n)) || names.length >= stages.length) problems.push(`${name}: skeletonStages は stages の中の名前の配列(項目の選べる段が 1 つは残る)`);
   }
   return problems;
+}
+
+/**
+ * 選ぶ点の宣言を確かめる: select = { port, optional?, words, compat }(D36)。項目は export const declaration と adapter を持つので export は "adapter"
+ * @param {string} name
+ * @param {PointSpec} point
+ * @returns {string[]}
+ */
+function checkSelect(name, point) {
+  /** @type {string[]} */
+  const problems = [];
+  if (point.plugs !== true) problems.push(`${name}: select は plugs の点だけ(項目は <持ち主>/plugs/${name}/<名前>.ts)`);
+  for (const key of Object.keys(point)) if (KEYS.includes(key) && !SELECT_POINT_KEYS.includes(key)) problems.push(`${name}: 選ぶ点に ${key} は書けない(書けるのは ${SELECT_POINT_KEYS.join(" / ")})`);
+  if (point.export !== BACKEND_ADAPTER_NAME) problems.push(`${name}: 選ぶ点の export は "${BACKEND_ADAPTER_NAME}"(項目の本体。宣言は export const ${BACKEND_DECLARATION_NAME})`);
+  const select = point.select;
+  if (typeof select !== "object" || select === null || Array.isArray(select)) return [...problems, `${name}: select は { port, optional?, words, compat } の object`];
+  for (const key of Object.keys(select)) if (!SELECT_KEYS.includes(key)) problems.push(`${name}: select の未知のキー ${key}(使えるのは ${SELECT_KEYS.join(" / ")})`);
+  if (!isString(select.port) || !POINT_NAME.test(select.port)) problems.push(`${name}: select.port は口の名前(英小文字始まりの camelCase)`);
+  if (select.optional !== undefined && typeof select.optional !== "boolean") problems.push(`${name}: select.optional は真偽(true = 選択表に "none" を書ける口)`);
+  const words = Array.isArray(select.words) ? select.words : null;
+  if (!words || words.length === 0 || !words.every((w) => isString(w) && POINT_NAME.test(w))) problems.push(`${name}: select.words は能力の語(英小文字始まりの camelCase)の配列(1 つ以上)`);
+  else if (new Set(words).size !== words.length) problems.push(`${name}: select.words に同じ語が 2 回ある`);
+  problems.push(...checkCompat(name, select.compat));
+  return problems;
+}
+
+/**
+ * 今の設定の読み方 compat = { from: "env", name, map, default } | { from: "fixed", value }(D29)
+ * @param {string} name
+ * @param {LiteralValue | undefined} compat
+ * @returns {string[]}
+ */
+function checkCompat(name, compat) {
+  const shape = `${name}: select.compat は { from: "env", name, map, default } か { from: "fixed", value }`;
+  if (typeof compat !== "object" || compat === null || Array.isArray(compat)) return [shape];
+  if (compat.from === "env") {
+    const keysOk = Object.keys(compat).every((k) => ["from", "name", "map", "default"].includes(k));
+    const map = compat.map;
+    const mapOk = typeof map === "object" && map !== null && !Array.isArray(map) && Object.values(map).every(isString);
+    return keysOk && isString(compat.name) && mapOk && isString(compat.default) ? [] : [shape];
+  }
+  if (compat.from === "fixed") return Object.keys(compat).every((k) => ["from", "value"].includes(k)) && isString(compat.value) ? [] : [shape];
+  return [shape];
 }
 
 /** 結び目の宣言が持てるキー */
@@ -270,6 +329,9 @@ export function changeOfFields(point) {
 const fieldsNote = (point) =>
   point.placement !== undefined ? "placement " : point.overrides !== undefined ? "overrides " : point.default !== undefined ? "default " : point.writer !== undefined ? "writer " : "dir・files ";
 
+/** 選ぶ点(select を持つ plugs の点、D36)か。一覧でなく、選択表が指す 1 項目の re-export を生成する */
+export const isSelectPoint = (/** @type {PointSpec} */ spec) => spec.select !== undefined;
+
 /** plugs の点(差す側の <ドメイン>/plugs/<点>/ から集める増設点)か */
 export const isPlugsPoint = (/** @type {PointSpec} */ spec) => spec.plugs === true;
 
@@ -283,9 +345,64 @@ export const isListPoint = (spec) => spec.writer === undefined && spec.overrides
  * 宣言のファイルを 1 つ読む
  * @param {string} path リポジトリ直下からの相対
  * @param {string} text
- * @returns {{ points: Record<string, PointSpec>, wire?: WireSpec, alwaysOpen?: boolean, problems: string[] }} alwaysOpen = 常設の宣言(export const alwaysOpen = true)
+ * @returns {{ points: Record<string, PointSpec>, wire?: WireSpec, alwaysOpen?: boolean, backendRequirements?: string[], problems: string[] }}
+ *   alwaysOpen = 常設の宣言(export const alwaysOpen = true)/ backendRequirements = ドメインが要る能力(export const backendRequirements = [...])
  */
 export function readDeclaration(path, text) {
+  const read = readDeclarationBody(path, text);
+  const requirements = readBackendRequirements(path, text);
+  if (requirements.problem === undefined && requirements.value === undefined) return read;
+  // 要る能力の宣言があるファイル(点も常設の宣言も無くてよい)は点の宣言の欠けを問わない
+  const problems = read.problems.filter((p) => p !== missingDeclaration(path));
+  if (requirements.problem !== undefined) return { ...read, problems: [...problems, requirements.problem] };
+  return { ...read, problems, backendRequirements: requirements.value };
+}
+
+/** @param {string} path */
+const missingDeclaration = (path) => `${path}: export const ${DECLARATION_NAME} = { … } が無い`;
+
+/**
+ * export const backendRequirements = ["<口>.<語>", …] を読む(字面だけ)。無ければ value も problem も無い
+ * @param {string} path
+ * @param {string} text
+ * @returns {{ value?: string[], problem?: string }}
+ */
+function readBackendRequirements(path, text) {
+  const initializer = exportedInitializer(path, text, BACKEND_REQUIREMENTS_NAME);
+  if (!initializer) return {};
+  const read = literalOf(initializer);
+  if (read.problem !== undefined) return { problem: `${path}: ${BACKEND_REQUIREMENTS_NAME}: ${read.problem}` };
+  const list = read.value;
+  if (!Array.isArray(list) || !list.every((v) => typeof v === "string" && CAPABILITY_NAME.test(v))) return { problem: `${path}: ${BACKEND_REQUIREMENTS_NAME} は能力の名前 "<口>.<語>" の文字列の配列` };
+  if (new Set(list).size !== list.length) return { problem: `${path}: ${BACKEND_REQUIREMENTS_NAME} に同じ能力が 2 回ある` };
+  return { value: /** @type {string[]} */ (list) };
+}
+
+/**
+ * 最上位の export const <name> = … の値の式(無ければ null)
+ * @param {string} path
+ * @param {string} text
+ * @param {string} name
+ * @returns {ts.Expression | null}
+ */
+export function exportedInitializer(path, text, name) {
+  const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, path.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  for (const statement of source.statements) {
+    if (!ts.isVariableStatement(statement) || !statement.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) continue;
+    for (const declaration of statement.declarationList.declarations) {
+      if (ts.isIdentifier(declaration.name) && declaration.name.text === name) return declaration.initializer ?? null;
+    }
+  }
+  return null;
+}
+
+/**
+ * 点・結び目・常設の宣言を読む(readDeclaration の本体)
+ * @param {string} path
+ * @param {string} text
+ * @returns {{ points: Record<string, PointSpec>, wire?: WireSpec, alwaysOpen?: boolean, problems: string[] }}
+ */
+function readDeclarationBody(path, text) {
   const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   /** @type {ts.Expression | null} */
   let initializer = null;
@@ -310,7 +427,7 @@ export function readDeclaration(path, text) {
     alwaysOpen = true;
   }
   if (!initializer && alwaysOpen) return { points: {}, alwaysOpen, problems: [] };
-  if (!initializer) return { points: {}, problems: [`${path}: export const ${DECLARATION_NAME} = { … } が無い`] };
+  if (!initializer) return { points: {}, problems: [missingDeclaration(path)] };
   const read = literalOf(initializer);
   if (read.problem !== undefined) return { points: {}, problems: [`${path}: ${read.problem}`] };
   if (typeof read.value !== "object" || read.value === null || Array.isArray(read.value)) {
@@ -350,8 +467,9 @@ export const isDeclarationPath = (path) =>
  * 宣言のファイルの一覧と読み方から点の一覧を作る(ファイルにも git にも触れない。git の版の木を読む pnpm workflow ownership who も使う)
  * @param {Iterable<string>} files 宣言のファイル(リポジトリ直下からの相対。宣言でないパスは isDeclarationPath で除く)
  * @param {(path: string) => string | null} readText
- * @returns {{ points: { owner: string, name: string, declaredIn: string, spec: PointSpec }[], wires: { owner: string, declaredIn: string, spec: WireSpec }[], alwaysOpen: string[], problems: string[] }}
- *   wires = lib の結び目の宣言(export const wire)/ alwaysOpen = 常設を宣言したドメインのフォルダ(export const alwaysOpen = true)
+ * @returns {{ points: { owner: string, name: string, declaredIn: string, spec: PointSpec }[], wires: { owner: string, declaredIn: string, spec: WireSpec }[], alwaysOpen: string[], backendRequirements: { domain: string, declaredIn: string, requires: string[] }[], problems: string[] }}
+ *   wires = lib の結び目の宣言(export const wire)/ alwaysOpen = 常設を宣言したドメインのフォルダ(export const alwaysOpen = true)/
+ *   backendRequirements = ドメインのフォルダと要る能力(export const backendRequirements)
  */
 export function pointsFromFiles(files, readText) {
   /** @type {{ owner: string, name: string, declaredIn: string, spec: PointSpec }[]} */
@@ -362,6 +480,8 @@ export function pointsFromFiles(files, readText) {
   const problems = [];
   /** @type {string[]} */
   const alwaysOpen = [];
+  /** @type {{ domain: string, declaredIn: string, requires: string[] }[]} */
+  const backendRequirements = [];
   for (const path of [...files].filter(isDeclarationPath).sort()) {
     const text = readText(path);
     if (text === null) continue;
@@ -371,10 +491,20 @@ export function pointsFromFiles(files, readText) {
       if (path.startsWith(DOMAINS_ROOT)) alwaysOpen.push(path.slice(0, path.lastIndexOf("/")));
       else problems.push(`${path}: ${ALWAYS_OPEN_NAME}(常設)を宣言できるのはドメインだけ(lib・枠などは門番を持たず閉じない)`);
     }
+    if (read.backendRequirements) {
+      if (path.startsWith(DOMAINS_ROOT)) backendRequirements.push({ domain: path.slice(0, path.lastIndexOf("/")), declaredIn: path, requires: read.backendRequirements });
+      else problems.push(`${path}: ${BACKEND_REQUIREMENTS_NAME}(要る能力)を宣言できるのはドメインだけ(業務コードの要る能力。lib の口の実装は declaration の requires)`);
+    }
     for (const [name, spec] of Object.entries(read.points)) points.push({ owner: path.slice(0, path.lastIndexOf("/")), name, declaredIn: path, spec });
     if (read.wire) wires.push({ owner: path.slice(0, path.lastIndexOf("/")), declaredIn: path, spec: read.wire });
   }
-  return { points: points.sort((a, b) => (a.declaredIn + a.name < b.declaredIn + b.name ? -1 : 1)), wires, alwaysOpen, problems };
+  // 選ぶ点の持ち主は lib か常設のドメインだけ(閉じうるドメインの口は閉じた時に選択が宙に浮く、D10)
+  for (const p of points) {
+    if (!isSelectPoint(p.spec)) continue;
+    const isLib = p.owner.startsWith(`${SEARCH_ROOT}/lib/`) && p.owner.split("/").length === 3;
+    if (!isLib && !alwaysOpen.includes(p.owner)) problems.push(`${p.declaredIn}: 選ぶ点 ${p.name} を宣言できるのは lib か常設のドメイン(export const ${ALWAYS_OPEN_NAME} = true)だけ(D10)`);
+  }
+  return { points: points.sort((a, b) => (a.declaredIn + a.name < b.declaredIn + b.name ? -1 : 1)), wires, alwaysOpen, backendRequirements, problems };
 }
 
 /** 枠の地区の宣言のフォルダ(src/app の下の _layout)。枠の差替点だけは default が src/app の下なら地区の dir の外でも通す(枠の部品はルートの隣にもある、注文 16 Q1) */
@@ -418,4 +548,74 @@ export function replacePointsOf(points) {
     replaces.push({ point: p.name, owner: p.owner, declaredIn: p.declaredIn, default: path, stem: match[1], name: match[2], ext: match[3] });
   }
   return { replaces: replaces.sort((a, b) => (a.default < b.default ? -1 : 1)), problems };
+}
+
+/** 項目の宣言の鍵(D29、ほかの鍵は止める) */
+const BACKEND_DECLARATION_KEYS = ["provides", "requires", "billing", "env"];
+/** 課金の目盛りの種類 */
+export const BILLING_KINDS = ["none", "fixed", "mau", "perRecipient", "egress", "usage"];
+
+/**
+ * 選ぶ点の項目の宣言 export const declaration = { provides, requires, billing, env } を構文木で読む(実行しない、D9・D29)。
+ * 形の問題を返す(知らない語・選択表との照らし合わせは生成器)。adapter = export const adapter があるか
+ * @param {string} path
+ * @param {string} text
+ * @returns {{ declaration?: { provides: string[], requires: string[], billing: { kind: string, unit?: string, priceKey?: string }[], env: { required: string[], optional?: string[] } }, adapter: boolean, problems: string[] }}
+ */
+export function readBackendDeclaration(path, text) {
+  const adapter = exportedInitializer(path, text, BACKEND_ADAPTER_NAME) !== null;
+  const initializer = exportedInitializer(path, text, BACKEND_DECLARATION_NAME);
+  if (!initializer) return { adapter, problems: [`${path}: export const ${BACKEND_DECLARATION_NAME} = { provides, requires, billing, env } が無い`] };
+  const read = literalOf(initializer);
+  if (read.problem !== undefined) return { adapter, problems: [`${path}: ${BACKEND_DECLARATION_NAME}: ${read.problem}`] };
+  const value = read.value;
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return { adapter, problems: [`${path}: ${BACKEND_DECLARATION_NAME} は { provides, requires, billing, env } の object`] };
+  /** @type {string[]} */
+  const problems = [];
+  const at = (/** @type {string} */ m) => problems.push(`${path}: ${BACKEND_DECLARATION_NAME}: ${m}`);
+  for (const key of Object.keys(value)) if (!BACKEND_DECLARATION_KEYS.includes(key)) at(`未知のキー ${key}(使えるのは ${BACKEND_DECLARATION_KEYS.join(" / ")})`);
+  for (const key of BACKEND_DECLARATION_KEYS) if (value[key] === undefined) at(`${key} が無い`);
+  const names = (/** @type {string} */ key) => {
+    const list = value[key];
+    if (list === undefined) return [];
+    if (!Array.isArray(list) || !list.every((v) => typeof v === "string" && CAPABILITY_NAME.test(v))) {
+      at(`${key} は能力の名前 "<口>.<語>" の配列`);
+      return [];
+    }
+    if (new Set(list).size !== list.length) at(`${key} に同じ能力が 2 回ある`);
+    return /** @type {string[]} */ (list);
+  };
+  const provides = names("provides");
+  const requires = names("requires");
+  /** @type {{ kind: string, unit?: string, priceKey?: string }[]} */
+  const billing = [];
+  if (value.billing !== undefined) {
+    if (!Array.isArray(value.billing) || value.billing.length === 0) at(`billing は課金の目盛り { kind, unit?, priceKey? } の配列(1 つ以上)`);
+    else {
+      for (const scale of value.billing) {
+        if (typeof scale !== "object" || scale === null || Array.isArray(scale)) {
+          at(`billing の目盛りは { kind, unit?, priceKey? } の object`);
+          continue;
+        }
+        for (const key of Object.keys(scale)) if (!["kind", "unit", "priceKey"].includes(key)) at(`billing の未知のキー ${key}(使えるのは kind / unit / priceKey)`);
+        if (!oneOf(BILLING_KINDS, scale.kind)) at(`billing の kind は ${BILLING_KINDS.join(" | ")}`);
+        if (scale.unit !== undefined && !isString(scale.unit)) at(`billing の unit は文字列`);
+        if (scale.priceKey !== undefined && !isString(scale.priceKey)) at(`billing の priceKey は文字列`);
+        if (scale.kind === "usage" && !isString(scale.unit)) at(`billing の kind "usage" は unit が要る(message・request・gbMonth・sms 等)`);
+        billing.push(/** @type {{ kind: string, unit?: string, priceKey?: string }} */ (scale));
+      }
+      if (billing.some((b) => b.kind === "none") && billing.length > 1) at(`billing の kind "none" は単独だけ(ほかの目盛りと並べない)`);
+    }
+  }
+  /** @type {{ required: string[], optional?: string[] }} */
+  let env = { required: [] };
+  if (value.env !== undefined) {
+    const e = value.env;
+    const strings = (/** @type {unknown} */ v) => Array.isArray(v) && v.every(isString);
+    if (typeof e !== "object" || e === null || Array.isArray(e) || !Object.keys(e).every((k) => ["required", "optional"].includes(k)) || !strings(e.required) || (e.optional !== undefined && !strings(e.optional))) {
+      at(`env は { required: string[], optional?: string[] }(env の名前だけ)`);
+    } else env = /** @type {{ required: string[], optional?: string[] }} */ (/** @type {unknown} */ (e));
+  }
+  if (!adapter) problems.push(`${path}: export const ${BACKEND_ADAPTER_NAME} が無い(口の実装の本体。isConfigured を持つ)`);
+  return { declaration: problems.length === 0 ? { provides, requires, billing, env } : undefined, adapter, problems };
 }

@@ -19,6 +19,9 @@ servers: standalone programs outside Next/Vercel live in servers/\<name\>/ (own 
 - rules: servers→src imports = @/lib/realtimeRoom/node (the shared protocol) + domains/*/room ONLY | src→servers forbidden | room reducer = domains/\<domain\>/room/ (pure, lint realtime-room/purity) | economy/authority actions = server dispatch (createRoomClient) ONLY, Postgres stays authoritative | protocol breaking change → bump ROOM_PROTOCOL_VERSION
 
 selection: the backend selection table = root backend-selection.json (type 5 self) | key = a port's name, value = the name of the implementation every selecting point of that port picks | written by its command, read only by the generator and the checks
+- command: pnpm workflow backend-selection fill (fills missing keys from each port's compat, local env files only, idempotent) | set <port> <name> | show | ref: scripts/workflow/backend-selection/README.md
+- selecting point: a plugs point (change add) with `select: { port, optional?, words, compat }` in a lib's or an always-open domain's extensionPoints.ts | items = <owner or a lib>/plugs/<point>/<name>.ts with a literal `declaration` + `adapter` (none / fake reserved) | the generator writes <owner>/extensions/<point>.ts re-exporting only the chosen item
+- backend_requirements: a domain declares the capabilities its code needs as `export const backendRequirements = ["<port>.<word>", …]` in its own extensionPoints.ts | only open domains count | ref: scripts/structure/extensions/README.md
 - accepted fork-binding checks: generate and check stop on a missing key, an unknown name, fake selected, or unmet backendRequirements | the generator and checks themselves come with the backend kit
 
 unconfigured: DB / Firebase env (DATABASE_URL, MY_SERVICE_ACCOUNT_KEY, NEXT_PUBLIC_FIREBASE_*) may all be empty right after pnpm ops setup env, and the app still boots | ref: src/lib/firebase/README.md

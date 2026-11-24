@@ -7,7 +7,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, posix } from "node:path";
 
-import { classifyDottedName, oldMarkerProblem, DECLARATION_NAME, EXTENSIONS_DIR_NAME, PLUGS_DIR_NAME, SEARCH_ROOT, WIRE_NAME, isListPoint, isPlugsPoint } from "../../../src/lib/districtMap/index.mjs";
+import { classifyDottedName, oldMarkerProblem, DECLARATION_NAME, EXTENSIONS_DIR_NAME, PLUGS_DIR_NAME, SEARCH_ROOT, WIRE_NAME, isListPoint, isPlugsPoint, isSelectPoint } from "../../../src/lib/districtMap/index.mjs";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
 
 import { collectPoints } from "../../../src/lib/districtMap/node.mjs";
@@ -24,6 +24,7 @@ import { checkPureImports, overrideKeys } from "./pureImports.mjs";
 import { planFrames } from "./frames.mjs";
 import { planIntake } from "./intake.mjs";
 import { discoverPlugs } from "./plugs.mjs";
+import { planSelection } from "./select.mjs";
 import { checkSwitches } from "./switches.mjs";
 
 export const COMMAND = "pnpm generate extensions";
@@ -508,7 +509,7 @@ export function pointsEntryProblems(points) {
 
 export function planExtensions(repoRoot) {
   const identity = readForkIdentity(repoRoot);
-  const { points: declared, wires, problems } = collectPoints(repoRoot);
+  const { points: declared, wires, alwaysOpen, backendRequirements, problems } = collectPoints(repoRoot);
   problems.unshift(...identity.errors);
   problems.push(...oldProxyItemProblems(repoRoot), ...oldFramePlaceProblems(repoRoot), ...oldExceptionPlaceProblems(repoRoot));
   // writer の点の一覧は別の生成器が書く・overrides の点は一覧を持たない: ここでは探さず書かない(宣言の数にだけ入る)
@@ -577,8 +578,12 @@ export function planExtensions(repoRoot) {
   for (const [p, items] of plugs.itemsByPoint) itemsByPoint.set(p, items);
   problems.push(...checkSettingSections(repoRoot, listPoints, itemsByPoint));
 
+  // 選ぶ点(D9・D36): 一覧でなく、選択表 backend-selection.json が指す 1 項目の re-export(./select.mjs)
+  const gatePoint = listPoints.find((p) => p.spec.derive === "featureTables");
+  const selection = planSelection({ repoRoot, points: declared, itemsByPoint, alwaysOpen, backendRequirements, gateDomains: gatePoint?.gateTables?.domains ?? [], headerFor });
+  problems.push(...selection.problems);
   const files = new Map();
-  for (const p of listPoints) files.set(outputOf(p), [...(files.get(outputOf(p)) ?? []), p]);
+  for (const p of listPoints.filter((point) => !isSelectPoint(point.spec))) files.set(outputOf(p), [...(files.get(outputOf(p)) ?? []), p]);
   const outputs = {};
   // 結び目(lib の export const wire)は同じ lib の wiring の点の一覧のファイルに書く。wiring の点の無い lib の結び目は止める
   const wireOf = new Map(wires.map((w) => [w.owner, w]));
@@ -592,7 +597,7 @@ export function planExtensions(repoRoot) {
     const wire = filePoints[0].spec.target === "wiring" ? (wireOf.get(filePoints[0].owner) ?? null) : null;
     outputs[path] = renderFile(filePoints, itemsByPoint, wire);
   }
-  Object.assign(outputs, derivedOutputs);
+  Object.assign(outputs, derivedOutputs, selection.outputs);
   const { isTier1 } = identity;
   const switchCheck = checkSwitches(repoRoot, { isTier1, points: declared });
   const overrideCheck = checkOverrides(repoRoot, { isTier1 });

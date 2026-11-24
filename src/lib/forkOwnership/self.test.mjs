@@ -12,7 +12,9 @@ const BEHAVIOR = ".claude/rules/behavior.md";
 const CONFIGS = { "next.config.ts": 'export { default } from "./next.config.core";\n', "eslint.config.mjs": 'export { default } from "./eslint.config.core.mjs";\n', "playwright.config.ts": 'export { default } from "./playwright.config.core";\n' };
 /** 合言葉(型 5、D311)。中身は見ないので 1 行の版 */
 const SHORTCUTS = { ".claude/rules/shortcuts.md": "# shortcuts\n" };
-const files = (/** @type {string} */ project, /** @type {string | null} */ behavior, repo = "{}\n") => ({ [PROJECT]: project, [BEHAVIOR]: behavior, "repo.json": repo, ...SHORTCUTS, ...CONFIGS });
+/** バックエンドの選択表(型 5、必ず持つ)。中身は見ないので空の版 */
+const TABLE = { "backend-selection.json": "{}\n" };
+const files = (/** @type {string} */ project, /** @type {string | null} */ behavior, repo = "{}\n") => ({ [PROJECT]: project, [BEHAVIOR]: behavior, "repo.json": repo, ...SHORTCUTS, ...CONFIGS, ...TABLE });
 const kinds = (/** @type {{ problems: { kind: string, path: string }[] }} */ result) => result.problems.map((problem) => `${problem.kind} ${problem.path}`);
 const askKinds = (/** @type {{ asks: { kind: string, path: string }[] }} */ result) => result.asks.map((ask) => `${ask.kind} ${ask.path}`);
 
@@ -21,7 +23,7 @@ describe("selfProblems(純な判定)", () => {
     assert.equal(SELF_CHECK_DEFAULT, true);
   });
 
-  test("Tier1: 必ず持つ 7 つがあり self の行がちょうど 9 行(持たなくてよい vercel.json・backend-selection.json は無くてよい)なら問題なし", () => {
+  test("Tier1: 必ず持つ 8 つがあり self の行がちょうど 9 行(持たなくてよい vercel.json は無くてよい)なら問題なし", () => {
     assert.ok(SELF_REQUIRED.includes(".claude/rules/shortcuts.md"));
     const result = selfProblems({ isTier1: true, selfRows: [...SELF_FILES], head: files("a", "b"), merge: null, parentNow: null });
     assert.deepEqual(result, { problems: [], asks: [], unverified: [] });
@@ -30,8 +32,9 @@ describe("selfProblems(純な判定)", () => {
   test("持たなくてよい vercel.json: あってもなくても問題なし、self の行から抜けたら self-rows(足りない vercel.json)", () => {
     const held = selfProblems({ isTier1: true, selfRows: [...SELF_FILES], head: { ...files("a", "b"), "vercel.json": "{}\n" }, merge: null, parentNow: null });
     assert.deepEqual(held, { problems: [], asks: [], unverified: [] });
-    assert.deepEqual(SELF_OPTIONAL, ["vercel.json", "backend-selection.json"]);
-    const rows = selfProblems({ isTier1: true, selfRows: [...SELF_REQUIRED, "backend-selection.json"], head: files("a", "b"), merge: null, parentNow: null });
+    assert.deepEqual(SELF_OPTIONAL, ["vercel.json"]);
+    assert.ok(SELF_REQUIRED.includes("backend-selection.json"));
+    const rows = selfProblems({ isTier1: true, selfRows: [...SELF_REQUIRED], head: files("a", "b"), merge: null, parentNow: null });
     assert.deepEqual(kinds(rows), ["self-rows src/lib/forkOwnership/intake.txt"]);
     assert.match(rows.problems[0].message, /9 行でない\(足りない: vercel\.json\)/);
   });
@@ -119,7 +122,7 @@ describe("pnpm workflow ownership check --self(作り物の親と fork)", () => 
     write(parent, "src/lib/forkOwnership/intake.txt", SELF_INTAKE);
     write(parent, PROJECT, "# project\nparent overview\n");
     write(parent, BEHAVIOR, "# behavior\nparent rules\n");
-    for (const [path, text] of Object.entries({ ...CONFIGS, ...SHORTCUTS })) write(parent, path, text);
+    for (const [path, text] of Object.entries({ ...CONFIGS, ...SHORTCUTS, ...TABLE })) write(parent, path, text);
     commitAll(parent, "self files");
     const fork = makeFork(parent);
     write(fork, PROJECT, "# project\nchild overview\n");

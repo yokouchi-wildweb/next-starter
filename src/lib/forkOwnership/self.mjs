@@ -1,4 +1,4 @@
-// 型 5 self の検査(各リポが自分の版を持つファイル: 必ず持つ 7 つ + 持たなくてよい vercel.json・backend-selection.json、D295・D299・D311)。中身は見ない: 落とすのは 3 つだけ
+// 型 5 self の検査(各リポが自分の版を持つファイル: 必ず持つ 8 つ + 持たなくてよい vercel.json、D295・D299・D311)。中身は見ない: 落とすのは 3 つだけ
 //   1 self-missing   必ず持つファイルが無い(持たなくてよい物は無くてよい = Vercel にデプロイしないリポ)
 //   2 self-rows      受け口の一覧の self の行が決まった 9 行ちょうどでない
 //   3 self-overview  Tier1 でないリポの project.md(概要)が直接の親の今の版と同じまま
@@ -10,14 +10,14 @@
 
 /**
  * 必ず持つ self。直下のコードの設定 3 本(D299)は Tier1 の本体 <道具>.config.core.<拡張子> を読み、足す・包む・外す
- * (playwright は読まなくてよい)。Tier1 の版は本体をそのまま使う
+ * (playwright は読まなくてよい)。Tier1 の版は本体をそのまま使う。backend-selection.json = バックエンドの選択表(口 → 実装の名前)、
+ * 書くのは pnpm workflow backend-selection fill / set(Tier1 の版は {})
  */
-export const SELF_REQUIRED = [".claude/rules/project.md", ".claude/rules/behavior.md", ".claude/rules/shortcuts.md", "repo.json", "next.config.ts", "eslint.config.mjs", "playwright.config.ts"];
+export const SELF_REQUIRED = [".claude/rules/project.md", ".claude/rules/behavior.md", ".claude/rules/shortcuts.md", "repo.json", "next.config.ts", "eslint.config.mjs", "playwright.config.ts", "backend-selection.json"];
 /**
- * 持たなくてよい self(持つなら自分の版)。vercel.json = Vercel にデプロイするリポだけ、crons は pnpm generate cron の出力 /
- * backend-selection.json = バックエンドの選択表(口 → 実装の名前)。Tier1 の版と埋める命令が出るまでは持たなくてよい(出す時に必ず持つ方へ移す)
+ * 持たなくてよい self(持つなら自分の版)。vercel.json = Vercel にデプロイするリポだけ、crons は pnpm generate cron の出力
  */
-export const SELF_OPTIONAL = ["vercel.json", "backend-selection.json"];
+export const SELF_OPTIONAL = ["vercel.json"];
 /** self の全部(受け口の一覧の self の行・取り込みで親の版になったかの問い・中継の対象外はこれを読む) */
 export const SELF_FILES = [...SELF_REQUIRED, ...SELF_OPTIONAL];
 export const SELF_OVERVIEW_FILE = ".claude/rules/project.md";

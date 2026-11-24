@@ -4,7 +4,7 @@
 export { configSlotsOf, discoverDistricts, readDistrictMap, toJsonl } from "./read.mjs";
 export { FEATURE_REQUIREMENTS_EXPORT, OVERRIDE_IMPORTS_EXPORT, OVERRIDE_LOADERS_EXPORT, readDomainEntry, readFeatureRequirements, readFrameName, readOverrideImports, readOverrideLoaders, readRuleDomains, readTableNames } from "./fields.mjs";
 export * from "./kinds.mjs";
-export { CHANGES, DECLARATION_NAME, DERIVES, changeOfFields, EXTENSIONS_DIR_NAME, PLACEMENT_KINDS, PLUGS_DIR_NAME, PLUGS_REGISTRY_FOLDERS, SEARCH_ROOT, isDeclarationPath, isListPoint, isPlugsPoint, literalOf, pointsFromFiles, readDeclaration, replacePointsOf, WIRE_NAME, ALWAYS_OPEN_NAME } from "./declarations.mjs";
+export { CHANGES, DECLARATION_NAME, DERIVES, changeOfFields, EXTENSIONS_DIR_NAME, PLACEMENT_KINDS, PLUGS_DIR_NAME, PLUGS_REGISTRY_FOLDERS, SEARCH_ROOT, isDeclarationPath, isListPoint, isPlugsPoint, isSelectPoint, literalOf, pointsFromFiles, readBackendDeclaration, readDeclaration, replacePointsOf, WIRE_NAME, ALWAYS_OPEN_NAME, BACKEND_ADAPTER_NAME, BACKEND_DECLARATION_NAME, BACKEND_REQUIREMENTS_NAME, BILLING_KINDS, CAPABILITY_NAME, exportedInitializer } from "./declarations.mjs";
 export { MARKER_MIGRATION_NOTICE, classifyDottedName, oldMarkerProblem } from "./dottedNames.mjs";
 export { CLAIMED_DEFAULTS, DEFAULT_FILE, FRAME_DEFAULT_FILE, FRAME_FILE, FRAME_OVERRIDE_FILE, FRAME_SEARCH_ROOT, OVERRIDE_FILE, REPLACE_FILE, isClaimedDefault, isOverridePath, overrideGlobOf, overridePathOfTarget, switchSetOf, targetOfOverride } from "./extensionNames.mjs";
 export { adminRouteFolderOf, camelPluralOf, toPlural } from "./domainNames.mjs";

@@ -62,6 +62,8 @@
   - 独自の入力部品の一覧 `formInputs` → `@/lib/formSuite` の `FormInputsProvider`（結び目 `FormInputsRoot`、client。宣言 `src/lib/formSuite/extensionPoints.ts`、書き方は `src/lib/formSuite/README.md`）
 - `serverErrorReport.ts`（生成物）: データに届くか = いいえ（上流の項目は 0。fork の項目がデータに届くなら届く wiring になる）
   - サーバーの失敗の送り先の一覧 `serverErrorReporters`（lazy）+ `lib/serverErrorReport` の `wireServerErrorReport` → `serverErrorReport`（`onRequestError` / `report`。宣言 `src/lib/serverErrorReport/extensionPoints.ts`、書き方は `src/lib/serverErrorReport/README.md`）
+- `backends.ts`（生成物）: データに届くか = いいえ（上流の項目は 0。項目は字面だけ）
+  - 能力の語の一覧 `backendCapabilities`（宣言 `src/lib/backends/extensionPoints.ts`。結び目なし、実行時に読む所は無い。生成器と検査は項目を構文木で読む、`src/lib/backends/README.md`）
 - `dbAgent.ts`（生成物）: データに届くか = いいえ（上流の項目は 0）
 - `startup.ts`（生成物）: データに届くか = いいえ（上流の項目は 0。fork の項目がデータに届くなら届く wiring になる）
   - 起動時の処理の一覧 `startupTasks`（lazy）+ `lib/startup` の `wireStartup` → `startup`（`register`。宣言 `src/lib/startup/extensionPoints.ts`、書き方は `src/lib/startup/README.md`。読み手は `src/instrumentation.ts` だけ）
@@ -85,7 +87,7 @@
 - 上流の wiring のファイルを置き換える口（`<対象>.override.ts`）は無い。上流の結び方を変えたいときは `/order <upstream>`
 - API の Factory に差し込む束は lib/routeFactory の点の項目（`<ドメイン>/plugs/routeFactoryUser|routeFactoryRateLimit|routeFactoryDevice/<名前>.ts`）。利用者・レート制限はちょうど 1 つで、fork は上流の項目の 1 行スイッチを `<名前>.replace.ts` に向けて替える（足して 2 つにしない、D53）
 
-### lib の点の一覧と結び目（formSuite・serverErrorReport・startup・dbAgent・routeFactory）
+### lib の点の一覧と結び目（formSuite・serverErrorReport・startup・dbAgent・routeFactory・backends）
 
 lib の拡張点は lib 自身の `extensionPoints.ts` が宣言し、項目は差す側の `<ドメイン か lib>/plugs/<点>/<名前>.ts`（D31・D38）。生成器（`pnpm generate extensions`）が一覧を `src/wiring/<lib>.ts` に書き、lib が `export const wire` を宣言していれば結び目も同じファイルに書く（一覧を門番で絞って lib の作り手に渡す）。
 
@@ -94,6 +96,7 @@ lib の拡張点は lib 自身の `extensionPoints.ts` が宣言し、項目は�
 - `startup.ts`: 起動時の処理の一覧 `startupTasks` と結び目 `startup`（`src/instrumentation.ts` の `register` が読む。失敗の記録の送り先から分けた、D30）
 - `dbAgent.ts`: 一覧 `dbAgentTools`・`dbAgentPromptFragments`・`dbAgentSuffixProviders`（結び目なし。route `src/app/api/admin/db-agent/route.ts` が門番で絞って `extensions` で渡す）
 - `routeFactory.ts`: 一覧 `routeFactoryUser`・`routeFactoryRateLimit`・`routeFactoryDevice`（結び目なし。`apiRoute.ts` が門番で絞り、型は `<点>Map` から取り出す）
+- `backends.ts`: 一覧 `backendCapabilities`（結び目なし。読む所は無く、口の語は生成器と検査が項目の字面から読む）
 
 ## Internals
 

@@ -63,6 +63,19 @@ routeFactoryDevice: { change: "add", plugs: true, export: "plug", type: { from: 
 - 受け口のフォルダの点と同じに使える欄(注文 25): `overrideOf`(上流の項目の隣の `<名前>.override.ts`、files の点は項目のフォルダの中の `<ファイル>.override.ts`。intake.txt に `add src/domains/**/plugs/<点>/…override…` の行)/ `key`(全体で一意)+ `literalKeys`(鍵の字面の union 型 `<点>Key`)/ `shape: "object"`(名前を鍵にした `<点>Map` と型 `<点>Map`。名前は差す側をまたいで一意。plugs の点では `key` と併用できる: 端末の種類は kind の型を `<点>Map` から導く、注文 27)/ `derive`・`pureImports`・`requireText`(plugs の項目にも効く)/ `files`(項目 = フォルダ、plug に `folder`)/ `alwaysOn`(常に読む一覧: 読み手は gate.plugs を掛けず、項目の enabled が自分で閉じる)。一覧はどれも `{ domain, name, requires, plug | load }` の配列で、使う時に門番で絞ってから鍵の表を作る。保存した行の鍵の定義(設定の欄・保管の用途・財布の履歴の理由・紹介報酬のグループの表示)は登録表と同じく絞らない(D26)。server と client の両方から呼ぶ組み立て器は絞り `PlugsFilter`(`@/featureGate/client` の型)を引数で受ける
 - `itemsOf: "<点>"`(files と一緒に): 同じ宣言の files の plugs の点の項目のフォルダ(plugs/<その点>/<名前>/)の別のファイルを読む点。1 つの項目のファイルを 1 か所に保ち、側(server・client)の違う一覧を分けて出す(例: 連絡のレイアウト messagingLayouts の layout.ts と、itemsOf の messagingLayoutEmails の email.tsx・messagingLayoutInApps の inApp.tsx)
 
+### 選ぶ点(口の実装を 1 つ選ぶ plugs の点、D9・D17・D36)
+
+- 宣言: `change: "add"` の plugs の点に `select: { port, optional?, words, compat }` を足すと選ぶ点になる(変え方の型は増設点のまま。fork が書く所は項目(型 3)と選択表(型 5 self))
+  - `port` = 口の名前(選択表の鍵。口の全部の点が同じ名前の項目を選ぶ)、`optional: true` = 選択表に `"none"` を書ける口(口の点で揃える)、`words` = 能力の語(能力の名前は `<口>.<語>`)、`compat` = 今の設定の読み方(`{ from: "env", name, map, default }` | `{ from: "fixed", value }`、移行の道具が読む)
+  - `export` は `"adapter"`。書けるのは change・plugs・export・type・side・select・pureImports だけ(一覧の欄 target・load・key・shape・max・required などは書けない)
+  - 持ち主は lib か常設のドメインだけ(D10)。項目を置けるのは、持ち主が lib なら lib だけ、常設のドメインならそのドメインか lib
+- 項目: `<持ち主か lib>/plugs/<点>/<名前>.ts`(か `<名前>/index.ts`)に字面だけの `export const declaration = { provides, requires, billing, env }`(型 `BackendDeclaration`、`@/lib/backends`)と本体 `export const adapter`。宣言は構文木で読み、実行しない(読み手 `readBackendDeclaration`、`src/lib/districtMap/declarations.mjs`)。名前 `none`・`fake` は予約(`src/lib/backends/reserved.ts` を字面で読む)
+- 能力の語: 選ぶ点の `select.words` と、増設点 `backendCapabilities`(`src/lib/backends`)の項目 `export const capabilities = { port, words }`。同じ語の 2 度目・在らない口への語は止める
+- 要る能力: ドメインは同じドメインの `extensionPoints.ts` に `export const backendRequirements = ["<口>.<語>", …]`(字面、ドメインだけ)。開いているドメイン(常設か、載せる規則のどれかが開)の分だけ数える。どの規則にも載らず常設でもないドメインは閉で数えない。開閉は段階のランナーと同じ `scripts/runner/phases/features.ts`(env `GATES_FEATURES` がテスト用)で、要る時だけ読む
+- 選択表: 根の `backend-selection.json` = `{ "<口>": "<実装の名前>" }`。生成器が選ぶ点ごとに `<持ち主>/extensions/<点>.ts` へ選んだ 1 項目の `export { adapter } from "<項目>";` を書く(選ばない実装は読まない)。`"none"` は `createNoneAdapter<型>("<口>")`(`@/lib/backends`)
+- 止める(生成と `pnpm check extensions`、build の段でも): 選択表が無い・読めない・鍵の欠け・知らない口の鍵・知らない値・`"fake"`・任意でない口の `"none"`・口のどれかの点に選んだ名前の項目が無い・選んだ実装の requires を選んだ実装の provides の和が満たさない・開いているドメインの要る能力を満たさない・項目の宣言の形(D29 の鍵だけで全部要る、billing の `"none"` は単独、`"usage"` は unit)・知らない語・ほかの口の provides・`<持ち主>/extensions/<点>.default|replace` の手置き。文言は直し方(`pnpm workflow backend-selection fill` / `set <口> <名前>`)を示す
+- 選ぶ点が 0 個なら選択表を読まず、何も書かず、止めない
+
 ### 項目
 
 受け口(`dir`)の直下に、次の 2 形のどちらかで置く。名前は英字始まりの英数字で、上流の項目も fork の項目も印なし。並び = ファイル名の順(Tier の順は使わない)。
@@ -225,4 +238,4 @@ fork が上流(親の Tier)の物を変える方法はこの 4 つだけ。印�
 
 ## Verification
 
-- `pnpm test scripts/structure/extensions/`(生成器の回帰テスト(fixture)と実リポの一致)
+- `pnpm test scripts/structure/extensions/`(生成器の回帰テスト(fixture)と実リポの一致。選ぶ点は `select.test.mjs`)

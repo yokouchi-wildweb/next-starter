@@ -19,5 +19,6 @@ editing:
 - entry_no_node_api: the "." entry never pulls a node API (node:fs, node:path); such parts go to node.mjs
 - read_as_text: declarations are read as text, never executed | no new declaration files
 - one_way: forkOwnership → districtMap only | nothing here (tests included) imports src/lib/forkOwnership
+- backend_readers: selecting points (`select`), a domain's `backendRequirements` and a selecting item's `declaration` are read here only (literals, never run)
 - single_source: the two declaration levels (extensionPoints.ts + src/lib/districtMap/kinds.mjs (KINDS)) are read only by src/lib/districtMap/declarations.mjs | name forms only in extensionNames.mjs / dottedNames.mjs
 read: kinds, how found → Overview | entry → Usage | fields, readers → API | jsonl → Internals | tests → Verification
