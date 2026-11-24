@@ -21,7 +21,7 @@ import type { MessageKey, MessageLayoutContent } from "@/lib/messaging";
 import { layoutEmails, layouts } from "@/domains/core/messaging/services/server/lists";
 
 import { WebhookNotConfiguredError } from "@/domains/core/messaging/services/server/webhooks/errors";
-import { createEmailChannel, toChannelWebhookEvent } from "./createEmailChannel";
+import { createEmailChannel, toChannelWebhookEvent, type EmailChannelDeps } from "./createEmailChannel";
 import { hasRenderFallbackMarker } from "./fallback";
 /** 送る口が組む中身(レイアウト notice、レイアウトのメールの描き方の段) */
 const values = {
@@ -367,7 +367,7 @@ test("受信者: レイアウトの描き方に利用者の表示名を渡す(se
   assert.deepEqual(results.map((r) => r.kind), ["sent", "sent", "sent"]);
   assert.deepEqual(lookups, [["u1"]], "重ねた利用者 id は 1 つにまとめ、1 度だけ引く");
   assert.deepEqual(seen, [{ displayName: "山田" }, { displayName: "山田" }, undefined]);
-  assert.match(sent[0]!.html, /山田/);
+  assert.match(sent[0]!.html ?? "", /山田/);
   seen.length = 0;
   await channel.preview!({ messageKey: "shop.notice", content });
   assert.deepEqual(seen, [undefined]);
@@ -375,7 +375,8 @@ test("受信者: レイアウトの描き方に利用者の表示名を渡す(se
 
 test("受信者を引けなければ、その回の宛先は送らず transient recipient_lookup_failed。findRecipients が無ければ今までどおり", async () => {
   const sent: SendMailOptions[] = [];
-  const base = {
+  // 型を付ける(send の provider などを文字列に広げない)
+  const base: EmailChannelDeps = {
     render: (element: ReactElement) => render(element),
     send: async (mail: SendMailOptions) => {
       sent.push(mail);
