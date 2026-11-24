@@ -64,7 +64,7 @@ pnpm generate cron -- --plan <hobby|pro> # プランを指定して(vercel.plan 
 - `vercel.plan` も `vercel.json` も無い = Vercel にデプロイしないリポとして `pnpm generate` の全部・/flux の区間の作り直しでは飛ばす
 
 `pnpm task my-task` はフォルダを置いた時点で使える。タスクを消すときもフォルダを消して再生成する。
-upstream でタスクを足す・消すときは、fork 向けに `pnpm generate cron` を `required_actions` に書いた notice を同じ commit で出す(`/ship` で出荷すると判定と起票まで行う)
+upstream でタスクを足す・消すときは、fork 向けに `pnpm generate cron` を `required_actions` に書いた notice を同じ commit で出す(`/sluice` で出荷すると判定と起票まで行う)
 （CLAUDE.md `cron_wiring`）。
 
 ### 時間予算付きバッチ（maxDuration で殺されないために）

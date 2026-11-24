@@ -1,15 +1,15 @@
 // scripts/workflow/notices/catchUp.mjs
-// 持ち主 1 人の線の載せ直し(D395 (2)): /ship する自分の枝を、進んだ push 先(origin/main)の上へ同じ順で載せ直す。
+// 持ち主 1 人の線の載せ直し(D395 (2)): /sluice する自分の枝を、進んだ push 先(origin/main)の上へ同じ順で載せ直す。
 // 作業のまとまりの合流(ギルドの作業票の merge・cargo が残した作業の merge)は merge のまま残し、main を線へ取り込んだ合流は
 // 落とす(main の first-parent は 1 本、main を取り込んだ合流は main に入れない)。素の git rebase は合流を平らにし、
 // git rebase --rebase-merges だけでは main を取り込んだ合流(`merge -C <元> onto`)と線の元の根元(`reset <元の根元>`)が残る。
-// - 持ち主 1 人の線(/ship する自分の枝)だけ。何人もが土台にする線(ギルドの合流地点)には使わない(道具の merge で追いつく)
+// - 持ち主 1 人の線(/sluice する自分の枝)だけ。何人もが土台にする線(ギルドの合流地点)には使わない(道具の merge で追いつく)
 // - 並びの順は変えない(D383 の並べ直しではない): commit の順の入れ替え・区切りの前への移しはしない
 // - 先頭の組み直し(D402): onto が HEAD の祖先でも、先頭が「onto そのものを線へ取り込んだ合流」(親 2 つ、第 1 親 = 線で
 //   onto を含まない、第 2 親 = onto)なら、同じ木で第 1 親 = onto・第 2 親 = 線の作業の合流に作り直す(止めない)。そのまま
 //   push すると main の first-parent が線の側へ移り、前の main の線が第 2 親側に落ちる(c63eb4306)。先頭より手前にある
 //   同じ形の合流は組み直さない(この版の範囲の外)
-// /ship の push の前に毎回(手順 7・WORKTREE ROUTE・COMMITTED RANGE)と、push が拒まれた時に呼ぶ。
+// /sluice の push の前に毎回(手順 7・WORKTREE ROUTE・COMMITTED RANGE)と、push が拒まれた時に呼ぶ。
 //
 // 実行: pnpm workflow notices catchUp [--onto=<ref>]
 //   onto = --onto、無ければ origin/main、無ければ @{u}

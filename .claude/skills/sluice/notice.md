@@ -1,4 +1,4 @@
-# /ship attachment: NOTICE COMPOSITION
+# /sluice attachment: NOTICE COMPOSITION
 
 read when step 5 (commit.md) writes a notice, or a caller writes a notice from a draft (`notices:`) | steps and their numbers: SKILL.md and commit.md
 

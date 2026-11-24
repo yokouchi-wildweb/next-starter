@@ -1,5 +1,5 @@
 // scripts/workflow/notices/pickCheck.mjs
-// 修正(fixes:)の notice が「先に取れる」かを、出荷の前に機械で判定する(/ship。欄 pick: clean | -)。
+// 修正(fixes:)の notice が「先に取れる」かを、出荷の前に機械で判定する(/sluice。欄 pick: clean | -)。
 // /flux は pick: clean の修正を、修正元の区間を取り込んだ直後に cherry-pick する。そこで試す土台は fork の位置ではなく
 // 壊れた地点(修正元の区切りのコミット)で、その上に修正のコミットだけを載せた一時の木で次を全部満たすときだけ clean:
 //   1. 機械で決まる hotfix の条件: notice と本体が同じ 1 commit / pnpm-lock.yaml・src/app/route-map.jsonl を含まない /
@@ -22,7 +22,7 @@
 //
 // 実行: pnpm workflow notices pickCheck <commit> [--dry-run] [--at=<ref>] [--check=<cmd> ...]
 //   commit = 修正の notice を足した commit。--dry-run 以外は判定をその notice の本文の pick: に書く(作業ツリー。fixes: の直後。
-//   本文が作業ツリーに無ければ書かずに exit 2)。/ship はその本文を同じ commit に amend する。
+//   本文が作業ツリーに無ければ書かずに exit 2)。/sluice はその本文を同じ commit に amend する。
 //   --at = 出荷する先端(既定 HEAD)。先に載せる別の clean な修正はこの祖先から選ぶ(脇の commit の修正は merge の後の先端で)
 //   --check = 3 の検査を差し替える(繰り返し可。テスト用)
 //   exit 0 = 全部 clean | 1 = - がある | 2 = 判定できない(fixes: の notice が無い・修正元が見つからない・依存を入れられない)

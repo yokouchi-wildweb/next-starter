@@ -10,7 +10,7 @@ paths:
 > **ROLE**: loaded when writing a library, the wiring or a lib config | holds the library rules (CODE_PLACEMENT library)
 > Tier1-owned: forks never edit (gap → /order next-starter)
 
-library: src/lib/\<name\>/, all except entities | owner per library in src/lib/CATALOG.md (one section per owner repo; format: src/lib/README.md; guarded by src/lib/folderCatalog/catalog.test.mjs, /ship runs it)
+library: src/lib/\<name\>/, all except entities | owner per library in src/lib/CATALOG.md (one section per owner repo; format: src/lib/README.md; guarded by src/lib/folderCatalog/catalog.test.mjs, /sluice runs it)
 - closed lib = package.json exports + libs + own tsconfig.json, read via its exports only, values and types (lint entry/only-entries), config @lib-config/\<name\> → src/config/lib/ | closing one → src/lib/README.md
 - new lib (any tier): add its line to YOUR section only | when a parent takes over your lib through an order, drop your copy + line when it ships
 - lib owned by an ancestor repo: public entry only, never edit internals or delete the dir (unused = leave it), behavior change → /order <direct parent> | a fork file added inside it fails pnpm workflow ownership check → put it in your own lib and re-export
@@ -22,6 +22,6 @@ entry_names: exports keys only these five (others fail pnpm check lib-package en
 entry_no_use_client: a closed lib's entry (index.ts) never starts with "use client" | mark client only on the part files that need it (an entry marked client turns every value a server reads through it into a client reference)
 closed_lib_env: a closed lib never reads process.env (one exception: lib/url's getAppBaseUrl reads the runtime origin APP_BASE_URL / VERCEL_ENV / VERCEL_URL) | its values arrive through its config values file src/config/lib/\<name\>.config.ts (that file may read process.env, `@/business` and the stage)
   - a public value (read on the client) = the literal `process.env.NEXT_PUBLIC_X` in the config values file (Next inlines only that form) | a value read at call time (a server-only secret) = a zero-arg function returning env in the config values file, called only inside the lib's ./server
-shared_utils: src/utils = one file per unit, listed in src/utils/CATALOG.md in its maker's section (`- src/utils/\<name\> — <what>`, a fork's units in its own section; guarded by src/lib/folderCatalog/catalog.test.mjs, run by /ship) | src/utils never imports src/domains, values and types (lint import-boundaries/hooks-utils-no-domains, all tiers; tests aside)
+shared_utils: src/utils = one file per unit, listed in src/utils/CATALOG.md in its maker's section (`- src/utils/\<name\> — <what>`, a fork's units in its own section; guarded by src/lib/folderCatalog/catalog.test.mjs, run by /sluice) | src/utils never imports src/domains, values and types (lint import-boundaries/hooks-utils-no-domains, all tiers; tests aside)
 facts_not_policy: a lib returns facts; the calling domain owns the policy (allow / reject, limits, deletion)
 no_toggle_env: no behavior-toggle env | a capability that needs a secret is on exactly when the secret is set, with no fallback to another secret

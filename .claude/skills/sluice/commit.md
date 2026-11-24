@@ -1,6 +1,6 @@
-# /ship attachment: commit steps (0, 1, 3-6) and QUICK SHIP
+# /sluice attachment: commit steps (0, 1, 3-6) and QUICK SHIP
 
-read by: /ship (SKILL.md STEPS points here for steps 0, 1 and 3-6) | a caller that only commits (`/ship --quick no-push`, e.g. a team's Seeker) needs this file only, plus notice.md when step 5 writes a notice | steps 2, 7, 8, STOP CASES, WORKTREE ROUTE, CATCH UP, SHIPPED TIP, COMMITTED RANGE: SKILL.md
+read by: /sluice (SKILL.md STEPS points here for steps 0, 1 and 3-6) | a caller that only commits (`/sluice --quick no-push`, e.g. a team's Seeker) needs this file only, plus notice.md when step 5 writes a notice | steps 2, 7, 8, STOP CASES, WORKTREE ROUTE, CATCH UP, SHIPPED TIP, COMMITTED RANGE: SKILL.md
 
 ## STEPS 0, 1, 3-6
 0. **check the order's owner** (only with the argument `order:<id>`): find that id in the output of `node .claude/skills/order/mailbox.mjs inbox`

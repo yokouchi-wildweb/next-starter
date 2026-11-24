@@ -161,7 +161,7 @@ test("許可しない形 → 何も返さない", () => {
     'pnpm ops db inspect query "SELECT 1" --json',
     "pnpm workflow devcheck run browser",
     "pnpm workflow devcheck run nope",
-    // 検査は devcheck の種類ではない(D357): pnpm test / pnpm check をそのまま打つ形だけ(/ship の手順 2)
+    // 検査は devcheck の種類ではない(D357): pnpm test / pnpm check をそのまま打つ形だけ(/sluice の手順 2)
     "pnpm workflow devcheck run test scripts/workflow/devcheck",
     "pnpm workflow devcheck run check skills",
     "pnpm workflow devcheck run smoke",

@@ -47,7 +47,7 @@ export const task: OneShotTask = {
 - 実行した中身の全文を dry-run も本実行も `task_runs.source` に残す
 - 本実行の後、ランナーが作業の記録の下書き `docs/journal/<日付>--<fork_id>--local-migration-<ドメイン>-<名前>.md` を書く(コミットしない)。人が「なぜ・確かめたこと」を書き足してコミットする
 - dry-run を自分で扱うのはファイルの役目(`process.argv` の `--dry-run` を見て書き込まない)。`dryRun: true` を宣言する(無ければランナーが読み込みで止める)
-- コミット・ステージされていれば段階 ship(`pnpm check local-migrations`、/ship)が止める。終わったら人が消す
+- コミット・ステージされていれば段階 ship(`pnpm check local-migrations`、/sluice)が止める。終わったら人が消す
 
 ## API
 

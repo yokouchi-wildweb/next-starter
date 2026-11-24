@@ -48,7 +48,7 @@ pnpm workflow memory header --apply [--dir <path>]   # 区画の中だけを正�
 
 ## Verification
 
-- `pnpm test scripts/workflow/memory/memory.test.mjs`(/ship の検査が回す)
+- `pnpm test scripts/workflow/memory/memory.test.mjs`(/sluice の検査が回す)
 
 ## Related
 

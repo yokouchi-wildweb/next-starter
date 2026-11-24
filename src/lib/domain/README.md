@@ -88,7 +88,7 @@ export const domainEntries = {
 - キー = フォルダ名（singular の camelCase）。`service` = 同じフォルダの `<camel>Service.ts` の `<camel>Service`
 - `table` = domain.json の `plural` の snake_case（無ければドメイン名の snake_case）、`idColumn` = `"id"`。Firestore 版は両方 `null`
 - `access` = domain.json の `apiAccess` の read / write（無ければ `...ADMIN_ONLY`。`PUBLIC_READ` などのプリセットに当たるならそれを広げる）+ `apiAccess.operations` + `truncateAll: ADMIN_RULE` + `export` / `import` = `useImportExport: true` なら `ADMIN_RULE`、それ以外は `"none"`
-- 書いたら `pnpm generate registry`。`pnpm check registry` と `scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs`（`table` / `idColumn` を実物と比べる）が守る(/ship の検査が回す)。以後 `apiAccess` / `useImportExport` / `plural` を変えたらこのファイルも手で直す（生成器は追わない）
+- 書いたら `pnpm generate registry`。`pnpm check registry` と `scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs`（`table` / `idColumn` を実物と比べる）が守る(/sluice の検査が回す)。以後 `apiAccess` / `useImportExport` / `plural` を変えたらこのファイルも手で直す（生成器は追わない）
 
 ### ドメイン設定の読み方
 

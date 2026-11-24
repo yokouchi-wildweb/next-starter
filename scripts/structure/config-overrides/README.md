@@ -9,7 +9,7 @@
 ## Usage
 
 ```bash
-pnpm check config-overrides        # build・/ship・forge:post の検査の束(段階)で回る。district-map の後
+pnpm check config-overrides        # build・/sluice・forge:post の検査の束(段階)で回る。district-map の後
 ```
 
 - exit 0 = 余り 0・欠落 0(意味は下の「落とす物」)/ 1 = 揃っていない、または地区の地図に問題がある(先に `pnpm check district-map` を直す)

@@ -26,4 +26,4 @@ building_a_part (MANDATORY):
 - an element with both className and data-slot: data-slot (fork CSS, unlayered) always wins | add one only when all 3 hold: it takes className, a fork needs it site-wide, a variant override cannot serve it → add it to the both-list in src/styles/README.md
 - appearance shadows = --appearance-shadow-<name> tokens in core/palette.css (:root / .dark), never literal shadow values in appearance.ts | no generic shadow scale beyond Tailwind --shadow-*
 - never write explanations into fork-owned files (root src/styles/*.css after creation) → this file or src/styles/README.md
-cn_class_groups (MANDATORY): a new `--text-*` token in theme.css → register it in src/lib/cn FLUID_TEXT_SIZES (guarded by src/lib/cn/cn.test.mjs, /ship runs it)
+cn_class_groups (MANDATORY): a new `--text-*` token in theme.css → register it in src/lib/cn FLUID_TEXT_SIZES (guarded by src/lib/cn/cn.test.mjs, /sluice runs it)

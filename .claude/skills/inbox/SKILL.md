@@ -34,7 +34,7 @@ target: $ARGUMENTS
    - **one-line summary (title / id / need / from; old orders without `title:` omit the title)** in Japanese, in 3 sections: **`未対応`** (open / waiting / resumable) | **`振り分け済み → <routed_to>`** (routed; yours → `自分の担当`) | **`着手中 → <taken_by>`** (taken; yourself → `自分が着手中`)
    - from: own repo → `自分宛て` | a named actor → its name and role (mailbox.mjs lists them as `from: <name> <role>`; never call them self-addressed even if they ran in this repo)
    - `waiting` → add `待ち（<待っている先>）` | `resumable` → add `再開可`
-   - sender is a repo other than this one (a downstream fork) → add `下流の一時許可の元かもしれない → 出荷は resolves: 付き` (`.notices/README.md` section `解決(resolves)`; always pass `order:<id>` to the completion /ship)
+   - sender is a repo other than this one (a downstream fork) → add `下流の一時許可の元かもしれない → 出荷は resolves: 付き` (`.notices/README.md` section `解決(resolves)`; always pass `order:<id>` to the completion /sluice)
 3. branch on the count (not counted: `waiting`, routed / taken owned by someone else):
    - 0: say `未対応の依頼はありません`
    - **1: do not ask which to start; go straight to HANDLE steps 1-3 for that order** (read in full → summary → implementation proposal; no implementation)
@@ -56,7 +56,7 @@ target: $ARGUMENTS
      - criterion ③ (this repo has downstream forks): does it narrow every fork's freedom (data, logic, security boundary = upstream; screens, wording, design = downstream), can it be backed out without a breaking change | core UI returns fine-grained parts and default containers, never a prop for swapping (CLAUDE.md core_ui)
      - an API / implementation idea written by the sender = a proposal to critique, not a spec
      - this repo is Tier1: an existing means passes every check with the same URL and the same result → return that means and close (a per-process copy is not a means) | an order whose premise differs from the current CLAUDE.md → send back (`.claude/rules/core/extensions.md`)
-   - **this repo has downstream forks** (`tier` root / middle in `repo.json`; read it like `/ship`, `downstream` of `readForkIdentity` in `src/lib/forkOwnership/forkIds.mjs`; `none` = none; declaration missing / wrong → do not guess, STOP: have it declared) → put the downstream intake verdict (estimate) as one line at the head of the proposal:
+   - **this repo has downstream forks** (`tier` root / middle in `repo.json`; read it like `/sluice`, `downstream` of `readForkIdentity` in `src/lib/forkOwnership/forkIds.mjs`; `none` = none; declaration missing / wrong → do not guess, STOP: have it declared) → put the downstream intake verdict (estimate) as one line at the head of the proposal:
      - `取り込み判定（見込み）: 安全 | 要注意（理由）| 危険（理由）`
      - `危険` (danger) = a plain merge breaks the fork's build, boot or existing behavior / needs manual work on the fork side (db:push, env, external resources …) / behavior or permissions change silently | `要注意` (caution) = only as far as merge conflicts may happen
      - a step held with `output: commit` → judge as "when the fork receives it at shipping" | no downstream → omit
@@ -66,23 +66,23 @@ target: $ARGUMENTS
    - **judge downstream follow-up** (only when this repo has downstream forks):
      - this change makes the fork's existing code drift from the upstream spec (structure, generators, conventions, API …) → include in the proposal a migration bringing the fork's existing code to the new spec, shipped in `.notices/` in the same commit as the implementation
      - never leave compat behind for forks to sit on; prefer a clean state without drift | the notice holds what changed and markers to find the target code in the fork (grep patterns etc.) | not needed → one word why
-   - **an order with a boundary (`まだやらないこと`)**: stop at it | problems outside it are not fixed → write them in the RESOLUTION at completion (`findings:` when the order asks for it) | include how the done conditions are verified in the proposal: by reading (diff, grep, output) and by the checks /ship runs (name them; never run them during the work, core/notices.md checks_in_ship)
+   - **an order with a boundary (`まだやらないこと`)**: stop at it | problems outside it are not fixed → write them in the RESOLUTION at completion (`findings:` when the order asks for it) | include how the done conditions are verified in the proposal: by reading (diff, grep, output) and by the checks /sluice runs (name them; never run them during the work, core/notices.md checks_in_ship)
    - **no implementation yet**; STOP: wait for the user's approval
    - **approved → record taking before working**: `node .claude/skills/order/mailbox.mjs take <the file>` (not needed when resuming a `resumable` or already taken by yourself; never for an approval of relay / send back / withdraw) | refused (meanwhile taken by someone else / routed to another owner): give the owner; STOP: ask the human | no work
    - after taking, the order is to be parked / left to another session → let it go with `node .claude/skills/order/mailbox.mjs release <the file>`
 4. the user says `対応完了` (done) → steps a-d:
    - **the completion report and commit & push always go together** | `対応完了` doubles as the explicit commit / push instruction
    - **run a-d in a row with no confirmation, question or AskUserQuestion to the user in between** | `対応完了` is the only and sufficient approval; waiting for another approval is prohibited
-   a. **ship with `/ship`** (before the RESOLUTION, to fix the substance and get an exact commit sha): follow `.claude/skills/ship/SKILL.md` with the argument `order:<order id>` (range, checks, notice judgment and composition, commit, push; it stops only when it hits /ship's section STOP CASES) | a change for which the proposal decided to ship a notice → /ship's judgment follows that
-      - an order of checks / investigation only with no diff → no /ship, no commit (RESOLUTION `commit:- | pushed:-`)
-      - rejecting (rejected) an order from a downstream fork → write in the RESOLUTION notes what the sender does with its temporary permit (revert / move to the intake point / re-permit under another policy) (the sender's /wen permits shows it) | even a resolution without a diff, when the sender is a downstream fork → ship a resolves: notice per /ship's judgment
+   a. **ship with `/sluice`** (before the RESOLUTION, to fix the substance and get an exact commit sha): follow `.claude/skills/sluice/SKILL.md` with the argument `order:<order id>` (range, checks, notice judgment and composition, commit, push; it stops only when it hits /sluice's section STOP CASES) | a change for which the proposal decided to ship a notice → /sluice's judgment follows that
+      - an order of checks / investigation only with no diff → no /sluice, no commit (RESOLUTION `commit:- | pushed:-`)
+      - rejecting (rejected) an order from a downstream fork → write in the RESOLUTION notes what the sender does with its temporary permit (revert / move to the intake point / re-permit under another policy) (the sender's /wen permits shows it) | even a resolution without a diff, when the sender is a downstream fork → ship a resolves: notice per /sluice's judgment
       - already committed by the caller → make no new commit, use the current HEAD
       - branch follows behavior.md (already on a feature branch → stay)
       - **an order with `output:` → follow it** (the order's declaration is the explicit push instruction):
         - `push` = as above
-        - `commit` = **no push** (/ship with `no-push`) → stack on the branch the order's `held:` names; before working `git switch <branch>` (missing → `git switch -c <branch> <the order's base:>`), commit, then `git switch <main>` back to main (`pushed: no (held)`)
+        - `commit` = **no push** (/sluice with `no-push`) → stack on the branch the order's `held:` names; before working `git switch <branch>` (missing → `git switch -c <branch> <the order's base:>`), commit, then `git switch <main>` back to main (`pushed: no (held)`)
         - `none` = no commit (only write the observed / measured results in the RESOLUTION; `commit:-`)
-      - after /ship, get the short sha by `git rev-parse --short HEAD` and the branch by `git rev-parse --abbrev-ref HEAD` | push failed → reflect it honestly in the RESOLUTION `pushed:` (never paper over it)
+      - after /sluice, get the short sha by `git rev-parse --short HEAD` and the branch by `git rev-parse --abbrev-ref HEAD` | push failed → reflect it honestly in the RESOLUTION `pushed:` (never paper over it)
    b. write the **RESOLUTION body** to a temp file (never inside the repo; e.g. `mktemp`) | the sender consumes it with `/wen` | English, structured | the `resolved:` and `by:` lines are written by the command in c, keep them out of the body:
       ```
       implemented: <what was actually done>
@@ -92,7 +92,7 @@ target: $ARGUMENTS
       notes: <anything the requester needs>
       ```
       - `propagate:` (sender repo = head of from:, for an order from a named actor its `repo:`): sender is a downstream fork of this repo = `pushed to origin — fetch & merge upstream into your fork to receive it` | self-addressed = `-` | otherwise = how it reaches the sender (`-` when the sender is unaffected)
-      - the order asks for extra lines → add them after `notes:` as it says (e.g. `findings: <問題・ずれ・範囲外・未確認 | none>` / `verify: <done_when をどう確かめたか(読んだ物・/ship の検査の結果)、確かめていないことは「未確認」>`) | `status: partial` = stopped at part of the order (the reason in notes or findings)
+      - the order asks for extra lines → add them after `notes:` as it says (e.g. `findings: <問題・ずれ・範囲外・未確認 | none>` / `verify: <done_when をどう確かめたか(読んだ物・/sluice の検査の結果)、確かめていないことは「未確認」>`) | `status: partial` = stopped at part of the order (the reason in notes or findings)
    c. **answer** (append the RESOLUTION and move to `done/` in one go; run at the repo root):
       `node .claude/skills/order/mailbox.mjs resolve <the file> --status=done --pushed=<yes | no と理由 | -> --body=<file from b>`
       - fork-id, url, branch, commit of `by:` come from the repo it runs in (commit = the HEAD fixed in a) | no commit → `--commit=-` | committed in another repo → `--commit=<sha and place>` | stopped at part of the order → `--status=partial`

@@ -33,19 +33,19 @@ district_map: what exists and what each district holds → src/lib/districtMap (
 - gateless: only domains have a gate | a district of another kind imports no domain (values or types): what it needs is passed in through its points (lint import-boundaries/district-no-domains, error) | it reads generated lists only, never another wiring file
 
 ## TOOLS (the context and a full set of tools hold up ai_native)
-use: a step a rule assigns to a tool (a push → /ship, a generated file → its generator, repo.json → its command) → use that tool | any other step → use a tool that fits, none fits → do it directly and let the checks judge the result | unsure which → scripts/README.md, the .claude/skills/ descriptions
+use: a step a rule assigns to a tool (a push → /sluice, a generated file → its generator, repo.json → its command) → use that tool | any other step → use a tool that fits, none fits → do it directly and let the checks judge the result | unsure which → scripts/README.md, the .claude/skills/ descriptions
 - build: pnpm forge (domains, roles, profiles end to end) | pnpm generate \<target\> (domain, role, registry, routes, cron, cache, extensions, styles)
-- check: pnpm check [--phase=ship] | pnpm test [--changed] | pnpm typecheck | pnpm lint = the checks, run only inside /ship and /flux segments | what is work, not a check → core/notices.md checks_in_ship
+- check: pnpm check [--phase=ship] | pnpm test [--changed] | pnpm typecheck | pnpm lint = the checks, run only inside /sluice and /flux segments | what is work, not a check → core/notices.md checks_in_ship
 - workflow: pnpm workflow \<area\> (ownership, rules, notices, worktree, devcheck, repo-json …) | ops: pnpm ops \<area\> (setup env, features, db inspect, firestore inspect) | task: pnpm task \<name\> (every ops task, no ad-hoc)
 - running_app: a check that needs the running app → /devcheck (an order's check sheet → /patrol) | what the agent may run = repo.json agent.* policy, never stated here, changed only by /repo-config
-- skills: /ship (checks, notice, commit, push) | /flux (take a parent's changes) | /order /inbox /wen (orders) | /devcheck /patrol (the running app) | /allow /repo-config (what the agent may run, the repo.json settings) | the rest → .claude/skills/
+- skills: /sluice (checks, notice, commit, push) | /flux (take a parent's changes) | /order /inbox /wen (orders) | /devcheck /patrol (the running app) | /allow /repo-config (what the agent may run, the repo.json settings) | the rest → .claude/skills/
 
 ## REPO_LINK (one loop links the repos: ship → take in → order → answer → resolves; detail → core/notices.md)
-loop: /ship (a notice when downstream must follow) → downstream takes it with /flux, segment by segment → what is missing → /order \<to\> → the receiver answers with /inbox (/wen checks yours) → the notice shipping it says resolves: and the permit and provisional rule end
-ship (MANDATORY): every commit + push = /ship (checks, notice, commit, push) | which kind and when → .claude/skills/ship/SKILL.md | a fix to a shipped change → delivery
+loop: /sluice (a notice when downstream must follow) → downstream takes it with /flux, segment by segment → what is missing → /order \<to\> → the receiver answers with /inbox (/wen checks yours) → the notice shipping it says resolves: and the permit and provisional rule end
+ship (MANDATORY): every commit + push = /sluice (checks, notice, commit, push) | which kind and when → .claude/skills/sluice/SKILL.md | a fix to a shipped change → delivery
 delivery: a new notice | a shipped notice's body edited (description fix) | a hotfix (below) | no index: the list is the git history | → core/notices.md delivery
-safe_point: the tag on a pushed commit where the full checks passed (/ship --safe) = the only periodic full check, never add another | a mark, never a gate: prod deploys print whether they stand on a safe point and never stop | → core/notices.md safe_point
-hotfix: a fix the human calls urgent (their words only, never your judgment) = /ship hotfix → forks take it before every other segment | → core/notices.md hotfix
+safe_point: the tag on a pushed commit where the full checks passed (/sluice --safe) = the only periodic full check, never add another | a mark, never a gate: prod deploys print whether they stand on a safe point and never stop | → core/notices.md safe_point
+hotfix: a fix the human calls urgent (their words only, never your judgment) = /sluice hotfix → forks take it before every other segment | → core/notices.md hotfix
 notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit (MANDATORY, deleting / moving a file forks may extend too) | a key of CLAUDE.md, a core file or a card renamed, moved or removed → old → new in it | → core/notices.md notice
 checkpoint (MANDATORY on every notice): `checkpoint: <label>` = a segment boundary the author declares | `checkpoint: -` only when the fork cannot work without the next notice
 git_shape: main's first-parent is one line (unit-of-work merges may stay, never main merged into a work line; a segment's notice sits on that line) | → core/notices.md git_shape

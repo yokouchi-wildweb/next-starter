@@ -695,7 +695,7 @@ export function fileCheckOrder({ box, to, from, src, title, why, only, slug = "b
 }
 
 // 一覧の 1 件。先頭の語 = open | routed | taken | waiting | resumable（waiting_on: があれば待ちが先）。
-// routed_to / taken_by が自分を指せば (you) を付ける（/ship の担当の確かめもこれを読む）
+// routed_to / taken_by が自分を指せば (you) を付ける（/sluice の担当の確かめもこれを読む）
 function printOrder(path, actor, env) {
   const text = readFileSync(path, "utf8");
   const waits = fields(text, "waiting_on").map(orderState);

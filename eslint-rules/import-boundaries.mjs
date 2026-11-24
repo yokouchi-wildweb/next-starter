@@ -61,7 +61,7 @@
 //
 // ── src-no-district-map(目録 D12) ──
 // src/**(テストを含む)から地区の地図の集約ファイル src/registry/district-map.jsonl を import しない(どの形も)。
-// あれは人・agent・/ship と /flux の差分のための写し。道具・lint・生成は毎回読み手 src/lib/districtMap を呼ぶ(他の生成の入力にもしない)。
+// あれは人・agent・/sluice と /flux の差分のための写し。道具・lint・生成は毎回読み手 src/lib/districtMap を呼ぶ(他の生成の入力にもしない)。
 //
 // ── scripts-no-static-wiring(D79) ──
 // 道具(scripts/**・src/domains/**/scripts/**・.notices/<id>.<名前>.mjs の codemod)は src/wiring/** を静的に import しない

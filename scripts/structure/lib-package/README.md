@@ -2,7 +2,7 @@
 
 ## Overview
 
-- lib ごとの「閉じたか」を確かめます。`package.json` を持つ lib(= 宣言した lib)は下の 1〜6 の不備で落ち、宣言の無い lib(package.json の無い `src/lib/<名前>`)は不備 `undeclared` 1 つで落ちます(閉じた lib の検査は掛けない。上流の lib は「lib を閉じる手順」、fork の自前の lib は宣言の道具で package.json を置く)。package.json の形そのもの(exports・libs・peers・sideEffects の書き方。入口の名前 = exports の鍵が `.`・`./server`・`./client`・`./node` の 4 つだけ、ほかは `entryName`)は `src/lib/libPackage`(読み手と形の検査)が見ます。形に問題がある宣言の lib は 1〜6 を飛ばし、閉じていない不備 1 つ(`shape`。理由に形の問題の名前と文を並べる)で落とします(state skipped)。上流の lib にも fork が足した自前の lib にも同じに効きます。今の repo の lib を型検査するのはこの段階だけで、テストは作り物のリポで仕組みを試します(1 回の `/ship --safe` で同じ型検査を重ねない)。
+- lib ごとの「閉じたか」を確かめます。`package.json` を持つ lib(= 宣言した lib)は下の 1〜6 の不備で落ち、宣言の無い lib(package.json の無い `src/lib/<名前>`)は不備 `undeclared` 1 つで落ちます(閉じた lib の検査は掛けない。上流の lib は「lib を閉じる手順」、fork の自前の lib は宣言の道具で package.json を置く)。package.json の形そのもの(exports・libs・peers・sideEffects の書き方。入口の名前 = exports の鍵が `.`・`./server`・`./client`・`./node` の 4 つだけ、ほかは `entryName`)は `src/lib/libPackage`(読み手と形の検査)が見ます。形に問題がある宣言の lib は 1〜6 を飛ばし、閉じていない不備 1 つ(`shape`。理由に形の問題の名前と文を並べる)で落とします(state skipped)。上流の lib にも fork が足した自前の lib にも同じに効きます。今の repo の lib を型検査するのはこの段階だけで、テストは作り物のリポで仕組みを試します(1 回の `/sluice --safe` で同じ型検査を重ねない)。
 
 ## Usage
 

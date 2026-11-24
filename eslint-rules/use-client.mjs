@@ -3,7 +3,7 @@
 // hook を使うファイルは先頭に "use client" を書く(core/components.md use_client)。
 // hook(useState・useEffect・自前の useXxx …)はクライアントでしか動かない。"use client" の無いファイルが入口のファイル越しに
 // サーバーのコンポーネントから 1 本でも届くと、本番のビルド(Turbopack)が「useState は Client Component でしか動かない」で落ちる。
-// ビルドは /ship --safe でしか走らないので、普通の出荷の lint で先に止める。
+// ビルドは /sluice --safe でしか走らないので、普通の出荷の lint で先に止める。
 //
 // hook の呼び = 名前が use + 大文字で始まる関数の呼び(useState()・React.useState()・useSetting())。
 // React の use()(サーバーでも使える)は大文字が続かないので対象外。

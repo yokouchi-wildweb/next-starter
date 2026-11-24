@@ -44,7 +44,7 @@ pnpm check next-config --phase=build:post  # .next の成果物と殻を見る(�
 - git は読まない: 名前は `repo.json`(`readForkIdentity`)、段階は env。`.git` の無い Vercel の build でも段階 `build` で回る
 - 段階 `build` は offline(DB・外部の env を空にして回る)。設定を読み込むだけで、外へは届かない
 - 静的に焼き付いた API: request を読む前に返す GET は cacheComponents の build で ○ になり、応答が build の時の値に固まる。route.ts は wiring の Factory(`createApiRoute` 等、cron は `createCronTaskRoute`)で書けば、Factory の芯が最初に `connection()` を待つので焼き付かない(src/lib/routeFactory/README.md)
-- fork の取り込み(/flux)の区間の検査は build をしないので、/flux で効くのは `ship` の段階の設定の判定。成果物の判定は fork の `pnpm build`(Vercel の build も)と /ship --safe の全部の検査で効く
+- fork の取り込み(/flux)の区間の検査は build をしないので、/flux で効くのは `ship` の段階の設定の判定。成果物の判定は fork の `pnpm build`(Vercel の build も)と /sluice --safe の全部の検査で効く
 - build:post は offline の段階(DB・外部の env を空にして回る)。この判定は .next のファイルを読むだけ
 - 殻に入れない範囲を殻で見る理由: 殻は全員(未ログインも)に同じ物が配られるので、管理のメニューや保護された本文が殻に入ると未ログインの応答に載る。見える部分(メニュー・リンク・本文)は Suspense の内側(穴)に置き、request ごとに流し込む
 - 空の外枠を許す理由(D55): 中身の無い入れ物は何も見せない。root の Provider を殻へ出すと管理の枠の外側(`AdminLayout` の外枠の div)は殻に入るが、サイドバー・メニューは管理の守り(`guard()`)の内側で穴のまま

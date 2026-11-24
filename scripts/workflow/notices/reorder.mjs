@@ -1,7 +1,7 @@
 // scripts/workflow/notices/reorder.mjs
 // push の前の並べ替え(D353): 区切りの点 = notice を足した commit。まだ push していない範囲で、notice を足した後に
 // 後の commit がその本文を直していたら、足すのをその最後の commit に移す(まだ出していない commit を書き直す。commit は増えない)。
-// /ship が手順 6 の commit の後・pickCheck の前に走らせる(COMMITTED RANGE も)。止める検査ではない: 動かせない物は 1 行で言うだけ。
+// /sluice が手順 6 の commit の後・pickCheck の前に走らせる(COMMITTED RANGE も)。止める検査ではない: 動かせない物は 1 行で言うだけ。
 //
 // 実行: pnpm workflow notices reorder [--onto=<ref>] [--dry-run]
 //   範囲 = <onto>..HEAD(既定 onto = @{u}、無ければ origin/HEAD。WORKTREE ROUTE の origin/main と同じ)

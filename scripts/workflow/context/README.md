@@ -49,7 +49,7 @@ pnpm workflow context facts --fetch       # 持ち主を決める前に親の re
 
 ## Verification
 
-- `pnpm test scripts/workflow/context/context.test.mjs`(/ship の検査が回す)
+- `pnpm test scripts/workflow/context/context.test.mjs`(/sluice の検査が回す)
 
 ## Related
 

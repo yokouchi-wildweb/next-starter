@@ -10,7 +10,7 @@
       "explicit": true
     },
     "ship": {
-      "runs": "/ship の検査(commit の前)",
+      "runs": "/sluice の検査(commit の前)",
       "offline": false,
       "watch": true
     },

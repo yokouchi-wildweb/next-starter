@@ -1,10 +1,10 @@
 ---
-name: ship
+name: sluice
 description: Ship this repo's changes (fix the range → checks → judge downstream impact → write a DOWNSTREAM NOTICE when needed → commit → push); the pair of the receiving side's /flux | When the user tells you to commit, push or ship, and on /inbox's completion
 argument-hint: "[order:<指令 id>] [no-push] [notice:defer] [notices:<下書きのパス,…>] [hotfix] [--safe] [--quick] [補足メモ(任意)]"
 ---
 
-role: **ship** (commit and push this repo's changes; when downstream forks need follow-up work, put a DOWNSTREAM NOTICE in the same commit) | the receiving side is downstream's `/flux`; write notices to match how it reads them | spec: `.notices/README.md`
+role: **sluice** (commit and push this repo's changes; when downstream forks need follow-up work, put a DOWNSTREAM NOTICE in the same commit) | the receiving side is downstream's `/flux`; write notices to match how it reads them | spec: `.notices/README.md`
 
 ## WHEN TO USE
 - the user tells you to commit, push or ship (`コミットして`, `プッシュして`, `出荷して`) | no instruction → never use it (behavior.md: never commit without an instruction)
@@ -60,7 +60,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - then **tag the safe point** (`--safe` only, when the check passed): `pnpm workflow notices safePoint tag`
      - it fetches `origin/<branch>` (WORKTREE ROUTE: `origin/main`, the tool's default), confirms the sha the check recorded is in it (equal or an ancestor: others may have pushed meanwhile), creates the annotated tag `safe/<own repo_id>/<YYYYMMDD>-<n>` (n = the next free number for that repo_id and day) on that sha and pushes it (`git push origin refs/tags/<tag>`)
      - exit 1 → no tag; write the reason in the report (the push stands; the next `--safe` ship tags its own tip)
-     - a middle tier (`tier` middle) tags its own repo the same way (same /ship, same tool, its own repo_id in the tag name)
+     - a middle tier (`tier` middle) tags its own repo the same way (same /sluice, same tool, its own repo_id in the tag name)
 8. **report** (Japanese):
    - first line = downstream intake verdict (measured): `取り込み判定: 安全 | 要注意(理由)| 危険(理由)`
      - `危険` (danger) = a plain merge breaks the fork's build, boot or existing behavior / needs manual work on the fork side / behavior or permissions change silently | `要注意` (caution) = only as far as merge conflicts may happen | no downstream → omit
@@ -68,7 +68,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - a `fixes:` notice shipped → give the `pick:` judgment (clean / `-` with the failed conditions / unverified)
    - `hotfix` → say it was shipped as an emergency fix, the result of the pick check, and that each fork needs `/flux` (forks do not notice until they run it)
    - the safe point: the tag name, or `セーフポイントなし: <理由>` (plain ship, `--quick`, `no-push`, a full check failed / could not run, the tag step failed)
-   - plain ship (pushed): `pnpm workflow notices safePoint status` → write `セーフポイント: <line 1>` | line 2 `propose` → end the report with one line `セーフポイントを作りますか(/ship --safe、<line 1 の数>)` and wait for the human | exit 2 → `セーフポイント: 未確認(<理由>)` | not with `--quick` / `--safe`
+   - plain ship (pushed): `pnpm workflow notices safePoint status` → write `セーフポイント: <line 1>` | line 2 `propose` → end the report with one line `セーフポイントを作りますか(/sluice --safe、<line 1 の数>)` and wait for the human | exit 2 → `セーフポイント: 未確認(<理由>)` | not with `--quick` / `--safe`
      - score = commits since the last own safe tag ÷ 80 + days ÷ 3 (`--first-parent`); ≥ 1 → propose | no safe tag yet → propose
      - no human in this session (a team tool's executor that reports to its lead) → put that one proposal line in the result it hands back (RESOLUTION, status note, report) and end without waiting: the lead asks the human
    - came from `/inbox` → do not stop here, return to the rest of `/inbox` step 4 (RESOLUTION) | use the commit sha and push result there
@@ -89,7 +89,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 
 ## CATCH UP (laying your branch again on a moved push target — D395 (2))
 - `pnpm workflow notices catchUp [--onto=<ref>]` (default origin/main): the same commits in the same order on the target; a work merge (a guild ticket's merge a cargo kept) stays a merge, a merge that took main into the line is dropped (main's first-parent is one line), the line's root moves onto the target | never a plain `git rebase` (it flattens the work merges)
-- only for a line with one owner (the branch you /ship); a line several build on (a guild's junction) catches up by the tool's merge, never this | it never reorders (not a reorder of a run with merges, D383)
+- only for a line with one owner (the branch you /sluice); a line several build on (a guild's junction) catches up by the tool's merge, never this | it never reorders (not a reorder of a run with merges, D383)
 - tip rebuild (D402): origin/main is an ancestor of HEAD but the tip is a merge that took the target itself into the line (first parent = the line, second = the target)
   - → the same tree as a merge whose first parent is the target and second the line, the same author, subject `merge: <branch> を main へ`; one line `catchUp: 組み直した …`, never a stop
   - why: pushed as is, the previous main would leave main's first-parent line | such a merge further down the line is not rebuilt
@@ -108,7 +108,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 - report: the checks' result, the quick commits covered, the tag name (or `セーフポイントなし: <理由>`) | an older commit than the tip → not covered here (needs a separate procedure)
 
 ## COMMITTED RANGE (step 1's range is empty, HEAD ahead of the push target)
-- the commits on HEAD the push target lacks (`git log --format='%h %s' <target>..HEAD`; target = `origin/main` on the WORKTREE ROUTE, else `origin/<branch>`) = commits made earlier by /ship (e.g. `--quick no-push` ships, collected onto this branch): their notices are in them
+- the commits on HEAD the push target lacks (`git log --format='%h %s' <target>..HEAD`; target = `origin/main` on the WORKTREE ROUTE, else `origin/<branch>`) = commits made earlier by /sluice (e.g. `--quick no-push` ships, collected onto this branch): their notices are in them
 - skip: step 0 (the caller answers the orders), steps 2-5, step 6's commit | never with `hotfix`
 - keep:
   - step 6's `pnpm workflow notices reorder` first (the range is unpushed; with `no-push` it waits for the push)

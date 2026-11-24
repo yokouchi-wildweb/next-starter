@@ -21,7 +21,7 @@ test("表: 語は en が一意、決定の番号を持つ。誤りの行は say 
 test("置き場: 文脈ファイル・道具・見ない所", () => {
   assert.equal(areaOf("CLAUDE.md"), "context");
   assert.equal(areaOf(".claude/rules/core/change.md"), "context");
-  assert.equal(areaOf(".claude/skills/ship/SKILL.md"), "context");
+  assert.equal(areaOf(".claude/skills/sluice/SKILL.md"), "context");
   assert.equal(areaOf("scripts/runner/phases/run.mjs"), "tools");
   assert.equal(areaOf("eslint-rules/import-boundaries.mjs"), "tools");
   assert.equal(areaOf("eslint.config.mjs"), "tools");

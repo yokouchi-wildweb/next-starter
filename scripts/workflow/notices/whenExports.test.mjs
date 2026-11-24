@@ -1,5 +1,5 @@
 // scripts/workflow/notices/whenExports.test.mjs
-// /ship の促し(D28): 規則の when が指せる値(ドメインの config.ts の最上位の真偽の export)の消えた・改名を基準と HEAD の木の差で出す。実行: pnpm test scripts/workflow/notices/whenExports.test.mjs
+// /sluice の促し(D28): 規則の when が指せる値(ドメインの config.ts の最上位の真偽の export)の消えた・改名を基準と HEAD の木の差で出す。実行: pnpm test scripts/workflow/notices/whenExports.test.mjs
 
 import assert from "node:assert/strict";
 import { test } from "node:test";

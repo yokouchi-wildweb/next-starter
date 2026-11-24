@@ -132,7 +132,7 @@ Worker 側の変更が無い回でも deploy は無害 (冪等)。「今回 serv
 - `enabled: true` だけ引いて wrangler.toml が無いフォークは、`pnpm live:all` が明示エラーで止まる
   (fail-closed としては正しいが、下流にとっては突然の変化)
 
-対処: 中間層で有効化をコミットしたら、**ロールアウト時に下流へ DOWNSTREAM NOTICE を出す**(`/ship` で出荷すると判定と起票まで行う)こと。
+対処: 中間層で有効化をコミットしたら、**ロールアウト時に下流へ DOWNSTREAM NOTICE を出す**(`/sluice` で出荷すると判定と起票まで行う)こと。
 内容は「wrangler.toml の name を自プロジェクト固有名へ変更 + 自アカウントでセットアップ (pnpm ops room init 手順) or
 使わないなら `enabled: false` へ戻す」の二択を明示する。
 

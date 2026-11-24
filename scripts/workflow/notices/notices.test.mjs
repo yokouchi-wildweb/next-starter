@@ -1,6 +1,6 @@
 // scripts/workflow/notices/notices.test.mjs
 // DOWNSTREAM NOTICE(.notices/*.md)の契約テスト。実行: pnpm test scripts/workflow/notices/notices.test.mjs (node:test)
-// /ship が notice を出荷する前に通し、/flux が読む書式(見出し行・checkpoint・fixes・pick・covers・moved・resolves)と食い違わないことを確かめる。
+// /sluice が notice を出荷する前に通し、/flux が読む書式(見出し行・checkpoint・fixes・pick・covers・moved・resolves)と食い違わないことを確かめる。
 // 本文の欄どうしの検査(uses:・skip_checkpoint:・covers: の参照先・fixes: の前後)は scripts/workflow/notices/noticeFields.mjs(本文の最後の版で読む。索引は持たない、D350)。
 // 仕様: .notices/README.md
 import { test } from "node:test";
@@ -157,7 +157,7 @@ test("fixes: の参照先が実在し、履歴上で自分より前のもの", (
   assert.deepEqual(problems, [], problems.join("\n"));
 });
 
-// pick: = 修正を先に取れるかの印。/ship が pnpm workflow notices pickCheck で機械で書く(.notices/README.md「修正(fixes)」)
+// pick: = 修正を先に取れるかの印。/sluice が pnpm workflow notices pickCheck で機械で書く(.notices/README.md「修正(fixes)」)
 test("pick: は clean か - で、fixes: のある notice にだけ付く(本文の欄)", () => {
   const problems = [];
   const items = [...active, ...done].map((n) => ({ where: n.path, fields: n.fields }));

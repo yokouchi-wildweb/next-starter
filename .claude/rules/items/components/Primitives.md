@@ -16,6 +16,6 @@ using:
 - slot_caller: a caller's `data-slot` prop never replaces the part's mark | a wrapping upstream part renames it only through the typed `slot` value
 editing:
 - slot_owner: a mark belongs to the part: put it after the caller's props spread so the caller cannot override it
-- slot_list: the README list `### data-slot の一覧` = the marks in the part's files (checked by src/components/Primitives/slots.test.mjs, /ship runs it)
+- slot_list: the README list `### data-slot の一覧` = the marks in the part's files (checked by src/components/Primitives/slots.test.mjs, /sluice runs it)
 - slot_notice: removing or renaming a mark → notice
 read: every part folder has a README with the same h2 set (Button shown) | what a part is, its finished part → src/components/Primitives/Button/README.md Overview | props → src/components/Primitives/Button/README.md API | marks for fork CSS → src/components/Primitives/Button/README.md Extension | list check → src/components/Primitives/Button/README.md Verification

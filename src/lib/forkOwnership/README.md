@@ -185,7 +185,7 @@ pnpm workflow ownership selfKeep --pre=<区間の前> --target=<区間の merge 
   ```
 - 読み手 `parseRepoJson` は入れ子だけを読み、呼び手へは点の道の表(`agent.server`・`agent.entries.deploy`・`vercel.plan`)で返す。平らな形(一番上の点の入った鍵、古い repo.json)は errors に `pnpm workflow repo-json migrate` の案内を出し、身元だけ読む(`flat` に鍵を並べる。過去の版の名前を読む `forkIdOfTexts` は平らな形の誤りを数えない)
 - `repo_id` = 自分の名前。全リポ(Tier1 = `next-starter`)が書く。台帳 `.notices/applied/<名前>.md`・一時許可 `.fork-ownership/<名前>.permits.txt`・`src/lib/CATALOG.md` の節の見出し・受信箱も同じ名前。使える形: 小文字・数字・ハイフン(ファイル名になるので `.` は不可)。名前は `/fork-init` が最初に聞いて作る(既定 = リポ名の小文字、既知の名前と重なれば止まる)
-- `tier` = `root`(Tier1)| `middle`(下流の fork を持つ・持つ予定)| `leaf`(末端)。無い = `leaf`。下流の有無はここから導く(root・middle = yes、leaf = none)。`/ship`・`/flux` の中継判定・`.claude/rules/lineage.md` の検査はこの値を使う
+- `tier` = `root`(Tier1)| `middle`(下流の fork を持つ・持つ予定)| `leaf`(末端)。無い = `leaf`。下流の有無はここから導く(root・middle = yes、leaf = none)。`/sluice`・`/flux` の中継判定・`.claude/rules/lineage.md` の検査はこの値を使う
   - 見張り: `root` ⇔ 自分の名前が `src/lib/CATALOG.md` の先頭の節(両向き)。食い違い・知らない値は `downstreamError`。止めるのは pnpm workflow ownership check(未検証 = exit 2)と lineage.md の検査だけで、`pnpm check extensions`(`pnpm build`)は止めない
 - `agent.<種類>`・`agent.entries.<種類>` = エージェントに任せる方針と危険な 3 つの入口の鍵(読むのは devcheck)。ほかの鍵は `errors`
 - `vercel.plan` = Vercel の契約のプラン(`hobby` | `pro`、読むのは `readVercelPlan`、使うのは `pnpm generate cron` の `--plan` の無い時)。無い = Vercel にデプロイしないリポ(crons を作り直さない)。知らない値は `errors`

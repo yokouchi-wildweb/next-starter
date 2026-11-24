@@ -1,6 +1,6 @@
 // scripts/structure/district-map/map.mjs
 // 地区の地図の集約ファイル src/registry/district-map.jsonl を作る・照らす(生成器と検査器の共通の部品)。
-// 読み手は src/lib/districtMap(道具・lint・生成は毎回それを呼ぶ。この jsonl は人・agent・/ship と /flux の差分用で、他の生成の入力にしない、目録 D12)。
+// 読み手は src/lib/districtMap(道具・lint・生成は毎回それを呼ぶ。この jsonl は人・agent・/sluice と /flux の差分用で、他の生成の入力にしない、目録 D12)。
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";

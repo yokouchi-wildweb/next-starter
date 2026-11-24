@@ -97,7 +97,7 @@ export const RECEPTACLE_FILE = "extensionPoints.ts";
 /** 地区の中を歩くときに入らないフォルダ(生成の一覧・依存・隠し) */
 export const SKIP_DIRS = ["node_modules", "extensions"];
 
-/** 集約ファイル(人・agent・/ship と /flux の差分用。src から import しない、他の生成の入力にしない、目録 D12) */
+/** 集約ファイル(人・agent・/sluice と /flux の差分用。src から import しない、他の生成の入力にしない、目録 D12) */
 export const DISTRICT_MAP_FILE = "src/registry/district-map.jsonl";
 
 /**

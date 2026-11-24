@@ -192,7 +192,7 @@ test("deployPosition Tier1: HEAD が自分の safe tag ちょうどなら ok、�
   commit(r.dir, "more");
   const ahead = deployPosition(r.dir);
   assert.equal(ahead.ok, false);
-  assert.match(ahead.message, /\/ship/);
+  assert.match(ahead.message, /\/sluice/);
   assert.doesNotMatch(ahead.message, /unsafe|出せません/);
 });
 

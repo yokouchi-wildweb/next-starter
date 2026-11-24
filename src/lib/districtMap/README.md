@@ -89,7 +89,7 @@ const { districts, problems } = readDistrictMap({ listDir, readText });
 ### 集約ファイル `src/registry/district-map.jsonl`
 
 - `pnpm generate district-map` が作り(1 行 1 地区、並びは種類 → 名前)、`pnpm check district-map` が今の木と同じかを見る(検査の段 build・ship・forge:post = pnpm check --phase=<名前>)
-- 読み手は人と agent・/ship と /flux の差分の見張り。src からの import は lint `import-boundaries/src-no-district-map` が止める(テストも)
+- 読み手は人と agent・/sluice と /flux の差分の見張り。src からの import は lint `import-boundaries/src-no-district-map` が止める(テストも)
 - 生成器と検査器: `scripts/structure/district-map/`
 - lib は src 直下(門番・registry・wiring)を import しないので、この読み手は門の規則も字面で読む
 

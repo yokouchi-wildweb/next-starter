@@ -275,7 +275,7 @@ test("脇の commit の区間(Backport の道): 本線の notice を名指す修
   up.g("switch", "-q", "-c", "fix", p1);
   const side = up.ship(N(3), ["checkpoint: three", `fixes: ${N(2)}`], { "src/fix.txt": "fixed" });
   up.g("switch", "-q", "main");
-  // 本線の索引は脇の行も持つ(/ship は merge で両方の行を残す)
+  // 本線の索引は脇の行も持つ(/sluice は merge で両方の行を残す)
   try {
     up.g("merge", "-q", "--no-ff", "-m", "merge fix", "fix");
   } catch {
@@ -365,7 +365,7 @@ function split(t, { main, side, sideFields = () => [], extra = 0 }) {
   const lines = [];
   for (let i = 0; i < extra; i++) { up.g("switch", "-q", "-c", `third${i}`, fork); const n = id(); lines.push({ id: n, sha: up.ship(n, [`checkpoint: t${i}`]) }); }
   up.g("switch", "-q", "main");
-  // 本線の索引は脇の行も持つ(/ship は merge で両方の行を残す)。3 本目以降は続けて merge(重なった合流 = 3 本以上の線)
+  // 本線の索引は脇の行も持つ(/sluice は merge で両方の行を残す)。3 本目以降は続けて merge(重なった合流 = 3 本以上の線)
   const join = (head) => {
     try {
       up.g("merge", "-q", "--no-ff", "-m", `rejoin ${head}`, head);

@@ -4,7 +4,7 @@
 // 全部回すので重ねない(普段の pnpm build — デプロイ・人の手 — は頭の段階を持ったまま)
 // 注釈つきの tag `safe/<fork_id>/<YYYYMMDD>-<n>`(fork_id = 付けたリポの repo.json の repo_id、n = その fork_id と日の次の空き番号)。
 // 名前に fork_id が入るので親子の tag は重ならず、見るのは直接の親の `safe/<親の fork_id>/*` だけ。
-// 仕様 = .notices/README.md「区切り(checkpoint)と区間適用」のセーフポイント。使う所: /ship --safe(push → check → tag)、/flux の区間の報告(where)、
+// 仕様 = .notices/README.md「区切り(checkpoint)と区間適用」のセーフポイント。使う所: /sluice --safe(push → check → tag)、/flux の区間の報告(where)、
 // 本番のデプロイの知らせ(deployPosition。scripts/operations/deploy/lib.ts の reportSafePoint、止めない)。
 //
 // 実行: pnpm workflow notices safePoint <動作>
@@ -19,12 +19,12 @@
 //   status [--remote=origin] [--commits=80] [--days=3] [--now=<unix 秒>]
 //                               自分の safe/<own>/* のうち HEAD の祖先で一番新しいものから、HEAD まで何 commit(--first-parent)・何日か。
 //                               値 = commits ÷ --commits + 日数 ÷ --days。1 以上(tag が無く commit が 1 つ以上も)なら 2 行目に propose。
-//                               /ship のふつうの出荷の報告が使う(セーフポイントを作るかの提案)
+//                               /sluice のふつうの出荷の報告が使う(セーフポイントを作るかの提案)
 //   quickFiles                  HEAD から --first-parent でさかのぼり、`Ship: quick` の trailer がある commit が続く間(手元の自分の
 //                               safe tag の commit で止まる)を集め、1 行目に `<N> quick commits unchecked`、続けて変わったファイルを 1 行ずつ。
 //                               `Ship:` も `downstream-notice:` も無い merge(cargo が残す作業の合流など)では止まらず数に入れて辿る
 //                               (ファイルは起点からの diff なので合流の 2 番目の親の側も入る)。/flux の取り込み(downstream-notice:)では止まる
-//                               /ship のふつうの出荷が、まだ検査していない quick の分を範囲に足すのに使う。quickChecked で記録した commit でも止まる
+//                               /sluice のふつうの出荷が、まだ検査していない quick の分を範囲に足すのに使う。quickChecked で記録した commit でも止まる
 //   quickFiles --through=<ref>  COMMITTED RANGE のふつうの出荷: <ref>(push 先)の祖先でない commit(= 出す範囲、道具が積んだ印の無い
 //                               commit を含む)は印に関係なく通り抜け(数えない・止まらない)、<ref> から下を同じ規則で歩く。範囲の先頭の
 //                               印の無い commit で止まると、push 済みで範囲の下にある他のセッションの quick の分が検査に入らず、出荷の後は
@@ -199,7 +199,7 @@ export function deployPosition(repo, { readTags = readSafeTags, readParentId = p
   const line = describe(c);
   if (c.kind === "at") return { ok: true, line, message: `セーフポイント ${c.tag} の上にいます` };
   if (identity.isTier1) {
-    return { ...off(`HEAD ${short(target)} はセーフポイントではありません(${line})。全部の検査が通った印が欲しければ /ship --safe`), line };
+    return { ...off(`HEAD ${short(target)} はセーフポイントではありません(${line})。全部の検査が通った印が欲しければ /sluice --safe`), line };
   }
   const ahead = nextAhead(repo, target, tags);
   if (ahead) {

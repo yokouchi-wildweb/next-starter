@@ -23,7 +23,7 @@ if (process.env.NODE_TEST_CONTEXT && Number.isFinite(seconds) && seconds > 0) {
   const stop = (limit, when) =>
     setTimeout(() => {
       process.stderr.write(
-        `test: 時間切れ ${limit} 秒(${when}): ${shown}(終わらないファイルを止めた。残った接続・タイマーを確かめる。遅いだけなら /ship の検査で TEST_FILE_TIMEOUT=<秒> か pnpm test --file-timeout=<秒> で延ばす)\n`,
+        `test: 時間切れ ${limit} 秒(${when}): ${shown}(終わらないファイルを止めた。残った接続・タイマーを確かめる。遅いだけなら /sluice の検査で TEST_FILE_TIMEOUT=<秒> か pnpm test --file-timeout=<秒> で延ばす)\n`,
       );
       process.exit(1);
     }, limit * 1000).unref();

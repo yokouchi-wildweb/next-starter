@@ -7,7 +7,7 @@ argument-hint: "[確かめたいこと(省略で変更の中身から選ぶ)]"
 role: check the change of this session with `pnpm workflow devcheck plan|run|cleanup` and Playwright MCP, after one go
 source_of_truth: kinds, commands, policy, fork items, exit codes, DEVCHECK_CONTEXT = scripts/workflow/devcheck/README.md | the processing stays in the command
 args: $ARGUMENTS
-out_of_scope: a check sheet of an order (`<order>.check.md`) → /patrol | the schema push (pnpm db:push) and anything on production are never a check | tests, lint, types and pnpm check are never a devcheck: checks run only inside a ship tool (D357: /ship step 2, /flux's segment checks)
+out_of_scope: a check sheet of an order (`<order>.check.md`) → /patrol | the schema push (pnpm db:push) and anything on production are never a check | tests, lint, types and pnpm check are never a devcheck: checks run only inside a ship tool (D357: /sluice step 2, /flux's segment checks)
 
 ## STEPS
 1. **facts**: `pnpm workflow devcheck plan` | exit 2 → tell the user its one line; STOP

@@ -1,6 +1,6 @@
 // scripts/workflow/notices/whenExports.mjs
 // pnpm workflow notices whenExports [--base=<ref>] [--json]: 門番の規則の when が指せる値(ドメインの config.ts の最上位の export const <名前>: boolean、D28)のうち、
-// 基準(既定 = push 先 @{u}、無ければ origin/HEAD)にあって HEAD に無い物(消えた・改名・真偽でなくなった)を出す。/ship step 3 が読み、出たら notice に旧 → 新の表を書く
+// 基準(既定 = push 先 @{u}、無ければ origin/HEAD)にあって HEAD に無い物(消えた・改名・真偽でなくなった)を出す。/sluice step 3 が読み、出たら notice に旧 → 新の表を書く
 // (fork の規則の when が指していれば fork の生成で止まるので、required_actions に直し方を書く)。0 件なら何も出さない(exit 0)。
 // 同じ config.ts に HEAD で増えた真偽の export は改名の候補として並べる。上流の規則(基準の木)が指していた名前には印を付ける
 

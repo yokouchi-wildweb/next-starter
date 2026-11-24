@@ -67,7 +67,7 @@ test("計画と当て: 宣言・ランナーのフォルダ・一覧とテスト
     "package.json": '{ "scripts": { "build": "pnpm check --gate=build && next build" } }\n',
     "scripts/structure/routes/gate.json": '{ "check": "check.ts", "gates": ["ship"], "watch": ["scripts/runner/gates/**"] }\n',
     "scripts/structure/mine/gate.json": '{ "check": "check.mjs", "gates": ["ship"] }\n',
-    "scripts/runner/gates/gates.json": '{ "gates": { "ship": { "runs": "/ship" } } }\n',
+    "scripts/runner/gates/gates.json": '{ "gates": { "ship": { "runs": "/sluice" } } }\n',
     "scripts/runner/gates/gates.test.mjs": "// scripts/runner/gates/gates.test.mjs\n",
     "scripts/runner/gates/scan.mjs": 'const p = "runner/gates/gates.json"; // 各 gate.json\n',
     ".notices/20261101-000000-old.md": "pnpm check --gate=ship\n",
@@ -92,7 +92,7 @@ test("計画と当て: 宣言・ランナーのフォルダ・一覧とテスト
   assert.equal(read(root, "package.json"), '{ "scripts": { "build": "pnpm check --phase=build && next build" } }\n');
   assert.equal(read(root, "scripts/structure/routes/phase.json"), '{ "check": "check.ts", "phases": ["ship"], "watch": ["scripts/runner/phases/**"] }\n');
   assert.equal(read(root, "scripts/structure/mine/phase.json"), '{ "check": "check.mjs", "phases": ["ship"] }\n');
-  assert.equal(read(root, "scripts/runner/phases/phases.json"), '{ "phases": { "ship": { "runs": "/ship" } } }\n');
+  assert.equal(read(root, "scripts/runner/phases/phases.json"), '{ "phases": { "ship": { "runs": "/sluice" } } }\n');
   assert.equal(read(root, "scripts/runner/phases/phases.test.mjs"), "// scripts/runner/phases/phases.test.mjs\n");
   assert.equal(read(root, "scripts/runner/phases/scan.mjs"), 'const p = "runner/phases/phases.json"; // 各 phase.json\n');
   assert.equal(read(root, ".notices/20261101-000000-old.md"), "pnpm check --gate=ship\n");

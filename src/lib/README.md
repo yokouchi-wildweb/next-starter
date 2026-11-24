@@ -23,13 +23,13 @@
 
 1. `src/lib/<name>/` を作る（名前は camelCase。入口は `index.ts` を推奨）
 2. [CATALOG.md](./CATALOG.md) の**自分の節**に `- src/lib/<name> — <一行説明>` を足す。自分の節が無ければ末尾に `## <自分の所有者 ID>` を作る。他の節は編集しない
-3. 目録の形は `src/lib/folderCatalog/catalog.test.mjs` が守る(/ship の検査が回す。作業の中では回さない)
+3. 目録の形は `src/lib/folderCatalog/catalog.test.mjs` が守る(/sluice の検査が回す。作業の中では回さない)
 
 - 所有者 ID = 各リポの名前（リポ直下の `repo.json` の `repo_id`、読み手は `src/lib/forkOwnership/forkIds.mjs`）。origin の URL からは導かない。`.notices/applied/<repo_id>.md` の名前と同じ
 
 ### lib を閉じる手順
 
-lib 1 本を「閉じた lib」(package.json の入口だけを外から読み、宣言した物だけを読む)にする手順。1 回の作業 = 1 lib。見本 = `toast`・`isClient`・`frameDims`・`defineConfig`(`git log -- src/lib/toast` で実際の差分を見られる)。各段の確かめは diff と grep で書く。型・lint・テストの検査は手順の中で回さず、出荷の /ship が回す(落ちたら落ちた所だけを回し直す)。
+lib 1 本を「閉じた lib」(package.json の入口だけを外から読み、宣言した物だけを読む)にする手順。1 回の作業 = 1 lib。見本 = `toast`・`isClient`・`frameDims`・`defineConfig`(`git log -- src/lib/toast` で実際の差分を見られる)。各段の確かめは diff と grep で書く。型・lint・テストの検査は手順の中で回さず、出荷の /sluice が回す(落ちたら落ちた所だけを回し直す)。
 
 0. **始める前**: 同じ lib を他の作業(受信箱の依頼・進行中の別の作業)が触っていないか確かめる(受信箱 `~/.local/state/next-starter/orders/<repo-id>/` の依頼に lib の名前が出ないか・進行中の作業の範囲に lib のフォルダが入っていないか)。今の状態を見る: `pnpm check lib-package -- --list`(lib ごとに `closed` / `gaps` / `undeclared`。道具からは `-- --json`)
 1. **依存を洗い出す**: lib の中から外を読む import を一覧にし、lib / 棚(`@/components`)/ hooks・utils / `@/config` / features・app に仕分ける。features・app・`@/config` は読めない → 引数・注入で受けるか、値なら手順 6 の設定にする
@@ -41,12 +41,12 @@ lib 1 本を「閉じた lib」(package.json の入口だけを外から読み�
 4. **package.json を置く**: `exports` は今のパスを写さず機能で整理し、外と fork が読む名前は全部入口に残す(消すのは破壊的変更 = notice を伴う別の変更)。入口の名前は `.`(client でも server でも読める物。入口に `"use client"` を書かない)・`./server`(DB・管理 SDK・秘密・node の API)・`./client`(import しただけでブラウザの SDK を引く物)・`./node`(Next の外のプログラム = scripts・eslint-rules・servers が読む物。React と Next を引かない)・`./points`(型だけの入口: lib が持ち主の点の約束の型だけ。差す側の項目はここだけを型として読む、D33)の 5 つだけ。`libs` = 直接読む lib、`peers` = 棚、`sideEffects` は書かない(手順 8)。形と問題の名前: [libPackage/README.md](./libPackage/README.md)・API「lib の package.json(宣言の形)」
    - 自分の節の lib(fork の自前の lib も)は `pnpm check lib-package -- declare <name>` が package.json と手順 5 の tsconfig.json の初めの形を推して書ける(既定 dry-run、決めきれない所を一覧に出す。祖先の lib は拒む。形: [scripts/structure/lib-package/README.md](../../scripts/structure/lib-package/README.md)「declare」)
    - 確かめ: `git grep -n '"\./' -- src/lib/<name>/package.json`(exports の鍵が上の 5 つだけ・値が lib の中の実ファイル)
-   - 形の問題は `pnpm check lib-package` が守る(/ship の検査が回す。tsconfig.json が無い問題は手順 5 で直す)。入口の名前の外の鍵は `entryName`、`.` の先頭の `"use client"` は `entryUseClient`、`./node` から React・Next を辿れば `nodeEntryReact`(道を出す)で落ちる
+   - 形の問題は `pnpm check lib-package` が守る(/sluice の検査が回す。tsconfig.json が無い問題は手順 5 で直す)。入口の名前の外の鍵は `entryName`、`.` の先頭の `"use client"` は `entryUseClient`、`./node` から React・Next を辿れば `nodeEntryReact`(道を出す)で落ちる
    - package.json を置いた時から lint `entry/only-entries` がその lib に効き、外から中のファイルを読む import が error になる(手順 7 で直すまで `pnpm lint` は落ちる)
-5. **tsconfig.json を置く**: 無い間は `pnpm check lib-package` が置く中身を丸ごと出すので(作業の材料として出させる。通ったかは出荷の /ship で読む)、それをそのまま `src/lib/<name>/tsconfig.json` に書く(依存の依存も閉包として入る。JS(`.mjs` / `.js`)のファイルを持つ lib は allowJs・allowImportingTsExtensions・checkJs と JS の include も入り、JS も型検査する。型の誤りは JSDoc で直す)。形: [scripts/structure/lib-package/README.md](../../scripts/structure/lib-package/README.md)
+5. **tsconfig.json を置く**: 無い間は `pnpm check lib-package` が置く中身を丸ごと出すので(作業の材料として出させる。通ったかは出荷の /sluice で読む)、それをそのまま `src/lib/<name>/tsconfig.json` に書く(依存の依存も閉包として入る。JS(`.mjs` / `.js`)のファイルを持つ lib は allowJs・allowImportingTsExtensions・checkJs と JS の include も入り、JS も型検査する。型の誤りは JSDoc で直す)。形: [scripts/structure/lib-package/README.md](../../scripts/structure/lib-package/README.md)
    - JS(`.mjs` / `.js`)の lib は、出荷の型検査の前に暗黙の any へ型を書く: `pnpm check lib-package -- jsdoc --lib <name>`(既定 dry-run、`--apply` で書く。`any` / `never[]` と出た所は本当の型に直す)。tsconfig は緩めない
    - 確かめ: `git diff -- src/lib/<name>/tsconfig.json`(paths = package.json の libs・peers の閉包と、設定を持つ lib の `@lib-config/<name>`・`@lib-config/<name>.ui` だけ)
-   - その lib の単体の型検査は `pnpm check lib-package` が守る(/ship の検査が回す)
+   - その lib の単体の型検査は `pnpm check lib-package` が守る(/sluice の検査が回す)
 6. **設定**(fork が変える値を持つ lib だけ): `config.ts` に既定(lib の設定の型で注釈)・`defineConfig`・入口から出す `XxxOverride` の型・`compose(上書き)` の結果を置き、上書きは `@lib-config/<name>` だけで読む(描画専用の `config.ui.ts` は `@lib-config/<name>.ui`)
    - 上流の空の上書き `src/config/lib/<name>.config.ts`(描画専用は `<name>.ui.config.ts`)を置く。lib が自前の合成(`defineXxxConfig` など)を持っていたら `defineConfig` に置き換えて消す
    - 上書きの値が効くテストを足す(toast の `config.test.ts` の形: 設定を受けて作る関数に `compose({...})` を渡す)。形: Extension「設定の届け方」・[defineConfig/README.md](./defineConfig/README.md)

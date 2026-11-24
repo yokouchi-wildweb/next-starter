@@ -21,7 +21,7 @@
 
 ## Usage
 
-- **出荷(上流側)**: `/ship` スキル。コミット・push のたびに、検査 → 下流への影響の判定 → 要るなら notice を合成して `.notices/<id>.md` に書き出す(前に出荷したものの修正なら `fixes:` を付ける)→ `pnpm check notices` → 変更本体と同じコミット → push の前の並べ替え(`pnpm workflow notices reorder`)→ push、までを行う。`/flux` と対になる(`/ship` が書く欄と `/flux` が読む欄はこの文書のスキーマで揃える。欄を足すときは両方のスキル・`scripts/workflow/notices/notices.test.mjs`・欄の並び(`.claude/skills/flux/incoming.mjs` の `ROW_KEYS`)・読む側(`.claude/skills/flux/incoming.mjs`、`src/lib/forkOwnership/check.mjs`、`scripts/workflow/notices/noticeFields.mjs`)を同じコミットで直す)。
+- **出荷(上流側)**: `/sluice` スキル。コミット・push のたびに、検査 → 下流への影響の判定 → 要るなら notice を合成して `.notices/<id>.md` に書き出す(前に出荷したものの修正なら `fixes:` を付ける)→ `pnpm check notices` → 変更本体と同じコミット → push の前の並べ替え(`pnpm workflow notices reorder`)→ push、までを行う。`/flux` と対になる(`/sluice` が書く欄と `/flux` が読む欄はこの文書のスキーマで揃える。欄を足すときは両方のスキル・`scripts/workflow/notices/notices.test.mjs`・欄の並び(`.claude/skills/flux/incoming.mjs` の `ROW_KEYS`)・読む側(`.claude/skills/flux/incoming.mjs`、`src/lib/forkOwnership/check.mjs`、`scripts/workflow/notices/noticeFields.mjs`)を同じコミットで直す)。
 - **中継(中間 Tier)**: 下流を持つ fork(`.claude/rules/project.md` の `downstream: yes`)の `/flux` が、適用した上流 notice ごとに中継の要否を git の差分で判定し、必要な区間だけ `covers:` 付きの中継 notice を下書きする(下記「中継(relay)」)。
 - **受領・適用(下流側)**: `/flux` スキル。upstream の fetch → 未適用 notice を checkpoint ごとの区間に分割 → 全区間の概観(1 行ずつ)と**次の区間だけ**の詳細な適用計画を提示 → 承認 → その区間の merge・コード修正・DB 操作・検証・台帳記録・コミット・push → 次の区間の計画を出して止まる。承認は区間ごと(区間の終わりの `go` = 次の区間の計画の承認)で、`/flux all` は最初の区間の承認の後、区間ごとに計画と実行を繰り返して最後まで進める(`/flux next` は既定の別名)。fork が移動元を編集した大きな `moved:` の移植を含む区間は、`all` の途中でも手前で止まる。`/flux status` で状態確認のみ。notice の有無にかかわらず区間の上流差分から使い方の変わった部品・lib・core を洗い出し、fork 側の使用箇所を同じ区間で揃え、区間ごとに typecheck / lint を通してから commit する(古い使い方を残すのはユーザーが判断したときだけ)。notice が無いのに追従が要った変更は「上流への所見」で notice 漏れとして返る。承認後でも、取り込む変更がその fork を壊す・db 差分が破壊的・notice と実態が食い違う等の**停止条件**に当たれば区間を commit せずに止まって選択肢を示す(押し切らない)。最終報告には「上流への所見」(上流のバグ・notice のズレ・/order <上流リポ> 候補)を常設。
 - 対応が不要な通常の変更には notice を作らない。ただコミットされて merge で流れていくだけでよい。
@@ -56,13 +56,13 @@ notes: <anything else>
 ```
 
 - `required_actions` は下流の Claude が計画の承認だけで区間の中を途中確認なしに実行できる具体度で書く(fail-auto)。対話プロンプトを出すコマンドのみ `[user-run]` マーカーを付け、/flux がセッション内ユーザー実行(`!` プレフィックス)で合流する。ドメイン再生成は `pnpm generate domain -- <Domain>` / `pnpm generate domain` が既定で対話なしなので `[user-run]` を付けない(`-i` は使わない。scripts/structure/domain/README.md)。再生成は必要なカテゴリだけを `--only` で指定する(例: レジストリ書き換え = `pnpm generate domain -- --only registry`)。全カテゴリ再生成は手編集した生成物を上書きするため、避けられない場合は一時 worktree での実行を指示する。
-- 管理画面全体に効く変更の notice は、生成の管理画面の再生成だけで終わらせず、`"adminRoutes": false` のドメインの手書きの管理ページと fork の `_components/` を探す `git grep` と、揃える手順・確かめ方を required_actions に書く(書き方は `/ship`「NOTICE COMPOSITION」の「a change that acts on the whole admin」)
+- 管理画面全体に効く変更の notice は、生成の管理画面の再生成だけで終わらせず、`"adminRoutes": false` のドメインの手書きの管理ページと fork の `_components/` を探す `git grep` と、揃える手順・確かめ方を required_actions に書く(書き方は `/sluice`「NOTICE COMPOSITION」の「a change that acts on the whole admin」)
 - 人間にしかできない作業(Vercel 環境変数、外部ダッシュボード等)だけ `manual_steps` に分離する。
 - `verify` の型チェックは `pnpm typecheck` と書く(`tsc --noEmit` は使わない)。`tsc --noEmit` は `tsconfig.json` の include にある `.next/dev/types` / `.next/types` まで読み、dev サーバーや過去の build が生成した古い `validator.ts`(移動・削除したページを import している)で TS2307 を出す。`pnpm typecheck`(`tsconfig.typecheck.json`)はこれらを外して型チェックし、ルート全体の型の検証は `next build` に任せる。
 - `moved` はファイル・ディレクトリを移動・改名する notice では**必須**(それ以外は欄ごと省略)。下記「移動・改名(moved)」参照。
 - `covers` は中間 Tier が上流の notice を下流へ中継する notice(relay notice)でだけ書く(それ以外は欄ごと省略)。下記「中継(relay)」参照。
 - `fixes` は前に出荷した変更の不具合を直す notice でだけ書く(それ以外は欄ごと省略)。下記「修正(fixes)」参照。
-- `pick` は人が書かない。`fixes:` のある notice の本文(`fixes:` の直後)に、/ship が `pnpm workflow notices pickCheck` で書く。下記「修正(fixes)」の「先に取れる印(pick)」参照。
+- `pick` は人が書かない。`fixes:` のある notice の本文(`fixes:` の直後)に、/sluice が `pnpm workflow notices pickCheck` で書く。下記「修正(fixes)」の「先に取れる印(pick)」参照。
 - `uses` は notice の手順が実行する移行・codemod のパス(`,` 区切り)。下記「使う移行・codemod の欄(uses)」参照。
 - `skip_checkpoint` は先に取れない修正の notice でだけ書く。下記「区切りを外す欄(skip_checkpoint)」参照。
 - `notes` で特定の fork に触れるときは、その fork で実際に差分を取った結果だけを書く(推測で書かない。調べていない fork は `not checked`)。
@@ -78,7 +78,7 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 
 - 一覧 = 上流の先端の履歴で `.notices/` に足された本文(`git log --diff-filter=A`。merge で足した本文も `-m` で拾い、改名した本文は新しい名前だけ)。並びは持たず、足した commit の履歴の順
 - 欄と本文 = 本文の**最後の版**: 先端の木に有ればその版、消えていれば消す前の版。出荷の後に上流が直した説明が、まだ取り込んでいない fork に届く(下記「本文と添付物の片付け」)
-- 持ち主 = 本文の `from:`(出荷したリポの origin の URL。`/ship` が書く)。自分の origin と同じなら自分の物、直接の親と同じなら親の物、ほかは祖父の物(`.claude/skills/flux/relay.md`)
+- 持ち主 = 本文の `from:`(出荷したリポの origin の URL。`/sluice` が書く)。自分の origin と同じなら自分の物、直接の親と同じなら親の物、ほかは祖父の物(`.claude/skills/flux/relay.md`)
 - `pick:` は本文の欄(下記「先に取れる印(pick)」)
 - 読む側: `/flux` の流入の発見と区間(`.claude/skills/flux/incoming.mjs`)・`pnpm workflow ownership check` の「台帳に無い notice」と `resolves:`(`src/lib/forkOwnership/check.mjs`)・`pnpm check notices` の欄どうしの検査(`scripts/workflow/notices/noticeFields.mjs`)は、どれもこの求め方で読む
 - 止まる: 浅い clone(履歴を辿れない)のときは、未適用ゼロとして進まずに止まる
@@ -150,14 +150,14 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 
 - `checkpoint: <label>` が既定(notice は追随作業の単位で出荷されるので、適用し終えた時点で fork が整合しているのが普通)。`checkpoint: -` は「後続 notice を適用しないと fork が動かない中間点」という上流からの例外宣言で、理由を `notes:` に書く。欄が無い旧 schema の notice は区切り扱い(安全側)。
 - 各 notice は上流履歴上の 1 点に対応づく(区切りの点): notice ファイルを追加した commit(`git log --diff-filter=A --format=%H <upstream>/<branch> -- .notices/<id>.md`。本文を消した後も履歴に残る)。`from: commit:` 欄は参考情報で、判定には使わない。/flux は一覧とこの commit を `.claude/skills/flux/incoming.mjs` で読む。
-- 区切りの点を書き足しの後へ: 足した後に本文を直す commit(コードと一緒に手順を書き足す等)がまだ push の前なら、`/ship` が push の前に `pnpm workflow notices reorder` でまだ出していない commit を書き直し、足すのをその最後の commit へ移す(commit は増えない。次の notice を足した commit は越えない・`hotfix:` は動かさない・範囲に merge があれば何もしない)。出荷済みで同じ push の中で書き足しがあった少数の notice だけ、本文に `checkpoint_at: <その最後の commit>` を上流が一度だけ書き足してあり、/flux はそれが足した commit の子孫・次の notice の点より前・先端の祖先の時だけ区切りの点に採る(外れたら足した commit で区切り、warnings に 1 行)
+- 区切りの点を書き足しの後へ: 足した後に本文を直す commit(コードと一緒に手順を書き足す等)がまだ push の前なら、`/sluice` が push の前に `pnpm workflow notices reorder` でまだ出していない commit を書き直し、足すのをその最後の commit へ移す(commit は増えない。次の notice を足した commit は越えない・`hotfix:` は動かさない・範囲に merge があれば何もしない)。出荷済みで同じ push の中で書き足しがあった少数の notice だけ、本文に `checkpoint_at: <その最後の commit>` を上流が一度だけ書き足してあり、/flux はそれが足した commit の子孫・次の notice の点より前・先端の祖先の時だけ区切りの点に採る(外れたら足した commit で区切り、warnings に 1 行)
 - 区間 = 履歴順に並べた未適用 notice を、区切り notice(本文の `checkpoint` が `-` 以外、または欄なし。ただし `skip_checkpoint:` に名指された notice は `-` とみなす)の直後で切ったもの。`-` の notice は次の区切りまで同じ区間に入る。最後の区切り以降〜上流 HEAD が末尾区間(空のこともある)。同じ commit で出荷された複数 notice は merge 先が同じ区間が連続するだけで問題ない。
 - /flux は区間ごとに「その区間の merge 先(区切り notice の追加 commit、末尾区間は上流 HEAD)まで merge → 区間内 notice を適用 → verify → 台帳 → commit → push」を繰り返す。途中で止まっても fork は直前の区切りに居るので、再実行すれば続きから進む(状態は下記の集合演算で毎回導出されるため、追加の記録は不要)。詳しく計画するのは次の区間だけで、区間の終わりごとに次の区間の計画を出して止まる(`all` で止まらずに進む)。区間の終わりの報告は次の区間に必要なこと(ここまでの sha・人間の判断・次の merge 先・残作業)だけを持つので、セッションを閉じても `/flux` で続きから計画し直せる。
 - 台帳の行は道具で書く(手で足さない): `pnpm workflow notices ledger --upstream=<区間の merge 先> (--id=<notice id> … | --tail)`(`scripts/workflow/notices/ledger.mjs`)。/flux は上流の先端の道具を fork の cwd で走らせる(`.claude/skills/flux/tip.mjs`)。台帳が無ければ見出しから作り、`upstream:` は完全な sha にし、台帳にある id は断る。先取りの行は `--picked=<元の commit>`、下流を持つ fork は `--relay`。
   - notice の無い末尾の区間(merge だけ)は `--tail` で 1 行 `id:tail-<merge 先の sha の頭 9 桁>`(`upstream:` = merge 先、`relay:none`)。本番のデプロイの知らせ(deployPosition)は台帳の最後の `upstream:` だけを読むので、親のセーフポイントが区切りの外の出発の merge にあっても、この行で `at` と読める。最後の `upstream:` がもう merge 先なら(先に手で足した末尾の行も)何も書かない。`tail-` の id は notice ではないので、台帳に無い notice の数え(`pnpm workflow ownership check`)にも区間の分け方にも効かない
 - merge commit は区間数ぶん増える。これは意図した代償(区切りごとに fork が整合する)。追随を小刻みに続けている fork は今までと同じ。
 - 上流側の責務: notice は、その区切りに含めたい変更本体と同じ commit かそれより後の commit に含める(notice を先に出すと、merge 先に変更本体が含まれない)。区切りは作り手が宣言する区間の境目で、上流は途中の区切りを検査しない(確かめるのは fork の /flux で、区間ごとに自分の木で検査する)。作り手は fork がそこで動くと見込める所にだけラベルを付ける。動かない区切りが後で分かったら(fork の報告など)、修正の notice を出す(区切りの点は本文の直しでは動かない)。修正が先に取れれば `pick: clean` で修正元の区間の直後に取られ、取れなければ修正の notice に `skip_checkpoint: <その notice の id>` を書いて修正元の区切りを外す(上記「区切りを外す欄」、下記「修正(fixes)」)。追随作業が無い区切りは `severity: info` + `required_actions: none` + `checkpoint:` の notice で宣言する。
-- セーフポイント(注釈つきの tag `safe/<repo_id>/<YYYYMMDD>-<n>`。repo_id = 付けたリポの `repo.json` の repo_id、n はその repo_id と日の次の空き番号): `/ship --safe` は push した先端で全部の検査(`pnpm test` 全体・`pnpm check`・`pnpm typecheck`・`pnpm lint`・ビルド = `next build` と `pnpm check --phase=build:post`。`pnpm build` の頭の段階は直前の `pnpm check` が回すので重ねない)を `pnpm workflow notices safePoint check` で回し、通ったときだけ `pnpm workflow notices safePoint tag` で検査した commit に tag を付けて push する(検査の間に他の人が push して先端が進んでも、検査した commit が push 先に含まれていれば付く。push の前に検査しないので、リモートが動いても検査をやり直さない)。`--safe` でない出荷(ふつうの `/ship`・`/ship --quick`・`no-push`・検査が回せなかった時)は tag を付けない。使い分け: セッションの途中の出荷は `/ship --quick`(検査なし、commit に `Ship: quick` の trailer)、セッションの最後の出荷はふつうの `/ship`(変えた場所の検査に、まだ検査していない quick の分のファイルも入れる。`pnpm workflow notices safePoint quickFiles`。出荷する変更が無くても、push 済みの quick の先端をその検査で締め、`safePoint quickChecked` で記録する)、セーフポイントを作れと言われた時だけ `/ship --safe`(出荷する変更が無ければ、push 済みの先端に全部の検査とタグだけ。誰の出荷か — 議会の実装・ギルド・旅団のコンボイ — では変えず、チームの出荷もふつうの `/ship`)。ふつうの出荷の報告は `pnpm workflow notices safePoint status` で、前の自分のセーフポイントからの commit 数 ÷ 80 + 日数 ÷ 3 が 1 以上(まだ無い時も)なら、セーフポイントを作るかを人に提案する。中間の Tier(`downstream: yes`)も同じ `/ship --safe` で自分のリポに自分の repo_id のセーフポイントを付ける(道具は共通で、追加の作業は無い)。名前に repo_id が入るので親子の tag は重ならず、普通の `git fetch <remote> --tags` で取ってよい。見るのは直接の親の tag `safe/<親の repo_id>/*` だけ(親の repo_id = `git show <親の remote>/<branch>:repo.json` の repo_id。古い形の親は `.claude/rules/project.md` の fork_id:)。fork の /flux は区間の終わりの報告に、取り込んだ上流の位置と直接の親のセーフポイントの関係を 1 行出す(`at` / `past (N commits unverified)` / `before` / `no safe point yet`、`pnpm workflow notices safePoint where`)。本番のデプロイ(`pnpm live`・`pnpm live:all`・`pnpm live:room`・`pnpm ops room deploy` の本番)は、fork では台帳の最後の `upstream:<sha>`、Tier1 では HEAD がセーフポイントちょうどかを 1 行出す(上なら ✓、違えば ℹ と近いセーフポイントの名前。fork は `/flux to <その位置>` で進められる)。止めない: セーフポイントは全部の検査が通った印で、デプロイの縛りではない。プレビューは見ない
+- セーフポイント(注釈つきの tag `safe/<repo_id>/<YYYYMMDD>-<n>`。repo_id = 付けたリポの `repo.json` の repo_id、n はその repo_id と日の次の空き番号): `/sluice --safe` は push した先端で全部の検査(`pnpm test` 全体・`pnpm check`・`pnpm typecheck`・`pnpm lint`・ビルド = `next build` と `pnpm check --phase=build:post`。`pnpm build` の頭の段階は直前の `pnpm check` が回すので重ねない)を `pnpm workflow notices safePoint check` で回し、通ったときだけ `pnpm workflow notices safePoint tag` で検査した commit に tag を付けて push する(検査の間に他の人が push して先端が進んでも、検査した commit が push 先に含まれていれば付く。push の前に検査しないので、リモートが動いても検査をやり直さない)。`--safe` でない出荷(ふつうの `/sluice`・`/sluice --quick`・`no-push`・検査が回せなかった時)は tag を付けない。使い分け: セッションの途中の出荷は `/sluice --quick`(検査なし、commit に `Ship: quick` の trailer)、セッションの最後の出荷はふつうの `/sluice`(変えた場所の検査に、まだ検査していない quick の分のファイルも入れる。`pnpm workflow notices safePoint quickFiles`。出荷する変更が無くても、push 済みの quick の先端をその検査で締め、`safePoint quickChecked` で記録する)、セーフポイントを作れと言われた時だけ `/sluice --safe`(出荷する変更が無ければ、push 済みの先端に全部の検査とタグだけ。誰の出荷か — 議会の実装・ギルド・旅団のコンボイ — では変えず、チームの出荷もふつうの `/sluice`)。ふつうの出荷の報告は `pnpm workflow notices safePoint status` で、前の自分のセーフポイントからの commit 数 ÷ 80 + 日数 ÷ 3 が 1 以上(まだ無い時も)なら、セーフポイントを作るかを人に提案する。中間の Tier(`downstream: yes`)も同じ `/sluice --safe` で自分のリポに自分の repo_id のセーフポイントを付ける(道具は共通で、追加の作業は無い)。名前に repo_id が入るので親子の tag は重ならず、普通の `git fetch <remote> --tags` で取ってよい。見るのは直接の親の tag `safe/<親の repo_id>/*` だけ(親の repo_id = `git show <親の remote>/<branch>:repo.json` の repo_id。古い形の親は `.claude/rules/project.md` の fork_id:)。fork の /flux は区間の終わりの報告に、取り込んだ上流の位置と直接の親のセーフポイントの関係を 1 行出す(`at` / `past (N commits unverified)` / `before` / `no safe point yet`、`pnpm workflow notices safePoint where`)。本番のデプロイ(`pnpm live`・`pnpm live:all`・`pnpm live:room`・`pnpm ops room deploy` の本番)は、fork では台帳の最後の `upstream:<sha>`、Tier1 では HEAD がセーフポイントちょうどかを 1 行出す(上なら ✓、違えば ℹ と近いセーフポイントの名前。fork は `/flux to <その位置>` で進められる)。止めない: セーフポイントは全部の検査が通った印で、デプロイの縛りではない。プレビューは見ない
 
 ### 移動・改名(moved)
 
@@ -174,7 +174,7 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 
 fork が手を入れうるファイル(docs・README・registry・config 等)を削除・移動する commit には、その notice(移動なら `moved:`、移動先の無い削除なら `notes:` に削除したパスと「fork 独自の内容の移し先」)を**同じ commit に含める**。後の commit で notice を出すと、/flux はその notice の追加 commit で区間を切るため、削除だけが先の区間で fork に届き、fork は案内の無い modify/delete コンフリクトを自力で解くことになる。
 
-- 起票前に `git diff --name-status --diff-filter=DR <変更前> <変更後>` で削除・改名を全て洗い出し、notice に漏れなく載せる(/ship が行う)
+- 起票前に `git diff --name-status --diff-filter=DR <変更前> <変更後>` で削除・改名を全て洗い出し、notice に漏れなく載せる(/sluice が行う)
 - fork が編集していないと分かっているファイル(upstream 専用の内部実装等)だけの削除なら notice は不要
 
 ### 修正(fixes)— 前に出荷したものの不具合を直す
@@ -185,7 +185,7 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 - 書くのは修正側だけ。修正元の説明の誤りは修正元の本文を直してよい(まだ取り込んでいない fork に正しい説明が届く)が、取り込み済みの fork に作業が要る直しは本文の直しだけにせず、修正の notice の `fixes:` で出す(取り込み済みの fork は直した本文を読み直さない)。
 - 前後の検査(`pnpm check notices`): `fixes:` の参照先は履歴で修正より前に足した notice であること。足した commit は全部見る(修正元を親から先に pick した fork では、上流の元の add と fork の cherry-pick の 2 本がある)ので、参照先のどれかの add が修正の add の祖先なら前とみなす。前を指す(参照先がどれも祖先でない)`fixes:` は止める。
 - 修正に fork 側の追随作業が無くても、`fixes:` を伝えるために `severity: info` + `required_actions: none` の notice を出す。
-- 修正かどうかは出荷する側(/ship)が決める。/flux は宣言を信じ、自分では判定しない。
+- 修正かどうかは出荷する側(/sluice)が決める。/flux は宣言を信じ、自分では判定しない。
 - /flux の扱い:
   - 区間の組み立てで全 notice の見出し行と一緒に `fixes:` を読み、修正元(id ならその notice の区間、commit ならその commit を merge 先の範囲に含む区間)と修正の区間を対応づけて、概観に出す。全文は読まない。
   - 修正元を含む区間の計画では、先頭に「この区間の <修正元> は区間 K の <修正 notice> で修正される」と出して止まり、1 区間ずつ進めるか、ここで止めるかをユーザーに聞く(`all` / `light` の途中でも止まる)。修正が `pick: clean` なら聞かずに区間の直後に取る(下の「先に取れる印(pick)」)。区間は自動でまとめない: 本番へのデプロイ方法(push で出るか、コマンドで出すか)は fork ごとに違い、ユーザーが知っているため。
@@ -198,7 +198,7 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 修正元の区切りで止まった fork は、修正の区間に着くまで既知の不具合を抱えたまま push する。上流が出荷のときに「壊れた地点に修正だけを載せても通るか」を機械で試し、通った修正に印を付ければ、/flux は修正元の区間を取り込んだ直後にその修正を cherry-pick して、壊れた区切りのまま push せずに済む。
 
 - 欄: 本文の `pick: clean | -`。`fixes:` のある notice にだけ付く(`pnpm check notices` が検査)。欄なし(古い notice・判定できなかった notice)は `-` と同じ扱いで、今の動き(上の /flux の扱い)のまま
-- 書くのは /ship: `fixes:` の notice を含む commit の後(push の前の並べ替えの後)、push の前に `pnpm workflow notices pickCheck <commit>` が判定して**その notice の本文**(`fixes:` の直後)に書き、/ship がそれを同じ commit に入れる(`git commit --amend`)。人の宣言は要らない
+- 書くのは /sluice: `fixes:` の notice を含む commit の後(push の前の並べ替えの後)、push の前に `pnpm workflow notices pickCheck <commit>` が判定して**その notice の本文**(`fixes:` の直後)に書き、/sluice がそれを同じ commit に入れる(`git commit --amend`)。人の宣言は要らない
 - 試す土台 = 壊れた地点(修正元の区切りのコミット): 修正元(notice id ならその追加 commit、`commit:<sha>` ならその commit)から履歴を進んで最初に来る区切りの notice の追加 commit。修正の前に区切りが無ければ修正元と修正は同じ区間で届くので `-`。修正元が複数なら最も古い壊れた地点。fork の位置では試さない(上流からは見えない。fork 側の衝突は /flux が戻して今の動きに落とす)
 - clean の条件(全部): 本体と notice が同じ 1 commit / `pnpm-lock.yaml`・`src/app/route-map.jsonl` を含まない / 手順(required_actions 〜 manual_steps)が壊れた地点より後の notice を名指さない / 壊れた地点で cherry-pick が衝突しない / 載せた木で `pnpm typecheck`・`pnpm test scripts/structure/config/moduleLoad.test.mjs`・`pnpm check registry` が通る(その木に無い script は未実行として飛ばす)/ 前提の検査(`scripts/workflow/notices/lib.hotfixGaps.mjs`、緊急修正を当てた後の確かめと同じ: 足した・変えたルールの `paths:`・手順の `pnpm <script>`・名指すパス)が何も挙げない。cherry-pick が通っても間の commit に意味で依存する修正は壊れるので、型検査まで通して付ける
 - 修正の修正(`fixes:` の先が修正): 前の修正が `pick: clean` のときだけ、その土台に前の修正を載せた木で試す。前の修正が clean でなければ `-`(fork も前の修正を先に取っていない)
@@ -212,8 +212,8 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 
 区間の merge は履歴の順に進むので、遅れている fork には修正がすぐ届かない。本番が壊れているとき、または壊れていなくても人間が先に届けると宣言したときだけ、上流が `hotfix:` を宣言した notice の commit を `/flux` が cherry-pick する。任意の commit は取らない(区間の merge を崩さないため)。
 
-- 宣言: `/ship hotfix`。人間が指示したときだけ付ける(全 fork の作業に割り込むため)
-- 上流の条件: 本体と notice を同じ 1 commit に入れる(本体 = `.notices/` の外のファイルか、`fixes:` が名指す notice の道具 `.notices/<その id>.<名前>.mjs` の差し替え: fork が先取りで当てる物があること)/ `pnpm-lock.yaml`・`src/app/route-map.jsonl` を含めない / `required_actions` は後の notice を前提にしない / `fixes:` があれば `pnpm workflow notices pickCheck` で壊れた地点に載ることを確かめる(`/ship`。衝突・検査の失敗なら出さない。索引を外す前の commit の索引の変更は数えない: 上の「先に取れる印」)/ 1 つの目的に絞り、ファイルの移動・改名・置き場の変更と混ぜない(fork は 1 ファイルずつ当て、移したファイルは遅れた fork では前の場所でしか見つからない)/ /flux が上流の先端から読む道具(`.claude/skills/flux/` の下)だけの直しは緊急修正にしない(fork は先端の版を読むので届いている)。上流は fork の位置を見に行かない: 遅れた fork の木で足りない物は当てる側が報告する(下の「先取りの道具」)
+- 宣言: `/sluice hotfix`。人間が指示したときだけ付ける(全 fork の作業に割り込むため)
+- 上流の条件: 本体と notice を同じ 1 commit に入れる(本体 = `.notices/` の外のファイルか、`fixes:` が名指す notice の道具 `.notices/<その id>.<名前>.mjs` の差し替え: fork が先取りで当てる物があること)/ `pnpm-lock.yaml`・`src/app/route-map.jsonl` を含めない / `required_actions` は後の notice を前提にしない / `fixes:` があれば `pnpm workflow notices pickCheck` で壊れた地点に載ることを確かめる(`/sluice`。衝突・検査の失敗なら出さない。索引を外す前の commit の索引の変更は数えない: 上の「先に取れる印」)/ 1 つの目的に絞り、ファイルの移動・改名・置き場の変更と混ぜない(fork は 1 ファイルずつ当て、移したファイルは遅れた fork では前の場所でしか見つからない)/ /flux が上流の先端から読む道具(`.claude/skills/flux/` の下)だけの直しは緊急修正にしない(fork は先端の版を読むので届いている)。上流は fork の位置を見に行かない: 遅れた fork の木で足りない物は当てる側が報告する(下の「先取りの道具」)
 - 受け取り: 通常の `/flux` が未適用の `hotfix:` を見つけて通常の区間より先に計画する。専用のコマンドは無い。次の区間に入っているなら merge で届くので pick しない。`fixes:` の修正元が未適用の fork には不具合がまだ無いので pick しない
 - 台帳: `upstream:` は今の merge-base のまま、`picked:<元の commit>` を足す。記録済みなので後の区間の区切りにならない。後の merge では同じ変更が自動で解決される
 - 先取りの道具: `scripts/workflow/notices/hotfixApply.mjs`(/flux の HOTFIX・鉄道・艦隊が呼ぶ 1 つの部品)。いつも上流の先端の版で走らせる(`git archive <upstream>/<branch> scripts/workflow/notices scripts/workflow/rules` を一時の場所に出して node で。fork の木の版は使わない)。どの fork でも止まらずに当たることが目的で、元の commit が変えたファイルごとに人に聞かずに決める:
@@ -232,7 +232,7 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 下流の fork は、受け口の外の書き換えを「直接の親への依頼が片付くまで」の一時許可で通す(`src/lib/forkOwnership/README.md`「一時許可」)。許可は依頼の番号を持ち、その番号が解決したら失効する。解決を下流へ伝えるのがこの欄。
 
 - 形式: `resolves: <指令 id>, ...`。指令 id = 受信箱のファイル名(`<YYYYMMDD-HHMMSS>-<slug>`)。複数可
-- 書く条件: `/ship` が `/inbox` から来た指令(`order:<id>`)を出荷し、その指令の依頼元(requester)が自リポ以外のリポ(下流の fork)のとき。上流からは、下流がその依頼に一時許可を書いているかが見えないので、**他に notice が要らなくても** `severity: info` + `required_actions: none` + `checkpoint:` の notice を出して `resolves:` を伝える
+- 書く条件: `/sluice` が `/inbox` から来た指令(`order:<id>`)を出荷し、その指令の依頼元(requester)が自リポ以外のリポ(下流の fork)のとき。上流からは、下流がその依頼に一時許可を書いているかが見えないので、**他に notice が要らなくても** `severity: info` + `required_actions: none` + `checkpoint:` の notice を出して `resolves:` を伝える
 - 閉じる依頼の番号を書いた一時許可を「残しておく」ように fork へ書かない(`resolves:` を取り込んだ時点でその許可は expired-resolved になり、指示と検査が食い違う)。fork 側の作業が残るとき(fork 自身のデータの移し替えなど)は、required_actions に「その許可の `upreq:` を、fork が自分宛てに出した指令の番号に書き換える(取り込む前か同じ区間で)」と書き、verify に `pnpm workflow ownership check` でその行が valid と書く(`src/lib/forkOwnership/README.md`「一時許可」の upreq)。この notice は `required_actions: none` にしない
 - 却下(rejected)・取り下げで閉じた依頼にも書く(閉じた = その番号の一時許可は失効する)。結果は `done/` の RESOLUTION にあり、下流は `/wen` で却下を知って、元に戻す・受け口へ移す・別の方針で許可し直す(失効した許可は `pnpm workflow ownership check` が違反に戻すので放置されない)
 - 下流の使い方: `pnpm workflow ownership check` が基準(取り込み済み)の履歴で足された本文の最後の版の `resolves:` を集め(本文が消えても消す前の版が残るので失効は変わらない)、すべての番号が解決した一時許可を失効(expired-resolved)にする。`/flux` は区間の計画で、流入する `resolves:` のうち自分の一時許可に当たる行を示す
