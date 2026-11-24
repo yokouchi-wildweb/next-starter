@@ -1,11 +1,7 @@
 // src/domains/core/rateLimit/services/server/wrappers/rateLimitHelper.ts
 
-import { lt } from "drizzle-orm";
-
 import type { RateLimitCategory } from "@/domains/rateLimit/config";
-import { RateLimitTable } from "@/domains/core/rateLimit/entities/drizzle";
 import type { RateLimitResult } from "@/domains/core/rateLimit/constants";
-import { db } from "@/lib/drizzle";
 
 import { consumeRateLimit, peekRateLimit } from "../rateLimit";
 
@@ -42,19 +38,4 @@ export async function getRateLimitStatus(
 ): Promise<RateLimitResult | null> {
   const result = await peekRateLimit({ key: { scope: category, identifier }, rule: category });
   return result.count === 0 ? null : result;
-}
-
-/**
- * 期限切れのレート制限レコードを削除
- * Cron Jobなどで定期実行する
- */
-export async function cleanupExpiredRateLimits(): Promise<number> {
-  const now = new Date();
-
-  const result = await db
-    .delete(RateLimitTable)
-    .where(lt(RateLimitTable.expires_at, now));
-
-  // Drizzleのdelete結果からrowCountを取得（PostgreSQLの場合）
-  return (result as unknown as { rowCount: number }).rowCount ?? 0;
 }

@@ -22,12 +22,6 @@ export {
   type FindUsersBySameIpOptions,
   type FindUsersBySubnetOptions,
 } from "./ipAnalytics";
-export {
-  pruneExpiredUserLoginEvents,
-  type PruneOptions,
-  type PruneResult,
-} from "./pruning";
-
 import { userLoginEventBase } from "./drizzleBase";
 
 /**

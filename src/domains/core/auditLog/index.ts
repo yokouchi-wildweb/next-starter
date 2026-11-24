@@ -2,7 +2,7 @@
 //
 // 汎用監査ログドメインの公開エントリーポイント (client-safe)。
 //
-// このバレルからは server-only な値 (auditLogger / pruneExpiredAuditLogs 等)
+// このバレルからは server-only な値 (auditLogger 等)
 // は export しない。AuditTimeline 等の Client Component から import された際に
 // `node:async_hooks` / `postgres` の依存がクライアントバンドルへ流入することを
 // 防ぐため。

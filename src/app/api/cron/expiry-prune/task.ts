@@ -8,7 +8,7 @@ import type { CronTaskDefinition } from "@/lib/cron";
 export const cronTask: CronTaskDefinition = {
   name: "expiry-prune",
   description: "期限の削除の規則(増設点 expiryRules の項目)ごとに、期限を過ぎた行を予算の内で束ごとに消す(1 本だけ、前回の続きから)",
-  schedule: "50 18 * * *", // 毎日 03:50 JST(18:05〜18:50 UTC の各削除の後)
+  schedule: "50 18 * * *", // 毎日 03:50 JST
   run: async () => {
     const [{ runExpiryPrune }, { getCheckpoint, advanceCheckpoint }] = await Promise.all([
       import("@/wiring/expiryPrune"),

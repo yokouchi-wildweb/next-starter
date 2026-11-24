@@ -78,7 +78,7 @@ test("規則を閉じれば閉じる住所(評価そのもの): 自分の住所�
   const { rules } = await import("@/featureGate/node");
   const wallet = rules.find((r) => r.name === "wallet")!;
   const covered = coveredPatternsOf(wallet);
-  for (const pattern of ["/wallet", "/api/wallet", "/api/cron/wallet-lots-prune", "/admin/bank-transfer-reviews", "/api/me/coupon-attribution-rewards", "/api/admin/analytics/wallet"]) {
+  for (const pattern of ["/wallet", "/api/wallet", "/api/cron/wallet-expire-lots", "/admin/bank-transfer-reviews", "/api/me/coupon-attribution-rewards", "/api/admin/analytics/wallet"]) {
     assert.ok(covered.includes(pattern), `wallet を閉じれば ${pattern} も閉じる`);
   }
   assert.ok(!covered.includes("/admin/coupons"), "依存しない機能の住所は入らない");

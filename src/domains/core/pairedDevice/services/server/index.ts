@@ -54,7 +54,6 @@ export {
   pollDevicePairing,
   cancelDevicePairing,
   listActivePairingsForDevice,
-  pruneExpiredDevicePairings,
   resolvePairingStatus,
   type IssuedPairingCode,
   type CompletedPairing,

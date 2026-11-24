@@ -23,12 +23,6 @@ export {
   type ListChallengeAccessEventsParams,
   type ListChallengeAccessEventsResult,
 } from "./accessLog";
-export {
-  pruneExpiredChallengeAccessEvents,
-  type PruneOptions,
-  type PruneResult,
-} from "./pruning";
-
 import { fingerprintChallengeBase } from "./drizzleBase";
 
 /**

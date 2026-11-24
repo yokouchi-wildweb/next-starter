@@ -102,7 +102,7 @@ const result = await checkRateLimit("apiGeneral", `${ip}:/api/specific`);
 
 - `checkRateLimit(category, identifier)`: 制限を確かめてカウントを増やす → `{ allowed: boolean, remaining: number, resetAt: Date, count: number }`
 - `getRateLimitStatus(category, identifier)`: 今の状態を返す(カウントは増やさない)
-- `cleanupExpiredRateLimits()`: 期限切れの行を消す(呼び手 0。区切り expiry-retire-crons で消える)。期限切れの行は増設点 expiryRules の項目 `plugs/expiryRules/rateLimitsExpired.ts`(個人情報 `pii: true`、cron `expiry-prune`)が消す
+- 期限切れの行の削除: 関数は無い。増設点 expiryRules の項目 `plugs/expiryRules/rateLimitsExpired.ts`(個人情報 `pii: true`)を 1 本の cron `expiry-prune` が消す
 - `checkRateLimit` = `consumeRateLimit` にカテゴリの規則を渡す。窓の中で `maxRequests` 回まで通す
 - 数えは 1 文の原子的な更新なので、同時に来た要求も上限を超えて通さない
 

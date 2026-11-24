@@ -17,7 +17,7 @@ export const REQUIRED_ESLINT_RULES = [
   { rule: "route-http-export/http-export", files: ["src/app/api/auth/register/route.ts"] },
   { rule: "import-boundaries/route-factory-via-wiring", files: ["src/app/api/auth/register/route.ts", "scripts/operations/deploy/all.ts"] },
   { rule: "import-boundaries/page-guard-via-wiring", files: ["src/app/admin/(protected)/layout.tsx"] },
-  { rule: "import-boundaries/cron-route-via-wiring", files: ["src/app/api/cron/audit-log-prune/route.ts"] },
+  { rule: "import-boundaries/cron-route-via-wiring", files: ["src/app/api/cron/audit-log-recover-dead-letter/route.ts"] },
   { rule: "import-boundaries/feature-gate-entries", files: ["src/domains/core/auth/services/server/registration.ts"] },
   { rule: "import-boundaries/client-no-domain-json", files: ["src/domains/core/auth/hooks/useOAuthSignupFlow.ts"] },
   { rule: "import-boundaries/domains-index-no-server-reexport", files: ["src/domains/core/auditLog/index.ts"] },

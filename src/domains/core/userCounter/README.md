@@ -93,9 +93,7 @@ export const GET = createMeRoute(
 
 ### cron と DB 反映
 
-- CLI: `pnpm task user-daily-counter-prune`
-- HTTP: `GET /api/cron/user-daily-counter-prune`（Bearer `CRON_SECRET`）
-- スケジュール: 日次（`vercel.json` のエントリは `pnpm generate cron` が生成）
+- 日次行の削除: 増設点 expiryRules の項目 `plugs/expiryRules/userDailyCounterPrune.ts` を 1 本の cron `expiry-prune` が日次で回す（手動は `pnpm task expiry-prune`）
 - 削除対象は**日次行のみ**。累計（user_counters）は消えない
 - `schemaRegistry` に登録済み。機能を開けてから `pnpm db:push` で表を作る（誰が打つかは repo.json の agent.db_push）
 
@@ -133,7 +131,7 @@ table: `user_daily_counters`（日次・retention 付き）
 - 日界は `userCounterConfig.dailyTimeZone`（既定 Asia/Tokyo。既定と型は `config.ts`、fork の上書きは `src/config/domains/userCounter.config.ts`）
 - bumpDaily が累計と**同一トランザクション**で加算する（バッチ集計なし・集計漏れが構造的に無い）
 - ユーザー数 × 日数に比例して増えるため、行単位 `retention_days`（既定 730 日）で消す: 増設点 expiryRules の項目
-  `plugs/expiryRules/userDailyCounterPrune.ts`（個人情報 `pii: true`、cron `expiry-prune`。旧 cron `user-daily-counter-prune` は区切り expiry-retire-crons まで並んで動く）。
+  `plugs/expiryRules/userDailyCounterPrune.ts`（個人情報 `pii: true`、cron `expiry-prune`）。
   累計側は prune 対象外なので合計値は失われない
 - シャーディング無し: 各ユーザーは自分の行しか書かないため、コンテンツ軸のようなホット行競合は発生しない
 

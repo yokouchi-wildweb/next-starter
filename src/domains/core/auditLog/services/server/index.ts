@@ -5,11 +5,6 @@ export { auditLogBase, auditLogFailedBase } from "./drizzleBase";
 export { searchByTarget, type SearchByTargetParams } from "./wrappers/searchByTarget";
 export { searchBySubjectUser } from "./wrappers/searchBySubjectUser";
 export {
-  pruneExpiredAuditLogs,
-  type PruneOptions,
-  type PruneResult,
-} from "./pruning";
-export {
   recoverDeadLetterAuditLogs,
   type RecoverOptions,
   type RecoverResult,

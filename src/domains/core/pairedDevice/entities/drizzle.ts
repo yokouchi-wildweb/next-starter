@@ -80,7 +80,7 @@ defineHiddenColumns(PairedDeviceTable, ["tokenHash"]);
  *   pending_token（Cookie）が必要。
  *
  * コード・pending_token はハッシュのみ保存する。status は text（語彙は constants の DEVICE_PAIRING_STATUSES）。
- * 期限切れの行は cron で削除する（pruneExpiredDevicePairings）。
+ * 期限切れから 1 日たった行は増設点 expiryRules の項目 plugs/expiryRules/pairedDevicePairingsPrune.ts が削除する（cron expiry-prune）。
  */
 export const DevicePairingTable = pgTable(
   "device_pairings",

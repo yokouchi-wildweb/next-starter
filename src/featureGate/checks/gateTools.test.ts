@@ -50,11 +50,11 @@ test("gate.path: 汎用 API と cron の住所はドメインの開閉で閉じ�
     assert.ok(!ruleOf("wallet").pathPatterns.includes("/api/wallet"), "導出の住所は規則の pathPatterns に入れない");
     assert.deepEqual(gate.path("/api/wallet"), { open: false, rule: "wallet", redirectTo: undefined });
     assert.deepEqual(gate.path("/api/walletHistory/1"), { open: false, rule: "wallet", redirectTo: undefined });
-    assert.deepEqual(gate.path("/api/cron/wallet-lots-prune"), { open: false, rule: "wallet", redirectTo: undefined });
+    assert.deepEqual(gate.path("/api/cron/wallet-expire-lots"), { open: false, rule: "wallet", redirectTo: undefined });
   });
   withRules({}, () => {
     assert.deepEqual(gate.path("/api/wallet"), { open: true });
-    assert.deepEqual(gate.path("/api/cron/wallet-lots-prune"), { open: true });
+    assert.deepEqual(gate.path("/api/cron/wallet-expire-lots"), { open: true });
   });
 });
 

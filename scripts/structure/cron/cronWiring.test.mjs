@@ -240,11 +240,11 @@ test("機能の門: 住所 /api/cron/<name> が閉じたタスクは closedBy �
   );
 });
 
-test("機能の門: 既定の判定は門番の gate.path(今の config。登録端末は既定で閉)", async () => {
-  assert.equal(gateClosedBy("/api/cron/paired-device-pairings-prune"), "pairedDevice");
-  assert.equal(gateClosedBy("/api/cron/audit-log-prune"), null);
+test("機能の門: 既定の判定は門番の gate.path(今の config。ウォレットは既定で閉)", async () => {
+  assert.equal(gateClosedBy("/api/cron/wallet-expire-lots"), "wallet");
+  assert.equal(gateClosedBy("/api/cron/audit-log-recover-dead-letter"), null);
   const tasks = await loadCronTasks(repoRoot);
-  assert.equal(tasks.find((task) => task.name === "paired-device-pairings-prune")?.closedBy, "pairedDevice");
+  assert.equal(tasks.find((task) => task.name === "wallet-expire-lots")?.closedBy, "wallet");
 });
 
 test("createCronRoute: 依存の gate が閉と答えたら認証の後・enabled と本体の前に skipped(reason closed)、依存なしは今と同じ", async () => {

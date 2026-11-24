@@ -140,11 +140,8 @@ const { items, total, isLoading, hasMore, sentinelRef } = useInfiniteScrollQuery
 
 ### 7. cron と DB 反映
 
-- CLI: `pnpm task interaction-event-prune`
-- HTTP: `GET /api/cron/interaction-event-prune`（Bearer `CRON_SECRET`）
-- スケジュール: 日次（`vercel.json` のエントリは `pnpm generate cron` が生成）
+- 明細の削除: 増設点 expiryRules の項目 `plugs/expiryRules/interactionEventPrune.ts`（個人情報 `pii: true`）を 1 本の cron `expiry-prune` が日次で回す（手動は `pnpm task expiry-prune`）
 - 削除対象は**明細のみ**。累計・日次集計は消えない
-- 同じ削除は増設点 expiryRules の項目 `plugs/expiryRules/interactionEventPrune.ts`（個人情報 `pii: true`、cron `expiry-prune`）に移った(旧 cron は区切り expiry-retire-crons まで並んで動く。二重に消しても同じ)
 - テーブルは schemaRegistry 登録済み。`pnpm db:push`（誰が回すかは repo.json `agent.db_push`）
 
 ## API
@@ -177,7 +174,6 @@ const { items, total, isLoading, hasMore, sentinelRef } = useInfiniteScrollQuery
 | `getDailySeries(targetType, targetId, opts?)` | 日次時系列: `{date, action, source, count}[]`（永久データ） |
 | `getAudience(targetType, targetId, {action, page, limit, orderBy})` | 「誰がクリックしたか」ユーザー単位一覧（PII 含む・admin ルート専用） |
 | `getAudienceSummary(targetType, targetId)` | action 別の 累計 / ログイン済み / 匿名 件数 |
-| `pruneExpiredInteractionEvents(options?)` | 明細の retention prune（cron 用。`interactionService` ではなく `services/server` の export） |
 | `...base` | 汎用 CRUD（admin 調査用） |
 
 ## Extension

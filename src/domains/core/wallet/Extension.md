@@ -200,8 +200,8 @@ await walletService.adjustBalance(
    - **期限を過ぎた分には失効予告が届かない**（予告を送る猶予が無い）。本通知は、通知の cron が
      スイープより前に1回以上動いていれば届く。規約の告知などで事前に周知しておくこと
    - dry-run の `overdueAmount` は没収見込み額の上限。実際の没収額は locked_balance 保護によりこれ以下になる
-3. 失効スイープと prune のスケジュール: `wallet-expire-lots`（失効の没収）と `wallet-lots-prune`（消費済みロットの掃除）は
-   `src/app/api/cron/` に配線済みで、1 で `expirationDays` / `sweepEnabled` を設定した時点から日次で本体が動く
+3. 失効スイープと掃除のスケジュール: `wallet-expire-lots`（失効の没収）は `src/app/api/cron/` に、消費済みロットの掃除は
+   増設点 expiryRules の項目 `plugs/expiryRules/walletLotsPrune.ts`（1 本の cron `expiry-prune` が回す）に配線済みで、1 で `expirationDays` / `sweepEnabled` を設定した時点から日次で本体が動く
    （**追加作業なし**。設定前は呼ばれても即 skipped を返す）。前提は cron の配線（`vercel.json` を `pnpm generate cron` で生成済み、
    Vercel 以外は `pnpm task --due` を毎分。[cron 基盤 README](../../../lib/cron/README.md#スケジュールのセットアップ) 参照）。
 
@@ -209,7 +209,7 @@ await walletService.adjustBalance(
    **通知の cron は最初の失効日より前に1回以上動かしておくこと**（本通知は初回実行で開始位置を記録するだけで、
    それより前に没収された分には送られない）。
 
-   wallet-lots-prune は remaining = 0 になったロット行の物理削除。付与のたびに行が増えるため、
+   ロットの掃除(walletLotsPrune)は remaining = 0 になったロット行の物理削除。付与のたびに行が増えるため、
    回さないと wallet_lots が単調増加する(付与の多いプロジェクトで回し続ける決まりは札 `lots_prune_required`)。
    保持日数は `walletConfig.lotPruneRetentionDays`（デフォルト30日）で調整可能。
 

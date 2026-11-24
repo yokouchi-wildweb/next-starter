@@ -5,7 +5,7 @@ paths:
 ---
 # domains/rateLimit
 what: request limits counted per key { scope, identifier } with a rule (a category, or a fixed / sliding window with limit) and a weight, table rate_limits
-- entry: the route Factory option `rateLimit: "<category>"` | consumeRateLimit / peekRateLimit (@/domains/core/rateLimit/services/server) | the category helpers checkRateLimit / getRateLimitStatus / cleanupExpiredRateLimits on top
+- entry: the route Factory option `rateLimit: "<category>"` | consumeRateLimit / peekRateLimit (@/domains/core/rateLimit/services/server) | the category helpers checkRateLimit / getRateLimitStatus on top | expired rows: the expiryRules item plugs/expiryRules/rateLimitsExpired.ts
 use: always
 change: counterpart → src/config/domains/rateLimit.config.ts (change values of upstream categories, add own categories declared in `Extra`, literal values)
 rules:

@@ -271,7 +271,7 @@ const defaults: WalletConfig = {
    * 消費し尽くしたロット（remaining = 0）を物理削除するまでの保持日数。
    * ロットは会計上の現在状態であり、履歴は wallet_histories が持つため長期保持は不要。
    * 付与頻度が高いプロジェクトでは wallet_lots の肥大化を防ぐため
-   * wallet-lots-prune cron（日次推奨）とセットで運用する。
+   * 増設点 expiryRules の項目 plugs/expiryRules/walletLotsPrune.ts（cron expiry-prune が日次）が消す。
    */
   lotPruneRetentionDays: 30,
   adjustmentNotification: {

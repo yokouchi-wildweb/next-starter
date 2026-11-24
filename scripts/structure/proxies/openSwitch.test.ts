@@ -271,8 +271,8 @@ test("範囲: 効かせない道具は規則の値で見る(configRules・config
     assert.equal(gateClosedBy(pathname), "wallet", "pnpm generate cron / pnpm check cron は規則の値");
     // 導出の住所(汎用 API・cron)もドメインの開閉で同じく答える(規則の値)
     assert.deepEqual(configPath("/api/wallet"), { open: false, rule: "wallet", redirectTo: wallet.redirectTo });
-    assert.equal(gateClosedBy("/api/cron/wallet-lots-prune"), "wallet");
-    assert.equal(gate.path("/api/cron/wallet-lots-prune").open, true, "門番の口はスイッチで開く");
+    assert.equal(gateClosedBy("/api/cron/wallet-expire-lots"), "wallet");
+    assert.equal(gate.path("/api/cron/wallet-expire-lots").open, true, "門番の口はスイッチで開く");
   });
 });
 

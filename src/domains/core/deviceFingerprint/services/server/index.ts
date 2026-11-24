@@ -15,12 +15,6 @@ export {
   type ExactFingerprintUserRow,
   type FindUsersByExactFingerprintOptions,
 } from "./similarity";
-export {
-  pruneExpiredDeviceFingerprints,
-  type PruneOptions,
-  type PruneResult,
-} from "./pruning";
-
 import { deviceFingerprintBase } from "./drizzleBase";
 
 /**

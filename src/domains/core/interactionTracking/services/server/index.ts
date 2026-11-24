@@ -13,8 +13,3 @@ export {
   type AudienceOrderBy,
   type GetAudienceOptions,
 } from "./wrappers/getAudience";
-export {
-  pruneExpiredInteractionEvents,
-  type PruneOptions,
-  type PruneResult,
-} from "./pruning";

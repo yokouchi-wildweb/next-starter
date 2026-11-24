@@ -85,7 +85,6 @@ test("(a) cron: wallet / payment のタスクは住所が閉じ、discover の c
     "expire-pending-purchases:payment",
     "wallet-expiration-notice:wallet",
     "wallet-expire-lots:wallet",
-    "wallet-lots-prune:wallet",
   ]);
   const open = await withWalletOff(() => loadCronTasks(ROOT), []);
   assert.ok(open.every((task) => task.closedBy === null));

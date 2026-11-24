@@ -21,5 +21,3 @@ export type {
 export { getExpiringLots, getExpiringSummaryByUsers } from "./getExpiringLots";
 export { findUsersWithExpiringLots } from "./findUsersWithExpiringLots";
 export { listExpirationResults } from "./listExpirationResults";
-export { pruneConsumedWalletLots } from "./pruneConsumedLots";
-export type { PruneConsumedLotsOptions, PruneConsumedLotsResult } from "./pruneConsumedLots";

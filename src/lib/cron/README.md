@@ -166,7 +166,7 @@ env ファイルを置かずホストの環境変数で動かすときは、`APP
 ### タスク一覧
 
 `pnpm task --list` が `src/app/api/cron/*/task.ts` から一覧（schedule・有効/無効・説明）を出す。各タスクの詳細と運用上の注意は、
-処理本体があるドメインの README（`src/domains/core/{auditLog,userLoginEvent,deviceFingerprint,fingerprintChallenge,interactionTracking,userCounter,analytics,purchaseRequest,wallet}/README.md`）を見る。
+処理本体があるドメイン（task.ts の `run` が import するドメイン）の README を見る。期限の削除は 1 本の `expiry-prune` が増設点 expiryRules の項目を回し、各項目の説明は差したドメインの README にある。
 
 ## API
 
@@ -207,7 +207,7 @@ upstream のタスクのフォルダに `task.override.ts` を置く。upstream 
 merge で衝突しない。上書きしたいタスクの分だけ置けばよい。
 
 ```ts
-// src/app/api/cron/audit-log-prune/task.override.ts
+// src/app/api/cron/messaging-retention/task.override.ts
 import type { CronTaskOverride } from "@/lib/cron";
 
 export const cronOverride: CronTaskOverride = {
@@ -223,8 +223,7 @@ export const cronOverride: CronTaskOverride = {
 - upstream がそのタスクを消すと `task.override.ts` だけが残り、`pnpm check cron` / `pnpm test scripts/structure/cron/cronWiring.test.mjs` が失敗する → `task.override.ts` も消す
 - メンテナンス中も走らせる宣言（`maintenance`）は `task.override.ts` に書けない（上書きは配備・CLI の時にだけ読まれ、route は `task.ts` だけを読む）。upstream のタスクを期間中も走らせたいときは、そのタスクを `disabled: true` で外し、同じ公開のサービスを呼ぶ自分のタスクのフォルダを足して `maintenance: "pass"` を書く
 - 名前は `task.ts` の一部の上書き = 他の上書きと同じ `<対象>.override.ts` の形（`scripts/structure/extensions/README.md`「override」）。旧名の `override.ts` が残っていると `pnpm check cron` / `pnpm generate cron` / `pnpm task` が改名を案内して止まる（`git mv <dir>/override.ts <dir>/task.override.ts`、中身はそのまま）
-- 個人情報を含むデータの削除タスク（`audit-log-prune` / `user-login-event-prune` / `device-fingerprint-prune` /
-  `fingerprint-challenge-access-prune`）を外すと保持期限が守られなくなる（外してよい条件は札 pii_prune_kept）
+- 個人情報を含むデータの期限の削除は増設点 expiryRules の項目(`pii: true`)で、タスクの上書きでは外せない。項目の上書き `enabled: false` も生成と検査が止める(札 pii_prune_kept)
 - `pnpm task --list` に上書きの状態（`(task.override.ts)` / `[off: task.override.ts]`）と、機能が閉じたタスクの `[closed: <規則>]` が出る
 
 ## Internals
@@ -259,7 +258,7 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
   fork のタスクも同じ（import から導く）。止めたくない task は fork の `required/`・常時の例外・`task.override.ts`
 - **enabled**: 機能以外の追加の実行条件（例: 失効を有効にした通貨があるか）。同期関数（札 enabled_config_only）。
   false のときルートは本体を呼ばず `{ ok: true, skipped: true, reason: "disabled" }` を返す。vercel.json には載る（値を変えても再生成は要らない）。
-  個人情報の retention prune は enabled に載せない。門は他の task と同じく import から付く: 閉じられる機能の prune（`device-fingerprint-prune` / `fingerprint-challenge-access-prune`）はその機能を閉じると止まり（その機能の表は作られない）、常に開く機能の prune（`audit-log-prune` / `user-login-event-prune`）は止まらない
+  期限の削除は enabled に載せない(増設点 expiryRules の項目)。門は項目を差したドメインから付く: 閉じられる機能の項目（deviceFingerprint・fingerprintChallenge など）はその機能を閉じると `gate.plugs` が外し（その機能の表は作られない）、常に開くドメインの項目（auditLog・userLoginEvent など）は止まらない
 - **メンテナンス**: 認証・門・enabled の後、設定のメンテナンスの期間（`settingService.isMaintenanceActive()`、API・画面と同じ判定。点 `cronMaintenance`（0〜1 個、`./extensionPoints.ts`）の項目で、上流は `domains/core/setting` の `plugs/cronMaintenance/maintenance.ts`。生成物 `src/wiring/cron.ts` を `src/wiring/cronRoute.ts` が結ぶ。空なら飛ばさない）なら、route は本体を呼ばず
   `{ ok: true, skipped: true, reason: "maintenance" }` を返す。`pnpm task --due` も同じに飛ばす（期間は走らせる候補が出た時に 1 回だけ読む）。名前指定の `pnpm task <name>` は運用者の意図なので飛ばさない。
   `maintenance: "pass"` のタスクは走る。期間は閉・無効のタスクでは読まない。切り替わりは設定の読みのメモ（`readMemoMs`、既定 10 秒）だけ遅れる（`src/domains/core/setting/README.md`「メンテナンスで止まる物と確かめ方」）。

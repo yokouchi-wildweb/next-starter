@@ -15,7 +15,7 @@ import の使い分け:
 
 `auditLogger` がバレル (`@/domains/core/auditLog`) に無いのは、Client Component 経由で `node:async_hooks` / DB ドライバがクライアントバンドルに流入するのを防ぐため。
 
-関連ルート: `GET /api/admin/audit-logs/search`（admin カテゴリのみ）| `GET /api/me/audit-logs`（本人、fail-closed）| 管理画面 `/admin/audit-logs`（横断検索）| `/api/cron/audit-log-prune` / `/api/cron/audit-log-recover-dead-letter`
+関連ルート: `GET /api/admin/audit-logs/search`（admin カテゴリのみ）| `GET /api/me/audit-logs`（本人、fail-closed）| 管理画面 `/admin/audit-logs`（横断検索）| `/api/cron/audit-log-recover-dead-letter`(保持期限の削除は増設点 expiryRules の項目 `plugs/expiryRules/auditLogPrune.ts`、cron `expiry-prune`)
 
 ### 何を記録するか（介入 vs 業務）
 
@@ -270,9 +270,9 @@ await runWithAuditContext(
 
 | タスク | 頻度 | 内容 |
 |---|---|---|
-| `audit-log-prune` | daily | `created_at + retention_days` を過ぎた行を削除。1000 件 × 最大 100 反復 / 回、`FOR UPDATE SKIP LOCKED`。上限到達時は `truncated: true` で次回に持ち越し。同じ削除は増設点 expiryRules の項目 `plugs/expiryRules/auditLogPrune.ts`(個人情報 `pii: true`、cron `expiry-prune` が回す)に移った(旧 cron は区切り expiry-retire-crons まで並んで動く。二重に消しても同じ) |
 | `audit-log-recover-dead-letter` | hourly | `audit_logs_failed` を古い順に最大 500 件再投入し、成功分を削除 |
 
+- 保持期限の削除: `created_at + retention_days` を過ぎた行は増設点 expiryRules の項目 `plugs/expiryRules/auditLogPrune.ts`(個人情報 `pii: true`、fork の上書きで止められない)を 1 本の cron `expiry-prune` が毎日、予算の内で束ごとに消す(続きは次の回)
 - 配線: `src/app/api/cron/<task>/`（task.ts + route.ts）。`vercel.json` のエントリは `pnpm generate cron` が生成する。手動は `pnpm task <task>`
 - dead-letter が減らない場合は `audit_logs_failed.error_message` を確認する（schema 不整合・payload 形状不一致など）
 - 再投入時は payload の `subjectUserId` / `batchId` も書き戻す（キーの無い旧 payload は NULL）

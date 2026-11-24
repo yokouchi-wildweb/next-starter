@@ -251,7 +251,6 @@ const defaults = {
 - **fail-soft**: 記録失敗は `console.error` のみで読み取りは通す。per-view の audit_logs は書かない（量）。
 - `fingerprint_challenge_access_events`（IP + UA の詳細行）は `retentionDays` が過ぎたら増設点 expiryRules の項目
   `plugs/expiryRules/fingerprintChallengeAccessPrune.ts`（個人情報 `pii: true`、cron `expiry-prune`）が削除。親行のカウンタは残る。
-  旧 cron `fingerprint-challenge-access-prune` は区切り expiry-retire-crons まで並んで動く（二重に消しても同じ）。
 - **本人向け DTO（`FingerprintChallengeForUser`）には閲覧カウンタも IP も出さない**（計測の存在を見せない）。
 - 信号はクライアント由来（IP はプロキシ次第、UA は自己申告）なので **参考証拠**。ログイン履歴
   （userLoginEvent）と突き合わせ、「アカウントのログイン IP と別ネットワークから開いた」等の材料にする。

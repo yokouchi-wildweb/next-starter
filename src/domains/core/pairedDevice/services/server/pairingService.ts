@@ -12,7 +12,7 @@
 // コードの総当たりは、有効期限（ttlMinutes）とルートのレート制限で防ぐ。
 // 同じ端末に新しいコードを発行すると、その端末の未使用コードは取り消される。
 
-import { and, desc, eq, gt, inArray, lt } from "drizzle-orm";
+import { and, desc, eq, gt, inArray } from "drizzle-orm";
 
 import { pairedDeviceConfig } from "@/domains/pairedDevice/config";
 import { auditLogger } from "@/domains/core/auditLog/services/server";
@@ -33,7 +33,6 @@ import {
   hashSecretToken,
   normalizeShortCode,
 } from "@/lib/crypto";
-import { createDeadline, runBudgetedBatches, type RunBudgetedBatchesResult } from "@/lib/cron";
 import { db } from "@/lib/drizzle";
 
 import {
@@ -506,31 +505,4 @@ export async function listActivePairingsForDevice(
       ),
     );
   return rows.map(toPairing);
-}
-
-/** 1 チャンクで削除する行数 */
-const PRUNE_CHUNK_SIZE = 1000;
-
-/**
- * 期限切れから一定時間たったペアリングを削除する（cron）。
- * 端末側から始めるペアリングは公開ルートから作られ、行数に上限がないため、時間予算付きで削除する。
- */
-export async function pruneExpiredDevicePairings(
-  options: { olderThanHours?: number; budgetMs?: number } = {},
-): Promise<RunBudgetedBatchesResult> {
-  const boundary = new Date(Date.now() - (options.olderThanHours ?? 24) * 60 * MINUTE_MS);
-  return runBudgetedBatches<string, null>({
-    deadline: createDeadline(options.budgetMs ?? 240_000),
-    fetchNext: async () => {
-      const rows = await db
-        .select({ id: DevicePairingTable.id })
-        .from(DevicePairingTable)
-        .where(lt(DevicePairingTable.expiresAt, boundary))
-        .limit(PRUNE_CHUNK_SIZE);
-      return { items: rows.map((row) => row.id), cursor: null };
-    },
-    processChunk: async (ids) => {
-      await db.delete(DevicePairingTable).where(inArray(DevicePairingTable.id, ids));
-    },
-  });
 }
