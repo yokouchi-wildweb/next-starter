@@ -2,11 +2,29 @@
   "extends": "../../../tsconfig.json",
   "compilerOptions": {
     "paths": {
+      "@/lib/appEnv": [
+        "../appEnv"
+      ],
+      "@/lib/appEnv/*": [
+        "../appEnv/*"
+      ],
+      "@/lib/backends": [
+        "../backends"
+      ],
+      "@/lib/backends/*": [
+        "../backends/*"
+      ],
       "@/lib/defineConfig": [
         "../defineConfig"
       ],
       "@/lib/defineConfig/*": [
         "../defineConfig/*"
+      ],
+      "@/lib/errors": [
+        "../errors"
+      ],
+      "@/lib/errors/*": [
+        "../errors/*"
       ],
       "@/lib/messaging": [
         "../messaging"

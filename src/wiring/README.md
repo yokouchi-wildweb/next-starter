@@ -65,7 +65,7 @@
 - `backends.ts`（生成物）: データに届くか = いいえ（上流の項目は 0。項目は字面だけ）
   - 能力の語の一覧 `backendCapabilities`（宣言 `src/lib/backends/extensionPoints.ts`。結び目なし、実行時に読む所は無い。生成器と検査は項目を構文木で読む、`src/lib/backends/README.md`）
 - `dbAgent.ts`（生成物）: データに届くか = いいえ（上流の項目は 0）
-- `startup.ts`（生成物）: データに届くか = いいえ（上流の項目は 0。fork の項目がデータに届くなら届く wiring になる）
+- `startup.ts`（生成物）: データに届くか = いいえ（上流の行は選ぶ点ごとの起動時の知らせ = 持ち主の公開の入口の `<点>BackendStatus` を読む生成の行だけ。fork の項目がデータに届くなら届く wiring になる）
   - 起動時の処理の一覧 `startupTasks`（lazy）+ `lib/startup` の `wireStartup` → `startup`（`register`。宣言 `src/lib/startup/extensionPoints.ts`、書き方は `src/lib/startup/README.md`。読み手は `src/instrumentation.ts` だけ）
   - DB 調査エージェントの一覧 `dbAgentTools`・`dbAgentPromptFragments`・`dbAgentSuffixProviders`（宣言 `src/lib/dbAgent/extensionPoints.ts`。結び目なし、route が渡す）
 - `routeFactory.ts`（生成物）: データに届くか = 届く（項目の利用者の束 → auth の services/server）。import するのは `apiRoute.ts` だけ

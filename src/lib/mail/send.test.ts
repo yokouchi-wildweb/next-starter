@@ -1,13 +1,18 @@
 // src/lib/mail/send.test.ts
 //
-// lib/mail の send() の検査(外部通信なし。Resend / SendGrid の client を偽物に差し替える)。
+// lib/mail の send() の検査(外部通信なし。Resend / SendGrid の SDK を偽物に差し替え、選択の生成物 ./extensions/mail を
+// 本物の項目 plugs/mail/resend・sendgrid のどちらかへ向ける)。
 // - 戻り値 { provider, providerMessageId }・headers と idempotencyKey の渡し方・失敗の分類(一時 / 恒久 / 受付不明)
 // - 本文の 2 つの渡し方(react / 描き終えた html + text)
+// - 選択の守り: env MAIL_PROVIDER が選んだ実装と違えば送る前に MailProviderMismatchError(鍵でない値は compat の既定 resend と読む)
+// - 鍵が無ければ MailNotConfiguredError(文言は従来どおり)、isConfigured は通信なしで同じ判定
 // 実行: pnpm test src/lib/mail/send.test.ts
 // (package.json に type: module が無いので tsx は CJS として読む → before() で import)
 import { afterEach, before, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { createElement } from "react";
+
+import type { MailAdapter } from "./adapter";
 
 type ResendCall = { payload: Record<string, unknown>; options: unknown };
 type ResendResult = {
@@ -24,27 +29,27 @@ let sendgridImpl: () => Promise<unknown> = async () => [
   {},
 ];
 
-mock.module("./resend", {
+// resend は ESM と CJS の 2 つの入口を持つ: 項目が読む方(tsx は CJS で読む)を解いた先で差し替える
+mock.module(require.resolve("resend"), {
   namedExports: {
-    getResendClient: () => ({
-      emails: {
+    Resend: class {
+      emails = {
         send: async (payload: Record<string, unknown>, options: unknown) => {
           resendCalls.push({ payload, options });
           return resendResult;
         },
-      },
-    }),
+      };
+    },
   },
 });
 
-mock.module("./sendgrid", {
-  namedExports: {
-    getSendGridClient: () => ({
-      send: async (payload: Record<string, unknown>) => {
-        sendgridCalls.push(payload);
-        return sendgridImpl();
-      },
-    }),
+mock.module("@sendgrid/mail", {
+  defaultExport: {
+    setApiKey: () => {},
+    send: async (payload: Record<string, unknown>) => {
+      sendgridCalls.push(payload);
+      return sendgridImpl();
+    },
   },
 });
 
@@ -54,12 +59,39 @@ mock.module("./config", {
   },
 });
 
+// 選択の生成物の差し替え: 選んだ名前を切り替えると、本物の項目の adapter へ向く
+const COMPAT = { from: "env", name: "MAIL_PROVIDER", map: { sendgrid: "sendgrid", resend: "resend" }, default: "resend" } as const;
+let selectedName: "resend" | "sendgrid" = "resend";
+const items: Record<string, MailAdapter> = {};
+mock.module("./extensions/mail", {
+  namedExports: {
+    adapter: {
+      isConfigured: () => items[selectedName].isConfigured(),
+      send: (params: Parameters<MailAdapter["send"]>[0]) => items[selectedName].send(params),
+    },
+    get selected() {
+      return selectedName;
+    },
+    compat: COMPAT,
+  },
+});
+const use = (name: "resend" | "sendgrid") => {
+  selectedName = name;
+};
+
 let send: typeof import("./send").send;
 let MailSendError: typeof import("./errors").MailSendError;
+let MailNotConfiguredError: typeof import("./selectionErrors").MailNotConfiguredError;
+let MailProviderMismatchError: typeof import("./selectionErrors").MailProviderMismatchError;
+let BackendNotConfiguredError: typeof import("@/lib/errors").BackendNotConfiguredError;
 
 before(async () => {
   ({ send } = await import("./send"));
   ({ MailSendError } = await import("./errors"));
+  ({ MailNotConfiguredError, MailProviderMismatchError } = await import("./selectionErrors"));
+  ({ BackendNotConfiguredError } = await import("@/lib/errors"));
+  items.resend = (await import("./plugs/mail/resend")).adapter;
+  items.sendgrid = (await import("./plugs/mail/sendgrid")).adapter;
 });
 
 afterEach(() => {
@@ -70,7 +102,70 @@ afterEach(() => {
     { statusCode: 202, headers: { "x-message-id": "sg_1" }, body: "" },
     {},
   ];
+  use("resend");
   delete process.env.MAIL_PROVIDER;
+  process.env.RESEND_API_KEY = "re_key";
+  process.env.SENDGRID_API_KEY = "sg_key";
+});
+
+// --- 鍵が無い(クライアントを作る前に。最初に流す: クライアントは 1 度作ると使い回す) ---
+
+test("鍵が無い: MailNotConfiguredError(未設定の共通の親の子、文言は従来どおり)、isConfigured は configured: false", async () => {
+  delete process.env.RESEND_API_KEY;
+  delete process.env.SENDGRID_API_KEY;
+  for (const [name, key] of [["resend", "RESEND_API_KEY"], ["sendgrid", "SENDGRID_API_KEY"]] as const) {
+    use(name);
+    assert.deepEqual(items[name].isConfigured(), { configured: false, missing: [key] });
+    await assert.rejects(
+      send({ to: "to@example.com", subject: "件名", html: "<p>x</p>" }),
+      (error: unknown) => {
+        assert.ok(error instanceof MailNotConfiguredError);
+        assert.ok(error instanceof BackendNotConfiguredError);
+        assert.equal(error.message, `${key} が設定されていません。環境変数を確認してください。`);
+        assert.equal(error.port, "mail");
+        assert.equal(error.implementation, name);
+        assert.deepEqual(error.missing, [key]);
+        return true;
+      },
+    );
+  }
+  process.env.RESEND_API_KEY = "re_key";
+  assert.deepEqual(items.resend.isConfigured(), { configured: true });
+});
+
+// --- 選択の守り ---
+
+test("食い違い: MAIL_PROVIDER が選んだ実装と違えば送る前に投げ、env の値は文言に出さない。同じなら送る", async () => {
+  process.env.MAIL_PROVIDER = "sendgrid";
+  await assert.rejects(send(base), (error: unknown) => {
+    assert.ok(error instanceof MailProviderMismatchError);
+    assert.equal(error.selected, "resend");
+    assert.equal(error.fromEnv, "sendgrid");
+    assert.match(error.message, /pnpm workflow backend-selection set mail/);
+    return true;
+  });
+  assert.equal(resendCalls.length, 0);
+  assert.equal(sendgridCalls.length, 0);
+  process.env.MAIL_PROVIDER = "resend";
+  assert.deepEqual(await send(base), { provider: "resend", providerMessageId: "re_1" });
+  use("sendgrid");
+  process.env.MAIL_PROVIDER = " sendgrid ";
+  assert.deepEqual(await send(base), { provider: "sendgrid", providerMessageId: "sg_1" });
+});
+
+test("知らない値: MAIL_PROVIDER が compat の鍵でなければ既定 resend と読む(選択 resend なら送る、sendgrid なら投げる)", async () => {
+  process.env.MAIL_PROVIDER = "smtp-x";
+  assert.deepEqual(await send(base), { provider: "resend", providerMessageId: "re_1" });
+  assert.equal(resendCalls.length, 1);
+  use("sendgrid");
+  await assert.rejects(send(base), (error: unknown) => {
+    assert.ok(error instanceof MailProviderMismatchError);
+    assert.equal(error.selected, "sendgrid");
+    assert.equal(error.fromEnv, "resend");
+    assert.doesNotMatch(error.message, /smtp-x/);
+    return true;
+  });
+  assert.equal(sendgridCalls.length, 0);
 });
 
 const base = {
@@ -172,7 +267,7 @@ test("Resend: 応答の無い失敗は unknown、SDK の送信前の入力の誤
 // --- SendGrid ---
 
 test("SendGrid: 応答ヘッダ x-message-id を providerMessageId で返し、headers を渡し、idempotencyKey は捨てる", async () => {
-  process.env.MAIL_PROVIDER = "sendgrid";
+  use("sendgrid");
   const result = await send({
     ...base,
     headers: { "List-Unsubscribe": "<https://example.com/u>" },
@@ -186,7 +281,7 @@ test("SendGrid: 応答ヘッダ x-message-id を providerMessageId で返し、h
 });
 
 test("SendGrid: x-message-id が無ければ null", async () => {
-  process.env.MAIL_PROVIDER = "sendgrid";
+  use("sendgrid");
   sendgridImpl = async () => [{ statusCode: 202, headers: {}, body: "" }, {}];
   const result = await send(base);
   assert.deepEqual(result, { provider: "sendgrid", providerMessageId: null });
@@ -197,7 +292,7 @@ function responseError(code: number, message: string) {
 }
 
 test("SendGrid: ResponseError の code で分類(429・5xx = transient / 4xx = permanent)", async () => {
-  process.env.MAIL_PROVIDER = "sendgrid";
+  use("sendgrid");
   sendgridImpl = async () => {
     throw responseError(429, "Too Many Requests");
   };
@@ -218,7 +313,7 @@ test("SendGrid: ResponseError の code で分類(429・5xx = transient / 4xx = p
 });
 
 test("SendGrid: 接続前の誤りは transient、タイムアウトなど送られたか分からない誤りは unknown", async () => {
-  process.env.MAIL_PROVIDER = "sendgrid";
+  use("sendgrid");
   sendgridImpl = async () => {
     throw Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" });
   };
@@ -239,15 +334,11 @@ test("tags: Resend は tags([{ name, value }])、SendGrid は customArgs で渡�
   await send(base);
   assert.equal("tags" in resendCalls[1].payload, false);
 
-  process.env.MAIL_PROVIDER = "sendgrid";
-  try {
-    await send({ ...base, tags: { delivery_id: "d-2" } });
-    assert.deepEqual(sendgridCalls.at(-1)?.customArgs, { delivery_id: "d-2" });
-    await send(base);
-    assert.equal("customArgs" in (sendgridCalls.at(-1) ?? {}), false);
-  } finally {
-    delete process.env.MAIL_PROVIDER;
-  }
+  use("sendgrid");
+  await send({ ...base, tags: { delivery_id: "d-2" } });
+  assert.deepEqual(sendgridCalls.at(-1)?.customArgs, { delivery_id: "d-2" });
+  await send(base);
+  assert.equal("customArgs" in (sendgridCalls.at(-1) ?? {}), false);
 });
 
 // --- 描き終えた html を渡す口 ---
@@ -262,7 +353,7 @@ test("html: Resend は html と text をそのまま渡し、react を渡さな�
 });
 
 test("html: SendGrid は描かずに html(と text)を送る。react の時は今どおり描く", async () => {
-  process.env.MAIL_PROVIDER = "sendgrid";
+  use("sendgrid");
   await send({ to: "to@example.com", subject: "件名", html: "<p>描いた本文</p>", text: "描いた本文" });
   assert.equal(sendgridCalls[0].html, "<p>描いた本文</p>");
   assert.equal(sendgridCalls[0].text, "描いた本文");

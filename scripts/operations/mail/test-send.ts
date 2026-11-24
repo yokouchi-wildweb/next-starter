@@ -9,6 +9,7 @@
 // 上書き(<名前>.override.ts)を重ね、見本の値を差し込んでレイアウトのメールの描き方(点 messagingLayouts の messagingLayoutEmails、無ければ要約から)で描いて送る。
 // 見本の値: 定義の vars・共通の文脈・当たる enrichers の鍵ごとに、URL の欄は https://example.com/sample/<鍵>、他は「<鍵>の見本」。
 // 送る口(回・配達の記録)は通さない(見た目の確認だけ)。連絡の書き方: src/lib/messaging/README.md
+// 送る実装は選択表(公開の入口 @/lib/mail の mailBackendStatus.selected)。MAIL_PROVIDER は選ばない: 在って食い違えば送る前に止まる(lib/mail の assertMailProviderMatches)
 
 import { render } from "@react-email/render";
 import inquirer from "inquirer";
@@ -20,7 +21,6 @@ import { guardEntry } from "../../runner/guard";
 guardEntry({ write: true, what: "pnpm ops mail test-send" });
 
 // 環境変数の確認
-const MAIL_PROVIDER = process.env.MAIL_PROVIDER || "resend";
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 
@@ -114,8 +114,8 @@ async function messageTemplates(): Promise<TemplateConfig[]> {
 /**
  * シンプルテストメール（接続確認用）
  */
-async function renderSimpleTestEmail(): Promise<{ html: string; subject: string }> {
-  const providerName = MAIL_PROVIDER === "sendgrid" ? "SendGrid" : "Resend";
+async function renderSimpleTestEmail(provider: string): Promise<{ html: string; subject: string }> {
+  const providerName = provider === "sendgrid" ? "SendGrid" : "Resend";
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
       <h1 style="color: #2563eb;">メール送信テスト</h1>
@@ -136,13 +136,13 @@ async function renderSimpleTestEmail(): Promise<{ html: string; subject: string 
 /**
  * 接続確認のメール + 連絡の一覧のメール
  */
-async function getTemplateConfigs(): Promise<TemplateConfig[]> {
+async function getTemplateConfigs(provider: string): Promise<TemplateConfig[]> {
   return [
     {
       key: "simple",
       name: "シンプルテストメール",
-      description: `${MAIL_PROVIDER === "sendgrid" ? "SendGrid" : "Resend"}接続確認用のシンプルなテストメール`,
-      render: renderSimpleTestEmail,
+      description: `${provider === "sendgrid" ? "SendGrid" : "Resend"}接続確認用のシンプルなテストメール`,
+      render: () => renderSimpleTestEmail(provider),
     },
     ...(await messageTemplates()),
   ];
@@ -210,13 +210,14 @@ async function sendWithSendGrid(
  * プロバイダーに応じてメール送信
  */
 async function sendEmail(
+  provider: string,
   to: string,
   subject: string,
   html: string,
 ): Promise<void> {
   const fromAddress = await formatFromAddress();
 
-  if (MAIL_PROVIDER === "sendgrid") {
+  if (provider === "sendgrid") {
     const from = await readMailFrom();
     await sendWithSendGrid(to, subject, html, from.address, from.name);
   } else {
@@ -230,16 +231,33 @@ function flag(name: string): string | undefined {
   return process.argv.find((arg) => arg.startsWith(prefix))?.slice(prefix.length);
 }
 
+/**
+ * 選択表が選んだメールの実装の名前。env MAIL_PROVIDER が食い違えば止まる
+ * (守りは lib/mail の assertMailProviderMatches、send() と同じもの。文言に env の値は載らない)
+ */
+async function selectedProvider(): Promise<string> {
+  const { assertMailProviderMatches, mailBackendStatus, MailProviderMismatchError } = await import("@/lib/mail");
+  try {
+    assertMailProviderMatches();
+  } catch (error) {
+    if (!(error instanceof MailProviderMismatchError)) throw error;
+    console.error(`エラー: ${error.message}`);
+    process.exit(1);
+  }
+  return mailBackendStatus.selected;
+}
+
 async function main() {
   console.log("");
   console.log("📧 メール テスト送信");
   console.log("");
 
-  // 環境変数チェック
-  const providerName = MAIL_PROVIDER === "sendgrid" ? "SendGrid" : "Resend";
+  // 送る実装(選択表)と環境変数チェック
+  const provider = await selectedProvider();
+  const providerName = provider === "sendgrid" ? "SendGrid" : "Resend";
   console.log(`使用プロバイダー: ${providerName}`);
 
-  if (MAIL_PROVIDER === "sendgrid") {
+  if (provider === "sendgrid") {
     if (!SENDGRID_API_KEY) {
       console.error("エラー: SENDGRID_API_KEY が設定されていません");
       process.exit(1);
@@ -253,7 +271,7 @@ async function main() {
 
   // テンプレート一覧を取得（自動検出）
   console.log("連絡の一覧を読み込み中...");
-  const templates = await getTemplateConfigs();
+  const templates = await getTemplateConfigs(provider);
   console.log(`${templates.length} 件(接続確認 + メールの欄を持つ連絡)`);
   console.log("");
 
@@ -271,7 +289,7 @@ async function main() {
       process.exit(1);
     }
     const rendered = await chosen.render();
-    await sendEmail(flagTo, rendered.subject, rendered.html);
+    await sendEmail(provider, flagTo, rendered.subject, rendered.html);
     console.log(`✅ 送信完了! (${chosen.key} → ${flagTo})`);
     return;
   }
@@ -338,7 +356,7 @@ async function main() {
   console.log("送信中...");
 
   try {
-    await sendEmail(toEmail, subject, html);
+    await sendEmail(provider, toEmail, subject, html);
 
     console.log("");
     console.log("✅ 送信完了!");

@@ -12,7 +12,7 @@
 
 1. [Resend](https://resend.com) でアカウントを作り、API キーを発行する（`RESEND_API_KEY`、.env.development / .env.production）
 2. Resend のコンソールで送信元のドメインを足し、表示される DNS レコード（DKIM・SPF など）をドメインの DNS に足して「Verify」で認証する
-3. 送信元のアドレスと名前は `src/config/lib/mail.config.ts` の `defaultFrom` / `defaultFromName`（上流は `@/business` の `mail` を写す。環境変数は API キーと `MAIL_PROVIDER`）
+3. 送信元のアドレスと名前は `src/config/lib/mail.config.ts` の `defaultFrom` / `defaultFromName`（上流は `@/business` の `mail` を写す。環境変数は API キー。使う実装は選択表 `backend-selection.json` の `mail`、Extension「プロバイダーの切り替え」）
 
 届かないとき: コンソールでドメインが Verified か・迷惑メールのフォルダ・コンソールの Emails の誤りを見る。DNS の伝播は 24〜48 時間かかることがあり、直後は Verified と Pending を行き来する。
 
@@ -127,6 +127,19 @@ await send({ to, subject, html, text }); // 描き終えた html を渡す
 - `status`: HTTP 状態（応答が無いときは `null`）
 - `cause`: プロバイダーの元の誤り
 
+### mailBackendStatus
+
+`mailBackendStatus: BackendStatus`(`@/lib/backends`)= `{ port: "mail", selected, isConfigured() }`。選択表が選んだ実装の名前と設定の揃い具合だけ(送れる adapter は出さない)。読み手は起動時の知らせ(生成物 `src/wiring/startup.ts`)と道具
+
+### assertMailProviderMatches()
+
+`assertMailProviderMatches(): void`。env `MAIL_PROVIDER` と選択表の食い違いの守り(読み方は Extension「プロバイダーの切り替え」)。食い違えば `MailProviderMismatchError`、無ければ何もしない。`send()` が送る前に呼ぶ。自分の送り方で送る道具(`pnpm ops mail test-send`)も送る前に呼ぶ
+
+### 選択の誤り(送る前に投げる)
+
+- `MailNotConfiguredError`: 選んだ実装の API キー(`RESEND_API_KEY` / `SENDGRID_API_KEY`)が無い。最初にクライアントを作る時に投げる。未設定の共通の親 `BackendNotConfiguredError`(`@/lib/errors`)の子で `port` = `"mail"`、`implementation` = 実装の名前、`missing` = その鍵の名前。文言は「<鍵> が設定されていません。環境変数を確認してください。」
+- `MailProviderMismatchError`(`Error` を継ぐ、`DomainError` でない): env `MAIL_PROVIDER` が在り、compat で読んだ実装(鍵でない値は compat の既定 `resend`)が選択表の選んだ実装と違う。`selected`(選んだ実装)・`fromEnv`(env の側を compat で読んだ実装)。文言は 2 つの実装の名前と直し方だけで env の値は載せない
+
 ### webhook の事件(MailWebhookEvent)
 
 - 失敗は `MailWebhookVerifyError`（`reason` = `missing_header` | `bad_signature` | `stale_timestamp` | `bad_payload`）
@@ -176,10 +189,14 @@ await send({ to, subject, html, text }); // 描き終えた html を渡す
 
 ### プロバイダーの切り替え
 
-環境変数 `MAIL_PROVIDER` で選ぶ。
+根の選択表 `backend-selection.json` の口 `mail` で選ぶ(`pnpm workflow backend-selection set mail <名前>`、Tier1 の版は `resend`)。実装は選ぶ点 `mail` の項目 `plugs/mail/<名前>.ts`(字面の `declaration` と本体 `adapter`)、`send()` は生成物 `extensions/mail.ts` が re-export する選んだ 1 つの `adapter` だけを呼ぶ(選ばない実装の SDK は読まない)。`none`(使わない)は選べない。
 
-- `resend`（既定）: `RESEND_API_KEY` が要る
+- `resend`: `RESEND_API_KEY` が要る
 - `sendgrid`: `SENDGRID_API_KEY` が要る
+
+起動時の知らせ: 公開の入口が口の状態 `mailBackendStatus`(`{ port: "mail", selected, isConfigured }`、型 `BackendStatus`。送れる adapter は出さない)を出し、生成物 `src/wiring/startup.ts` の起動時の一覧の行(`pnpm generate extensions` が選ぶ点から書く)がそれを読んで、起動ごとに選んだ実装の鍵の揃い具合を 1 行出す(名前だけ、`src/lib/backends/README.md`「起動時の知らせ」)。道具(`pnpm ops mail test-send`)も選んだ名前を `mailBackendStatus.selected` で読む。
+
+env `MAIL_PROVIDER` は食い違いの守りだけ: 在れば選ぶ点の compat(`sendgrid` / `resend`)で実装の名前にし、鍵でない値は既定の `resend` と読み(以前と同じ)、選んだ実装と違えば送る前に `MailProviderMismatchError`(本番の build の `pnpm check extensions` も同じ写しで止める)。無ければ見ない。選択表を作る時(`fill`)はこの compat で今の設定を読む(`fill` は鍵でない値ではその口を書かずに止まる)。
 
 送信元は `from` / `fromName` で渡す。省略時は設定の `defaultFrom` / `defaultFromName`（既定 `config.ts`、上書き `src/config/lib/mail.config.ts` = `@lib-config/mail`。上流の上書きは `@/business` の `mail` を写す）。
 
@@ -189,5 +206,5 @@ await send({ to, subject, html, text }); // 描き終えた html を渡す
 
 ## Verification
 
-- `pnpm test src/lib/mail/send.test.ts`(外部通信なし。client を偽物に差し替える)
+- `pnpm test src/lib/mail/send.test.ts`(外部通信なし。SDK を偽物に差し替え、選択の生成物を本物の項目の片方へ向けて両方の経路・食い違いの止め・鍵の欠けを確かめる)
 - テスト送信: `pnpm ops mail test-send`(Usage「セットアップ」)

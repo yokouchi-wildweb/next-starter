@@ -3,5 +3,5 @@
     ".": "./index.ts",
     "./points": "./points.ts"
   },
-  "libs": ["defineConfig", "messaging"]
+  "libs": ["backends", "defineConfig", "errors", "messaging"]
 }

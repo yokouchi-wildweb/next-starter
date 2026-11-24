@@ -73,8 +73,17 @@ routeFactoryDevice: { change: "add", plugs: true, export: "plug", type: { from: 
 - 能力の語: 選ぶ点の `select.words` と、増設点 `backendCapabilities`(`src/lib/backends`)の項目 `export const capabilities = { port, words }`。同じ語の 2 度目・在らない口への語は止める
 - 要る能力: ドメインは同じドメインの `extensionPoints.ts` に `export const backendRequirements = ["<口>.<語>", …]`(字面、ドメインだけ)。開いているドメイン(常設か、載せる規則のどれかが開)の分だけ数える。どの規則にも載らず常設でもないドメインは閉で数えない。開閉は段階のランナーと同じ `scripts/runner/phases/features.ts`(env `GATES_FEATURES` がテスト用)で、要る時だけ読む
 - 選択表: 根の `backend-selection.json` = `{ "<口>": "<実装の名前>" }`。生成器が選ぶ点ごとに `<持ち主>/extensions/<点>.ts` へ選んだ 1 項目の `export { adapter } from "<項目>";` を書く(選ばない実装は読まない)。`"none"` は `createNoneAdapter<型>("<口>")`(`@/lib/backends`)
+  - 同じファイルに `export const selected = "<名前>" as const;`(選んだ名前)と `export const compat = <宣言の select.compat の写し> as const;` も書く(使う時の食い違いの守りが読む。宣言そのものは実行時に読まない)
+  - 持ち主の中の項目と型(`type.from`)は相対で読む(閉じた lib の単体の tsconfig は自分の `@/lib/<名前>` を解かない)、ほかは `@/`
+- 起動時の知らせ(D49): 点 `startupTasks`(`src/lib/startup`)が在れば、選ぶ点ごとに `src/wiring/startup.ts` の一覧へ 1 行を足す(項目のファイルは作らない)
+  - 行 = `{ domain: null, name: "<点>BackendStatus", requires: [], load: async () => { const { createBackendStatusTask } = await import("@/lib/backends"); const { <点>BackendStatus } = await import("<持ち主の公開の入口>"); return createBackendStatusTask(<点>BackendStatus); } }`(起動ごとに選んだ実装の `isConfigured` を 1 行、投げない、env の値を出さない)
+  - 持ち主の公開の入口(lib は `./server` を宣言していればそれ、無ければ `.`、ドメインは `services/server`)が口の状態 `<点>BackendStatus` = `{ port, selected, isConfigured }`(型 `BackendStatus`、`@/lib/backends`)を出す。送れる `adapter` は出さない。入口が出さなければ止める
+  - 公開の入口だけを名前つきの dynamic import で読むので、`entry/only-entries`・`mail-send-via-messaging` の決まりのまま通る。選択表に問題がある間も行は変わらない
 - 止める(生成と `pnpm check extensions`、build の段でも): 選択表が無い・読めない・鍵の欠け・知らない口の鍵・知らない値・`"fake"`・任意でない口の `"none"`・口のどれかの点に選んだ名前の項目が無い・選んだ実装の requires を選んだ実装の provides の和が満たさない・開いているドメインの要る能力を満たさない・項目の宣言の形(D29 の鍵だけで全部要る、billing の `"none"` は単独、`"usage"` は unit)・知らない語・ほかの口の provides・`<持ち主>/extensions/<点>.default|replace` の手置き。文言は直し方(`pnpm workflow backend-selection fill` / `set <口> <名前>`)を示す
+- env の食い違い(段 build・ship だけ、env `PHASE`。段の無い `pnpm generate extensions` と選択表の命令は見ない): `compat` が `from: "env"` の口で、その env が在り空でなければ `map` で名前に写し(鍵でない値は `default`、使う時の守りと同じ)、選んだ名前と違えば止める。文言は 2 つの実装の名前と直し方(`set <口> <名前>` か env を消す)だけで、env の値は出さない
+- env の欠け(段 build だけ、止めない): 選んだ実装の宣言の `env.required` のうち env に無い名前を 1 行(`warn:`)。offline の段で runner が外す名前(`scripts/runner/phases/offlineEnv.mjs` の `OFFLINE_ENV`、例 `RESEND_*`)は見えないので数えない(起動時の知らせが見る)。ship は手元の shell の env で配る先の env でないので見ない
 - 選ぶ点が 0 個なら選択表を読まず、何も書かず、止めない
+- 選択(選択表・選ぶ点の項目)に問題がある時: `pnpm generate extensions` は選ぶ点でない一覧(`src/wiring/startup.ts` ほか)と可変域の区画を書き、選ぶ点の生成物(`<持ち主>/extensions/<点>.ts`)は今のまま残して、問題を出して止まる(取り込みの直後の `{}` でも生成物の衝突を作り直せる。起動時の知らせの行は一覧に残る)。選ぶ点でない問題があれば今どおり何も書かない。`pnpm check extensions` は問題で落ち、その間は選ぶ点の生成物を「宣言の無い古い一覧」に数えない
 
 ### 項目
 

@@ -21,11 +21,11 @@ import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { changedFiles, globToRegExp } from "./changed.mjs";
 import { MARK } from "./netGuard.mjs";
+import { OFFLINE_ENV } from "./offlineEnv.mjs";
 import { PhaseError, loadPhases, scanTargets } from "./scan.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export { changedFiles, globToRegExp };
-export const OFFLINE_ENV = /^(DATABASE_URL.*|MY_SERVICE_ACCOUNT_KEY|NEXT_PUBLIC_FIREBASE_.*|FIREBASE_.*|GOOGLE_APPLICATION_CREDENTIALS|GCS_.*|ANTHROPIC_API_KEY|RESEND_.*|SENDGRID_.*|SMTP_.*|CLOUDFLARE_.*)$/;
 
 /** 機能の開閉: env GATES_FEATURES(JSON、テスト用)か features.ts を tsx で */
 function featureStates(repo) {

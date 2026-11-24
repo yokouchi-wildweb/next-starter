@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { planExtensions, pointsEntryProblems, staleOutputs, strayExtensionFiles } from "./extensions.mjs";
+import { heldSelectionPaths, planExtensions, pointsEntryProblems, staleOutputs, strayExtensionFiles } from "./extensions.mjs";
 import { collectPoints } from "../../../src/lib/districtMap/node.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -34,7 +34,8 @@ async function main() {
     readFileSync(join(repoRoot, plan.intake.path), "utf8") !== plan.intake.content
   )
     stale.push(plan.intake.path);
-  const strays = strayExtensionFiles(repoRoot, plan.outputs, plan.points).filter((s) => !(noStale && s.generated));
+  // 選ぶ点に問題がある間は選ぶ点の生成物を古いと数えない(出力に無いのは問題のせいで、消す物ではない)
+  const strays = strayExtensionFiles(repoRoot, plan.outputs, plan.points, heldSelectionPaths(plan)).filter((s) => !(noStale && s.generated));
   const all = [
     ...plan.problems,
     ...stale.map((path) => `${path}: 宣言・項目とずれている(pnpm generate extensions で作り直してコミット)`),

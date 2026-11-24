@@ -38,6 +38,19 @@ export type BackendDeclaration = {
 export type IsConfiguredResult = { configured: true } | { configured: false; missing: readonly string[] };
 
 /**
+ * 口の状態(D49): 選ぶ点の持ち主が公開の入口から <点>BackendStatus として出す。起動時の知らせ(createBackendStatusTask)と道具が読む。
+ * 送れる adapter は持たない(isConfigured だけ)
+ */
+export type BackendStatus = {
+  /** 口の名前 */
+  readonly port: string;
+  /** 選択表が選んだ実装の名前(生成物の selected) */
+  readonly selected: string;
+  /** 選んだ実装の設定の揃い具合(env・設定の名前だけ、値は持たない) */
+  isConfigured(): IsConfiguredResult;
+};
+
+/**
  * 口の実装の本体(<持ち主>/plugs/<点>/<名前>.ts の export const adapter)が必ず持つ形。
  * 口ごとの操作は口の持ち主の型がこれを広げて足す
  */

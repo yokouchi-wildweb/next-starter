@@ -2,20 +2,13 @@
 
 import type { ReactElement } from "react";
 
-import { render } from "@react-email/render";
-
-import {
-  MailSendError,
-  classifyNetworkError,
-  classifyStatus,
-  type MailSendErrorKind,
-} from "./errors";
+import type { ProviderBody, ProviderSendParams, SendMailResult } from "./adapter";
 import { mailConfig } from "./config";
-import { getMailProvider, type MailProvider } from "./provider";
-import { getResendClient } from "./resend";
-import { getSendGridClient } from "./sendgrid";
+import { adapter, compat, selected } from "./extensions/mail";
+import { MailProviderMismatchError } from "./selectionErrors";
 
 export type { MailProvider } from "./provider";
+export type { SendMailResult } from "./adapter";
 
 /** 送信の共通の欄(本文の渡し方は SendMailReactOptions / SendMailHtmlOptions のどちらか) */
 type SendMailBaseOptions = {
@@ -62,143 +55,12 @@ export type SendMailHtmlOptions = SendMailBaseOptions & {
 export type SendMailOptions = SendMailReactOptions | SendMailHtmlOptions;
 
 /**
- * 送信の結果
- * - provider: 送ったプロバイダー
- * - providerMessageId: プロバイダーの id（Resend = email の id、SendGrid = 応答ヘッダ X-Message-Id）。得られないときは null
- */
-export type SendMailResult = {
-  provider: MailProvider;
-  providerMessageId: string | null;
-};
-
-/** provider に渡す本文: react(provider の側で描く)か、描き終えた html(+ text) */
-type ProviderBody = { react: ReactElement } | { html: string; text?: string };
-
-type ProviderSendParams = {
-  to: string;
-  subject: string;
-  body: ProviderBody;
-  fromAddress: string;
-  fromName?: string;
-  headers?: Record<string, string>;
-  idempotencyKey?: string;
-  tags?: Record<string, string>;
-};
-
-/** Resend の誤りの名前のうち、4xx でも時間を置けば通るもの */
-const RESEND_TRANSIENT_ERROR_NAMES = new Set(["concurrent_idempotent_requests"]);
-
-/**
- * Resendでメールを送信します。
- */
-async function sendWithResend(
-  params: ProviderSendParams,
-): Promise<SendMailResult> {
-  const { to, subject, body, fromAddress, fromName, headers, idempotencyKey, tags } =
-    params;
-  const resend = getResendClient();
-  const fromField = fromName ? `${fromName} <${fromAddress}>` : fromAddress;
-
-  const { data, error } = await resend.emails.send(
-    {
-      from: fromField,
-      to,
-      subject,
-      ...("react" in body
-        ? { react: body.react }
-        : { html: body.html, ...(body.text !== undefined ? { text: body.text } : {}) }),
-      ...(headers ? { headers } : {}),
-      ...(tags && Object.keys(tags).length > 0
-        ? { tags: Object.entries(tags).map(([name, value]) => ({ name, value })) }
-        : {}),
-    },
-    idempotencyKey ? { idempotencyKey } : undefined,
-  );
-
-  if (error) {
-    const status = typeof error.statusCode === "number" ? error.statusCode : null;
-    let kind: MailSendErrorKind;
-    if (RESEND_TRANSIENT_ERROR_NAMES.has(error.name)) {
-      kind = "transient";
-    } else if (status !== null) {
-      kind = classifyStatus(status);
-    } else {
-      // 応答の無い失敗（fetch が投げた = application_error）は受付不明、
-      // SDK が送信前に止めた入力の誤り（missing_required_field など）は恒久
-      kind = error.name === "application_error" ? "unknown" : "permanent";
-    }
-    throw new MailSendError({
-      message: `メール送信に失敗しました（Resend）: ${error.message}`,
-      kind,
-      provider: "resend",
-      status,
-      cause: error,
-    });
-  }
-
-  return { provider: "resend", providerMessageId: data?.id ?? null };
-}
-
-/**
- * SendGridでメールを送信します。
- */
-async function sendWithSendGrid(
-  params: ProviderSendParams,
-): Promise<SendMailResult> {
-  const { to, subject, body, fromAddress, fromName, headers, tags } = params;
-  const sgMail = getSendGridClient();
-  // 描き終えた html があればそのまま送る(もう一度描かない)
-  const html = "react" in body ? await render(body.react) : body.html;
-  const text = "react" in body ? undefined : body.text;
-
-  try {
-    const [response] = await sgMail.send({
-      to,
-      from: fromName ? { email: fromAddress, name: fromName } : fromAddress,
-      subject,
-      html,
-      ...(text !== undefined ? { text } : {}),
-      ...(headers ? { headers } : {}),
-      ...(tags && Object.keys(tags).length > 0 ? { customArgs: tags } : {}),
-    });
-    const messageId = readHeader(response?.headers, "x-message-id");
-    return { provider: "sendgrid", providerMessageId: messageId };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "不明なエラー";
-    const code =
-      typeof error === "object" && error !== null && "code" in error
-        ? (error as { code?: unknown }).code
-        : undefined;
-    // ResponseError は code に HTTP 状態を持つ。無ければネットワーク層の誤り
-    const status = typeof code === "number" ? code : null;
-    const kind =
-      status !== null ? classifyStatus(status) : classifyNetworkError(error);
-    throw new MailSendError({
-      message: `メール送信に失敗しました（SendGrid）: ${message}`,
-      kind,
-      provider: "sendgrid",
-      status,
-      cause: error,
-    });
-  }
-}
-
-function readHeader(headers: unknown, name: string): string | null {
-  if (!headers || typeof headers !== "object") return null;
-  const record = headers as Record<string, unknown>;
-  const value =
-    record[name] ??
-    Object.entries(record).find(([key]) => key.toLowerCase() === name)?.[1];
-  if (Array.isArray(value)) return typeof value[0] === "string" ? value[0] : null;
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-/**
  * メールを送信します。
  *
- * プロバイダーは環境変数 MAIL_PROVIDER で切り替え可能:
- * - "resend"（デフォルト）: RESEND_API_KEY が必要
+ * プロバイダーは選択表 backend-selection.json の口 mail が選ぶ(選んだ実装の adapter は生成物 ./extensions/mail):
+ * - "resend": RESEND_API_KEY が必要
  * - "sendgrid": SENDGRID_API_KEY が必要
+ * 鍵が無ければ MailNotConfiguredError。env MAIL_PROVIDER は食い違いの守りだけで、在って(知らない値は compat の既定として読む)選択と違えば送る前に MailProviderMismatchError。
  *
  * 失敗は MailSendError（kind = transient | permanent | unknown）で投げます。
  *
@@ -216,6 +78,7 @@ function readHeader(headers: unknown, name: string): string | null {
  * ```
  */
 export async function send(options: SendMailOptions): Promise<SendMailResult> {
+  assertMailProviderMatches();
   const { to, subject, from, fromName, headers, idempotencyKey, tags } = options;
   const body: ProviderBody =
     options.react !== undefined
@@ -236,8 +99,18 @@ export async function send(options: SendMailOptions): Promise<SendMailResult> {
     tags,
   };
 
-  if (getMailProvider() === "sendgrid") {
-    return sendWithSendGrid(params);
-  }
-  return sendWithResend(params);
+  return adapter.send(params);
+}
+
+/**
+ * env MAIL_PROVIDER が在れば、選ぶ点の compat(生成物の写し)で実装の名前にし、選択表の選んだ名前と比べる。
+ * compat の鍵でない値は compat.default と読む(以前の getMailProvider と同じ)。値は誤りに載せない。
+ * 食い違えば MailProviderMismatchError。send() が送る前に呼ぶ。送る前に同じ守りが要る道具(pnpm ops mail test-send)もこれを呼ぶ
+ */
+export function assertMailProviderMatches(): void {
+  const raw = (process.env[compat.name] ?? "").trim();
+  if (raw === "") return;
+  const map: Readonly<Record<string, string>> = compat.map;
+  const fromEnv = Object.hasOwn(map, raw) ? map[raw] : compat.default;
+  if (fromEnv !== selected) throw new MailProviderMismatchError(selected, fromEnv);
 }

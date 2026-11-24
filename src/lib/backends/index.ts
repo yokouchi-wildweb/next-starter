@@ -5,6 +5,8 @@ export { createNoneAdapter, BackendNoneSelectedError } from "./none";
 export type { CreateNoneAdapterOptions } from "./none";
 export { createBackendOverride } from "./override";
 export { backendPrices } from "./prices";
+export { createBackendStatusTask } from "./statusTask";
+export type { BackendStatusTask, CreateBackendStatusTaskOptions } from "./statusTask";
 export type { BackendPriceRow } from "./prices";
 export type { BackendOverride } from "./override";
 export {
@@ -15,6 +17,7 @@ export {
 } from "./reserved";
 export type {
   BackendAdapter,
+  BackendStatus,
   BackendCapabilityItem,
   BackendCompat,
   BackendDeclaration,

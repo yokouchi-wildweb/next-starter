@@ -1,49 +1,17 @@
 #!/usr/bin/env node
 // scripts/structure/extensions/generate.mjs
 // 全拡張点の生成一覧(<持ち主>/extensions/<点>.ts・src/wiring/<lib>.ts)を宣言と項目から丸ごと書く(pnpm generate extensions)。
-// 問題があれば書き出さずに止まる。宣言が消えた古い一覧(目印のヘッダを持つ)は消す。手で置いたファイルは消さずに失敗を出す。
-// 書式と失敗の条件: ./README.md
+// 問題があれば書き出さずに止まる(問題が選ぶ点の物だけなら、ほかの一覧は書いて選ぶ点の生成物を残し、止まる)。宣言が消えた古い一覧(目印のヘッダを持つ)は消す。
+// 手で置いたファイルは消さずに失敗を出す。本体は ./extensions.mjs の writeExtensions。書式と失敗の条件: ./README.md
 
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { planExtensions, pointsEntryProblems, staleOutputs, strayExtensionFiles } from "./extensions.mjs";
-import { collectPoints } from "../../../src/lib/districtMap/node.mjs";
+import { writeExtensions } from "./extensions.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-const plan = planExtensions(repoRoot);
-// 型だけの入口(D33): ドメインでない持ち主の点の type.from は @/<持ち主>/points
-plan.problems.push(...pointsEntryProblems(collectPoints(repoRoot).points));
-if (plan.problems.length > 0) {
-  console.error(`[generate extensions] 書き出しを止めました(${plan.problems.length} 件):\n${plan.problems.map((p) => `  - ${p}`).join("\n")}`);
-  process.exit(1);
-}
-
-for (const warning of plan.warnings) console.warn(`[generate extensions] warn: ${warning}`);
-
-const stale = staleOutputs(repoRoot, plan.outputs);
-for (const path of stale) {
-  const abs = join(repoRoot, path);
-  mkdirSync(dirname(abs), { recursive: true });
-  writeFileSync(abs, plan.outputs[path]);
-}
-// 受け口の一覧の生成区画(intake.txt。一覧の数には入れない)
-if (plan.intake && (!existsSync(join(repoRoot, plan.intake.path)) || readFileSync(join(repoRoot, plan.intake.path), "utf8") !== plan.intake.content)) {
-  writeFileSync(join(repoRoot, plan.intake.path), plan.intake.content);
-  stale.push(plan.intake.path);
-}
-const strays = strayExtensionFiles(repoRoot, plan.outputs, plan.points);
-const removed = strays.filter((s) => s.generated);
-for (const stray of removed) rmSync(join(repoRoot, stray.path));
-const handMade = strays.filter((s) => !s.generated);
-
-console.log(
-  `[generate extensions] 点 ${plan.points.length} / 一覧 ${Object.keys(plan.outputs).length}(うち枠の表 ${plan.frames.tables}、宣言 ${plan.frames.declarations})` +
-    (stale.length > 0 ? `、書き出し: ${stale.join(", ")}` : "、変更なし") +
-    (removed.length > 0 ? `、古い一覧を削除: ${removed.map((s) => s.path).join(", ")}` : ""),
-);
-if (handMade.length > 0) {
-  console.error(`[generate extensions] extensions/ に手で置いたファイル(${handMade.length} 件、消していない):\n${handMade.map((s) => `  - ${s.path}: 生成物の置き場。${s.hint}`).join("\n")}`);
-  process.exit(1);
-}
+const result = writeExtensions(repoRoot);
+for (const line of result.warn) console.warn(line);
+for (const line of result.out) console.log(line);
+for (const line of result.err) console.error(line);
+process.exitCode = result.code;

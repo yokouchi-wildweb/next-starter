@@ -4,8 +4,8 @@
 // 項目の名前に fork の印は付けない(点つきの名前の分類は src/lib/districtMap/dottedNames.mjs)。
 // 書式・置き場・失敗の条件: ./README.md
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { basename, join, posix } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, posix } from "node:path";
 
 import { classifyDottedName, oldMarkerProblem, DECLARATION_NAME, EXTENSIONS_DIR_NAME, PLUGS_DIR_NAME, SEARCH_ROOT, WIRE_NAME, isListPoint, isPlugsPoint, isSelectPoint } from "../../../src/lib/districtMap/index.mjs";
 import { readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
@@ -24,7 +24,7 @@ import { checkPureImports, overrideKeys } from "./pureImports.mjs";
 import { planFrames } from "./frames.mjs";
 import { planIntake } from "./intake.mjs";
 import { discoverPlugs } from "./plugs.mjs";
-import { planSelection } from "./select.mjs";
+import { STATUS_POINT, planSelection } from "./select.mjs";
 import { checkSwitches } from "./switches.mjs";
 
 export const COMMAND = "pnpm generate extensions";
@@ -264,7 +264,8 @@ function renderPlugsPoint(point, items) {
     lines.push(`/** 項目の ${spec.key} の字面(全体で一意) */`, `export type ${typeName}Key = ${keys.length === 0 ? "never" : keys.map((k) => JSON.stringify(k)).join(" | ")};`, "");
   }
   if (spec.load === "lazy") {
-    const list = items.map((item) => `  { ${head(item)}, load: () => import(${JSON.stringify(specifierOf(item.path))}).then((m) => m.${spec.export}) },`);
+    // load の字面を持つ行(選ぶ点の起動時の知らせ、./select.mjs)はそのまま、ほかは項目のファイルを読む
+    const list = items.map((item) => `  { ${head(item)}, load: ${item.load ?? `() => import(${JSON.stringify(specifierOf(item.path))}).then((m) => m.${spec.export})`} },`);
     lines.push(`export const ${point.name}: ${shape(`load: () => Promise<${T}>`)}[] = ${list.length === 0 ? "[]" : `[\n${list.join("\n")}\n]`};`);
     return { imports: [], lines };
   }
@@ -582,6 +583,14 @@ export function planExtensions(repoRoot) {
   const gatePoint = listPoints.find((p) => p.spec.derive === "featureTables");
   const selection = planSelection({ repoRoot, points: declared, itemsByPoint, alwaysOpen, backendRequirements, gateDomains: gatePoint?.gateTables?.domains ?? [], headerFor });
   problems.push(...selection.problems);
+  // 選ぶ点の起動時の知らせの行(項目のファイルは無い、D49)は点 startupTasks の一覧に足す(差す側 backends、lib の行なので門番は外さない)
+  const statusPoint = listPoints.find((p) => isPlugsPoint(p.spec) && p.name === STATUS_POINT);
+  if (statusPoint && selection.statusEntries.length > 0) {
+    const items = [...itemsByPoint.get(statusPoint)];
+    for (const entry of selection.statusEntries) items.push({ name: entry.name, path: entry.path, itemFile: entry.path, load: entry.load, source: "backends", standing: true, plug: { domain: null, requires: [] } });
+    items.sort((a, b) => byName(`${a.source}/${a.name}`, `${b.source}/${b.name}`));
+    itemsByPoint.set(statusPoint, items);
+  }
   const files = new Map();
   for (const p of listPoints.filter((point) => !isSelectPoint(point.spec))) files.set(outputOf(p), [...(files.get(outputOf(p)) ?? []), p]);
   const outputs = {};
@@ -614,7 +623,7 @@ export function planExtensions(repoRoot) {
   problems.push(...framePlan.problems);
   Object.assign(outputs, framePlan.outputs);
   const frames = { tables: Object.keys(framePlan.outputs).length, declarations: framePlan.declarations };
-  return { points: declared, itemsByPoint, outputs, intake, switches: switchCheck.switches, overrides: overrideCheck.overrides, frames, warnings: framePlan.warnings, problems };
+  return { points: declared, itemsByPoint, outputs, intake, switches: switchCheck.switches, overrides: overrideCheck.overrides, frames, warnings: [...framePlan.warnings, ...selection.warnings], selection: { problems: selection.problems, paths: selection.paths }, problems };
 }
 
 /** 点の項目(テスト・検査用): 持ち主のフォルダと点の名前で引く */
@@ -637,7 +646,8 @@ export function staleOutputs(repoRoot, outputs) {
  * src の下の extensions/ にある、宣言に無いファイル(手で置いた・古い一覧)
  * @returns {{ path: string, generated: boolean, hint: string }[]} generated = 目印のヘッダを持つ(= 宣言が消えた古い一覧)
  */
-export function strayExtensionFiles(repoRoot, outputs, points) {
+export function strayExtensionFiles(repoRoot, outputs, points, keep = []) {
+  const kept = new Set(keep);
   const strays = [];
   const writerOutputs = new Set(points.filter((p) => p.spec.writer).map(outputOf));
   const listPoints = points.filter((p) => isListPoint(p.spec) && !isPlugsPoint(p.spec));
@@ -648,6 +658,8 @@ export function strayExtensionFiles(repoRoot, outputs, points) {
       if (entry.isDirectory()) {
         if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
         walk(path, inside || entry.name === EXTENSIONS_DIR_NAME);
+      } else if (kept.has(path)) {
+        // 選ぶ点に問題がある間の選ぶ点の生成物(書かず・消さず・古いと数えない)
       } else if (inside && !(path in outputs) && !writerOutputs.has(path)) {
         const owner = path.slice(0, path.lastIndexOf(`/${EXTENSIONS_DIR_NAME}/`));
         const dirs = [...new Set(listPoints.filter((p) => p.owner === owner).map((p) => posix.normalize(posix.join(p.owner, p.spec.dir))))];
@@ -662,4 +674,63 @@ export function strayExtensionFiles(repoRoot, outputs, points) {
   };
   walk(SEARCH_ROOT, false);
   return strays;
+}
+
+/**
+ * 選ぶ点に問題がある間に生成と検査が触らない選ぶ点の生成物(問題が無ければ空)
+ * @param {{ selection: { problems: string[], paths: string[] } }} plan
+ */
+export const heldSelectionPaths = (plan) => (plan.selection.problems.length > 0 ? plan.selection.paths : []);
+
+/**
+ * pnpm generate extensions の本体: 宣言と項目から全部の一覧を書き、宣言の消えた古い一覧(生成の印つき)を消す。
+ * - 選ぶ点でない問題があれば何も書かずに止める
+ * - 問題が選ぶ点(選択表)のものだけなら、選ぶ点でない一覧と可変域の区画は書き、選ぶ点の生成物は今のまま残し、問題を出して止める
+ *   (選択表の鍵の欠けで src/wiring/startup.ts の衝突を作り直せない、を避ける。起動時の知らせの行は選択表に左右されず一覧に残る)
+ * @param {string} repoRoot
+ * @returns {{ code: 0 | 1, out: string[], err: string[], warn: string[] }}
+ */
+export function writeExtensions(repoRoot) {
+  const plan = planExtensions(repoRoot);
+  plan.problems.push(...pointsEntryProblems(collectPoints(repoRoot).points));
+  const selectionProblems = new Set(plan.selection.problems);
+  const others = plan.problems.filter((p) => !selectionProblems.has(p));
+  const out = [];
+  const err = [];
+  const warn = plan.warnings.map((w) => `[generate extensions] warn: ${w}`);
+  if (others.length > 0) {
+    err.push(`[generate extensions] 書き出しを止めました(${plan.problems.length} 件):\n${plan.problems.map((p) => `  - ${p}`).join("\n")}`);
+    return { code: 1, out, err, warn };
+  }
+  const held = heldSelectionPaths(plan);
+  const stale = staleOutputs(repoRoot, plan.outputs);
+  for (const path of stale) {
+    const abs = join(repoRoot, path);
+    mkdirSync(dirname(abs), { recursive: true });
+    writeFileSync(abs, plan.outputs[path]);
+  }
+  // 受け口の一覧の生成区画(intake.txt。一覧の数には入れない)
+  if (plan.intake && (!existsSync(join(repoRoot, plan.intake.path)) || readFileSync(join(repoRoot, plan.intake.path), "utf8") !== plan.intake.content)) {
+    writeFileSync(join(repoRoot, plan.intake.path), plan.intake.content);
+    stale.push(plan.intake.path);
+  }
+  const strays = strayExtensionFiles(repoRoot, plan.outputs, plan.points, held);
+  const removed = strays.filter((s) => s.generated);
+  for (const stray of removed) rmSync(join(repoRoot, stray.path));
+  const handMade = strays.filter((s) => !s.generated);
+  out.push(
+    `[generate extensions] 点 ${plan.points.length} / 一覧 ${Object.keys(plan.outputs).length}(うち枠の表 ${plan.frames.tables}、宣言 ${plan.frames.declarations})` +
+      (stale.length > 0 ? `、書き出し: ${stale.join(", ")}` : "、変更なし") +
+      (removed.length > 0 ? `、古い一覧を削除: ${removed.map((s) => s.path).join(", ")}` : ""),
+  );
+  let code = /** @type {0 | 1} */ (0);
+  if (handMade.length > 0) {
+    err.push(`[generate extensions] extensions/ に手で置いたファイル(${handMade.length} 件、消していない):\n${handMade.map((s) => `  - ${s.path}: 生成物の置き場。${s.hint}`).join("\n")}`);
+    code = 1;
+  }
+  if (selectionProblems.size > 0) {
+    err.push(`[generate extensions] 選ぶ点の生成物は書いていない(ほかの一覧は書いた。${selectionProblems.size} 件、直して生成し直す):\n${[...selectionProblems].map((p) => `  - ${p}`).join("\n")}`);
+    code = 1;
+  }
+  return { code, out, err, warn };
 }

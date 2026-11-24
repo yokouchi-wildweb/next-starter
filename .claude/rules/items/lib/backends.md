@@ -3,7 +3,7 @@ paths:
   - "src/lib/backends/**"
 ---
 # lib/backends
-what: the shared parts of a backend port's implementations: declaration / adapter types, capability names, billing scales, compat, backendRequirements, the builtin none, the reserved names none / fake, the owner's override slot maker | entries @/lib/backends (client-safe), @/lib/backends/node (contract tests), @/lib/backends/points (item type)
+what: the shared parts of a backend port's implementations: declaration / adapter types, capability names, billing scales, compat, backendRequirements, the builtin none, the reserved names none / fake, the owner's override slot maker, the startup status task maker | entries @/lib/backends (client-safe), @/lib/backends/node (contract tests), @/lib/backends/points (item type)
 use: always
 change: add → <your domain or lib>/plugs/backendCapabilities/<name>.ts `export const capabilities = { port, words }` (declared in src/lib/backends/extensionPoints.ts, pnpm generate extensions)
 rules:
@@ -16,6 +16,7 @@ using:
 - contract_test: a port owner exposes its contract with defineBackendContract (lib port: its ./node entry) | the upstream implementation, the fake and a fork's implementation run the same contract
 - fork_words: a fork adds a word only in its own lib's plugs item | it never redefines an existing word | upstream code never requires a fork's word
 - selection_command: backend-selection.json is written only by pnpm workflow backend-selection fill | set (never by hand) | show reads it
+- status_task: the startup report of a port is a generated line of src/wiring/startup.ts: createBackendStatusTask(<point>BackendStatus from the owner's public entry) | a new selecting point's owner exports <point>BackendStatus (BackendStatus: port, selected, isConfigured), never its adapter | the line carries names only, never env values
 - prices_upstream: backendPrices (prices.ts) is upstream-only values keyed by priceKey | a fork reads it, never edits it
 editing:
 - entry_client_safe: the "." entry stays client-safe and node-free | contract code goes to ./node

@@ -5,12 +5,21 @@
 //   ("none" = 組み込みの none の adapter、@/lib/backends の createNoneAdapter)
 // - 食い違いで止める(D14 fail-closed): 選択表の鍵の欠け・余り・知らない値・"fake"・任意でない口の "none"・口のどれかの点に項目が無い・
 //   requires ↔ provides の不足・開いているドメインの backendRequirements の不足・項目の宣言の形・知らない語・語の再定義
+// - 段 build・ship(env PHASE)では env の今の設定(compat が from "env")が選択と食い違えば止め、段 build では選んだ実装の env.required の
+//   欠けを止めずに 1 行知らせる(D14。env の値は出さない)
+// - 点 startupTasks が在れば、選ぶ点ごとに起動時の知らせの 1 行を一覧 src/wiring/startup.ts に足す(項目のファイルは作らない、D49):
+//   load = @/lib/backends の createBackendStatusTask と持ち主の公開の入口の <点>BackendStatus({ port, selected, isConfigured })を
+//   名前つきの dynamic import で読み、createBackendStatusTask(<点>BackendStatus)。送れる adapter は出さない。入口に無ければ止める
 // - 選ぶ点が 0 個なら選択表を読まず、何も書かず、止めない
 // 書式: ./README.md「選ぶ点」
 
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, posix } from "node:path";
+
+import { readLibPackage } from "../../../src/lib/libPackage/node.mjs";
+
+import { OFFLINE_ENV } from "../../runner/phases/offlineEnv.mjs";
 
 import {
   BACKEND_ADAPTER_NAME,
@@ -33,12 +42,55 @@ const CAPABILITIES_EXPORT = "capabilities";
 /** 直し方の命令(scripts/workflow/backend-selection) */
 const FILL = "pnpm workflow backend-selection fill";
 const SET = "pnpm workflow backend-selection set <口> <名前>";
+/** env の食い違いを止める段(check extensions が乗る段のうち配る木を確かめる 2 つ) */
+const ENV_GUARD_PHASES = ["build", "ship"];
+/** env の欠けを知らせる段(本番の build。ship の手元の shell の env は配る先の env でない) */
+const ENV_NOTICE_PHASES = ["build"];
+/** offline の段(build・build:post): OFFLINE_ENV の名前は runner が外すので見えない */
+const OFFLINE_PHASES = ["build", "build:post"];
+/** 起動時の知らせの行を足す点(src/lib/startup) */
+export const STATUS_POINT = "startupTasks";
+/** 持ち主の公開の入口が出す口の状態の名前: <点>BackendStatus(D49) */
+export const STATUS_EXPORT_SUFFIX = "BackendStatus";
 const DOMAINS_ROOT = `${SEARCH_ROOT}/domains/`;
 const WORD = /^[a-z][A-Za-z0-9]*$/;
 
 const byName = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
-const specifierOf = (path) => `@/${path.slice(`${SEARCH_ROOT}/`.length).replace(/(\/index)?\.tsx?$/, "")}`;
+/**
+ * 生成物から読む先: 持ち主の中の物は相対(閉じた lib の単体の tsconfig は自分の @/lib/<名前> を解かない)、ほかは @/
+ * @param {string} owner 点の持ち主のフォルダ
+ * @param {string} target リポジトリ直下からのパス(拡張子つき)か "@/…" の import 元
+ */
+const specifierOf = (owner, target) => {
+  const path = target.startsWith("@/") ? `${SEARCH_ROOT}/${target.slice(2)}` : target.replace(/(\/index)?\.tsx?$/, "");
+  if (path.startsWith(`${owner}/`)) return posix.relative(`${owner}/${EXTENSIONS_DIR_NAME}`, path);
+  return target.startsWith("@/") ? target : `@/${path.slice(`${SEARCH_ROOT}/`.length)}`;
+};
 const portOf = (capability) => capability.slice(0, capability.indexOf("."));
+
+/**
+ * 選ぶ点の持ち主の公開の入口(起動時の知らせが口の状態を読む先): lib = "./server" を宣言していればそれ、無ければ "."、
+ * ドメイン = services/server の入口。import 元とファイル
+ * @param {string} repoRoot
+ * @param {string} owner 点の持ち主のフォルダ(src/lib/<名前> か src/domains/…)
+ * @returns {{ specifier: string, file: string | null }}
+ */
+export function publicEntryOf(repoRoot, owner) {
+  if (owner.startsWith(DOMAINS_ROOT)) {
+    const rest = owner.slice(DOMAINS_ROOT.length).replace(/^core\//, "");
+    const dir = `${owner}/services/server`;
+    const file = ["index.ts", "index.tsx"].map((f) => `${dir}/${f}`).find((f) => existsSync(join(repoRoot, f))) ?? null;
+    return { specifier: `@/domains/${rest}/services/server`, file };
+  }
+  const name = owner.slice(`${SEARCH_ROOT}/lib/`.length);
+  const pkg = readLibPackage(repoRoot, name);
+  const entry = pkg?.exports.find((e) => e.key === "./server") ?? pkg?.exports.find((e) => e.key === ".") ?? null;
+  const file = entry ? `${owner}/${entry.targetPath}` : ["index.ts", "index.tsx"].map((f) => `${owner}/${f}`).find((f) => existsSync(join(repoRoot, f))) ?? null;
+  return { specifier: entry && entry.key === "./server" ? `@/lib/${name}/server` : `@/lib/${name}`, file };
+}
+
+/** 入口のファイルの字面が名前を export するか(export const / function / { … } の名前、re-export も) */
+const exportsName = (text, name) => new RegExp(`export\\s+(?:const|let|function)\\s+${name}\\b|export\\s*\\{[^}]*\\b${name}\\b[^}]*\\}`).test(text);
 
 /**
  * 予約の名前(none / fake)を src/lib/backends/reserved.ts から字面で読む
@@ -99,16 +151,41 @@ function readCapabilities(item) {
  *   gateDomains: { folder: string, features: string[] }[],
  *   headerFor: (source: string) => string,
  *   featureStates?: () => ({ states: Record<string, boolean> } | { problem: string }),
- * }} input gateDomains = 門番の規則に載るドメインと載せる規則(生成一覧 rules の domains)
- * @returns {{ outputs: Record<string, string>, problems: string[] }}
+ *   phase?: string,
+ *   env?: Record<string, string | undefined>,
+ * }} input gateDomains = 門番の規則に載るドメインと載せる規則(生成一覧 rules の domains)。phase = 段(既定 env PHASE)、env = 見る env(既定 process.env)
+ * @returns {{ paths: string[], outputs: Record<string, string>, problems: string[], warnings: string[], statusEntries: { name: string, port: string, path: string, load: string }[] }}
+ *   statusEntries = 起動時の知らせの行(点 startupTasks の一覧に足す。選択表の問題に左右されない: 持ち主の入口の状態を読むだけ)
  */
 export function planSelection(input) {
   const { repoRoot, points, itemsByPoint, alwaysOpen, backendRequirements, gateDomains, headerFor } = input;
+  const phase = input.phase ?? process.env.PHASE ?? "-";
+  const env = input.env ?? process.env;
   /** @type {Record<string, string>} */
   const outputs = {};
   /** @type {string[]} */
   const problems = [];
+  /** @type {string[]} */
+  const warnings = [];
   const selectPoints = points.filter((p) => isSelectPoint(p.spec));
+  // 選ぶ点の持ち物の生成物(問題がある時も数える: 生成と検査は問題の間これを書かず・消さず・古いと数えない)
+  /** @type {string[]} */
+  const paths = selectPoints.map((p) => `${p.owner}/${EXTENSIONS_DIR_NAME}/${p.name}.ts`);
+  // 起動時の知らせの行(点 startupTasks が在る時、選ぶ点ごと): 持ち主の公開の入口の <点>BackendStatus を読む。入口に無ければ止める
+  /** @type {{ name: string, port: string, path: string, load: string }[]} */
+  const statusEntries = [];
+  if (points.some((p) => p.name === STATUS_POINT && p.spec.plugs === true)) {
+    for (const p of selectPoints) {
+      const name = `${p.name}${STATUS_EXPORT_SUFFIX}`;
+      const entry = publicEntryOf(repoRoot, p.owner);
+      if (!entry.file || !exportsName(readFileSync(join(repoRoot, entry.file), "utf8"), name)) {
+        problems.push(`${p.declaredIn}: 選ぶ点 ${p.name} の持ち主の公開の入口 ${entry.specifier}(${entry.file ?? "無い"})が ${name} を出さない(起動時の知らせが読む口の状態 { port, selected, isConfigured }。@/lib/backends の BackendStatus、D49)`);
+        continue;
+      }
+      const load = `async () => { const { createBackendStatusTask } = await import("@/lib/backends"); const { ${name} } = await import(${JSON.stringify(entry.specifier)}); return createBackendStatusTask(${name}); }`;
+      statusEntries.push({ name, port: p.spec.select.port, path: entry.file, load });
+    }
+  }
 
   // 能力の語: 口 → 語 → 定めた所(選ぶ点の select.words と backendCapabilities の項目。同じ語の 2 度目は止める、D19)
   /** @type {Map<string, Map<string, string>>} */
@@ -137,10 +214,10 @@ export function planSelection(input) {
       if (problem) problems.push(problem);
     }
   }
-  if (selectPoints.length === 0) return { outputs, problems };
+  if (selectPoints.length === 0) return { paths, outputs, problems, warnings, statusEntries };
 
   const reserved = readReservedNames(repoRoot);
-  if ("problem" in reserved) return { outputs, problems: [...problems, reserved.problem] };
+  if ("problem" in reserved) return { paths, outputs, warnings, statusEntries, problems: [...problems, reserved.problem] };
   const knownCapability = (name) => words.get(portOf(name))?.has(name.slice(name.indexOf(".") + 1)) === true;
 
   // 口ごとの点・任意か
@@ -156,7 +233,7 @@ export function planSelection(input) {
   }
 
   // 項目: 名前 → 宣言(点ごと)。予約名・置き場・宣言の形・知らない語を止める
-  /** @type {Map<object, Map<string, { path: string, provides: string[], requires: string[] }>>} */
+  /** @type {Map<object, Map<string, { path: string, provides: string[], requires: string[], envRequired: string[] }>>} */
   const declared = new Map();
   for (const p of selectPoints) {
     const port = p.spec.select.port;
@@ -188,22 +265,22 @@ export function planSelection(input) {
         else if (!knownCapability(name)) problems.push(`${item.path}: provides の ${name} は知らない語(口 ${port} の語: ${[...(words.get(port)?.keys() ?? [])].join(", ")}。足すなら backendCapabilities の項目)`);
       }
       for (const name of read.declaration.requires) if (!knownCapability(name)) problems.push(`${item.path}: requires の ${name} は知らない能力(在る口の select.words か backendCapabilities の語)`);
-      byItem.set(item.name, { path: item.path, provides: read.declaration.provides, requires: read.declaration.requires });
+      byItem.set(item.name, { path: item.path, provides: read.declaration.provides, requires: read.declaration.requires, envRequired: read.declaration.env.required });
     }
   }
   for (const r of backendRequirements) for (const name of r.requires) if (!knownCapability(name)) problems.push(`${r.declaredIn}: backendRequirements の ${name} は知らない能力(在る口の select.words か backendCapabilities の語)`);
 
   // 選択表
   const tablePath = join(repoRoot, SELECTION_FILE);
-  if (!existsSync(tablePath)) return { outputs, problems: [...problems, `${SELECTION_FILE} が無い(選ぶ点 ${selectPoints.length} 個の口を選ぶ表。${FILL} で書く)`] };
+  if (!existsSync(tablePath)) return { paths, outputs, warnings, statusEntries, problems: [...problems, `${SELECTION_FILE} が無い(選ぶ点 ${selectPoints.length} 個の口を選ぶ表。${FILL} で書く)`] };
   /** @type {unknown} */
   let table;
   try {
     table = JSON.parse(readFileSync(tablePath, "utf8"));
   } catch (error) {
-    return { outputs, problems: [...problems, `${SELECTION_FILE}: JSON として読めない(${error instanceof Error ? error.message : String(error)})`] };
+    return { paths, outputs, warnings, statusEntries, problems: [...problems, `${SELECTION_FILE}: JSON として読めない(${error instanceof Error ? error.message : String(error)})`] };
   }
-  if (typeof table !== "object" || table === null || Array.isArray(table)) return { outputs, problems: [...problems, `${SELECTION_FILE} は { "<口>": "<実装の名前>" } の object`] };
+  if (typeof table !== "object" || table === null || Array.isArray(table)) return { paths, outputs, warnings, statusEntries, problems: [...problems, `${SELECTION_FILE} は { "<口>": "<実装の名前>" } の object`] };
   const selection = /** @type {Record<string, unknown>} */ (table);
   for (const key of Object.keys(selection).sort(byName)) if (!byPort.has(key)) problems.push(`${SELECTION_FILE}: 鍵 ${key} は知らない口(選ぶ点の port に無い。消すか、口の名前を直す: ${SET})`);
   /** @type {Map<string, string>} */
@@ -257,7 +334,7 @@ export function planSelection(input) {
   let states = {};
   if (needStates) {
     const read = (input.featureStates ?? (() => readFeatureStates(repoRoot)))();
-    if ("problem" in read) return { outputs, problems: [...problems, read.problem] };
+    if ("problem" in read) return { paths, outputs, warnings, statusEntries, problems: [...problems, read.problem] };
     states = read.states;
   }
   for (const r of backendRequirements) {
@@ -267,26 +344,59 @@ export function planSelection(input) {
       if (knownCapability(capability) && !provided.has(capability)) problems.push(`${r.declaredIn}: 開いているドメインが要る ${capability} を選択表のどの実装も出さない(口 ${portOf(capability)} の選択を見直す: ${SET})`);
     }
   }
-  if (problems.length > 0) return { outputs, problems };
+  // env の今の設定と選択の食い違い(段 build・ship、D14): 在って空でない値を compat で写し(map に無い値は default、使う時の send の守りと同じ)、
+  // 選んだ名前と違えば止める。値は出さない
+  if (ENV_GUARD_PHASES.includes(phase)) {
+    for (const [port, group] of [...byPort.entries()].sort(([a], [b]) => byName(a, b))) {
+      const name = chosen.get(port);
+      const compat = group[0].spec.select.compat;
+      if (name === undefined || compat.from !== "env") continue;
+      const raw = (env[compat.name] ?? "").trim();
+      if (raw === "") continue;
+      const mapped = Object.hasOwn(compat.map, raw) ? compat.map[raw] : compat.default;
+      if (mapped !== name) {
+        problems.push(`${SELECTION_FILE}: 口 ${port} は "${name}" を選ぶが、env ${compat.name} は "${mapped}" を指す(段 ${phase}。直す: pnpm workflow backend-selection set ${port} ${mapped} か、env ${compat.name} を消す)`);
+      }
+    }
+  }
+  // 選んだ実装の env.required の欠け(段 build、止めない): offline の段で runner が外す名前(OFFLINE_ENV)は見えないので見ない(起動時の知らせが見る)
+  if (ENV_NOTICE_PHASES.includes(phase)) {
+    for (const p of selectPoints) {
+      const item = declared.get(p)?.get(chosen.get(p.spec.select.port) ?? "");
+      if (!item) continue;
+      const missing = item.envRequired.filter((n) => !(OFFLINE_PHASES.includes(phase) && OFFLINE_ENV.test(n)) && (env[n] ?? "").trim() === "");
+      if (missing.length > 0) warnings.push(`口 ${p.spec.select.port} の選んだ実装 "${chosen.get(p.spec.select.port)}"(${item.path})の env が無い: ${missing.join(", ")}(段 ${phase}。止めない)`);
+    }
+  }
+  if (problems.length > 0) return { paths, outputs, problems, warnings, statusEntries };
 
   // 生成物: 選んだ 1 項目の adapter だけを静的に re-export(none = 組み込みの none の adapter)
   for (const p of selectPoints) {
     const port = p.spec.select.port;
     const name = /** @type {string} */ (chosen.get(port));
     const head = [headerFor(`${p.declaredIn}・${SELECTION_FILE}`), `// ${p.name}: 口 ${port} の選んだ実装 "${name}"(${SELECTION_FILE})。選ばない実装は読まない`, ""];
+    // 選んだ名前と今の設定の読み方(宣言の select.compat の写し)。使う時の食い違いの守りが読む(D11・D14)
+    const facts = [
+      "/** 選択表が選んだ実装の名前 */",
+      `export const selected = ${JSON.stringify(name)} as const;`,
+      "/** 今の設定の読み方(宣言の select.compat の写し) */",
+      `export const compat = ${JSON.stringify(p.spec.select.compat)} as const;`,
+      "",
+    ];
     if (name === reserved.none) {
       outputs[`${p.owner}/${EXTENSIONS_DIR_NAME}/${p.name}.ts`] = [
         ...head,
         'import { createNoneAdapter } from "@/lib/backends";',
-        `import type { ${p.spec.type.name} } from ${JSON.stringify(p.spec.type.from)};`,
+        `import type { ${p.spec.type.name} } from ${JSON.stringify(specifierOf(p.owner, p.spec.type.from))};`,
         "",
         `export const ${BACKEND_ADAPTER_NAME} = createNoneAdapter<${p.spec.type.name}>(${JSON.stringify(port)});`,
         "",
+        ...facts,
       ].join("\n");
     } else {
       const item = /** @type {{ path: string }} */ (declared.get(p)?.get(name));
-      outputs[`${p.owner}/${EXTENSIONS_DIR_NAME}/${p.name}.ts`] = [...head, `export { ${BACKEND_ADAPTER_NAME} } from ${JSON.stringify(specifierOf(item.path))};`, ""].join("\n");
+      outputs[`${p.owner}/${EXTENSIONS_DIR_NAME}/${p.name}.ts`] = [...head, `export { ${BACKEND_ADAPTER_NAME} } from ${JSON.stringify(specifierOf(p.owner, item.path))};`, "", ...facts].join("\n");
     }
   }
-  return { outputs, problems };
+  return { paths, outputs, problems, warnings, statusEntries };
 }

@@ -68,11 +68,12 @@ pnpm generate [<対象>] [--phase=<段階>] [--range=<前>...<先>] [-- <入口�
 
 ### build の守り
 
-offline の段階(build・build:post)に乗る対象の check は、DB・外部の env(`DATABASE_URL*`・`MY_SERVICE_ACCOUNT_KEY`・`NEXT_PUBLIC_FIREBASE_*` 等、`run.mjs` の `OFFLINE_ENV`)を外し(未設定にする。空の文字 `""` にはしない: `""` は値なので `??` に残り、`https://${id}.web.app` のような組み立てを壊して、その env を出した build(Vercel・CI)だけで検査が落ちる)、`netGuard.mjs` を preload して起動します。fetch・http(s)・net・tls・dns に届こうとした時点で落とし、「build に宣言した検査が外に届いた」でその宣言を拒みます(検査が例外を握りつぶしても印で分かります)。黙って飛ばしません。
+offline の段階(build・build:post)に乗る対象の check は、DB・外部の env(`DATABASE_URL*`・`MY_SERVICE_ACCOUNT_KEY`・`NEXT_PUBLIC_FIREBASE_*` 等、`offlineEnv.mjs` の `OFFLINE_ENV`)を外し(未設定にする。空の文字 `""` にはしない: `""` は値なので `??` に残り、`https://${id}.web.app` のような組み立てを壊して、その env を出した build(Vercel・CI)だけで検査が落ちる)、`netGuard.mjs` を preload して起動します。fetch・http(s)・net・tls・dns に届こうとした時点で落とし、「build に宣言した検査が外に届いた」でその宣言を拒みます(検査が例外を握りつぶしても印で分かります)。黙って飛ばしません。
 
 ### 走る順
 
 - `run.mjs`(入口)が `scan.mjs` で phase.json を読み・検証し・順に並べて回す。features を持つ対象がある時だけ `features.ts` を子プロセスで呼んで機能の開閉を得る
+- 外す env の名前 `OFFLINE_ENV` は `offlineEnv.mjs`(import を持たない。`run.mjs` と `scripts/structure/extensions/select.mjs` が直に読む。`run.mjs` を読むと `netGuard.mjs` が網を塞ぐので、ほかの道具は `run.mjs` から読まない)
 
 ## Verification
 

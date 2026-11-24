@@ -5,17 +5,19 @@
 // - 項目: declaration の D29 の鍵・billing(none の同居・usage の unit)・env・adapter の有無・知らない語・語の再定義・予約名・置き場
 // - 選択表: 無い・鍵の欠け・余り・知らない値・fake・任意でない口の none・口のどれかの点に項目が無い・requires ↔ provides・開いているドメインの要る能力
 // - 生成: 選んだ 1 項目の adapter だけの re-export、none は createNoneAdapter。選ぶ点が 0 個なら選択表を読まない
+// - 起動時の知らせ: startup.ts の一覧に選ぶ点ごとの 1 行(持ち主の公開の入口の <点>BackendStatus、D49)
+// - 選択に問題がある時: ほかの一覧は書き、選ぶ点の生成物は残し、検査は古いと数えない(写しの通しの F2・F3)
 // 実行: pnpm test scripts/structure/extensions/select.test.mjs
 
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { readBackendDeclaration, readDeclaration } from "../../../src/lib/districtMap/index.mjs";
-import { headerFor, planExtensions } from "./extensions.mjs";
+import { headerFor, heldSelectionPaths, planExtensions, strayExtensionFiles, writeExtensions } from "./extensions.mjs";
 import { planSelection } from "./select.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -110,13 +112,17 @@ test("生成: 選んだ 1 項目の adapter だけを re-export、none は組み
   assert.deepEqual(ok.problems, []);
   const out = ok.outputs["src/lib/kit/extensions/mailers.ts"];
   assert.equal(out.split("\n")[0], headerFor("src/lib/kit/extensionPoints.ts・backend-selection.json"));
-  assert.match(out, /^export \{ adapter \} from "@\/lib\/kit\/plugs\/mailers\/alpha";$/m);
-  assert.doesNotMatch(out, /beta/);
+  // 持ち主の中の項目は相対(閉じた lib の単体の tsconfig は自分の @/lib/<名前> を解かない)
+  assert.match(out, /^export \{ adapter \} from "\.\.\/plugs\/mailers\/alpha";$/m);
+  assert.match(out, /^export const selected = "alpha" as const;$/m);
+  assert.match(out, /^export const compat = \{"from":"env","name":"MAIL_PROVIDER","map":\{"sendgrid":"beta"\},"default":"alpha"\} as const;$/m);
+  assert.doesNotMatch(out, /plugs\/mailers\/beta/, "選ばない実装は読まない");
   const none = plan({ "src/lib/kit/extensionPoints.ts": point(SELECT(", optional: true")), "backend-selection.json": '{ "mail": "none" }\n' });
   assert.deepEqual(none.problems, []);
   const noneOut = none.outputs["src/lib/kit/extensions/mailers.ts"];
   assert.match(noneOut, /import \{ createNoneAdapter \} from "@\/lib\/backends";/);
-  assert.match(noneOut, /import type \{ MailAdapter \} from "@\/lib\/kit\/points";/);
+  assert.match(noneOut, /import type \{ MailAdapter \} from "\.\.\/points";/);
+  assert.match(noneOut, /^export const selected = "none" as const;$/m);
   assert.match(noneOut, /export const adapter = createNoneAdapter<MailAdapter>\("mail"\);/);
   // 選ぶ点が 0 個: 選択表が無くても止めず、何も書かない
   const empty = planExtensions(fixture({}));
@@ -203,4 +209,132 @@ test("開いているドメインの backendRequirements: 常設・開いた規�
   assert.match(unreadable.problems.join("\n"), /機能の開閉が読めない/);
   // 知らない能力は開閉に関わらず止める
   assert.match(run([{ domain: "src/domains/shop", declaredIn: "src/domains/shop/extensionPoints.ts", requires: ["mail.fax"] }]).join("\n"), /backendRequirements の mail\.fax は知らない能力/);
+});
+
+/** env PHASE と env を 1 回だけ差し替えて plan を回す(元に戻す) */
+function withEnv(vars, run) {
+  const saved = Object.fromEntries(Object.keys(vars).map((k) => [k, process.env[k]]));
+  for (const [k, v] of Object.entries(vars)) if (v === undefined) delete process.env[k];
+  else process.env[k] = v;
+  try {
+    return run();
+  } finally {
+    for (const [k, v] of Object.entries(saved)) if (v === undefined) delete process.env[k];
+    else process.env[k] = v;
+  }
+}
+
+test("env の食い違い(段 build・ship): compat で写した名前が選択と違えば止め(値は出さない)、知らない値は default、段の無い生成では見ない", () => {
+  const stop = /口 mail は "alpha" を選ぶが、env MAIL_PROVIDER は "beta" を指す\(段 (build|ship)。直す: pnpm workflow backend-selection set mail beta か、env MAIL_PROVIDER を消す\)/;
+  for (const phase of ["build", "ship"]) {
+    const problems = withEnv({ PHASE: phase, MAIL_PROVIDER: " sendgrid " }, () => problemsOf({}));
+    assert.ok(problems.some((p) => stop.test(p)), problems.join("\n"));
+    assert.ok(!problems.some((p) => p.includes("sendgrid")), "env の値は出さない");
+  }
+  // 知らない値 = default(alpha)= 選択と同じ → 通る / 選択が beta なら止める(値は出さない)
+  assert.deepEqual(withEnv({ PHASE: "build", MAIL_PROVIDER: "smtp-x" }, () => problemsOf({})), []);
+  const other = withEnv({ PHASE: "build", MAIL_PROVIDER: "smtp-x" }, () => problemsOf({ "backend-selection.json": '{ "mail": "beta" }\n' }));
+  assert.match(other.join("\n"), /口 mail は "beta" を選ぶが、env MAIL_PROVIDER は "alpha" を指す/);
+  assert.doesNotMatch(other.join("\n"), /smtp-x/);
+  // 空・無い・同じ = 通る。段の無い生成(pnpm generate extensions・backend-selection の命令)と build:post は見ない
+  assert.deepEqual(withEnv({ PHASE: "build", MAIL_PROVIDER: "  " }, () => problemsOf({})), []);
+  assert.deepEqual(withEnv({ PHASE: "build", MAIL_PROVIDER: undefined }, () => problemsOf({})), []);
+  assert.deepEqual(withEnv({ PHASE: "ship", MAIL_PROVIDER: "sendgrid" }, () => problemsOf({ "backend-selection.json": '{ "mail": "beta" }\n' })), []);
+  for (const phase of [undefined, "-", "build:post", "forge:post"]) assert.deepEqual(withEnv({ PHASE: phase, MAIL_PROVIDER: "sendgrid" }, () => problemsOf({})), []);
+  // compat が fixed の口は env を見ない
+  const fixed = SELECT().replace('compat: { from: "env", name: "MAIL_PROVIDER", map: { sendgrid: "beta" }, default: "alpha" }', 'compat: { from: "fixed", value: "alpha" }');
+  assert.deepEqual(withEnv({ PHASE: "build", MAIL_PROVIDER: "sendgrid" }, () => problemsOf({ "src/lib/kit/extensionPoints.ts": point(fixed) })), []);
+});
+
+test("env の欠け(段 build だけ、止めない): 選んだ実装の env.required の無い名前を 1 行、runner が外す名前(OFFLINE_ENV)と ship は見ない", () => {
+  const warningsOf = (vars, files = {}) => withEnv({ MAIL_PROVIDER: undefined, ...vars }, () => plan(files)).warnings.filter((w) => w.startsWith("口 mail"));
+  const line = warningsOf({ PHASE: "build", KEY: undefined });
+  assert.deepEqual(line, ['口 mail の選んだ実装 "alpha"(src/lib/kit/plugs/mailers/alpha.ts)の env が無い: KEY(段 build。止めない)']);
+  assert.deepEqual(warningsOf({ PHASE: "build", KEY: "x" }), []);
+  assert.ok(!warningsOf({ PHASE: "build", KEY: "secret-value" }).join("").includes("secret-value"));
+  assert.deepEqual(warningsOf({ PHASE: "ship", KEY: undefined }), []);
+  assert.deepEqual(warningsOf({ PHASE: undefined, KEY: undefined }), []);
+  // OFFLINE_ENV の名前(RESEND_*)は build で外されて見えないので数えない
+  const offline = ITEM(`{ provides: ["mail.send"], requires: [], billing: [{ kind: "none" }], env: { required: ["RESEND_API_KEY", "KEY"] } }`);
+  assert.deepEqual(warningsOf({ PHASE: "build", KEY: "x", RESEND_API_KEY: undefined }, { "src/lib/kit/plugs/mailers/alpha.ts": offline }), []);
+  // 止めない
+  assert.deepEqual(withEnv({ PHASE: "build", KEY: undefined, MAIL_PROVIDER: undefined }, () => problemsOf({})), []);
+});
+
+test("起動時の知らせ(D49): 点 startupTasks が在れば選ぶ点ごとに一覧 src/wiring/startup.ts へ 1 行(項目のファイルは作らない)、持ち主の入口が <点>BackendStatus を出さなければ止める", () => {
+  const STARTUP = {
+    "src/lib/startup/extensionPoints.ts": point('  startupTasks: { change: "add", plugs: true, export: "task", type: { from: "@/lib/startup/points", name: "StartupTask" }, side: "server", load: "lazy", target: "wiring" },'),
+    "src/lib/startup/points.ts": "export type StartupTask = { name: string; run: () => void };\n",
+    "src/lib/startup/index.ts": "export {};\n",
+    "src/lib/kit/index.ts": 'export { mailersBackendStatus } from "./backendStatus";\n',
+  };
+  const out = withEnv({ PHASE: undefined, MAIL_PROVIDER: undefined }, () => plan(STARTUP));
+  assert.deepEqual(out.problems, []);
+  assert.ok(!Object.keys(out.outputs).some((p) => p.includes("plugs/startupTasks")), "項目のファイルは生成しない");
+  const startup = out.outputs["src/wiring/startup.ts"];
+  assert.ok(
+    startup.includes(
+      '{ domain: null, name: "mailersBackendStatus", requires: [], load: async () => { const { createBackendStatusTask } = await import("@/lib/backends"); const { mailersBackendStatus } = await import("@/lib/kit"); return createBackendStatusTask(mailersBackendStatus); } },',
+    ),
+    startup,
+  );
+  assert.ok(!/\.then\(/.test(startup.split("\n").find((l) => l.includes("mailersBackendStatus")) ?? ""), "名前つきの dynamic import だけ(mail-send-via-messaging)");
+  // lib が "./server" を宣言していればそちらから読む
+  const server = withEnv({ PHASE: undefined, MAIL_PROVIDER: undefined }, () =>
+    plan({ ...STARTUP, "src/lib/kit/index.ts": "export {};\n", "src/lib/kit/server.ts": "export const mailersBackendStatus = {};\n", "src/lib/kit/package.json": '{ "exports": { ".": "./index.ts", "./server": "./server.ts" } }\n' }),
+  );
+  assert.deepEqual(server.problems, []);
+  assert.match(server.outputs["src/wiring/startup.ts"], /await import\("@\/lib\/kit\/server"\)/);
+  // 入口が出さない → 止める
+  hasProblem({ ...STARTUP, "src/lib/kit/index.ts": "export {};\n" }, /選ぶ点 mailers の持ち主の公開の入口 @\/lib\/kit\(src\/lib\/kit\/index\.ts\)が mailersBackendStatus を出さない/);
+  // 選択表に問題がある間も行は変わらない(選択表に左右されない)
+  const broken = withEnv({ PHASE: undefined, MAIL_PROVIDER: undefined }, () => plan({ ...STARTUP, "backend-selection.json": "{}\n" }));
+  assert.ok(broken.problems.some((p) => /口 mail の鍵が無い/.test(p)));
+  assert.match(broken.outputs["src/wiring/startup.ts"], /name: "mailersBackendStatus"/);
+  // 点 startupTasks が無い木では足さない
+  assert.ok(!Object.values(plan({}).outputs).some((text) => text.includes("BackendStatus")));
+});
+
+test("選択に問題がある時(F2・F3): 生成は選ぶ点でない一覧を書き(startup.ts にフォークの項目と起動時の知らせの行の両方)、選ぶ点の生成物は残して止まる。検査はそれを古いと数えない", () => {
+  const STARTUP = {
+    "src/lib/startup/extensionPoints.ts": point('  startupTasks: { change: "add", plugs: true, export: "task", type: { from: "@/lib/startup/points", name: "StartupTask" }, side: "server", load: "lazy", target: "wiring" },'),
+    "src/lib/startup/points.ts": "export type StartupTask = { name: string; run: () => void };\n",
+    "src/lib/startup/index.ts": "export {};\n",
+    "src/lib/kit/index.ts": 'export { mailersBackendStatus } from "./backendStatus";\n',
+    "src/lib/own/index.ts": "export {};\n",
+    "src/lib/own/plugs/startupTasks/ownFlush.ts": "export const task = { name: \"ownFlush\", run() {} };\n",
+  };
+  // 正しい表で一度生成してディスクに置く(選ぶ点の生成物と一覧)
+  const root = fixture(tree(STARTUP));
+  const first = withEnv({ PHASE: undefined, MAIL_PROVIDER: undefined }, () => writeExtensions(root));
+  assert.equal(first.code, 0, first.err.join("\n"));
+  const selectionFiles = ["src/lib/kit/extensions/mailers.ts"];
+  const before = selectionFiles.map((f) => readFileSync(join(root, f), "utf8"));
+  // F2: 表の鍵が欠けた(取り込みの直後の {})。startup.ts を消しておき、選ぶ点でない一覧が書かれるかを見る
+  writeFileSync(join(root, "backend-selection.json"), "{}\n");
+  rmSync(join(root, "src/wiring/startup.ts"));
+  const held = withEnv({ PHASE: undefined, MAIL_PROVIDER: undefined }, () => writeExtensions(root));
+  assert.equal(held.code, 1);
+  assert.match(held.err.join("\n"), /選ぶ点の生成物は書いていない[\s\S]*口 mail の鍵が無い/);
+  const startup = readFileSync(join(root, "src/wiring/startup.ts"), "utf8");
+  assert.match(startup, /name: "mailersBackendStatus"/);
+  assert.match(startup, /name: "ownFlush"/);
+  assert.deepEqual(selectionFiles.map((f) => readFileSync(join(root, f), "utf8")), before, "選ぶ点の生成物は今のまま");
+  // 選ぶ点でない問題があれば何も書かない(今どおり)
+  writeFileSync(join(root, "src/lib/own/plugs/startupTasks/broken.ts"), "export const nothing = 1;\n");
+  rmSync(join(root, "src/wiring/startup.ts"));
+  const stopped = withEnv({ PHASE: undefined }, () => writeExtensions(root));
+  assert.equal(stopped.code, 1);
+  assert.match(stopped.err.join("\n"), /書き出しを止めました/);
+  assert.ok(!existsSync(join(root, "src/wiring/startup.ts")));
+  rmSync(join(root, "src/lib/own/plugs/startupTasks/broken.ts"));
+  // F3: build の段の食い違い(表 alpha、env は beta)→ 選ぶ点の生成物を古いと数えない。問題が無ければ今どおり
+  writeFileSync(join(root, "backend-selection.json"), '{ "mail": "alpha" }\n');
+  const mismatch = withEnv({ PHASE: "build", MAIL_PROVIDER: "sendgrid" }, () => planExtensions(root));
+  assert.ok(mismatch.problems.some((p) => /env MAIL_PROVIDER は "beta" を指す/.test(p)));
+  assert.deepEqual(heldSelectionPaths(mismatch), selectionFiles);
+  const strays = strayExtensionFiles(root, mismatch.outputs, mismatch.points, heldSelectionPaths(mismatch)).map((s) => s.path);
+  for (const f of selectionFiles) assert.ok(!strays.includes(f), `${f} を古いと数えない`);
+  const clean = withEnv({ PHASE: undefined, MAIL_PROVIDER: undefined }, () => planExtensions(root));
+  assert.deepEqual(heldSelectionPaths(clean), []);
 });

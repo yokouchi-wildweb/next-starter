@@ -9,4 +9,19 @@ export const extensionPoints = {
     type: { from: "@/lib/mail/points", name: "MailFrameProps" },
     side: "server",
   },
+  // 選ぶ点(D11・D38): メールの口。実装 = plugs/mail/<名前>.ts の declaration + adapter、選ぶのは選択表 backend-selection.json の mail。
+  // 生成物 ./extensions/mail.ts が選んだ 1 つの adapter だけを読む。compat = 選択表を作る時(fill)と使う時の食い違いの守りの読み方
+  mail: {
+    change: "add",
+    plugs: true,
+    export: "adapter",
+    type: { from: "@/lib/mail/points", name: "MailAdapter" },
+    side: "server",
+    select: {
+      port: "mail",
+      optional: false,
+      words: ["send"],
+      compat: { from: "env", name: "MAIL_PROVIDER", map: { sendgrid: "sendgrid", resend: "resend" }, default: "resend" },
+    },
+  },
 };
