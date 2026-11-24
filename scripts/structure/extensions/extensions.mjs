@@ -20,7 +20,7 @@ import { checkOverrideKeys } from "./overrideKeys.mjs";
 import { checkOrphans, filesOverrideNamesOf, listSrcFiles, targetOf } from "./orphans.mjs";
 import { checkMessageGuards } from "./derive/messageGuards.mjs";
 import { checkOverrides, isBlankSource } from "./overrides.mjs";
-import { checkPureImports, overrideKeys } from "./pureImports.mjs";
+import { checkPureImports, literalPropOf, overrideKeys } from "./pureImports.mjs";
 import { planFrames } from "./frames.mjs";
 import { planIntake } from "./intake.mjs";
 import { discoverPlugs } from "./plugs.mjs";
@@ -142,7 +142,13 @@ function discoverDir(repoRoot, owner, dir, points, otherDirs) {
       problems.push(`${label}: ${denied.join("・")} は上書きできない(できるのは ${point.spec.overrideOf.join("・")}。型と検証は変えられない)`);
       continue;
     }
-    items.get(point.name).find((i) => i.name === target).override = label;
+    const item = items.get(point.name).find((i) => i.name === target);
+    const refuse = point.spec.overrideRefuse;
+    if (refuse && literalPropOf(item.path, item.text, point.spec.export, refuse.flag) === true && literalPropOf(label, text, "override", refuse.key) === refuse.value) {
+      problems.push(`${label}: 項目 ${target} は ${refuse.flag}: true なので ${refuse.key}: ${JSON.stringify(refuse.value)} は書けない(点 ${point.name} の overrideRefuse、${point.declaredIn ?? "宣言"})`);
+      continue;
+    }
+    item.override = label;
   }
   return { items, problems };
 }

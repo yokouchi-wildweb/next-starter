@@ -23,5 +23,6 @@ extension_points (declaring side): two levels, one reader: a district's own poin
   - plugs point (`plugs: true`): items sit in the plugging side's own folder \<domain\>/plugs/\<point\>/\<name\>.ts(x) (a lib: \<lib\>/plugs/…), point names unique repo-wide
   - using a list: drop closed domains' items with gate.plugs(list) (client useGate().plugs(list)) | registries (src/registry) are never narrowed: they tell what exists, a closed domain stays 404 by path
   - startup: work at server start = items of the startupTasks point (lib src/lib/startup; list and knot src/wiring/startup.ts, run by instrumentation.ts register) | never code added to instrumentation.ts
+  - override_refuse: an override key some items must never take → `overrideRefuse: { flag, key, value }` beside `overrideOf` (an item with `<flag>: true` refuses `<key>: <value>`; generate and check extensions stop), never a check in the reader
   - knot: a lib that needs its list bound declares `export const wire = { name, export, side }` once in its extensionPoints.ts → the generator writes src/wiring/\<lib\>.ts binding the gate-narrowed list to the lib
 receptacle_or_config: a list forks add independent rows to = a receptacle (one file = one item) | a table matched by key = config (src/config/README.md)

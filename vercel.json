@@ -10,6 +10,10 @@
       "schedule": "10 * * * *"
     },
     {
+      "path": "/api/cron/expiry-prune",
+      "schedule": "50 18 * * *"
+    },
+    {
       "path": "/api/cron/messaging-retention",
       "schedule": "45 18 * * *"
     },

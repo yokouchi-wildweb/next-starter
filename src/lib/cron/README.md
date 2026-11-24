@@ -84,6 +84,29 @@ serverless では 1 回の実行が maxDuration（Vercel 既定 300s）で途中
 「ソースの `updated_at` から read-model を差分更新する」典型パターンは、これらを合成済みの
 `@/domains/incrementalRefresh/services/server`（`createIncrementalRefresh`）を使う。
 
+### 期限で行を消す(増設点 expiryRules の項目)
+
+期限を過ぎた行を消すだけの掃除は、定期タスクのフォルダを足さず、持ち主のドメインに項目を 1 つ置く。1 本の定期タスク `expiry-prune`(毎日 03:50 JST)が全部の項目を回す。
+
+```ts
+// src/domains/<ドメイン>/plugs/expiryRules/<名前>.ts
+import { sql } from "drizzle-orm";
+import type { ExpiryRule } from "@/lib/cron/points";
+
+export const rule: ExpiryRule = {
+  table: "wallet_lots",       // 表の名前(字面)
+  key: "id",                  // 行を指す列
+  rule: { kind: "age", column: "created_at", days: () => walletConfig.lotPruneRetentionDays },
+  where: sql`remaining = 0`,  // 絞るだけ(任意)
+  // batchSize: 1000,         // 1 束の行の数(既定 1000)
+  // pii: true,               // 個人情報の削除: fork の上書きで止められない
+};
+```
+
+- `rule` は 3 つ: `{ kind: "expiresAt", column }`(列の時刻が今より前)/ `{ kind: "age", column, days }`(列の時刻から days 日。days は数か設定を読む関数)/ `{ kind: "rowDays", column, daysColumn }`(列の時刻 + 行の日数の列)
+- 消すだけ(消した後の処理の口は無い)。閉じたドメインの項目は門番で外れる(表が作られていないので)
+- 置いたら `pnpm generate extensions`(一覧 `src/wiring/cron.ts`)。定期タスクは増えないので `pnpm generate cron` は要らない
+
 ### スケジュールのセットアップ
 
 #### Vercel（推奨）
@@ -157,6 +180,8 @@ env ファイルを置かずホストの環境変数で動かすときは、`APP
 - `extensionPoints.ts` — 上書きの対象の点 `cronTasks` の宣言（`task.override.ts` が書いてよい鍵 = `schedule`・`disabled`。読み手は `discover.ts`、値の検査 = cron 式・真偽はそちら）
 - `discover.ts` — task を探す処理（`src/app/api/cron/<name>/` の走査・`task.override.ts` の反映・`listCronTaskDirs` / `loadCronTasks` / `scheduledCronTasks`）。入口 `./node`（`node.ts` が出す。`@/lib/cron/node`。node:fs を使う。画面からは読まない）。門番は読まず、閉じているかは呼ぶ側が `closedBy` で渡す。生成器・検査（`scripts/structure/cron`）と `pnpm task` が共有する
 - `runBudgetedBatches.ts` — 時間予算付き・再開可能バッチランナー（下記）
+- `expiry.ts` — 期限の削除: 項目の型 `ExpiryRule`(入口 `./points` も)、1 回の実行 `runExpiryRules({ items, store, checkpoint, deadline })` → `{ skipped?: "no-items" | "locked", items: [{ name, deleted, exhausted }], truncated }`、SQL の組み立て `expiryDeleteQuery`・`expiryCondition`、項目の字面の確かめ `expiryRuleProblems`
+- `expiryStore.ts` — 期限の削除の本物の表 `drizzleExpiryStore`(1 本の鍵と 1 束の DELETE)。入口 `./server`(`server.ts`、`@/lib/cron/server`)
 - `index.ts` — 公開エントリ
 
 周辺: `src/app/api/cron/<name>/{task.ts,route.ts}`（各タスク）・`task.override.ts`（fork の上書き、任意）/ `src/wiring/cronRoute.ts`（門番を結んだ `createCronTaskRoute`）/
@@ -169,6 +194,12 @@ env ファイルを置かずホストの環境変数で動かすときは、`APP
 - `CRON_SECRET` 未設定時は本番で fail-closed（401 を返す）
 
 ## Extension
+
+### 期限の削除の項目を変える(fork)
+
+- 上流の項目の隣の `<名前>.override.ts` に `export const override = { enabled?, batchSize? }`(ほかの鍵は `pnpm check extensions` が止める)
+- `pii: true` の項目(個人情報の削除)に `enabled: false` は書けない(生成と検査が止める。札の pii_prune_kept)
+- 自分の掃除は自分のドメインに項目を足す(`plugs/expiryRules/<名前>.ts`)
 
 ### upstream のタスクを外す・時刻を変える（fork）
 
@@ -239,12 +270,22 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
 - **配線漏れの防止**: `vercel.json` は人が書かない。タスクの増減で生成結果とずれると、Vercel 上のビルド
   （`pnpm build` の冒頭の段階 `pnpm check --phase=build` が cron の検査を `--vercel-build` で回す）と `pnpm live` 系(`pnpm live`・`pnpm live:room`・`pnpm live:all`)が止まる。漏れたまま本番が動き続けることはない
 
+### 期限の削除の 1 本(expiry-prune)
+
+- 結び: `src/wiring/expiryPrune.ts` が一覧を門番で絞り、本物の表と一緒に `runExpiryRules` に渡す。印(`@/domains/cronCheckpoint`)は task.ts が渡す
+- 1 本: 外の取引で `pg_try_advisory_xact_lock`(取れなければ待たずに `skipped: "locked"`)。外の取引は行の鍵を持たない
+- 順: 項目ごとの印 `expiry-prune:<差した側>/<名前>`(最後に消し切った時、単調)の古い順。予算で切れた項目は印が古いまま = 次の回の先頭(前回の続き)
+- 1 束: `WITH d AS (DELETE FROM <表> WHERE <key> IN (SELECT <key> … WHERE <規則> [AND (<where>)] ORDER BY <列> LIMIT n FOR UPDATE SKIP LOCKED) RETURNING 1) SELECT count(*)`。`runBudgetedBatches` + 締切(240 秒)の内で消し切るまで
+- 項目 0(enabled: false だけも)はすぐ `skipped: "no-items"`。表・列の名前は小文字・数字・_ だけを通し(`sql.identifier` で括る)、使えない項目があれば消す前に止める
+
 ### 運用上の注意
 
 - 失敗時は API ルートが 500 `{ ok: false, error }` を返す。記録は束の口 `onServerError`（省略可）があればその 1 行（上流の wiring はサーバーの失敗の記録へ結ぶ: `{ level: "error", scope: "cron", path: "/api/cron/<name>", method, routeType: "route", requestId, name: <タスク名>, ok: false, durationMs, error: { name, message, stack } }`、`src/lib/serverErrorReport/README.md`）、無ければ stderr に JSON ログ（`scope: "cron"`、`task`・`error` は message）。成功時も stdout に JSON ログ（`durationMs` + 結果）。CLI は `scope: "task-cli"` で同形式、失敗時は exit 1
 - Vercel Cron は失敗を自動リトライしないため、失敗の監視はログ側で行う
 
 ## Verification
+
+- `pnpm test src/lib/cron/expiry.test.mts`(期限の削除: 規則ごとの SQL・where・束の数・印の順と続き・締切・鍵・項目 0・字面の止め)。上書きの止め(overrideRefuse)は `pnpm test scripts/structure/extensions/extensions.test.mjs`
 
 ### `pnpm test scripts/structure/cron/cronWiring.test.mjs` が検査すること
 

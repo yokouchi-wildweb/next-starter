@@ -3,9 +3,10 @@ paths:
   - "src/lib/cron/**"
 ---
 # lib/cron
-what: the mechanism for scheduled tasks: one folder src/app/api/cron/<name>/ (task.ts + 1-line route.ts) read by the API route, `pnpm task` and the vercel.json generator, plus the time-budgeted batch runner | closed lib: entry "." @/lib/cron, entry "./node" @/lib/cron/node (task discovery with node:fs, for programs outside Next)
+what: the mechanism for scheduled tasks: one folder src/app/api/cron/<name>/ (task.ts + 1-line route.ts) read by the API route, `pnpm task` and the vercel.json generator, the time-budgeted batch runner, and the one expiry prune (point expiryRules, cron expiry-prune)
+- closed lib: entry "." @/lib/cron, "./node" @/lib/cron/node (task discovery with node:fs, for programs outside Next), "./server" @/lib/cron/server (the expiry store, DB), "./points" (item types)
 use: always
-change: override = src/app/api/cron/<name>/task.override.ts (schedule, disabled; cronTasks in extensionPoints.ts)
+change: override = src/app/api/cron/<name>/task.override.ts (schedule, disabled; cronTasks in extensionPoints.ts) | add = <domain or lib>/plugs/expiryRules/<name>.ts (export const rule) | override = <name>.override.ts beside an upstream expiry item (enabled, batchSize only)
 rules:
 using:
 - cron_wiring (MANDATORY): 1 task = 1 folder src/app/api/cron/<name>/ (task.ts: UTC cron `schedule` + run → domain fn; 1-line route.ts; a fork retimes or turns it off with task.override.ts), no list file | vercel.json crons = `pnpm generate cron` output only (the Vercel build fails on a mismatch) | upstream add / remove / retime → notice
@@ -22,9 +23,10 @@ using:
 - no_double_work: a short-interval task never processes the same target twice (claim by conditional update or next-run time)
 - cleanup_wording: never promise "removed right after expiry" for a cleanup task (hobby runs it once a day)
 - oneshot_apart: one-shot tasks (backfill, migration) live in the domain's scripts/{tasks,migrations}/, never under src/app/api/cron/
-- pii_prune_kept: a personal-data retention prune never uses `enabled`; its gate comes from its imports like any task (a closable domain's prune stops with the domain, whose tables are not created) | turn an always-open one off only when its domain is unused and its table empty
+- pii_prune_kept: an expiryRules item with `pii: true` refuses a fork override `enabled: false` (pnpm generate extensions and the extensions check stop) | its gate comes from the domain that plugs it (a closable domain's prune stops with the domain, whose tables are not created) | turn an always-open one off only when its domain is unused and its table empty
+- expiry_rules: a delete of rows past their time (expiresAt / age / rowDays, where? to narrow) = one expiryRules item run by the one cron expiry-prune, never its own cron folder | delete only, no after-delete hook | table, key and columns are literal names
 - regenerate_after_override: placing or changing task.override.ts is followed by pnpm generate cron (plan = repo.json vercel.plan, or -- --plan <hobby|pro>; vercel_plan)
 - maintenance_pass_only: scheduled runs skip during maintenance (the cronMaintenance item, upstream from setting; empty = never) | `maintenance: "pass"` in task.ts only for a task whose skip loses data | an upstream task a fork must keep running → disable it in task.override.ts + its own task folder with pass (task.override.ts has no maintenance key)
 editing:
 - index_exports_all: index.ts exports every name the README and task files import from @/lib/cron
-read: add a task → Usage | budgeted batches → Usage | override an upstream task → Extension | gate, enabled → Internals | checks → Verification | schedulers → Usage | auth → API
+read: add a task → Usage | budgeted batches → Usage | expiry items → Usage | expiry functions → API | expiry overrides → Extension | expiry runner → Internals | override an upstream task → Extension | gate, enabled → Internals | checks → Verification | schedulers → Usage | auth → API

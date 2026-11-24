@@ -29,3 +29,14 @@ export type {
   RunBudgetedBatchesOptions,
   RunBudgetedBatchesResult,
 } from "./runBudgetedBatches";
+export {
+  EXPIRY_CHECKPOINT_PREFIX,
+  EXPIRY_DEFAULT_BATCH,
+  EXPIRY_LOCK_KEY,
+  expiryCondition,
+  expiryDeleteQuery,
+  expiryItemName,
+  expiryRuleProblems,
+  runExpiryRules,
+} from "./expiry";
+export type { ExpiryCheckpoint, ExpiryItemResult, ExpiryRule, ExpiryRuleItem, ExpiryRuleKind, ExpiryRunResult, ExpiryStore } from "./expiry";

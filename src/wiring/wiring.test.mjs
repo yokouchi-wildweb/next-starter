@@ -31,7 +31,7 @@ const srcDir = join(repoRoot, "src");
 const wiringDir = join(srcDir, "wiring");
 
 /** src/wiring に置けるファイル（目録） */
-const WIRING_FILES = ["AppProviders.tsx", "README.md", "apiRoute.ts", "backends.ts", "business.ts", "cron.ts", "cronRoute.ts", "dbAgent.ts", "domainConfig.ts", "domainRegistry.ts", "formSuite.ts", "googleTag.ts", "pageGuard.ts", "routeFactory.test.mts", "routeFactory.ts", "serverErrorReport.ts", "startup.ts", "wiring.test.mjs"];
+const WIRING_FILES = ["AppProviders.tsx", "README.md", "apiRoute.ts", "backends.ts", "business.ts", "cron.ts", "cronRoute.ts", "dbAgent.ts", "domainConfig.ts", "domainRegistry.ts", "expiryPrune.ts", "formSuite.ts", "googleTag.ts", "pageGuard.ts", "routeFactory.test.mts", "routeFactory.ts", "serverErrorReport.ts", "startup.ts", "wiring.test.mjs"];
 
 /** wiring を import してよい場所（src 相対の接頭辞） */
 const ALLOWED_IMPORTER_PREFIXES = ["app/", "proxies/"];
@@ -217,7 +217,7 @@ test("データに届く wiring: domainRegistry.ts は registry → domainEntry.
 });
 
 /** 上流のデータに届く wiring（README の表） */
-const UPSTREAM_DATA_REACHING = ["AppProviders.tsx", "apiRoute.ts", "cron.ts", "cronRoute.ts", "domainRegistry.ts", "pageGuard.ts", "routeFactory.ts"];
+const UPSTREAM_DATA_REACHING = ["AppProviders.tsx", "apiRoute.ts", "cron.ts", "cronRoute.ts", "domainRegistry.ts", "expiryPrune.ts", "pageGuard.ts", "routeFactory.ts"];
 
 test("データに届く wiring を import するのも同じ場所だけ（WIRING_FILES の .ts / .tsx 全部を判定して記録する。fork のファイルは向きの検査で同じ場所に限る）", () => {
   const dataReaching = WIRING_FILES.filter((name) => /\.tsx?$/.test(name) && reachesServicesServer(join(wiringDir, name)).reached);

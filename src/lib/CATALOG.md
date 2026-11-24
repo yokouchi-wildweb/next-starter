@@ -20,7 +20,7 @@
 - src/lib/cacheTags — 書き込みの要求で捨てるキャッシュの札(ドメイン・ドメイン:行 id)を集め、要求の終わりにまとめて revalidateTag(expire 0)。範囲の外は投げずに記録の 1 行。入口 "."(札の名前 cacheTagOf)・"./server"(markCacheTags・runWithCacheTags)
 - src/lib/clarity — Microsoft Clarity 解析タグ
 - src/lib/cn — Tailwind className 結合(clsx + tailwind-merge、独自トークンのクラス群登録)
-- src/lib/cron — /api/cron/* 定期タスク基盤(1 タスク 1 フォルダの task.ts から vercel.json を生成・検査)と CLI 実行、時間予算付きの再開可能ループ runBudgetedBatches
+- src/lib/cron — /api/cron/* 定期タスク基盤(1 タスク 1 フォルダの task.ts から vercel.json を生成・検査)と CLI 実行、時間予算付きの再開可能ループ runBudgetedBatches、期限の削除(増設点 expiryRules の項目を 1 本の定期処理 expiry-prune で順に消す runExpiryRules、一覧は生成物 src/wiring/expiryPrune.ts)。入口 "."(作り手・期限の削除の実行と型)・"./server"(DB の保存 drizzleExpiryStore)・"./node"(task の探索、生成・検査と pnpm task が読む)・"./points"(項目の型)
 - src/lib/crud — 汎用 CRUD: createCrudService(Drizzle)・createFirestoreCrudService(凍結)・汎用 hooks・HTTP の client・CRUD ボタンと一括操作の作成関数・一覧の列・クエリ構築。閉じた lib: 入口 "."(画面側。client でも server でも、server からは型だけ)・"./server"(保存側: サービス・集まり・ストレージ連動・秘匿カラム・SQL の部品)、peers components
 - src/lib/crypto — AES-256-GCM 対称暗号化(トークン・機密データの暗号化保存)と、ハッシュ照合用のランダムトークン・短いコード生成
 - src/lib/csv — CSV ダウンロードとヘッダ付きパース

@@ -2,7 +2,8 @@
   "exports": {
     ".": "./index.ts",
     "./node": "./node.ts",
-    "./points": "./points.ts"
+    "./points": "./points.ts",
+    "./server": "./server.ts"
   },
-  "libs": ["appEnv", "audit", "cacheTags", "districtMap"]
+  "libs": ["appEnv", "audit", "cacheTags", "districtMap", "drizzle"]
 }

@@ -87,3 +87,34 @@ export function overrideKeys(path, text, exportName = "override") {
   }
   return null;
 }
+
+/**
+ * export const <exportName> = { … } の鍵 key の字面の値(真偽・数・文字列)。書いていない・字面でない → undefined
+ * @param {string} path
+ * @param {string} text
+ * @param {string} exportName
+ * @param {string} key
+ * @returns {boolean | number | string | undefined}
+ */
+export function literalPropOf(path, text, exportName, key) {
+  const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true);
+  for (const statement of source.statements) {
+    if (!ts.isVariableStatement(statement) || !statement.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) continue;
+    for (const d of statement.declarationList.declarations) {
+      if (!ts.isIdentifier(d.name) || d.name.text !== exportName || !d.initializer) continue;
+      let node = d.initializer;
+      while (ts.isAsExpression(node) || ts.isSatisfiesExpression(node) || ts.isParenthesizedExpression(node)) node = node.expression;
+      if (!ts.isObjectLiteralExpression(node)) return undefined;
+      for (const p of node.properties) {
+        if (!ts.isPropertyAssignment(p) || !(ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) || p.name.text !== key) continue;
+        const v = p.initializer;
+        if (v.kind === ts.SyntaxKind.TrueKeyword) return true;
+        if (v.kind === ts.SyntaxKind.FalseKeyword) return false;
+        if (ts.isNumericLiteral(v)) return Number(v.text);
+        if (ts.isStringLiteral(v) || ts.isNoSubstitutionTemplateLiteral(v)) return v.text;
+        return undefined;
+      }
+    }
+  }
+  return undefined;
+}

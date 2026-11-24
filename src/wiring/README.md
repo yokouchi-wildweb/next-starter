@@ -40,6 +40,8 @@
   - `lib/cron` の `createCronTaskRoute` + 門番（`@/featureGate` の `gate.path`）→ `createCronTaskRoute`（cron の `route.ts` はここから import する。タスクの住所 `/api/cron/<name>` が閉じていれば本体を呼ばずに skipped。`src/lib/cron/README.md`）
   - + メンテナンスの口 `maintenance` → 生成物 `cron.ts` の点 `cronMaintenance`（0〜1 個、上流は `domains/core/setting` の項目。空ならメンテナンスで飛ばさない。期間中は `maintenance: "pass"` でないタスクを skipped。`src/lib/cron/README.md` Internals「メンテナンス」）
   - + 失敗したタスクの口 `onServerError` → 生成物 `serverErrorReport.ts` の `serverErrorReport.report`（scope cron、name = タスク名、extra ok:false・durationMs）
+- `expiryPrune.ts`: データに届くか = 届く（`@/lib/cron/server` の本物の表で期限の行を消す。import してよいのは cron `expiry-prune` の `task.ts`）
+  - `lib/cron` の `runExpiryRules` + 生成物 `cron.ts` の点 `expiryRules` の項目を門番 `gate.plugs` で絞った物 + 本物の表 `drizzleExpiryStore` → `runExpiryPrune({ checkpoint, budgetMs? })`(締切は既定 240 秒の予算からここで作る。印は task.ts が `@/domains/cronCheckpoint` から渡す。`src/lib/cron/README.md` Internals「期限の削除の 1 本」)
 - `business.ts`: データに届くか = 届かない
   - `src/business/business.ts`(fork の値と印 source)+ `lib/business` の `resolveBusiness` → `business` / `businessSource`(受付係。tsconfig.json の `"@/business"` がここを指し、読み手は `@/business` を読む。sample のときは例の値。`src/lib/business/README.md`)
 - `domainRegistry.ts`: データに届くか = 届く（registry → domainEntry.ts → 遅延 import でサービスに届く）

@@ -1282,3 +1282,26 @@ test("files の点: 1 つのフォルダを 2 つ以上の点が別々のファ�
   assert.match(plan.outputs["src/domains/note/extensions/layoutInApps.ts"], /import \{ inAppRenderer as layoutInApps_notice \} from "@\/domains\/note\/layouts\/notice\/inApp";/);
   rmSync(root, { recursive: true, force: true });
 });
+
+test("plugs の点の overrideRefuse: 項目が flag: true なら override の key: value を止める(pii_prune_kept)、flag の無い項目・別の値は通る。宣言は overrideOf の鍵だけ", () => {
+  const decl = `  pruneRules: { change: "add", plugs: true, export: "rule", type: { from: "@/x", name: "R" }, side: "server", overrideOf: ["enabled", "batchSize"], overrideRefuse: { flag: "pii", key: "enabled", value: false } },`;
+  const files = (override) => ({
+    "repo.json": '{"repo_id": "fork-a", "tier": "leaf"}\n',
+    "src/lib/CATALOG.md": "## next-starter\n\n## fork-a\n",
+    "src/lib/box/extensionPoints.ts": point(decl),
+    "src/domains/a/plugs/pruneRules/logins.ts": 'export const rule = { table: "logins", pii: true };\n',
+    "src/domains/a/plugs/pruneRules/plain.ts": 'export const rule = { table: "plain" };\n',
+    ...override,
+  });
+  const lines = (override) => planExtensions(fixture(files(override))).problems.filter((p) => p.includes("pruneRules"));
+  const refused = lines({ "src/domains/a/plugs/pruneRules/logins.override.ts": "export const override = { enabled: false };\n" });
+  assert.equal(refused.length, 1, refused.join("\n"));
+  assert.match(refused[0], /logins\.override\.ts: 項目 logins は pii: true なので enabled: false は書けない/);
+  assert.deepEqual(lines({ "src/domains/a/plugs/pruneRules/logins.override.ts": "export const override = { batchSize: 200 };\n" }), []);
+  assert.deepEqual(lines({ "src/domains/a/plugs/pruneRules/plain.override.ts": "export const override = { enabled: false };\n" }), []);
+  const bad = (spec) => readDeclaration("src/lib/box/extensionPoints.ts", point(`  pruneRules: { change: "add", plugs: true, export: "rule", type: { from: "@/x", name: "R" }, side: "server"${spec} },`)).problems.join("\n");
+  assert.equal(bad(', overrideOf: ["enabled"], overrideRefuse: { flag: "pii", key: "enabled", value: false }'), "");
+  assert.match(bad(', overrideRefuse: { flag: "pii", key: "enabled", value: false }'), /overrideRefuse は overrideOf を持つ plugs の点/);
+  assert.match(bad(', overrideOf: ["batchSize"], overrideRefuse: { flag: "pii", key: "enabled", value: false }'), /key は overrideOf の中/);
+  assert.match(bad(', overrideOf: ["enabled"], overrideRefuse: { flag: "pii", key: "enabled" }'), /overrideRefuse は/);
+});

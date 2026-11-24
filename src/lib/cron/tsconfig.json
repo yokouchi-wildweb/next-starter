@@ -8,12 +8,18 @@
       "@/lib/audit/*": ["../audit/*"],
       "@/lib/cacheTags": ["../cacheTags"],
       "@/lib/cacheTags/*": ["../cacheTags/*"],
+      "@/lib/defineConfig": ["../defineConfig"],
+      "@/lib/defineConfig/*": ["../defineConfig/*"],
       "@/lib/districtMap": ["../districtMap"],
       "@/lib/districtMap/*": ["../districtMap/*"],
+      "@/lib/drizzle": ["../drizzle"],
+      "@/lib/drizzle/*": ["../drizzle/*"],
       "@/lib/errors": ["../errors"],
       "@/lib/errors/*": ["../errors/*"],
       "@/lib/libPackage": ["../libPackage"],
       "@/lib/libPackage/*": ["../libPackage/*"],
+      "@/lib/plainObject": ["../plainObject"],
+      "@/lib/plainObject/*": ["../plainObject/*"],
       "@/lib/stringCase": ["../stringCase"],
       "@/lib/stringCase/*": ["../stringCase/*"]
     }

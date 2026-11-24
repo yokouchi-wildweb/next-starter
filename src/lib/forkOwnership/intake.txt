@@ -155,6 +155,8 @@ add src/domains/**/plugs/adminMenuCategories/*.override.{ts,tsx}  # 上書き ad
 add src/lib/*/plugs/adminMenuCategories/*.override.{ts,tsx}  # 上書き adminMenuCategories(hidden・label・icon・allowRoles・order)の上流の項目の隣
 add src/domains/**/plugs/adminMenuItems/*.override.{ts,tsx}  # 上書き adminMenuItems(hidden・label・icon・allowRoles・order・category)の上流の項目の隣
 add src/lib/*/plugs/adminMenuItems/*.override.{ts,tsx}  # 上書き adminMenuItems(hidden・label・icon・allowRoles・order・category)の上流の項目の隣
+add src/domains/**/plugs/expiryRules/*.override.{ts,tsx}  # 上書き expiryRules(enabled・batchSize)の上流の項目の隣
+add src/lib/*/plugs/expiryRules/*.override.{ts,tsx}  # 上書き expiryRules(enabled・batchSize)の上流の項目の隣
 add src/domains/**/plugs/messagingCategories/*.override.{ts,tsx}  # 上書き messagingCategories(label・adminLabel・description・channels・defaultChannels・group)の上流の項目の隣
 add src/lib/*/plugs/messagingCategories/*.override.{ts,tsx}  # 上書き messagingCategories(label・adminLabel・description・channels・defaultChannels・group)の上流の項目の隣
 add src/domains/**/plugs/messagingLayouts/*/layout.override.{ts,tsx}  # 上書き messagingLayouts(disabled・adminSelectable)の上流の項目の隣

@@ -55,7 +55,7 @@ const WRITERS = ["role:generate"];
 const TARGETS = ["wiring"];
 /** 組み込みの変換(一覧の項目に付け足す値)。fork が足す口は無い */
 export const DERIVES = ["featureTables", "settingSections"];
-const KEYS = ["change", "plugs", "max", "required", "order", "stages", "skeletonStages", "default", "dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn", "literalKeys", "files", "shape", "pureImports", "requireText", "overrideOf", "writer", "overrides", "addable", "placement", "kind", "keyedBy", "itemsOf", "select", "keyPrefix"];
+const KEYS = ["change", "plugs", "max", "required", "order", "stages", "skeletonStages", "default", "dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn", "literalKeys", "files", "shape", "pureImports", "requireText", "overrideOf", "writer", "overrides", "addable", "placement", "kind", "keyedBy", "itemsOf", "select", "keyPrefix", "overrideRefuse"];
 /**
  * 点の変え方の型(CHANGE_TYPES 1〜4、地区の議会 D20・D35)。どの点も change を書く(段 2 の宣言の 2 段の 1 段目)。
  * add = 増設点(dir か files の受け口、writer の一覧も fork が項目を足す点)/ override = 上書点(overrides)/ counterpart = 対置点(placement)/
@@ -218,6 +218,17 @@ function checkPoint(name, value) {
   if (point.literalKeys !== undefined && (point.literalKeys !== true || point.key === undefined)) problems.push(`${name}: literalKeys は key と一緒に true だけ`);
   // keyPrefix "district": 項目の key の字面は "<差した地区の名前>.<名前>"(生成が止める、scripts/structure/extensions/plugs.mjs)
   if (point.keyPrefix !== undefined && (point.keyPrefix !== "district" || point.key === undefined || point.plugs !== true)) problems.push(`${name}: keyPrefix は plugs の点で key と一緒に "district" だけ`);
+  // overrideRefuse { flag, key, value }: 項目が <flag>: true を字面で持てば、override は <key>: <value> を書けない(例 個人情報の削除を止めない、pii_prune_kept)
+  if (point.overrideRefuse !== undefined) {
+    const refuse = point.overrideRefuse;
+    const valid =
+      refuse !== null && typeof refuse === "object" && !Array.isArray(refuse) &&
+      Object.keys(refuse).every((k) => ["flag", "key", "value"].includes(k)) &&
+      typeof refuse.flag === "string" && typeof refuse.key === "string" && ["boolean", "number", "string"].includes(typeof refuse.value);
+    if (!valid || point.plugs !== true || !Array.isArray(point.overrideOf) || !point.overrideOf.includes(refuse.key)) {
+      problems.push(`${name}: overrideRefuse は overrideOf を持つ plugs の点で { flag, key, value }(key は overrideOf の中、value は字面)`);
+    }
+  }
   if (point.alwaysOn !== undefined && typeof point.alwaysOn !== "boolean") problems.push(`${name}: alwaysOn は真偽`);
   if (point.files !== undefined && !(isString(point.files) && /^\*\/[A-Za-z_][A-Za-z0-9_.]*\.tsx?$/.test(point.files))) problems.push(`${name}: files は "*/<ファイル名>"(受け口の 1 段下の決まった名前のファイル)`);
   // plugs の点の shape は名前で引く表と並ぶので key(全体で一意の鍵)と一緒に使える(注文 27: 端末の種類は kind の型を表の型から導く)
