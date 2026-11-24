@@ -117,7 +117,7 @@ function delivered(deps, json, root, target, placed, verb) {
   }
   const holder = holderOf(root, target.key, { procStart: deps.procStart });
   if (holder) {
-    report(deps, json, { result: "rang", ...base }, `peer: ${targetLabel(target)}に ${message.id} を${verb}。受け持つセッションが呼び鈴で起きて読みます。返事はこのセッションに届きます`);
+    report(deps, json, { result: "rang", ...base }, `peer: ${targetLabel(target)}に ${message.id} を${verb}。受け持つ生きた印があるので、その呼び鈴に任せました。返事はこのセッションに届きます`);
     return EXIT.done;
   }
   report(

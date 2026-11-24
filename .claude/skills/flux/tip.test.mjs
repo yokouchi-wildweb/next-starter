@@ -105,7 +105,8 @@ test("このリポの HEAD の who の読み手を取り出して答える(--jso
   assert.ok(result.status === 0 || result.status === 2, result.stderr);
   const answer = JSON.parse(result.stdout);
   assert.equal(typeof answer.status, "string");
-  assert.equal(answer.results.length, 1);
+  // exit 2 = who could not verify (no results in its answer): only the answer's form is read then
+  if (result.status === 0) assert.equal(answer.results.length, 1);
   assert.ok(existsSync(join(dir, "src/lib/forkOwnership/whoCli.mjs")));
 });
 

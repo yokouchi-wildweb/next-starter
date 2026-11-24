@@ -136,7 +136,7 @@ test("送る: 完全一致 1 つ + 相手の印が有効 → 送った exit 0、
   h.mark(A, 101, "acceptEdits");
   h.mark(B, 202);
   assert.equal(runSend(["beta", "棚の", "件", "--about=棚"], h.deps), EXIT.done);
-  assert.match(h.out(), /beta\(repo:repo-b\)に m-.* を送りました。受け持つセッションが呼び鈴で起きて読みます/);
+  assert.match(h.out(), /beta\(repo:repo-b\)に m-.* を送りました。受け持つ生きた印があるので、その呼び鈴に任せました/);
   const [m] = listBox(h.root, B).messages;
   assert.equal(m.body, "棚の 件");
   assert.equal(m.about, "棚");
@@ -213,7 +213,7 @@ test("受け箱・読む・返す: 読んだ・返事したは箱の外、返事
 
   h.printed.length = 0;
   assert.equal(runReply([m.id, "答えです"], asB), EXIT.done);
-  assert.match(h.out(), /alphaに m-.* を返しました。受け持つセッションが呼び鈴で起きて読みます/);
+  assert.match(h.out(), /alphaに m-.* を返しました。受け持つ生きた印があるので、その呼び鈴に任せました/);
   const [r] = listBox(h.root, A).messages;
   assert.equal(r.replyTo, m.id);
   assert.equal(r.about, "re: 棚");

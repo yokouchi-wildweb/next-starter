@@ -20,7 +20,8 @@ import { hasTmux, serverOf, tmuxAt } from "./lib.reinforce.mjs";
 const USAGE = "使い方: pnpm workflow agent-terminal open [--cwd=<dir>] [--name=<名前>] [--socket=<名前>] [-- <命令…>]";
 
 const quote = (s) => (/^[A-Za-z0-9_./:=@%+-]+$/.test(s) ? s : `'${s.replace(/'/g, `'\\''`)}'`);
-const cleanName = (s) => s.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "session";
+// '.' と ':' も '-' に: tmux の -t は '.' を window の区切りと読む(pandora.wt-… で capture-pane が落ちた)
+const cleanName = (s) => s.replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "session";
 const ENDED = /^\(命令が終わりました: exit (\d+)\)$/;
 
 // endedOf(server, name, waitMs) → { code, tail } when the pane shows the command's end mark within waitMs (polled every 0.5 s), else null.
