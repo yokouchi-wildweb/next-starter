@@ -1,18 +1,26 @@
 // src/domains/core/rateLimit/services/server/wrappers/rateLimitHelper.ts
 
-import { eq, lt } from "drizzle-orm";
+import { lt } from "drizzle-orm";
 
 import { RATE_LIMIT_CONFIG, type RateLimitCategory } from "@/domains/rateLimit/config";
 import { RateLimitTable } from "@/domains/core/rateLimit/entities/drizzle";
-import { buildRateLimitKey, type RateLimitResult } from "@/domains/core/rateLimit/constants";
+import type { RateLimitResult } from "@/domains/core/rateLimit/constants";
 import { db } from "@/lib/drizzle";
 
+import { consumeRateLimit, peekRateLimit } from "../rateLimit";
+
 /**
- * レート制限をチェックし、カウントを更新する
+ * 今の数え方の上限: 窓の最初の 1 回は必ず通し、その後は count + 1 < maxRequests の間だけ通す
+ * = maxRequests − 1 回(maxRequests ≤ 2 なら 1 回)。数えのずれ(D21)を 03-2 まで保つためだけの 1 行(D56)
+ */
+const legacyLimit = (maxRequests: number) => Math.max(1, maxRequests - 1);
+
+/**
+ * レート制限をチェックし、カウントを更新する(consumeRateLimit の上。名前・引数・戻り値・通す回数は今のまま)
  *
  * @param category - 制限カテゴリ（RATE_LIMIT_CONFIG のキー）
  * @param identifier - 識別子（IPアドレス、ユーザーIDなど）
- * @returns RateLimitResult - 許可/拒否の結果と残り回数
+ * @returns RateLimitResult - 許可/拒否の結果と残り回数(remaining = maxRequests − 今の回数、拒否は 0)
  *
  * @example
  * const result = await checkRateLimit("signup", request.ip);
@@ -25,108 +33,31 @@ export async function checkRateLimit(
   identifier: string
 ): Promise<RateLimitResult> {
   const config = RATE_LIMIT_CONFIG[category];
-  const key = buildRateLimitKey(category, identifier);
-  const now = new Date();
-  const windowStart = new Date(now.getTime() - config.windowSeconds * 1000);
-  const expiresAt = new Date(now.getTime() + config.windowSeconds * 1000);
-
-  // 既存レコードを取得
-  const existing = await db
-    .select()
-    .from(RateLimitTable)
-    .where(eq(RateLimitTable.id, key))
-    .limit(1);
-
-  const record = existing[0];
-
-  // レコードが存在し、ウィンドウ内の場合
-  if (record && record.window_start > windowStart) {
-    const newCount = record.count + 1;
-
-    // 制限超過
-    if (newCount >= config.maxRequests) {
-      return {
-        allowed: false,
-        remaining: 0,
-        resetAt: record.expires_at,
-        count: record.count,
-      };
-    }
-
-    // カウント増加
-    await db
-      .update(RateLimitTable)
-      .set({ count: newCount })
-      .where(eq(RateLimitTable.id, key));
-
-    return {
-      allowed: true,
-      remaining: config.maxRequests - newCount,
-      resetAt: record.expires_at,
-      count: newCount,
-    };
-  }
-
-  // 新規作成または期限切れ: レコードをupsert
-  await db
-    .insert(RateLimitTable)
-    .values({
-      id: key,
-      count: 1,
-      window_start: now,
-      expires_at: expiresAt,
-    })
-    .onConflictDoUpdate({
-      target: RateLimitTable.id,
-      set: {
-        count: 1,
-        window_start: now,
-        expires_at: expiresAt,
-      },
-    });
-
+  const result = await consumeRateLimit({
+    key: { scope: category, identifier },
+    rule: { window: "fixed", windowSeconds: config.windowSeconds, limit: legacyLimit(config.maxRequests) },
+  });
   return {
-    allowed: true,
-    remaining: config.maxRequests - 1,
-    resetAt: expiresAt,
-    count: 1,
+    allowed: result.allowed,
+    remaining: result.allowed ? config.maxRequests - result.count : 0,
+    resetAt: result.resetAt,
+    count: result.count,
   };
 }
 
 /**
- * レート制限の現在状態を取得（カウントを増やさない）
+ * レート制限の現在状態を取得（カウントを増やさない、peekRateLimit の上）
  *
  * @param category - 制限カテゴリ
  * @param identifier - 識別子
- * @returns RateLimitResult | null - 制限情報、レコードがなければnull
+ * @returns RateLimitResult | null - 制限情報、窓の内の行がなければnull
  */
 export async function getRateLimitStatus(
   category: RateLimitCategory,
   identifier: string
 ): Promise<RateLimitResult | null> {
-  const config = RATE_LIMIT_CONFIG[category];
-  const key = buildRateLimitKey(category, identifier);
-  const now = new Date();
-  const windowStart = new Date(now.getTime() - config.windowSeconds * 1000);
-
-  const existing = await db
-    .select()
-    .from(RateLimitTable)
-    .where(eq(RateLimitTable.id, key))
-    .limit(1);
-
-  const record = existing[0];
-
-  if (!record || record.window_start <= windowStart) {
-    return null;
-  }
-
-  return {
-    allowed: record.count < config.maxRequests,
-    remaining: Math.max(0, config.maxRequests - record.count),
-    resetAt: record.expires_at,
-    count: record.count,
-  };
+  const result = await peekRateLimit({ key: { scope: category, identifier }, rule: category });
+  return result.count === 0 ? null : result;
 }
 
 /**
