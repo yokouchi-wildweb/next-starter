@@ -1,13 +1,15 @@
 // src/domains/core/coupon/lib/adminSectionTabs.test.ts
 //
 // クーポン管理画面のセクションタブの組み立ての検査(DB なし)。
-// - 上流の一覧は空 = core 3 タブだけ
+// - 上流の一覧は空 = core 3 タブだけ(fork は自分のタブを差すので、core 3 タブが先頭にあることだけを見る)
 // - enabled 省略 = 出す、enabled() が false = 外す、返す値に enabled は残らない
 // - value の重複は無効の項目も含めて例外
 // 実行: pnpm test src/domains/core/coupon/lib/adminSectionTabs.test.ts
 // (package.json に type: module が無いので tsx は CJS として読む → before() で import)
 import { before, test } from "node:test";
 import assert from "node:assert/strict";
+
+import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 
 let mod: typeof import("./adminSectionTabs");
 before(async () => {
@@ -16,11 +18,10 @@ before(async () => {
 
 const CORE = ["official", "affiliate", "invite"];
 
-test("上流の項目は 0 = core 3 タブだけ", () => {
-  assert.deepEqual(
-    mod.buildCouponAdminSectionTabs((items) => [...items]).map((tab) => tab.value),
-    CORE,
-  );
+test("上流の項目は 0 = core 3 タブだけ(fork では core 3 タブが先頭、fork のタブは後ろ)", () => {
+  const values = mod.buildCouponAdminSectionTabs((items) => [...items]).map((tab) => tab.value);
+  if (readForkIdentity(process.cwd()).isTier1) assert.deepEqual(values, CORE);
+  else assert.deepEqual(values.slice(0, CORE.length), CORE);
 });
 
 test("enabled 省略 = 末尾に足す、false = 外す、enabled は返す値に残らない", () => {

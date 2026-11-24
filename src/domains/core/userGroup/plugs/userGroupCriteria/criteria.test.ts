@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { PgDialect } from "drizzle-orm/pg-core";
 
 import { userGroupCriteria } from "@/domains/core/userGroup/extensions/userGroupCriteria";
+import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 
 const criteria = Object.fromEntries(userGroupCriteria.map((entry) => [entry.plug.key, entry.plug]));
 
@@ -19,9 +20,12 @@ const query = (key: string, args: unknown) => {
   return dialect.sqlToQuery(criterion.where(criterion.args.parse(args), { now: NOW }));
 };
 
-test("5 つの部品が一覧にあり、購入金額の合計だけ heavy で、どれも欄がある", () => {
-  assert.deepEqual(Object.keys(criteria).sort(), ["hasTag", "inStaticGroup", "lastLoginPeriod", "purchaseTotal", "signupPeriod"]);
-  for (const criterion of Object.values(criteria)) {
+const UPSTREAM = ["hasTag", "inStaticGroup", "lastLoginPeriod", "purchaseTotal", "signupPeriod"];
+
+test("5 つの部品が一覧にあり、購入金額の合計だけ heavy で、どれも欄がある(fork は自分の部品を足すので、上流の 5 つだけを見る)", () => {
+  if (readForkIdentity(process.cwd()).isTier1) assert.deepEqual(Object.keys(criteria).sort(), UPSTREAM);
+  else for (const key of UPSTREAM) assert.ok(key in criteria, key);
+  for (const criterion of UPSTREAM.map((key) => criteria[key]!)) {
     assert.equal(criterion.weight, criterion.key === "purchaseTotal" ? "heavy" : "cheap", criterion.key);
     assert.ok(criterion.fields.length > 0, criterion.key);
   }

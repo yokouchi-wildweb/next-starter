@@ -6,7 +6,7 @@
 // 実行: pnpm test src/lib/formSuite/a11yContract.test.tsx
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { readdirSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createElement, type ReactElement } from "react";
@@ -123,9 +123,20 @@ function listUnits(): string[] {
     .sort();
 }
 
-test("Input: 単位は全部、表(UNITS)か NOT_INPUTS に載っている", () => {
+/**
+ * 上流(Tier1)の単位: src/components/CATALOG.md の先頭の節(Tier1 の節)の src/components/Input/<単位> の行。
+ * fork が棚に足した単位は fork の節に載るので数えない(fork は表に足さなくてよい。目録の全部の単位は catalog.test が見る)
+ */
+function upstreamUnits(): string[] {
+  const text = readFileSync(fileURLToPath(new URL("../../components/CATALOG.md", import.meta.url)), "utf8");
+  const sections = text.split(/^## /m).slice(1);
+  return [...(sections[0] ?? "").matchAll(/^- src\/components\/Input\/([^\s/]+) —/gm)].map((m) => m[1]).sort();
+}
+
+test("Input: 上流の単位は全部、表(UNITS)か NOT_INPUTS に載っていて、表の単位は全部ある(fork が足した単位は表に無くてよい)", () => {
   const listed = [...Object.keys(UNITS), ...Object.keys(NOT_INPUTS)].sort();
-  assert.deepEqual(listed, listUnits(), "単位を足したら UNITS に描き方を足す(入力でなければ NOT_INPUTS に理由を足す)");
+  assert.deepEqual(listed, upstreamUnits(), "上流の単位を足したら UNITS に描き方を足す(入力でなければ NOT_INPUTS に理由を足す)");
+  assert.deepEqual(listed.filter((name) => !listUnits().includes(name)), [], "表の単位が src/components/Input に無い");
 });
 
 test("Input: 各部品が id・aria-describedby・aria-invalid をフォーカスされる要素へ付ける", () => {

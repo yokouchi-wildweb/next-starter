@@ -84,7 +84,14 @@ test("receptacles = 地区の中の extensionPoints.ts の点(地区の外の宣
   }
   const outside = points.filter((p) => !districts.some((d) => p.owner === d.dir || p.owner.startsWith(`${d.dir}/`))).map((p) => p.owner);
   // src/proxies は proxies の 1 地区(テーマを畳んだ、D30)の中、src/featureGate・src/wiring の下は種類の表の featureGate・wiring の地区の中(D8)
-  assert.deepEqual([...new Set(outside)].sort(), ["src/app/(user)/demo", "src/styles/core"]);
+  const UPSTREAM_OUTSIDE = ["src/app/(user)/demo", "src/styles/core"];
+  const owners = [...new Set(outside)].sort();
+  if (readForkIdentity(repoRoot).isTier1) assert.deepEqual(owners, UPSTREAM_OUTSIDE);
+  else {
+    // fork: 上流の 2 つはあり、増えた物は上流のルートの _components/ の宣言だけ(core/receptacles.md: 段の自分の差替点の置き場)
+    for (const owner of UPSTREAM_OUTSIDE) assert.ok(owners.includes(owner), owner);
+    assert.deepEqual(owners.filter((o) => !UPSTREAM_OUTSIDE.includes(o) && !/^src\/app\/.+\/_components$/.test(o)), []);
+  }
 });
 
 test("domainJson・generate = 各ドメインの domain.json の有無と generate(省略 = true)。生成器が書き直さないドメインが地図で分かる(L1.15)", () => {
