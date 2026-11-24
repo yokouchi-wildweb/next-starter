@@ -5,10 +5,14 @@
 // 本番に出す前の確認は共通の守り(scripts/runner/guard の guardDeploy): 手で打つなら「production」と打たせ、
 // 非対話(TTY なし・CI・エージェント)は方針 agent.deploy と人の 1 回分の許可 dep がある時だけ通す(--confirm=production だけでは通さない、
 // D420)。プレビュー(--prod でない vercel)は確認なし。
-// env ファイルは読まない(ホスティング側の env で動く)。
+// env ファイルは読まない・上げない(ホスティング側の env で動く)。アプリ(Vercel)に上げるのは HEAD の commit の中身だけ:
+// git archive で一時の場所に書き出し、リンク(.vercel/project.json)だけを写してそこから vercel を呼ぶ(作業場所の .env*・
+// 未追跡・無視されたファイル・手元の build は上がらない。上がる木 = セーフポイントの確かめが見た commit)。
 // 本番に出す時は確認の後にセーフポイントを確かめる(guardSafePoint。仕様 = .notices/README.md「区切り(checkpoint)と区間適用」のセーフポイント)。
 
 import { execSync, spawnSync } from "node:child_process";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { realtimeRoomConfig } from "@/lib/realtimeRoom";
@@ -53,11 +57,51 @@ export function deployApp(vercelArgs: string[]): void {
   }
 
   const args = vercelArgs.length > 0 ? vercelArgs : ["--prod"];
-  console.log(`\n→ vercel ${args.join(" ")} を実行します...\n`);
-  const result = spawnSync("vercel", args, { cwd: repoRoot, stdio: "inherit", shell: false });
-  if (result.status !== 0) {
+  const tree = exportCommitTree(repoRoot);
+  let status: number | null = 1;
+  try {
+    console.log(`\n→ HEAD ${tree.commit} の中身(${tree.dir})から vercel ${args.join(" ")} を実行します...\n`);
+    status = spawnSync("vercel", args, { cwd: tree.dir, stdio: "inherit", shell: false }).status;
+  } finally {
+    rmSync(tree.dir, { recursive: true, force: true });
+  }
+  if (status !== 0) {
     console.error("\n✗ アプリのデプロイに失敗しました");
-    process.exit(result.status ?? 1);
+    process.exit(status ?? 1);
+  }
+}
+
+/** Vercel のリンク(vercel link が書く。commit には入らない)。書き出した木に写す物はこれだけ */
+export const VERCEL_LINK_FILE = path.join(".vercel", "project.json");
+
+/**
+ * HEAD の commit の中身を一時の場所に書き出す(git archive)。リンク .vercel/project.json だけを写す。
+ * 作業場所の .env*・未追跡・無視されたファイル・まだ commit していない変更は入らない。呼んだ側が dir を消す
+ * @returns {{ dir: string, commit: string }}
+ */
+export function exportCommitTree(root: string, deps: { tmpRoot?: string } = {}): { dir: string; commit: string } {
+  const git = (args: string[]) => {
+    const r = spawnSync("git", args, { cwd: root, encoding: "utf8", shell: false });
+    if (r.status !== 0) throw new Error(`git ${args.join(" ")}: ${(r.stderr || r.stdout).trim()}`);
+    return r.stdout.trim();
+  };
+  const commit = git(["rev-parse", "--short", "HEAD"]);
+  const dir = mkdtempSync(path.join(deps.tmpRoot ?? tmpdir(), "deploy-tree-"));
+  try {
+    const archive = path.join(dir, ".archive.tar");
+    git(["archive", "--format=tar", "-o", archive, "HEAD"]);
+    const tar = spawnSync("tar", ["-xf", archive, "-C", dir], { encoding: "utf8", shell: false });
+    if (tar.status !== 0) throw new Error(`tar: ${tar.stderr.trim()}`);
+    rmSync(archive, { force: true });
+    const link = path.join(root, VERCEL_LINK_FILE);
+    if (existsSync(link)) {
+      mkdirSync(path.join(dir, ".vercel"), { recursive: true });
+      copyFileSync(link, path.join(dir, VERCEL_LINK_FILE));
+    }
+    return { dir, commit };
+  } catch (error) {
+    rmSync(dir, { recursive: true, force: true });
+    throw error;
   }
 }
 
