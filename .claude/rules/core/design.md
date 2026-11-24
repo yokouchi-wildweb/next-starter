@@ -56,7 +56,6 @@ map (every core file, loaded by its paths):
 - the window decides: the Tier1 session handling next-starter's inbox + the user's approval (/inbox) | the reason always goes in the commit body (the inbox lives outside the repo)
 - coverage: every upstream file and every intake.txt place must hit the paths of an upstream core file or card (pnpm check rules; a fork's own files are not counted) | matched as Claude Code loads rules (** and * also hit dot-named files and folders) | fails in Tier1 only; a fork gets a notice, and one line "cannot verify" when its base version is unreadable
   - a gap → widen the core file that holds that place's rules (a window item, unless the place is new: usual path above) | only a place that truly needs no rule → uncovered.txt with its reason, never a blanket line to quiet the check
-- CLAUDE.md over its notify line (size below) → still ship; the shipping session files one condense order to the window (none if one with the same title is open)
 - a missing or wrong rule you do not own: CLAUDE.md, a core file or a Tier1 card → /order next-starter straight | a middle tier's own rule (its lineage section, service, cards) → /order <that repo> | until it ships, a provisional rule in your own rules (outside core/) ending with `(order: <id>)`, followed while the order is open, removed when it ships as resolves: (/flux asks)
 - docs/!must-read/: each doc names the CLAUDE.md section it backs | changing that section → fix the doc in the same commit (and the reverse)
 
@@ -95,7 +94,7 @@ map (every core file, loaded by its paths):
 - content that does not fit key: value (ordered steps, branches by case, reasons) may take the form a reader follows best (numbered or per-case sub-lines, short sentences)
 
 ## size (chars, not lines)
-- CLAUDE.md: notify 38,000 (still ship; the shipping session files one condense order to the window, none if one with the same title is open) | fail 40,000 (Claude Code warns per file there) | no target: inside the line, a longer CLAUDE.md that holds the needed rules is fine
+- CLAUDE.md: fail 40,000 (Claude Code warns per file there) | no notify line before it and no target: inside the line, a longer CLAUDE.md that holds the needed rules is fine
 - one core file, one service file, one README: fail 40,000 | one card: fail 10,000 | no notify line or target for these
 - one line ≤ 400 chars in CLAUDE.md, core files, cards, service | never cut a needed line or a blank line to fit a size
 - the amount loaded per work scene is not counted or limited

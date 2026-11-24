@@ -1,6 +1,6 @@
 // scripts/workflow/rules/size.mjs — pnpm check rules の大きさの検査(1 ファイルの字数の線と 1 行の長さ)
 // 線の正本: .claude/rules/core/design.md の size の節。作業の場面ごとの読み込みの量は数えない。
-// CLAUDE.md が知らせる線を超えたら通して知らせる(出荷したセッションが窓口へまとめ直しの依頼を 1 本)。失敗の線で exit 1。
+// 失敗の線で exit 1。知らせるのは fork の自分の札の 400 字を超える行だけ(出荷は止めない)。
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CORE_DIR, ITEMS_DIR, mdUnder as mdUnderRoot, SERVICE_DIR, upstreamReader } from "./lib.ruleRepo.mjs";
@@ -54,10 +54,9 @@ for (const f of mdUnder(SERVICE_DIR)) {
   linesOf(f, "fail");
 }
 
-console.log(`rules size: CLAUDE.md・core ${coreFiles.length} 本・札 ${cards.length} 枚・service を見た(CLAUDE.md 知らせる ${SIZE_LINES.claudeMd.notify}・失敗 ${SIZE_LINES.claudeMd.fail}、core と service 1 本 ${SIZE_LINES.core.fail}、札 ${SIZE_LINES.card.fail}、1 行 ${MAX_LINE_CHARS})`);
+console.log(`rules size: CLAUDE.md・core ${coreFiles.length} 本・札 ${cards.length} 枚・service を見た(CLAUDE.md 失敗 ${SIZE_LINES.claudeMd.fail}、core と service 1 本 ${SIZE_LINES.core.fail}、札 ${SIZE_LINES.card.fail}、1 行 ${MAX_LINE_CHARS})`);
 
 for (const n of notes) console.error(`note: ${n}`);
 for (const n of notifies) console.error(`知らせ: ${n}`);
-if (notifies.length) console.error("知らせる線を超えた物がある: 出荷は止めない。出荷したセッションが窓口(/order next-starter)へまとめ直しの依頼を 1 本出す(同じ題の開いた依頼があれば足さない)");
 for (const f of fails) console.error(`失敗: ${f}`);
 process.exitCode = fails.length ? 1 : 0;
