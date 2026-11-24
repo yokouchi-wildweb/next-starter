@@ -4,7 +4,7 @@ date: 2026-11-24T01:36:37Z
 severity: action-required
 checkpoint: fork-replace-points
 fixes: 20261122-213044-district-stage2
-pick: clean
+pick: -
 resolves: 20261124-103154-fork-declared-replace-points
 change: the district-stage2 tool .notices/20261122-213044-district-stage2.declarations.mjs declares a replace point whose default sits under an upstream route's `_components/` (a tier's own frame part, no district owner) in that tier's own `src/app/<route>/_components/extensionPoints.ts` (owner = that folder) instead of stopping with only upstream `_layout/extensionPoints.ts` candidates | docs: scripts/structure/extensions/README.md (差替点) and .claude/rules/core/receptacles.md extension_points (a key line added, none renamed or removed) name that place
 why: a fork that split its own frame parts into .default + 1-line switches for its downstream (oripa-do: the user header's 5 looks for pandora) had no fork-owned place offered: declaring in upstream src/app/(user)/_layout/extensionPoints.ts is an ownership violation, and without a declaration pnpm generate extensions fails. The reader already takes any src/**/extensionPoints.ts with owner = its folder, so only the tool and the docs pointed the wrong way
