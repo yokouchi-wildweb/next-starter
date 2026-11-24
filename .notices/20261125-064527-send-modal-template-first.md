@@ -1,0 +1,17 @@
+# DOWNSTREAM NOTICE id:20261125-064527-send-modal-template-first
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:build/20261108-120538-system-messaging-templates.4 | commit:- (this commit)
+date: 2026-11-25T06:45:27+09:00
+severity: breaking
+checkpoint: send-modal-template-first
+change: the free-text send modal (MessageSendModal / useMessageSendModal, modes new・sameAs・bulk) is template-first: the template row is the top of the send settings; while a template is loaded, kind and category are that template's (hook `categoryLocked: true`, KindCategoryFields disabled, `setKind` / `setCategory` do nothing); unloading or no template = selectable (the last template's category stays until changed). Template candidates are no longer filtered by kind (`pickerTemplates` = every published template of a sendable category, each with `kind` and `categoryLabel`); the picker popover switches candidates by kind tabs (opens on the current kind, else the first tab). Breaking shapes: `initialTextOf(mode, kind, layouts, initialLayout, categories, templates)` -> `initialTextOf(mode, layouts, initialLayout, categories, templates)`; `SendTemplatePicker` now requires `kinds` ({key,label}[]) and `initialKind` (string) and each `templates` item requires `kind` and `categoryLabel`. Added only: `SelectPopover` optional `header?: ReactNode` (between the title and the list; omitted = same output as before).
+why: admins pick the template first; a fork calling `initialTextOf` or rendering `SendTemplatePicker` in its own send screen no longer type-checks
+required_actions:
+1. find callers: `git grep -n -E 'initialTextOf\(|SendTemplatePicker' -- src ':!src/domains/core'`
+2. each `initialTextOf(...)` call: drop the 2nd argument (the kind string); the rest stays in order
+3. each `<SendTemplatePicker ...>` in your own screen: pass `kinds={m.kinds}` and `initialKind={m.kind}` from `useMessageSendModal`, and `templates={m.pickerTemplates}` (its items already carry `kind` / `categoryLabel`); with your own template list, add `kind` (the category's kind) and `categoryLabel` (the category's label) to each item
+4. a screen of your own built on `useMessageSendModal` that renders the kind / category fields: pass `disabled={m.categoryLocked}` to them (the hook ignores changes while locked); put the template row first to match the upstream order (optional)
+5. none found in steps 1 → nothing to do
+verify: pnpm typecheck passes including upstream _screen/* default screens even where your page.tsx points to _components/; a failure there = your fork's core edit is not backward compatible (CLAUDE.md CORE_FILES fork_core_edit_compat) — fix the core side, do not edit the upstream Screen | in the admin send modal, loading a template disables kind / category and shows that template's category; unloading makes them selectable
+manual_steps: -
+refs: src/domains/core/messaging/hooks/useMessageSendModal.ts, src/domains/core/messaging/components/common/SendTemplatePicker/index.tsx, src/domains/core/messaging/components/MessageSendModal/index.tsx, src/components/Overlays/Popover/SelectPopover.tsx, src/domains/core/messaging/components/README.md
+notes: server send API is unchanged (`category` is still a field of the sent content; it is now the loaded template's category). DefinitionSendModal is unchanged. A fork with edits inside the upstream MessageSendModal / SendTemplatePicker files (under a permit) re-applies them on the new shape.
