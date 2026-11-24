@@ -94,3 +94,29 @@ export function selfProblems({ isTier1, selfRows, head, merge, parentNow }) {
   }
   return { problems, asks, unverified };
 }
+
+/**
+ * @typedef {{ path: string, action: "restore" | "remove" | "keep-new" | "same", required: boolean }} SelfKeepStep
+ *   restore = 取り込みの前の自分の版に戻す / remove = 取り込みの前に持っていなかった持たなくてよい self を消す(自分の版 = 無い) /
+ *   keep-new = 取り込みの前に持っていなかった必ず持つ self(親の版を最初の自分の版にする) / same = 前の版のまま(何もしない)
+ */
+
+/**
+ * 区間の merge の後、型 5 self を自分の版に戻す計画(純、D314: 衝突したかどうかによらずいつも自分の版を残す)。
+ * 区間の上流の差分に入った self のパスだけを見る。gitから集めるのは selfKeep.mjs
+ * @param {{ paths: string[], required: string[], pre: Record<string, string | null>, now: Record<string, string | null> }} input
+ *   paths = 区間の上流の差分に入った self のパス / required = 必ず持つ self / pre = merge の前の版(無い = null) / now = 作業ツリー(無い = null)
+ * @returns {SelfKeepStep[]}
+ */
+export function planSelfKeep({ paths, required, pre, now }) {
+  return paths.map((path) => {
+    const isRequired = required.includes(path);
+    const before = pre[path] ?? null;
+    const current = now[path] ?? null;
+    if (before === null) {
+      if (current === null) return { path, action: "same", required: isRequired };
+      return { path, action: isRequired ? "keep-new" : "remove", required: isRequired };
+    }
+    return { path, action: current === before ? "same" : "restore", required: isRequired };
+  });
+}

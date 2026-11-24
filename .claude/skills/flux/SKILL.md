@@ -340,7 +340,7 @@ merge and porting carry the fork's edits as they are | when the destination is u
   - per path: `type`, `kind` (intake row, null = none), `owner.tier` (tier1 | middle | fork | missing), `generated` { generator, command, part, region } | the data comes from the segment's tree (`--base`), the reader from the tip | exit 2 / `status: unverified` → STOP (no row = no judgment)
 - rows (first match wins):
   1. `generated` set, `part` null, not a region (a whole generated file, e.g. a registry, the route map, pnpm-lock.yaml): never hand-merge | take either side; the segment rebuild rewrites it (generator `generated.generator`) | a change inside 5d's allowed set
-  2. type 5 (`kind` self): keep the fork side (`git checkout --ours -- <path>`) → core/change.md 5 self | `generated.part` set (vercel.json's crons) → the segment rebuild rewrites only that part
+  2. type 5 (`kind` self): the fork's version, conflicted or not → core/change.md 5 self | conflicted → `git checkout --ours -- <path>`; every self file the segment touches is then restored by the `keep self files` step of 5c | `generated.part` set (vercel.json's crons) → the segment rebuild rewrites only that part
   3. `kind` region: the fork's lines only between its `fork entries start / end` pair, upstream's everywhere else | a generator's region (`generated.region`) → the rebuild rewrites outside the pair
   4. `kind` marker: upstream's side above the `fork entries below` line, the fork's below it
   5. `kind` append: upstream's content first, the fork's additions after (JSON: the fork's keys only, upstream's values as upstream wrote them)
@@ -403,7 +403,10 @@ merge and porting carry the fork's edits as they are | when the destination is u
       - directory rename guessing is off because it misguesses fork-side deletions / reorganizations as "directory renames", placing upstream's new files into unrelated fork directories or staging deletions of fork files (`-X no-renames` does not stop it)
       - upstream's real directory moves are handled by `moved:` porting | porting targets → port here (→ moved.md steps 3-4)
    c. resolve conflicts yourself, each conflicted file by its TAKE-IN TABLE row (above; read the rows of all conflicted files first with one who call) | confirm with the user only those where the judgment is really split
-      - **segment rebuild** (after every conflict is resolved, before d): the tip's stage entry over the segment's upstream diff (D315), then `git add` what it wrote
+      - **keep self files** (after every conflict is resolved, before the rebuild): the tip's selfKeep puts every type 5 self file the segment's upstream diff touches back to this fork's pre-merge version (D314; which ones are optional comes from the declarations)
+        - `node <tmp tip.mjs> --upstream=<upstream>/<branch> --entry=scripts/workflow/ownership/selfKeep.mjs -- --pre=<pre> --target=<区間の merge 先> --apply` → `git add` / `git rm` the paths it changed
+        - each listed path's parent diff (its `親の差分` command) is shown once in the segment report; port what fits by hand in a separate commit of the segment
+      - **segment rebuild** (after the self files are kept, before d): the tip's stage entry over the segment's upstream diff (D315), then `git add` what it wrote
         - `git show <upstream>/<branch>:.claude/skills/flux/tip.mjs > <tmp> && node <tmp> --upstream=<upstream>/<branch> --entry=scripts/runner/phases/run.mjs -- generate --phase=ship --range=<pre>...<区間の merge 先>`
         - the tip's runner, never the segment tree's: an older runner ignores `--range` silently and picks generators by this fork's own work | the declarations and generators it runs are the segment tree's
         - a segment from before repo.json `vercel.plan` existed (its cron generator skips without `--plan`, and its reader refuses the key, so the plan cannot be set there): `pnpm generate cron -- --plan <hobby|pro>` with the plan this fork's vercel.json crons use, `git add vercel.json`

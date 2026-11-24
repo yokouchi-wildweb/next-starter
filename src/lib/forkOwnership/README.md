@@ -53,6 +53,17 @@ pnpm workflow ownership who <path...> --base=<rev>   # その版を基準(親の
 - Tier1 では「直接の fork から見たら」を答える(基準 = HEAD、受け口の一覧 = HEAD の版)。冒頭に「このリポ = Tier1: 自由に編集できる」
 - 終了コード: 0 = 答えた / 2 = 未検証・引数の誤り
 
+### 取り込みで型 5 self を自分の版に戻す(pnpm workflow ownership selfKeep)
+
+```sh
+pnpm workflow ownership selfKeep --pre=<区間の前> --target=<区間の merge 先>          # 何をするかだけ出す(dry-run)
+pnpm workflow ownership selfKeep --pre=<区間の前> --target=<区間の merge 先> --apply  # 書く(/flux は先端の版を tip.mjs で走らせる)
+```
+
+- 区間の merge の後(コミットの前)、区間の上流の差分(`git diff <前>...<先>`)に入った型 5 self のファイルを、衝突したかどうかによらず取り込みの前の版に戻す(D314: いつも自分の版を残す)
+- 見るファイル = `SELF_FILES` と作業ツリーの受け口の一覧の self の行。取り込みの前に無かった物は、必ず持つ self(`SELF_REQUIRED`)なら親の版を最初の自分の版に、持たなくてよい self なら消す(自分の版 = 無い)
+- パスごとに親の差分の命令を出す(区間で 1 度見せ、合う所だけ別の commit で手で写す)| 終了コード 0 / 2 = 未確認(rev が解けない)| 計画は `self.mjs` の `planSelfKeep`(純)
+
 ## API
 
 入口は `./node` の 1 つ(`src/lib/forkOwnership/node.mjs`。閉じた lib: 下の名前は全部ここから読み、中のファイルは読まない)。読み手は Next の外のプログラム(scripts・lint・テスト・next.config・.notices の codemod)だけなので入口 `.` は置かない。CLI の本体 `runOwnershipCheckCli`(cli.mjs)・`runOwnershipWhoCli`(whoCli.mjs)も読み込んだだけでは走らず、`scripts/workflow/ownership/check.mjs`・`who.mjs` が呼ぶ。

@@ -21,7 +21,7 @@ change_types (the only 5 ways to change what a parent owns | marks = .default / 
 - 5 self: the self files each repo writes its own version of (project.md, behavior.md and shortcuts.md in .claude/rules/, repo.json, the root code configs, vercel.json, backend-selection.json)
   - using the parent's version as is is a valid choice → core/design.md self_files
   - dropped_lines: a take-in that drops your own lines → /flux asks: follow the parent's version / restore your lines (pnpm workflow ownership check never fails on it)
-  - take_in: always keep your version | /flux shows the parent's diff once per segment → port by hand, in a separate commit, only what fits this repo | vercel.json: after keeping yours, only its generator's part (crons) is rebuilt
+  - take_in: always keep your version, conflicted or not (/flux restores every self file a segment touches with pnpm workflow ownership selfKeep) | /flux shows the parent's diff once per segment → port by hand, in a separate commit, only what fits this repo | vercel.json: after keeping yours, only its generator's part (crons) is rebuilt
   - vercel.json: only a repo that deploys to Vercel holds it (none is right), with repo.json vercel.plan (hobby|pro) | crons = pnpm generate cron output → core/design.md self_files
   - root code configs (next.config.ts, eslint.config.mjs, playwright.config.ts): read Tier1's core body \<tool\>.config.core.\<ext\> first, then add / wrap / drop (playwright may skip it) | a middle tier calls its own lib's function, no per-tier file → core/design.md self_files
   - content: a self file holds only what describes this repo, never a rule a lower repo must follow

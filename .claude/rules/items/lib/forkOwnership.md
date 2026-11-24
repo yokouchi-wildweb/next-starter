@@ -17,6 +17,6 @@ using:
 - tiers_top_down: in multi-tier, take the upper tier in first; a ledger rename and its `upstream:` line go in the same intake
 editing:
 - intake_rows: every hand row has a reason | a row naming a fork-only file says so in the reason | the generated block is never hand-edited | a debt row names `upreq:<id>`
-- pure_parts: intake / judge / unitNames / permits / regions / lineage stay pure (no git); git only in check, cli, who, baseFiles
+- pure_parts: intake / judge / unitNames / permits / regions / lineage stay pure (no git); git only in check, cli, who, baseFiles, selfKeep
 - one_judge: who and explain reuse resolveForkContext / judgeFork / judge and never change the check's verdict
 read: run the check, who → Usage | intake, permits, regions, repo.json → Extension | functions → API | judge order, tiers → Internals

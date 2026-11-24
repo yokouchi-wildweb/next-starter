@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { importsOf, specifierKind, stripComments } from "./tip.mjs";
+import { importsOf, specifierKind, stripComments, walk } from "./tip.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TIP = join(HERE, "tip.mjs");
@@ -107,4 +107,11 @@ test("このリポの HEAD の who の読み手を取り出して答える(--jso
   assert.equal(typeof answer.status, "string");
   assert.equal(answer.results.length, 1);
   assert.ok(existsSync(join(dir, "src/lib/forkOwnership/whoCli.mjs")));
+});
+
+test("/flux が先端から走らせる読み手(who・selfKeep・段階の入口)の import の木は相対だけ(取り出せる)", () => {
+  const head = execFileSync("git", ["-C", REPO, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  for (const entry of ["scripts/workflow/ownership/who.mjs", "scripts/workflow/ownership/selfKeep.mjs", "scripts/runner/phases/run.mjs"]) {
+    assert.ok(walk(REPO, head, entry).size > 0, entry);
+  }
 });
