@@ -64,7 +64,8 @@ items/<lib|domains|components>/<name>.md: item card (what / use / change / rules
 service/<business>.md: business overview of a tier that defines a business (domains, relations, flows, terms), always loaded | written by that tier, never edited below (check) | not src/business (= business identity values)
 lineage.md: rules a tier passes to its downstream, one section per tier, never edit an ancestor's section (→ /order <its owner>) | ref: lineage.md preamble
 own_rules: in .claude/rules/ outside core/, plain names, never restate core | Tier1's own rule files = core/, items/ and its self files
-self_files (CHANGE_TYPES 5): .claude/rules/project.md (overview + tier-only info), .claude/rules/behavior.md (work rules), .claude/rules/shortcuts.md (keyword shortcuts), repo.json (machine values, written only through its command, read only via forkIds.mjs), root code configs (read the core body), vercel.json (only a repo that deploys to Vercel), backend-selection.json (the backend selection table) | → core/design.md self_files
+self_files (CHANGE_TYPES 5): .claude/rules/project.md (overview + tier-only info), .claude/rules/behavior.md (work rules), .claude/rules/shortcuts.md (keyword shortcuts), repo.json (machine values, written only through its command, read only via forkIds.mjs) | → core/design.md self_files
+- also self: root code configs (read the core body), vercel.json (only a repo that deploys to Vercel), backend-selection.json (the backend selection table)
 
 ## CHANGE_TYPES (the only five ways to change what a parent owns: the owner declares, the repo below uses)
 types: 1 replace = switch \<name\>.ts → \<name\>.default, fork \<name\>.replace (a screen: a plain _components/\<X\>Screen.tsx, no mark; a frame: _layout/\<Layout\>.replace) | 2 override = \<target\>.override.ts, declared keys only | 3 add = an item in your own plugs/\<point\>/ | 4 counterpart = src/styles/, src/config/ | 5 self = same path, each repo writes its own version (self_files)
