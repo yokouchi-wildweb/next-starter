@@ -41,7 +41,7 @@
 送信の詳細と利用者ごとの履歴(管理、カーソルの無限スクロール = `useInfiniteScrollQuery` の戻り値):
 
 - 既読した利用者 `useDispatchReaders(dispatchId, { limit?, enabled?, observerOptions? })`: 時刻のある既読を既読の新しい順に(まとめて既読で読んだ人は並ばない、既読の数は集計の値、D210)。部品 `DispatchReaders` にそのまま渡す。dispatchId null = 取らない
-- 利用者ごとの連絡の履歴 `useUserMessageHistory(userId, { limit?, enabled?, observerOptions? })`: 配達と、その利用者の受け取り箱に見える全員・ロール宛ての共有のお知らせ(`type: "sharedInApp"`、`status`・`sentAt` は null)を時刻の新しい順に(D215)。上流は画面を出さない(利用者の管理画面などに fork が置く)。行の形は ../services/server/history/README.md。userId null = 取らない
+- 利用者ごとの連絡の履歴 `useUserMessageHistory(userId, { limit?, sentBy?, enabled?, observerOptions? })`: その利用者が受けた送信（1 送信 1 行 = `type: "dispatch"`、メール・お知らせの配達は `channels`、送った人 `actor`・理由 `reason`）と、その利用者の受け取り箱に見える全員・ロール宛ての共有のお知らせ（`type: "sharedInApp"`、配達の状態なし）を時刻の新しい順に（D215）。`sentBy`: `admin` = 管理者が送った送信だけ / `system` = 連絡の自動の送信だけ。本文は載せない: 行の `dispatchId` で送信の詳細のモーダル `AdminDispatchDetailModal` を開く。上流は画面を出さない（利用者の管理画面などに fork が置く）。行の形は ../services/server/history/README.md
 
 口の形は ../services/server/admin/README.md の API。
 

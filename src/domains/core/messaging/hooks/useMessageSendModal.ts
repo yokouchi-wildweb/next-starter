@@ -220,12 +220,22 @@ export type UseMessageSendModalOptions = {
   mode: MessageSendMode;
   /** 送った後(結果を出した時)に呼ぶ。一括操作なら選択の解除と一覧の取り直し */
   onSent?: (result: MessageSendResult) => void;
+  /**
+   * 開いているか(渡すと呼び手が持つ = 制御された開閉。メニューの項目などから開く)。渡さなければ hook が持つ。
+   * 閉じるのは Modal の閉じる求め(setOpen(false) → onOpenChange(false))で: そこで全部を初めに戻し鍵を新しくする。
+   * 呼び手が自分で open を false にすると書きかけが残る(次に開いた時に続きから)
+   */
+  open?: boolean;
+  /** 開く・閉じるの求め(制御された開閉の時は呼び手がこれで open を変える) */
+  onOpenChange?: (open: boolean) => void;
 };
 
-export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions) {
+export function useMessageSendModal({ mode, onSent, open: openProp, onOpenChange }: UseMessageSendModalOptions) {
   const gate = useGate();
   const isBulk = mode.type === "bulk";
-  const [open, setOpenState] = useState(false);
+  const controlled = openProp !== undefined;
+  const [openState, setOpenState] = useState(false);
+  const open = controlled ? openProp : openState;
   const [kindState, setKindState] = useState<string | null>(null);
   const [chosenCategory, setChosenCategory] = useState<string | null>(null);
   const [targetState, setTargetState] = useState<MessageSendTarget | null>(null);
@@ -680,14 +690,19 @@ export function useMessageSendModal({ mode, onSent }: UseMessageSendModalOptions
     resetEstimate();
   }, [resetText, resetSteps, closePreview, resetEstimate]);
 
-  /** 開く・閉じる(閉じたら全部を初めに戻す。書きかけの確かめは Modal の confirmOnClose) */
+  /**
+   * 開く・閉じるの求め(制御されていれば呼び手へ、されていなければ hook の状態を変える。書きかけの確かめは Modal の confirmOnClose)。
+   * 閉じたら全部を初めに戻し、鍵も新しくする: 呼び手が外から開いた時(メニューの項目など、この関数を通らない)も使っていない鍵で始まる。
+   * 開く時も鍵を新しくする(どちらで開いても 1 回の開きに 1 つの鍵)
+   */
   const setOpen = useCallback(
     (next: boolean) => {
-      setOpenState(next);
-      if (next) renewKey();
-      else reset();
+      if (!controlled) setOpenState(next);
+      if (!next) reset();
+      renewKey();
+      onOpenChange?.(next);
     },
-    [reset, renewKey],
+    [controlled, onOpenChange, reset, renewKey],
   );
 
   const loadedTemplate = text.source?.type === "template" ? text.source : null;

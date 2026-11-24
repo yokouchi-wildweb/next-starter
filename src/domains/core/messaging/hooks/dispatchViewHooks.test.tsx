@@ -1,6 +1,6 @@
 // 送信の詳細と利用者ごとの履歴の公開の hook の検査(jsdom の上で描く。client service は偽物、D210・D215)。
 // - useDispatchReaders: 送信の既読した利用者をカーソルで取る(limit を渡す)、送信が無ければ取らない、続きの印で hasMore
-// - useUserMessageHistory: 利用者の履歴をカーソルで取る、利用者が無ければ取らない
+// - useUserMessageHistory: 利用者の履歴をカーソルで取る、sentBy を渡す、利用者が無ければ取らない
 // 実行: pnpm test src/domains/core/messaging/hooks/dispatchViewHooks.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -35,11 +35,11 @@ const HISTORY_ROW = {
   messageKey: null,
   kind: "notice",
   source: "messaging.adminBroadcast",
-  channel: "inApp",
-  status: null,
+  actor: { id: "a1", type: "admin" },
+  reason: null,
   headings: { inApp: "お知らせ" },
+  channels: [{ channel: "inApp", status: null, sentAt: null }],
   createdAt: "2026-11-01T00:00:00.000Z",
-  sentAt: null,
 };
 mock.module("@/domains/core/messaging/services/client/userHistoryClient", {
   namedExports: {
@@ -108,8 +108,15 @@ test("useDispatchReaders: 送信の既読した利用者をカーソルで取る
 test("useUserMessageHistory: 利用者の履歴をカーソルで取る(共有のお知らせの行も同じ形)", async () => {
   const view = await mount(() => hooks.useUserMessageHistory("u1"));
   await settle();
-  assert.deepEqual(calls[0], ["history", "u1", { cursor: null, limit: 50 }]);
+  assert.deepEqual(calls[0], ["history", "u1", { cursor: null, limit: 50, sentBy: undefined }]);
   assert.deepEqual(view.value().items, [HISTORY_ROW]);
   assert.equal(view.value().hasMore, false);
+  await view.unmount();
+});
+
+test("useUserMessageHistory: sentBy(admin = 運営の送信だけ)を client へ渡す", async () => {
+  const view = await mount(() => hooks.useUserMessageHistory("u1", { sentBy: "admin" }));
+  await settle();
+  assert.deepEqual(calls[0], ["history", "u1", { cursor: null, limit: 50, sentBy: "admin" }]);
   await view.unmount();
 });

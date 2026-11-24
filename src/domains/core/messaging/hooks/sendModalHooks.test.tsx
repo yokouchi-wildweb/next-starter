@@ -10,6 +10,7 @@
 // - レイアウト: 選べるのは管理画面で選べる物だけ / 替えると白紙(前の値を持ち越さない)・書きかけがあれば確かめる / 読み込んだテンプレートは外れる /
 //   種別を替えてもレイアウトと文はそのまま(テンプレートは外れる)
 // - initialRecipients(new): 宛先は「選んだ利用者」のその人たちから(重なりは 1 つ)、変えられる、/send の体の宛先
+// - 制御された開閉(open / onOpenChange): 呼び手が開く、閉じる求めは onOpenChange へ、そこで初めに戻り鍵を新しく(開き直すと別の鍵)
 // - sameAs: カテゴリー → 種別・宛先の形・送信の中身(レイアウト + values)を写す / テンプレートの送信は今の版を読み込む(専用の値も)/
 //   直して送信した物は直した文で文面を直す状態から / 公開中でないテンプレートは送信のレイアウト + 知らせ / 管理画面で選べないレイアウトの送信は知らせ
 // - グループ宛て: 選ぶまで止まる・体 target group・上限超えは確認で送れない / sameAs のグループ(選べなければ知らせ、全員に広げない)
@@ -18,7 +19,7 @@
 // 実行: pnpm test src/domains/core/messaging/hooks/sendModalHooks.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
-import { createElement } from "react";
+import { createElement, useState } from "react";
 import { JSDOM } from "jsdom";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>");
@@ -718,6 +719,38 @@ test("レイアウト: 選んで替える(白紙から・書きかけは確か�
   if (m().pendingLayout) await act(async () => m().confirmLayout());
   assert.equal(m().loadedTemplate, null);
   assert.deepEqual(m().text.values, { subject: "" });
+  await view.unmount();
+});
+
+test("制御された開閉: 呼び手の open で開き、閉じる求めは onOpenChange へ、閉じると初めに戻り、開き直すと別の鍵", async () => {
+  const asked: boolean[] = [];
+  const view = await mount(() => {
+    const [isOpen, setIsOpen] = useState(false);
+    const modal = hooks.useMessageSendModal({
+      mode: NEW as never,
+      open: isOpen,
+      onOpenChange: (next: boolean) => {
+        asked.push(next);
+        setIsOpen(next);
+      },
+    });
+    return { modal, setIsOpen };
+  });
+  const m = () => view.value().modal;
+  assert.equal(m().open, false);
+  await act(async () => view.value().setIsOpen(true));
+  assert.equal(m().open, true, "呼び手(メニューの項目など)が開く");
+  const firstKey = m().buildSendInput().idempotencyKey;
+  await act(async () => m().setKind("direct"));
+  await typeField(m, "subject", "書きかけ");
+  assert.equal(m().dirty, true);
+  await act(async () => m().setOpen(false));
+  assert.deepEqual(asked, [false], "閉じる求めは呼び手へ");
+  assert.equal(m().open, false);
+  assert.equal(m().dirty, false, "閉じると初めに戻る");
+  await act(async () => view.value().setIsOpen(true));
+  assert.notEqual(m().buildSendInput().idempotencyKey, firstKey, "開き直すと別の鍵");
+  assert.equal(m().dirty, false);
   await view.unmount();
 });
 

@@ -64,6 +64,10 @@ export type MessageSendModalProps = {
   onSent?: (result: MessageSendResult) => void;
   /** 送信一覧の住所(既定 /admin/messaging)。送った後の「送信の詳細」は <住所>?dispatch=<id>(一覧の上のモーダル、D130) */
   dispatchBasePath?: string;
+  /** 開いているか(渡すと制御された開閉: 開くボタンを描かず、呼び手がメニューの項目などから開く)。渡さなければ開くボタン + 自分の状態 */
+  open?: boolean;
+  /** 開く・閉じるの求め(制御された開閉の時、呼び手がこれで open を変える) */
+  onOpenChange?: (open: boolean) => void;
 };
 
 const DEFAULT_LABEL: Record<MessageSendMode["type"], string> = { new: "新規送信", sameAs: "同じ内容で送る", bulk: "一括送信" };
@@ -96,9 +100,11 @@ export function MessageSendModal({
   icon,
   onSent,
   dispatchBasePath = "/admin/messaging",
+  open,
+  onOpenChange,
 }: MessageSendModalProps) {
   const { showToast } = useToast();
-  const m = useMessageSendModal({ mode, onSent });
+  const m = useMessageSendModal({ mode, onSent, open, onOpenChange });
   const tags = useVarTags({ catalog: m.varCatalog });
   const bulk = mode.type === "bulk" ? mode : null;
   const text = m.text;
@@ -393,7 +399,7 @@ export function MessageSendModal({
   const title = label ?? DEFAULT_LABEL[mode.type];
   return (
     <>
-      {mode.type === "new" ? (
+      {open !== undefined ? null : mode.type === "new" ? (
         // 一覧の上の「新規送信」は管理一覧の「新規作成」と同じ形(CreateButton。アイコンは送る印)
         <CreateButton icon={Send} label={title} variant={triggerVariant} disabled={disabled} onClick={() => m.setOpen(true)} />
       ) : (

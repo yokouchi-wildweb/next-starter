@@ -5,6 +5,7 @@
 // - 確認の段は「送信する」(予約なら「予約する」)で confirmSend、「戻る」で backToEdit、上限を超えたら送れない / 結果の段(送信へのリンクは dispatchDetailHref)
 // - 手で直した書きかけの上に読み込む時は Dialog で確かめる(置き換える → confirmLoad、閉じる → cancelLoad)。レイアウトを替える時も同じ(confirmLayout / cancelLayout)
 // - 開く口: 送信の一覧の「新規送信」は門 messagingBroadcast が開の時だけ
+// - 制御された開閉: open を渡すと開くボタンを描かず、open / onOpenChange を hook へ渡す
 // 実行: pnpm test src/domains/core/messaging/components/MessageSendModal/MessageSendModal.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -59,6 +60,8 @@ const baseText = () =>
     setVars: () => {},
   }) satisfies Over<SendTemplateTextState>;
 
+/** hook useMessageSendModal に渡した物(制御された開閉の受け渡しを見る) */
+let hookOptions: Record<string, unknown> = {};
 /** hook useMessageSendModal の偽物 */
 const baseState = () =>
   ({
@@ -153,7 +156,12 @@ let state: Record<string, unknown> = {};
 const make = (over: Over<MessageSendModalState> = {}) => ({ ...baseState(), ...over });
 
 mock.module("@/domains/core/messaging/hooks/useMessageSendModal", {
-  namedExports: { useMessageSendModal: () => state as unknown as MessageSendModalState },
+  namedExports: {
+    useMessageSendModal: (options: Record<string, unknown>) => {
+      hookOptions = options;
+      return state as unknown as MessageSendModalState;
+    },
+  },
 });
 mock.module("@/domains/core/messaging/hooks/useVarTags", {
   namedExports: { useVarTags: () => ({ common: [], own: [], copy: async () => {} }) },
@@ -457,6 +465,19 @@ test("開く口: 送信の一覧の「新規送信」は門 messagingBroadcast �
   const closedButton = await render(createElement(AdminDispatchSendButton));
   assert.equal(button(closedButton.container, "新規送信"), undefined);
   await closedButton.unmount();
+});
+
+test("制御された開閉: open を渡すと開くボタンを描かず、open / onOpenChange を hook へ渡す(渡さなければ今のボタン)", async () => {
+  const onOpenChange = () => {};
+  const controlled = await render(createElement(MessageSendModal, { mode: NEW, open: true, onOpenChange }));
+  assert.equal(button(controlled.container, "新規送信"), undefined, "メニューの項目などから開くのでボタンは無い");
+  assert.equal(hookOptions.open, true);
+  assert.equal(hookOptions.onOpenChange, onOpenChange);
+  await controlled.unmount();
+  const plain = await render(createElement(MessageSendModal, { mode: NEW }));
+  assert.ok(button(plain.container, "新規送信"));
+  assert.equal(hookOptions.open, undefined);
+  await plain.unmount();
 });
 
 test("手で直した書きかけの上に読み込む時は Dialog で確かめる", async () => {

@@ -125,7 +125,7 @@
 ### 続きを送る・利用者ごとの履歴
 
 - `POST /dispatches/[id]/continue`（continueSending.ts）: 1 束だけ進める（展開 1 束 + 送る 1 束 + 閉じられるなら閉じる）。`processing` 以外は 409 → `{ expanded, claimed, sent, failed, completed }`。監査 `messaging.dispatch.continued`
-- `GET /users/[userId]/history?cursor&limit`（門の外）→ `messagingService.listUserMessageHistory(userId, { cursor, limit })`（`../history`）→ `{ items, nextCursor }`: その利用者の配達（`type: "delivery"`、1 行 = 1 送信チャンネル）と、その利用者の受け取り箱に見える全員・ロールの共有のお知らせ（`type: "sharedInApp"`、`status`・`sentAt` は null）を新しい順に 1 本で。本文・宛先・provider の値は出さない。形と出ない物は ../history/README.md。client `getAdminUserMessageHistory`（`services/client/userHistoryClient.ts`）、hook `useUserMessageHistory`
+- `GET /users/[userId]/history?cursor&limit&sentBy`（門の外）→ `messagingService.listUserMessageHistory(userId, { cursor, limit, sentBy })`（`../history`）→ `{ items, nextCursor }`: その利用者が受けた送信（`type: "dispatch"`、1 行 = 1 送信、配達は `channels`）と、その利用者の受け取り箱に見える全員・ロールの共有のお知らせ（`type: "sharedInApp"`）を新しい順に 1 本で。送った人 `actor`・理由 `reason` を持ち、`sentBy` = admin / system で運営の送信と自動の送信を分ける。本文・宛先・provider の値は出さない（本文は送信の詳細）。形と出ない物は ../history/README.md。client `getAdminUserMessageHistory`（`services/client/userHistoryClient.ts`）、hook `useUserMessageHistory`
 
 ## Verification
 
