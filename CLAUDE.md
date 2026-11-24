@@ -64,7 +64,7 @@ items/<lib|domains|components>/<name>.md: item card (what / use / change / rules
 service/<business>.md: business overview of a tier that defines a business (domains, relations, flows, terms), always loaded | written by that tier, never edited below (check) | not src/business (= business identity values)
 lineage.md: rules a tier passes to its downstream, one section per tier, never edit an ancestor's section (→ /order <its owner>) | ref: lineage.md preamble
 shortcuts.md, term-aliases.md: upstream above the `fork entries below` marker, own below | other own rules: in .claude/rules/ outside core/, plain names, never restate core | Tier1's own rule files = core/, items/ and its self files
-self_files (CHANGE_TYPES 5): .claude/rules/project.md (overview + tier-only info), .claude/rules/behavior.md (work rules), repo.json (machine values, written only through its command, read only via forkIds.mjs), root code configs (read the core body), vercel.json (only a repo that deploys to Vercel) | → core/design.md self_files
+self_files (CHANGE_TYPES 5): .claude/rules/project.md (overview + tier-only info), .claude/rules/behavior.md (work rules), repo.json (machine values, written only through its command, read only via forkIds.mjs), root code configs (read the core body), vercel.json (only a repo that deploys to Vercel), backend-selection.json (the backend selection table) | → core/design.md self_files
 
 ## CHANGE_TYPES (the only five ways to change what a parent owns: the owner declares, the repo below uses)
 types: 1 replace = switch \<name\>.ts → \<name\>.default, fork \<name\>.replace (a screen: a plain _components/\<X\>Screen.tsx, no mark; a frame: _layout/\<Layout\>.replace) | 2 override = \<target\>.override.ts, declared keys only | 3 add = an item in your own plugs/\<point\>/ | 4 counterpart = src/styles/, src/config/ | 5 self = same path, each repo writes its own version (self_files)
@@ -72,6 +72,8 @@ types: 1 replace = switch \<name\>.ts → \<name\>.default, fork \<name\>.replac
 - 5 self: your own version, or the parent's as is | a take-in that drops your lines → /flux asks | port the parent's diff by hand, only what fits | → core/change.md 5 self
 upstream_side: a repo makes its own thing changeable below only by declaring it: 1 a \<name\>.default beside a plain 1-line switch | 2 the keys an override may set (overrideOf / overrides) | 3 a receptacle in its extensionPoints.ts | 4 a counterpart for values | two levels, one reader → core/receptacles.md
 - 5 self: nothing to declare, the list of self files is closed and only Tier1 extends it | a new repo.json key gets a reader default, a required one ships a notice + migration tool
+design_check: before building a new lib, domain, mechanism, config or file place (any tier) → name the change type (1-5) or upstream-only of every place a repo below writes or changes in it, declared as upstream_side says | none fits → do not build it: change the design, or a new type through the window
+- never a place named after a repo: repo-named records are not a model (→ core/ownership.md repo_records)
 order: 1 a public means is enough → use it | 2 one of the five types at a declared point | 3 none → /order <direct parent> + temporary permit | never invent another way (fork-name marks, keep-own merge settings, edits outside intake points without a permit)
 
 ## STACK
@@ -124,6 +126,7 @@ inspect: DB / Firestore investigation → pnpm ops db inspect | pnpm ops firesto
 ## BACKENDS (DB, Firebase, servers; detail → core/backends.md)
 unconfigured: DB / Firebase env may be empty after pnpm ops setup env → always-mounted paths (core/backends.md) and new ones never crash while unconfigured | configured-but-unreachable still throws (never hide outages)
 doctrine: new domains default dbEngine "Neon" | Firestore = realtime delivery only, when realtime UX is the essential requirement | no business data in Firestore, no logic in Firebase Functions | hot-path realtime → realtimeRoom | → core/backends.md doctrine
+selection: the backend selection table (root backend-selection.json, type 5 self) picks one implementation per port | → core/backends.md selection
 servers: standalone programs outside Next/Vercel live in servers/\<name\>/ (own package.json, not in the pnpm workspace) | src→servers forbidden
 
 ## CORE_FILES (ownership: who edits what)

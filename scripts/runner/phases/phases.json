@@ -60,7 +60,8 @@
       "agent-terminal",
       "local-migrations",
       "skills",
-      "terms"
+      "terms",
+      "repo-paths"
     ]
   }
 }

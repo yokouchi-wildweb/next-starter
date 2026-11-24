@@ -19,7 +19,7 @@ describe("selfProblems(純な判定)", () => {
     assert.equal(SELF_CHECK_DEFAULT, true);
   });
 
-  test("Tier1: 必ず持つ 6 つがあり self の行がちょうど 7 行(持たなくてよい vercel.json は無くてよい)なら問題なし", () => {
+  test("Tier1: 必ず持つ 6 つがあり self の行がちょうど 8 行(持たなくてよい vercel.json は無くてよい)なら問題なし", () => {
     const result = selfProblems({ isTier1: true, selfRows: [...SELF_FILES], head: files("a", "b"), merge: null, parentNow: null });
     assert.deepEqual(result, { problems: [], asks: [], unverified: [] });
   });
@@ -27,10 +27,10 @@ describe("selfProblems(純な判定)", () => {
   test("持たなくてよい vercel.json: あってもなくても問題なし、self の行から抜けたら self-rows(足りない vercel.json)", () => {
     const held = selfProblems({ isTier1: true, selfRows: [...SELF_FILES], head: { ...files("a", "b"), "vercel.json": "{}\n" }, merge: null, parentNow: null });
     assert.deepEqual(held, { problems: [], asks: [], unverified: [] });
-    assert.deepEqual(SELF_OPTIONAL, ["vercel.json"]);
-    const rows = selfProblems({ isTier1: true, selfRows: [...SELF_REQUIRED], head: files("a", "b"), merge: null, parentNow: null });
+    assert.deepEqual(SELF_OPTIONAL, ["vercel.json", "backend-selection.json"]);
+    const rows = selfProblems({ isTier1: true, selfRows: [...SELF_REQUIRED, "backend-selection.json"], head: files("a", "b"), merge: null, parentNow: null });
     assert.deepEqual(kinds(rows), ["self-rows src/lib/forkOwnership/intake.txt"]);
-    assert.match(rows.problems[0].message, /7 行でない\(足りない: vercel\.json\)/);
+    assert.match(rows.problems[0].message, /8 行でない\(足りない: vercel\.json\)/);
   });
 
   test("ファイルが無い = self-missing、行の集合が違う = self-rows", () => {

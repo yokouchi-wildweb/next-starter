@@ -1,0 +1,1 @@
+{ "check": "check.mjs", "phases": ["ship"], "watch": ["**/*next-starter*", "**/*next-starter*/**", "scripts/workflow/repo-paths/**", "repo.json", "src/lib/forkOwnership/forkIds.mjs"] }

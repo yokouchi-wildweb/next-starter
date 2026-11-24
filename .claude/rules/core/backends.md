@@ -5,9 +5,10 @@ paths:
   - "src/domains/*/room/**"
   - "src/lib/drizzle/**"
   - "src/lib/firebase/**"
+  - "backend-selection.json"
 ---
 # backends
-> **ROLE**: loaded when writing standalone servers, realtimeRoom or the DB / Firebase backends | holds the BACKENDS rules (unconfigured, doctrine, servers)
+> **ROLE**: loaded when writing standalone servers, realtimeRoom, the DB / Firebase backends or the backend selection table | holds the BACKENDS rules (selection, unconfigured, doctrine, servers)
 > Tier1-owned: forks never edit (gap → /order next-starter)
 
 doctrine: new domains default dbEngine "Neon" | Firestore = realtime delivery channel only, chosen only when realtime UX is the essential requirement | no business data in Firestore, no logic in Firebase Functions (Firebase = auth / delivery; files = GCS via lib/storage, Firebase Storage rules = shipped deny-all) | ref: docs/!must-read/バックエンド構成ドクトリン.md
@@ -16,6 +17,9 @@ doctrine: new domains default dbEngine "Neon" | Firestore = realtime delivery ch
 - hot-path realtime (sustained ~1 write/sec+ shared state, 100s+ subscribers, single-TX threshold semantics) → realtimeRoom, not Firestore
 servers: standalone programs outside Next/Vercel live in servers/\<name\>/ (own package.json, not in the pnpm workspace) | current: servers/room/ = realtime room authority (Cloudflare Durable Objects, opt-in default off, fail-closed) | before touching servers/ or enabling room → read servers/room/README.md + src/lib/realtimeRoom/README.md
 - rules: servers→src imports = @/lib/realtimeRoom/node (the shared protocol) + domains/*/room ONLY | src→servers forbidden | room reducer = domains/\<domain\>/room/ (pure, lint realtime-room/purity) | economy/authority actions = server dispatch (createRoomClient) ONLY, Postgres stays authoritative | protocol breaking change → bump ROOM_PROTOCOL_VERSION
+
+selection: the backend selection table = root backend-selection.json (type 5 self) | key = a port's name, value = the name of the implementation every selecting point of that port picks | written by its command, read only by the generator and the checks
+- accepted fork-binding checks: generate and check stop on a missing key, an unknown name, fake selected, or unmet backendRequirements | the generator and checks themselves come with the backend kit
 
 unconfigured: DB / Firebase env (DATABASE_URL, MY_SERVICE_ACCOUNT_KEY, NEXT_PUBLIC_FIREBASE_*) may all be empty right after pnpm ops setup env, and the app still boots | ref: src/lib/firebase/README.md
 - detect: isDatabaseConfigured (@/lib/drizzle) | isFirebaseClientConfigured (@/lib/firebase/client) | isFirebaseServerConfigured (@/lib/firebase/server) | these detect "not configured" only: configured-but-unreachable still throws (never hide outages)

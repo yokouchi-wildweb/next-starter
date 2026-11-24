@@ -27,7 +27,10 @@
     { "en": "config values", "ja": "設定値", "meaning": "src/config の値のファイル", "decisions": ["D19"] },
     { "en": "core", "ja": "core", "meaning": "Tier1 が配って持つ物の 1 義", "decisions": ["D19"] },
     { "en": "always-open", "ja": "常設", "meaning": "どの機能も載せない、常に開いたドメイン(明示の宣言)", "decisions": ["D19", "D24"] },
-    { "en": "base", "ja": "分岐点", "meaning": "親との merge-base だけ(常設の意味では使わない)", "decisions": ["D19"] }
+    { "en": "base", "ja": "分岐点", "meaning": "親との merge-base だけ(常設の意味では使わない)", "decisions": ["D19"] },
+    { "en": "backend selection table", "ja": "バックエンドの選択表", "meaning": "根の backend-selection.json(固有型): 口の名前 → 口の全部の選ぶ点が選ぶ実装の名前。命令が書き、生成器と検査だけが読む", "decisions": ["foundation:D17", "foundation:D18"] },
+    { "en": "selecting point", "ja": "選ぶ点", "meaning": "口(port)の実装を選択表の名前で 1 つ選ぶ増設点(port: を名乗る。点が 1 つの口は点 = 口)", "decisions": ["foundation:D17"] },
+    { "en": "capability name", "ja": "能力の名前", "meaning": "<口>.<語>。口の実装の provides・requires に書く名前(語は口の持ち主の選ぶ点の宣言と増設点 backendCapabilities が持つ)", "decisions": ["foundation:D29"] }
   ],
   "wrong": [
     { "say": "src/domains", "pattern": "src/features(?![A-Za-z0-9_-])", "kind": "text", "in": "both", "decisions": ["D10", "D43"] },

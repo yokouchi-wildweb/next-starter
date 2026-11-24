@@ -40,3 +40,6 @@ use: write these words with these meanings | `-` = no Japanese word decided | th
 - core: core | Tier1 が配って持つ物の 1 義
 - always-open: 常設 | どの機能も載せない、常に開いたドメイン(明示の宣言)
 - base: 分岐点 | 親との merge-base だけ(常設の意味では使わない)
+- backend selection table: バックエンドの選択表 | 根の backend-selection.json(固有型): 口の名前 → 口の全部の選ぶ点が選ぶ実装の名前。命令が書き、生成器と検査だけが読む
+- selecting point: 選ぶ点 | 口(port)の実装を選択表の名前で 1 つ選ぶ増設点(port: を名乗る。点が 1 つの口は点 = 口)
+- capability name: 能力の名前 | <口>.<語>。口の実装の provides・requires に書く名前(語は口の持ち主の選ぶ点の宣言と増設点 backendCapabilities が持つ)

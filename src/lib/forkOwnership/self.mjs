@@ -1,6 +1,6 @@
-// 型 5 self の検査(各リポが自分の版を持つファイル: 必ず持つ 6 つ + 持たなくてよい vercel.json、D295・D299)。中身は見ない: 落とすのは 3 つだけ
+// 型 5 self の検査(各リポが自分の版を持つファイル: 必ず持つ 6 つ + 持たなくてよい vercel.json・backend-selection.json、D295・D299)。中身は見ない: 落とすのは 3 つだけ
 //   1 self-missing   必ず持つファイルが無い(持たなくてよい物は無くてよい = Vercel にデプロイしないリポ)
-//   2 self-rows      受け口の一覧の self の行が決まった 7 行ちょうどでない
+//   2 self-rows      受け口の一覧の self の行が決まった 8 行ちょうどでない
 //   3 self-overview  Tier1 でないリポの project.md(概要)が直接の親の今の版と同じまま
 // 落とさず聞く物(asks、/flux が人に聞く。D280):
 //   self-parent-lost 取り込みの前は自分の版(前に取り込んだ親の版と違う)だったのに、取り込みで親の版と同じになった
@@ -13,8 +13,11 @@
  * (playwright は読まなくてよい)。Tier1 の版は本体をそのまま使う
  */
 export const SELF_REQUIRED = [".claude/rules/project.md", ".claude/rules/behavior.md", "repo.json", "next.config.ts", "eslint.config.mjs", "playwright.config.ts"];
-/** 持たなくてよい self(持つなら自分の版。vercel.json = Vercel にデプロイするリポだけ、crons は pnpm generate cron の出力) */
-export const SELF_OPTIONAL = ["vercel.json"];
+/**
+ * 持たなくてよい self(持つなら自分の版)。vercel.json = Vercel にデプロイするリポだけ、crons は pnpm generate cron の出力 /
+ * backend-selection.json = バックエンドの選択表(口 → 実装の名前)。Tier1 の版と埋める命令が出るまでは持たなくてよい(出す時に必ず持つ方へ移す)
+ */
+export const SELF_OPTIONAL = ["vercel.json", "backend-selection.json"];
 /** self の全部(受け口の一覧の self の行・取り込みで親の版になったかの問い・中継の対象外はこれを読む) */
 export const SELF_FILES = [...SELF_REQUIRED, ...SELF_OPTIONAL];
 export const SELF_OVERVIEW_FILE = ".claude/rules/project.md";
