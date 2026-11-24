@@ -81,7 +81,7 @@ core_ui の形: 流れとデータは hook（`hooks/index.ts` から）、部品
 - 上流の項目を変える道（D198）:
   - 一覧の一括送信は一覧の部品の中に手で書かず、受け口 `adminBulkActions` の項目にする（`definitionBulkAction` / `bulkMessageAction`）
   - 文面 → 連絡定義の上書き `plugs/messages/<名前>.override.ts` の `values` か、管理画面のテキストの編集
-  - 送信チャンネル → カテゴリーの上書き `categories/<名前>.override.ts` の `channels`（定義ごとの固定は連絡定義の上書きの `channelModes`）
+  - 送信チャンネル → カテゴリーの上書き `plugs/messagingCategories/<名前>.override.ts`（上流の項目の隣）の `channels`（定義ごとの固定は連絡定義の上書きの `channelModes`）
   - 所属のカテゴリー → 連絡定義の上書きの `category`（D166）
   - 送れる連絡定義の並び → 記録の宛先の上書き `plugs/recordTargets/<名前>.override.ts` の `messages`
   - 見た目と流れ → 上流の項目を `<名前>.override.ts` で `enabled: false` にし、自前のモーダルを置く自分の項目を足す
@@ -130,7 +130,7 @@ export const bulkAction = definitionBulkAction({ key: "<名前>", order: 100 }, 
 
 ### 管理一覧の自由連絡の一括送信（AdminBulkSend）
 
-受け口 `adminBulkActions` の項目を作る関数（自由連絡: 一覧で選んだ記録の人へその場で書いて送る）。決まった文面を送る一括操作は上の `definitionBulkAction`。対に持ち主のドメインの記録の宛先 `<domain>/recordTargets/<名前>.ts` が要る（../services/server/admin/README.md）。
+受け口 `adminBulkActions` の項目を作る関数（自由連絡: 一覧で選んだ記録の人へその場で書いて送る）。決まった文面を送る一括操作は上の `definitionBulkAction`。対に持ち主のドメインの記録の宛先 `<domain>/plugs/recordTargets/<名前>.ts` が要る（../services/server/admin/README.md）。
 
 ```tsx
 // src/domains/<domain>/adminBulkActions/notify.tsx

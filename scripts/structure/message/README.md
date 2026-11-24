@@ -26,7 +26,7 @@ pnpm generate message -- <domain> <name> --category <key> --label <名前> [--va
 ### 書く物
 
 - 書く物(無い時だけ。あれば触らず「残しました」と出して exit 0):
-  - `src/domains/<domain>/messages/<name>.ts` — 定義(`defineMessage`。鍵 `<domain>.<name>`・category・`--var` の vars(各 `z.string()`)と `varNames`(無ければ空の vars と `varNames: {}`)・レイアウト `layout: "notice"`(汎用)と欄の中身 `values`(件名 + 段落のブロック)。種別と送信チャンネルは書かない = カテゴリーから引く)。秘密の値(`secretVar`)・管理画面で直せる欄の絞り(`adminEditableOnly`、無ければ全部の欄を直せる)・会話の間引き(`throttle`)・本文の残し方(`record`)は注記の行で案内するだけで付けない
+  - `src/domains/<domain>/plugs/messages/<name>.ts` — 定義(`defineMessage`。鍵 `<domain>.<name>`・category・`--var` の vars(各 `z.string()`)と `varNames`(無ければ空の vars と `varNames: {}`)・レイアウト `layout: "notice"`(汎用)と欄の中身 `values`(件名 + 段落のブロック)。種別と送信チャンネルは書かない = カテゴリーから引く)。秘密の値(`secretVar`)・管理画面で直せる欄の絞り(`adminEditableOnly`、無ければ全部の欄を直せる)・会話の間引き(`throttle`)・本文の残し方(`record`)は注記の行で案内するだけで付けない
   - 描き方は書かない: 見た目はレイアウトが持つ(どの送信チャンネルもレイアウトの描き方・送信チャンネルの汎用・要約のどれかで描く)。別の見た目は `src/domains/core/messaging/plugs/messagingLayouts/<名前>/` のレイアウトを選ぶか足し、`layout` と `values` の欄の鍵を合わせる
 
 ### exit

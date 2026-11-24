@@ -154,7 +154,7 @@ export const messageOverride = {
 連絡の見た目の型。レイアウト = 欄の宣言・仮の文・要約(必須)・管理者が選べる印・改版の対応。種別・カテゴリー・送信チャンネルを知らない(送信チャンネルだけの欄は欄の `channels` に送信チャンネルの鍵を値として持つだけ)。送信チャンネルごとの描き方はレイアウトのフォルダのファイル(server = email、client = inApp)が持ち、型は持たない。連絡定義はレイアウトの鍵と欄の中身を持ち、送る口は送信チャンネルごとに下の 3 段で描く(送信チャンネルは自分の欄を持たない。管理画面の入力とプレビューもレイアウトの欄の宣言と描き方から。なぜこの形か = src/domains/core/messaging/Internals.md)。
 
 - `defineMessageLayout({ key, label, description?, fields, summary, adminSelectable?, disabled?, version?, revisions? })`: 欄の宣言から中身の型(`MessageLayoutValues`)を引く。`version` = 版(既定 1、`layoutVersionOf`)
-- `disabled`(既定 false)= 無効: 上流のレイアウトを fork が `layouts/<名前>/layout.override.ts`(`MessageLayoutOverride` = `disabled`・`adminSelectable` だけ)で付ける。`isLayoutUsable(layout)`(disabled でない)・`isLayoutAdminSelectable(layout)`(使えて adminSelectable)が判定の 1 か所(送る画面・テンプレート・送る口・検査が使う)
+- `disabled`(既定 false)= 無効: 上流のレイアウトを fork が `plugs/messagingLayouts/<名前>/layout.override.ts`(`MessageLayoutOverride` = `disabled`・`adminSelectable` だけ)で付ける。`isLayoutUsable(layout)`(disabled でない)・`isLayoutAdminSelectable(layout)`(使えて adminSelectable)が判定の 1 か所(送る画面・テンプレート・送る口・検査が使う)
 - 欄の宣言 `MessageFieldSpec`: `type`(語彙)・`label`・`placeholder?`・`required?`・`requiredFor?`(この送信チャンネルのどれかを送る時だけ必須。欄はどの送信チャンネルにも渡る。例 上流の件名 = `["email"]`、D211)・`channels?`(使う送信チャンネルの鍵、無い = 全部。他の送信チャンネルから隠す)。`select` は `options`、`list` は `of`・`min?`・`max?`、`group` は `fields`、`blocks` は `allow?`・`min?`・`max?`
 - 欄の型の語彙(`layout/vocabulary.ts`): `line` 1行テキスト・`paragraph` 段落・`longText` 複数行テキスト・`image` 画像(storage:// の参照か URL)・`button` ボタン `{ label, url }`・`link` リンク `{ label?, url }`・`date` 日付 YYYY-MM-DD・`number` 数・`select` 選択肢・`list` 並び・`group` 組・`keyValue` ラベルと値 `[{ key, value }]`・`blocks` ブロックの並び。型ごとの zod は `fieldValueSchema(shape)`
 - ブロック(`layout/blocks.ts`): `heading` 小見出し・`paragraph` 段落・`button` ボタン・`image` 画像・`divider` 区切り・`keyValueTable` ラベルと値・`bulletList` 箇条書き。`messageBlocksSchema({ allow?, min?, max? })` が許す種類と数で絞る(知らない種類は通らない)
@@ -200,7 +200,7 @@ export const messageOverride = {
 
 管理一覧で選んだ記録 → 宛先を解く項目(D190・D195・D204)。受け口ではなく、連絡定義と同じ道で集める:
 
-- 置き場: 持ち主のドメインの `<domain>/recordTargets/<名前>.ts` に `export const recordTarget: MessageRecordTarget = { key, label, messages, enabled?, resolveRecipients, afterSend? }`。fork の物は fork の自分のドメインに置く(上流のドメインの記録でも、requires を付けて自分のドメインに。D26)
+- 置き場: 持ち主のドメインの `<domain>/plugs/recordTargets/<名前>.ts` に `export const recordTarget: MessageRecordTarget = { key, label, messages, enabled?, resolveRecipients, afterSend? }`。fork の物は fork の自分のドメインに置く(上流のドメインの記録でも、requires を付けて自分のドメインに。D26)
 - 鍵 = `<ドメインのフォルダ名>.<ファイル名>` の文字列リテラル(場所とずれる・重なる = `pnpm generate registry` が止める)。管理 API の `target`、送り元の既定 `<鍵>.bulk`
 - `resolveRecipients(recordIds)` → `MessageRecordRecipient[]` = `{ userId, vars, recordIds }`(1 人 1 件。記録ごとか、まとめるかは項目が決める)。`vars` = 記録から埋める連絡の値
 - `afterSend?(sent: MessageRecordTargetSent)`: 定義連絡の送る口の記録の入口で、送信の受け付けの直後に 1 回(投げても送信は戻らない。自由連絡の一括送信は呼ばない、D196)。`sent` = `{ recordIds, dispatchId, counts, channels, message, fields }`(`channels` = 使うと決めた送信チャンネル、`message` = 送った連絡定義の鍵、`fields` = テキストの編集の後の欄の中身、差し込む前の字)
@@ -241,7 +241,7 @@ export const messageOverride = {
 - 送信チャンネルの固定(`channelModes`、上書きがあれば上書きの物を丸ごと): required か email を外せない種別(functional・security)の連絡の `email: "off"`
 - required の定義: カテゴリーの送信チャンネルに `"email"` が無い・`adminEditableOnly` が空でない・`throttle` がある。その上書き: `enabled: false`・空でない `adminEditableOnly`・`throttle`(`null` で外すのは通す)
 - 上流(`src/domains/core`)の functional のカテゴリーの連絡(付け替えた後のカテゴリーで見る): 上書きで `enabled: false`
-- カテゴリーの上書き(`categories/<名前>.override.ts`): functional・security のカテゴリーの `channels` から `"email"` を外す・空にする。`group` が 点 messagingCategoryGroups に無い・1 つのグループに別の種別のカテゴリー
+- カテゴリーの上書き(`plugs/messagingCategories/<名前>.override.ts`): functional・security のカテゴリーの `channels` から `"email"` を外す・空にする。`group` が 点 messagingCategoryGroups に無い・1 つのグループに別の種別のカテゴリー
 - 守りに関わる値が変数・式だと止まる。種別の性質は `definition/kinds.ts` を字面で読む
 
 ### 生成の一覧(src/registry/messageRegistry.ts)

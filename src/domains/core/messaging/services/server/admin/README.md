@@ -40,7 +40,7 @@
 - `POST`: 宛先 `{ userIds }` か `{ target, recordIds }`（10,000 人まで）、中身は `/send` と同じ `origin`・`values`・`edited?`・`vars?`・`category`・`channels?`、`idempotencyKey?`（8〜128 文字）・`source?`（既定 `<target>.bulk`、userIds なら `messaging.adminBulk`）・`reason?`・`isTest?`。予約は無い（`scheduledAt` は 400）。知らない鍵は 400
   - → `{ dispatchId, status, counts: { recipientCount, channelCounts, queuedCount } }`
 - `POST /preview`・`POST /test`: `/send` と同じ（テストの送り元 `messaging.adminBulk.test`）
-- 記録の宛先 `<domain>/recordTargets/<名前>.ts`（`MessageRecordTarget`、lib/messaging。生成の一覧 `src/registry/recordTargetRegistry.ts`、読み手は門番 `loadRecordTarget` = 無い鍵・閉じたドメイン・`enabled()` が false は 400）: `key`（= `<ドメインのフォルダ名>.<ファイル名>`）・`label`・`enabled?`・`resolveRecipients(recordIds)` → `[{ userId, vars, recordIds }]`（自由連絡の一括送信は userId だけを使う。記録の値 vars と項目の `afterSend` は定義連絡の送る口の記録の入口だけ、D196: 下の「/api/admin/messaging/definitions」）
+- 記録の宛先 `<domain>/plugs/recordTargets/<名前>.ts`（`MessageRecordTarget`、lib/messaging。生成の一覧 `src/registry/recordTargetRegistry.ts`、読み手は門番 `loadRecordTarget` = 無い鍵・閉じたドメイン・`enabled()` が false は 400）: `key`（= `<ドメインのフォルダ名>.<ファイル名>`）・`label`・`enabled?`・`resolveRecipients(recordIds)` → `[{ userId, vars, recordIds }]`（自由連絡の一括送信は userId だけを使う。記録の値 vars と項目の `afterSend` は定義連絡の送る口の記録の入口だけ、D196: 下の「/api/admin/messaging/definitions」）
 - 監査: `messaging.dispatch.bulk_sent`（送り元・種別・送信チャンネル・数・状態・対象の鍵）
 
 ### `/api/admin/messaging/definitions/**`（definitionSend.ts、D190・D195・D196・D202）

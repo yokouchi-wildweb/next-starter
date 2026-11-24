@@ -8,7 +8,7 @@
 
 ## Internals
 
-### レイアウト（layouts/<名前>/）
+### レイアウト（plugs/messagingLayouts/<名前>/）
 
 形:
 
@@ -115,6 +115,6 @@
 ## Related
 
 - [README.md](README.md) … 使い方・API・受け口
-- [layouts/README.md](layouts/README.md) … レイアウトの作り方と上流のレイアウト
+- [plugs/messagingLayouts/README.md](plugs/messagingLayouts/README.md) … レイアウトの作り方と上流のレイアウト
 - [services/server/templates/README.md](services/server/templates/README.md) … テンプレートの API と保存の検査
 - [src/lib/messaging/README.md](../../../lib/messaging/README.md) … 定義・レイアウト・埋め込み情報の型と検査
