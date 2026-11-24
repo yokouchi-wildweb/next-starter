@@ -105,7 +105,7 @@ await messagingService.sendFreeMessage({
 - `untilRead`（送信チャンネルに inApp）: 同じ鍵の未読のお知らせがあれば置き換える（中身を最新に、`collapsed_count` + 1、前の送信を `collapsed_dispatch_ids` に、`dispatch_id` は今の送信、`published_at` = 今）。inApp の配達は `sent` + `throttled`、ほかの送信チャンネルは `suppressed` + `throttled`（送信の `skipped_throttled`）
 - `window`（と inApp の無い `untilRead`）: 同じ鍵の前の送り（`seconds` 以内に sent か送る途中）があれば間引く。inApp は未読なら置き換え、既読なら新しいお知らせ。間引いた行は window の起点にしない
 - 最初の 1 通・window の後・既読の後はふつうに送る。`{{collapsedCount}}` = ふつうは 1、置き換えた時はその回数（throttle のある連絡だけの鍵）
-- 排他: 鍵の `pg_advisory_xact_lock` を持った取引の中で送信 × 受信者の行を読み直して 1 度だけ決め、その受信者の全部の行に書く（要求の中と cron が重なっても 2 通にならない。送信チャンネルの呼び出しの間は lock を持たない）。お知らせの行はこの取引の中で書く（形は `channels/inApp` の `inAppItemRow`）
+- 排他: 鍵の `pg_advisory_xact_lock` を持った取引の中で送信 × 受信者の行を読み直して 1 度だけ決め、その受信者の全部の行に書く（要求の中と cron が重なっても 2 通にならない。送信チャンネルの呼び出しの間は lock を持たない）。お知らせの行はこの取引の中で書く（形は `src/domains/core/messaging/plugs/messagingChannels/inApp/createInAppChannel.ts` の `inAppItemRow`）
 - 間引くのは受信者ごとの行だけ: 全員・ロール宛て（共有の 1 行）は間引かない。グループ宛てと選んだ宛先は間引く
 - `collapsed_dispatch_ids` は FK を持たない。削除・保持・画像はお知らせの今の `dispatch_id` に従う
 

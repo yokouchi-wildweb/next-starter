@@ -2,7 +2,7 @@
 
 ## Overview
 
-送信チャンネルの点（`extensionPoints.ts` の `messagingChannels`、差す側の `<ドメイン>/plugs/messagingChannels/`）に上流が出す 3 本 email・inApp・line。fork の送信チャンネル（push・SMS など）も同じ形で自分のドメインの `channels/<名前>.ts` に足す。項目の形は src/lib/messaging/README.md「受け口の項目」。
+送信チャンネルの点（`extensionPoints.ts` の `messagingChannels`、差す側の `<ドメイン>/plugs/messagingChannels/`）に上流が出す 3 本 email・inApp・line。fork の送信チャンネル（push・SMS など）も同じ形で自分のドメインの `plugs/messagingChannels/<名前>.ts` に足す（上流の 3 本はフォルダ `<名前>/index.ts`）。項目の形は src/lib/messaging/README.md「受け口の項目」。
 
 - 送信チャンネルの入切: 項目の `enabled: false` は項目が無い送信チャンネルと同じ（配達は `suppressed` + `channel_off`）。門の機能ではない
 - 送信チャンネルは自分の欄を持たない: 中身はレイアウト + 欄の中身（D122）で、管理画面の入力とプレビューはレイアウトの欄の宣言とレイアウトの描き方から
