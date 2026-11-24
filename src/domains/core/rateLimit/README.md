@@ -65,7 +65,7 @@ const { remaining } = await peekRateLimit({ key: { scope: "gachaRaid.play", iden
 ```
 
 - scope はカテゴリの名前か `"<地区>.<名前>"`(自分の地区の名前を先頭に。ほかの形は投げる)
-- `limit` 回まで通す(足すと `limit` を超える要求は拒んで数えない)。カテゴリで数える `checkRateLimit` のずれ(下の API)は持たない
+- `limit` 回まで通す(足すと `limit` を超える要求は拒んで数えない)。カテゴリで数える `checkRateLimit` も同じ(`maxRequests` 回まで)
 
 ### 識別子を変える(ルートの外から直接数える)
 
@@ -103,8 +103,8 @@ const result = await checkRateLimit("apiGeneral", `${ip}:/api/specific`);
 - `checkRateLimit(category, identifier)`: 制限を確かめてカウントを増やす → `{ allowed: boolean, remaining: number, resetAt: Date, count: number }`
 - `getRateLimitStatus(category, identifier)`: 今の状態を返す(カウントは増やさない)
 - `cleanupExpiredRateLimits()`: 期限切れの行を消す(定期に呼ぶ用。上流には呼ぶタスクが無い)
-- `checkRateLimit` は数えた後の値が `maxRequests` に届いた時点で拒むので、窓の中で通るのは `maxRequests - 1` 回(`maxRequests` ≤ 2 は 1 回)。この数えのずれは次の区切り(03-2)で直す。中身は `consumeRateLimit` に `limit = max(1, maxRequests − 1)` を渡す 1 行
-- `checkRateLimit` / `getRateLimitStatus` は名前・引数・戻り値が前と同じ。数えは 1 文の原子的な更新なので、同時に来た要求も上限を超えて通さない
+- `checkRateLimit` = `consumeRateLimit` にカテゴリの規則を渡す。窓の中で `maxRequests` 回まで通す
+- 数えは 1 文の原子的な更新なので、同時に来た要求も上限を超えて通さない
 
 銀行振込の画像の判定専用(`services/server/wrappers/judgmentRateLimit.ts`、識別子は userId):
 

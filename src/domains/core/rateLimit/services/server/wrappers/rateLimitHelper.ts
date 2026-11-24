@@ -2,7 +2,7 @@
 
 import { lt } from "drizzle-orm";
 
-import { RATE_LIMIT_CONFIG, type RateLimitCategory } from "@/domains/rateLimit/config";
+import type { RateLimitCategory } from "@/domains/rateLimit/config";
 import { RateLimitTable } from "@/domains/core/rateLimit/entities/drizzle";
 import type { RateLimitResult } from "@/domains/core/rateLimit/constants";
 import { db } from "@/lib/drizzle";
@@ -10,17 +10,11 @@ import { db } from "@/lib/drizzle";
 import { consumeRateLimit, peekRateLimit } from "../rateLimit";
 
 /**
- * 今の数え方の上限: 窓の最初の 1 回は必ず通し、その後は count + 1 < maxRequests の間だけ通す
- * = maxRequests − 1 回(maxRequests ≤ 2 なら 1 回)。数えのずれ(D21)を 03-2 まで保つためだけの 1 行(D56)
- */
-const legacyLimit = (maxRequests: number) => Math.max(1, maxRequests - 1);
-
-/**
- * レート制限をチェックし、カウントを更新する(consumeRateLimit の上。名前・引数・戻り値・通す回数は今のまま)
+ * レート制限をチェックし、カウントを更新する(consumeRateLimit の上、カテゴリの規則で maxRequests 回まで通す)
  *
  * @param category - 制限カテゴリ（RATE_LIMIT_CONFIG のキー）
  * @param identifier - 識別子（IPアドレス、ユーザーIDなど）
- * @returns RateLimitResult - 許可/拒否の結果と残り回数(remaining = maxRequests − 今の回数、拒否は 0)
+ * @returns RateLimitResult - 許可/拒否の結果と残り回数(remaining = maxRequests − 今の回数)
  *
  * @example
  * const result = await checkRateLimit("signup", request.ip);
@@ -32,17 +26,7 @@ export async function checkRateLimit(
   category: RateLimitCategory,
   identifier: string
 ): Promise<RateLimitResult> {
-  const config = RATE_LIMIT_CONFIG[category];
-  const result = await consumeRateLimit({
-    key: { scope: category, identifier },
-    rule: { window: "fixed", windowSeconds: config.windowSeconds, limit: legacyLimit(config.maxRequests) },
-  });
-  return {
-    allowed: result.allowed,
-    remaining: result.allowed ? config.maxRequests - result.count : 0,
-    resetAt: result.resetAt,
-    count: result.count,
-  };
+  return consumeRateLimit({ key: { scope: category, identifier }, rule: category });
 }
 
 /**

@@ -9,7 +9,7 @@
 // checkRateLimit(カテゴリで事前判定 + 足すを一体にする)を使わず、consumeRateLimit / peekRateLimit を直に使う理由:
 // 1. 「成功時はカウントしない 15分カウンタ」「成功・失敗両方カウントする 24時間カウンタ」という
 //    非対称な運用が必要(読むのは peek、足すのは consume)
-// 2. checkRateLimit は数えのずれ(maxRequests − 1 回で止める)を 03-2 まで持つ。consume は limit 回まで正しく数える
+// 2. 上限はカテゴリでなくこの 2 つの定数(LIMIT_*)で、窓もカテゴリの設定から外す
 // 鍵の scope は rateLimit.judgeFail15m / rateLimit.judgeAttempt24h(固定の窓、行 id = <scope>:<userId>)
 //
 // 識別子は userId 固定。IP ベースだと共有環境で正規ユーザーが巻き添えになるため、

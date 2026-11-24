@@ -3,7 +3,7 @@
 // DATABASE_URL が無ければ skip。列 key が無ければ失敗する(先に pnpm db:push)。
 // - 固定の窓: 1 文の upsert で、並んだ要求でもちょうど limit 回だけ通る / weight / 窓が過ぎれば数え直し / peek は書かない / tx が戻れば数えも戻る
 // - 滑る窓: bucket の行の和で判定、窓の外の bucket は数えない、上限は weight ごと
-// - checkRateLimit / getRateLimitStatus の通す回数と戻り値は前と同じ(maxRequests − 1 回)
+// - checkRateLimit / getRateLimitStatus: カテゴリの maxRequests 回まで通す(D21)
 // 実行: pnpm test --db src/domains/core/rateLimit/services/server/rateLimit.db.test.mts
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -88,7 +88,7 @@ describe("レート制限の数え(実 DB、書いた行は消す)", { skip }, (
     assert.equal(results.filter((r) => r.allowed).length, 10, "同時でも鍵の lock で上限を超えない");
   });
 
-  test("checkRateLimit / getRateLimitStatus: 通す回数と戻り値は前と同じ(maxRequests − 1 回)", async () => {
+  test("checkRateLimit / getRateLimitStatus: maxRequests 回まで通す", async () => {
     const { checkRateLimit, getRateLimitStatus } = await import("./index");
     const { RATE_LIMIT_CONFIG } = await import("../../config");
     const category = "signupEmail" as const;
@@ -97,11 +97,11 @@ describe("レート制限の数え(実 DB、書いた行は消す)", { skip }, (
     assert.equal(await getRateLimitStatus(category, identifier), null);
     const results = [];
     for (let i = 0; i < max + 1; i += 1) results.push(await checkRateLimit(category, identifier));
-    assert.equal(results.filter((r) => r.allowed).length, max - 1);
+    assert.equal(results.filter((r) => r.allowed).length, max);
     assert.deepEqual([results[0].count, results[0].remaining], [1, max - 1]);
     const last = results[results.length - 1];
-    assert.deepEqual([last.allowed, last.remaining, last.count], [false, 0, max - 1]);
+    assert.deepEqual([last.allowed, last.remaining, last.count], [false, 0, max]);
     const status = await getRateLimitStatus(category, identifier);
-    assert.deepEqual([status?.allowed, status?.count, status?.remaining], [true, max - 1, 1]);
+    assert.deepEqual([status?.allowed, status?.count, status?.remaining], [false, max, 0]);
   });
 });

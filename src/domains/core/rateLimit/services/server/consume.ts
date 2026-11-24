@@ -2,7 +2,7 @@
 // 鍵・規則・重みで数える(D24・D56・D57)。consumeRateLimit は数えて足す、peekRateLimit は読むだけ。
 // - 鍵 = { scope, identifier }。scope はカテゴリの名前か "<地区>.<名前>"(どちらでもなければ投げる)
 // - 規則 = カテゴリの名前(固定の窓・windowSeconds・limit = maxRequests)か { window: "fixed" | "sliding", windowSeconds, bucketSeconds?, limit }
-// - limit 回まで通す(正しく数える、D56)。今の checkRateLimit のずれ(1 回少なく止める)は wrappers/rateLimitHelper.ts の 1 行だけが持つ
+// - limit 回まで通す(カテゴリで数える checkRateLimit も同じ、D21)
 // 依存は createRateLimit に渡す(単体テストは偽物の表)。本物の束は ./index.ts
 
 import type { TransactionClient } from "@/lib/drizzle";
