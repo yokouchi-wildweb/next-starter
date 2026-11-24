@@ -25,6 +25,9 @@ export function adjustmentNoticeVars(input: Omit<SendAdjustmentNotificationInput
     delta: formatDelta(input.changeMethod, input.amount, input.walletType),
     balance: formatAmount(input.balanceAfter, input.walletType),
     reasonLine: input.reason ? `\n${REASON_LABEL}: ${input.reason}` : "",
+    // 文面を組み替える fork 向け(既定の文面は使わない)
+    amount: formatAmount(input.amount, input.walletType),
+    reason: input.reason ?? "",
   };
 }
 

@@ -126,6 +126,11 @@ test("残高の変更: 題と本文が前の組み立てと同じ(理由のあ�
   assert.equal(render({ ...base, changeMethod: "DECREMENT" }).body, `操作: 減少\n金額: -1,000 ${unit}\n残高: 1,000 ${unit}`);
   assert.equal(render({ ...base, changeMethod: "SET", reason: null }).body, `操作: 残高設定\n金額: 1,000 ${unit}\n残高: 1,000 ${unit}`);
   assert.equal(render({ ...base, changeMethod: "OTHER" }).body, `操作: OTHER\n金額: 1,000 ${unit}\n残高: 1,000 ${unit}`);
+  // 文面を組み替える fork 向けの値: 符号なしの額と理由だけ
+  const vars = adjustmentNoticeVars({ ...base, changeMethod: "DECREMENT", amount: 500, reason: "誤付与の訂正" });
+  assert.equal(vars.amount, `500 ${unit}`);
+  assert.equal(vars.reason, "誤付与の訂正");
+  assert.equal(adjustmentNoticeVars({ ...base, changeMethod: "INCREMENT", reason: null }).reason, "");
 });
 
 test("カテゴリー: 失効の予告・失効・残高の変更はどれも種別 transactional(失効の予告は利用者が止められない D207・D208)。送信チャンネルはカテゴリーから", () => {

@@ -124,7 +124,7 @@ async function playGacha(userId: string, cost: number) {
 ```
 
 - 文面は連絡定義 `plugs/messages/adjustmentNotice.ts`（題「{{currencyLabel}}残高が変更されました」、本文「操作 / 金額 / 残高」の行 + `{{reasonLine}}`）。変える fork は隣に `adjustmentNotice.override.ts` を置く（[messaging README](../messaging/README.md)・src/lib/messaging/README.md）
-- 差し込む値は送り手 `services/server/notification/sendAdjustmentNotification.ts` の `adjustmentNoticeVars` が組む: `currencyLabel`（通貨の label）・`methodLabel`（`config.ts` の `adjustmentNotification.changeMethodLabels`、知らない操作はそのまま）・`delta`（符号付きの額）・`balance`（変更後の残高）・`reasonLine`（理由があれば「改行 + 理由: <理由>」、無ければ空）
+- 差し込む値は送り手 `services/server/notification/sendAdjustmentNotification.ts` の `adjustmentNoticeVars` が組む: `currencyLabel`（通貨の label）・`methodLabel`（`config.ts` の `adjustmentNotification.changeMethodLabels`、知らない操作はそのまま）・`delta`（符号付きの額）・`balance`（変更後の残高）・`reasonLine`（理由があれば「改行 + 理由: <理由>」、無ければ空）・`amount`（符号なしの額、単位付き。例「1,000 コイン」）・`reason`（理由だけ。見出しも改行も付けない、無ければ空）。`amount` と `reason` は既定の文面では使わず、`adjustmentNotice.override.ts` で文面を組み替える時に読む（例「『{{amount}}』が付与されました。」+ 空行 + 「理由: {{reason}}」）
 - 送信の失敗は残高の変更に影響しない（送り手は投げずにログに出す）。取引の連絡なので受信者の好みでは止まらない
 
 ### 取引の取り消し
