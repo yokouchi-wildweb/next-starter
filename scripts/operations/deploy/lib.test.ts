@@ -1,5 +1,5 @@
 // scripts/operations/deploy/lib.test.ts — pnpm test scripts/operations/deploy
-// 本番のデプロイのセーフポイントの止め: --allow-unsafe=<理由> の読み方と guardSafePoint の分かれ方(判定は差し替える。vercel は触らない)
+// 本番のデプロイのセーフポイントの知らせ: reportSafePoint の分かれ方(判定は差し替える。止めない、D317。vercel は触らない)
 // と、上げる木の書き出し exportCommitTree(一時の git の repo で: HEAD の中身とリンクだけ、.env*・未追跡・未 commit は入らない)
 
 import assert from "node:assert/strict";
@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 
-import { exportCommitTree, guardSafePoint, parseAllowUnsafe } from "./lib";
+import { exportCommitTree, reportSafePoint } from "./lib";
 
 test("exportCommitTree: HEAD の中身とリンク(.vercel/project.json)だけを書き出し、.env*・未追跡・未 commit の変更は入らない", () => {
   const repo = mkdtempSync(path.join(tmpdir(), "deploy-repo-"));
@@ -45,53 +45,31 @@ test("exportCommitTree: HEAD の中身とリンク(.vercel/project.json)だけ�
   }
 });
 
-test("parseAllowUnsafe: 無ければ null、理由は取り出して他の引数は順に残す、旗だけ・空の理由は error", () => {
-  assert.deepEqual(parseAllowUnsafe(["--prod"]), { reason: null, rest: ["--prod"], error: null });
-  assert.deepEqual(parseAllowUnsafe(["--target=preview", "--allow-unsafe=急ぎ", "--confirm=production"]), {
-    reason: "急ぎ",
-    rest: ["--target=preview", "--confirm=production"],
-    error: null,
-  });
-  assert.match(parseAllowUnsafe(["--allow-unsafe"]).error ?? "", /理由が空/);
-  assert.match(parseAllowUnsafe(["--allow-unsafe=  "]).error ?? "", /理由が空/);
-});
-
-function harness(verdict: { ok: boolean; line: string; message: string }) {
-  const calls = { verdict: 0, logs: [] as string[], errors: [] as string[], exits: [] as number[] };
+function harness(position: { ok: boolean; line: string; message: string }) {
+  const calls = { position: 0, logs: [] as string[] };
   const deps = {
-    verdict: () => {
-      calls.verdict += 1;
-      return verdict;
+    position: () => {
+      calls.position += 1;
+      return position;
     },
     log: (s: string) => calls.logs.push(s),
-    error: (s: string) => calls.errors.push(s),
-    exit: ((code: number) => {
-      calls.exits.push(code);
-    }) as (code: number) => never,
   };
   return { calls, deps };
 }
 
-test("guardSafePoint: プレビューは判定しない、ok は通す、外れて理由なしは exit(1)、理由があれば理由を出して通す", () => {
-  const bad = { ok: false, line: "before safe/next-starter/20261110-1", message: "本番に出せません: 違う" };
+test("reportSafePoint: プレビューは見ない、上なら ✓、外なら ℹ の 1 行で止めない(D317)", () => {
+  const off = { ok: false, line: "before safe/next-starter/20261110-1", message: "HEAD abc はセーフポイントではありません" };
 
-  const preview = harness(bad);
-  guardSafePoint(false, null, preview.deps);
-  assert.equal(preview.calls.verdict, 0);
+  const preview = harness(off);
+  reportSafePoint(false, preview.deps);
+  assert.equal(preview.calls.position, 0);
+  assert.deepEqual(preview.calls.logs, []);
 
-  const ok = harness({ ok: true, line: "at safe/next-starter/20261110-1", message: "セーフポイント safe/next-starter/20261110-1 の上にいます" });
-  guardSafePoint(true, null, ok.deps);
-  assert.deepEqual(ok.calls.exits, []);
-  assert.deepEqual(ok.calls.logs, ["✓ セーフポイント safe/next-starter/20261110-1 の上にいます"]);
+  const on = harness({ ok: true, line: "at safe/next-starter/20261110-1", message: "セーフポイント safe/next-starter/20261110-1 の上にいます" });
+  reportSafePoint(true, on.deps);
+  assert.deepEqual(on.calls.logs, ["✓ セーフポイント safe/next-starter/20261110-1 の上にいます"]);
 
-  const refused = harness(bad);
-  guardSafePoint(true, null, refused.deps);
-  assert.deepEqual(refused.calls.exits, [1]);
-  assert.deepEqual(refused.calls.errors, ["✗ 本番に出せません: 違う"]);
-
-  const allowed = harness(bad);
-  guardSafePoint(true, "急ぎ", allowed.deps);
-  assert.deepEqual(allowed.calls.exits, []);
-  assert.match(allowed.calls.errors.join("\n"), /--allow-unsafe\): 急ぎ/);
-  assert.match(allowed.calls.errors.join("\n"), /本番に出せません: 違う/);
+  const outside = harness(off);
+  reportSafePoint(true, outside.deps);
+  assert.deepEqual(outside.calls.logs, ["ℹ HEAD abc はセーフポイントではありません"]);
 });

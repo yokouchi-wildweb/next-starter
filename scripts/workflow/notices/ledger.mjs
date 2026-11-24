@@ -7,7 +7,7 @@
 //   --upstream = その区間の merge 先(pick は git merge-base HEAD <upstream>/<branch>)。完全な sha にして書く
 //   --id = 区間の notice の id。1 つにつき 1 行(同じ欄で)
 //   --tail = notice の無い末尾の区間(merge だけ): 1 行 `id:tail-<merge 先の sha の頭 9 桁>`。台帳の最後の upstream: が
-//     もう merge 先なら(手で足した末尾の行など)何も書かない。deployVerdict は台帳の最後の upstream: だけを読むので、
+//     もう merge 先なら(手で足した末尾の行など)何も書かない。deployPosition は台帳の最後の upstream: だけを読むので、
 //     親のセーフポイントが区切りの外の出発の merge にあっても、この行で `at` と読める
 //   --relay = 下流を持つ fork(tier root / middle)だけが書く欄で、そのとき要る(--tail は none 固定)。leaf は渡さない
 //   --picked = 先取りした元の commit(完全な sha にして picked: に書く)

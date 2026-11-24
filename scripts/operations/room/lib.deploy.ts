@@ -1,7 +1,7 @@
 // scripts/operations/room/lib.deploy.ts
 //
-// ルームの Worker のデプロイの本体。入口(pnpm ops room deploy・pnpm live:room・pnpm live:all)が共通の守り(guardDeploy)と
-// セーフポイントを通した後に、同じプロセスの中で呼ぶ(子の命令にしない: 守りの 1 回分の許可は親が使って消すので、子がもう一度
+// ルームの Worker のデプロイの本体。入口(pnpm ops room deploy・pnpm live:room・pnpm live:all)が共通の守り(guardDeploy)を通し
+// セーフポイントの位置を出した後に、同じプロセスの中で呼ぶ(子の命令にしない: 守りの 1 回分の許可は親が使って消すので、子がもう一度
 // 確認を求めると非対話では通らない。D420)。
 //   roomDeployReady: enabled=false → skip(false を返す。使わないフォークで実行しても無害)/ wrangler.toml 無 → 明示エラー
 //   deployRoomWorker: Worker 名が既定 "room-server" → 明示エラー(--allow-default-name で強行可)→ 依存 → 認証 → wrangler deploy
@@ -31,7 +31,7 @@ export function roomDeployReady(): boolean {
   return true;
 }
 
-/** Worker を出す(守りとセーフポイントは呼び手が通した後)。args = 入口の引数(--allow-default-name を見る) */
+/** Worker を出す(守りとセーフポイントの知らせは呼び手が済ませた後)。args = 入口の引数(--allow-default-name を見る) */
 export function deployRoomWorker(args: readonly string[]): void {
   // 既定名ガード: wrangler deploy は同名 Worker を無言で置換するため、テンプレート既定名
   // "room-server" のままのデプロイは拒否する (同一アカウント同居の他プロジェクトを上書きする事故防止)

@@ -19,19 +19,18 @@
 //   pnpm live:all -- --target=preview    # プレビューデプロイ等、任意の vercel 引数
 // ※ vercel CLI に --preview フラグは存在しない。素のデプロイ (=プレビュー) は本コマンドでは
 //    --prod フォールバックに塞がれているため、プレビューは --target=preview を明示すること
-// 本番ならセーフポイントの上でだけ出す(違えば止める。--allow-unsafe=<理由> で通す。scripts/runner/guard/README.md)
+// 本番なら今セーフポイントの上かを 1 行出す(止めない、D317。scripts/runner/guard/README.md)
 
 import { guardDeploy } from "../../runner/guard";
-import { argsOf, checkCron, deployApp, deployRoom, guardSafePoint, isProductionVercel, roomWillDeploy, takeAllowUnsafe } from "./lib";
+import { argsOf, checkCron, deployApp, deployRoom, isProductionVercel, reportSafePoint, roomWillDeploy } from "./lib";
 
 console.log("=== live:all (room → app) ===\n");
-const allowUnsafe = takeAllowUnsafe();
 // 本番に出すなら(アプリが --prod か、ルームの Worker を出すなら)確認を 1 回。非対話は方針と人の 1 回分の許可 dep。何かを打つ前に止める
 const production = roomWillDeploy() || isProductionVercel(argsOf(process.argv.slice(2)).filter((a) => !a.startsWith("--confirm=")));
 guardDeploy("pnpm live:all(ルームとアプリを本番に出す)", production);
-guardSafePoint(production, allowUnsafe);
+reportSafePoint(production);
 checkCron();
-// 確認とセーフポイントは済んだので、ルームの Worker は同じプロセスの中で出す(二度聞かない)
+// 確認は済んだので、ルームの Worker は同じプロセスの中で出す(二度聞かない)
 deployRoom();
 deployApp(argsOf(process.argv.slice(2)));
 console.log("\n✓ デプロイ完了 (room + app)");

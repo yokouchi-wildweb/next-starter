@@ -44,7 +44,7 @@ use: a step a tool covers is never built by hand → run the tool | unsure which
 loop: /ship (a notice when downstream must follow) → downstream takes it with /flux, segment by segment → what is missing → /order \<to\> → the receiver answers with /inbox (/wen checks yours) → the notice shipping it says resolves: and the permit and provisional rule end
 ship (MANDATORY): every commit + push = /ship (checks, notice, commit, push) | which kind and when → .claude/skills/ship/SKILL.md | a fix to a shipped change → delivery
 delivery: a new notice | a shipped notice's body edited (description fix) | a hotfix (below) | no index: the list is the git history | → core/notices.md delivery
-safe_point: the tag on a pushed commit where the full checks passed (/ship --safe) = the only periodic full check, never add another | prod deploys stop unless at a safe point | → core/notices.md safe_point
+safe_point: the tag on a pushed commit where the full checks passed (/ship --safe) = the only periodic full check, never add another | a mark, never a gate: prod deploys print whether they stand on a safe point and never stop | → core/notices.md safe_point
 hotfix: a fix the human calls urgent (their words only, never your judgment) = /ship hotfix → forks take it before every other segment | → core/notices.md hotfix
 notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit (MANDATORY, deleting / moving a file forks may extend too) | a key of CLAUDE.md, a core file or a card renamed, moved or removed → old → new in it | → core/notices.md notice
 checkpoint (MANDATORY on every notice): `checkpoint: <label>` = a segment boundary the author declares | `checkpoint: -` only when the fork cannot work without the next notice

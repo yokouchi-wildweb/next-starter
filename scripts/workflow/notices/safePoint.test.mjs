@@ -1,4 +1,4 @@
-// scripts/workflow/notices/safePoint.test.mjs — pnpm workflow notices safePoint(セーフポイントの tag・位置・本番の止め)を小さなリポで通す。
+// scripts/workflow/notices/safePoint.test.mjs — pnpm workflow notices safePoint(セーフポイントの tag・位置・本番のデプロイの知らせ)を小さなリポで通す。
 // 実行: pnpm test scripts/workflow/notices
 // 親は bare の origin / upstream。全部の検査は --check の口で node の一行に差し替える
 import { test, after } from "node:test";
@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { classify, deployVerdict, describe, nextTagName, parentForkId, parseSafeTags, PASS_FILE, proposeScore, readSafeTags, run } from "./safePoint.mjs";
+import { classify, deployPosition, describe, nextTagName, parentForkId, parseSafeTags, PASS_FILE, proposeScore, readSafeTags, run } from "./safePoint.mjs";
 import { run as runLedger } from "./ledger.mjs";
 
 const dirs = [];
@@ -179,47 +179,47 @@ test("parentForkId: 親のブランチの repo.json の repo_id(古い形は pro
   assert.equal(parentForkId(f.dir, "oldp"), "old-parent");
 });
 
-test("deployVerdict Tier1: HEAD が自分の safe tag ちょうどなら ok、他の fork_id の tag・一つ先は止める", () => {
+test("deployPosition Tier1: HEAD が自分の safe tag ちょうどなら ok、他の fork_id の tag・一つ先は外(知らせるだけ)", () => {
   const r = tier1(1);
   git(r.dir, "tag", "safe/other/20261101-1", r.shas[0]);
-  const other = deployVerdict(r.dir);
+  const other = deployPosition(r.dir);
   assert.equal(other.ok, false);
   git(r.dir, "tag", "-a", "safe/next-starter/20261101-1", "-m", "s", r.shas[0]);
   git(r.dir, "push", "-q", "origin", "--tags");
-  const ok = deployVerdict(r.dir);
+  const ok = deployPosition(r.dir);
   assert.equal(ok.ok, true, ok.message);
   assert.equal(ok.line, "at safe/next-starter/20261101-1");
   commit(r.dir, "more");
-  const ahead = deployVerdict(r.dir);
+  const ahead = deployPosition(r.dir);
   assert.equal(ahead.ok, false);
   assert.match(ahead.message, /\/ship/);
-  assert.ok(ahead.message.endsWith("(どうしても出すなら --allow-unsafe=<理由>)"), ahead.message);
+  assert.doesNotMatch(ahead.message, /unsafe|出せません/);
 });
 
-test("deployVerdict fork: 台帳の upstream が親の safe tag ちょうどで ok、自分の tag は数えない、手前は次の tag と /flux to を案内", () => {
+test("deployPosition fork: 台帳の upstream が親の safe tag ちょうどで ok、自分の tag は数えない、手前は次の tag と /flux to を案内", () => {
   const f = forkFixture();
   f.ledger(f.p2);
-  const ok = deployVerdict(f.dir);
+  const ok = deployPosition(f.dir);
   assert.equal(ok.ok, true, ok.message);
   assert.match(ok.message, /safe\/next-starter\/20261101-1/);
 
   f.ledger(f.p3);
   git(f.dir, "tag", "safe/fork-a/20261101-1", f.p3);
-  const own = deployVerdict(f.dir);
+  const own = deployPosition(f.dir);
   assert.equal(own.ok, false);
   assert.match(own.message, /から 1 commits 先/);
 
   f.ledger(f.p1);
-  const behind = deployVerdict(f.dir);
+  const behind = deployPosition(f.dir);
   assert.equal(behind.ok, false);
-  assert.match(behind.message, /次のセーフポイント safe\/next-starter\/20261101-1/);
+  assert.match(behind.message, /次のセーフポイントは safe\/next-starter\/20261101-1/);
   assert.match(behind.message, new RegExp(`/flux to ${f.p2.slice(0, 8)}`));
 
   f.ledger(null);
-  assert.match(deployVerdict(f.dir).message, /upstream:<sha> が無い/);
+  assert.match(deployPosition(f.dir).message, /upstream:<sha> が無い/);
 
   f.ledger(f.p2);
-  const thrown = deployVerdict(f.dir, {
+  const thrown = deployPosition(f.dir, {
     readTags: () => {
       throw new Error("upstream の tag を取れない: boom");
     },
@@ -228,7 +228,7 @@ test("deployVerdict fork: 台帳の upstream が親の safe tag ちょうどで 
   assert.match(thrown.message, /upstream の tag を取れない: boom/);
 });
 
-test("deployVerdict fork: 親の safe tag が区切りの外の出発の merge にあるとき、末尾の区間の行(手で足した形・ledger の道具の形)で at", () => {
+test("deployPosition fork: 親の safe tag が区切りの外の出発の merge にあるとき、末尾の区間の行(手で足した形・ledger の道具の形)で at", () => {
   const parent = tier1(1);
   git(parent.dir, "switch", "-q", "-c", "line");
   const noticed = commit(parent.dir, "line: notice", { ".notices/20261124-000000-last.md": "# DOWNSTREAM NOTICE id:20261124-000000-last\n" });
@@ -249,11 +249,11 @@ test("deployVerdict fork: 親の safe tag が区切りの外の出発の merge �
   mkdirSync(dirname(ledgerPath), { recursive: true });
 
   writeFileSync(ledgerPath, noticedLine);
-  assert.equal(deployVerdict(dir).ok, false, "notice の行だけでは手前");
+  assert.equal(deployPosition(dir).ok, false, "notice の行だけでは手前");
 
   // pandora に渡した手の 1 行
   writeFileSync(ledgerPath, `${noticedLine}- id:tail-${departure.slice(0, 9)} | date:2026-11-24T13:00:00Z | commit:1234abcd | upstream:${departure} | relay:none | notes:merge-only tail segment (no notice)\n`);
-  const hand = deployVerdict(dir);
+  const hand = deployPosition(dir);
   assert.equal(hand.ok, true, hand.message);
   assert.match(hand.message, /safe\/next-starter\/20261124-1/);
 
@@ -261,7 +261,7 @@ test("deployVerdict fork: 親の safe tag が区切りの外の出発の merge �
   writeFileSync(ledgerPath, noticedLine);
   { const out = []; assert.equal(runLedger(dir, ["--upstream=upstream/main", "--tail"], (l) => out.push(l)), 0, out.join(" ")); }
   assert.match(readFileSync(ledgerPath, "utf8"), new RegExp(`^- id:tail-${departure.slice(0, 9)} \\| .*upstream:${departure} \\| notes:-$`, "m"));
-  const tool = deployVerdict(dir);
+  const tool = deployPosition(dir);
   assert.equal(tool.ok, true, tool.message);
 });
 

@@ -60,9 +60,8 @@
 - ルームの Worker は常に本番(realtimeRoom の設定 `enabled` が false なら出さないので確認も無い)
 - `pnpm ops vercel env-*`(ホスティング側の env を書く・取る)は向き先が production の時だけ確認(種類 `env_production`、非対話は evp の許可を守りが使って消す。`scripts/operations/vercel/README.md`)。何も出さないのでセーフポイントは見ない
 - `live:all`・`live:room` は確認を 1 回だけ取り、ルームの Worker は同じプロセスの中で出す(`scripts/operations/room/lib.deploy.ts`。子の命令にすると、親が使った許可が無いので非対話で通らない)
-- 本番に出す時は、確認の後にセーフポイントを確かめる(`pnpm live`・`live:all`・`live:room`・`pnpm ops room deploy` の全部。`scripts/operations/deploy/lib.ts` の `guardSafePoint`。仕様 = `.notices/README.md`「区切り(checkpoint)と区間適用」のセーフポイント)
-  - fork = 台帳の最後の `upstream:<sha>` が直接の親の `safe/<親の repo_id>/*` tag ちょうど、Tier1 = HEAD が `safe/<自分の repo_id>/*` tag ちょうど。違えば止める
-  - `--allow-unsafe=<理由>` で通す(確認は要る。理由を出す。vercel・wrangler には渡さない)
+- 本番に出す時は、確認の後に今セーフポイントの上かを 1 行出す(`pnpm live`・`live:all`・`live:room`・`pnpm ops room deploy` の全部。`scripts/operations/deploy/lib.ts` の `reportSafePoint`。止めない: セーフポイントは全部の検査が通った印で、縛りではない。仕様 = `.notices/README.md`「区切り(checkpoint)と区間適用」のセーフポイント)
+  - fork = 台帳の最後の `upstream:<sha>` が直接の親の `safe/<親の repo_id>/*` tag ちょうど、Tier1 = HEAD が `safe/<自分の repo_id>/*` tag ちょうどなら ✓、違えば ℹ と次のセーフポイント(`/flux to <sha>`・`/ship --safe`)
 
 ## Verification
 

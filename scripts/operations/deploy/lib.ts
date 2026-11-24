@@ -7,8 +7,8 @@
 // D420)。プレビュー(--prod でない vercel)は確認なし。
 // env ファイルは読まない・上げない(ホスティング側の env で動く)。アプリ(Vercel)に上げるのは HEAD の commit の中身だけ:
 // git archive で一時の場所に書き出し、リンク(.vercel/project.json)だけを写してそこから vercel を呼ぶ(作業場所の .env*・
-// 未追跡・無視されたファイル・手元の build は上がらない。上がる木 = セーフポイントの確かめが見た commit)。
-// 本番に出す時は確認の後にセーフポイントを確かめる(guardSafePoint。仕様 = .notices/README.md「区切り(checkpoint)と区間適用」のセーフポイント)。
+// 未追跡・無視されたファイル・手元の build は上がらない。上がる木 = セーフポイントの知らせが見た commit)。
+// 本番に出す時は確認の後に今セーフポイントの上かを 1 行出す(reportSafePoint。止めない、D317。仕様 = .notices/README.md「区切り(checkpoint)と区間適用」のセーフポイント)。
 
 import { execSync, spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
@@ -16,7 +16,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { realtimeRoomConfig } from "@/lib/realtimeRoom";
-import { deployVerdict } from "../../workflow/notices/safePoint.mjs";
+import { deployPosition } from "../../workflow/notices/safePoint.mjs";
 import { deployRoomWorker, roomDeployReady } from "../room/lib.deploy";
 
 export const repoRoot = path.resolve(import.meta.dirname, "../../..");
@@ -122,60 +122,19 @@ export function argsOf(argv: string[]): string[] {
   return argv[0] === "--" ? argv.slice(1) : argv;
 }
 
-/** --allow-unsafe=<理由> を引数から外す。旗だけ・理由が空は error */
-export function parseAllowUnsafe(args: readonly string[]): { reason: string | null; rest: string[]; error: string | null } {
-  let reason: string | null = null;
-  let error: string | null = null;
-  const rest: string[] = [];
-  for (const arg of args) {
-    if (arg !== "--allow-unsafe" && !arg.startsWith("--allow-unsafe=")) {
-      rest.push(arg);
-      continue;
-    }
-    const value = arg.startsWith("--allow-unsafe=") ? arg.slice("--allow-unsafe=".length).trim() : "";
-    if (value === "") error = "--allow-unsafe=<理由> の理由が空です(何もしていません)";
-    else reason = value;
-  }
-  return { reason: error ? null : reason, rest, error };
-}
-
-/** process.argv から --allow-unsafe=<理由> を外して理由を返す(vercel・wrangler には渡さない)。理由が空なら exit 1 */
-export function takeAllowUnsafe(): string | null {
-  const { reason, rest, error } = parseAllowUnsafe(process.argv.slice(2));
-  if (error) {
-    console.error("✗ " + error);
-    process.exit(1);
-  }
-  process.argv.splice(2, process.argv.length - 2, ...rest);
-  return reason;
-}
-
-type SafePointVerdict = { ok: boolean; line: string; message: string };
+type SafePointPosition = { ok: boolean; line: string; message: string };
 
 /**
- * 本番に出す時だけ、セーフポイントの上かを確かめる(fork = 台帳の最後の upstream:<sha> が直接の親の safe tag ちょうど、
- * Tier1 = HEAD が自分の safe tag ちょうど)。違えば止める(exit 1)。allowUnsafe(理由)があれば警告と理由を出して通す。プレビューは見ない
+ * 本番に出す時だけ、今セーフポイントの上かを 1 行出す(fork = 台帳の最後の upstream:<sha> が直接の親の safe tag ちょうど、
+ * Tier1 = HEAD が自分の safe tag ちょうど)。上なら ✓、外なら ℹ と近いセーフポイント。止めない(D317: セーフポイントは印で縛りではない)。プレビューは見ない
  */
-export function guardSafePoint(
+export function reportSafePoint(
   production: boolean,
-  allowUnsafe: string | null,
-  deps: { verdict?: () => SafePointVerdict; log?: (s: string) => void; error?: (s: string) => void; exit?: (code: number) => never } = {},
+  deps: { position?: () => SafePointPosition; log?: (s: string) => void } = {},
 ): void {
   if (!production) return;
-  const verdict = deps.verdict ?? (() => deployVerdict(repoRoot) as SafePointVerdict);
+  const position = deps.position ?? (() => deployPosition(repoRoot) as SafePointPosition);
   const log = deps.log ?? ((s: string) => console.log(s));
-  const error = deps.error ?? ((s: string) => console.error(s));
-  const exit = deps.exit ?? ((code: number): never => process.exit(code));
-  const { ok, message } = verdict();
-  if (ok) {
-    log(`✓ ${message}`);
-    return;
-  }
-  if (allowUnsafe) {
-    error(`⚠ セーフポイントの外で本番に出します(--allow-unsafe): ${allowUnsafe}`);
-    error(`  ${message}`);
-    return;
-  }
-  error(`✗ ${message}`);
-  exit(1);
+  const { ok, message } = position();
+  log(`${ok ? "✓" : "ℹ"} ${message}`);
 }

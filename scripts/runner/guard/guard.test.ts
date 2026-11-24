@@ -193,7 +193,7 @@ const WRITE_ENTRIES = [
 ];
 const READ_ENTRIES = ["scripts/operations/data/export.ts", "scripts/operations/db/check-schema-roundtrip.ts", "scripts/operations/db/inspect.ts", "scripts/operations/firestore/inspect.ts", "scripts/operations/room/check.ts", "scripts/operations/claude/test.ts"];
 const PREPARE_USERS = ["scripts/runner/task/run.ts", "scripts/runner/seed/run.ts", "scripts/workflow/dev-admin/run.ts"];
-// ホスティング側の設定を書く入口(本番の確認だけ、何も出さないのでセーフポイントは見ない)
+// ホスティング側の設定を書く入口(本番の確認だけ、何も出さないのでセーフポイントの知らせは無い)
 const VERCEL_WRITES = ["scripts/operations/vercel/env-add.ts", "scripts/operations/vercel/env-rm.ts", "scripts/operations/vercel/env-pull.ts"];
 const DEPLOY_ENTRIES = ["scripts/operations/deploy/app.ts", "scripts/operations/deploy/all.ts", "scripts/operations/deploy/room.ts", "scripts/operations/room/deploy.ts", "scripts/operations/room/secret.ts", ...VERCEL_WRITES];
 
@@ -203,7 +203,7 @@ test("入口の一覧: 書く・読む入口は guardEntry、prepare の利用�
   for (const rel of READ_ENTRIES) assert.match(read(rel), /guardEntry\(\{ write: /, rel);
   for (const rel of PREPARE_USERS) assert.match(read(rel), /loadEnvFile\("/, rel);
   for (const rel of DEPLOY_ENTRIES) assert.match(read(rel), /guardDeploy\(/, rel);
-  for (const rel of DEPLOY_ENTRIES.filter((r) => !r.endsWith("/secret.ts") && !VERCEL_WRITES.includes(r))) assert.match(read(rel), /guardSafePoint\(/, rel);
+  for (const rel of DEPLOY_ENTRIES.filter((r) => !r.endsWith("/secret.ts") && !VERCEL_WRITES.includes(r))) assert.match(read(rel), /reportSafePoint\(/, rel);
   for (const rel of [...WRITE_ENTRIES, ...READ_ENTRIES, ...PREPARE_USERS, ...DEPLOY_ENTRIES]) assert.doesNotMatch(read(rel), /from ["']dotenv["']/, rel);
 });
 
@@ -239,7 +239,7 @@ test("デプロイ(指令 45 の事故の形): 非対話の pnpm live:all は許
     return;
   }
   writePermit(ROOT, ["dep"], "guard.test の進む側");
-  const allowed = run(["--allow-unsafe=テスト"]);
+  const allowed = run([]);
   assert.equal(allowed.status, 0, allowed.stdout + allowed.stderr);
   assert.deepEqual(readFileSync(log, "utf8").trim().split("\n"), ["--version", "--prod"], "--confirm は vercel に渡さない");
   assert.equal(readPermit(ROOT), null, "許可は使って消える");

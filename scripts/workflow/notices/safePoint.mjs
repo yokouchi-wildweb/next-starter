@@ -5,7 +5,7 @@
 // 注釈つきの tag `safe/<fork_id>/<YYYYMMDD>-<n>`(fork_id = 付けたリポの repo.json の repo_id、n = その fork_id と日の次の空き番号)。
 // 名前に fork_id が入るので親子の tag は重ならず、見るのは直接の親の `safe/<親の fork_id>/*` だけ。
 // 仕様 = .notices/README.md「区切り(checkpoint)と区間適用」のセーフポイント。使う所: /ship --safe(push → check → tag)、/flux の区間の報告(where)、
-// 本番のデプロイの止め(deployVerdict。scripts/operations/deploy/lib.ts の guardSafePoint)。
+// 本番のデプロイの知らせ(deployPosition。scripts/operations/deploy/lib.ts の reportSafePoint、止めない)。
 //
 // 実行: pnpm workflow notices safePoint <動作>
 //   check [--check=<cmd> ...]   作業ツリー = HEAD を確かめ、全部の検査を順に回す。全部通れば HEAD を「検査済み」と記録する
@@ -48,8 +48,6 @@ export const FULL_CHECKS = [
 ];
 export const PASS_FILE = "safe-point-pass";
 
-const UNSAFE_SUFFIX = "(どうしても出すなら --allow-unsafe=<理由>)";
-const VERDICT_HEAD = "本番に出せません: ";
 
 /** git を回して stdout(末尾の改行を落とす)。失敗は throw(stderr は Error の stderr に残る) */
 const git = (repo, args) => execFileSync("git", args, { cwd: repo, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).replace(/\n$/, "");
@@ -152,22 +150,22 @@ export function describe(c) {
   return "no safe point yet";
 }
 
-/** target を真の祖先に持つ最初の tag(古い順)。無ければ null(デプロイの止めの案内に使う) */
+/** target を真の祖先に持つ最初の tag(古い順)。無ければ null(デプロイの知らせの案内に使う) */
 export function nextAhead(repo, target, tags) {
   return tags.find((t) => t.commit !== target && hasCommit(repo, t.commit) && isAncestor(repo, target, t.commit)) ?? null;
 }
 
-const refuse = (reason) => ({ ok: false, line: "", message: `${VERDICT_HEAD}${reason}${UNSAFE_SUFFIX}` });
-const refuseUnchecked = (reason) => refuse(`セーフポイントを確かめられません — ${reason}`);
+const off = (reason) => ({ ok: false, line: "", message: reason });
+const unchecked = (reason) => off(`セーフポイントを確かめられません — ${reason}`);
 
 /**
- * 本番のデプロイに出してよいか: fork = 台帳の最後の upstream:<sha> が直接の親の safe/<親の fork_id>/* ちょうど、
- * Tier1 = HEAD が safe/<自分の fork_id>/* ちょうど
+ * 本番のデプロイの位置がセーフポイントの上か(知らせるだけ、止めない): fork = 台帳の最後の upstream:<sha> が直接の親の
+ * safe/<親の fork_id>/* ちょうど、Tier1 = HEAD が safe/<自分の fork_id>/* ちょうど
  * @returns {{ ok: boolean, line: string, message: string }}
  */
-export function deployVerdict(repo, { readTags = readSafeTags, readParentId = parentForkId } = {}) {
+export function deployPosition(repo, { readTags = readSafeTags, readParentId = parentForkId } = {}) {
   const identity = readForkIdentity(repo);
-  if (identity.errors.length > 0) return refuseUnchecked(identity.errors.join("、"));
+  if (identity.errors.length > 0) return unchecked(identity.errors.join("、"));
   let remote;
   let forkId;
   let target;
@@ -175,48 +173,48 @@ export function deployVerdict(repo, { readTags = readSafeTags, readParentId = pa
     remote = "origin";
     forkId = identity.own;
     target = tryGit(repo, ["rev-parse", "HEAD"]);
-    if (!target) return refuseUnchecked("HEAD が読めない");
+    if (!target) return unchecked("HEAD が読めない");
   } else {
     const ledgerPath = join(repo, ".notices/applied", `${identity.own}.md`);
     const sha = existsSync(ledgerPath) ? lastUpstreamSha(readFileSync(ledgerPath, "utf8")) : null;
-    if (!sha) return refuseUnchecked(`台帳 .notices/applied/${identity.own}.md に upstream:<sha> が無い(/flux で取り込んでから)`);
+    if (!sha) return unchecked(`台帳 .notices/applied/${identity.own}.md に upstream:<sha> が無い(/flux で取り込んでから)`);
     const parent = resolveParentRemote(repo);
-    if (parent.error) return refuseUnchecked(parent.error);
+    if (parent.error) return unchecked(parent.error);
     remote = parent.remote;
     try {
       forkId = readParentId(repo, remote);
     } catch (error) {
-      return refuseUnchecked(error.message);
+      return unchecked(error.message);
     }
     target = tryGit(repo, ["rev-parse", "--verify", `${sha}^{commit}`]);
-    if (!target) return refuseUnchecked(`upstream:${short(sha)} が履歴に無い(git fetch ${remote} の後でもう一度)`);
+    if (!target) return unchecked(`upstream:${short(sha)} が履歴に無い(git fetch ${remote} の後でもう一度)`);
   }
   let tags;
   try {
     tags = readTags(repo, remote, forkId);
   } catch (error) {
-    return refuseUnchecked(error.message);
+    return unchecked(error.message);
   }
   const c = classify(repo, target, tags);
   const line = describe(c);
   if (c.kind === "at") return { ok: true, line, message: `セーフポイント ${c.tag} の上にいます` };
   if (identity.isTier1) {
-    return { ...refuse(`HEAD ${short(target)} はセーフポイントではありません(${line})。/ship --safe で先端にセーフポイントを付けてから出してください`), line };
+    return { ...off(`HEAD ${short(target)} はセーフポイントではありません(${line})。全部の検査が通った印が欲しければ /ship --safe`), line };
   }
   const ahead = nextAhead(repo, target, tags);
   if (ahead) {
     return {
-      ...refuse(`取り込んだ上流の位置 ${short(target)} は直接の親(${remote})のセーフポイントではありません(${line})。次のセーフポイント ${ahead.tag} まで /flux で進めてください(/flux to ${short(ahead.commit)})`),
+      ...off(`取り込んだ上流の位置 ${short(target)} は直接の親(${remote})のセーフポイントではありません(${line})。次のセーフポイントは ${ahead.tag}(/flux to ${short(ahead.commit)})`),
       line,
     };
   }
   if (c.kind === "past") {
     return {
-      ...refuse(`取り込んだ上流の位置 ${short(target)} は直接の親(${remote})のセーフポイント ${c.tag} から ${c.unverified} commits 先です。親の次のセーフポイントを待ち、/flux でそこまで進めてください`),
+      ...off(`取り込んだ上流の位置 ${short(target)} は直接の親(${remote})のセーフポイント ${c.tag} から ${c.unverified} commits 先です(まだ検査の印の無い所)`),
       line,
     };
   }
-  return { ...refuse(`直接の親(${remote}、${forkId})にまだセーフポイントがありません`), line };
+  return { ...off(`直接の親(${remote}、${forkId})にまだセーフポイントがありません`), line };
 }
 
 /** --name=value の値(最後のもの)。無ければ null */

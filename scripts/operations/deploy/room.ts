@@ -7,15 +7,14 @@
 // 引数は本体へ渡す(--allow-default-name)。
 //   pnpm live:room
 //   pnpm live:room -- --allow-default-name
-// 本番ならセーフポイントの上でだけ出す(違えば止める。--allow-unsafe=<理由> で通す。scripts/runner/guard/README.md)
+// 本番なら今セーフポイントの上かを 1 行出す(止めない、D317。scripts/runner/guard/README.md)
 
 import { guardDeploy } from "../../runner/guard";
-import { argsOf, checkCron, deployRoom, guardSafePoint, roomWillDeploy, takeAllowUnsafe } from "./lib";
+import { argsOf, checkCron, deployRoom, reportSafePoint, roomWillDeploy } from "./lib";
 
 console.log("=== live:room (room) ===\n");
-const allowUnsafe = takeAllowUnsafe();
 // Worker を出すなら確認(非対話は方針と人の 1 回分の許可 dep)。何かを打つ前に止める
 guardDeploy("pnpm live:room(ルームの Worker を本番に出す)", roomWillDeploy());
-guardSafePoint(roomWillDeploy(), allowUnsafe);
+reportSafePoint(roomWillDeploy());
 checkCron();
 deployRoom(argsOf(process.argv.slice(2)));
