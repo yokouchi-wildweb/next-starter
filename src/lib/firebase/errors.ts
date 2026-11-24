@@ -1,5 +1,7 @@
 // src/lib/firebase/errors.ts
 
+import { BackendNotConfiguredError } from "@/lib/errors";
+
 /**
  * Firebase が未設定（pnpm ops setup env 直後など、環境変数が空）の状態で Firebase を要する処理に
  * 到達した時に投げられるエラー。
@@ -8,19 +10,25 @@
  * - server: MY_SERVICE_ACCOUNT_KEY が空
  *
  * 判定は「未設定」のみ。設定済みで到達不能な場合は Firebase SDK 自身のエラーがそのまま出る
- * （障害を未設定扱いで覆い隠さない）。DatabaseNotConfiguredError (@/lib/drizzle) の Firebase 版。
+ * （障害を未設定扱いで覆い隠さない）。DatabaseNotConfiguredError (@/lib/drizzle) の Firebase 版で、
+ * 共通の親 BackendNotConfiguredError (@/lib/errors) を継ぐ(port "firebase"、side と missing は親の欄)。
  */
-export class FirebaseNotConfiguredError extends Error {
-  readonly side: "client" | "server";
-
+export class FirebaseNotConfiguredError extends BackendNotConfiguredError {
   constructor(side: "client" | "server") {
     super(
       side === "client"
         ? "Firebase (client) が未設定です。.env.development に NEXT_PUBLIC_FIREBASE_* を設定してください。"
         : "Firebase Admin が未設定です。.env.development に MY_SERVICE_ACCOUNT_KEY を設定してください。",
+      {
+        port: "firebase",
+        missing:
+          side === "client"
+            ? ["NEXT_PUBLIC_FIREBASE_API_KEY", "NEXT_PUBLIC_FIREBASE_PROJECT_ID"]
+            : ["MY_SERVICE_ACCOUNT_KEY"],
+        side,
+      },
     );
     this.name = "FirebaseNotConfiguredError";
-    this.side = side;
   }
 }
 

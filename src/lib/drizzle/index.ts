@@ -5,6 +5,8 @@ import "server-only";
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
+import { BackendNotConfiguredError } from "@/lib/errors";
+
 import { drizzleConfig } from "./config";
 import { createQueryClient } from "./pool";
 
@@ -36,11 +38,12 @@ export const isDatabaseConfigured = (): boolean =>
  * postgres クライアントに空文字を渡すと localhost:5432 への接続を試みて
  * CONNECT_TIMEOUT まで（約 30 秒）待たされるため、代わりに即座にこのエラーで失敗させる。
  */
-export class DatabaseNotConfiguredError extends Error {
+export class DatabaseNotConfiguredError extends BackendNotConfiguredError {
   constructor() {
     super(
       "DATABASE_URL が未設定です。.env.development に Neon 等の接続文字列を設定し、" +
         "pnpm db:push でスキーマを適用してください。",
+      { port: "database", missing: ["DATABASE_URL"], side: "server" },
     );
     this.name = "DatabaseNotConfiguredError";
   }

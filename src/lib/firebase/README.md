@@ -172,7 +172,7 @@ useEffect(() => {
 
 ### 誤り(`@/lib/firebase`。`errors.ts`)
 
-- `FirebaseNotConfiguredError(side)`: 未設定で触れたときの誤り。`side` = `"client"` | `"server"`
+- `FirebaseNotConfiguredError(side)`: 未設定で触れたときの誤り。`side` = `"client"` | `"server"`。共通の親 `BackendNotConfiguredError`(`@/lib/errors`)を継ぐ(`port` `"firebase"`、`missing` = client は `NEXT_PUBLIC_FIREBASE_API_KEY`・`NEXT_PUBLIC_FIREBASE_PROJECT_ID`、server は `MY_SERVICE_ACCOUNT_KEY`)
 - `getFirebasePhoneAuthErrorMessage(error, fallbackMessage)`: 電話番号の認証の Firebase エラーを日本語の文言にする
 - `hasFirebaseErrorCode(error, expectedCode)`: Firebase エラーのコードが `expectedCode` か(型ガード)
 

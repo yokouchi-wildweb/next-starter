@@ -3,6 +3,7 @@
 ## Overview
 
 - 共通エラー型: サーバー側の `DomainError` と、クライアント側の `HttpError` の 2 つの型と、その変換ユーティリティ
+- 外部の口(DB・Firebase・Storage・メールの webhook)の env が未設定のときの誤りの共通の親 `BackendNotConfiguredError` と判定 `isBackendNotConfiguredError`
 - 層をまたいだエラーの流れ（どの層が何に責任を持つか、なぜこの形か）は [docs/!must-read/エラーハンドリング方針.md](../../../docs/!must-read/エラーハンドリング方針.md)（CLAUDE.md ARCHITECTURE errors）
 - 使う時の決まりは札 .claude/rules/items/lib/errors.md にある
 
@@ -53,6 +54,21 @@ try {
 - `status` を省略すると `400`
 - `code`（機械可読な分類）・`details`（補足の値）は省略可。指定するとルートの応答 body に `code` / `details` として載る。body の組み立ては `toDomainErrorBody(error)`
 - 判定は `isDomainError(error)`
+
+### `BackendNotConfiguredError`（`backendNotConfiguredError.ts`、client / server 共通）
+
+- 外部の口の env が未設定のまま、それを要する処理に到達したときの誤りの共通の親。`DomainError` ではない(利用者に見せる業務の誤りではなく、環境の不足)
+- 欄(readonly): `port`(口の名前)・`implementation?`(口の実装の名前)・`missing`(足りない env の名前の配列、値は入れない)・`side`(`"client"` | `"server"`)
+- 生成は `new BackendNotConfiguredError(message, { port, implementation?, missing, side })`(型 `BackendNotConfiguredErrorOptions`)。各口の誤りが継ぎ、`name` は子が自分の名前で書き直す
+- 判定は `isBackendNotConfiguredError(error)`(どの口の未設定でも true)。口ごとに分けるときは子のクラスの `instanceof`
+- 判定は「未設定」のみ。設定済みで到達できない障害には使わない(障害を未設定扱いで覆い隠さない)
+
+| 子のクラス | 置き場 | `port` | `implementation` | `missing` | `side` |
+|---|---|---|---|---|---|
+| `DatabaseNotConfiguredError` | `@/lib/drizzle` | `"database"` | なし | `["DATABASE_URL"]` | `"server"` |
+| `FirebaseNotConfiguredError(side)` | `@/lib/firebase` | `"firebase"` | なし | client `["NEXT_PUBLIC_FIREBASE_API_KEY", "NEXT_PUBLIC_FIREBASE_PROJECT_ID"]` / server `["MY_SERVICE_ACCOUNT_KEY"]` | 引数のまま |
+| `StorageNotConfiguredError(store, missing)` | `@/lib/storage/server` | `"storage"` | 保存先 `store` | 引数のまま | `"server"` |
+| `WebhookNotConfiguredError(provider)` | messaging の `services/server/webhooks` | `"mail"` | `provider`(`"resend"` / `"sendgrid"`) | その webhook の鍵の env 名 | `"server"` |
 
 ### `HttpError`（`httpError.ts`、クライアント側）
 

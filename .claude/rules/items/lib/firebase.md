@@ -4,7 +4,7 @@ paths:
   - "src/config/lib/firebase.config.ts"
 ---
 # lib/firebase
-what: Firebase SDK setup, a closed lib with 3 entries: @/lib/firebase (errors, normalizeJsonString, config types) | @/lib/firebase/client (app, auth, fstore, Analytics, email link / action code) | @/lib/firebase/server (Admin SDK getServerApp / Auth / Firestore / Storage, authAdmin user operations)
+what: Firebase SDK setup, a closed lib with 3 entries: @/lib/firebase (errors: FirebaseNotConfiguredError extends BackendNotConfiguredError of @/lib/errors, port "firebase"; normalizeJsonString, config types) | @/lib/firebase/client (app, auth, fstore, Analytics, email link / action code) | @/lib/firebase/server (Admin SDK getServerApp / Auth / Firestore / Storage, authAdmin user operations)
 use: always (boots unconfigured: NEXT_PUBLIC_FIREBASE_* and MY_SERVICE_ACCOUNT_KEY may be empty)
 change: counterpart = src/config/lib/firebase.config.ts (public values as literal process.env.NEXT_PUBLIC_FIREBASE_*, serviceAccountKey as a function; upstream reads the same env names as before) | other behavior → /order <direct parent> | Analytics on = measurementId (env NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID) + the analyticsConsent config
 rules:

@@ -9,6 +9,8 @@
 
 import "server-only";
 
+import { BackendNotConfiguredError } from "@/lib/errors";
+
 import { storageConfig, type StorageEnvValue } from "../config";
 import type { StorageStoreId } from "../ref";
 import type { ObjectLocation } from "./port";
@@ -25,18 +27,18 @@ const BUCKET_ENV_NAME: Record<StorageStoreName, string> = {
 /**
  * 保存先の env が足りない状態で、その保存先を使う操作に到達したときのエラー。
  * DatabaseNotConfiguredError / FirebaseNotConfiguredError の Storage 版（判定は「未設定」のみ）。
+ * 共通の親 BackendNotConfiguredError (@/lib/errors) を継ぐ(port "storage"、implementation = 保存先、missing は親の欄)。
  */
-export class StorageNotConfiguredError extends Error {
+export class StorageNotConfiguredError extends BackendNotConfiguredError {
   readonly store: StorageStoreName;
-  readonly missing: readonly string[];
 
   constructor(store: StorageStoreName, missing: readonly string[]) {
     super(
       `Storage の保存先 "${store}" が未設定です。.env.development に ${missing.join(", ")} を設定してください。`,
+      { port: "storage", implementation: store, missing, side: "server" },
     );
     this.name = "StorageNotConfiguredError";
     this.store = store;
-    this.missing = missing;
   }
 }
 

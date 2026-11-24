@@ -4,7 +4,7 @@ paths:
   - "src/config/lib/drizzle.config.ts"
 ---
 # lib/drizzle
-what: the PostgreSQL (Neon) client `db`, transaction helpers (runWithTransaction, TransactionClient) and the not-configured check (isDatabaseConfigured, DatabaseNotConfiguredError); closed lib, server-only, entry @/lib/drizzle
+what: the PostgreSQL (Neon) client `db`, transaction helpers (runWithTransaction, TransactionClient) and the not-configured check (isDatabaseConfigured, DatabaseNotConfiguredError extends BackendNotConfiguredError of @/lib/errors, port "database"); closed lib, server-only, entry @/lib/drizzle
 use: always
 change: counterpart = src/config/lib/drizzle.config.ts (pool values, @lib-config/drizzle)
 rules:

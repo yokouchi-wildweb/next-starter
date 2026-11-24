@@ -12,7 +12,7 @@
 
 - `db`: drizzle の DB(postgres-js)。`DATABASE_URL` が空なら、どのプロパティに触れても `DatabaseNotConfiguredError` を投げる代わりの物(import だけなら投げない)
 - `isDatabaseConfigured()`: `DATABASE_URL` が trim して空でないか。判定は「未設定」だけで、設定済みで繋がらないときは例外のまま
-- `DatabaseNotConfiguredError`: 未設定で DB に触れたときの誤り(接続を待たずにすぐ失敗する)
+- `DatabaseNotConfiguredError`: 未設定で DB に触れたときの誤り(接続を待たずにすぐ失敗する)。共通の親 `BackendNotConfiguredError`(`@/lib/errors`)を継ぐ(`port` `"database"`、`missing` `["DATABASE_URL"]`、`side` `"server"`)
 - `runWithTransaction(tx, handler)`: `tx` があればそのまま使い、無ければ新しいトランザクションを始めて `handler` を呼ぶ
 - `TransactionClient`: `db.transaction()` のコールバックの引数の型
 - `DrizzleOverride`: 上書きのファイルの型
