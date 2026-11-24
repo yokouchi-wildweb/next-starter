@@ -12,7 +12,10 @@
 //    持ち主 = 地区の地図の見つけ方(src/lib/districtMap readDistrictMapAt)で、既定を中に持つ一番深い地区。点の名前 = スイッチの名前の先頭を小文字。
 //    type = 既定が export する <名前>Props → ただ 1 つの export type → export const <x>: <T> の T(import type の元)。決まらなければ候補つきで止める。
 //    side = "use client" の既定は client、パスに /server/ があれば server。どちらでもなければ止め、人が --side で決める(持ち主の無い物は --owner)
-//    止める物: 持ち主の地区が無い(src/app の下なら候補 = 一番近い枠の地区)・型が決まらない・側が決まらない・点の名前が宣言に既にある
+//    上流のルートの _components/ の下の既定(Tier が自分で足した枠の部品、地区の持ち主が無い)= その _components/ が持ち主:
+//    宣言はその Tier 自身の src/app/<ルート>/_components/extensionPoints.ts(上流の _layout/extensionPoints.ts に書かない。notice
+//    20261124-013637-fork-replace-points が足した決まり)
+//    止める物: 持ち主の地区が無い(src/app の下なら候補 = ルートの _components の自分の宣言・一番近い枠の地区)・型が決まらない・側が決まらない・点の名前が宣言に既にある
 // 3. 門番の規則の書き直し(注文 20、D23・D28): src/featureGate/rules/<名前>.ts が値を import していれば、
 //    `import { <名前> } from "@/domains/[core/]<d>/config"` + `enabled: () => <名前>`(<名前> が config.ts の最上位の真偽の export)の形だけ
 //    when: ["<d>.<名前>"] に書き直して import を外す。ほか(入れ子・式・住所の組み立て・ほかの import・when が既にある)は候補つきで止める
@@ -202,12 +205,23 @@ const aliasOf = (path) => `@/${path.slice("src/".length).replace(/\.tsx?$/, "")}
  * @param {{ side?: string, owner?: string }} [given] 人が決めた側・宣言のファイル(--side・--owner)
  * @returns {{ declaration: string, point: string, spec: object } | { stop: string }}
  */
+/**
+ * 上流のルートの _components/ の下の既定の持ち主(その Tier 自身の _components/。枠の部品を Tier が足した場所、地区の地図に載らない)。
+ * 宣言は <ルート>/_components/extensionPoints.ts、約束の型の入口は <ルート>/_components/points.ts(段 3 の D33)。下のリポは .replace で替え、この宣言を直さない
+ * @param {string} path 既定のリポジトリ直下からのパス
+ * @returns {{ dir: string } | undefined}
+ */
+export function ownComponentsOwnerOf(path) {
+  const match = /^(src\/app\/(?:.+\/)?_components)\//.exec(path);
+  return match ? { dir: match[1] } : undefined;
+}
+
 export function replacePlanOf(path, text, districts, { side: givenSide, owner: givenOwner } = {}) {
   const base = path.slice(path.lastIndexOf("/") + 1);
   const switchName = DEFAULT_FILE.exec(base)?.[1];
   if (!switchName) return { stop: "1 行スイッチの既定 <名前>.default.ts(x) の名前でない" };
   const owners = districts.filter((d) => path.startsWith(`${d.dir}/`)).sort((a, b) => b.dir.length - a.dir.length);
-  const owner = givenOwner ? { dir: givenOwner.slice(0, givenOwner.lastIndexOf("/")) } : owners[0];
+  const owner = givenOwner ? { dir: givenOwner.slice(0, givenOwner.lastIndexOf("/")) } : (owners[0] ?? ownComponentsOwnerOf(path));
   if (!owner) {
     const frames = districts.filter((d) => d.kind === "frame" && path.startsWith(`${d.dir.slice(0, d.dir.lastIndexOf("/"))}/`)).sort((a, b) => b.dir.length - a.dir.length);
     const roots = districts.filter((d) => d.kind === "frame" && d.dir === "src/app/_layout");

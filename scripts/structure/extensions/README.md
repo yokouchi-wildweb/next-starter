@@ -85,6 +85,7 @@ routeFactoryDevice: { change: "add", plugs: true, export: "plug", type: { from: 
 | `<名前>.replace.ts(x)` | fork の丸ごと置き換え(既定と同じ export の形) | 足した Tier |
 
 - 宣言(差替点、宣言 2 段の 1 段目): 既定を中に持つ地区の `extensionPoints.ts` に `<点>: { change: "replace", default: "<既定のリポジトリ直下からのパス>", type: { from, name }, side }` を書く。点の名前 = スイッチの名前の先頭を小文字、`type` = 約束の型(既定が export する `<名前>Props` など)。`default` は宣言した地区の dir の中(枠の地区の宣言だけは src/app の下を通す: 枠の部品はルートの隣にもある。例 root の枠の `forkProviders` = `src/app/_providers/ForkProviders.default.tsx`)。fork の自前の既定は段 2 の移し替えの道具 `.notices/20261122-213044-district-stage2.declarations.mjs` が書く(側・持ち主が決まらない物は `--side` / `--owner` で決める)
+- Tier が自分で足した差替点(上流のルートの `_components/` の自分の部品の `<名前>.default` + スイッチ、例 fork が下のリポに枠のヘッダーの見た目を替えさせる): 宣言はその Tier 自身の `src/app/<ルート>/_components/extensionPoints.ts`(持ち主 = その `_components/`、`default` はその中)、約束の型は同じフォルダの型だけの入口 `src/app/<ルート>/_components/points.ts` から(D33)。上流の `_layout/extensionPoints.ts` には書かない(上流の持ち物)。読み手・生成器は他の宣言と同じに読む(宣言 2 段の 1 段目、地区の地図には載らない)。下のリポは `<名前>.replace` で替え、中間の Tier の宣言を直さない。段 2 の道具はこの置き場を自分で選ぶ
 - 多段: 下の Tier は同じスイッチを書き換える(親の実装を使い続けるなら触らない)
 - page.tsx の 1 行スイッチ(`_screen` / `_components` を指す)・枠の layout.tsx の 1 行スイッチ(`_layout/<Layout>` / `_layout/<Layout>.replace` を指す)は別の仕組み(`src/lib/screens/README.md`、`pnpm test scripts/structure/routes/screens.test.mjs`)
 

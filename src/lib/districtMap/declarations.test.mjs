@@ -1,4 +1,5 @@
-// 上書きの対象の点(overrides の点)と、その鍵の読み手 overrideKeysOf のテスト。宣言の形の他の検査は scripts/structure/extensions/extensions.test.mjs
+// 上書きの対象の点(overrides の点)と、その鍵の読み手 overrideKeysOf のテスト。差替点の持ち主の置き場(Tier 自身の _components/ の宣言)。
+// 宣言の形の他の検査は scripts/structure/extensions/extensions.test.mjs
 // 実行: pnpm test src/lib/districtMap/declarations.test.mjs
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -7,7 +8,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 
 import { collectPoints, overrideKeysOf } from "./declarationFiles.mjs";
-import { isListPoint } from "./declarations.mjs";
+import { isListPoint, replacePointsOf } from "./declarations.mjs";
 
 test("実リポの上書きの対象の点 5 つ: 鍵の集合は宣言へ寄せる前と同じ(fork の今の重ねが同じに通る)。core ロールに enabled・プロフィールに fields は無い", () => {
   assert.deepEqual(overrideKeysOf("src/domains/core/user/extensionPoints.ts", "coreRoleDefinitions"), ["label", "hasProfile"]);
@@ -68,4 +69,14 @@ test("change: どの点も書く。欄と合わない型・無い change は止�
   assert.ok(read(`{ change: "replace", default: "src/a/b.default.ts", side: "server" }`).some((p) => p.includes("type は")));
   assert.ok(read(`{ change: "replace", default: "src/a/b.default.ts", ${T}, side: "server", dir: "x" }`).some((p) => p.includes("差替点に dir は書けない")));
   assert.deepEqual(read('{ change: "counterpart", placement: "src/app/icon.png", kind: "edit" }'), []);
+});
+
+test("差替点: Tier が上流のルートの _components/ に足した既定は、その _components/extensionPoints.ts の宣言で通る(持ち主 = そのフォルダ)。外の既定は止める", () => {
+  const T = { from: "@/app/(user)/_components/points", name: "BrandProps" };
+  const own = { owner: "src/app/(user)/_components", name: "brand", declaredIn: "src/app/(user)/_components/extensionPoints.ts" };
+  const inside = replacePointsOf([{ ...own, spec: { change: "replace", default: "src/app/(user)/_components/Header/Brand.default.tsx", type: T, side: "client" } }]);
+  assert.deepEqual(inside.problems, []);
+  assert.deepEqual(inside.replaces.map((r) => [r.point, r.stem]), [["brand", "src/app/(user)/_components/Header/Brand"]]);
+  const outside = replacePointsOf([{ ...own, spec: { change: "replace", default: "src/app/(user)/_layout/Brand.default.tsx", type: T, side: "client" } }]);
+  assert.match(outside.problems.join("\n"), /宣言した地区\(src\/app\/\(user\)\/_components\)の外/);
 });

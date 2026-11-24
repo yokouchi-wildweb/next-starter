@@ -103,6 +103,16 @@ test("約束の型: <名前>Props → ただ 1 つの export type → export con
   assert.match(contractTypeOf("src/domains/x/d.default.ts", "export type P = 1;\nexport type Q = 2;\n", "d").stop, /候補: P \/ Q/);
 });
 
+test("差替点: 上流のルートの _components/ の下の既定(Tier が足した枠の部品)は、その Tier 自身の _components/extensionPoints.ts に宣言する(上流の _layout に書かない)", () => {
+  const plan = replacePlanOf("src/app/(user)/_components/Header/Brand.default.tsx", '"use client";\nexport type BrandProps = {};\nexport function Brand() {}\n', DISTRICTS);
+  assert.equal(plan.declaration, "src/app/(user)/_components/extensionPoints.ts");
+  assert.equal(plan.point, "brand");
+  assert.deepEqual(plan.spec, { change: "replace", default: "src/app/(user)/_components/Header/Brand.default.tsx", type: { from: "@/app/(user)/_components/Header/Brand.default", name: "BrandProps" }, side: "client" });
+  const nested = replacePlanOf("src/app/(user)/_components/Header/Sp/SpNavSwitch.default.tsx", '"use client";\nexport type SpNavSwitchProps = {};\n', DISTRICTS);
+  assert.equal(nested.declaration, "src/app/(user)/_components/extensionPoints.ts");
+  assert.equal(nested.point, "spNavSwitch");
+});
+
 test("差替点の止める物: 持ち主の無い既定(src/app は枠の候補)・側が決まらない。--owner・--side で人が決めれば通る", () => {
   const free = replacePlanOf("src/app/_providers/P.default.tsx", "export type PProps = {};\n", DISTRICTS);
   assert.match(free.stop, /持ち主の地区が無い.*候補: src\/app\/_layout\/extensionPoints\.ts/);
