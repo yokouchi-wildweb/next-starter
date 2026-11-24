@@ -2,6 +2,8 @@
 //
 // 銀行振込レビューの表示整形ヘルパー(管理画面の一覧・詳細・CSV 取り込みが使う。fork の画面もここから読む)。
 
+import { formatDateJa } from "@/utils/date";
+
 import type {
   BankTransferReviewApprovalSource,
   BankTransferReviewMode,
@@ -11,19 +13,12 @@ import type {
 } from "./entities/model";
 
 /**
- * ISO 文字列または Date を日本語ロケールの「YYYY/MM/DD HH:mm」形式に整形する。
+ * ISO 文字列または Date を日本時間の「YYYY/MM/DD HH:mm」形式に整形する(値が無い・読めない = "-")。
+ * 共有の formatDateJa(既定 Asia/Tokyo)で書く: 実行環境の時間帯(サーバー = UTC)に左右されず、SSR と hydration で同じ文字列
  */
 export function formatBankTransferDate(date: string | Date | null | undefined): string {
   if (!date) return "-";
-  const d = typeof date === "string" ? new Date(date) : date;
-  if (Number.isNaN(d.getTime())) return "-";
-  return d.toLocaleString("ja-JP", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDateJa(date, { format: "YYYY/MM/DD HH:mm", fallback: "-" }) ?? "-";
 }
 
 /**
