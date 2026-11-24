@@ -9,6 +9,7 @@ import type { OneShotTask } from "@/lib/task";
 
 export const task: OneShotTask = {
   name: "wallet:lots-init-from-history",
+  dryRun: true,
   // 一度成功(または結果不明)した通貨は二度と自動では作り直さない(代わりの 1 本と同じ鍵)
   stopKeys: (args) => walletLotsStopKeys("wallet:lots-init-from-history", args),
   run: async () => {

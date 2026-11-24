@@ -17,6 +17,11 @@ export type OneShotTask = {
    * 使い方の誤りは TaskNotStartedError で投げる
    */
   stopKeys?: (args: string[]) => string[] | Promise<string[]>;
+  /**
+   * 試し走りに対応している印(任意、git に入れない移行は必須): 引数 --dry-run を自分で読み、その時は何も書かない。
+   * 無い作業に --dry-run を付けると、ランナー(pnpm task)が DB に触る前に止める(exit 2。本当に書いてしまうのを防ぐ)
+   */
+  dryRun?: true;
   /** 重い依存は run の中で動的 import する。引数は process.argv.slice(3)(`--` を除く) */
   run: () => Promise<Record<string, unknown>>;
 };

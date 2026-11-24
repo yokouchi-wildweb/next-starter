@@ -8,7 +8,7 @@ import { test } from "node:test";
 import { TaskNotStartedError, TaskRerunnableError, taskIncomplete } from "@/lib/task";
 import type { TaskRun } from "@/domains/taskRun/entities/model";
 
-import { type ExecuteInput, executeTask, type TaskRunStore } from "./execute";
+import { dryRunRefusal, type ExecuteInput, executeTask, type TaskRunStore } from "./execute";
 import { invocationOf } from "./invocation";
 
 const META = { gitSha: "abc", gitDirty: false, actor: "me@host", stage: "development", dbTarget: "db.example/app", fileHash: "h" };
@@ -183,4 +183,11 @@ test("TaskRerunnableError: 書いた後でも failed(鍵を取らない)、resul
   assert.equal(out.kind, "ran");
   assert.deepEqual([store.rows[0].status, store.rows[0].error, store.rows[0].result], ["failed", "照合が合わない", { ok: false, items: 2 }]);
   assert.equal((await executeTask(input(store))).kind, "ran", "鍵を取っていないので打ち直せる");
+});
+
+test("dryRunRefusal: --dry-run は宣言した作業だけ通す。宣言の無い作業・定期タスクは止める(名前を出す)、--dry-run の無い実行は止めない", () => {
+  assert.equal(dryRunRefusal({ name: "wallet:bulk-grant", kind: "task", args: ["--dry-run"], dryRunDeclared: true }), null);
+  assert.match(dryRunRefusal({ name: "setting:merge-maintenance-keys", kind: "migration", args: ["--dry-run"], dryRunDeclared: false }) ?? "", /setting:merge-maintenance-keys は試し走り\(--dry-run\)を持ちません/);
+  assert.match(dryRunRefusal({ name: "storage-sweep", kind: "cron", args: ["--dry-run"], dryRunDeclared: false }) ?? "", /storage-sweep は定期タスク/);
+  assert.equal(dryRunRefusal({ name: "setting:merge-maintenance-keys", kind: "migration", args: [], dryRunDeclared: false }), null);
 });

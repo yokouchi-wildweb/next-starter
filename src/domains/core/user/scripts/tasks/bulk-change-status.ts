@@ -9,6 +9,7 @@ import { TaskNotStartedError, type OneShotTask } from "@/lib/task";
 
 export const task: OneShotTask = {
   name: "user:bulk-change-status",
+  dryRun: true,
   run: async () => {
     const parsed = readBulkChangeStatusArgs(process.argv.slice(3).filter((arg) => arg !== "--"));
     const { userService } = await import("@/domains/core/user/services/server/userService");

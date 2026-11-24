@@ -48,6 +48,17 @@ export type ExecuteOutcome =
 
 export const isDryRun = (args: readonly string[]): boolean => args.includes("--dry-run");
 
+/**
+ * --dry-run を付けた実行を走らせてよいか(純)。止める理由の文、走らせてよければ null。
+ * 試し走りは作業の側が --dry-run を読んで書かないこと(OneShotTask の dryRun: true)でしか守れないので、宣言の無い作業・定期タスクは止める
+ */
+export function dryRunRefusal({ name, kind, args, dryRunDeclared }: { name: string; kind: "task" | "migration" | "cron"; args: readonly string[]; dryRunDeclared: boolean }): string | null {
+  if (!isDryRun(args)) return null;
+  if (kind === "cron") return `${name} は定期タスクで試し走り(--dry-run)を持ちません。付けて走らせると本当に書くので止めました`;
+  if (!dryRunDeclared) return `${name} は試し走り(--dry-run)を持ちません(dryRun: true の宣言が無い)。付けて走らせると本当に書くので止めました`;
+  return null;
+}
+
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 /** 書き込み前に止まった印(@/lib/task の TaskNotStartedError。読み込みの経路が違っても名前で分かる) */
 const notStarted = (error: unknown): boolean => error instanceof Error && error.name === "TaskNotStartedError";

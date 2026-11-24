@@ -14,6 +14,7 @@ const argsOf = (args?: string[]) => (args ?? process.argv.slice(3)).filter((arg)
 
 export const task: OneShotTask = {
   name: "wallet:bulk-grant",
+  dryRun: true,
   stopKeys: (args) => [bulkGrantStopKey(readBulkGrantArgs(argsOf(args)))],
   run: async () => {
     const parsed = readBulkGrantArgs(argsOf());

@@ -54,6 +54,9 @@ export async function loadOneShotTask(repoRoot: string, { name, file, kind, loca
   if (kind === "migration" && local && task.notice !== undefined) {
     throw new Error(`${file}: git に入れない移行は notice: を持ちません(下流に流すなら .local を外して notice を付ける)`);
   }
+  if (kind === "migration" && local && task.dryRun !== true) {
+    throw new Error(`${file}: git に入れない移行は dryRun: true を持ち、--dry-run の時は書きません(本実行は同じ中身の dry-run が成功してから)`);
+  }
   if (kind === "migration" && !local && !(typeof task.notice === "string" && NOTICE_ID.test(task.notice))) {
     throw new Error(`${file}: 移行は notice: "<案内する notice の id>" を持ちます(止める鍵 migration:<notice の id>:${name} に使う)`);
   }

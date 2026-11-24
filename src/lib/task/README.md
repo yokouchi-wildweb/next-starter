@@ -46,7 +46,7 @@ export const task: OneShotTask = {
 - 止める鍵 `migration:local:<名前>:<sha256>`: 同じ中身は二度と本実行しない
 - 実行した中身の全文を dry-run も本実行も `task_runs.source` に残す
 - 本実行の後、ランナーが作業の記録の下書き `docs/journal/<日付>--<fork_id>--local-migration-<ドメイン>-<名前>.md` を書く(コミットしない)。人が「なぜ・確かめたこと」を書き足してコミットする
-- dry-run を自分で扱うのはファイルの役目(`process.argv` の `--dry-run` を見て書き込まない)
+- dry-run を自分で扱うのはファイルの役目(`process.argv` の `--dry-run` を見て書き込まない)。`dryRun: true` を宣言する(無ければランナーが読み込みで止める)
 - コミット・ステージされていれば段階 ship(`pnpm check local-migrations`、/ship)が止める。終わったら人が消す
 
 ## API
@@ -78,6 +78,7 @@ export const task: OneShotTask = {
 - 予算で止まった: 大きな写しなどを `runBudgetedBatches`(`@/lib/cron`)で束ごとに進め、締切で止まった時は `return taskIncomplete({ ...途中の数 })`。記録は `incomplete`(鍵を取らない = 移行でも同じ命令をもう一度打てる)、終了コード 2(続きがある)。打ち直して続きから進むタスク(写した行を写し先で見分けられる冪等な物)だけが使う
 - 打ち直してよい失敗: 冪等なタスクが自分で確かめて失敗とした時(例: 写しの後の照合が合わない)は `throw new TaskRerunnableError(message, result)`。記録は `failed`(鍵を取らない)で `result` も残る。冪等でないタスクは使わない(落ちれば結果不明にする)
 - dry-run(引数 `--dry-run`)は記録に印を付け、鍵を取らず、鍵に止められない
+- 試し走りの宣言: `--dry-run` を自分で読んで書かない作業だけが `dryRun: true` を持つ。持たない作業(定期タスクも)に `--dry-run` を付けると、ランナーが DB に触る前に止める(exit 2、記録も書かない。ランナーは本体を呼ぶので、宣言の無い作業は本当に書いてしまう)| git に入れない移行は必ず持つ(本実行は dry-run の後)
 - 立ち上げの例外: `task_runs` を作る最初の `pnpm db:push` と DB の無い初期化は記録なし(`pnpm task` を通らない)
 
 ## Related

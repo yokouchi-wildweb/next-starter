@@ -55,13 +55,16 @@ test("lib.*・テスト・下のフォルダ・tasks の .local.ts・.ts 以外�
 
 test("git に入れない移行: migrations/<名前>.local.ts は local の移行 <ドメイン>:<名前>、notice を持たない。同じ名前の .ts と並ぶと止める", async () => {
   const root = tree({
-    "src/domains/core/wallet/scripts/migrations/fix-rows.local.ts": taskBody("wallet:fix-rows"),
-    "src/domains/core/wallet/scripts/migrations/with-notice.local.ts": 'export const task = { name: "wallet:with-notice", notice: "20261031-141531-setting-fields-core-ui", run: async () => ({}) };\n',
+    "src/domains/core/wallet/scripts/migrations/fix-rows.local.ts": 'export const task = { name: "wallet:fix-rows", dryRun: true, run: async () => ({ ok: true }) };\n',
+    "src/domains/core/wallet/scripts/migrations/no-dry.local.ts": taskBody("wallet:no-dry"),
+    "src/domains/core/wallet/scripts/migrations/with-notice.local.ts": 'export const task = { name: "wallet:with-notice", notice: "20261031-141531-setting-fields-core-ui", dryRun: true, run: async () => ({}) };\n',
   });
   const files = listOneShotTasks(root);
-  assert.deepEqual(files.map((f) => [f.name, f.kind, f.local]), [["wallet:fix-rows", "migration", true], ["wallet:with-notice", "migration", true]]);
+  assert.deepEqual(files.map((f) => [f.name, f.kind, f.local]), [["wallet:fix-rows", "migration", true], ["wallet:no-dry", "migration", true], ["wallet:with-notice", "migration", true]]);
   assert.equal((await loadOneShotTask(root, files[0])).name, "wallet:fix-rows");
-  await assert.rejects(loadOneShotTask(root, files[1]), /git に入れない移行は notice: を持ちません/);
+  // 本実行は同じ中身の dry-run が成功してからなので、試し走りの宣言(dryRun: true)が要る
+  await assert.rejects(loadOneShotTask(root, files[1]), /git に入れない移行は dryRun: true を持ち/);
+  await assert.rejects(loadOneShotTask(root, files[2]), /git に入れない移行は notice: を持ちません/);
   const clash = tree({
     "src/domains/shop/scripts/migrations/fix.ts": taskBody("shop:fix"),
     "src/domains/shop/scripts/migrations/fix.local.ts": taskBody("shop:fix"),
@@ -150,4 +153,19 @@ test("リポジトリの本物の木: 置き方の誤りが無く、全部のタ
     assert.ok(!cron.includes(file.name), file.name);
     assert.equal((await loadOneShotTask(root, file)).name, file.name);
   }
+});
+
+test("上流の作業の試し走りの宣言: dryRun: true を持つのは --dry-run で書かない 6 つだけ(宣言を足す・外す時はこの表も)", async () => {
+  const repo = path.join(import.meta.dirname, "../../..");
+  const upstream = listOneShotTasks(repo).filter((t) => !t.local && t.file.startsWith("src/domains/core/"));
+  const declared: string[] = [];
+  for (const f of upstream) if ((await loadOneShotTask(repo, f)).dryRun === true) declared.push(f.name);
+  assert.deepEqual(declared.sort(), [
+    "user:bulk-change-status",
+    "user:name-dedup",
+    "wallet:bulk-grant",
+    "wallet:lots-init-from-history",
+    "wallet:reverse-history",
+    "walletHistory:reason-key-backfill",
+  ]);
 });

@@ -23,6 +23,7 @@ async function notStartedOnDomainError<T>(work: () => Promise<T>): Promise<T> {
 
 export const task: OneShotTask = {
   name: "wallet:reverse-history",
+  dryRun: true,
   stopKeys: async (args) => {
     const parsed = readReverseHistoryArgs(argsOf(args));
     if (parsed.historyIds) return reverseHistoryStopKeys(parsed.historyIds);

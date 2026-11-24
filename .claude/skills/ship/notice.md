@@ -37,6 +37,7 @@ read when step 5 (commit.md) writes a notice, or a caller writes a notice from a
    - required_actions of a `hotfix:` notice are written without assuming the changes in between or later notices (the fork applies it skipping them; what its tree lacks the fork's hotfixApply skips and reports as `left-out` / `gap`, never a stop) | never include `pnpm-lock.yaml` or `src/app/route-map.jsonl` in the commit (contents differ per fork; `pnpm check notices` checks)
    - **required_actions = "concrete enough for downstream Claude to run without stopping after one approval"**
      - DB migrations, backfills, regeneration and data migrations all go here | only steps the fork's policy may keep for the human (db push, interactive prompts) get `[user-run]`
+     - a step that runs `pnpm task <name>` says whether that task has a dry run (`dryRun: true` in its definition; without it the runner refuses `--dry-run`), never "dry-run first" for one that has none
      - regenerate a domain with `pnpm generate domain -- <Domain>` (no prompts by default; no `[user-run]`), naming only the needed categories with `--only` | the fork-side bulk rebuild after adding settings = `pnpm forge`
    - a change that makes forks' existing code drift from the new spec → write markers to find the fork's target code (grep patterns etc.) and the steps to align it to the new spec | never leave compat for forks to sit on
    - split only what cannot be automated into `manual_steps` (fail-auto)

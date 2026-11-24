@@ -8,6 +8,7 @@ import type { OneShotTask } from "@/lib/task";
 
 export const task: OneShotTask = {
   name: "walletHistory:reason-key-backfill",
+  dryRun: true,
   run: async () => {
     const { backfillWalletReasonKeys, UPSTREAM_REASON_KEY_BACKFILL_RULES } = await import(
       "@/domains/core/walletHistory/services/server/reasonKeyBackfill"

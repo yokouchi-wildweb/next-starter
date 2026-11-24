@@ -22,6 +22,7 @@
 //
 // 名指しの実行(ドメインのタスク・移行・定期タスク)は毎回 task_runs に記録し、止める鍵・結果不明・dry-run を効かせる（execute.ts、
 // src/lib/task/README.md「実行の記録」）。--due（毎分の自動の回し）は記録しない。記録の行が書けなければ走らせない。
+// --dry-run は試し走りを宣言した作業(dryRun: true)だけ。宣言の無い作業・定期タスクは DB に触る前に止める(exit 2、記録なし)。
 //
 // package.json の task スクリプトは scripts/runner/preload/serverOnly.mjs を preload する
 // （タスクが `import "server-only"` を持つ server コードに届くため。テストと同じ理由）。
@@ -33,7 +34,7 @@ import path from "node:path";
 import { matchesCronExpression } from "@/lib/cron";
 import { type LoadedCronTask, loadCronTasks } from "../../structure/cron/discover";
 import { assertNoCronOverlap, listOneShotTasks, loadOneShotTask, type OneShotTaskFile } from "./discover";
-import { type ExecuteOutcome, executeTask, isDryRun } from "./execute";
+import { type ExecuteOutcome, dryRunRefusal, executeTask, isDryRun } from "./execute";
 import { invocationOf } from "./invocation";
 import { asSystem, loadEnvFile, requireDatabase } from "./prepare";
 import { collectRunMeta } from "./record";
@@ -141,12 +142,12 @@ async function runNamed(repoRoot: string, name: string, named: NamedTask, args: 
     log("info", { task: name, ok: true, skipped: true, reason: "closed", rule: named.task.closedBy });
     return 0;
   }
-  await requireDatabase("pnpm task");
   let run: TaskFn;
   let stopKeys: () => string[] | Promise<string[]>;
   let file: string;
   let kind: "task" | "migration" | "cron";
   let local: { fileHash: string; source: string } | undefined;
+  let dryRunDeclared = false;
   if (named.kind === "cron") {
     const cron = named.task;
     run = cron.run;
@@ -155,6 +156,7 @@ async function runNamed(repoRoot: string, name: string, named: NamedTask, args: 
     kind = "cron";
   } else {
     const task = await loadOneShotTask(repoRoot, named.file);
+    dryRunDeclared = task.dryRun === true;
     run = task.run;
     file = named.file.file;
     kind = named.file.kind;
@@ -168,6 +170,13 @@ async function runNamed(repoRoot: string, name: string, named: NamedTask, args: 
       stopKeys = named.file.kind === "migration" ? () => [migrationKey(task.notice as string, name)] : () => (task.stopKeys ? task.stopKeys(args) : []);
     }
   }
+  // 宣言の無い作業の --dry-run は DB に触る前に止める(記録も書かない。本当に書いてしまうのを防ぐ)
+  const refusal = dryRunRefusal({ name, kind, args, dryRunDeclared });
+  if (refusal) {
+    log("error", { task: name, ok: false, refused: true, error: refusal });
+    return 2;
+  }
+  await requireDatabase("pnpm task");
   const meta = { ...collectRunMeta(repoRoot, file), ...(local ? { fileHash: local.fileHash } : {}) };
   const startedAt = Date.now();
   const outcome = await executeTask({

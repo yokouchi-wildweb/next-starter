@@ -7,6 +7,7 @@ import type { OneShotTask } from "@/lib/task";
 
 export const task: OneShotTask = {
   name: "user:name-dedup",
+  dryRun: true,
   run: async () => {
     const { dedupUserNames } = await import(
       "@/domains/core/user/services/server/nameDedup"
