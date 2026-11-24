@@ -33,7 +33,8 @@ export const extensionPoints = {
     key: "key",
     overrideOf: ["hidden", "allowRoles", "order"],
   },
-  // 管理の一覧の一括操作: 差す側の <ドメイン>/plugs/adminBulkActions/<名前>.tsx の export const bulkAction(項目のドメインの一覧に効く、段 3 注文 24 Q2)。
+  // 管理の一覧の一括操作: 差す側の <ドメイン>/plugs/adminBulkActions/<名前>.tsx の export const bulkAction(段 3 注文 24 Q2)。効く一覧 = 項目の domain
+  // (省略 = 差したドメインの一覧。fork は上流のドメインの中に足さず、自分のドメインに置いて domain で上流の一覧を名指す)。
   // key は一覧ごとに一意(全体では見ない)。読み手は hooks/useDomainAdminBulkActions(ドメインで絞り、門番で閉じた項目を外す)。作り方: src/lib/tableSuite/README.md「一括操作の受け口」
   adminBulkActions: {
     change: "add",

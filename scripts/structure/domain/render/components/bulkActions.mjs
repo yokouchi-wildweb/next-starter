@@ -1,5 +1,5 @@
 // 生成カテゴリ components の一部: 管理一覧の一括操作の項目の型(棚の評議会 D149)。
-// - <domain>/types/adminBulkAction.ts: 項目の型(BulkActionItem<Row, AdminBulkActionAccess>)
+// - <domain>/types/adminBulkAction.ts: 項目の型(core/admin の AdminBulkActionItemOf<Row>。domain? = 効く一覧のドメイン、省略 = 差したドメイン)
 // 点 adminBulkActions は core/admin の 1 点(段 3 注文 24 Q2)なので、生成するドメインは宣言を持たない。項目は <domain>/plugs/adminBulkActions/<名前>.tsx。
 // 一覧の Table(Admin__Domain__List/Table.tsx)が core/admin の useDomainAdminBulkActions で自分の項目を読み、項目があれば選択の表と一括操作のバーを出す
 
@@ -15,12 +15,11 @@ export function adminBulkActionTypeContent(ctx) {
   return `// ${domainRel(ctx)}/types/adminBulkAction.ts
 // ${ctx.label}の管理一覧の一括操作の項目の型(pnpm generate domain が生成する。手で編集しない)
 
-import type { BulkActionItem } from "@/lib/tableSuite";
+import type { AdminBulkActionItemOf } from "@/domains/core/admin/types/adminBulkAction";
 import type { ${ctx.pascal} } from "${domainImport(ctx)}/entities";
-import type { AdminBulkActionAccess } from "@/domains/core/user/types";
 
-/** ${domainRel(ctx)}/plugs/adminBulkActions/<名前>.tsx の export const bulkAction。作り方: src/lib/tableSuite/README.md「一括操作の受け口」 */
-export type ${ctx.pascal}AdminBulkActionItem = BulkActionItem<${ctx.pascal}, AdminBulkActionAccess>;
+/** ${domainRel(ctx)}/plugs/adminBulkActions/<名前>.tsx の export const bulkAction(ほかのドメインからは domain: "${path.basename(domainRel(ctx))}" で)。作り方: src/lib/tableSuite/README.md「一括操作の受け口」 */
+export type ${ctx.pascal}AdminBulkActionItem = AdminBulkActionItemOf<${ctx.pascal}>;
 `;
 }
 

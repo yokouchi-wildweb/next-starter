@@ -523,9 +523,10 @@ const { items, total, isFetchingMore, hasMore, sentinelRef } = useMyRows({ obser
 
 ### 一括操作の受け口(管理一覧)
 
-管理一覧の一括操作は、`bulkActions` の中に手で書かず、点 `adminBulkActions`(`src/domains/core/admin` の 1 点)の項目として**一覧のドメインの** `<ドメイン>/plugs/adminBulkActions/<名前>.tsx` に **1 項目 1 ファイル**で置く(項目はそのドメインの一覧に効き、ドメインが閉じれば外れる)。上流の既定の操作も同じ受け口の項目で、fork は項目を足すか、上流の項目を `<名前>.override.ts` で外す・並べ替える。
+管理一覧の一括操作は、`bulkActions` の中に手で書かず、点 `adminBulkActions`(`src/domains/core/admin` の 1 点)の項目として**差す側のドメインの** `<ドメイン>/plugs/adminBulkActions/<名前>.tsx` に **1 項目 1 ファイル**で置く。項目は差したドメインの一覧に効く。ほかのドメインの一覧(fork が上流の一覧に足す時など)に効かせる項目は、自分のドメインに置いて項目の `domain` でその一覧のドメインを名指す(上流のドメインの中には足さない、D26)。
+- 閉じ方は 2 つ: 差した側のドメインが閉じれば門番が項目を外す / 効く先のドメインが閉じればその一覧ごと無い上流の既定の操作も同じ受け口の項目で、fork は項目を足すか、上流の項目を `<名前>.override.ts` で外す・並べ替える。
 
-- 項目の型 `BulkActionItem<Row, Access>` = `{ key, Component, lists?, enabled?, order?, access? }`。`Component` は `{ selection, onDone }` を受ける部品
+- 項目の型 `BulkActionItem<Row, Access>` = `{ key, Component, lists?, enabled?, order?, access? }`。`Component` は `{ selection, onDone }` を受ける部品。管理一覧の項目はこれに `domain?`(効く一覧のドメインのフォルダ名、省略 = 差したドメイン)を足した `AdminBulkActionItemOf<Row>`(`@/domains/core/admin/types/adminBulkAction`)で、各ドメインの `<Domain>AdminBulkActionItem` はそこから作る
   - `key`: 一覧の中で一意(ドメインをまたいでは見ない)
   - `lists`: 出す一覧の名前（省略 = 全部の一覧。user は `"general"` / `"managerial"` / `"demo"`）
   - `enabled`: `false` か `() => boolean`（機能の設定に従うときは関数）

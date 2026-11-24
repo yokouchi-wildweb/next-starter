@@ -75,11 +75,11 @@ fork がロールを変える上書き（core ロールは `label`・`hasProfile
 - サービス: `userService.bulkChangeStatus`(引数と戻り値は [API.md](./API.md))。管理画面から呼ぶときも同じ関数
 - 管理の API: `POST /api/admin/user/bulk/status`(管理者のみ、body = サービスの引数 `{ userIds, newStatus, reason, onlyFrom?, dryRun? }`、戻り値 = サービスの結果)。1 回は `userConfig.bulkUpdate.maxIds` 人まで(既定 1000、超えると 400。多い時は画面側で分けて送る)。上流は画面を作らない: fork が画面から dry-run → 確かめ → 本番の順に呼ぶ
 - 画面から: `useBulkChangeUserStatus().trigger({ userIds, newStatus, reason, onlyFrom?, dryRun? })`(`userClient.bulkChangeStatus` を上限ずつの束に分けて順に送り、結果をまとめて返す。途中の束の失敗は `ChunkRunError`(`@/utils/runInChunks`)= 何束目まで済んだかと済んだ束の結果)
-- 一括操作の部品: `bulkUserStatusAction(meta, options?)`(`@/domains/core/user/components/AdminUserBulkStatusAction`)= 変える先・絞り・理由 → 確かめる(dryRun)→ 実行の小窓つきの `BulkActionItem`。上流は項目を差さない。fork は一覧のドメインの `plugs/adminBulkActions/<名前>.tsx` に 1 項目:
+- 一括操作の部品: `bulkUserStatusAction(meta, options?)`(`@/domains/core/user/components/AdminUserBulkStatusAction`)= 変える先・絞り・理由 → 確かめる(dryRun)→ 実行の小窓つきの `BulkActionItem`。上流は項目を差さない。fork は自分のドメインの `plugs/adminBulkActions/<名前>.tsx` に 1 項目(`domain: "user"` で利用者の一覧を名指す):
 
 ```tsx
 // <fork のドメイン>/plugs/adminBulkActions/userStatus.tsx
-export const bulkAction: UserAdminBulkActionItem = bulkUserStatusAction<User, AdminBulkActionAccess>({ key: "userStatus", lists: ["general"], order: 50 });
+export const bulkAction: UserAdminBulkActionItem = { ...bulkUserStatusAction<User, AdminBulkActionAccess>({ key: "userStatus", lists: ["general"], order: 50 }), domain: "user" };
 ```
 - 1 人ずつ `changeStatus` と同じ道: users の更新・遷移の履歴(trigger `admin_change_status`)・監査 `user.status.changed` を 1 人 1 transaction で書き、確定の後に banned / security_locked のセッション失効とロック解除の監査(`afterStatusChange`)。1 人の失敗は他の人を戻さない
 - 変えられる先: `active` / `inactive` / `suspended` / `banned` / `security_locked`。`withdrawn`(退会の流れ `withdraw` がある)と `pending`(登録の途中)は先に止める

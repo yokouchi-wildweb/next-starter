@@ -51,12 +51,12 @@ export { type RoleCategory, type CoreRoleOverride, type RoleConfig, type RoleOve
 export type AdminBulkActionAccess = { roles: readonly UserRoleType[] };
 
 /**
- * user の管理一覧の一括操作の項目(src/domains/core/user/adminBulkActions/<名前>.tsx の export const bulkAction)。
+ * user の管理一覧の一括操作の項目(src/domains/core/user/plugs/adminBulkActions/<名前>.tsx の export const bulkAction。
+ * fork は自分のドメインの plugs/adminBulkActions/<名前>.tsx に置き domain: "user")。
  * lists は "general"(一般)/ "managerial"(システム管理者)/ "demo"(デモ)。作り方: src/lib/tableSuite/README.md「一括操作の受け口」
  */
-export type UserAdminBulkActionItem = import("@/lib/tableSuite").BulkActionItem<
-  import("@/domains/core/user/entities").User,
-  AdminBulkActionAccess
+export type UserAdminBulkActionItem = import("@/domains/core/admin/types/adminBulkAction").AdminBulkActionItemOf<
+  import("@/domains/core/user/entities").User
 > & {
   /** この機能(門番の規則の名前)が閉なら出さない(useGate、useUserAdminBulkActions が見る。機能の入切は門番の持ち物、D35) */
   feature?: import("@/featureGate").FeatureName;

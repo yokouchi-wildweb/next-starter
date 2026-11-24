@@ -156,11 +156,11 @@ async function playGacha(userId: string, cost: number) {
 - サービス: `walletService.bulkGrant({ walletType, grants: [{ userId, amount }], kind, reason, notify?, dryRun })` → `{ requestBatchId, granted, skipped, total, notified, notifyFailed }`。管理画面から呼ぶときも同じ関数
 - 管理の API: `POST /api/admin/wallet/bulk/grant`(管理者のみ、門 wallet、body = サービスの引数 `{ walletType, kind, grants, reason, notify?, dryRun? }`、戻り値 = サービスの結果)。1 回は `userConfig.bulkUpdate.maxIds` 人まで(既定 1000、超えると 400。多い時は画面側で分けて送る。束ごとに requestBatchId が分かれる)。上流は画面を作らない: fork が画面から dry-run → 確かめ → 本番の順に呼ぶ
 - 画面から: `useBulkGrantWallet().trigger({ walletType, kind, grants, reason, notify?, dryRun? })`(`walletClient.bulkGrant` を上限ずつの束に分けて順に送り、結果をまとめて返す。束ごとに request_batch_id が分かれるので結果は `requestBatchIds`。途中の束の失敗は `ChunkRunError`(`@/utils/runInChunks`)= 何束目まで済んだかと済んだ束の結果。まとめは `mergeBulkGrantResults`)
-- 一括操作の部品: `bulkWalletGrantAction(meta, options?)`(`@/domains/core/wallet/components/AdminWalletBulkGrantAction`)= 通貨・種類・全員に同じ額・理由・知らせ → 確かめる(dryRun)→ 実行の小窓つきの `BulkActionItem`(人ごとの額は hook を直に使う)。上流は項目を差さない。fork は利用者一覧の項目を自分のドメインの `plugs/adminBulkActions/<名前>.tsx` に置き、門 wallet で出し分ける:
+- 一括操作の部品: `bulkWalletGrantAction(meta, options?)`(`@/domains/core/wallet/components/AdminWalletBulkGrantAction`)= 通貨・種類・全員に同じ額・理由・知らせ → 確かめる(dryRun)→ 実行の小窓つきの `BulkActionItem`(人ごとの額は hook を直に使う)。上流は項目を差さない。fork は利用者一覧の項目を自分のドメインの `plugs/adminBulkActions/<名前>.tsx` に置き(`domain: "user"` で利用者の一覧を名指す)、門 wallet で出し分ける:
 
 ```tsx
 // <fork のドメイン>/plugs/adminBulkActions/walletGrant.tsx
-export const bulkAction: UserAdminBulkActionItem = { ...bulkWalletGrantAction<User, AdminBulkActionAccess>({ key: "walletGrant", lists: ["general"], order: 40 }), feature: "wallet" };
+export const bulkAction: UserAdminBulkActionItem = { ...bulkWalletGrantAction<User, AdminBulkActionAccess>({ key: "walletGrant", lists: ["general"], order: 40 }), feature: "wallet", domain: "user" };
 ```
 - 書き方: 全員を 1 つの transaction で `bulkAdjustByUsers` に通す(額ごとにまとめる、INCREMENT、`source_type` admin_action、1 つの `request_batch_id`、監査 `wallet.balance.bulk_adjusted_by_users` は額の組ごと)。1 人でも書けなければ全部戻す
 - 種類: `grant` = 付与の種類 `admin_adjustment`、`compensation` = `compensation`。区分はどちらも `admin_adjustment`(発行には数えない)

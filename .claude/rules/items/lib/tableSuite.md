@@ -9,7 +9,8 @@ use: always
 change: none → /order <direct parent> (admin bulk actions = items in each domain's plugs/adminBulkActions/)
 rules:
 using:
-- admin_bulk_actions: admin list bulk actions = receptacle items <domain>/plugs/adminBulkActions/<name>.tsx (BulkActionItem, @/lib/crud bulk*Action creators), never hand-written bulkActions in a Table | generic bulk buttons only for side-effect-free columns, recorded ops → upstream service + API + creator | item access = show / hide only (authz is the API)
+- admin_bulk_actions: admin list bulk actions = receptacle items <domain>/plugs/adminBulkActions/<name>.tsx (BulkActionItem, @/lib/crud bulk*Action creators), never hand-written bulkActions in a Table
+  - another domain's list (a fork adding to an upstream list) → the item sits in your own domain's plugs with `domain: "<list's domain>"`, never inside the upstream domain | generic bulk buttons only for side-effect-free columns, recorded ops → upstream service + API + creator | item access = show / hide only (authz is the API)
 - messaging_bulk_send: a bulk send from an admin list = definitionBulkAction (fixed text from a definition) or bulkMessageAction (text the admin writes) as that list's adminBulkActions item → src/domains/core/messaging/components/README.md Usage
 - selection_hook: selection outside a table uses useRecordSelection + BulkActionBar, never a hand-built Set
 - sort_by_caller: tables only show sort state and report changes; the caller sorts, and a paginated list sorts on the server through the URL, never sortItems on one page | SortState → search orderBy = toOrderBySpec from @/lib/crud
