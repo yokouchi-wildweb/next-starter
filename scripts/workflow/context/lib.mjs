@@ -16,8 +16,6 @@ import { checkRefs, claudeConfigDir, git, lineText, listShort, mainCheckout, rep
 
 export const RULES_DIR = ".claude/rules";
 export const LINEAGE_FILE = ".claude/rules/lineage.md";
-export const MARKER_FILES = [".claude/rules/shortcuts.md", ".claude/rules/term-aliases.md"];
-export const FORK_MARKER = "<!-- fork entries below";
 const EXCLUDED_DIRS = [".claude/rules/core/", ".claude/rules/items/"];
 
 export class ContextError extends Error {}
@@ -97,12 +95,6 @@ export const ancestorSections = (text, own) =>
     .map((l) => l.match(/^##\s+(\S+)\s*$/)?.[1])
     .filter((name) => name && name !== own);
 
-/** 印の行の範囲(fork entries below の印の次から最後まで)。印が無ければ null */
-export const belowMarker = (text) => {
-  const i = text.split(/\r?\n/).findIndex((l) => l.startsWith(FORK_MARKER));
-  return i < 0 ? null : { from: i + 2 };
-};
-
 // ---- 語 ----
 
 /** 許可の語: devcheck の種類と危険な 3 つの名前と入口の命令 + 決まった語。環境の語: 決まった語 */
@@ -153,7 +145,7 @@ const readAt = (abs) => (existsSync(abs) ? readFileSync(abs, "utf8") : null);
 
 /**
  * 見るファイルと行の範囲。repo: whoOwns が own(fork が足した)か self と答える .claude/rules の物(core/・items/ を除く)、
- * lineage.md の自分の節、shortcuts.md・term-aliases.md の印より下。Tier1: core/・items/・lineage.md を除く .claude/rules の物を丸ごと。
+ * lineage.md の自分の節(shortcuts.md は型 5 self、D311)。Tier1: core/・items/・lineage.md を除く .claude/rules の物を丸ごと。
  * personal: 本体のチェックアウトの CLAUDE.local.md と <設定の置き場>/CLAUDE.md
  * @returns {{ scope: "repo" | "personal", own: string | null, targets: { path: string, abs: string, owner: string, range: { from?: number, to?: number } }[] }}
  */
@@ -182,9 +174,6 @@ export const collectTargets = ({ cwd, env = process.env, personal = false, fetch
     const f = r.path;
     if (f === LINEAGE_FILE) {
       const range = sectionRange(readAt(at(f)) ?? "", own);
-      if (range) targets.push({ path: f, abs: at(f), owner: "own", range });
-    } else if (MARKER_FILES.includes(f)) {
-      const range = belowMarker(readAt(at(f)) ?? "");
       if (range) targets.push({ path: f, abs: at(f), owner: "own", range });
     } else if (r.owner.tier === "fork") targets.push({ path: f, abs: at(f), owner: "own", range: {} });
     else if (r.evidence?.intake?.kind === "self") targets.push({ path: f, abs: at(f), owner: "self", range: {} });

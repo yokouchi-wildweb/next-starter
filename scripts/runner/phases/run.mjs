@@ -1,5 +1,5 @@
 // scripts/runner/phases/run.mjs — 段階の入口(pnpm check / pnpm generate)
-// 実行: node scripts/runner/phases/run.mjs <check|generate> [<対象>] [--phase=<段階>]
+// 実行: node scripts/runner/phases/run.mjs <check|generate> [<対象>] [--phase=<段階>] [--all] [--range=<前>...<先>] [-- <入口への引数>]
 //   対象なし = 全部の対象の check(generate)を順に / <対象> = その 1 つ / --phase=<段階>[,<段階>…] = そのどれかに乗る物だけ(phases.json の段階の名前。
 //   複数なら after の順に 1 回ずつ、env PHASE はその対象が乗る最初の段階)
 //   各対象の入口(phase.json の check / generate のファイル)を、.mjs/.js は node、.ts は tsx(+ server-only の下駄)で起動する。
@@ -10,6 +10,11 @@
 //   watch の段階(phases.json の "watch": true、今は ship)で選んだ対象のうち phase.json に watch を持つ物は、範囲(上流の追跡先か
 //   origin/<枝>、無ければ origin/HEAD との分岐点から HEAD まで + 作業ツリー・未追跡)の変更が watch の glob に当たらなければ飛ばし、
 //   飛ばしたことを 1 行出す。範囲が決まらなければ回す。--all で watch を見ずに全部回す。名前で呼んだ対象は watch を見ない。
+//   --range=<前>...<先> = 範囲をその 2 点の分岐点から <先> までの差分だけにする(作業ツリー・未追跡は入れない)。/flux が取り込む区間の
+//   上流の差分を渡す口(D315: pnpm generate --phase=ship --range=<区間の前>...<区間の merge 先>)。この時の phase.json は取り込む区間の木の
+//   宣言として読む(outputs の古い形もそろえて読む、D313)。... の無い値は exit 2
+//   リポ = cwd の git の直下(自分の置き場所ではない): 遅れた fork で先端の版を .claude/skills/flux/tip.mjs で取り出して走らせても、
+//   宣言・入口・features.ts はその fork の木から読む
 //   exit 0 = 全部通る(対象なし含む)| 1 = 落ちた・外に届いた | 2 = 宣言の誤り(知らない段階・欄・入口のファイル・after の循環)
 import { spawnSync } from "node:child_process";
 import { dirname, extname, join } from "node:path";
@@ -25,7 +30,7 @@ export const OFFLINE_ENV = /^(DATABASE_URL.*|MY_SERVICE_ACCOUNT_KEY|NEXT_PUBLIC_
 /** 機能の開閉: env GATES_FEATURES(JSON、テスト用)か features.ts を tsx で */
 function featureStates(repo) {
   if (process.env.GATES_FEATURES) return JSON.parse(process.env.GATES_FEATURES);
-  const r = spawnSync("npx", ["tsx", "--import", "./scripts/runner/preload/serverOnly.mjs", join(HERE, "features.ts")], { cwd: repo, encoding: "utf8" });
+  const r = spawnSync("npx", ["tsx", "--import", "./scripts/runner/preload/serverOnly.mjs", "./scripts/runner/phases/features.ts"], { cwd: repo, encoding: "utf8" });
   if (r.status !== 0) throw new PhaseError(`機能の開閉が読めない: ${(r.stderr || r.stdout).trim().split("\n").slice(-2).join(" / ")}`);
   return JSON.parse(r.stdout);
 }
@@ -41,7 +46,7 @@ export function command(repo, file, offline) {
 export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(repo, "scripts"), log = console.log, changed = changedFiles } = {}) {
   const mode = argv[0];
   if (mode !== "check" && mode !== "generate") {
-    console.error("usage: pnpm check|generate [<対象>] [--phase=<段階>] [--all] [-- <入口への引数>]");
+    console.error("usage: pnpm check|generate [<対象>] [--phase=<段階>] [--all] [--range=<前>...<先>] [-- <入口への引数>]");
     return 2;
   }
   const sep = argv.indexOf("--");
@@ -51,12 +56,18 @@ export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(rep
   const phaseList = phase ? phase.split(",").map((g) => g.trim()).filter(Boolean) : null;
   const name = own.find((a) => !a.startsWith("--")) ?? null;
   const all = own.includes("--all");
+  const rangeArg = own.find((a) => a.startsWith("--range="));
+  const range = rangeArg === undefined ? undefined : rangeArg.slice("--range=".length);
+  if (range !== undefined && !/^[^.\s]\S*\.\.\.\S*[^.\s]$/.test(range)) {
+    log(`phases: 止まる — --range は <前>...<先>(${JSON.stringify(range)})`);
+    return 2;
+  }
   let phases;
   let targets;
   try {
     phases = loadPhases(scriptsDir);
     for (const g of phaseList ?? []) if (!(g in phases.phases)) throw new PhaseError(`知らない段階 ${g}(段階は ${Object.keys(phases.phases).join(", ")})`);
-    targets = scanTargets(scriptsDir, phases);
+    targets = scanTargets(scriptsDir, phases, { strict: range === undefined });
   } catch (e) {
     if (!(e instanceof PhaseError)) throw e;
     log(`phases: 止まる — ${e.message}`);
@@ -87,11 +98,11 @@ export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(rep
   const offlinePhases = Object.entries(phases.phases).filter(([, g]) => g.offline).map(([n]) => n);
   // watch の段階で選んだ時だけ範囲の変更を読む(1 回)
   const watchPhases = (phaseList ?? []).filter((g) => phases.phases[g]?.watch);
-  let range = null;
+  let changes = null;
   const watched = (t) => !all && !name && t.decl.watch?.length && watchPhases.some((g) => (t.decl.phases ?? []).includes(g));
   if (picked.some(watched)) {
-    range = changed(repo);
-    if (range.files === null) log(`phases: watch: ${range.why}ので watch を見ずに全部回す`);
+    changes = changed(repo, range === undefined ? {} : { range });
+    if (changes.files === null) log(`phases: watch: ${changes.why}ので watch を見ずに全部回す`);
   }
   let code = 0;
   for (const t of picked) {
@@ -106,9 +117,9 @@ export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(rep
       log(`phases: ${label}: 機能 ${closed.join(", ")} が閉じているので飛ばした`);
       continue;
     }
-    if (watched(t) && range?.files) {
+    if (watched(t) && changes?.files) {
       const res = t.decl.watch.map(globToRegExp);
-      if (!range.files.some((f) => res.some((re) => re.test(f)))) {
+      if (!changes.files.some((f) => res.some((re) => re.test(f)))) {
         log(`phases: ${label}: 変更が watch に当たらないので飛ばした(--all で回す)`);
         continue;
       }
@@ -133,4 +144,10 @@ export function run(argv, { repo = join(HERE, "../../.."), scriptsDir = join(rep
   return code;
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) process.exitCode = run(process.argv.slice(2));
+/** CLI のリポ = cwd の git の直下(取れなければ cwd) */
+function repoOfCwd() {
+  const r = spawnSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" });
+  return r.status === 0 ? r.stdout.trim() : process.cwd();
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) process.exitCode = run(process.argv.slice(2), { repo: repoOfCwd() });

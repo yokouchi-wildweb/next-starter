@@ -5,6 +5,8 @@
 //   - repo_id = 自分の名前(全リポが書く。Tier1 = next-starter)。形 = 小文字・数字・ハイフン(FORK_ID_PATTERN)。無い・形違いは errors
 //   - tier = root | middle | leaf(無い = leaf)。下流の有無はここから導く(root・middle = yes、leaf = none)
 //   - agent.* = エージェントに任せる方針の鍵(devcheck が読む)。ほかの鍵は errors
+//   - vercel.plan = Vercel の契約のプラン(hobby | pro)。vercel.json の crons の作り直し(pnpm generate cron)が --plan の無い時に読む。
+//     無い = Vercel にデプロイしないリポ(crons を作り直さない)。知らない値は errors
 //   - 読めない・無い repo.json は errors(検査は合格にしない、exit 2)
 // - 祖先の名前: .notices/applied/<名前>.md の台帳名(自分を除く。/flux が取り込むたびに作り、子の fork にも受け継がれる)
 // - Tier1 の判定: 自分の名前が src/lib/CATALOG.md の先頭の節の見出しと同じ。tier root と両向きで照らし、食い違えば downstreamError
@@ -53,8 +55,13 @@ export const downstreamOfTier = (tier) => (tier === "leaf" ? "none" : "yes");
 
 /** repo.json の鍵の形(小文字の語を . でつなぐ)と、知っている鍵(agent.* は方針の鍵、ここでは形だけ見る) */
 const REPO_KEY_PATTERN = /^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/;
-export const REPO_KEYS = ["repo_id", "tier"];
+export const REPO_KEYS = ["repo_id", "tier", "vercel.plan"];
+/** どのリポも持つ鍵(消せない。変えるのは set) */
+export const REPO_FIXED_KEYS = ["repo_id", "tier"];
 export const AGENT_KEY_PREFIX = "agent.";
+/** vercel.plan の値(src/lib/cron の CRON_PLANS と同じ。scripts/structure/cron/plan.test.ts が縛る) */
+export const VERCEL_PLAN_KEY = "vercel.plan";
+export const VERCEL_PLAN_VALUES = ["hobby", "pro"];
 export const isKnownRepoKey = (/** @type {string} */ key) => REPO_KEYS.includes(key) || (key.startsWith(AGENT_KEY_PREFIX) && REPO_KEY_PATTERN.test(key));
 
 /**
@@ -81,6 +88,10 @@ export function parseRepoJson(text) {
     }
     if (typeof value !== "string" && typeof value !== "boolean") {
       errors.push(`${key} の値は文字列か真偽値だけ(入れ子・配列・数は使えない)`);
+      continue;
+    }
+    if (key === VERCEL_PLAN_KEY && !VERCEL_PLAN_VALUES.includes(/** @type {string} */ (value))) {
+      errors.push(`${key} の値は ${VERCEL_PLAN_VALUES.join(" | ")}(${JSON.stringify(value)})`);
       continue;
     }
     values[key] = value;
@@ -246,6 +257,20 @@ export function readForkIdentity(repoRoot) {
   }
   const downstream = repoText === null || tierError ? null : downstreamOfTier(tier);
   return { own, ancestors, isTier1, tier, downstream, downstreamError, errors };
+}
+
+/**
+ * Vercel の契約のプラン(repo.json の vercel.plan)。repo.json・鍵が無い = plan null(Vercel にデプロイしないリポ)、読めない・知らない値 = error
+ * @param {string} repoRoot リポジトリ直下
+ * @returns {{ plan: "hobby" | "pro" | null, error: string | null }}
+ */
+export function readVercelPlan(repoRoot) {
+  const repoPath = join(repoRoot, REPO_JSON_FILE);
+  if (!existsSync(repoPath)) return { plan: null, error: null };
+  const { values, errors } = parseRepoJson(readFileSync(repoPath, "utf8"));
+  if (errors.length) return { plan: null, error: `${REPO_JSON_FILE}: ${errors.join(" / ")}` };
+  const plan = values[VERCEL_PLAN_KEY];
+  return { plan: plan === "hobby" || plan === "pro" ? plan : null, error: null };
 }
 
 /**

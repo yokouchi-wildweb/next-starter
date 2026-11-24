@@ -87,6 +87,15 @@ test("unset: 1 つの鍵を消して同じ形で書き直す。無い鍵は何�
   assert.equal(read(root, "repo.json"), before);
 });
 
+test("vercel.plan: hobby | pro だけ書ける(tier の後に並ぶ)、unset で消せる", () => {
+  const root = repo({ repoJson: '{"repo_id":"shop","tier":"leaf","agent.server":"manual"}' });
+  setValue(root, "vercel.plan", "pro");
+  assert.equal(read(root, "repo.json"), '{\n  "repo_id": "shop",\n  "tier": "leaf",\n  "vercel.plan": "pro",\n  "agent.server": "manual"\n}\n');
+  assert.throws(() => setValue(root, "vercel.plan", "enterprise"), /vercel\.plan の値は hobby \| pro/);
+  assert.equal(unsetValue(root, "vercel.plan").removed, true);
+  assert.deepEqual(readValues(root), { repo_id: "shop", tier: "leaf", "agent.server": "manual" });
+});
+
 test("命令: show は誤りで exit 2、get は値、set の誤りは exit 2(1 行)", () => {
   const run = (cwd, ...args) => spawnSync(process.execPath, [path.join(HERE, `${args[0]}.mjs`), ...args.slice(1)], { cwd, encoding: "utf8" });
   const ok = repo({ repoJson: '{"repo_id":"next-starter","tier":"root"}' });

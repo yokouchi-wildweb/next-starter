@@ -53,6 +53,7 @@ const READS = {
     data: ["src/domains/core/user/roles/*", "src/domains/core/user/coreRoles/*", "src/domains/core/userProfile/profiles/*", "src/domains/core/user/extensions/roles.ts", "src/**/plugs/formInputs/*.ts"],
   },
   // ルート地図: src/app のページ・Screen・loader・guard と地図そのもの
+  lockfile: { entries: ["scripts/structure/lockfile/generate.mjs"], data: ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml"] },
   routes: { entries: ["scripts/structure/routes/check.ts", "scripts/structure/routes/map.mjs"], data: ["src/app/**", "src/app/route-map.jsonl"] },
   // 地区の地図: 4 種の地区の木(features・lib・proxies・枠の _layout)・門の規則・上書きの有無と地図そのもの
   "district-map": {
@@ -140,7 +141,8 @@ test("段階 ship: md だけの変更なら全部の対象が飛び、飛ばし�
   const code = run(["check", "--phase=ship"], { repo, log: (l) => lines.push(l), changed: () => ({ files: ["docs/setup/x.md"] }) });
   assert.equal(code, 0);
   const skipped = lines.filter((l) => l.includes("変更が watch に当たらないので飛ばした"));
-  const ship = [...shipTargets.map((n) => `structure/${n}`), "workflow/notices", "workflow/rules"];
+  // check を持つ対象だけ(生成だけの対象 = lockfile は check の段で選ばれない)
+  const ship = [...shipTargets.filter((n) => declOf(n).check).map((n) => `structure/${n}`), "workflow/notices", "workflow/rules"];
   for (const label of ship) assert.ok(skipped.some((l) => l.includes(`phases: ${label}:`)), `${label} が飛ばされていない: ${lines.join(" / ")}`);
   assert.ok(!lines.some((l) => l.endsWith("通る")), `起動した対象がある: ${lines.join(" / ")}`);
 });

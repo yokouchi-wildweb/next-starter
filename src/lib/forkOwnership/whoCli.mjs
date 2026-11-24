@@ -1,6 +1,7 @@
 // pnpm workflow ownership who <path...> — パスごとの持ち主・できること・根拠(読むだけ)。終了コード: 0 = 答えた / 2 = 未検証・引数の誤り
 // 読み込んだだけでは走らない: runOwnershipWhoCli() を呼ぶ(入口 "./node")
-// 引数: --parent=<remote> --branch=<branch> --no-fetch --json。仕様: ./README.md「持ち主を調べる(pnpm workflow ownership who)」
+// 引数: --parent=<remote> --branch=<branch> --no-fetch --json --base=<rev>(基準にする版。/flux は取り込む区間の merge 先を渡す、D313)。
+// 仕様: ./README.md「持ち主を調べる(pnpm workflow ownership who)」
 
 import { relative, resolve, sep } from "node:path";
 
@@ -8,7 +9,7 @@ import { whoOwns } from "./who.mjs";
 
 /**
  * @import { WhoAnswer, WhoResult } from "./who.mjs"
- * @typedef {{ json: boolean, fetch: boolean, paths: string[], parent?: string, branch?: string }} WhoCliOptions
+ * @typedef {{ json: boolean, fetch: boolean, paths: string[], parent?: string, branch?: string, base?: string }} WhoCliOptions
  */
 
 /** @type {Readonly<Record<string, string | undefined>>} */
@@ -49,10 +50,11 @@ function parseArgs(argv) {
     else if (arg === "--no-fetch") options.fetch = false;
     else if (arg.startsWith("--parent=")) options.parent = arg.slice("--parent=".length);
     else if (arg.startsWith("--branch=")) options.branch = arg.slice("--branch=".length);
+    else if (arg.startsWith("--base=")) options.base = arg.slice("--base=".length);
     else if (arg.startsWith("--")) throw new Error(`不明な引数: ${arg}`);
     else options.paths.push(arg);
   }
-  if (options.paths.length === 0) throw new Error("使い方: pnpm workflow ownership who <path...> [--json] [--no-fetch] [--parent=<remote>] [--branch=<branch>]");
+  if (options.paths.length === 0) throw new Error("使い方: pnpm workflow ownership who <path...> [--json] [--no-fetch] [--parent=<remote>] [--branch=<branch>] [--base=<rev>]");
   return options;
 }
 
@@ -76,6 +78,11 @@ function ownerLine(owner) {
 function printResult(result) {
   const lines = [result.path];
   lines.push(`  持ち主: ${ownerLine(result.owner)}`);
+  lines.push(`  種類: ${result.kind ?? "受け口の一覧に行なし"}`);
+  if (result.generated) {
+    const range = result.generated.part ? `ファイルの中の ${result.generated.part}` : result.generated.region ? "区画の外(fork の区画は fork の物)" : "ファイル丸ごと";
+    lines.push(`  生成: ${result.generated.generator}(${result.generated.command})/ 範囲: ${range}`);
+  }
   if (result.type) {
     lines.push(`  型: ${TYPE_LABELS[result.type] ?? result.type}${result.how ? ` — ${result.how}` : ""}`);
     if (result.write) lines.push(`  置くファイル: ${result.write}`);
@@ -125,12 +132,13 @@ function print(answer) {
     return lines;
   }
   if (answer.status === "tier1") {
-    lines.push(`このリポ = Tier1(${answer.ownerId}): どのファイルも自分の物で、自由に編集できる。以下は直接の fork から見た答え(基準 = HEAD)`);
+    lines.push(`このリポ = Tier1(${answer.ownerId}): どのファイルも自分の物で、自由に編集できる。以下は直接の fork から見た答え(基準 = ${answer.read.base === answer.read.head ? "HEAD" : "--base の版"})`);
   } else {
     lines.push(`基準: ${answer.remote}/${answer.branch} ${answer.base.slice(0, 10)}(fork: ${answer.ownerId})`);
     const via = answer.tier1.chain.map((step) => `${step.name}@${step.sha.slice(0, 10)}`).join(" → ");
     lines.push(`Tier1 の版: ${answer.tier1.sha.slice(0, 10)}${via ? `(${via} からたどった)` : ""}`);
   }
+  lines.push(`読んだ版: 基準 ${answer.read.base?.slice(0, 10) ?? "-"} / HEAD ${answer.read.head?.slice(0, 10) ?? "-"}`);
   for (const result of answer.results) lines.push("", ...printResult(result));
   return lines;
 }
@@ -150,7 +158,7 @@ export function runOwnershipWhoCli() {
   const answer = whoOwns(
     repoRoot,
     options.paths.map((arg) => toRepoPath(repoRoot, arg)),
-    { parent: options.parent, branch: options.branch, fetch: options.fetch },
+    { parent: options.parent, branch: options.branch, fetch: options.fetch, ...(options.base === undefined ? {} : { base: options.base }) },
   );
   console.log(options.json ? JSON.stringify(answer, null, 2) : print(answer).join("\n"));
   process.exitCode = answer.status === "unverified" ? 2 : 0;

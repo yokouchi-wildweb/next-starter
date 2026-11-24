@@ -172,6 +172,34 @@ describe("pnpm workflow ownership who", () => {
     assert.match(run.stdout, /Tier1\(parent\)/);
   });
 
+  test("答えの欄(D312): kind = 受け口の一覧の行の種類、read = 読んだ版。--base はその版の木と受け口の一覧で答える(D313)", () => {
+    const root = makeTier1();
+    const first = git(root, "rev-parse", "HEAD").trim();
+    // 次の版で受け口の一覧に生成物の行を足す: --base=<最初の版> では行が無い
+    write(root, "src/registry/extra.ts", "export const extra = 1;\n");
+    write(root, "src/lib/forkOwnership/intake.txt", `${INTAKE}generated src/registry/extra.ts  # 生成器 extra の出力\n`);
+    commitAll(root, "extra");
+    const head = git(root, "rev-parse", "HEAD").trim();
+
+    const now = whoOwns(root, ["src/registry/extra.ts", "src/config/app.config.ts"]);
+    assert.equal(now.status, "tier1");
+    assert.deepEqual(now.read, { base: head, head });
+    assert.equal(resultOf(now, "src/registry/extra.ts").kind, "generated");
+    assert.equal(resultOf(now, "src/config/app.config.ts").kind, "edit");
+
+    const before = whoOwns(root, ["src/registry/extra.ts"], { base: first });
+    assert.equal(before.status, "tier1");
+    assert.deepEqual(before.read, { base: first, head });
+    assert.equal(resultOf(before, "src/registry/extra.ts").kind, null, "最初の版の受け口の一覧には行が無い");
+    assert.equal(resultOf(before, "src/registry/extra.ts").owner.kind, "missing");
+
+    assert.equal(whoOwns(root, ["src/a.ts"], { base: "nope" }).status, "unverified");
+    const run = cli(root, `--base=${first}`, "src/registry/extra.ts");
+    assert.equal(run.status, 0);
+    assert.match(run.stdout, /読んだ版: 基準 [0-9a-f]{10}/);
+    assert.equal(cli(root, "--base=nope", "src/a.ts").status, 2);
+  });
+
   test("fork: 今の差分(受け口の中・違反と許可の下書き)、fork の物、フォルダは中のファイルに広げる", () => {
     const fork = makeFork(makeTier1(), "child");
     write(fork, "src/config/app.config.ts", "export const app = { name: 'child' };\n");
@@ -268,9 +296,15 @@ describe("型の答え(パスの表、explain.mjs)", () => {
       "self repo.json  # 名前と段(型 5)",
       "generated src/registry/district-map.jsonl  # 生成器の出力",
       "region src/registry/**/*.ts  # 生成器の区画",
+      "self vercel.json  # Vercel の設定(型 5、crons は生成器 cron の持ち分)",
       "",
     ].join("\n"),
     "scripts/structure/district-map/phase.json": JSON.stringify({ generate: "generate.mjs", outputs: ["src/registry/district-map.jsonl"] }),
+    // part = ファイルの中の持ち分(D318)、regions = 区画の行の出どころ
+    "scripts/structure/cron/phase.json": JSON.stringify({ generate: "generate.mjs", outputs: [{ glob: "vercel.json", kind: "every-run", source: "src/app/api/cron/*/task.ts", part: "crons" }] }),
+    "scripts/structure/registry/phase.json": JSON.stringify({ generate: "generate.mjs", regions: ["src/registry/**/*.ts"] }),
+    "vercel.json": "{}\n",
+    "src/registry/schemaRegistry.ts": "export const s = 1;\n",
     "scripts/structure/domain/phase.json": real("scripts/structure/domain/phase.json"),
     "src/registry/district-map.jsonl": "{}\n",
     // 1 行スイッチ
@@ -355,6 +389,7 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     ["管理画面の生成物(ルートのフォルダ → ドメイン)", "src/app/admin/(protected)/samples/_screen/loader.ts", { type: "generated", write: "src/domains/sample/domain.json", keys: null, source: "pnpm generate domain" }],
     // 型 5
     ["自分の版(self の行)", "repo.json", { type: "5", write: "repo.json", keys: null }],
+    ["自分の版で、生成器がファイルの中の持ち分を書く(vercel.json の crons)", "vercel.json", { type: "5", write: "vercel.json", keys: null }],
     // どれでもない
     ["無いときだけ書く(上流の物)", "src/domains/sample/seed.ts", { type: "none", write: null, keys: null, order: "/order parent" }],
     ["generate: false のドメイン(上流の物)", "src/domains/hand/entities/drizzle.ts", { type: "none", write: null, keys: null, order: "/order parent" }],
@@ -365,6 +400,16 @@ describe("型の答え(パスの表、explain.mjs)", () => {
   for (const [label, path, expected] of ROWS) {
     test(`${label}: ${path}`, () => assert.deepEqual(pick(explain(path)), expected));
   }
+
+  test("generated の欄(種類と別、D312): 生成器の名前・命令・範囲(ファイル丸ごと / part / 区画)", () => {
+    assert.deepEqual(explain("src/registry/district-map.jsonl").generated, { generator: "district-map", command: "pnpm generate district-map", part: null, region: false });
+    // self のファイルの持ち分(part)だけを生成器が書く: 種類は self(型 5)のまま、generated に生成器と持ち分
+    assert.deepEqual(explain("vercel.json").generated, { generator: "cron", command: "pnpm generate cron", part: "crons", region: false });
+    assert.equal(explain("repo.json").generated, null);
+    assert.deepEqual(explain("src/registry/schemaRegistry.ts").generated, { generator: "registry", command: "pnpm generate registry", part: null, region: true });
+    assert.deepEqual(explain("src/domains/sample/entities/drizzle.ts").generated, { generator: "domain", command: "pnpm generate domain", part: null, region: false });
+    assert.equal(explain("src/config/app/site.config.ts").generated, null);
+  });
 
   test("own: fork・中間 Tier の物と足してよい新しいパス(generated は own より先)", () => {
     assert.deepEqual(pick(explain("src/domains/sample/seed.ts", "fork")), { type: "own", write: "src/domains/sample/seed.ts", keys: null });

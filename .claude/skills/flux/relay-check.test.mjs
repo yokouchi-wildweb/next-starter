@@ -165,13 +165,14 @@ test("lock ファイルと .notices/ だけの差分 → 中継不要", () => {
   }
 });
 
-test("各リポが自分の版を持つファイル(型 5 self)だけが重なる → 中継不要、印付きファイルの重なりは数える", () => {
+test("各リポが自分の版を持つファイル(型 5 self、合言葉の shortcuts.md も)だけが重なる → 中継不要、ほかのファイルの変更は数える", () => {
   const r = setupRepo();
   try {
     r.write(".claude/rules/project.md", lines(30));
     r.write(".claude/rules/behavior.md", lines(10));
     r.write("repo.json", lines(15));
     r.write(".claude/rules/shortcuts.md", lines(10));
+    r.write(".gitignore", lines(10));
     const p = r.commit("P");
     r.edit(".claude/rules/project.md", replaceLine(22, "upstream tier1 line"));
     r.edit(".claude/rules/behavior.md", replaceLine(3, "upstream rule"));
@@ -188,7 +189,9 @@ test("各リポが自分の版を持つファイル(型 5 self)だけが重な�
     assert.deepEqual(result.outside, []);
 
     r.edit(".claude/rules/shortcuts.md", replaceLine(2, "fork shortcut"));
-    assert.deepEqual(relayCheck({ cwd: r.dir, p, q, appliedFrom: a }).outside, [".claude/rules/shortcuts.md"]);
+    assert.deepEqual(relayCheck({ cwd: r.dir, p, q, appliedFrom: a }).outside, []);
+    r.edit(".gitignore", replaceLine(2, "fork ignore"));
+    assert.deepEqual(relayCheck({ cwd: r.dir, p, q, appliedFrom: a }).outside, [".gitignore"]);
   } finally {
     r.cleanup();
   }

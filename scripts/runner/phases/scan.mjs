@@ -1,6 +1,6 @@
 // scripts/runner/phases/scan.mjs — 段階の一覧(phases.json)と各対象フォルダの phase.json を読み、検証して回す順に並べる
 // 走査は毎回(一覧は生成しない)。対象 = scripts/structure/*/phase.json と scripts/workflow/*/phase.json。
-// 順序: after を満たす順。同じ段では上流の名簿(phases.json の upstreamFolders)の物が先で名前順、名簿に無い(fork の)フォルダは
+// 順序: 段階の一覧の first(先に回す対象の名前、今は lockfile = 依存の解決を作る物)が全部より先、その順に。残りは after を満たす順。同じ段では上流の名簿(phases.json の upstreamFolders)の物が先で名前順、名簿に無い(fork の)フォルダは
 // 上流の全部の後に名前順(fork の物は上流の後: fork の after に上流の名を書いてもよい)。欄の規則: README.md
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -14,7 +14,7 @@ const TEST_FILE = /\.test\.(ts|tsx|mts|mjs|js|cjs)$/;
 
 export class PhaseError extends Error {}
 
-/** 段階の一覧: { phases: { <名前>: { runs, offline } }, upstreamFolders: { structure: [], workflow: [] } } */
+/** 段階の一覧: { phases: { <名前>: { runs, offline } }, first?: [<対象の名前>], upstreamFolders: { structure: [], workflow: [] } } */
 export function loadPhases(scriptsDir) {
   const p = join(scriptsDir, "runner/phases/phases.json");
   if (!existsSync(p)) throw new PhaseError(`段階の一覧 ${p} が無い`);
@@ -23,8 +23,11 @@ export function loadPhases(scriptsDir) {
 
 const strings = (v) => Array.isArray(v) && v.every((x) => typeof x === "string" && x.length > 0);
 
-/** 1 枚の phase.json を検証する(理由の配列、空 = 正しい) */
-export function validate(decl, dir, phaseNames) {
+/**
+ * 1 枚の phase.json を検証する(理由の配列、空 = 正しい)
+ * strict = このリポの宣言として読む(既定)。false = 取り込む区間の木の宣言として読む: outputs の古い形はそろえて読み、止めない(D313)
+ */
+export function validate(decl, dir, phaseNames, { strict = true } = {}) {
   const errs = [];
   if (decl === null || typeof decl !== "object" || Array.isArray(decl)) return ["phase.json がオブジェクトでない"];
   for (const k of Object.keys(decl)) if (!KEYS.includes(k)) errs.push(`知らない欄 ${k}`);
@@ -42,14 +45,15 @@ export function validate(decl, dir, phaseNames) {
       else if (!existsSync(join(dir, "../../..", f))) errs.push(`tests の ${f} が無い(リポ相対のパス)`);
     }
   }
-  // outputs: 1 行 = glob の文字列(= every-run)か { glob, kind?, source? }(生成器が出力を宣言する唯一の場所。読み方は src/lib/districtMap/domainOutputs.mjs)
-  errs.push(...normalizeGateOutputs(decl.outputs).problems);
+  // outputs: 1 行 = { glob, kind, source, part? }(生成器が出力を宣言する唯一の場所、全部の生成器で 1 つの形 D318。読み方は src/lib/districtMap/domainOutputs.mjs。
+  // このリポの宣言は strict: 古い短い形は止める。古い木を読む読み手(段階の入口の --range、who)は strict でなくそろえる)
+  errs.push(...normalizeGateOutputs(decl.outputs, { strict }).problems);
   for (const g of decl.phases ?? []) if (!phaseNames.includes(g)) errs.push(`知らない段階 ${g}(段階は ${phaseNames.join(", ")})`);
   return errs;
 }
 
-/** 対象を走査して検証する: [{ kind, name, dir, decl, upstream }]。誤りは PhaseError(全部まとめて) */
-export function scanTargets(scriptsDir, phases) {
+/** 対象を走査して検証する: [{ kind, name, dir, decl, upstream }]。誤りは PhaseError(全部まとめて)。strict は validate と同じ */
+export function scanTargets(scriptsDir, phases, { strict = true } = {}) {
   const phaseNames = Object.keys(phases.phases);
   const targets = [];
   const errs = [];
@@ -66,7 +70,7 @@ export function scanTargets(scriptsDir, phases) {
         errs.push(`${kind}/${name}/phase.json: JSON が読めない(${e.message})`);
         continue;
       }
-      for (const e of validate(decl, dir, phaseNames)) errs.push(`${kind}/${name}/phase.json: ${e}`);
+      for (const e of validate(decl, dir, phaseNames, { strict })) errs.push(`${kind}/${name}/phase.json: ${e}`);
       targets.push({ kind, name, dir, decl, upstream: (phases.upstreamFolders?.[kind] ?? []).includes(name) });
     }
   }
@@ -74,17 +78,24 @@ export function scanTargets(scriptsDir, phases) {
   const dup = targets.map((t) => t.name).filter((n, i, a) => a.indexOf(n) !== i);
   for (const n of new Set(dup)) errs.push(`対象の名前 ${n} が structure と workflow の両方にある`);
   for (const t of targets) for (const a of t.decl.after ?? []) if (!names.has(a)) errs.push(`${t.kind}/${t.name}/phase.json: after の ${a} が無い`);
+  const first = phases.first ?? [];
+  if (!strings(first) && first.length > 0) errs.push("phases.json: first は対象の名前の配列");
+  else for (const n of first) {
+    const t = targets.find((x) => x.name === n);
+    if (!t) errs.push(`phases.json: first の ${n} が無い`);
+    else if ((t.decl.after ?? []).length) errs.push(`${t.kind}/${t.name}/phase.json: first の対象は after を持たない`);
+  }
   if (errs.length) throw new PhaseError(errs.join("\n"));
-  return order(targets);
+  return order(targets, first);
 }
 
-/** after を満たす順(段ごとに: 上流が先で名前順、fork は上流の全部の後に名前順)。循環は PhaseError */
-export function order(targets) {
+/** first の対象をその順に先頭へ、残りは after を満たす順(段ごとに: 上流が先で名前順、fork は上流の全部の後に名前順)。循環は PhaseError */
+export function order(targets, first = []) {
   const rank = (t) => (t.upstream ? 0 : 1);
   const cmp = (a, b) => rank(a) - rank(b) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
-  const done = new Set();
-  const out = [];
-  let rest = [...targets];
+  const out = first.map((n) => targets.find((t) => t.name === n)).filter(Boolean);
+  const done = new Set(out.map((t) => t.name));
+  let rest = targets.filter((t) => !done.has(t.name));
   // fork の物は上流の全部の後: 上流を先に全部並べ、その後に fork(fork の after は上流か fork を指せる)
   for (const pass of [0, 1]) {
     let pool = rest.filter((t) => rank(t) === pass);

@@ -69,15 +69,13 @@ test("置き場の宣言は仕組みの定数と同じ(config = 上書きの根�
   assert.equal(placements.forkScreenParts, `src/app/**/${FORK_OWNED_DIR}/**`);
 });
 
-/** パッケージの道具(pnpm)が作る直下の生成物: 生成器の宣言に載らないので手書きの行(intake.txt の直下) */
-const PACKAGE_MANAGER_OUTPUTS = ["pnpm-lock.yaml"];
-
-test("手書きの区画: src の下の行も、pnpm の lock を除く生成物の行も無い(残るのはリポ直下の道具の設定・素材・servers/room・規則・負債)", () => {
+test("手書きの区画: src の下の行も生成物の行も無い(pnpm-lock.yaml も生成器 lockfile の宣言から。残るのはリポ直下の道具の設定・素材・servers/room・規則・負債)", () => {
   const hand = rules.filter((r) => !inBlock(r));
   assert.deepEqual(hand.filter((r) => r.glob.startsWith("src/")).map(key), []);
-  // 生成物の行は生成器の宣言(phase.json)から書く。例外は pnpm が作る pnpm-lock.yaml だけ(この repo の生成器の出力でない直下の生成物、D304)
-  assert.deepEqual(hand.filter((r) => r.kind === "generated" && !PACKAGE_MANAGER_OUTPUTS.includes(r.glob)).map(key), []);
-  assert.deepEqual(rules.filter(inBlock).filter((r) => !r.glob.startsWith("src/")).map(key), [], "生成区画は src の下だけ(vercel.json は型 5 self の手書きの行、D295)");
+  // 生成物の行は生成器の宣言(phase.json)から書く。例外なし(pnpm-lock.yaml も scripts/structure/lockfile の宣言、D316)
+  assert.deepEqual(hand.filter((r) => r.kind === "generated").map(key), []);
+  // 生成区画の src の外の行は生成器の出力だけ(vercel.json は型 5 self の手書きの行、D295)
+  assert.deepEqual(rules.filter(inBlock).filter((r) => !r.glob.startsWith("src/")).map(key), ["generated pnpm-lock.yaml"]);
 });
 
 test("効く種類(最後に当たった行)は生成区画へ移す前と同じ(印の付いた意図した変化を除く): 見本のパス", () => {

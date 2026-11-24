@@ -5,6 +5,7 @@
 // 使い方:
 //   pnpm generate cron -- --plan hobby   # Vercel Hobby: 全タスクを 1 日 1 回
 //   pnpm generate cron -- --plan pro     # Vercel Pro:   task.ts の schedule どおり
+//   pnpm generate cron                   # --plan の無い時は repo.json の vercel.plan(pnpm workflow repo-json set vercel.plan <hobby|pro>)
 //
 // 再生成が要るとき: タスクのフォルダが増減したとき（upstream からの merge を含む）・task.ts の schedule や task.override.ts を
 // 変えたとき・プランを変えたとき・機能を閉じた / 開いたとき（閉じた機能のタスクは載せない。scripts/structure/cron/discover.ts の closedBy）。忘れると Vercel のビルド前検査（pnpm check cron）で止まる。
@@ -14,6 +15,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { CRON_PATH_PREFIX, CRON_PLANS, buildVercelCrons, isCronPlan, listHobbyDowngradedTasks, validateCronSchedules } from "@/lib/cron";
+import { readVercelPlan } from "@/lib/forkOwnership/node.mjs";
 import { loadCronTasks, scheduledCronTasks } from "./discover";
 
 const VERCEL_SCHEMA_URL = "https://openapi.vercel.sh/vercel.json";
@@ -25,13 +27,18 @@ function readFlag(args: string[], name: string): string | undefined {
 
 async function main() {
   const args = process.argv.slice(2).filter((arg) => arg !== "--");
-  const plan = readFlag(args, "plan");
+  const repoRoot = path.resolve(import.meta.dirname, "../../..");
+  const declared = readVercelPlan(repoRoot);
+  if (declared.error) {
+    console.error(`✗ ${declared.error}`);
+    process.exit(1);
+  }
+  const plan = readFlag(args, "plan") ?? declared.plan ?? undefined;
   if (!plan || !isCronPlan(plan)) {
-    console.error(`Usage: pnpm generate cron -- --plan <${CRON_PLANS.join("|")}>`);
+    console.error(`Usage: pnpm generate cron -- --plan <${CRON_PLANS.join("|")}>(または repo.json の vercel.plan: pnpm workflow repo-json set vercel.plan <${CRON_PLANS.join("|")}>)`);
     process.exit(1);
   }
 
-  const repoRoot = path.resolve(import.meta.dirname, "../../..");
   const file = path.join(repoRoot, "vercel.json");
 
   let config: Record<string, unknown> = { $schema: VERCEL_SCHEMA_URL };

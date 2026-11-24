@@ -1,0 +1,1 @@
+{ "generate": "generate.mjs", "phases": ["ship"], "watch": ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "scripts/structure/lockfile/**", "scripts/runner/phases/**"], "outputs": [{"glob": "pnpm-lock.yaml", "kind": "every-run", "source": "package.json"}] }

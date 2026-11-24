@@ -19,8 +19,9 @@ import { unitName } from "./unitNames.mjs";
  * @import { Permit } from "./permits.mjs"
  * @typedef {ReturnType<typeof describePath>} WhoResult 1 パスの答え
  * @typedef {Unverified
- *   | { status: "tier1", ownerId: string, results: WhoResult[] }
- *   | { status: "ok", ownerId: string, remote: string, branch: string, base: string, tier1: Tier1Version, results: WhoResult[] }} WhoAnswer whoOwns の結果
+ *   | { status: "tier1", ownerId: string, read: WhoRead, results: WhoResult[] }
+ *   | { status: "ok", ownerId: string, remote: string, branch: string, base: string, tier1: Tier1Version, read: WhoRead, results: WhoResult[] }} WhoAnswer whoOwns の結果
+ * @typedef {{ base: string | null, head: string | null }} WhoRead 答えが読んだ版(base = 受け口の一覧・phase.json・木を読んだ版、head = 作業の HEAD)
  */
 
 /**
@@ -38,12 +39,28 @@ const EDIT_BY_KIND = {
 
 /**
  * @param {string} repoRoot
+ * @param {string} rev
  * @param {string} path
  * @returns {string | null}
  */
-const showHead = (repoRoot, path) => {
+const showAt = (repoRoot, rev, path) => {
   try {
-    return execFileSync("git", ["show", `HEAD:${path}`], { cwd: repoRoot, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
+    return execFileSync("git", ["show", `${rev}:${path}`], { cwd: repoRoot, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
+  } catch {
+    return null;
+  }
+};
+/** @param {string} repoRoot @param {string} path */
+const showHead = (repoRoot, path) => showAt(repoRoot, "HEAD", path);
+/**
+ * 版の sha(無い版は null)
+ * @param {string} repoRoot
+ * @param {string} rev
+ * @returns {string | null}
+ */
+const revSha = (repoRoot, rev) => {
+  try {
+    return execFileSync("git", ["rev-parse", "--verify", "--quiet", `${rev}^{commit}`], { cwd: repoRoot, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }).trim() || null;
   } catch {
     return null;
   }
@@ -142,7 +159,8 @@ export function describePath({ path, inBase, inHead, inTier1, middleName, intake
   };
   // 型(1-4 | generated | own | none)・鍵・置くファイル: fork がこのパスを変えたいときにすること
   const typed = explain ? explain(path, { tier, addable: tier === "missing" && judgeAdd(path).verdict === "ok" }) : null;
-  return { path, owner, ...(typed ?? {}), allowed, blocked, evidence };
+  // kind = 受け口の一覧の行の種類(D312 の答えの欄)、generated = 生成器の名前・命令・範囲(種類と別の欄、explain.mjs)
+  return { path, owner, kind: rule?.kind ?? null, generated: typed?.generated ?? null, ...(typed ?? {}), allowed, blocked, evidence };
 }
 
 /**
@@ -178,27 +196,30 @@ export function expandPaths(repoRoot, paths, revs) {
 /**
  * @param {string} repoRoot
  * @param {string[]} paths repo 相対(フォルダはその下のファイルに広げる)
- * @param {{ parent?: string, branch?: string, fetch?: boolean }} [options]
+ * @param {{ parent?: string, branch?: string, fetch?: boolean, base?: string }} [options] base = 基準にする版(既定: fork = 直接の親との merge-base、Tier1 = HEAD)
  * @returns {WhoAnswer}
  */
 export function whoOwns(repoRoot, paths, options = {}) {
   const context = resolveForkContext(repoRoot, options);
   if (context.status === "unverified") return context;
 
+  const head = revSha(repoRoot, "HEAD");
   if (context.status === "tier1") {
-    // Tier1: このリポは全部自分の物。答えは「直接の fork から見たら」(HEAD を基準に見立てる)
-    const intake = parseIntake(showHead(repoRoot, INTAKE_PATH) ?? "");
+    // Tier1: このリポは全部自分の物。答えは「直接の fork から見たら」(HEAD か --base の版を基準に見立てる)
+    const rev = options.base === undefined ? "HEAD" : revSha(repoRoot, options.base);
+    if (rev === null) return { status: "unverified", reason: `基準の版 ${options.base} が無い`, ownerId: context.ownerId };
+    const intake = parseIntake((rev === "HEAD" ? showHead(repoRoot, INTAKE_PATH) : showAt(repoRoot, rev, INTAKE_PATH)) ?? "");
     if (intake.errors.length > 0) return { status: "unverified", reason: `${INTAKE_PATH} に書式の誤りがある`, ownerId: context.ownerId, errors: intake.errors };
-    const snapshot = treeSnapshot(repoRoot, "HEAD");
+    const snapshot = treeSnapshot(repoRoot, rev);
     const files = new Set(snapshot.files);
     const judgeAdd = addJudge(snapshot, intake.rules, files);
     const view = explainView({ files: snapshot.files, read: snapshot.read, intake: intake.rules });
     /** @type {(path: string, who: { tier: ExplainTier, addable: boolean }) => ExplainAnswer} */
     const explain = (path, who) => explainPath(path, view, { ...who, parent: context.ownerId });
-    const results = expandPaths(repoRoot, paths, ["HEAD"]).map((path) =>
+    const results = expandPaths(repoRoot, paths, [rev]).map((path) =>
       describePath({ path, inBase: files.has(path), inHead: files.has(path), inTier1: files.has(path), middleName: null, intake: intake.rules, entry: null, permit: null, judgeAdd, explain }),
     );
-    return { status: "tier1", ownerId: context.ownerId, results };
+    return { status: "tier1", ownerId: context.ownerId, read: { base: rev === "HEAD" ? head : rev, head }, results };
   }
 
   const { entries, permits, snapshot } = judgeFork(repoRoot, context);
@@ -229,7 +250,7 @@ export function whoOwns(repoRoot, paths, options = {}) {
     });
   });
   const { ownerId, remote, branch, base, tier1 } = context;
-  return { status: "ok", ownerId, remote, branch, base, tier1, results };
+  return { status: "ok", ownerId, remote, branch, base, tier1, read: { base, head }, results };
 }
 
 /**

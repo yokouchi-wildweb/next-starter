@@ -17,9 +17,8 @@
 //    上流がファイルを追加・削除したファイル、ハンクの無い差分(バイナリ・mode 変更)はファイル全体を範囲とみなす。
 // ② A→作業ツリー(未追跡を含む)で変わったファイルのうち、上流が P→Q で変えていないもの。
 // どちらも .notices/ と lock ファイル(package.json から生成される派生物)、各リポが自分の版を持つファイル
-// (型 5 self = SELF_FILES: project.md・behavior.md・repo.json・直下の設定 3 本・持つなら vercel.json・backend-selection.json。下流へは届かない)、
+// (型 5 self = SELF_FILES: .claude/rules/project.md・behavior.md・shortcuts.md・repo.json・直下のコードの設定 3 本・持つなら vercel.json・backend-selection.json。下流へは届かない)、
 // リポごとの一時許可 .fork-ownership/<repo_id>.permits.txt(読むのは自分の名前のファイルだけ。下流は自分の分を持つ)を対象外にする。
-// 印付きファイル(shortcuts.md・term-aliases.md)は印より上を上流と共有するので対象に残す。
 import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { SELF_FILES } from "../../../src/lib/forkOwnership/node.mjs";

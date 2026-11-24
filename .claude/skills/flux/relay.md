@@ -63,9 +63,8 @@ as a middle Tier, decide mechanically **by git diffs only** whether applied upst
   - **③ deviation from required_actions**: in this segment, some required_action of that notice was not run, or was run changed (exactly the deviation written in the ledger `notes:` in step 7a) | regardless of diffs
     - why: without deviation, downstream gets by with the upstream notice's work; with one, downstream would run upstream's steps as they are | `covered by` and push-failure records do not count as deviations
   - excluded (do not count in ①②): `.notices/`, lock files (`pnpm-lock.yaml` etc.; derived from package.json)
-    - per-repo own files (type 5 self = `SELF_FILES` of `src/lib/forkOwnership`: `.claude/rules/project.md`, `behavior.md`, `repo.json`, the root code configs `next.config.ts` / `eslint.config.mjs` / `playwright.config.ts`, and `vercel.json` / `backend-selection.json` when held; each repo keeps its own version, never reaching downstream)
+    - per-repo own files (type 5 self = `SELF_FILES` of `src/lib/forkOwnership`: `.claude/rules/project.md`, `behavior.md`, `shortcuts.md`, `repo.json`, the root code configs `next.config.ts` / `eslint.config.mjs` / `playwright.config.ts`, and `vercel.json` / `backend-selection.json` when held; each repo keeps its own version, never reaching downstream)
     - per-repo temporary permits (`.fork-ownership/<repo_id>.permits.txt`; each repo reads only its own, a line goes each time its order ships as resolves:)
-    - marker files (`shortcuts.md`, `term-aliases.md`) share the part above the marker with upstream, so they count
 - **drafting the relay notice** (one or more notices in the segment need relay): one per segment, written to `.notices/<ts>-relay-<slug>.md`
   - composition rules = RELAY NOTICE COMPOSITION below (`covers:` = the ids needing relay in this segment and their covered ids)
   - also put the judgment grounds as they are in `notes:`: ① the script's `overlap:` lines (files and line ranges), ② the `outside:` lines, ③ the deviation written in the ledger `notes:`

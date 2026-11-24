@@ -54,8 +54,11 @@ export const GET = createCronTaskRoute(cronTask);
 #### 3. vercel.json を再生成（vercel.json を持つリポ）
 
 ```bash
-pnpm generate cron -- --plan <hobby|pro>
+pnpm generate cron                       # プラン = repo.json の vercel.plan
+pnpm generate cron -- --plan <hobby|pro> # プランを指定して(vercel.plan より先)
 ```
+
+- プランは repo.json の `vercel.plan` に 1 度だけ書く(`pnpm workflow repo-json set vercel.plan <hobby|pro>`)。無い = Vercel にデプロイしないリポとして `pnpm generate` の全部・/flux の区間の作り直しでは飛ばす
 
 `pnpm task my-task` はフォルダを置いた時点で使える。タスクを消すときもフォルダを消して再生成する。
 upstream でタスクを足す・消すときは、fork 向けに `pnpm generate cron` を `required_actions` に書いた notice を同じ commit で出す(`/ship` で出荷すると判定と起票まで行う)

@@ -27,7 +27,7 @@ pnpm workflow context facts --fetch       # 持ち主を決める前に親の re
 
 見るファイル:
 
-- repo(fork): `pnpm workflow ownership who` が fork の物(own)か型 5 の self と答える `.claude/rules/` の物(`core/`・`items/` を除く)、`lineage.md` の自分の節、`shortcuts.md`・`term-aliases.md` の `fork entries below` の印より下
+- repo(fork): `pnpm workflow ownership who` が fork の物(own)か型 5 の self と答える `.claude/rules/` の物(`core/`・`items/` を除く)(`shortcuts.md` も型 5 self)、`lineage.md` の自分の節
 - repo(Tier1): `core/`・`items/`・`lineage.md` を除く `.claude/rules/` の物を丸ごと(印のファイルも)
 - personal: 本体のチェックアウトの `CLAUDE.local.md`(ワークツリーから走らせても本体の物)と `<CLAUDE_CONFIG_DIR か ~/.claude>/CLAUDE.md`。無いファイルは出さない
 

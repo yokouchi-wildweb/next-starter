@@ -1,22 +1,26 @@
 // scripts/runner/phases/phases.test.mjs — 段階の仕組み(scan.mjs・run.mjs・netGuard.mjs)を一時のフォルダの fixture で通す。実行: pnpm test scripts/runner/phases/phases.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { globToRegExp, run } from "./run.mjs";
+import { changedFiles, globToRegExp, run } from "./run.mjs";
 import { PhaseError, phaseTestFiles, phaseTestsOf, loadPhases, scanTargets } from "./scan.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
-/** fixture: <tmp>/scripts/runner/phases/phases.json(本物の写し)+ add(kind, name, decl, files) */
+/** fixture: <tmp>/scripts/runner/phases/phases.json(本物の写しから first を外した物。first は下の検査が書く)+ add(kind, name, decl, files) */
 function fixture(t) {
   const repo = mkdtempSync(join(tmpdir(), "gates-test-"));
   t.after(() => rmSync(repo, { recursive: true, force: true }));
   const scriptsDir = join(repo, "scripts");
   mkdirSync(join(scriptsDir, "runner/phases"), { recursive: true });
-  copyFileSync(join(HERE, "phases.json"), join(scriptsDir, "runner/phases/phases.json"));
+  const phasesOnly = JSON.parse(readFileSync(join(HERE, "phases.json"), "utf8"));
+  delete phasesOnly.first;
+  const writePhases = (extra = {}) => writeFileSync(join(scriptsDir, "runner/phases/phases.json"), JSON.stringify({ ...phasesOnly, ...extra }));
+  writePhases();
   const add = (kind, name, decl, files = { "check.mjs": "process.exit(0)\n" }) => {
     const dir = join(scriptsDir, kind, name);
     mkdirSync(dir, { recursive: true });
@@ -28,13 +32,29 @@ function fixture(t) {
     const code = run(argv, { repo, scriptsDir, log: (l) => lines.push(l), ...opts });
     return { code, out: lines.join("\n") };
   };
-  return { repo, scriptsDir, add, exec };
+  return { repo, scriptsDir, add, exec, writePhases };
 }
 
 const names = (f) => scanTargets(f.scriptsDir, loadPhases(f.scriptsDir)).map((t) => t.name);
 
-test("段階の一覧: 6 つの段階、build と build:post が offline、上流の対象フォルダの名簿", () => {
+test("段階の一覧の first: その対象をこの順に全部より先(名前順・after の鎖より前)、残りは after の順 / 無い名前・after を持つ first は止める", (t) => {
+  const f = fixture(t);
+  f.add("structure", "alpha", { generate: "check.mjs" });
+  f.add("structure", "beta", { generate: "check.mjs", after: ["alpha"] });
+  f.add("structure", "zlock", { generate: "check.mjs" });
+  f.writePhases({ first: ["zlock"] });
+  assert.deepEqual(names(f), ["zlock", "alpha", "beta"]);
+  f.writePhases({ first: ["nope"] });
+  assert.throws(() => names(f), (e) => e instanceof PhaseError && /first の nope が無い/.test(e.message));
+  f.writePhases({ first: ["beta"] });
+  assert.throws(() => names(f), (e) => e instanceof PhaseError && /first の対象は after を持たない/.test(e.message));
+  f.writePhases({ first: ["nope"] });
+  assert.equal(f.exec(["generate"]).code, 2);
+});
+
+test("段階の一覧: 6 つの段階、build と build:post が offline、上流の対象フォルダの名簿、first = lockfile", () => {
   const g = loadPhases(join(HERE, "../.."));
+  assert.deepEqual(g.first, ["lockfile"]);
   assert.deepEqual(Object.keys(g.phases), ["build", "build:post", "ship", "forge:pre", "forge:post", "deploy"]);
   assert.deepEqual(Object.entries(g.phases).filter(([, v]) => v.offline).map(([k]) => k), ["build", "build:post"]);
   assert.ok(g.upstreamFolders.structure.includes("domain") && g.upstreamFolders.workflow.includes("notices"));
@@ -55,11 +75,15 @@ test("phase.json の誤り: 知らない欄・知らない段階・無い入口�
   assert.equal(f.exec(["check"]).code, 2);
 });
 
-test("phase.json の outputs / regions: outputs は glob の文字列か { glob, kind?, source? } の配列、regions は文字列の配列なら通り、それ以外は止める(受け口の一覧の generated / region の行の出どころ)", (t) => {
+test("phase.json の outputs / regions: outputs は 1 つの形 { glob, kind, source, part? } の配列(D318)、regions は文字列の配列なら通り、それ以外は止める(受け口の一覧の generated / region の行の出どころ)", (t) => {
   const ok = fixture(t);
   ok.add("structure", "registry", {
     generate: "check.mjs",
-    outputs: ["src/registry/a.ts", { glob: "src/registry/b.ts", kind: "every-run" }, { glob: "src/registry/c.ts", kind: "write-once", source: "src/c.json" }],
+    outputs: [
+      { glob: "src/registry/b.ts", kind: "every-run", source: "src/b.json" },
+      { glob: "src/registry/c.ts", kind: "write-once", source: "src/c.json" },
+      { glob: "vercel.json", kind: "every-run", source: "src/app/api/cron/*/task.ts", part: "crons" },
+    ],
     regions: ["src/registry/**/*.ts"],
   });
   assert.deepEqual(names(ok), ["registry"]);
@@ -68,7 +92,11 @@ test("phase.json の outputs / regions: outputs は glob の文字列か { glob,
   assert.throws(() => names(bad), (e) => /outputs は配列/.test(e.message) && /regions は文字列の配列/.test(e.message));
   const badEntry = fixture(t);
   badEntry.add("structure", "registry", { generate: "check.mjs", outputs: [{ glob: "src/registry/a.ts", kind: "sometimes" }, { kind: "every-run" }, 1] });
-  assert.throws(() => names(badEntry), (e) => /outputs\[0\] の kind は every-run \| write-once/.test(e.message) && /outputs\[1\] の glob が無い/.test(e.message) && /outputs\[2\] は glob の文字列か/.test(e.message));
+  assert.throws(() => names(badEntry), (e) => /outputs\[0\] の kind は every-run \| write-once/.test(e.message) && /outputs\[1\] の glob が無い/.test(e.message) && /outputs\[2\] は \{ glob, kind, source, part\? \}/.test(e.message));
+  // 古い短い形(glob の文字列・source の省略)は、このリポの宣言では止める(書き換えの道具を案内する)
+  const shortForm = fixture(t);
+  shortForm.add("structure", "registry", { generate: "check.mjs", outputs: ["src/registry/a.ts", { glob: "src/registry/b.ts", kind: "every-run" }] });
+  assert.throws(() => names(shortForm), (e) => /outputs\[0\] は .*outputs-form\.mjs/.test(e.message) && /outputs\[1\] の source が無い/.test(e.message));
 });
 
 test("順序: after を満たし、同じ段は上流が先で名前順、名簿に無い fork のフォルダは上流の全部の後に名前順 / 循環は止める", (t) => {
@@ -207,6 +235,54 @@ test("watch: 段階 ship で選んだ watch つきの対象は、範囲の変更
   let calls = 0;
   f.exec(["check", "--phase=forge:post"], { changed: () => (calls++, { files: [] }) });
   assert.equal(calls, 0, "watch の段階でなければ範囲を読まない");
+});
+
+test("--range: 取り込む区間の差分を watch の範囲にして changed へ渡す / 区間の木の宣言はそろえて読む(古い outputs も通る、無しでは止まる)/ ... の無い値は 2", (t) => {
+  const f = fixture(t);
+  f.add("workflow", "rules", { check: "check.mjs", phases: ["ship"], watch: [".claude/rules/**"] });
+  f.add("structure", "registry", { generate: "check.mjs", check: "check.mjs", phases: ["ship"], watch: ["src/registry/**"], outputs: ["src/registry/a.ts"] });
+  const asked = [];
+  const changed = (_repo, options) => (asked.push(options), { files: options.range === "pre...seg" ? ["src/registry/x.ts"] : [".claude/rules/a.md"] });
+  const seg = f.exec(["generate", "--phase=ship", "--range=pre...seg"], { changed });
+  assert.equal(seg.code, 0, seg.out);
+  assert.deepEqual(asked, [{ range: "pre...seg" }]);
+  assert.match(seg.out, /structure\/registry: generate 通る/);
+  const checkSeg = f.exec(["check", "--phase=ship", "--range=pre...seg"], { changed });
+  assert.match(checkSeg.out, /workflow\/rules: 変更が watch に当たらないので飛ばした/);
+  assert.match(checkSeg.out, /structure\/registry: check 通る/);
+  const own = f.exec(["check", "--phase=ship"], { changed });
+  assert.equal(own.code, 2, "このリポの宣言としては古い outputs の形を止める");
+  assert.match(own.out, /outputs\[0\] は .*outputs-form\.mjs/);
+  for (const bad of ["--range=pre..seg", "--range=", "--range=...seg", "--range=pre..."]) {
+    const r = f.exec(["check", "--phase=ship", bad], { changed });
+    assert.equal(r.code, 2, bad);
+    assert.match(r.out, /--range は <前>\.\.\.<先>/);
+  }
+});
+
+test("changedFiles の range: その 2 点の分岐点から先までの差分だけ(作業ツリー・未追跡は入れない、改名は元と先の両方)、読めない範囲は files: null", (t) => {
+  const repo = mkdtempSync(join(tmpdir(), "gates-range-"));
+  t.after(() => rmSync(repo, { recursive: true, force: true }));
+  const g = (...a) => execFileSync("git", ["-C", repo, ...a], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  g("init", "-q", "-b", "main");
+  g("config", "user.email", "t@t");
+  g("config", "user.name", "t");
+  writeFileSync(join(repo, "old.txt"), "same content\n".repeat(20));
+  writeFileSync(join(repo, "keep.txt"), "k\n");
+  g("add", "-A");
+  g("commit", "-qm", "base");
+  const pre = g("rev-parse", "HEAD");
+  g("mv", "old.txt", "new.txt");
+  writeFileSync(join(repo, "up.txt"), "u\n");
+  g("add", "-A");
+  g("commit", "-qm", "segment");
+  const seg = g("rev-parse", "HEAD");
+  writeFileSync(join(repo, "keep.txt"), "worktree\n");
+  writeFileSync(join(repo, "untracked.txt"), "x\n");
+  assert.deepEqual(changedFiles(repo, { range: `${pre}...${seg}` }).files.sort(), ["new.txt", "old.txt", "up.txt"]);
+  const broken = changedFiles(repo, { range: "nope...main" });
+  assert.equal(broken.files, null);
+  assert.match(broken.why, /nope\.\.\.main/);
 });
 
 test("tests の欄: リポ相対の *.test.* の配列で実在する物だけ。check がテストの対象と tests が phaseTestFiles に段階の名で並ぶ(D389)", (t) => {

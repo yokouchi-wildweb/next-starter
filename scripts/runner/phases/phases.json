@@ -27,6 +27,7 @@
       "offline": false
     }
   },
+  "first": ["lockfile"],
   "upstreamFolders": {
     "structure": [
       "domain",
@@ -49,7 +50,8 @@
       "business",
       "legal",
       "message",
-      "next-config"
+      "next-config",
+      "lockfile"
     ],
     "workflow": [
       "worktree",

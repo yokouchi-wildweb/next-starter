@@ -1,6 +1,7 @@
 {
   "repo_id": "next-starter",
   "tier": "root",
+  "vercel.plan": "pro",
   "agent.browser": "auto",
   "agent.db_delete": "auto",
   "agent.db_push": "manual",

@@ -34,7 +34,11 @@ pnpm workflow ownership check --parent=upstream --branch=main
 pnpm workflow ownership who <path...>          # フォルダは中のファイル(HEAD ∪ 基準)に広げて 1 ファイルずつ答える
 pnpm workflow ownership who <path...> --json   # 機械向け(エージェント・集計)
 pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
+pnpm workflow ownership who <path...> --base=<rev>   # その版を基準(親の版)にして答える(/flux が取り込む区間の merge 先を渡す、D313)
 ```
+
+- 答えの欄(D312、/flux がファイルごとの扱いを引く 1 本の読み手): 持ち主(`owner`)・受け口の一覧の行の種類(`kind`: edit / add / region / marker / append / generated / debt / self、当たる行が無ければ null)・生成の作り手(`generated`: `{ generator, command, part, region }` = 生成器の名前(phase.json の置き場の名前、`pnpm generate domain` は `domain`)・作り直しの命令・ファイルの中の持ち分(phase.json の outputs の `part`。無い = ファイル丸ごと。part の行はファイルの行の種類を変えない: vercel.json は self のまま、generated に cron と crons)・受け口の一覧の region の行か。生成物でなければ null。種類とは別の欄)・読んだ版(答え全体の `read`: `{ base, head }` = 受け口の一覧・phase.json・木を読んだ版の sha と HEAD の sha)
+- `--base=<rev>`: 基準を直接の親との merge-base(Tier1 は HEAD)からその版に替える。取り込みの途中の答えなので「取り込み済みの notice が台帳に無い」で止めない(所有の検査 check はこの口を持たない)。無い版 = 終了コード 2
 
 - 前提(名前・基準・受け口の一覧・鮮度・Tier1 の版)と判定は `pnpm workflow ownership check` と同じ。「足したら」の答えは同じ `judge` に仮の A を渡して出す
 - 持ち主(`owner.kind`): `tier1` = Tier1 の版にある / `middle` = 基準にあるが Tier1 の版に無い(`owner.forkId` = その版を持つ、Tier1 に最も近い中間 Tier の `repo_id`)/ `fork` = 基準に無く HEAD にある / `generated` = 受け口の一覧の generated の行に当たる(`owner.tier` に元の持ち主)/ `missing` = 基準にも HEAD にも無い
@@ -123,8 +127,8 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
   | debt | — | `debt`(upstream の負債の箇所。一時許可で通す) |
   | self | 書き換え → `self` | — |
 
-- self(型 5: 各リポが自分の版を持つ): `.claude/rules/project.md`・`.claude/rules/behavior.md`・`repo.json`・直下のコードの設定 3 本(`next.config.ts`・`eslint.config.mjs`・`playwright.config.ts`)・`vercel.json`・`backend-selection.json` の 8 行だけ、1 ファイル 1 行・ぴったりのパス。設定 3 本は Tier1 の本体 `<道具>.config.core.<拡張子>`(上流、行なし)を読み、足す・包む・外す(playwright は読まなくてよい。D299)。Tier1 の版は本体をそのまま使う。`backend-selection.json`(バックエンドの選択表: 口 → 実装の名前)も持たなくてよい(Tier1 の版と埋める命令が出る時に必ず持つ方へ移す)。`vercel.json` は持たなくてよい(Vercel にデプロイするリポだけが持つ。crons は `pnpm generate cron` の出力、他の鍵は手書き、D295)。`pnpm workflow ownership who` は型 5 と答える。中身は見ず、`pnpm workflow ownership check` が 3 つだけで落とす(既定で入、`--no-self` で外す): 必ず持つ 6 つのファイルが無い・self の行が 8 行ちょうどでない・Tier1 でないリポの project.md が直接の親の版と同じまま。親の版をそのまま使うのは正式な選び方で、取り込みの前から親の版のままなら何も言わない。取り込みの merge で自分の行が消えて親の版と同じになったファイル(merge の前の版が、その前に取り込んだ親の版 = merge の前と基準の分岐点の版と違っていた)は `self.asks` の `self-parent-lost` に出し(合否は変えない)、`/flux` が「親の版に従う / 自分の行を戻す」を人に聞く
-- 載せている物(手書き = src の外だけ): リポジトリ直下は 3 つの形(D304) = JSON は鍵を足すだけ(`append`: package.json・.mcp.json・firebase.json。マシンごとの MCP の指定は `~/.claude.json`)/ 行のファイルは印の行 `# fork entries below (upstream never edits below this line)` より下(`marker`: .gitignore・.env.example)/ `pnpm-lock.yaml` は生成物(`generated`、衝突は `pnpm install` で作り直す)(コードの設定 3 本は上の self)/ ロゴ(public/)/ room の登録点(region)と wrangler.toml / `.claude/rules` の PER_PROJECT と marker・lineage.md(append)/ 負債(debt)。src の下の行は全部生成区画(Internals の「受け口の一覧の生成区画」)
+- self(型 5: 各リポが自分の版を持つ): `.claude/rules/project.md`・`.claude/rules/behavior.md`・`.claude/rules/shortcuts.md`(合言葉、D311)・`repo.json`・直下のコードの設定 3 本(`next.config.ts`・`eslint.config.mjs`・`playwright.config.ts`)・`vercel.json`・`backend-selection.json` の 9 行だけ、1 ファイル 1 行・ぴったりのパス。設定 3 本は Tier1 の本体 `<道具>.config.core.<拡張子>`(上流、行なし)を読み、足す・包む・外す(playwright は読まなくてよい。D299)。Tier1 の版は本体をそのまま使う。`backend-selection.json`(バックエンドの選択表: 口 → 実装の名前)も持たなくてよい(Tier1 の版と埋める命令が出る時に必ず持つ方へ移す)。`vercel.json` は持たなくてよい(Vercel にデプロイするリポだけが持つ。crons は `pnpm generate cron` の出力、他の鍵は手書き、D295)。`pnpm workflow ownership who` は型 5 と答える。中身は見ず、`pnpm workflow ownership check` が 3 つだけで落とす(既定で入、`--no-self` で外す): 必ず持つ 7 つのファイルが無い・self の行が 9 行ちょうどでない・Tier1 でないリポの project.md が直接の親の版と同じまま。親の版をそのまま使うのは正式な選び方で、取り込みの前から親の版のままなら何も言わない。取り込みの merge で自分の行が消えて親の版と同じになったファイル(merge の前の版が、その前に取り込んだ親の版 = merge の前と基準の分岐点の版と違っていた)は `self.asks` の `self-parent-lost` に出し(合否は変えない)、`/flux` が「親の版に従う / 自分の行を戻す」を人に聞く
+- 載せている物(手書き = src の外だけ): リポジトリ直下は 3 つの形(D304) = JSON は鍵を足すだけ(`append`: package.json・.mcp.json・firebase.json。マシンごとの MCP の指定は `~/.claude.json`)/ 行のファイルは印の行 `# fork entries below (upstream never edits below this line)` より下(`marker`: .gitignore・.env.example)(コードの設定 3 本は上の self)/ ロゴ(public/)/ room の登録点(region)と wrangler.toml / `.claude/rules` の PER_PROJECT・lineage.md(append)/ 負債(debt)。src の下の行と生成物の行は全部生成区画(Internals の「受け口の一覧の生成区画」。`pnpm-lock.yaml` も生成器 lockfile の宣言から `generated`、作り直しは `pnpm generate lockfile` = `pnpm install`)
 - 外のままにした物と理由: `README.md`(上流だけ: 全リポ共通の入口の文書)/ コードの設定の本体 `next.config.core.ts`・`eslint.config.core.mjs`・`playwright.config.core.ts`(上流だけ。各リポは素の名前の自分の版で読む)/ `tsconfig.json`(paths の不足は upstream で直す。要るなら一時許可 + 依頼)/ `AGENTS.md`(`next dev` が書き足す `<!-- BEGIN:nextjs-agent-rules -->` の区画は生成器の区画として除く)/ 既存の `eslint-rules/*.mjs` の書き換え(新しい規則のファイルは追加なので合格)
 - 負債の行(debt): upstream 自身が core の中のファイルを下流の編集点として案内している箇所。理由の欄 = 案内の所在 → 受け口づくりの依頼の番号(`upreq:<id>`)。件数は Tier1 で `pnpm workflow ownership check` が「対象外 — upstream の負債の行 n」(`--verbose` でパスも)、テストが diagnostic で出す。`/inbox` の一覧の先頭にも出る
 
@@ -149,7 +153,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
   // --- fork entries end ---
   ```
 - 1 ファイルに複数の対を置ける。fork の登録は import を伴うので、import 文の後にも対を置く
-- 文言は `.claude/rules/` の marker(`fork entries below (upstream never edits below this line)`)と語を揃えている
+- 文言は行のファイルの marker(`fork entries below (upstream never edits below this line)`、.gitignore・.env.example)と語を揃えている
 - 生成器の区画(`AUTO-GENERATED` 系)は fork の区画ではない
 - 古い下流の印 3 通り(`// --- DOWNSTREAM (downstream で追加) ---` / `// --- ここに…（上流は空。下流が追記） ---` / `// --- FORK (手書き) ---`)は、`regions.mjs` が移行のために読める(終わりは字下げの浅い閉じ括弧)
 
@@ -166,6 +170,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 - `tier` = `root`(Tier1)| `middle`(下流の fork を持つ・持つ予定)| `leaf`(末端)。無い = `leaf`。下流の有無はここから導く(root・middle = yes、leaf = none)。`/ship`・`/flux` の中継判定・`.claude/rules/lineage.md` の検査はこの値を使う
   - 見張り: `root` ⇔ 自分の名前が `src/lib/CATALOG.md` の先頭の節(両向き)。食い違い・知らない値は `downstreamError`。止めるのは pnpm workflow ownership check(未検証 = exit 2)と lineage.md の検査だけで、`pnpm check extensions`(`pnpm build`)は止めない
 - `agent.<種類>` = エージェントに任せる方針の鍵(読むのは devcheck)。ほかの鍵は `errors`
+- `vercel.plan` = Vercel の契約のプラン(`hobby` | `pro`、読むのは `readVercelPlan`、使うのは `pnpm generate cron` の `--plan` の無い時)。無い = Vercel にデプロイしないリポ(crons を作り直さない)。知らない値は `errors`
 - 親(上の Tier)の名前: `.notices/applied/*.md` の台帳名から自動で集める(台帳は `/flux` が作り、子の fork にも受け継がれる)
 - 書く命令: `pnpm workflow repo-json set <鍵> <値>`(と `/fork-init`)。古い形(`.claude/rules/project.md` の `fork_id:` / `downstream:` の行)からの移しは `pnpm workflow repo-json migrate`(`scripts/workflow/repo-json/README.md`)。古い形を読むのは過去の版を読む所(多段の台帳の鎖・`ownership who` の中間 Tier・safe point の親の名前)と移しの命令だけ
 
@@ -285,7 +290,7 @@ pnpm workflow ownership who <path...> --no-fetch --parent=upstream --branch=main
 
 ### 型の答え(`explain.mjs`)
 
-`pnpm workflow ownership who` の答えに `type`・`keys`・`write`・`source`(と `how`、none のとき `order`)を加える。判定に使う木は持ち主と同じ(Tier1 は HEAD、fork は直接の親との基準)で、読むのは宣言(`extensionPoints.ts`)・地区の見つけ方・ルート・名前の決まり(`src/lib/districtMap/extensionNames.mjs`)・受け口の一覧の kind・生成器の `phase.json`・`pnpm generate domain` の出力の種類(`scripts/structure/domain/phase.json` の `outputs`)。受け口の一覧の行の注記の文言は読まない。ownership check の合否は変えない(答えは案内)。
+`pnpm workflow ownership who` の答えに `type`・`keys`・`write`・`source`・`generated`(と `how`、none のとき `order`)を加える。判定に使う木は持ち主と同じ(Tier1 は HEAD、fork は直接の親との基準)で、読むのは宣言(`extensionPoints.ts`)・地区の見つけ方・ルート・名前の決まり(`src/lib/districtMap/extensionNames.mjs`)・受け口の一覧の kind・生成器の `phase.json`・`pnpm generate domain` の出力の種類(`scripts/structure/domain/phase.json` の `outputs`)。受け口の一覧の行の注記の文言は読まない。ownership check の合否は変えない(答えは案内)。
 
 - 判定の順: generated → own → 1 → 2 / 3 → 4 → none(足してよい新しいパスは own)
   - `generated`: 受け口の一覧の generated / region の行(`source` = `pnpm generate <名前>`)、または `pnpm generate domain` が毎回書くファイル(`generate: false` のドメインを除く。`write` = 直す元: `domain.json`・`wrappers/`・受け口。最後の手段は `"generate": false`)。own より先に見る

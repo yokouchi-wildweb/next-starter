@@ -83,7 +83,8 @@ describe("実リポジトリの intake.txt", () => {
       ["src/app/(user)/_layout/UserLayout.tsx", null],
       ["src/registry/storagePurposeRegistry.ts", "generated"],
       ["src/registry/serviceRegistry.ts", "generated"],
-      [".claude/rules/shortcuts.md", "marker"],
+      [".claude/rules/shortcuts.md", "self"],
+      [".gitignore", "marker"],
       ["src/lib/CATALOG.md", "append"],
       [".claude/rules/lineage.md", "append"],
       ["src/domains/core/user/services/server/userService.ts", null],
@@ -179,7 +180,7 @@ describe("judge", () => {
       "edit src/config/**  # r",
       "region src/registry/**/*.ts  # r",
       "generated src/registry/serviceRegistry.ts  # r",
-      "marker .claude/rules/shortcuts.md  # r",
+      "marker .gitignore  # r",
       "append src/lib/CATALOG.md  # r",
       "append .claude/rules/lineage.md  # r",
       "append package.json  # r",
@@ -409,11 +410,11 @@ describe("judge", () => {
   });
 
   test("M(marker): 印より下だけ / 上も", () => {
-    const base = ["# s", "a: 1", "<!-- fork entries below (upstream never edits below this line) -->"].join("\n");
-    const path = ".claude/rules/shortcuts.md";
+    const base = ["node_modules/", "a.log", "# fork entries below (upstream never edits below this line)"].join("\n");
+    const path = ".gitignore";
     assert.equal(run({ status: "M", path }, base, `${base}\nmine: 2`).reason, "marker");
-    assert.equal(run({ status: "M", path }, base, base.replace("a: 1", "a: 9")).reason, "above-marker");
-    assert.equal(run({ status: "M", path }, base, "a: 1").reason, "above-marker");
+    assert.equal(run({ status: "M", path }, base, base.replace("a.log", "b.log")).reason, "above-marker");
+    assert.equal(run({ status: "M", path }, base, "a.log").reason, "above-marker");
   });
 
   test("M(append): 追記だけ / 基準を変えた", () => {

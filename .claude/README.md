@@ -9,8 +9,7 @@
 ### ファイルの持ち主
 
 - `CLAUDE.md`: このベースと全下流プロジェクトで共有するアーキテクチャの契約。下流では編集しない(足りなければ `/order <上流リポ>`)
-- `.claude/rules/project.md`(地図・アーキテクチャの差分・判断基準)/ `behavior.md`(作業ルール): プロジェクトごとのファイル。下流で自由に書き換える。上流の merge で衝突したら下流側を採る
-- `.claude/rules/shortcuts.md`(合言葉)/ `term-aliases.md`(用語の読み替え): 全員共通。末尾の `fork entries below` マーカーより上を上流、下を下流が書く(merge で衝突したら上は上流側、下は下流側を採る)
+- `.claude/rules/project.md`(地図・アーキテクチャの差分・判断基準)/ `behavior.md`(作業ルール)/ `shortcuts.md`(合言葉): プロジェクトごとのファイル(型 5 self)。下流で自由に書き換える。取り込みはいつも自分の版を残し、親の差分は /flux が区切りごとに見せる(`.claude/rules/core/change.md` 5 self)
 - 合言葉(`shortcuts.md`): メッセージがその単語だけのときに発動する短い指示。1 項目 1 行で、1 行に収まらないものはスキル(`.claude/skills/`)にする
 
 ## Usage

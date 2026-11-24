@@ -22,7 +22,8 @@ pnpm workflow repo-json migrate [--tier root|middle|leaf] [--dry-run]   # 古い
 
 repo.json の形:
 
-- 形: 平らな鍵を 1 鍵 1 行(リポの外の sh も grep で読める)、値は文字列か真偽値だけ。鍵 = `repo_id`・`tier`・`agent.<種類>`(エージェントに任せる方針。鍵の一覧と既定は `scripts/workflow/devcheck/README.md`「方針」)
+- 形: 平らな鍵を 1 鍵 1 行(リポの外の sh も grep で読める)、値は文字列か真偽値だけ。鍵 = `repo_id`・`tier`・`vercel.plan`(Vercel の契約のプラン `hobby` | `pro`。Vercel にデプロイするリポだけ持つ、`pnpm generate cron` が読む)・`agent.<種類>`(エージェントに任せる方針。鍵の一覧と既定は `scripts/workflow/devcheck/README.md`「方針」)
+- 消せない鍵 = `repo_id`・`tier`(`unset` は `vercel.plan`・`agent.*` だけ)
 
 ## Internals
 

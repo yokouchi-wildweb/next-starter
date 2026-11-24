@@ -26,8 +26,18 @@ const git = (repo, args) => {
   return r.status === 0 ? r.stdout.trim() : null;
 };
 
-/** 範囲の変更したファイル(リポジトリ直下からの相対)。範囲が決まらなければ { files: null, why } */
-export function changedFiles(repo) {
+/**
+ * 範囲の変更したファイル(リポジトリ直下からの相対)。範囲が決まらなければ { files: null, why }
+ * - range なし = 比べる上流の枝との分岐点から HEAD まで + 作業ツリー + 未追跡(/ship の検査の範囲)
+ * - range = "<前>...<先>" = その 2 点の分岐点から <先> までの差分だけ(作業ツリー・未追跡は入れない)。/flux が取り込む区間の上流の差分を
+ *   渡す口(D315)。--no-renames で改名は元(消した)と先(足した)の両方が載る(/flux 5d の許す集合と同じ読み方)
+ */
+export function changedFiles(repo, { range } = {}) {
+  if (range !== undefined) {
+    const list = git(repo, ["-c", "core.quotePath=false", "diff", "--no-renames", "--name-only", range]);
+    if (list === null) return { files: null, why: `範囲 ${range} の差分が読めない` };
+    return { files: list.split("\n").filter(Boolean), base: range };
+  }
   const branch = git(repo, ["rev-parse", "--abbrev-ref", "HEAD"]);
   const candidates = ["@{upstream}", branch && branch !== "HEAD" ? `origin/${branch}` : null, "origin/HEAD", "origin/main"].filter(Boolean);
   const base = candidates.find((ref) => git(repo, ["rev-parse", "--verify", "-q", `${ref}^{commit}`]) !== null);

@@ -303,7 +303,7 @@ list the files likely to conflict at the next segment's merge before approval | 
 2. git 2.38 or later (`git version`) gives it exactly: `git -c merge.directoryRenames=false merge-tree --write-tree --name-only HEAD <区間の merge 先>` (exit code 1 = conflicts, conflicting files in the output) | `-c merge.directoryRenames=false` = same setting as step 5b's merge, so forecast and reality agree
 3. approximation (before 2.38): the **intersection** of fork-side edits and the segment's upstream-side changes (write both to temp files and match with `comm -12`) | state in the plan that it is an approximation (the same file at different spots is actually resolved automatically)
 4. add to each file the scale of fork-side edits `git diff --stat <base> HEAD -- <file>` | upstream renames: add the `R` lines of `git diff -M --name-status <base> <区間の merge 先>`
-5. put `衝突しそうなファイル(fork 側の編集規模)` and `移動元の編集` (→ moved.md) in the work memo's script | none → `なし` | in chat, only conflicts that need the human's policy, by role, under `逸脱`
+5. tag each likely-conflicting file with its TAKE-IN TABLE row (one who call, read-only) | put `衝突しそうなファイル(fork 側の編集規模・表の行)` and `移動元の編集` (→ moved.md) in the work memo's script | none → `なし` | in chat, only conflicts that need the human's policy, by role, under `逸脱`
 
 ## UPSTREAM CHANGE SWEEP (when planning and applying the next segment; with or without notices)
 a notice is the minimum line of follow-up, and upstream may forget one | from the next segment's upstream diff itself, pick "changes that affect how the fork uses things", find the fork's uses and put them in that segment's plan
@@ -334,6 +334,21 @@ merge and porting carry the fork's edits as they are | when the destination is u
   - from the 2nd segment on, before the merge check it is as planned (HEAD = the previous segment's commit, clean work tree, the likely-conflicting files and the fork's uses equal to the plan) | different → stop there, rebuild the plan from that segment, show the diff; STOP: get approval again
   - stop conditions apply mid-batch as they are
 - end of a batch: stop the same as step 4's segment end (the segment report covers every segment of the batch, the next plan = the next batch)
+
+## TAKE-IN TABLE (step 5c and CONFLICT FORECAST; one row per answer of the tip's who, never a row per file name)
+- reader: `git show <upstream>/<branch>:.claude/skills/flux/tip.mjs > <tmp> && node <tmp> --upstream=<upstream>/<branch> --entry=scripts/workflow/ownership/who.mjs -- --json --no-fetch --base=<区間の merge 先> <files>`
+  - per path: `type`, `kind` (intake row, null = none), `owner.tier` (tier1 | middle | fork | missing), `generated` { generator, command, part, region } | the data comes from the segment's tree (`--base`), the reader from the tip | exit 2 / `status: unverified` → STOP (no row = no judgment)
+- rows (first match wins):
+  1. `generated` set, `part` null, not a region (a whole generated file, e.g. a registry, the route map, pnpm-lock.yaml): never hand-merge | take either side; the segment rebuild rewrites it (generator `generated.generator`) | a change inside 5d's allowed set
+  2. type 5 (`kind` self): keep the fork side (`git checkout --ours -- <path>`) → core/change.md 5 self | `generated.part` set (vercel.json's crons) → the segment rebuild rewrites only that part
+  3. `kind` region: the fork's lines only between its `fork entries start / end` pair, upstream's everywhere else | a generator's region (`generated.region`) → the rebuild rewrites outside the pair
+  4. `kind` marker: upstream's side above the `fork entries below` line, the fork's below it
+  5. `kind` append: upstream's content first, the fork's additions after (JSON: the fork's keys only, upstream's values as upstream wrote them)
+  6. `kind` edit / add / debt (a place the fork may write): reconcile both intents | an upstream core body read by a self file (`<tool>.config.core.<ext>`) has no row → row 9
+  7. `owner.tier` fork (a file this fork added): the fork's version, with upstream's change ported only where it applies
+  8. `owner.tier` middle (a middle Tier's file you are below): keep your judgment (deleted stays deleted, rewritten stays yours) | record in the segment report and the ledger `notes:` that the upstream change was not taken in
+  9. `owner.tier` tier1 or missing with `kind` null (a parent-owned file in no row, or one upstream adds; e.g. a core body, the old index `.notices/shipped/`): take the upstream side (`git checkout --theirs -- <path>`), or `git rm` it when upstream deleted it | never edit it by hand
+- a file the old tree had and upstream deleted, still in this fork (old route-map.txt, feature-map.txt …) = row 9 with upstream deleted → `git rm`
 
 ## FULL FLOW
 1. **reconnaissance**: uncommitted changes check (below) → ORIGIN SYNC above → `git fetch <upstream>` → unmerged commit count (`git rev-list --count HEAD..<upstream>/<branch>`) → BUILDING SEGMENTS above (up to the overview of all segments) | uncommitted changes in the working tree → report them first; STOP: confirm whether they may be stashed
@@ -387,21 +402,16 @@ merge and porting carry the fork's edits as they are | when the destination is u
    b. `git -c merge.directoryRenames=false merge --no-commit <区間の merge 先>`
       - directory rename guessing is off because it misguesses fork-side deletions / reorganizations as "directory renames", placing upstream's new files into unrelated fork directories or staging deletions of fork files (`-X no-renames` does not stop it)
       - upstream's real directory moves are handled by `moved:` porting | porting targets → port here (→ moved.md steps 3-4)
-   c. resolve conflicts yourself (judge how to reconcile upstream's intent with this fork's changes; confirm with the user only those where the judgment is really split) | how to take per-project files:
-      - `.claude/rules/project.md` and `behavior.md`: take the fork side; take in upstream's additions only when they apply to this fork
-      - `.claude/rules/shortcuts.md` and `term-aliases.md`: above the `fork entries below` marker from the upstream side, below from the fork side
-      - `.notices/shipped/` (the index removed by D350; only segments from before its removal carry it): take the upstream side (`git checkout --theirs -- <path>`), or `git rm` it when upstream deleted it | never add a row by hand
-        - sunset: 20261120-122554-notice-history (remove once every fork has taken that notice)
-      - generated `src/app/route-map.jsonl` (route map; delete the old `route-map.txt` if it remains): never fix by hand even on conflict
-        - take either version, resolve the other conflicts first, finally rebuild with `pnpm generate routes` and `git add` | even without a conflict, rebuild the same way when the segment's upstream diff has this file (the rows of fork-own pages are not in upstream's generated result) | a change inside 5d's allowed set
-      - generated `src/registry/district-map.jsonl` (district map; includes the domain list) is treated the same; rebuild with `pnpm generate district-map` (delete the old `src/domains/feature-map.txt` if it remains)
-      - `pnpm-lock.yaml` (generated by pnpm from package.json): never hand-merge | resolve package.json first, take either side of the lock, then `pnpm install` and `git add pnpm-lock.yaml`
-      - `next.config.ts`, `eslint.config.mjs`, `playwright.config.ts` (type 5 self: your own version reads the core body `<tool>.config.core.<ext>`): keep the fork side (`git checkout --ours -- <path>`) | upstream's 1-line version never replaces yours | the core bodies are upstream's, take them as is
-      - `vercel.json` (type 5 self, held only by a repo that deploys to Vercel): keep the fork side (`git checkout --ours -- vercel.json`), resolve the other conflicts first, finally `pnpm generate cron -- --plan <hobby|pro>` (the plan its crons need) and `git add` it | upstream's own vercel.json never replaces yours
-      - a middle Tier's file (not in the Tier1 version; you are a lower Tier and the parent fork added it) that you deleted / rewrote, then the parent changed it and it conflicts: keep your (the lower Tier's) judgment (deleted stays deleted, rewritten stays your version)
-        - record in the segment report and the ledger `notes:` that the upstream change was not taken in (D30 K7; the ownership check lists these in its reference list of passes)
+   c. resolve conflicts yourself, each conflicted file by its TAKE-IN TABLE row (above; read the rows of all conflicted files first with one who call) | confirm with the user only those where the judgment is really split
+      - **segment rebuild** (after every conflict is resolved, before d): the tip's stage entry over the segment's upstream diff (D315), then `git add` what it wrote
+        - `git show <upstream>/<branch>:.claude/skills/flux/tip.mjs > <tmp> && node <tmp> --upstream=<upstream>/<branch> --entry=scripts/runner/phases/run.mjs -- generate --phase=ship --range=<pre>...<区間の merge 先>`
+        - the tip's runner, never the segment tree's: an older runner ignores `--range` silently and picks generators by this fork's own work | the declarations and generators it runs are the segment tree's
+        - a segment from before repo.json `vercel.plan` existed (its cron generator skips without `--plan`, and its reader refuses the key, so the plan cannot be set there): `pnpm generate cron -- --plan <hobby|pro>` with the plan this fork's vercel.json crons use, `git add vercel.json`
+      - **compare hand-held domains** (D308; after the rebuild): the segment's upstream diff touches `scripts/structure/<generator>/**` and this fork has domains with `"generate": false` → `pnpm check domain -- --compare` (read-only; `--detail` per file)
+        - per file: port by hand, in this segment, only what fits the hand-held version | record the ported / left files in the work memo | never a generate flag per file
    d. **out-of-segment check** (mandatory; after c and porting, before the merge commit; read-only):
-      - allowed set = `git diff --no-renames --name-only $(git merge-base <pre> <区間の merge 先>) <区間の merge 先>` + the segment's `moved:` destinations (a directory → everything under it)
+      - allowed set = `git diff --no-renames --name-only <pre>...<区間の merge 先>` (= from their merge-base) + the segment's `moved:` destinations (a directory → everything under it) + the rebuild's outputs
+        - rebuild's outputs = a file outside the first two that the segment rebuild wrote and the tip's who answers with `generated` (its generator ran in the rebuild): `node <tmp tip.mjs> --upstream=<upstream>/<branch> --entry=scripts/workflow/ownership/who.mjs -- --json --no-fetch --base=<区間の merge 先> <those paths>` | `generated: null` or a generator that did not run → not allowed
       - actual changes = `git diff --no-renames --name-only <pre>` (staged and unstaged)
       - add `--no-renames` to both: with rename guessing, `--name-only` shows only the destination, the source (deletion) of an upstream rename drops out of the allowed set and it stops falsely as out-of-segment | with it, the source shows as a deletion and the destination as an addition in both
       - write both to temp files and match with `comm -13` | even one file outside the allowed set → stop condition: `git merge --abort` and show that list as grounds

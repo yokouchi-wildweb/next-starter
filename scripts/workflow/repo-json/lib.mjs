@@ -14,6 +14,7 @@ import {
   CATALOG_FILE,
   PROJECT_RULES_FILE,
   REPO_JSON_FILE,
+  REPO_FIXED_KEYS,
   REPO_KEYS,
   TIER_VALUES,
   catalogSectionNames,
@@ -78,8 +79,8 @@ export const setValue = (root, key, raw) => {
  * @returns {{ values: Record<string, string | boolean>, removed: boolean }}
  */
 export const unsetValue = (root, key) => {
-  if (REPO_KEYS.includes(key)) throw new RepoJsonError(`${key} は消せない(どのリポも持つ鍵。変えるのは set)`);
-  if (!isKnownRepoKey(key)) throw new RepoJsonError(`知らない鍵 ${key}(使える鍵 = repo_id / tier / agent.<種類>)`);
+  if (REPO_FIXED_KEYS.includes(key)) throw new RepoJsonError(`${key} は消せない(どのリポも持つ鍵。変えるのは set)`);
+  if (!isKnownRepoKey(key)) throw new RepoJsonError(`知らない鍵 ${key}(使える鍵 = ${REPO_KEYS.join(" / ")} / agent.<種類>)`);
   const current = readValues(root);
   if (!(key in current)) return { values: current, removed: false };
   const { [key]: _, ...values } = current;

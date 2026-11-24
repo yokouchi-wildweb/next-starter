@@ -9,6 +9,7 @@ paths:
   - "scripts/structure/domain/**"
   - "src/app/admin/**"
   - "src/app/route-map.jsonl"
+  - "pnpm-lock.yaml"
   - "src/styles/{**/gradient,z-layer}.css"
   - "vercel.json"
   - ".claude/rules/core/terms.md"

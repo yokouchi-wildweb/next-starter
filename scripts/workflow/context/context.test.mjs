@@ -13,12 +13,12 @@ const INTAKE = [
   "append src/lib/CATALOG.md  # 目録",
   "edit repo.json  # 名前と段",
   "append .claude/rules/lineage.md  # 中間層の節",
-  "marker .claude/rules/shortcuts.md  # 印より下",
   "self .claude/rules/project.md  # 概要",
   "self .claude/rules/behavior.md  # 作業の決まり",
+  "self .claude/rules/shortcuts.md  # 合言葉",
 ].join("\n");
 
-/** 親(Tier1 役): CLAUDE.md・core・自前の文脈・印のファイル・lineage の前置き */
+/** 親(Tier1 役): CLAUDE.md・core・自前の文脈(合言葉も型 5)・lineage の前置き */
 const makeParentWithRules = () => {
   const root = join(tmpRoot(), "parent-rules");
   mkdirSync(root);
@@ -31,7 +31,7 @@ const makeParentWithRules = () => {
   write(root, ".claude/rules/items/lib/x.md", "# lib/x\nwhat: x\n");
   write(root, ".claude/rules/project.md", "# project\ntype: upstream template\n");
   write(root, ".claude/rules/behavior.md", "# behavior\n- work_only_on_instructed_scope: true\n");
-  write(root, ".claude/rules/shortcuts.md", "# shortcuts\nshort: restate\n<!-- fork entries below (upstream never edits below this line) -->\n");
+  write(root, ".claude/rules/shortcuts.md", "# shortcuts\nshort: restate\n");
   write(root, ".claude/rules/lineage.md", "# lineage\n> **ROLE**: 中間層の規則\n<!-- end preamble -->\n");
   commitAll(root, "base");
   return root;
@@ -65,7 +65,7 @@ before(() => {
     ].join("\n"),
   );
   write(fork, ".claude/rules/own-rule.md", "# own\n- relay: same key as core\nship: every commit goes through the ship tool\n");
-  write(fork, ".claude/rules/shortcuts.md", "# shortcuts\nshort: restate\n<!-- fork entries below (upstream never edits below this line) -->\nmine: my shortcut\n");
+  write(fork, ".claude/rules/shortcuts.md", "# shortcuts\nshort: restate\nmine: my shortcut\n");
   write(fork, ".claude/rules/lineage.md", "# lineage\n> **ROLE**: 中間層の規則\n<!-- end preamble -->\n## child\n- tone: polite\n<!-- end child -->\n");
   commitAll(fork, "fork rules");
 
@@ -121,14 +121,14 @@ describe("行", () => {
 });
 
 describe("repo", () => {
-  test("fork: own と self の物、lineage の自分の節、印より下だけを見る(core・items・親の物・印より上は見ない)", () => {
+  test("fork: own と self の物(合言葉も self で丸ごと)、lineage の自分の節を見る(core・items・親の物は見ない)", () => {
     const facts = collectFacts({ cwd: fork, env });
     assert.equal(facts.scope, "repo");
     const files = facts.files.map((f) => `${f.target.path}:${f.target.owner}`).sort();
-    assert.deepEqual(files, [".claude/rules/behavior.md:self", ".claude/rules/lineage.md:own", ".claude/rules/own-rule.md:own", ".claude/rules/project.md:self", ".claude/rules/shortcuts.md:own"]);
+    assert.deepEqual(files, [".claude/rules/behavior.md:self", ".claude/rules/lineage.md:own", ".claude/rules/own-rule.md:own", ".claude/rules/project.md:self", ".claude/rules/shortcuts.md:self"]);
     const lines = byAt(facts);
-    assert.ok(lines.has(".claude/rules/shortcuts.md:4"));
-    assert.ok(!lines.has(".claude/rules/shortcuts.md:2"), "印より上は親の物");
+    assert.ok(lines.has(".claude/rules/shortcuts.md:3"));
+    assert.ok(lines.has(".claude/rules/shortcuts.md:2"), "型 5 self は丸ごと自分の版");
     assert.ok(lines.has(".claude/rules/lineage.md:5"));
     assert.ok(!lines.has(".claude/rules/lineage.md:2"), "前置きは見ない");
   });
@@ -151,7 +151,7 @@ describe("repo", () => {
     assert.match(formatLine(at(6)), /^\.claude\/rules\/behavior\.md:6 \| key:relay \| mark:order:20261121-000000-relay-off:done \| base:\.claude\/rules\/core\/a\.md:2 \| same:- \| refs:0\/0 \| words:-$/);
   });
 
-  test("Tier1: core・items・lineage を除く .claude/rules の物を丸ごと(印のファイルも)", () => {
+  test("Tier1: core・items・lineage を除く .claude/rules の物を丸ごと", () => {
     const facts = collectFacts({ cwd: parent, env });
     const files = facts.files.map((f) => f.target.path).sort();
     assert.deepEqual(files, [".claude/rules/behavior.md", ".claude/rules/project.md", ".claude/rules/shortcuts.md"]);

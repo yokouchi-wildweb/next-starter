@@ -487,10 +487,12 @@ export function treeSnapshot(repoRoot, rev) {
  * fork の検査の前提をそろえる(runCheck と pnpm workflow ownership who の共通の入口)。順に: 名前の宣言 → Tier1 なら打ち切り →
  * 直接の親との基準 → 基準の受け口の一覧 → 鮮度(台帳に無い notice)→ Tier1 の版。どこかで欠ければ unverified(exit 2)
  * @param {string} repoRoot
- * @param {{ parent?: string, branch?: string, fetch?: boolean }} [options]
+ * @param {{ parent?: string, branch?: string, fetch?: boolean, base?: string }} [options]
+ *   base = 基準にする版(既定 = 直接の親との merge-base)。pnpm workflow ownership who --base(/flux が取り込む区間の merge 先を渡す、D313)。
+ *   基準を渡したときは「取り込み済みの notice が台帳に無い」で止めない(取り込みの途中の答え。所有の検査 check は渡さない)
  * @returns {{ status: "tier1", ownerId: string } | Unverified | ForkContext}
  */
-export function resolveForkContext(repoRoot, { parent, branch, fetch = true } = {}) {
+export function resolveForkContext(repoRoot, { parent, branch, fetch = true, base: givenBase } = {}) {
   // 自分の名前と Tier1 の判定は forkIds.mjs だけが読む(project.md の fork_id:、CATALOG.md の先頭の節。origin は読まない、D27)
   const identity = readForkIdentity(repoRoot);
   const ownerId = identity.own;
@@ -502,7 +504,9 @@ export function resolveForkContext(repoRoot, { parent, branch, fetch = true } = 
 
   const resolved = resolveParentBase(repoRoot, ownerId, { parent, branch, fetch });
   if (resolved.status === "unverified") return resolved;
-  const { remote, branch: parentBranch, base, parentRef } = resolved;
+  const { remote, branch: parentBranch, parentRef } = resolved;
+  const base = givenBase === undefined ? resolved.base : tryGit(repoRoot, ["rev-parse", "--verify", "--quiet", `${givenBase}^{commit}`])?.trim();
+  if (!base) return unverified(`基準の版 ${givenBase} が無い`, { ownerId, remote, branch: parentBranch });
   const where = { ownerId, remote, branch: parentBranch, base };
 
   const intakeText = show(repoRoot, base, INTAKE_PATH);
@@ -510,7 +514,7 @@ export function resolveForkContext(repoRoot, { parent, branch, fetch = true } = 
   const intake = parseIntake(intakeText);
   if (intake.errors.length > 0) return unverified(`基準の ${INTAKE_PATH} に書式の誤りがある`, { ...where, errors: intake.errors });
 
-  const unrecorded = unrecordedNotices(repoRoot, base, parentRef, ownerId);
+  const unrecorded = givenBase === undefined ? unrecordedNotices(repoRoot, base, parentRef, ownerId) : [];
   if (unrecorded.length > 0) {
     return unverified("取り込み済みの notice が台帳に無い(/flux で記録してから検査する)", { ...where, unrecorded });
   }

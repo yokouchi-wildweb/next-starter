@@ -7,7 +7,6 @@
 
 # リポジトリ直下(3 つの形: コードの設定 = 素の名前の固有型(下の self の行、本体 <道具>.config.core.<拡張子> は上流)/ JSON = 鍵を足すだけ / 行のファイル = 印の行より下。README.md は上流だけ = 行なし)
 append package.json  # 依存・スクリプトの鍵を足すだけ(上流の値は変えない。例外: name・依存 4 欄の上流の依存の版の範囲、D304)
-generated pnpm-lock.yaml  # package.json から pnpm が作る(衝突は pnpm install で作り直す)
 marker .gitignore  # fork の除外は印の行より下
 marker .env.example  # fork の環境変数の見本は印の行より下
 append .mcp.json  # エージェントの接続の鍵を足すだけ(上流の値は変えない。マシンごとの指定は ~/.claude.json)
@@ -20,7 +19,7 @@ edit public/assets/imgs/logos/**  # ブランドのロゴ(logoPath で差し替�
 # 開発の道具(scripts の中、上流のフォルダに fork が足す所)
 add scripts/workflow/devcheck/items/*.json  # 確かめの fork の項目(1 項目 1 ファイル。scripts/workflow/devcheck/items/README.md)
 
-# src の下の行は全部この生成区画(4 つの型: 画面の差し替え = ルート・1 行スイッチ / 受け口と上書き = 拡張点の宣言 / 置き場 = placement の宣言 / 生成物と区画 = 生成器の phase.json)。fork の項目は印なしの名前(D137)
+# src の下の行と生成物の行(直下の pnpm-lock.yaml = 生成器 lockfile も)は全部この生成区画(4 つの型: 画面の差し替え = ルート・1 行スイッチ / 受け口と上書き = 拡張点の宣言 / 置き場 = placement の宣言 / 生成物と区画 = 生成器の phase.json)。fork の項目は印なしの名前(D137)
 # === AUTO-GENERATED intake START ===
 # pnpm generate extensions が拡張点の宣言(extensionPoints.ts)・ルート・生成器の phase.json から書く(読み手 src/lib/districtMap/intakeRows.mjs)。手で編集しない(ずれは pnpm check extensions が止める)
 edit src/app/favicon.ico  # 置き場 appIcon(src/app/_layout/extensionPoints.ts)
@@ -229,6 +228,7 @@ add src/app/**/_layout/**/*.replace.{ts,tsx}  # 枠の部品の丸ごと置き�
 add src/app/**/_screen/**/*.replace.{ts,tsx}  # Screen の丸ごと置き換え(_screen の隣の <名前>.replace)
 add src/app/**/frame.override.ts  # 枠の宣言(下のリポ。相手 = 上流のルート。ルートを作ったリポの宣言は frame.ts、src/app/_layout/frame/README.md)
 region src/registry/**/*.ts  # 生成器 registry の fork の区画
+generated pnpm-lock.yaml  # 生成器 lockfile の出力
 generated src/domains/core/userProfile/entities/profiles/**  # 生成器 role の出力
 generated src/registry/serviceRegistry.ts  # 生成器 registry の出力
 generated src/registry/storagePurposeRegistry.ts  # 生成器 registry の出力
@@ -262,16 +262,15 @@ edit servers/room/wrangler.toml  # pnpm ops room init が作る fork の Worker 
 # 自分の版(型 5 self: 規則・名前・直下のコードの設定)、札、業務の全体像
 self .claude/rules/project.md  # このリポの概要と段だけの情報(型 5)
 self .claude/rules/behavior.md  # 作業の決まり(型 5)
+self .claude/rules/shortcuts.md  # 合言葉(型 5)
 self repo.json  # リポの名前と段・方針(forkIds.mjs、型 5)
-self vercel.json  # Vercel の設定(型 5、持たなくてよい: Vercel にデプロイするリポだけ。crons は pnpm generate cron の出力、他の鍵は手書き)
+self vercel.json  # Vercel の設定(型 5、持たなくてよい: Vercel にデプロイするリポだけ。crons は生成器 cron の持ち分(プラン = repo.json の vercel.plan)、他の鍵は手書き)
 self next.config.ts  # Next の設定(型 5。Tier1 の本体 next.config.core.ts を読み、足す・包む・外す)
 self eslint.config.mjs  # ESLint の設定(型 5。Tier1 の本体 eslint.config.core.mjs を読み、後ろに足す。必須の規則は pnpm check eslint が守る)
 self backend-selection.json  # バックエンドの選択表(型 5、持たなくてよい: 口 → 実装の名前、命令が書き生成器と検査だけが読む。Tier1 の版が出るまで upstream には無い)
 self playwright.config.ts  # 受入のテストの設定(型 5。Tier1 の本体 playwright.config.core.ts を読んで足す。読まなくてもよい)
 add .claude/rules/items/**  # 自分の品目の札(.claude/rules/core/design.md cards。上の段の札は直さない)
 add .claude/rules/service/**  # 業務を定める段の業務の全体像(上の段の物は中間層の物も直さない。Tier1 は書かないので upstream には無い)
-marker .claude/rules/shortcuts.md  # 印より下が fork
-marker .claude/rules/term-aliases.md  # 印より下が fork
 append .claude/rules/lineage.md  # 中間層の節を末尾に足すだけ(lineage.md の前置き)
 
 # 負債(upstream が core の中のファイルの編集を下流に案内している箇所。fork の書き換えは一時許可で通す。

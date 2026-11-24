@@ -8,7 +8,7 @@
 import { matchesGlob } from "node:path";
 
 import { pointsFromFiles, isListPoint, isPlugsPoint, PLUGS_DIR_NAME, FRAME_FILE, FRAME_OVERRIDE_FILE, FRAME_SEARCH_ROOT, overridePathOfTarget, switchSetOf, configSlotsOf, discoverDistricts } from "../districtMap/index.mjs";
-import { DOMAIN_OUTPUTS_FILE, intakeOutputGlobs, matchDomainOutput, parseDomainOutputs } from "../districtMap/node.mjs";
+import { DOMAIN_OUTPUTS_FILE, intakeOutputGlobs, matchDomainOutput, normalizeGateOutputs, parseDomainOutputs } from "../districtMap/node.mjs";
 import { parseSwitchLayout, LAYOUT_FILE_RE, PAGE_FILE_RE, discoverRoutes } from "../screens/node.mjs";
 import { matchIntake } from "./intake.mjs";
 
@@ -16,7 +16,9 @@ import { matchIntake } from "./intake.mjs";
  * @import { SwitchTarget } from "../screens/node.mjs"
  * @import { IntakeRule } from "./intake.mjs"
  * @typedef {ReturnType<typeof pointsFromFiles>["points"][number]} DeclaredPoint 宣言の点(pointsFromFiles の 1 件)
- * @typedef {{ type: string, keys: string[] | null, write: string | null, source: string | null, how?: string, order?: string }} ExplainAnswer 型の答え
+ * @typedef {{ generator: string, command: string, part: string | null, region: boolean }} GeneratedAnswer 生成物の作り手(D312: 種類と別の欄。
+ *   generator = 生成器の名前(phase.json の置き場の名前、pnpm generate domain は "domain")、part = outputs の行の part(ファイルの中の持ち分)、region = 受け口の一覧の region の行)
+ * @typedef {{ type: string, keys: string[] | null, write: string | null, source: string | null, generated: GeneratedAnswer | null, how?: string, order?: string }} ExplainAnswer 型の答え
  * @typedef {"tier1" | "middle" | "fork" | "missing"} ExplainTier
  */
 
@@ -94,7 +96,11 @@ export function explainView({ files, read, intake }) {
         list.flatMap((path) => {
           const match = PHASE_FILE.exec(path);
           const decl = match ? parseJson(read(path) ?? "") : null;
-          return match && isRecord(decl) ? [{ name: match[1], globs: [...intakeOutputGlobs(decl.outputs), ...stringsOf(decl.regions)] }] : [];
+          if (!match || !isRecord(decl)) return [];
+          // partOutputs = ファイルの中の持ち分だけを書く出力(D318、vercel.json の crons)。ファイルの種類はそのファイルの行(self など)が決める。
+          // 区間の木の古い略記もそろえて読む(strict でない)
+          const partOutputs = normalizeGateOutputs(decl.outputs).entries.flatMap((entry) => (entry.part ? [{ glob: entry.glob, part: entry.part }] : []));
+          return [{ name: match[1], globs: [...intakeOutputGlobs(decl.outputs), ...stringsOf(decl.regions)], partOutputs }];
         }),
       ),
     domainOutputs: lazy(() => {
@@ -138,7 +144,7 @@ export function explainView({ files, read, intake }) {
  * @param {Partial<Omit<ExplainAnswer, "type">>} [fields]
  * @returns {ExplainAnswer}
  */
-const answer = (type, fields = {}) => ({ type, keys: null, write: null, source: null, ...fields });
+const answer = (type, fields = {}) => ({ type, keys: null, write: null, source: null, generated: null, ...fields });
 
 /**
  * generated: 受け口の一覧の generated / region の行か、pnpm generate domain が毎回書くファイル(generate: false のドメインを除く)
@@ -151,9 +157,10 @@ function generatedOf(path, view) {
   if (rule?.kind === "generated" || rule?.kind === "region") {
     const generator = view.generators().find((g) => g.globs.includes(rule.glob));
     const command = generator ? `pnpm generate ${generator.name}` : null;
-    // 生成器の宣言に無い生成物(pnpm-lock.yaml = pnpm が作る)は行の理由が作り方を言う
+    // 生成器の宣言に無い生成物(区間の木の古い手書きの行など)は行の理由が作り方を言う
     const how = rule.kind === "region" ? "fork の区画(fork entries の対)の中だけ書き、外は生成器が書く" : command || !rule.note ? "手で直さない。生成器で作り直す" : `手で直さない。${rule.note}`;
-    return answer("generated", { source: command, how });
+    const generated = generator && command ? { generator: generator.name, command, part: null, region: rule.kind === "region" } : null;
+    return answer("generated", { source: command, how, generated });
   }
   const { outputs, domains } = view.domainOutputs();
   const hit = matchDomainOutput(path, outputs, domains.filter((d) => d.generate));
@@ -162,6 +169,7 @@ function generatedOf(path, view) {
     return answer("generated", {
       write: hit.source,
       source: "pnpm generate domain",
+      generated: { generator: "domain", command: "pnpm generate domain", part: "part" in hit.entry && typeof hit.entry.part === "string" ? hit.entry.part : null, region: false },
       how: `手で直さない。${hit.source ?? "domain.json"} を直して作り直す(最後の手段: ${"dir" in hit.domain ? hit.domain.dir : ""}/domain.json の "generate": false で手書きに移す)`,
     });
   }
@@ -324,9 +332,16 @@ function placementOf(path, view) {
 export function explainPath(path, view, { tier, addable, parent }) {
   const generated = generatedOf(path, view);
   if (generated) return generated;
-  // 型 5 self: 各リポが自分の版を持つ(取り込みは親の版を採らず、/flux が親の差分を見せ、採る所は自分で写す)
-  if (matchIntake(view.intake, path)?.kind === "self")
-    return answer("5", { write: path, how: "自分の版を書く(親の版は取り込まない。親の差分は /flux が区切りごとに見せる、採る所は別のコミットで自分で写す)" });
+  // 型 5 self: 各リポが自分の版を持つ(取り込みは自分の版を残し、/flux が親の差分を区切りごとに 1 度見せ、合う所だけ別の commit で写す。
+  // 正本 core/change.md 5 self)。生成器がファイルの中の持ち分だけを書くなら(vercel.json の crons)、generated にその生成器と持ち分
+  if (matchIntake(view.intake, path)?.kind === "self") {
+    const owner = view.generators().flatMap((g) => g.partOutputs.filter((o) => matchesGlob(path, o.glob)).map((o) => ({ generator: g.name, part: o.part })))[0];
+    const generated = owner ? { generator: owner.generator, command: `pnpm generate ${owner.generator}`, part: owner.part, region: false } : null;
+    const how = owner
+      ? `自分の版を書く(取り込みは自分の版を残し、親の差分は /flux が区切りごとに見せる。持ち分 ${owner.part} は pnpm generate ${owner.generator} が作り直す)`
+      : "自分の版を書く(取り込みは自分の版を残し、親の差分は /flux が区切りごとに見せる。合う所だけ別のコミットで自分で写す)";
+    return answer("5", { write: path, how, generated });
+  }
   if (tier === "fork" || tier === "middle") return answer("own", { write: path, how: tier === "fork" ? "この fork の物: そのまま書き換える" : "中間 Tier の物: そのまま書き換える" });
   const typed = replaceOf(path, view) ?? overlayOf(path, view) ?? placementOf(path, view);
   if (typed) return typed;
