@@ -22,6 +22,8 @@ argument-hint: free (shown to the user, not checked)
 form: key: value lines + numbered steps | each step one action | stop points explicit (`STOP: <what to wait for>`) | no narrative preamble ("this is a note, not a mode") → one `role:` line
 human_text: Japanese report / question templates shown to the user stay Japanese, only inside fenced blocks | everything else English
 limits: a line over ~400 chars → split into sub-bullets
+tool_design: a skill and its scripts follow core/scripts.md tool_design: a tool does the work, then checks and records the result | it never restricts what the agent may do | it may stop only before production, a push or a human's decision | an ordinary step is never made "only the tool writes it" or "go through the tool"
+record_files: a file a skill's tool writes (an order, a check sheet, a mailbox message) keeps the tool's fields and lines | the command is the faster way; a hand edit keeps that form and is read back with the tool
 
 ## ATTACHED (.md beside SKILL.md)
 agent_read: instructions the skill opens on demand = the body form above

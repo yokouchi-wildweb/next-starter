@@ -1,5 +1,5 @@
 ai_native: always adopt the environment and architecture that make development by agents most efficient | premise: agents write this code, not hands, and they stand on a complete context and a full set of tools that this framework keeps complete → reading the whole codebase and rewriting large parts of it is fast, exact and cheap
-- tools over hand work: an agent never does by hand what a tool can do | the same thing has one way to do it and a tool (generator, check, skill) carries it out → run the tool | a repeated hand step with no tool yet → build the tool (keeping the tools complete is part of the work) | a place that does it another way is rewritten to match, not kept
+- tools that empower the agent: build and use tools actively to make the agents' work faster and more exact | a tool serves the agent and never restricts what the agent may do
 - written or checked over remembered: the next agent knows nothing of today's conversation → what must hold goes into the context (a rule, a card, a README) or a check
 domain_driven: the business domain is the unit of design: everything one business concept needs lives together in its domain, in the same shape as every other domain → a spec change stays in one place, and since the feature gate opens and closes domains as a whole, a capability is added, closed or removed as a whole
 - the owning domain over a shared place: code goes to the domain whose concept it is | only what belongs to no domain becomes a lib (a mechanism) or a shared component (UI) | a component used by one domain stays in that domain
@@ -33,7 +33,7 @@ district_map: what exists and what each district holds → src/lib/districtMap (
 - gateless: only domains have a gate | a district of another kind imports no domain (values or types): what it needs is passed in through its points (lint import-boundaries/district-no-domains, error) | it reads generated lists only, never another wiring file
 
 ## TOOLS (the context and a full set of tools hold up ai_native)
-use: a step a tool covers is never built by hand → run the tool | unsure which → scripts/README.md, the .claude/skills/ descriptions
+use: a step a rule assigns to a tool (a push → /ship, a generated file → its generator, repo.json → its command) → use that tool | any other step → use a tool that fits, none fits → do it directly and let the checks judge the result | unsure which → scripts/README.md, the .claude/skills/ descriptions
 - build: pnpm forge (domains, roles, profiles end to end) | pnpm generate \<target\> (domain, role, registry, routes, cron, cache, extensions, styles)
 - check: pnpm check [--phase=ship] | pnpm test [--changed] | pnpm typecheck | pnpm lint = the checks, run only inside /ship and /flux segments | what is work, not a check → core/notices.md checks_in_ship
 - workflow: pnpm workflow \<area\> (ownership, rules, notices, worktree, devcheck, repo-json …) | ops: pnpm ops \<area\> (setup env, features, db inspect, firestore inspect) | task: pnpm task \<name\> (every ops task, no ad-hoc)

@@ -5,11 +5,11 @@ argument-hint: "<指令の id / 指令ファイル / シートのパス (省略�
 ---
 
 role: **patrol** (see what a check sheet lists in the running app, item by item; record, report, never fix during the run)
-app: the server, the login and the cleanup go through `pnpm workflow devcheck run server|login` and `pnpm workflow devcheck cleanup` (scripts/workflow/devcheck/README.md), never started or stopped by hand
+app: the server, the login and the cleanup go through `pnpm workflow devcheck run server|login` and `pnpm workflow devcheck cleanup` (scripts/workflow/devcheck/README.md): start it through pnpm workflow devcheck run so the cleanup tracks it | one you start yourself, you stop yourself
 alias: /browser-check = this skill (kept for orders and habits) | the order kind stays `browser-check`
 
 sheet: `<order name>.check.md` beside the order (head `check_sheet:` names it) | format = head comment of `.claude/skills/order/checkSheet.mjs` | one item `## C<n>` = page / as / needs / steps / expect / widths + result / evidence / ran_at | screenshots of ng items → `<order name>.check/`
-helper: `node .claude/skills/order/mailbox.mjs check <run | result | show>` (run at the repo root; never edit the sheet by hand)
+helper: `node .claude/skills/order/mailbox.mjs check <run | result | show>` (run at the repo root; a hand edit of the sheet keeps the form `check result` writes and is read back with `check show`)
 target: $ARGUMENTS
 
 ## STEPS

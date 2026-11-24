@@ -5,7 +5,7 @@ argument-hint: "[<相手のセッション名 | 種類/ID> <用件> | inbox | re
 ---
 
 role: message other sessions and handle the messages this session receives, with `pnpm workflow peer send|reply|inbox|read|ack|who`
-source_of_truth: commands, targets, results, exit codes, mailbox = scripts/workflow/peer/README.md | the processing stays in the command, never write mailbox files by hand
+source_of_truth: commands, targets, results, exit codes, mailbox = scripts/workflow/peer/README.md | the processing stays in the command | a mailbox file edited by hand keeps the fields and lines the command writes (read it back with the command)
 args: $ARGUMENTS
 
 ## COMMON
