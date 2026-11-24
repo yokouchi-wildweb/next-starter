@@ -3,7 +3,7 @@
 // 値の無い欄は描かない。画像の値(storage:// の参照)は表示できる URL にしてから描く
 
 import { MailButton, MailFrame, MailHeading, MailImage, MailNote, MailParagraph, MailUrl, type MailTheme } from "@/lib/mail";
-import type { MessageLayoutSummary, MessageLayoutValues } from "@/lib/messaging";
+import type { MessageLayoutEmailRecipient, MessageLayoutSummary, MessageLayoutValues } from "@/lib/messaging";
 import { toStorageDisplaySrc } from "@/lib/storage";
 
 export type SimpleEmailProps = {
@@ -12,6 +12,8 @@ export type SimpleEmailProps = {
   theme: MailTheme;
   /** 配信停止のリンク(好みに従う連絡だけ。本文の最後に出す) */
   unsubscribeUrl?: string;
+  /** 受信者(利用者の宛先を送る時だけ。上流の見た目は使わない: 宛名は fork の .replace が出す) */
+  recipient?: MessageLayoutEmailRecipient;
 };
 
 type SimpleFields = { image?: string; body?: string; link?: { label: string; url: string } };

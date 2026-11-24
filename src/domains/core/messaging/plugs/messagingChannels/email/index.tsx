@@ -38,4 +38,12 @@ export const channel = createEmailChannel({
       .where(and(inArray(UserTable.id, [...userIds]), isNull(UserTable.deletedAt), isNotNull(UserTable.email)));
     return rows.flatMap((row) => (row.address ? [{ userId: row.userId, address: row.address }] : []));
   },
+  // 受信者の表示名(レイアウトの描き方の recipient)。消した利用者は入れない
+  async findRecipients(userIds) {
+    const rows = await db
+      .select({ userId: UserTable.id, name: UserTable.name })
+      .from(UserTable)
+      .where(and(inArray(UserTable.id, [...userIds]), isNull(UserTable.deletedAt)));
+    return new Map(rows.map((row) => [row.userId, { displayName: row.name?.trim() || null }]));
+  },
 });

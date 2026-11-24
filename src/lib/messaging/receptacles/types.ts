@@ -296,7 +296,22 @@ export type MessageLayoutEmailRenderer = {
   layout: string;
   /** レイアウトのフォルダの名前(生成の一覧が付ける) */
   folder?: string;
-  Component: (props: { values: MessageLayoutValues; summary: MessageLayoutSummary; theme: never; unsubscribeUrl?: string }) => unknown;
+  Component: (props: {
+    values: MessageLayoutValues;
+    summary: MessageLayoutSummary;
+    theme: never;
+    unsubscribeUrl?: string;
+    recipient?: MessageLayoutEmailRecipient;
+  }) => unknown;
+};
+
+/**
+ * メールの描き方に渡す受信者(利用者の宛先を送る時だけ。プレビュー・利用者の居ない宛先には渡らない)。
+ * 上流の描き方は使わない(宛名を出すのは fork の .replace など)
+ */
+export type MessageLayoutEmailRecipient = {
+  /** 表示名(users.name。未設定なら null) */
+  displayName: string | null;
 };
 
 /** お知らせの描き方(layouts/<名前>/inApp.tsx の export const inAppRenderer、client)。layout = レイアウトの鍵 */

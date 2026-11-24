@@ -5,11 +5,12 @@
 // - 描画結果に React のフォールバックの印があれば送らず permanent(L2.1)
 // - 本文の停止のリンク: 好みのページが開(preferencesPageUrl が値)ならそこ、閉ならワンクリックの URL。ヘッダは同じ
 // - 送る口が組んだ中身(MessageLayoutContent)を段に従って描く: レイアウトのメールの描き方 > 汎用 > 要約。件名 = 題。形が違う・描き方が無い = permanent render_failed
+// - 受信者(recipient): 利用者の宛先だけレイアウトの描き方に表示名を渡す(send の 1 回で 1 度引く)。引けなければ送らず transient
 // 実行: pnpm test src/domains/core/messaging/plugs/messagingChannels/email
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHmac, randomBytes } from "node:crypto";
-import { Suspense } from "react";
+import { Suspense, type ReactElement } from "react";
 
 import { render } from "@react-email/render";
 
@@ -336,4 +337,59 @@ test("プレビュー: 送る時と同じ描き方で HTML を返し、カテゴ
   assert.ok(!plain.html?.includes("#unsubscribe"));
   const marketing = await channel.preview!({ messageKey: "shop.notice", content, category: "marketing" });
   assert.ok(marketing.html?.includes("#unsubscribe"));
+});
+
+test("受信者: レイアウトの描き方に利用者の表示名を渡す(send の 1 回で 1 度引く)。利用者の居ない宛先・プレビューには渡さない", async () => {
+  const seen: unknown[] = [];
+  const lookups: (readonly string[])[] = [];
+  const Probe = (props: { recipient?: { displayName: string | null } }) => {
+    seen.push(props.recipient);
+    return <p>{props.recipient?.displayName ?? "-"} 様</p>;
+  };
+  const sent: SendMailOptions[] = [];
+  const channel = createEmailChannel({
+    render: (element) => render(element),
+    send: async (mail) => {
+      sent.push(mail);
+      return { provider: "resend", providerMessageId: null };
+    },
+    findEmails: async () => [],
+    findRecipients: async (userIds) => {
+      lookups.push(userIds);
+      return new Map([["u1", { displayName: "山田" }]]);
+    },
+    theme: MAIL_THEME_COLORS,
+    webhookKeys: { resendSecret: () => null, sendgridPublicKey: () => null },
+    layouts,
+    layoutEmails: { notice: { layout: "notice", Component: Probe as never } },
+  });
+  const results = await channel.send([target("a@example.test", "d1"), { ...target("b@example.test", "d2"), userId: "u1" }, { ...target("c@example.test", "d3"), userId: null }]);
+  assert.deepEqual(results.map((r) => r.kind), ["sent", "sent", "sent"]);
+  assert.deepEqual(lookups, [["u1"]], "重ねた利用者 id は 1 つにまとめ、1 度だけ引く");
+  assert.deepEqual(seen, [{ displayName: "山田" }, { displayName: "山田" }, undefined]);
+  assert.match(sent[0]!.html, /山田/);
+  seen.length = 0;
+  await channel.preview!({ messageKey: "shop.notice", content });
+  assert.deepEqual(seen, [undefined]);
+});
+
+test("受信者を引けなければ、その回の宛先は送らず transient recipient_lookup_failed。findRecipients が無ければ今までどおり", async () => {
+  const sent: SendMailOptions[] = [];
+  const base = {
+    render: (element: ReactElement) => render(element),
+    send: async (mail: SendMailOptions) => {
+      sent.push(mail);
+      return { provider: "resend", providerMessageId: null };
+    },
+    findEmails: async () => [],
+    theme: MAIL_THEME_COLORS,
+    webhookKeys: { resendSecret: () => null, sendgridPublicKey: () => null },
+    ...LAYOUT_DEPS,
+  };
+  const failing = createEmailChannel({ ...base, findRecipients: async () => Promise.reject(new Error("db down")) });
+  const results = await failing.send([target("a@example.test", "d1")]);
+  assert.deepEqual(results, [{ address: "a@example.test", kind: "transient", reason: "recipient_lookup_failed", message: "db down" }]);
+  assert.equal(sent.length, 0);
+  const plain = createEmailChannel(base);
+  assert.deepEqual((await plain.send([target("a@example.test", "d1")])).map((r) => r.kind), ["sent"]);
 });

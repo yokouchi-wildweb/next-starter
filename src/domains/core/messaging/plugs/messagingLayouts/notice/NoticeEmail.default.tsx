@@ -17,7 +17,7 @@ import {
   MailUrl,
   type MailTheme,
 } from "@/lib/mail";
-import type { MessageBlock, MessageLayoutSummary, MessageLayoutValues } from "@/lib/messaging";
+import type { MessageBlock, MessageLayoutEmailRecipient, MessageLayoutSummary, MessageLayoutValues } from "@/lib/messaging";
 import { toStorageDisplaySrc } from "@/lib/storage";
 
 export type NoticeEmailProps = {
@@ -26,6 +26,8 @@ export type NoticeEmailProps = {
   theme: MailTheme;
   /** 配信停止のリンク(好みに従う連絡だけ。本文の最後に出す) */
   unsubscribeUrl?: string;
+  /** 受信者(利用者の宛先を送る時だけ。上流の見た目は使わない: 宛名は fork の .replace が出す) */
+  recipient?: MessageLayoutEmailRecipient;
 };
 
 function NoticeBlock({ block, theme }: { block: MessageBlock; theme: MailTheme }): ReactElement | null {

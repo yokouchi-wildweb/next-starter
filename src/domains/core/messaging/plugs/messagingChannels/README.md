@@ -15,7 +15,7 @@
 ### email（email/）
 
 - 宛先 = `users.email`（削除済みを除く）。描いた html を `lib/mail` の `send()` へ渡す（描くのは宛先ごとに 1 回、冪等の鍵 = 配達の id）。`MailSendError` の分類（transient / permanent / unknown）をそのまま結果にし、ほかの例外は unknown
-- 描き方（D124）: 送る口は描かずに組んだ中身 `MessageLayoutContent`（題・レイアウト・段・メールの欄だけの中身・要約）を渡す（`rendersAtSend: true`: 宛先ごとの停止のリンクを入れて描くため）。メールの項目が段に従って宛先ごとに描く: `layout` = レイアウトのメールの描き方（受け口の一覧 `layoutEmails`、`{ values, summary, theme, unsubscribeUrl? }`）/ `channel` = 汎用（`genericView.tsx` の `GenericEmailView`、レイアウトの email の欄を宣言の順に）/ `summary` = 要約から（`SummaryEmailView`）。件名 = 中身の題。中身の形が違う・レイアウトや描き方が無い = 送らず permanent（`render_failed`）
+- 描き方（D124）: 送る口は描かずに組んだ中身 `MessageLayoutContent`（題・レイアウト・段・メールの欄だけの中身・要約）を渡す（`rendersAtSend: true`: 宛先ごとの停止のリンクを入れて描くため）。メールの項目が段に従って宛先ごとに描く: `layout` = レイアウトのメールの描き方（受け口の一覧 `layoutEmails`、`{ values, summary, theme, unsubscribeUrl?, recipient? }`。`recipient` = 受信者の表示名 `{ displayName }`、send の 1 回で利用者 id をまとめて 1 度引き、引けなければその回は送らず transient `recipient_lookup_failed`）/ `channel` = 汎用（`genericView.tsx` の `GenericEmailView`、レイアウトの email の欄を宣言の順に）/ `summary` = 要約から（`SummaryEmailView`）。件名 = 中身の題。中身の形が違う・レイアウトや描き方が無い = 送らず permanent（`render_failed`）
 - 連絡ごとの描き方は持たない（前の形の連絡ごとの view はやめた、背景は `../../Internals.md`）。見た目を替えるのはレイアウトの描き方の 1 行スイッチの `.replace`（`../messagingLayouts/README.md`）。vars は渡さない（差し込み済みの欄の中身だけ）
 - 描画結果に React の「クライアントで描き直す」印（`<!--$!-->`・`$RX`）があれば送らず permanent（`render_fallback`、`fallback.ts`。部品が描画中に投げても `@react-email/render` はほぼ空のメールを返すため）
 - 配信停止: ヘッダ（`List-Unsubscribe`・`List-Unsubscribe-Post`）はワンクリックの URL、本文の最後のリンクは門 `messagingPreferences` が開なら好みのページ（`preferencesPageUrl`）、閉なら確認のページ（`unsubscribePageUrlOf`、../../services/server/unsubscribe/README.md）

@@ -92,6 +92,7 @@ export type {
   MessageEnricher,
   MessageEnricherContext,
   MessageEnricherTarget,
+  MessageLayoutEmailRecipient,
   MessageLayoutEmailRenderer,
   MessageLayoutInAppRenderer,
   MessageLayoutItem,

@@ -17,7 +17,7 @@
 フォルダの中のファイル（どれも `pnpm generate extensions` が一覧にする。並びはフォルダ名の順、鍵 = レイアウトの鍵）:
 
 - `layout.ts`（必須）: `export const layout = defineMessageLayout({ key, label, fields, summary, adminSelectable?, disabled?, version?, revisions? })`（欄の鍵を変えたら `version` を上げ、`revisions[前の版]` に対応を書く。送信は送った版を残し、組み直しは読み替える） → server の一覧 `extensions/messagingLayouts.ts`
-- `email.tsx`（任意）: `export const emailRenderer = { layout: "<鍵>", Component }` → server の一覧 `extensions/messagingLayoutEmails.ts`（点 messagingLayoutEmails）。`Component` は `{ values, summary, theme, unsubscribeUrl? }` を受けるメールの部品
+- `email.tsx`（任意）: `export const emailRenderer = { layout: "<鍵>", Component }` → server の一覧 `extensions/messagingLayoutEmails.ts`（点 messagingLayoutEmails）。`Component` は `{ values, summary, theme, unsubscribeUrl?, recipient? }` を受けるメールの部品（`recipient` = 受信者 `{ displayName }`（users.name、未設定は null）。利用者の宛先を送る時だけ入り、プレビューと利用者の居ない宛先には無い。上流の見た目は使わず、宛名「◯◯ 様」は fork の `<部品>.replace.tsx` が props から出す）
 - `inApp.tsx`（任意）: `export const inAppRenderer = { layout: "<鍵>", Component }` → client の一覧 `extensions/messagingLayoutInApps.ts`（点 messagingLayoutInApps）。`Component` は `{ values, summary }` を受けるお知らせの部品
 
 その送信チャンネルの描き方が無いレイアウトは、送信チャンネルの汎用の描き方か要約で描く（描き方の 3 段、下の Internals）。

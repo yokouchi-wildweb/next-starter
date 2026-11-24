@@ -16,6 +16,9 @@
 //   ヘッダ(List-Unsubscribe・List-Unsubscribe-Post)は門に関わらずワンクリックの URL のまま
 //   category があるのに List-Unsubscribe が無い = 送る側に署名の鍵(MESSAGING_UNSUBSCRIBE_SECRET)が無い →
 //   送らず permanent(reason unsubscribe_key_missing)。category の無い連絡(取引・required)はヘッダなしで送る
+// - 受信者(recipient): レイアウトの描き方に利用者の宛先の表示名を渡す(任意の props。上流の見た目は使わず、宛名は fork の .replace が出す)。
+//   send の 1 回で利用者 id をまとめて 1 度引く(引けない = その回の宛先は送らず transient、reason recipient_lookup_failed)。
+//   プレビュー・利用者の居ない宛先・汎用と要約の描き方には渡さない
 
 import type { ReactElement } from "react";
 
@@ -29,6 +32,7 @@ import {
   type MessageChannel,
   type MessageLayout,
   type MessageLayoutContent,
+  type MessageLayoutEmailRecipient,
   type MessageLayoutEmailRenderer,
   type MessageLayoutFields,
 } from "@/lib/messaging";
@@ -60,6 +64,8 @@ export type EmailChannelDeps = {
   render: (element: ReactElement) => Promise<string>;
   send: (options: SendMailOptions) => Promise<SendMailResult>;
   findEmails: (userIds: readonly string[]) => Promise<ChannelAddress[]>;
+  /** 受信者の表示名(利用者 id → recipient。居ない利用者は入れない)。無ければレイアウトの描き方に recipient を渡さない */
+  findRecipients?: (userIds: readonly string[]) => Promise<ReadonlyMap<string, MessageLayoutEmailRecipient>>;
   theme: MailTheme;
   /** 好みのページの URL(門 messagingPreferences が開の時だけ値。null = 本文のリンクもワンクリックの URL) */
   preferencesPageUrl?: () => string | null;
@@ -114,12 +120,25 @@ function emailWebhooks(deps: EmailChannelDeps): Record<string, ChannelWebhook> {
 /**
  * 組んだ中身を段に従って描く要素にする(描けない = 投げる。呼び手が render_failed にする)
  */
-function emailElement(deps: EmailChannelDeps, content: MessageLayoutContent, unsubscribeUrl: string | undefined): ReactElement {
+function emailElement(
+  deps: EmailChannelDeps,
+  content: MessageLayoutContent,
+  unsubscribeUrl: string | undefined,
+  recipient?: MessageLayoutEmailRecipient,
+): ReactElement {
   if (content.from === "layout") {
     const renderer = deps.layoutEmails[content.layout];
     if (!renderer) throw new Error(`レイアウト ${content.layout} のメールの描き方がありません`);
     const Component = renderer.Component as unknown as (props: Record<string, unknown>) => ReactElement;
-    return <Component values={content.values} summary={content.summary} theme={deps.theme} unsubscribeUrl={unsubscribeUrl} />;
+    return (
+      <Component
+        values={content.values}
+        summary={content.summary}
+        theme={deps.theme}
+        unsubscribeUrl={unsubscribeUrl}
+        {...(recipient ? { recipient } : {})}
+      />
+    );
   }
   if (content.from === "channel") {
     const layout = deps.layouts[content.layout];
@@ -160,6 +179,17 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
     },
     async send(targets) {
       const results: ChannelSendResult[] = [];
+      // 受信者の表示名(send の 1 回で 1 度)。引けなければこの回は送らず transient(宛名の無いメールを黙って送らない)
+      let recipients: ReadonlyMap<string, MessageLayoutEmailRecipient> = new Map();
+      const userIds = [...new Set(targets.flatMap((t) => (t.userId ? [t.userId] : [])))];
+      if (deps.findRecipients && userIds.length > 0) {
+        try {
+          recipients = await deps.findRecipients(userIds);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return targets.map((t) => ({ address: t.address, kind: "transient" as const, reason: "recipient_lookup_failed", message }));
+        }
+      }
       for (const target of targets) {
         const listUnsubscribe = target.headers?.["List-Unsubscribe"];
         if (target.category && !listUnsubscribe) {
@@ -176,7 +206,7 @@ export function createEmailChannel(deps: EmailChannelDeps): MessageChannel {
         try {
           const content = layoutContentOf(target.content);
           subject = content.title;
-          html = await deps.render(emailElement(deps, content, unsubscribeUrl));
+          html = await deps.render(emailElement(deps, content, unsubscribeUrl, target.userId ? recipients.get(target.userId) : undefined));
         } catch (error) {
           results.push({
             address: target.address,

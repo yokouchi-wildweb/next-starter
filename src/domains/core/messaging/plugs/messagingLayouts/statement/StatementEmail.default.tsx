@@ -5,7 +5,7 @@
 
 import { business } from "@/business";
 import { MailDivider, MailFooter, MailFrame, MailHeader, MailNote, MailParagraph, MailUrl, type MailTheme } from "@/lib/mail";
-import type { MessageLayoutSummary } from "@/lib/messaging";
+import type { MessageLayoutEmailRecipient, MessageLayoutSummary } from "@/lib/messaging";
 import { logoPath } from "@/utils/assets";
 
 import type { StatementValues } from "./layout";
@@ -16,6 +16,8 @@ export type StatementEmailProps = {
   theme: MailTheme;
   /** 配信停止のリンク(好みに従う連絡だけ) */
   unsubscribeUrl?: string;
+  /** 受信者(利用者の宛先を送る時だけ。上流の見た目は使わない: 宛名は fork の .replace が出す) */
+  recipient?: MessageLayoutEmailRecipient;
 };
 
 export function StatementEmail({ values, theme, unsubscribeUrl }: StatementEmailProps) {
