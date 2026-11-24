@@ -1,5 +1,7 @@
 // src/lib/cron/vercelCrons.ts
 // vercel.json の crons をタスク定義から生成・検査する純関数（next / DB / fs 非依存）
+// 検査は repo.json の vercel.plan（宣言、呼び手が readVercelPlan で読んで渡す）と照らし、crons と schedules の二重登録も止める
+// 宣言が無いときのプランの読み方は inferCronPlan の 1 つだけ（検査と生成器が共有する）
 //
 // 利用者: scripts/structure/cron/generate.ts（pnpm generate cron）, scripts/structure/cron/check.ts（pnpm check cron / Vercel ビルド前の検査）,
 //         scripts/runner/task/run.ts（pnpm task --due）, scripts/structure/cron/cronWiring.test.mjs（pnpm test scripts/structure/cron/cronWiring.test.mjs）
@@ -80,25 +82,61 @@ export function buildVercelCrons(
 }
 
 export type VercelCronsCheckResult = {
-  /** crons がどちらのプランの生成結果と一致したか（不一致なら null） */
+  /** crons が一致したプラン（不一致なら null） */
   plan: CronPlan | null;
   errors: string[];
 };
 
 const entryKey = (entry: VercelCronEntry) => `${entry.path} ${entry.schedule}`;
 
+function matchesPlan(actualKeys: readonly string[], tasks: readonly CronTaskScheduleSource[], plan: CronPlan): boolean {
+  const expectedKeys = buildVercelCrons(tasks, plan).map(entryKey).sort();
+  return expectedKeys.length === actualKeys.length && expectedKeys.every((key, i) => key === actualKeys[i]);
+}
+
+/** crons のうち /api/cron/ 配下で形の正しいエントリ */
+function cronTaskEntries(crons: unknown): VercelCronEntry[] {
+  if (!Array.isArray(crons)) return [];
+  return crons
+    .filter(
+      (entry): entry is VercelCronEntry =>
+        !!entry && typeof entry.path === "string" && typeof entry.schedule === "string" && entry.path.startsWith(CRON_PATH_PREFIX),
+    )
+    .map((entry) => ({ path: entry.path, schedule: entry.schedule }));
+}
+
+/**
+ * repo.json に vercel.plan が無いとき、今の vercel.json の crons からプランを読む（検査と生成器の共通の読み方）
+ *
+ * - どちらかのプランの生成結果と完全一致すればそのプラン（両方と一致する = 違いの無いときは hobby）
+ * - 一致しなければ、/api/cron/ 配下に 1 日 1 回より細かいエントリがあれば pro、無ければ hobby
+ *   （全部 1 日 1 回の crons に細かいタスクが増えると hobby と読む。宣言すれば迷わない）
+ * - /api/cron/ 以外のエントリと形の崩れたエントリは見ない
+ */
+export function inferCronPlan(crons: unknown, tasks: readonly CronTaskScheduleSource[]): CronPlan {
+  const actual = cronTaskEntries(crons);
+  const actualKeys = actual.map(entryKey).sort();
+  for (const plan of CRON_PLANS) {
+    if (matchesPlan(actualKeys, tasks, plan)) return plan;
+  }
+  return actual.some((entry) => !isAtMostDailySchedule(entry.schedule)) ? "pro" : "hobby";
+}
+
 /**
  * vercel.json の crons（/api/cron/ 配下）が、今のタスク定義からの生成結果と一致するか検査する
  *
  * - task.ts の schedule に誤りがあれば、まずそれを errors に出す
- * - hobby / pro どちらかの生成結果と完全一致すれば OK
- * - 一致しなければ、近い方のプラン（1 日 1 回より細かいエントリがあれば pro）との差分を errors に出す
+ * - declaredPlan = repo.json の vercel.plan（readVercelPlan）
+ *   - 宣言あり: そのプランの生成結果と完全一致すれば OK。もう一方のプランの生成結果と一致していたら、宣言との食い違いとして失敗
+ *   - 宣言なし（null）: hobby / pro どちらかの生成結果と完全一致すれば OK（警告は呼び手が出す）
+ * - 一致しなければ、比べるプラン（宣言、無ければ inferCronPlan）との差分を errors に出す
  *   （task.ts があるのにエントリが無い = 配線漏れ、task.ts が無いのにエントリがある = 消えたタスク、時刻のずれ）
  * - /api/cron/ 以外のパス（fork 独自のエンドポイント等）は対象外
  */
 export function checkVercelCrons(
   crons: unknown,
   tasks: readonly CronTaskScheduleSource[],
+  declaredPlan: CronPlan | null,
 ): VercelCronsCheckResult {
   const scheduleErrors = validateCronSchedules(tasks);
   if (scheduleErrors.length > 0) return { plan: null, errors: scheduleErrors };
@@ -119,14 +157,22 @@ export function checkVercelCrons(
   if (errors.length > 0) return { plan: null, errors };
 
   const actualKeys = actual.map(entryKey).sort();
-  for (const plan of CRON_PLANS) {
-    const expectedKeys = buildVercelCrons(tasks, plan).map(entryKey).sort();
-    if (expectedKeys.length === actualKeys.length && expectedKeys.every((key, i) => key === actualKeys[i])) {
-      return { plan, errors: [] };
+  if (declaredPlan) {
+    if (matchesPlan(actualKeys, tasks, declaredPlan)) return { plan: declaredPlan, errors: [] };
+    const other: CronPlan = declaredPlan === "pro" ? "hobby" : "pro";
+    if (matchesPlan(actualKeys, tasks, other)) {
+      return {
+        plan: null,
+        errors: [
+          `crons は ${other} の生成結果ですが、repo.json の vercel.plan は ${declaredPlan} です` +
+            `（直し方: pnpm generate cron -- --plan ${declaredPlan}。プランが ${other} なら pnpm workflow repo-json set vercel.plan ${other}）`,
+        ],
+      };
     }
   }
+  const guess: CronPlan = declaredPlan ?? inferCronPlan(actual, tasks);
+  if (!declaredPlan && matchesPlan(actualKeys, tasks, guess)) return { plan: guess, errors: [] };
 
-  const guess: CronPlan = actual.some((entry) => !isAtMostDailySchedule(entry.schedule)) ? "pro" : "hobby";
   const expected = buildVercelCrons(tasks, guess);
   const actualByPath = new Map<string, VercelCronEntry[]>();
   for (const entry of actual) actualByPath.set(entry.path, [...(actualByPath.get(entry.path) ?? []), entry]);
@@ -147,6 +193,33 @@ export function checkVercelCrons(
       errors.push(`${path}: 生成結果にありません（消えたタスク、task.ts の置き忘れ、または task.override.ts で disabled にしたタスク）`);
     }
   }
-  errors.push(`直し方: pnpm generate cron -- --plan ${guess}（プランが違うなら hobby|pro を指定し直す）`);
+  errors.push(
+    declaredPlan
+      ? `直し方: pnpm generate cron -- --plan ${declaredPlan}（repo.json の vercel.plan）`
+      : `直し方: pnpm generate cron -- --plan ${guess}（プランが違うなら hobby|pro を指定し直す）`,
+  );
   return { plan: null, errors };
+}
+
+/**
+ * vercel.json の crons と schedules に同じ /api/cron/ のパスが載っていないか検査する（載っていれば二重実行になる）
+ *
+ * - schedules = 名前をキーにした object、値は { schedule, path | function, requestMethod? }
+ * - schedules が無い・object でない、path を持たない値、/api/cron/ 以外のパスは対象外
+ */
+export function findCronScheduleOverlaps(crons: unknown, schedules: unknown): string[] {
+  if (!Array.isArray(crons) || !schedules || typeof schedules !== "object" || Array.isArray(schedules)) return [];
+  const cronPaths = new Set(
+    crons
+      .map((entry) => (entry && typeof entry.path === "string" ? entry.path : null))
+      .filter((path): path is string => path !== null && path.startsWith(CRON_PATH_PREFIX)),
+  );
+  const errors: string[] = [];
+  for (const [name, value] of Object.entries(schedules as Record<string, unknown>)) {
+    const path = value && typeof value === "object" ? (value as { path?: unknown }).path : undefined;
+    if (typeof path === "string" && cronPaths.has(path)) {
+      errors.push(`${path}: crons と schedules.${name} の両方に載っています（二重実行になる。cron タスクは crons だけに置く）`);
+    }
+  }
+  return errors;
 }

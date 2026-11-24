@@ -10,6 +10,9 @@ rules:
 using:
 - cron_wiring (MANDATORY): 1 task = 1 folder src/app/api/cron/<name>/ (task.ts: UTC cron `schedule` + run → domain fn; 1-line route.ts; a fork retimes or turns it off with task.override.ts), no list file | vercel.json crons = `pnpm generate cron` output only (the Vercel build fails on a mismatch) | upstream add / remove / retime → notice
   - vercel.json itself is type 5 self: each repo that deploys to Vercel commits its own (other keys hand-written), a take-in conflict keeps its version then pnpm generate cron (core/design.md self_files)
+- vercel_plan: the plan = repo.json vercel.plan (pnpm workflow repo-json set vercel.plan <hobby|pro>, the Vercel contract) | pnpm check cron passes only that plan's crons, the other plan's output fails
+  - missing key: the check passes either plan with a warning, pnpm generate cron reads the plan from the current crons (inferCronPlan) and warns | no key and no vercel.json = not on Vercel, skipped
+  - an /api/cron/ path is never in both crons and schedules (it would run twice; the check fails)
 - budgeted_cron (MANDATORY): sweeps over unbounded-growth tables use runBudgetedBatches + createDeadline (@/lib/cron); read models refresh via createIncrementalRefresh (domains/incrementalRefresh)
 - task_wiring_only: task.ts only wires which domain function runs when; the logic lives in domains/**/services/server, long ops notes in that domain's README
 - run_dynamic_import: `run` imports its domain function dynamically (reading task.ts loads no DB)
@@ -20,7 +23,7 @@ using:
 - cleanup_wording: never promise "removed right after expiry" for a cleanup task (hobby runs it once a day)
 - oneshot_apart: one-shot tasks (backfill, migration) live in the domain's scripts/{tasks,migrations}/, never under src/app/api/cron/
 - pii_prune_kept: a personal-data retention prune never uses `enabled`; its gate comes from its imports like any task (a closable domain's prune stops with the domain, whose tables are not created) | turn an always-open one off only when its domain is unused and its table empty
-- regenerate_after_override: placing or changing task.override.ts is followed by pnpm generate cron (plan = repo.json vercel.plan, or -- --plan <hobby|pro>)
+- regenerate_after_override: placing or changing task.override.ts is followed by pnpm generate cron (plan = repo.json vercel.plan, or -- --plan <hobby|pro>; vercel_plan)
 - maintenance_pass_only: scheduled runs skip during maintenance (the cronMaintenance item, upstream from setting; empty = never) | `maintenance: "pass"` in task.ts only for a task whose skip loses data | an upstream task a fork must keep running → disable it in task.override.ts + its own task folder with pass (task.override.ts has no maintenance key)
 editing:
 - index_exports_all: index.ts exports every name the README and task files import from @/lib/cron

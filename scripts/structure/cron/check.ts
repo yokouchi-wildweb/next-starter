@@ -10,14 +10,18 @@
 // - vercel.json が無い（cron タスクがあるのに本番で 1 本も動かない）
 // - task.ts があるのにエントリが無い（upstream から merge したタスクの配線漏れ等）/ 消えたタスクのエントリが残っている /
 //   時刻が生成結果と違う（手で書き換えた、task.ts の schedule を変えて再生成していない）/ task.ts の schedule が不正
-// 直し方はどれも `pnpm generate cron -- --plan hobby|pro`。
+// - crons が repo.json の vercel.plan と違うプランの生成結果になっている / repo.json が読めない
+// - 同じ /api/cron/ のパスが crons と schedules の両方に載っている（二重実行）
+// 直し方はどれも `pnpm generate cron -- --plan hobby|pro`（二重登録は schedules 側のエントリを消す）。
+// vercel.plan が無いときは hobby / pro どちらの生成結果も通し、宣言を促す警告を出す。
 // 定期タスクを意図して 1 本も動かさないデプロイ（デモ環境等）だけは環境変数 SKIP_CRON_CHECK=1 で検査を外す。
 // 詳細: src/lib/cron/README.md
 
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import { checkVercelCrons } from "@/lib/cron";
+import { checkVercelCrons, findCronScheduleOverlaps } from "@/lib/cron";
+import { readVercelPlan } from "@/lib/forkOwnership/node.mjs";
 import { loadCronTasks, scheduledCronTasks } from "./discover";
 
 async function main() {
@@ -41,7 +45,13 @@ async function main() {
     process.exit(1);
   }
 
-  let config: { crons?: unknown };
+  const declared = readVercelPlan(repoRoot);
+  if (declared.error) {
+    console.error(`✗ vercel.plan を読めません: ${declared.error}`);
+    process.exit(1);
+  }
+
+  let config: { crons?: unknown; schedules?: unknown };
   try {
     config = JSON.parse(readFileSync(file, "utf8"));
   } catch (error) {
@@ -50,13 +60,21 @@ async function main() {
     process.exit(1);
   }
 
-  const { plan, errors } = checkVercelCrons(config.crons ?? [], tasks);
+  const crons = config.crons ?? [];
+  const { plan, errors: cronErrors } = checkVercelCrons(crons, tasks, declared.plan);
+  const errors = [...cronErrors, ...findCronScheduleOverlaps(crons, config.schedules)];
   if (errors.length > 0) {
     console.error("✗ vercel.json の cron 配線が src/app/api/cron/*/task.ts と一致しません:");
     for (const error of errors) console.error(`  - ${error}`);
     process.exit(1);
   }
-  console.log(`✓ vercel.json の cron 配線 OK（plan: ${plan}、${tasks.length} タスク）`);
+  if (!declared.plan) {
+    console.warn(
+      `⚠ repo.json に vercel.plan がありません（crons は ${plan} の生成結果として通しました）。` +
+        "宣言してください: pnpm workflow repo-json set vercel.plan <hobby|pro>",
+    );
+  }
+  console.log(`✓ vercel.json の cron 配線 OK（plan: ${plan}${declared.plan ? "" : "、未宣言"}、${tasks.length} タスク）`);
 }
 
 main().catch((error) => {

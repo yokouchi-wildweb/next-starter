@@ -9,7 +9,8 @@
 //    task.ts は門番(@/featureGate)を読まない(機能の入切は住所で自動。Tier1 は失敗、fork は冗長なだけなので一覧を出す)
 // 4. fork の task.override.ts(任意)は schedule の差し替えと disabled だけを持ち、task.ts の無いフォルダには置けない
 // 5. README と task.ts / task.override.ts が @/lib/cron から import する名前は、すべて src/lib/cron/index.ts が export している
-// 6. vercel.json(あれば)は task.ts(+ task.override.ts)からの生成結果と一致する(配線漏れ・消えたタスクの残骸・手書きの時刻を検出)
+// 6. vercel.json(あれば)は task.ts(+ task.override.ts)からの生成結果と一致する(配線漏れ・消えたタスクの残骸・手書きの時刻を検出)。
+//    repo.json の vercel.plan と違うプランの生成結果、crons と schedules に同じ /api/cron/ のパスがある二重登録は失敗
 import { mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -18,7 +19,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { CRON_ROUTE_DIR, gateClosedBy, listCronTaskDirs, loadCronTasks, scheduledCronTasks } from "./discover.ts";
-import { readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
+import { readForkIdentity, readVercelPlan } from "../../../src/lib/forkOwnership/node.mjs";
 
 import nextServer from "next/server";
 
@@ -30,6 +31,8 @@ const {
   checkVercelCrons,
   createCronRoute,
   createCronTaskRoute,
+  findCronScheduleOverlaps,
+  inferCronPlan,
   isAtMostDailySchedule,
   isValidCronExpression,
   listHobbyDowngradedTasks,
@@ -122,15 +125,19 @@ test("README と task.ts / task.override.ts が @/lib/cron から import する�
   assert.deepEqual(missing, [], "src/lib/cron/index.ts に export を足す(README の例どおりに書くと型エラーになる)");
 });
 
-test("vercel.json(あれば)は task.ts からの生成結果と一致する", async (t) => {
+test("vercel.json(あれば)は task.ts からの生成結果と一致し、repo.json の vercel.plan どおりで、schedules と二重登録しない", async (t) => {
   const file = join(repoRoot, "vercel.json");
   if (!existsSync(file)) {
     t.skip("vercel.json なし(Vercel にデプロイするリポジトリは pnpm generate cron -- --plan hobby|pro で生成する)");
     return;
   }
   const tasks = scheduledCronTasks(await loadCronTasks(repoRoot));
-  const { errors } = checkVercelCrons(JSON.parse(readFileSync(file, "utf8")).crons ?? [], tasks);
-  assert.deepEqual(errors, []);
+  const declared = readVercelPlan(repoRoot);
+  assert.equal(declared.error, null);
+  const config = JSON.parse(readFileSync(file, "utf8"));
+  const crons = config.crons ?? [];
+  assert.deepEqual(checkVercelCrons(crons, tasks, declared.plan).errors, []);
+  assert.deepEqual(findCronScheduleOverlaps(crons, config.schedules), []);
 });
 
 // ---- task.override.ts(一時ディレクトリに cron フォルダを作って検査) ----
@@ -222,11 +229,11 @@ test("機能の門: 住所 /api/cron/<name> が閉じたタスクは closedBy �
       for (const plan of ["pro", "hobby"]) {
         const crons = buildVercelCrons(scheduled, plan);
         assert.deepEqual(crons.map((entry) => entry.path), ["/api/cron/a-task", "/api/cron/c-task"], plan);
-        assert.deepEqual(checkVercelCrons(crons, scheduled).errors, [], `${plan}: 生成と検査は同じ一覧で一致する`);
+        assert.deepEqual(checkVercelCrons(crons, scheduled, plan).errors, [], `${plan}: 生成と検査は同じ一覧で一致する`);
       }
       const reopened = await loadCronTasks(root, { closedBy: () => null });
       assert.ok(
-        checkVercelCrons(buildVercelCrons(scheduled, "pro"), scheduledCronTasks(reopened)).errors.length > 0,
+        checkVercelCrons(buildVercelCrons(scheduled, "pro"), scheduledCronTasks(reopened), "pro").errors.length > 0,
         "機能を開いたのに再生成していない vercel.json は検査で止まる",
       );
     },
@@ -372,28 +379,96 @@ test("buildVercelCrons: hobby は 1 日 1 回より細かいものだけ 19:00 U
 
 test("checkVercelCrons: 生成結果と一致すれば OK、漏れ・残骸・時刻違い・重複・不正な schedule は失敗", () => {
   for (const plan of ["hobby", "pro"]) {
-    assert.deepEqual(checkVercelCrons(buildVercelCrons(tasks, plan), tasks), { plan, errors: [] });
+    assert.deepEqual(checkVercelCrons(buildVercelCrons(tasks, plan), tasks, plan), { plan, errors: [] });
   }
   const pro = buildVercelCrons(tasks, "pro");
 
-  const missing = checkVercelCrons(pro.slice(1), tasks);
+  const missing = checkVercelCrons(pro.slice(1), tasks, "pro");
   assert.equal(missing.plan, null);
   assert.ok(missing.errors.some((e) => e.startsWith("/api/cron/a-daily: エントリがありません")));
 
-  const stale = checkVercelCrons([...pro, { path: "/api/cron/removed", schedule: "0 1 * * *" }], tasks);
+  const stale = checkVercelCrons([...pro, { path: "/api/cron/removed", schedule: "0 1 * * *" }], tasks, "pro");
   assert.ok(stale.errors.some((e) => e.startsWith("/api/cron/removed:")));
 
   const edited = checkVercelCrons(
     pro.map((entry) => (entry.path === "/api/cron/a-daily" ? { ...entry, schedule: "0 3 * * *" } : entry)),
     tasks,
+    "pro",
   );
   assert.ok(edited.errors.some((e) => e.includes('schedule が "0 3 * * *"')));
 
-  assert.ok(checkVercelCrons([...pro, pro[0]], tasks).errors.some((e) => e.includes("重複")));
-  assert.equal(checkVercelCrons(undefined, tasks).errors.length, 1);
-  assert.ok(checkVercelCrons(pro, [...tasks, { name: "bad", schedule: "every day" }]).errors[0].startsWith("bad:"));
+  assert.ok(checkVercelCrons([...pro, pro[0]], tasks, "pro").errors.some((e) => e.includes("重複")));
+  assert.equal(checkVercelCrons(undefined, tasks, "pro").errors.length, 1);
+  assert.ok(checkVercelCrons(pro, [...tasks, { name: "bad", schedule: "every day" }], "pro").errors[0].startsWith("bad:"));
   // /api/cron/ の外のエントリは対象外
-  assert.deepEqual(checkVercelCrons([...pro, { path: "/api/other", schedule: "0 1 * * *" }], tasks).errors, []);
+  assert.deepEqual(checkVercelCrons([...pro, { path: "/api/other", schedule: "0 1 * * *" }], tasks, "pro").errors, []);
+});
+
+test("checkVercelCrons: repo.json の vercel.plan と違うプランの生成結果は失敗、宣言なし(null)ならどちらも通る", () => {
+  const pro = buildVercelCrons(tasks, "pro");
+  const hobby = buildVercelCrons(tasks, "hobby");
+
+  for (const [crons, declared, other] of [
+    [pro, "hobby", "pro"],
+    [hobby, "pro", "hobby"],
+  ]) {
+    const result = checkVercelCrons(crons, tasks, declared);
+    assert.equal(result.plan, null);
+    assert.equal(result.errors.length, 1);
+    assert.ok(result.errors[0].includes(`vercel.plan は ${declared}`), result.errors[0]);
+    assert.ok(result.errors[0].includes(`pnpm generate cron -- --plan ${declared}`), result.errors[0]);
+    assert.ok(result.errors[0].includes(`pnpm workflow repo-json set vercel.plan ${other}`), result.errors[0]);
+  }
+
+  assert.deepEqual(checkVercelCrons(pro, tasks, null), { plan: "pro", errors: [] });
+  assert.deepEqual(checkVercelCrons(hobby, tasks, null), { plan: "hobby", errors: [] });
+
+  // 宣言ありでどちらとも違えば、宣言したプランとの差分を出す
+  const drifted = checkVercelCrons(hobby.slice(1), tasks, "hobby");
+  assert.ok(drifted.errors.some((e) => e.startsWith("/api/cron/a-daily: エントリがありません")));
+  assert.ok(drifted.errors.at(-1).includes("pnpm generate cron -- --plan hobby"));
+});
+
+test("inferCronPlan: 一致すればそのプラン、ずれていれば 1 日 1 回より細かい /api/cron/ のエントリがあれば pro、無ければ hobby(検査と生成器の共通の読み方)", () => {
+  const pro = buildVercelCrons(tasks, "pro");
+  const hobby = buildVercelCrons(tasks, "hobby");
+  assert.equal(inferCronPlan(pro, tasks), "pro");
+  assert.equal(inferCronPlan(hobby, tasks), "hobby");
+  // ずれ(タスクが増えた): 細かいエントリが残っていれば pro、全部 1 日 1 回なら hobby
+  const grown = [...tasks, { name: "e-daily", schedule: "20 18 * * *" }];
+  assert.equal(inferCronPlan(pro, grown), "pro");
+  assert.equal(inferCronPlan(hobby, grown), "hobby");
+  // /api/cron/ 以外・形の崩れたエントリは見ない、crons が配列でなければ hobby
+  assert.equal(inferCronPlan([...hobby, { path: "/api/other", schedule: "* * * * *" }, null, { path: 1 }], grown), "hobby");
+  assert.equal(inferCronPlan(undefined, tasks), "hobby");
+  // 違いの無いタスク(全部 1 日 1 回)は hobby と読む(どちらでも同じ出力)
+  const daily = [{ name: "a-daily", schedule: "0 18 * * *" }];
+  assert.equal(inferCronPlan(buildVercelCrons(daily, "pro"), daily), "hobby");
+
+  // 宣言なしの検査はずれた crons の直し方に、読んだプランを出す
+  const drifted = checkVercelCrons(pro, grown, null);
+  assert.equal(drifted.plan, null);
+  assert.ok(drifted.errors.some((e) => e.startsWith("/api/cron/e-daily: エントリがありません")));
+  assert.ok(drifted.errors.at(-1).includes("pnpm generate cron -- --plan pro"), drifted.errors.at(-1));
+  assert.ok(checkVercelCrons(hobby, grown, null).errors.at(-1).includes("pnpm generate cron -- --plan hobby"));
+});
+
+test("findCronScheduleOverlaps: /api/cron/ のパスが crons と schedules の両方にあれば失敗、それ以外と schedules なしは通る", () => {
+  const pro = buildVercelCrons(tasks, "pro");
+  const overlaps = findCronScheduleOverlaps(pro, {
+    nightly: { schedule: "0 18 * * *", path: "/api/cron/a-daily" },
+    hourly: { schedule: "10 * * * *", path: "/api/cron/d-hourly", requestMethod: "POST" },
+    other: { schedule: "0 1 * * *", path: "/api/other" },
+    fn: { schedule: "0 2 * * *", function: "src/jobs/x.ts" },
+  });
+  assert.equal(overlaps.length, 2);
+  assert.ok(overlaps[0].startsWith("/api/cron/a-daily: crons と schedules.nightly の両方"), overlaps[0]);
+  assert.ok(overlaps[1].startsWith("/api/cron/d-hourly: crons と schedules.hourly の両方"), overlaps[1]);
+
+  // crons に無い /api/cron/ のパス・/api/cron/ の外・schedules なし / 形違いは対象外
+  assert.deepEqual(findCronScheduleOverlaps(pro, { x: { schedule: "0 1 * * *", path: "/api/cron/only-here" } }), []);
+  assert.deepEqual(findCronScheduleOverlaps([...pro, { path: "/api/other", schedule: "0 1 * * *" }], { o: { schedule: "0 1 * * *", path: "/api/other" } }), []);
+  for (const schedules of [undefined, null, [], "x"]) assert.deepEqual(findCronScheduleOverlaps(pro, schedules), []);
 });
 
 test("task.override.ts: fork の今の形(boardgame-site の 4 本 = import type CronTaskOverride + { disabled: true })が通り、書ける鍵は宣言 src/lib/cron/extensionPoints.ts から", async () => {

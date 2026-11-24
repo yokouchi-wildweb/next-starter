@@ -12,7 +12,7 @@
 
 ### 新しい定期タスクを追加する
 
-フォルダを 1 つ足し、`vercel.json` を持つリポ(fork)は再生成する(upstream は `vercel.json` を持たないので要らない)。漏れは `pnpm test scripts/structure/cron/cronWiring.test.mjs` と Vercel 上のビルドが検出する。
+フォルダを 1 つ足し、`vercel.json` を持つリポ(Vercel にデプロイするリポ。upstream も自分の `vercel.json` を持つ)は再生成する。漏れは `pnpm test scripts/structure/cron/cronWiring.test.mjs` と Vercel 上のビルドが検出する。
 
 #### 1. task.ts
 
@@ -58,7 +58,10 @@ pnpm generate cron                       # プラン = repo.json の vercel.plan
 pnpm generate cron -- --plan <hobby|pro> # プランを指定して(vercel.plan より先)
 ```
 
-- プランは repo.json の `vercel.plan` に 1 度だけ書く(`pnpm workflow repo-json set vercel.plan <hobby|pro>`)。無い = Vercel にデプロイしないリポとして `pnpm generate` の全部・/flux の区間の作り直しでは飛ばす
+- プランは repo.json の `vercel.plan` に 1 度だけ書く(`pnpm workflow repo-json set vercel.plan <hobby|pro>`。Vercel の契約どおり: Pro は pro、無料は hobby)
+- `vercel.plan` が無くても `vercel.json` があれば作り直す: プランは今の crons から検査と同じ読み方(`inferCronPlan`)で読み、宣言を促す警告を出す。
+  全部 1 日 1 回の crons に細かいタスクが増えると hobby と読むので、Pro のリポは必ず宣言する
+- `vercel.plan` も `vercel.json` も無い = Vercel にデプロイしないリポとして `pnpm generate` の全部・/flux の区間の作り直しでは飛ばす
 
 `pnpm task my-task` はフォルダを置いた時点で使える。タスクを消すときもフォルダを消して再生成する。
 upstream でタスクを足す・消すときは、fork 向けに `pnpm generate cron` を `required_actions` に書いた notice を同じ commit で出す(`/ship` で出荷すると判定と起票まで行う)
@@ -92,10 +95,14 @@ pnpm generate cron -- --plan pro     # Vercel Pro:   task.ts の schedule どお
 
 `vercel.json` の `crons` だけを書き換える（他のキーと `/api/cron/` の外のエントリは残す）。生成した `vercel.json` をコミットし、
 Vercel の環境変数に `CRON_SECRET` を登録する（Vercel Cron は `Authorization: Bearer ${CRON_SECRET}` を自動で付ける）。
-新規 fork は `/fork-init` がこれを済ませる。upstream は `vercel.json` を持たない（各リポジトリが自分のフォルダから生成する）。
+新規 fork は `/fork-init` がこれを済ませる。`vercel.json` は各リポジトリが自分のもの（型 5 self）を自分のフォルダから生成してコミットする（upstream も同じ）。
+プランは `--plan` を省けば repo.json の `vercel.plan`（上の「3. vercel.json を再生成」）。
 
 - **再生成が要るとき**: タスクのフォルダが増減したとき・schedule を変えたとき（どちらも upstream からの merge を含む）・`task.override.ts` を置いた・変えたとき・プランを変えたとき
 - **検査**: `pnpm check cron` が `vercel.json` と生成結果を突き合わせる（無い・エントリの漏れ・消えたタスクの残骸・時刻の手書き → 失敗）。
+  プランは repo.json の `vercel.plan` と照らし、もう一方のプランの生成結果なら失敗する（直し方を 2 通り出す: 宣言どおりに再生成するか、宣言を直す）。
+  `vercel.plan` が無ければどちらのプランの生成結果も通し、宣言を促す警告を出す。
+  同じ `/api/cron/` のパスが `crons` と `schedules` の両方にあれば二重実行になるので失敗する（cron タスクは `crons` だけに置く）。
   `pnpm build` は Vercel 上（`VERCEL=1`）でだけ冒頭にこれを実行し、`pnpm live` 系もデプロイ前に実行する。
   定期タスクを意図して 1 本も動かさないデプロイ（デモ環境等）だけは環境変数 `SKIP_CRON_CHECK=1` で外す
 - **上限**: Vercel の cron は 1 プロジェクト 100 本まで（全プラン共通）。Hobby は 1 日 1 回より細かい式でデプロイが失敗し、
@@ -146,7 +153,7 @@ env ファイルを置かずホストの環境変数で動かすときは、`APP
 - `cronExpression.ts` — cron 式の検証・照合（`isValidCronExpression` / `isAtMostDailySchedule` / `matchesCronExpression`）
 - `auth.ts` — 共通認証（`CRON_SECRET` の Bearer 検証）
 - `createCronRoute.ts` — API ルート生成ファクトリ（`createCronRoute`、task.ts の定義から作る `createCronTaskRoute`）。省略可の依存 `gate`（住所 → 閉か）で機能の門を、`maintenance`（`CronRouteMaintenance` = `{ isActive }`）でメンテナンスの期間を受ける。route.ts は直接読まず、門番を結んだ `@/wiring/cronRoute` を使う
-- `vercelCrons.ts` — `vercel.json` の crons の生成・検査（純関数）
+- `vercelCrons.ts` — `vercel.json` の crons の生成・検査・宣言なしのプランの読み方（純関数。宣言 `vercel.plan` は呼び手が `readVercelPlan` で読んで渡す）
 - `extensionPoints.ts` — 上書きの対象の点 `cronTasks` の宣言（`task.override.ts` が書いてよい鍵 = `schedule`・`disabled`。読み手は `discover.ts`、値の検査 = cron 式・真偽はそちら）
 - `discover.ts` — task を探す処理（`src/app/api/cron/<name>/` の走査・`task.override.ts` の反映・`listCronTaskDirs` / `loadCronTasks` / `scheduledCronTasks`）。入口 `./node`（`node.ts` が出す。`@/lib/cron/node`。node:fs を使う。画面からは読まない）。門番は読まず、閉じているかは呼ぶ側が `closedBy` で渡す。生成器・検査（`scripts/structure/cron`）と `pnpm task` が共有する
 - `runBudgetedBatches.ts` — 時間予算付き・再開可能バッチランナー（下記）
@@ -245,7 +252,8 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
 - `task.ts` の `name` = フォルダ名・ケバブケース、`schedule` が正しい cron 式、`description` あり、`enabled` が boolean を返す
 - `task.override.ts`（あれば）が `schedule` / `disabled` だけを持ち、`schedule` が正しい cron 式で、同じフォルダに `task.ts` がある
 - README と `task.ts` / `task.override.ts` が `@/lib/cron` から import する名前を、`src/lib/cron/index.ts` がすべて export している
-- `vercel.json`（あれば）が task.ts（+ task.override.ts、閉じた機能のタスクを除く）からの生成結果と一致する
+- `vercel.json`（あれば）が task.ts（+ task.override.ts、閉じた機能のタスクを除く）からの、repo.json の `vercel.plan` の生成結果と一致し、`schedules` と同じ `/api/cron/` のパスを持たない
+- 検査の純関数: 宣言と違うプランの crons は失敗・宣言なしはどちらも通す（`checkVercelCrons`）、二重登録（`findCronScheduleOverlaps`）、宣言なしのプランの読み方（`inferCronPlan`）
 - 機能の門: 閉じた住所のタスクは `closedBy` が付いて生成と検査から外れる、route の作り手は閉なら認証の後・本体の前に skipped
 - task.ts が門番（`@/featureGate`）を読まない（機能の入切は住所で自動。Tier1 は失敗、fork は一覧を出すだけ）
 

@@ -14,6 +14,8 @@ export {
   buildVercelCrons,
   checkVercelCrons,
   cronTaskPath,
+  findCronScheduleOverlaps,
+  inferCronPlan,
   isCronPlan,
   listHobbyDowngradedTasks,
   validateCronSchedules,

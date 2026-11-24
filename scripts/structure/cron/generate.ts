@@ -6,6 +6,7 @@
 //   pnpm generate cron -- --plan hobby   # Vercel Hobby: 全タスクを 1 日 1 回
 //   pnpm generate cron -- --plan pro     # Vercel Pro:   task.ts の schedule どおり
 //   pnpm generate cron                   # --plan の無い時は repo.json の vercel.plan(pnpm workflow repo-json set vercel.plan <hobby|pro>)
+//                                        # それも無く vercel.json がある時は、今の crons から検査と同じ読み方(inferCronPlan)でプランを読み、宣言を促す
 //
 // 再生成が要るとき: タスクのフォルダが増減したとき（upstream からの merge を含む）・task.ts の schedule や task.override.ts を
 // 変えたとき・プランを変えたとき・機能を閉じた / 開いたとき（閉じた機能のタスクは載せない。scripts/structure/cron/discover.ts の closedBy）。忘れると Vercel のビルド前検査（pnpm check cron）で止まる。
@@ -14,7 +15,15 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { CRON_PATH_PREFIX, CRON_PLANS, buildVercelCrons, isCronPlan, listHobbyDowngradedTasks, validateCronSchedules } from "@/lib/cron";
+import {
+  CRON_PATH_PREFIX,
+  CRON_PLANS,
+  buildVercelCrons,
+  inferCronPlan,
+  isCronPlan,
+  listHobbyDowngradedTasks,
+  validateCronSchedules,
+} from "@/lib/cron";
 import { readVercelPlan } from "@/lib/forkOwnership/node.mjs";
 import { loadCronTasks, scheduledCronTasks } from "./discover";
 
@@ -33,13 +42,12 @@ async function main() {
     console.error(`✗ ${declared.error}`);
     process.exit(1);
   }
-  const plan = readFlag(args, "plan") ?? declared.plan ?? undefined;
-  if (!plan || !isCronPlan(plan)) {
+  const file = path.join(repoRoot, "vercel.json");
+  const flagged = readFlag(args, "plan");
+  if ((flagged !== undefined && !isCronPlan(flagged)) || (flagged === undefined && !declared.plan && !existsSync(file))) {
     console.error(`Usage: pnpm generate cron -- --plan <${CRON_PLANS.join("|")}>(または repo.json の vercel.plan: pnpm workflow repo-json set vercel.plan <${CRON_PLANS.join("|")}>)`);
     process.exit(1);
   }
-
-  const file = path.join(repoRoot, "vercel.json");
 
   let config: Record<string, unknown> = { $schema: VERCEL_SCHEMA_URL };
   if (existsSync(file)) {
@@ -59,8 +67,16 @@ async function main() {
     for (const error of scheduleErrors) console.error(`✗ ${error}`);
     process.exit(1);
   }
-  const crons = buildVercelCrons(tasks, plan);
   const before = Array.isArray(config.crons) ? config.crons : [];
+  // 宣言も --plan も無い = vercel.json はあるリポ: 検査と同じ読み方で今の crons からプランを読む
+  const plan = flagged !== undefined && isCronPlan(flagged) ? flagged : (declared.plan ?? inferCronPlan(before, tasks));
+  if (flagged === undefined && !declared.plan) {
+    console.warn(
+      `⚠ repo.json に vercel.plan がありません（今の crons から ${plan} と読みました）。` +
+        `宣言してください: pnpm workflow repo-json set vercel.plan <${CRON_PLANS.join("|")}>`,
+    );
+  }
+  const crons = buildVercelCrons(tasks, plan);
   // /api/cron/ の外のエントリは fork 独自のものとして残す
   const kept = before.filter(
     (entry: unknown) =>
