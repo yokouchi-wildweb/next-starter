@@ -7,7 +7,8 @@ import { runWithAuditContext } from "@/lib/audit/server";
 import type { AuditActorType, AuditContext } from "@/lib/audit";
 import type { RecaptchaAction } from "@/lib/recaptcha";
 import { RECAPTCHA_DEBUG, RECAPTCHA_V2_INTERNALS, RECAPTCHA_V3_INTERNALS, verifyRecaptcha, verifyRecaptchaV2 } from "@/lib/recaptcha/server";
-import { isDomainError, toDomainErrorBody } from "@/lib/errors";
+import { BackendNoneSelectedError } from "@/lib/backends";
+import { BACKEND_NOT_CONFIGURED_CODE, BACKEND_NOT_SELECTED_CODE, isBackendNotConfiguredError, isDomainError, toDomainErrorBody } from "@/lib/errors";
 import { readClientIp } from "@/lib/request";
 import { runWithUserDirtyTracking } from "@/lib/userDirty";
 import { runWithCacheTags } from "@/lib/cacheTags/server";
@@ -19,6 +20,8 @@ import { resolveRouteUser } from "./routeUser";
 
 /** DomainError 以外の例外で返す汎用メッセージ（内部情報をクライアントへ出さない） */
 const INTERNAL_ERROR_MESSAGE = "サーバーでエラーが発生しました";
+/** 使わないと選んだ口(選択表の "none")を呼んだ時に返す文言（口の名前は出さない） */
+const NOT_SELECTED_MESSAGE = "この機能は利用できません";
 
 /**
  * リクエストヘッダ + session から AuditContext を組み立てる。
@@ -440,6 +443,15 @@ export function makeRouteCore<TCategory extends string = string>(
 
         if (isDomainError(error)) {
           return NextResponse.json(toDomainErrorBody(error), { status: error.status });
+        }
+
+        // 外部の口(D32): 使わないと選んだ口 → 501、選んだ実装に設定が無い → 500。本文は { message, code } だけで、
+        // 口の名前・実装・足りない env の名前(誤りの port / implementation / missing)は載せない（サーバーの記録には上で残る）
+        if (error instanceof BackendNoneSelectedError) {
+          return NextResponse.json({ message: NOT_SELECTED_MESSAGE, code: BACKEND_NOT_SELECTED_CODE }, { status: 501 });
+        }
+        if (isBackendNotConfiguredError(error)) {
+          return NextResponse.json({ message: INTERNAL_ERROR_MESSAGE, code: BACKEND_NOT_CONFIGURED_CODE }, { status: 500 });
         }
 
         // 想定外の例外（ライブラリ・DB・コードの不具合）の message は SQL やライブラリの内部情報を

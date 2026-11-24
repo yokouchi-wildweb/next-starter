@@ -79,7 +79,7 @@ const report = await mailContract.run(fakeMailAdapter);
 - `BackendRequirements` = `CapabilityName[]`(業務コードが要る能力。ドメインが字面で宣言する)
 - `BackendCapabilityItem` = `{ port, words }`(増設点 `backendCapabilities` の項目)
 - `createNoneAdapter<A>(port, { side? })` → `A`: `isConfigured` は `{ configured: false, missing: [] }`、ほかのどの操作も呼べば `BackendNoneSelectedError`
-- `BackendNoneSelectedError(port, side?)`: `BackendNotConfiguredError`(`@/lib/errors`)の子。`port` = 口、`implementation` = `"none"`、`missing` = `[]`、`side` 既定 `"server"`
+- `BackendNoneSelectedError(port, side?)`: `BackendNotConfiguredError`(`@/lib/errors`)の子。`port` = 口、`implementation` = `"none"`、`missing` = `[]`、`side` 既定 `"server"`。API では routeFactory が 501 + `code: "backend_not_selected"` に写す(口の名前は応答に出ない)
 - `NONE_IMPLEMENTATION`(`"none"`)・`FAKE_IMPLEMENTATION`(`"fake"`)・`RESERVED_IMPLEMENTATION_NAMES`(両方)・`UNSELECTABLE_IMPLEMENTATION_NAMES`(`"fake"`): 予約の実装の名前
 - `backendPrices`(`BackendPriceRow[]`、`prices.ts`): 単価の表。行 = `{ priceKey, unit, currency, amount, source, checkedAt }`、鍵は `priceKey`(課金の目盛りの `priceKey` が指す)。上流だけが書き、fork は読むだけ。今は行が無い
 - `createBackendStatusTask(status: BackendStatus, { write? })`(status = 持ち主の公開の入口の `<点>BackendStatus`) → `{ name: "backends.<口>", runtime: "nodejs", run }`(起動時の処理の項目の形、`@/lib/startup` は読まない): `run` は 1 行の JSON `{ scope: "backends", port, selected, level, configured, missing? | none? | error? }` を書く(既定 `console.info`)

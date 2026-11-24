@@ -6,12 +6,16 @@ export type { BackendNotConfiguredErrorOptions } from "./backendNotConfiguredErr
 export { DomainError, isDomainError, toDomainErrorBody } from "./domainError";
 export type { DomainErrorOptions } from "./domainError";
 export {
+  BACKEND_NOT_CONFIGURED_CODE,
+  BACKEND_NOT_SELECTED_CODE,
   HttpError,
   MAINTENANCE_CODE,
   createHttpError,
   err,
   getErrorCode,
   getErrorDetails,
+  isBackendNotConfiguredResponse,
+  isBackendNotSelectedResponse,
   isHttpError,
   isMaintenanceError,
   normalizeHttpError,

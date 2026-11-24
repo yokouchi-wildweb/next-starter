@@ -15,5 +15,6 @@ using:
 - error_details_check: the caller validates the shape of getErrorDetails
 - backend_not_configured: an error for "a backend port's env is not set" extends BackendNotConfiguredError (never DomainError) with port, implementation?, missing (env names only), side
   - "not configured" only: configured-but-unreachable never uses it | any port → isBackendNotConfiguredError, one port → its subclass's instanceof
+- backend_codes: the API answers 500 code backend_not_configured / 501 code backend_not_selected (body { message, code } only) | the client branches with isBackendNotConfiguredResponse / isBackendNotSelectedResponse, never on the status alone
 editing: none of its own (the error flow is CLAUDE.md ARCHITECTURE errors)
 read: throw and show errors → Usage | functions and options → API | app-wide hooks, dev warnings → Internals

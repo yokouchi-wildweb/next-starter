@@ -320,6 +320,7 @@ export const POST = createApiRoute(
 
 - ハンドラが返した `Response`（`NextResponse` 以外も）は**そのまま**返す（redirect・binary・SSE・Cookie 付きの応答）。それ以外の値は `NextResponse.json(value ?? null)`
 - `DomainError` → `{ message, code?, details? }` + その status。`code`（機械可読な分類）・`details` は指定したときだけ載る（`src/lib/errors/README.md`）
+- 外部の口の誤り（`DomainError` の後・汎用 500 の前）: `BackendNoneSelectedError`（`@/lib/backends`、選択表で `none` の口）→ 501 + `{ message: "この機能は利用できません", code: "backend_not_selected" }` / ほかの `BackendNotConfiguredError`（`@/lib/errors`、選んだ実装に設定が無い）→ 500 + `{ message: "サーバーでエラーが発生しました", code: "backend_not_configured" }`。口の名前・実装・足りない名前は載せない。どちらも想定外の失敗として失敗の記録の口へ渡る
 - それ以外の例外 → `{ message: "サーバーでエラーが発生しました" }` + 500（元の message はサーバーログだけ）
 - 想定外の失敗（DomainError 以外と status 500 以上の DomainError）は束の口 `serverError.onServerError`（省略可）へ path・method・headers・requestId・operation を渡して待つ。口があればその記録が 1 失敗 1 行（`console.error` の `<operation> failed:` は出さない）、無ければ `console.error`。400 番台の DomainError は口へ渡さない。上流の wiring はサーバーの失敗の記録（`src/lib/serverErrorReport/README.md`）へ結ぶ
 - 認可の拒否 → 401 / 403 の JSON（`code`、汎用 CRUD は `domain` / `operation` も）、404 は `text/plain`
@@ -362,7 +363,7 @@ export const POST = createApiRoute(
 | `page-authz/session-api-callsite` | `src/app/api/**`（補助ファイルを含む）でセッション取得・`requireRole`・token だけのセッション・Cookie の解析を import しない | `eslint-rules/page-authz.mjs` |
 | 型 | `RouteAccess` に `"custom"` が無い・ctx に `session` が無い・`ctx.user` の null 可は `"public"` だけ・`user: "skip"` は `"public"` だけ | `routeAccess.typecheck.ts`（`pnpm typecheck`） |
 
-テスト: `pnpm test src/wiring/routeFactory.test.mts`（Factory の契約）/ `pnpm test eslint-rules/route-http-export.test.mjs` / `pnpm test eslint-rules/import-boundaries.test.mjs` / `pnpm test src/lib/routeFactory/createDeviceRoute.test.mts src/lib/routeFactory/noDevice.test.mts src/domains/core/pairedDevice` / `pnpm test src/app/api/collectionEntriesRoute.test.mts` / `pnpm test src/lib/routeFactory/maintenance.test.mts`（メンテナンスの停止・宣言・バイパス）。
+テスト: `pnpm test src/wiring/routeFactory.test.mts`（Factory の契約）/ `pnpm test eslint-rules/route-http-export.test.mjs` / `pnpm test eslint-rules/import-boundaries.test.mjs` / `pnpm test src/lib/routeFactory/createDeviceRoute.test.mts src/lib/routeFactory/noDevice.test.mts src/domains/core/pairedDevice` / `pnpm test src/app/api/collectionEntriesRoute.test.mts` / `pnpm test src/lib/routeFactory/maintenance.test.mts`（メンテナンスの停止・宣言・バイパス）/ `pnpm test src/lib/routeFactory/unconfigured.test.mts`（外部の口の誤りの 500 / 501 と code、本文に口の名前を出さない）。webhook の鍵が無い時の 503 は `src/domains/core/messaging/services/server/webhooks/applyEvents.test.ts`。
 
 ## Related
 

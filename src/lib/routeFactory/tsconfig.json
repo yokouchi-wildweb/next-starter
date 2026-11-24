@@ -23,6 +23,12 @@
       "@/lib/audit/*": [
         "../audit/*"
       ],
+      "@/lib/backends": [
+        "../backends"
+      ],
+      "@/lib/backends/*": [
+        "../backends/*"
+      ],
       "@/lib/cacheTags": [
         "../cacheTags"
       ],

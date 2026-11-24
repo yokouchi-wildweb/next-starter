@@ -212,6 +212,31 @@ export function isMaintenanceError(error: unknown): boolean {
 }
 
 /**
+ * 選んだ実装に設定(env の鍵)が無い応答の `code`（routeFactory が BackendNotConfiguredError を 500 に写す時に載せる）。
+ * 口の名前・足りない名前は応答に載らない
+ */
+export const BACKEND_NOT_CONFIGURED_CODE = "backend_not_configured";
+
+/**
+ * 選択表で "none"(使わない)を選んだ口を呼んだ応答の `code`（routeFactory が BackendNoneSelectedError を 501 に写す時に載せる）
+ */
+export const BACKEND_NOT_SELECTED_CODE = "backend_not_selected";
+
+/**
+ * 外部の口の設定が無くて失敗した応答か（500 + `code` "backend_not_configured"）。`code` で見分ける（500 は想定外の失敗と同じ番号）
+ */
+export function isBackendNotConfiguredResponse(error: unknown): boolean {
+  return getErrorCode(error) === BACKEND_NOT_CONFIGURED_CODE;
+}
+
+/**
+ * 使わないと選んだ口の機能を呼んだ応答か（501 + `code` "backend_not_selected"）。画面はその機能を出さない・案内に替える
+ */
+export function isBackendNotSelectedResponse(error: unknown): boolean {
+  return getErrorCode(error) === BACKEND_NOT_SELECTED_CODE;
+}
+
+/**
  * `HttpError` の `responseData` からサーバー側 DomainError の `details` を取り出します。
  * 中身の型は保証しないので、呼び出し側で検証してください。
  *

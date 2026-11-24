@@ -44,6 +44,7 @@ try {
 ```
 
 - `status` で分岐したいときは `normalizeHttpError(error).status === 409` のように確認する
+- 外部の口の誤りは `isBackendNotConfiguredResponse(error)`(500、設定の誤り)・`isBackendNotSelectedResponse(error)`(501、その機能を使わない構成)で見分ける
 - メンテナンス中に止められた書き込み(503)は `isMaintenanceError(error)` で見分ける。文言は `err(error, fallback)` でサーバーの「メンテナンス中」が出るので、入力は残したまま知らせるだけでよい(画面の移動は `@/lib/appStatus` の `useAppStatus` が受け持つ)
 
 ## API
@@ -61,6 +62,7 @@ try {
 - 欄(readonly): `port`(口の名前)・`implementation?`(口の実装の名前)・`missing`(足りない env の名前の配列、値は入れない)・`side`(`"client"` | `"server"`)
 - 生成は `new BackendNotConfiguredError(message, { port, implementation?, missing, side })`(型 `BackendNotConfiguredErrorOptions`)。各口の誤りが継ぎ、`name` は子が自分の名前で書き直す
 - 判定は `isBackendNotConfiguredError(error)`(どの口の未設定でも true)。口ごとに分けるときは子のクラスの `instanceof`
+- API の応答: routeFactory が 500 + `{ message: 汎用, code: "backend_not_configured" }` に写す(子の `BackendNoneSelectedError`、`@/lib/backends` は 501 + `code: "backend_not_selected"`)。`port`・`implementation`・`missing` は応答に載らない
 - 判定は「未設定」のみ。設定済みで到達できない障害には使わない(障害を未設定扱いで覆い隠さない)
 
 | 子のクラス | 置き場 | `port` | `implementation` | `missing` | `side` |
@@ -84,6 +86,9 @@ try {
 | `getErrorCode(error)` | `responseData` の `code`（文字列）を返す。`HttpError` でない、または無ければ `null`。`status` だけでは区別できないエラーの分岐に使う |
 | `isMaintenanceError(error)` | メンテナンス中に止められたエラーか(`code` が `MAINTENANCE_CODE`)。503 は `route_user_unavailable` も使うので `status` では分けない |
 | `MAINTENANCE_CODE` | メンテナンスで止めた応答の `code`(`"maintenance"`)。サーバー(routeFactory)とクライアントが読む 1 つ |
+| `isBackendNotConfiguredResponse(error)` | 外部の口の設定が無くて失敗した応答か(`code` が `BACKEND_NOT_CONFIGURED_CODE`、番号は 500) |
+| `isBackendNotSelectedResponse(error)` | 使わないと選んだ口の機能を呼んだ応答か(`code` が `BACKEND_NOT_SELECTED_CODE`、番号は 501) |
+| `BACKEND_NOT_CONFIGURED_CODE` / `BACKEND_NOT_SELECTED_CODE` | 外部の口の応答の `code`(`"backend_not_configured"` / `"backend_not_selected"`)。routeFactory が書き、クライアントが読む |
 | `getErrorDetails(error)` | `responseData` の `details`（オブジェクト）を返す。`HttpError` でない、または無ければ `null` |
 
 - 既定のフォールバック文言は `リクエストに失敗しました`
