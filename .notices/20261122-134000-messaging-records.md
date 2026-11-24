@@ -16,8 +16,8 @@ required_actions:
 6. Kind labels: replace reads of MESSAGE_KIND_LABELS (constants/kindLabels.ts, deleted) with messageKindLabel / messageKindAdminLabel / messageKindAdminOptions from src/features/core/messaging/presenters.ts; a fork's own names go to src/config/features/messaging.config.ts `kindLabels: { <kind>: { label, adminLabel? } }` (find: `git grep -nE "MESSAGE_KIND_LABELS|constants/kindLabels" -- src`)
 7. Layouts: a fork that disables or un-selects the upstream layout simple (new layouts/<name>/layout.override.ts) also sets `initialLayout` in src/config/features/messaging.config.ts to a selectable layout (else checkMessageRegistry fails)
 8. Regenerate: `pnpm generate extensions` then `pnpm generate registry` (new src/registry/recordTargetRegistry.ts; intake rows for layout / recordTargets / messages overrides)
-9. `pnpm task messaging:rename-template-vars` (message_templates / message_template_versions: embedded → vars, idempotent)
-10. `pnpm task messaging:merge-dispatch-vars` (message_dispatches: embedded_values merged into vars, idempotent)
+9. `pnpm task messaging:rename-template-vars` (no dry run: the runner refuses `--dry-run`) (message_templates / message_template_versions: embedded → vars, idempotent)
+10. `pnpm task messaging:merge-dispatch-vars` (no dry run: the runner refuses `--dry-run`) (message_dispatches: embedded_values merged into vars, idempotent)
 11. [user-run] `pnpm db:push` (drops message_dispatches.system_template and embedded_values, adds edited_fields; only after steps 9-10, else template declarations and sent values are lost)
 12. `pnpm db:push:check` reports zero statements
 13. Fix by hand what the codemod listed (removed / handStep / word: the dev words in the fork's own comments, optional) and update fork tests asserting old screen texts (お知らせ as the inApp label → サービス内通知, old layout labels, ひな形 / 経路 texts, messageGuards / pnpm generate message texts)
