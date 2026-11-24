@@ -49,8 +49,8 @@ export const POLICY_VALUES = ["auto", "manual", "off"];
 
 /**
  * 危険な 3 つ(D115・D116)。値は off | manual だけ(auto・知らない値は off とみなす)、書いていなければ manual(D265)。
- * 入口の命令(agent.<種類>.entry)は fork が差し替えられる。"-" = 上流の入口なし(fork が自分の命令を書く)
- * - db_push = 開発の DB の反映だけ / env_production = 本番の env を書く / deploy = 本番へ出す(本番の DB の反映も、agent.deploy.db_entry)
+ * 入口の命令(repo.json の agent.entries.<種類>、entryKeyOf)は fork が差し替えられる。"-" = 上流の入口なし(fork が自分の命令を書く)
+ * - db_push = 開発の DB の反映だけ / env_production = 本番の env を書く / deploy = 本番へ出す(本番の DB の反映も、agent.entries.deploy_db)
  */
 export const DANGER_KINDS = {
   db_push: { what: "開発の DB にスキーマを反映する", entries: { entry: "pnpm db:push" } },
@@ -99,18 +99,24 @@ export const AGENT_PREFIX = "agent.";
 /** 種類の名前 → repo.json の鍵(db-write → agent.db_write) */
 export const policyKeyOf = (kind) => `${AGENT_PREFIX}${kind.replace(/-/g, "_")}`;
 
+/**
+ * 入口の repo.json の鍵(D312): entry → agent.entries.<種類>、db_entry → agent.entries.<種類>_db(deploy_db)
+ * @param {string} d 危険な種類 @param {string} e DANGER_KINDS[d].entries の名前
+ */
+export const entryKeyOf = (d, e) => `${AGENT_PREFIX}entries.${e === "entry" ? d : `${d}_${e.replace(/_entry$/, "")}`}`;
+
 /** 宣言した鍵の全部(種類・peer・全体のスイッチ・危険な 3 つと入口) */
 export const declaredAgentKeys = () => [
   ...POLICY_KEYS.map(policyKeyOf),
   `${AGENT_PREFIX}${POLICY_SWITCH}`,
-  ...DANGER_NAMES.flatMap((d) => [policyKeyOf(d), ...Object.keys(DANGER_KINDS[d].entries).map((e) => `${policyKeyOf(d)}.${e}`)]),
+  ...DANGER_NAMES.flatMap((d) => [policyKeyOf(d), ...Object.keys(DANGER_KINDS[d].entries).map((e) => entryKeyOf(d, e))]),
   ...INTERVENE_NAMES.map(policyKeyOf),
 ];
 
 /**
  * repo.json の値 → 効いている方針。通常の種類は auto | manual | off(書いていなければ manual、誤りは DevcheckError)、
  * enabled は真偽値(既定 true、誤りは DevcheckError)、危険な 3 つと intervene は off | manual(書いていなければ manual、知らない値は off)、入口は文字列(既定は上流の命令)。
- * 書いていない時に manual なのは、方針を書いていない fork で何も人の確認なしに走らせないため(D265)。自動にするのは repo.json(/repo-policy)
+ * 書いていない時に manual なのは、方針を書いていない fork で何も人の確認なしに走らせないため(D265)。自動にするのは repo.json(/repo-config)
  * 宣言に無い agent.* の鍵は DevcheckError
  * @param {Record<string, string | boolean>} values
  * @returns {{ policy: Record<string, string>, entries: Record<string, Record<string, string>>, enabled: boolean }}
@@ -138,7 +144,7 @@ export const agentPolicyOf = (values) => {
     policy[d] = enabled && (raw === undefined || raw === "manual") ? "manual" : "off";
     entries[d] = {};
     for (const [e, def] of Object.entries(DANGER_KINDS[d].entries)) {
-      const key = `${policyKeyOf(d)}.${e}`;
+      const key = entryKeyOf(d, e);
       const v = values[key] ?? def;
       if (typeof v !== "string" || v.trim() === "") throw new DevcheckError(`${POLICY_FILE}: ${key} は命令の文字列(上流の入口なしは "-")`);
       entries[d][e] = v.trim();
@@ -248,4 +254,4 @@ export const humanCommandOf = (kind, entries) => {
 
 /** off の時の 1 行(D125): 実行せず人に頼む */
 export const offLine = (kind, entries) =>
-  `${kind} は方針で off: 人が打つなら ${humanCommandOf(kind, entries)}、任せるなら /repo-policy で ${policyKeyOf(kind)} を manual に`;
+  `${kind} は方針で off: 人が打つなら ${humanCommandOf(kind, entries)}、任せるなら /repo-config で ${policyKeyOf(kind)} を manual に`;

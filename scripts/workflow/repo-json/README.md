@@ -8,10 +8,10 @@
 
 ```bash
 pnpm workflow repo-json show                    # 中身と、読み手の読んだ名前・段・下流の有無・誤り(誤りがあれば exit 2)
-pnpm workflow repo-json get <鍵>                # 1 つの値(無い = 空行と exit 1)
+pnpm workflow repo-json get <鍵>                # 1 つの値(鍵は点の道: agent.server・agent.entries.deploy・vercel.plan。無い = 空行と exit 1)
 pnpm workflow repo-json set <鍵> <値>           # 1 つの鍵を書く(true / false は真偽値、ほかは文字列)
 pnpm workflow repo-json unset <鍵>              # 1 つの鍵を消す(repo_id・tier は消せない、無い鍵は何もしない)
-pnpm workflow repo-json migrate [--tier root|middle|leaf] [--dry-run]   # 古い形(project.md の 2 行)から移す
+pnpm workflow repo-json migrate [--tier root|middle|leaf] [--dry-run]   # 古い形(平らな repo.json・project.md の 2 行)から移す。2 回目は何もしない
 ```
 
 終了コード:
@@ -22,15 +22,27 @@ pnpm workflow repo-json migrate [--tier root|middle|leaf] [--dry-run]   # 古い
 
 repo.json の形:
 
-- 形: 平らな鍵を 1 鍵 1 行(リポの外の sh も grep で読める)、値は文字列か真偽値だけ。鍵 = `repo_id`・`tier`・`vercel.plan`(Vercel の契約のプラン `hobby` | `pro`。Vercel にデプロイするリポだけ持つ、`pnpm generate cron` が読む)・`agent.<種類>`(エージェントに任せる方針。鍵の一覧と既定は `scripts/workflow/devcheck/README.md`「方針」)
+- 形: 入れ子(D312)、1 鍵 1 行、値は文字列か真偽値だけ、配列なし。組は 1 段(`entries` だけ `agent` の中)。呼び方は点の道
+  ```json
+  {
+    "repo_id": "next-starter",
+    "tier": "root",
+    "agent": { "server": "auto", "db_push": "manual", "entries": { "deploy": "pnpm live" } },
+    "vercel": { "plan": "pro" }
+  }
+  ```
+  (書き手は 1 鍵 1 行に開いて書く)
+- 鍵: 一番上 = `repo_id`・`tier`(身元)/ `agent.<種類>`・`agent.enabled`・`agent.intervene`(エージェントに任せる方針)・`agent.entries.<db_push|env_production|deploy|deploy_db>`(危険な 3 つの入口の命令。一覧と既定は `scripts/workflow/devcheck/README.md`「方針」)/ `vercel.plan`(Vercel の契約のプラン `hobby` | `pro`。Vercel にデプロイするリポだけ持つ、`pnpm generate cron` が読む)
+- 読み手(`forkIds.mjs` の `parseRepoJson`)は入れ子だけを読み、呼び手へは点の道の表(`agent.server` など)で返す。平らな形(一番上の点の入った鍵)は `pnpm workflow repo-json migrate` を案内して止める(過去の版の名前を読む所は身元だけ読む)
 - 消せない鍵 = `repo_id`・`tier`(`unset` は `vercel.plan`・`agent.*` だけ)
 
 ## Internals
 
-- 直接の書き換え(Edit / Write・シェルの書き込み)は許可のフックが止める。方針を変えるのは `/repo-policy`(変える値を見せて確認の後にこの命令で書く)
-- `set` は読み手と同じ決まりで確かめてから、ファイル全体を 1 鍵 1 行の形に書き直す(鍵の並び = repo_id・tier・ほかは名前順)。誤り(知らない鍵・形違いの名前・知らない段・今のファイルが読めない)は何も書かず exit 2
+- 直接の書き換え(Edit / Write・シェルの書き込み)は許可のフックが止める。人が値を変える入口は `/repo-config`(repo.json 全体を組ごとに見せ、変える値と効き先を見せて確認の後にこの命令で書く)
+- `set` は読み手と同じ決まりで確かめてから、ファイル全体を入れ子の 1 鍵 1 行に書き直す(並び = repo_id・tier・組 agent(鍵の名の順、entries は最後)・組 vercel)。誤り(知らない鍵・形違いの名前・知らない段・今のファイルが読めない)は何も書かず exit 2
 - `unset` は 1 つの鍵を消して同じ形で書き直す(set の対。廃止した方針の鍵を fork が外す時など)。`repo_id`・`tier` と知らない形の鍵は何も書かず exit 2、無い鍵は何もせず exit 0
-- `migrate`: `.claude/rules/project.md` の `fork_id:` / `downstream:` の行を読み、`repo.json` に書いて、その 2 行を project.md から消す
+- `migrate`(1): 平らな `repo.json` を入れ子へ。入口の鍵 `agent.<種類>.entry` → `agent.entries.<種類>`、`agent.deploy.db_entry` → `agent.entries.deploy_db`、廃止した `agent.check`・`agent.test` は落とす(出力に名前を出す)、知らない鍵は何も書かずに止める。2 回目は何も書かない
+- `migrate`(2): `.claude/rules/project.md` の `fork_id:` / `downstream:` の行を読み、`repo.json` に書いて、その 2 行を project.md から消す
   - 段: `downstream: none` = `leaf` / `yes` = 自分の名前が `src/lib/CATALOG.md` の先頭の節なら `root`、ほかは `middle`
   - `downstream:` が無い・読めない = 止める(exit 2)。段を人が決めて `--tier` を付けてもう一度
   - 今の `repo.json` のほかの鍵は残す

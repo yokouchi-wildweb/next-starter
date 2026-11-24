@@ -53,50 +53,90 @@ const isTier = (value) => typeof value === "string" && TIER_VALUES.includes(valu
  */
 export const downstreamOfTier = (tier) => (tier === "leaf" ? "none" : "yes");
 
-/** repo.json の鍵の形(小文字の語を . でつなぐ)と、知っている鍵(agent.* は方針の鍵、ここでは形だけ見る) */
-const REPO_KEY_PATTERN = /^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/;
-export const REPO_KEYS = ["repo_id", "tier", "vercel.plan"];
-/** どのリポも持つ鍵(消せない。変えるのは set) */
+/**
+ * repo.json の形(D312): 入れ子。一番上 = repo_id・tier(身元)、組 agent = { enabled・各種類の許可・intervene、entries = { 入口の命令 } }、
+ * 組 vercel = { plan }。組は 1 段(entries だけ agent の中)、値は文字列か真偽値、配列なし。呼び手へは点の道の表で返す(agent.server・
+ * agent.entries.db_push・vercel.plan)。平らな形(一番上の点の入った鍵)は pnpm workflow repo-json migrate を案内して止める
+ */
+const WORD = /^[a-z][a-z0-9_]*$/;
+/** 一番上の身元の鍵 */
 export const REPO_FIXED_KEYS = ["repo_id", "tier"];
+/** 組と、その中の組(agent の中の entries だけ) */
+export const REPO_GROUPS = ["agent", "vercel"];
+export const AGENT_ENTRIES_GROUP = "entries";
 export const AGENT_KEY_PREFIX = "agent.";
+export const AGENT_ENTRIES_PREFIX = "agent.entries.";
 /** vercel.plan の値(src/lib/cron の CRON_PLANS と同じ。scripts/structure/cron/plan.test.ts が縛る) */
 export const VERCEL_PLAN_KEY = "vercel.plan";
 export const VERCEL_PLAN_VALUES = ["hobby", "pro"];
-export const isKnownRepoKey = (/** @type {string} */ key) => REPO_KEYS.includes(key) || (key.startsWith(AGENT_KEY_PREFIX) && REPO_KEY_PATTERN.test(key));
+/** 知っている鍵の名前(書き手の並び: 身元 → vercel.plan の順は書き手が決める) */
+export const REPO_KEYS = [...REPO_FIXED_KEYS, VERCEL_PLAN_KEY];
+/** 点の道が知っている鍵か: repo_id・tier・vercel.plan・agent.<語>・agent.entries.<語> */
+export const isKnownRepoKey = (/** @type {string} */ key) => {
+  if (REPO_KEYS.includes(key)) return true;
+  if (key.startsWith(AGENT_ENTRIES_PREFIX)) return WORD.test(key.slice(AGENT_ENTRIES_PREFIX.length));
+  return key.startsWith(AGENT_KEY_PREFIX) && WORD.test(key.slice(AGENT_KEY_PREFIX.length)) && key !== `${AGENT_KEY_PREFIX}${AGENT_ENTRIES_GROUP}`;
+};
+export const FLAT_FORM_HINT = "平らな形(古い repo.json)。pnpm workflow repo-json migrate で入れ子に移す";
+const isPlainObject = (/** @type {unknown} */ v) => typeof v === "object" && v !== null && !Array.isArray(v);
+const isScalar = (/** @type {unknown} */ v) => typeof v === "string" || typeof v === "boolean";
 
 /**
- * repo.json の本文を読む。平らな鍵・値は文字列か真偽値だけ・知っている鍵だけ。誤りは errors(読めた鍵は values に残す)
+ * repo.json の本文を読む(入れ子だけ)。値は点の道の表。誤りは errors(読めた鍵は values に残す)。
+ * flat = 平らな形の鍵(一番上の点の入った鍵)。身元(repo_id・tier)は平らな形でも読む(過去の版の名前を読む所のため)
  * @param {string} text
- * @returns {{ values: Record<string, string | boolean>, errors: string[] }}
+ * @returns {{ values: Record<string, string | boolean>, errors: string[], flat: string[] }}
  */
 export function parseRepoJson(text) {
   let data;
   try {
     data = JSON.parse(text);
   } catch (error) {
-    return { values: {}, errors: [`JSON として読めない(${error instanceof Error ? error.message : String(error)})`] };
+    return { values: {}, errors: [`JSON として読めない(${error instanceof Error ? error.message : String(error)})`], flat: [] };
   }
-  if (!data || typeof data !== "object" || Array.isArray(data)) return { values: {}, errors: ["JSON のオブジェクトでない"] };
+  if (!isPlainObject(data)) return { values: {}, errors: ["JSON のオブジェクトでない"], flat: [] };
   /** @type {Record<string, string | boolean>} */
   const values = {};
   /** @type {string[]} */
   const errors = [];
-  for (const [key, value] of Object.entries(data)) {
-    if (!isKnownRepoKey(key)) {
-      errors.push(`知らない鍵 ${key}(使える鍵 = ${REPO_KEYS.join(" / ")} / agent.<種類>)`);
-      continue;
-    }
-    if (typeof value !== "string" && typeof value !== "boolean") {
-      errors.push(`${key} の値は文字列か真偽値だけ(入れ子・配列・数は使えない)`);
-      continue;
+  /** @type {string[]} */
+  const flat = [];
+  const put = (/** @type {string} */ key, /** @type {unknown} */ value) => {
+    if (!isScalar(value)) {
+      errors.push(`${key} の値は文字列か真偽値だけ(配列・数・それより深い組は使えない)`);
+      return;
     }
     if (key === VERCEL_PLAN_KEY && !VERCEL_PLAN_VALUES.includes(/** @type {string} */ (value))) {
       errors.push(`${key} の値は ${VERCEL_PLAN_VALUES.join(" | ")}(${JSON.stringify(value)})`);
-      continue;
+      return;
     }
-    values[key] = value;
+    if (!isKnownRepoKey(key)) {
+      errors.push(`知らない鍵 ${key}(使える鍵 = repo_id / tier / agent.<種類> / agent.entries.<種類> / vercel.plan)`);
+      return;
+    }
+    values[key] = /** @type {string | boolean} */ (value);
+  };
+  for (const [key, value] of Object.entries(/** @type {Record<string, unknown>} */ (data))) {
+    if (REPO_FIXED_KEYS.includes(key)) put(key, value);
+    else if (key.includes(".")) flat.push(key);
+    else if (REPO_GROUPS.includes(key)) {
+      if (!isPlainObject(value)) {
+        errors.push(`${key} は組(オブジェクト)`);
+        continue;
+      }
+      for (const [inner, v] of Object.entries(/** @type {Record<string, unknown>} */ (value))) {
+        if (key === "agent" && inner === AGENT_ENTRIES_GROUP) {
+          if (!isPlainObject(v)) {
+            errors.push(`${AGENT_KEY_PREFIX}${AGENT_ENTRIES_GROUP} は組(オブジェクト)`);
+            continue;
+          }
+          for (const [entry, command] of Object.entries(/** @type {Record<string, unknown>} */ (v))) put(`${AGENT_ENTRIES_PREFIX}${entry}`, command);
+        } else put(`${key}.${inner}`, v);
+      }
+    } else errors.push(`知らない鍵 ${key}(使える鍵 = repo_id / tier / agent.<種類> / agent.entries.<種類> / vercel.plan)`);
   }
-  return { values, errors };
+  if (flat.length > 0) errors.push(`${FLAT_FORM_HINT}(${flat.slice(0, 3).join(", ")}${flat.length > 3 ? " …" : ""})`);
+  return { values, errors, flat };
 }
 
 /**
@@ -127,8 +167,10 @@ export function parseRepoIdentity(text) {
  */
 export function forkIdOfTexts({ repoJson, projectMd }) {
   if (repoJson !== null && repoJson !== undefined) {
+    // 過去の版は平らな形のことがある: 身元だけを読む(平らな形の誤りは数えない)
     const { forkId, error, errors } = parseRepoIdentity(repoJson);
-    return { forkId, error: error ?? (errors.length ? errors.join(" / ") : null), source: "repo.json" };
+    const own = errors.filter((e) => !e.startsWith(FLAT_FORM_HINT));
+    return { forkId, error: error ?? (own.length ? own.join(" / ") : null), source: "repo.json" };
   }
   if (projectMd !== null && projectMd !== undefined) {
     const { forkId, error } = parseForkIdDeclaration(projectMd);
@@ -138,12 +180,24 @@ export function forkIdOfTexts({ repoJson, projectMd }) {
 }
 
 /**
- * 1 key 1 行の形で書く(リポの外の sh も grep で読める)
+ * 入れ子の形で書く(1 鍵 1 行、組の中は鍵の名の順、agent の entries は組の最後)。values = 点の道の表
+ * 並び: repo_id → tier → agent → vercel(身元 → 組の名の順)
  * @param {Record<string, string | boolean>} values
  */
 export const formatRepoJson = (values) => {
-  const order = [...REPO_KEYS.filter((k) => k in values), ...Object.keys(values).filter((k) => !REPO_KEYS.includes(k)).sort()];
-  return `{\n${order.map((k) => `  ${JSON.stringify(k)}: ${JSON.stringify(values[k])}`).join(",\n")}\n}\n`;
+  const line = (/** @type {string} */ indent, /** @type {string} */ key, /** @type {unknown} */ value) => `${indent}${JSON.stringify(key)}: ${JSON.stringify(value)}`;
+  /** @type {string[]} */
+  const top = REPO_FIXED_KEYS.filter((k) => k in values).map((k) => line("  ", k, values[k]));
+  const agentKeys = Object.keys(values).filter((k) => k.startsWith(AGENT_KEY_PREFIX) && !k.startsWith(AGENT_ENTRIES_PREFIX)).sort();
+  const entryKeys = Object.keys(values).filter((k) => k.startsWith(AGENT_ENTRIES_PREFIX)).sort();
+  if (agentKeys.length > 0 || entryKeys.length > 0) {
+    const inner = agentKeys.map((k) => line("    ", k.slice(AGENT_KEY_PREFIX.length), values[k]));
+    if (entryKeys.length > 0) inner.push(`    "${AGENT_ENTRIES_GROUP}": {\n${entryKeys.map((k) => line("      ", k.slice(AGENT_ENTRIES_PREFIX.length), values[k])).join(",\n")}\n    }`);
+    top.push(`  "agent": {\n${inner.join(",\n")}\n  }`);
+  }
+  const vercelKeys = Object.keys(values).filter((k) => k.startsWith("vercel.")).sort();
+  if (vercelKeys.length > 0) top.push(`  "vercel": {\n${vercelKeys.map((k) => line("    ", k.slice("vercel.".length), values[k])).join(",\n")}\n  }`);
+  return `{\n${top.join(",\n")}\n}\n`;
 };
 
 /**

@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 
 import { adaptClaude, classifyBash, decide, hasShellSymbols, localOrigin, toClaudeOutput } from "./lib.grant.mjs";
 import { KIND_NAMES, POLICY_KEYS, loadPolicy } from "./lib.kinds.mjs";
+import { formatRepoJson } from "../../../src/lib/forkOwnership/node.mjs";
 
 const TOOL_DIR = path.dirname(fileURLToPath(import.meta.url));
 const HOOK = path.join(TOOL_DIR, "hook.mjs");
@@ -348,7 +349,7 @@ test("hook.mjs: allow・何もなし・壊れた方針、ブラウザの記録",
   const dir = mkdtempSync(path.join(os.tmpdir(), "devcheck-grant-"));
   try {
     // 書いていない鍵は manual(D265): この試しの方針は peer と browser を auto に書く
-    writeFileSync(path.join(dir, "repo.json"), JSON.stringify({ repo_id: "x", tier: "leaf", "agent.peer": "auto", "agent.browser": "auto" }));
+    writeFileSync(path.join(dir, "repo.json"), formatRepoJson({ repo_id: "x", tier: "leaf", "agent.peer": "auto", "agent.browser": "auto" }));
     const env = { CLAUDE_PROJECT_DIR: dir };
     const input = (tool_name, tool_input) => JSON.stringify({ tool_name, tool_input, cwd: dir });
     const out = (r) => (r.stdout ? JSON.parse(r.stdout).hookSpecificOutput.permissionDecision : "none");
@@ -377,7 +378,7 @@ test("hook.mjs: 方針はプロジェクトの repo.json の agent.*。壊れた
   try {
     const run = (command) =>
       spawnSync(process.execPath, [HOOK], { input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }), encoding: "utf8", env: { PATH: process.env.PATH, CLAUDE_PROJECT_DIR: dir, DEVCHECK_GRANT: "on" } });
-    const repo = (extra) => writeFileSync(path.join(dir, "repo.json"), JSON.stringify({ repo_id: "x", tier: "leaf", ...extra }));
+    const repo = (extra) => writeFileSync(path.join(dir, "repo.json"), formatRepoJson({ repo_id: "x", tier: "leaf", ...extra }));
     // repo.json が無い = 既定(全部 manual、D265): 印の道では何も返さない
     assert.equal(run("pnpm workflow peer who").stdout, "");
     assert.equal(run("pnpm db:push").stdout, "");
@@ -443,7 +444,7 @@ test("文脈の上書き(v=2 の auto=): manual の通常の種類だけ auto �
 test("hook.mjs: 文脈の上書き(v=2 の auto=)で manual の peer が印の道で通る。上書きが無い・v=1 なら通らない", () => {
   const dir = mkdtempSync(path.join(os.tmpdir(), "devcheck-ctx-"));
   try {
-    writeFileSync(path.join(dir, "repo.json"), JSON.stringify({ "agent.peer": "manual" }));
+    writeFileSync(path.join(dir, "repo.json"), formatRepoJson({ "agent.peer": "manual" }));
     const ctx = path.join(dir, "ctx");
     const env = { CLAUDE_PROJECT_DIR: dir, DEVCHECK_GRANT: "on", DEVCHECK_CONTEXT: ctx };
     const input = (tool_name, tool_input) => JSON.stringify({ tool_name, tool_input, cwd: dir });

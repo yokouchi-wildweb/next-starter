@@ -77,7 +77,7 @@ test("apply: D154 の列を書き、behavior.md は親の版のまま、.env は
   assert.match(git(fork, "remote", "get-url", "upstream"), /parent-/);
   assert.equal(git(fork, "remote", "get-url", "origin"), ANSWERS.origin);
   const repoJson = JSON.parse(read(fork, "repo.json"));
-  assert.deepEqual([repoJson.repo_id, repoJson.tier, repoJson["agent.db_push"]], ["acme-shop", "leaf", "off"]);
+  assert.deepEqual([repoJson.repo_id, repoJson.tier, repoJson.agent?.db_push], ["acme-shop", "leaf", "off"]);
   assert.match(read(fork, ".notices/applied/acme-shop.md"), new RegExp(`upstream:${git(fork, "rev-parse", "upstream/main")} \\| notes:fork start`));
   assert.match(read(fork, "src/lib/CATALOG.md"), /## next-starter\n- src\/lib\/crud — CRUD\n\n## acme-shop\n$/);
   assert.equal(JSON.parse(read(fork, "package.json")).name, "acme-shop");

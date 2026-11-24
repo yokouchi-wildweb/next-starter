@@ -17,7 +17,7 @@ test("readVercelPlan: 鍵・repo.json が無い = null、値を読む、知ら�
   const dir = mkdtempSync(join(tmpdir(), "vercel-plan-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   assert.deepEqual(readVercelPlan(dir), { plan: null, error: null });
-  const write = (values: Record<string, string>) => writeFileSync(join(dir, "repo.json"), JSON.stringify({ repo_id: "a", tier: "leaf", ...values }));
+  const write = (values: Record<string, string>) => writeFileSync(join(dir, "repo.json"), JSON.stringify({ repo_id: "a", tier: "leaf", ...(values["vercel.plan"] ? { vercel: { plan: values["vercel.plan"] } } : {}) }));
   write({});
   assert.deepEqual(readVercelPlan(dir), { plan: null, error: null });
   write({ "vercel.plan": "pro" });

@@ -145,7 +145,7 @@ export function confirmProduction(flags: Pick<GuardFlags, "confirm">, io: GuardI
     throw new GuardError(`${what}: 本番(production)に向いています。方針(repo.json の ${key})が読めません(${error instanceof Error ? error.message : String(error)})。何もしていません`);
   }
   if (gate.policy !== "manual") {
-    throw new GuardError(`${what}: 本番(production)に向いています。非対話の本番は ${key} が off なので通しません(人が端末で打つ。任せるなら /repo-policy で manual に)。何もしていません`);
+    throw new GuardError(`${what}: 本番(production)に向いています。非対話の本番は ${key} が off なので通しません(人が端末で打つ。任せるなら /repo-config で manual に)。何もしていません`);
   }
   if (!gate.permitted) {
     throw new GuardError(

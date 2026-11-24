@@ -12,16 +12,16 @@ never: run `pnpm workflow devcheck allow` without those words | permit a kind th
 ## STEPS
 1. **switches**: from the args (`/allow dbp dw`), or map the user's words to switch names (`開発の DB に反映していい` → dbp, `デプロイしていい` → dep, `テスト用の行を入れていい` → dw, `あのタブに打ち込んでいい` → itv) | unsure which kind the words mean → ask once; STOP
 2. **permit**: `pnpm workflow devcheck allow <switch…>` (with words: add `--words "<the user's words as typed>"`)
-   - exit 0 → go on | exit 4 → show its lines (off = the one line: the human's command and `/repo-policy`; auto = no permit needed) and stop for those kinds | exit 2 → show it; STOP
+   - exit 0 → go on | exit 4 → show its lines (off = the one line: the human's command and `/repo-config`; auto = no permit needed) and stop for those kinds | exit 2 → show it; STOP
    - the permit lives until it is used or until the user's next message: do the work in this same turn
 3. **run once**, per permitted switch:
    - dangerous (dbp / evp / dep): `pnpm workflow devcheck danger <switch>` → run the printed command(s) exactly, in that order (dep: the production DB push line only when this change needs the schema on production) | exit 4 → show its line; stop for that kind
    - normal manual kinds: the check it was for, `pnpm workflow devcheck run <kind> … --manual-go`
    - itv: the typing it was for, through /intervene (`pnpm workflow agent-terminal type <target> -- <text>`; it uses the permit itself)
-   - evp with agent.env_production.entry `-` (the default; danger says no upstream entry): the Vercel env work it was for, through /vercel (`pnpm ops vercel env-add|env-rm|env-pull …`; it uses the permit itself)
+   - evp with agent.entries.env_production `-` (the default; danger says no upstream entry): the Vercel env work it was for, through /vercel (`pnpm ops vercel env-add|env-rm|env-pull …`; it uses the permit itself)
 4. **report** once, then STOP:
    ```
    1 回分の許可: <スイッチ名>（<言葉 | /allow>）
    - <種類>: 成功 | 失敗: <理由 1 行>
    ```
-   - a failure: never try another way; say what the user can do (run it by hand, fix the cause, or `/repo-policy`)
+   - a failure: never try another way; say what the user can do (run it by hand, fix the cause, or `/repo-config`)

@@ -6,7 +6,7 @@ import path from "node:path";
 import { after, test } from "node:test";
 
 import { PERMIT_FILE, clearPermit, consumePermit, readPermit, runAllow, runDanger, writePermit } from "./lib.allow.mjs";
-import { DANGER_NAMES, SWITCHES, agentPolicyOf, offLine, policyKeyOf, switchOf } from "./lib.kinds.mjs";
+import { DANGER_NAMES, SWITCHES, agentPolicyOf, entryKeyOf, offLine, policyKeyOf, switchOf } from "./lib.kinds.mjs";
 
 const made = [];
 after(() => made.forEach((d) => rmSync(d, { recursive: true, force: true })));
@@ -15,7 +15,7 @@ const tmp = () => {
   made.push(d);
   return d;
 };
-const KINDS_API = { SWITCHES, DANGER_NAMES, offLine, policyKeyOf };
+const KINDS_API = { SWITCHES, DANGER_NAMES, offLine, policyKeyOf, entryKeyOf };
 
 test("スイッチ名: 種類ごとに 1 つ、危険な 3 つは dbp・evp・dep、打ち込みは itv", () => {
   assert.deepEqual(Object.keys(SWITCHES), ["sv", "br", "lg", "dw", "dd", "ea", "pr", "dbp", "evp", "dep", "itv"]);
@@ -50,7 +50,7 @@ test("allow: manual だけ書く。off は人に頼む 1 行、auto は要らな
   assert.deepEqual(readPermit(root).switches, ["dbp", "dw"]);
   const off = runAllow(tmp(), ["ea"], "", agent, KINDS_API);
   assert.equal(off.code, 4);
-  assert.match(off.lines[0], /env-add は方針で off: 人が打つなら .+、任せるなら \/repo-policy で agent\.env_add を manual に/);
+  assert.match(off.lines[0], /env-add は方針で off: 人が打つなら .+、任せるなら \/repo-config で agent\.env_add を manual に/);
   const offDanger = runAllow(tmp(), ["dep"], "", agent, KINDS_API);
   assert.match(offDanger.lines[0], /deploy は方針で off: 人が打つなら pnpm live\(本番の DB の反映が要るなら先に pnpm db:push -- --env production\)/);
   const auto = runAllow(tmp(), ["pr"], "", agent, KINDS_API);

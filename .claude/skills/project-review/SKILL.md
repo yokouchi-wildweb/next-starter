@@ -22,7 +22,7 @@ judging: the table below decides mechanically | never change a decision by "look
 4. ONE BY ONE: one line per message, (k/N) (template below) | STOP: the user's choice before the next
 5. WRITE (only what was approved):
    - edit the line in place, move it to its destination file, or drop it | a moved line is written at the destination first, then removed here
-   - A4: show the `/repo-policy` change for the kind the line names and run /repo-policy's steps (its own yes) before dropping the line
+   - A4: show the `/repo-config` change for the kind the line names and run /repo-config's steps (its own yes) before dropping the line
    - /order: show the draft (`/order <owner>`: CLAUDE.md, core or a Tier1 card → next-starter; a middle tier's section → that repo), file it after approval, then add `(order: <id>)` to the line
    - then `pnpm workflow context facts` again: every approved row is gone or carries its new mark
 6. REPORT: counts per destination (before / after), files changed (uncommitted), /order filed with ids, rows left as they are | STOP
@@ -31,7 +31,7 @@ judging: the table below decides mechanically | never change a decision by "look
 - A1 dead refs: refs n/n with n ≥ 1 all gone, none a relative path of another repo → fix the path (show the new one) or drop the line
 - A2 restates the wider rules: `same` names CLAUDE.md, a core file or a card → drop (never restate core)
 - A3 shipped order: mark `order:<id>:done` → drop the provisional line (its order shipped; the wider rules now hold it)
-- A4 permission by hand: words has `perm`, the line is not a pointer to repo.json / /repo-policy / devcheck → move it to repo.json agent.* through /repo-policy, drop the line
+- A4 permission by hand: words has `perm`, the line is not a pointer to repo.json / /repo-config / devcheck → move it to repo.json agent.* through /repo-config, drop the line
 - J1 same key as a wider rule, no mark (`base` ≥ 1, mark -) → the wider rule already wins, so the line does nothing or misleads | options: drop | mark `(priority)` (this repo means to differ) | /order <owner> (the wider rule is wrong) | rename the key (a different meaning) | recommend drop when the text agrees with the wider rule
 - J2 marked against a wider rule (mark priority, `base` ≥ 1) → options: /order <owner> then add `(order: <id>)` (recommended) | keep marked | drop the mark
 - J3 unknown order: mark `order:<id>:unknown` → options: fix the id | drop the line

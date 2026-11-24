@@ -8,12 +8,12 @@
 
 import { runDanger } from "./lib.allow.mjs";
 import { checkoutRoot, invocationDir } from "../dev-tab/lib";
-import { DANGER_NAMES, SWITCHES, offLine, policyKeyOf, readAgentPolicy } from "./lib.kinds.mjs";
+import { DANGER_NAMES, SWITCHES, entryKeyOf, offLine, policyKeyOf, readAgentPolicy } from "./lib.kinds.mjs";
 import { runAction } from "./lib.facts";
 
 runAction(async (args) => {
   const root = checkoutRoot(invocationDir());
-  const result = runDanger(root, args[0] ?? "", await readAgentPolicy(root), { SWITCHES, DANGER_NAMES, offLine, policyKeyOf });
+  const result = runDanger(root, args[0] ?? "", await readAgentPolicy(root), { SWITCHES, DANGER_NAMES, offLine, policyKeyOf, entryKeyOf });
   for (const line of result.lines) console.log(line);
   return result.code;
 });

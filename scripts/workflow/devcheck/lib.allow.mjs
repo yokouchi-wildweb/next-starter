@@ -95,14 +95,14 @@ export const runAllow = (root, switches, words, agent, kinds, now = new Date()) 
  * 0 = 打ってよい命令を出した / 2 = 危険な種類のスイッチ名でない / 4 = off(人に頼む 1 行)・許可が無い・上流の入口なし
  * @param {string} root @param {string} sw
  * @param {{ policy: Record<string, string>, entries: Record<string, Record<string, string>> }} agent
- * @param {{ SWITCHES: Record<string, string>, DANGER_NAMES: string[], offLine: (kind: string, entries: object) => string, policyKeyOf: (kind: string) => string }} kinds
+ * @param {{ SWITCHES: Record<string, string>, DANGER_NAMES: string[], offLine: (kind: string, entries: object) => string, policyKeyOf: (kind: string) => string, entryKeyOf: (kind: string, entry: string) => string }} kinds
  */
 export const runDanger = (root, sw, agent, kinds) => {
   const kind = kinds.SWITCHES[sw];
   if (!kind || !kinds.DANGER_NAMES.includes(kind)) return { code: 2, lines: [`危険な種類のスイッチ名は ${kinds.DANGER_NAMES.map((k) => Object.keys(kinds.SWITCHES).find((s) => kinds.SWITCHES[s] === k)).join(" / ")}`] };
   if (agent.policy[kind] !== "manual") return { code: 4, lines: [kinds.offLine(kind, agent.entries)] };
   const entry = agent.entries[kind] ?? {};
-  if (entry.entry === "-") return { code: 4, lines: [`${kind}: 上流の入口なし(人が手で行う。fork は ${kinds.policyKeyOf(kind)}.entry に自分の命令を書く)`] };
+  if (entry.entry === "-") return { code: 4, lines: [`${kind}: 上流の入口なし(人が手で行う。fork は ${kinds.entryKeyOf(kind, "entry")} に自分の命令を書く)`] };
   const permit = readPermit(root);
   if (!permit?.switches.includes(sw)) return { code: 4, lines: [`${kind} は方針で manual: 人の /allow ${sw}(か言葉の許可)が要る。許可の後にもう一度`] };
   // 本番は入口の守りが方針とこの許可を読んで 1 回通す(--confirm=production は付けない。D420)

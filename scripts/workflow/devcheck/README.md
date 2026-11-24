@@ -49,7 +49,7 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 
 ### 方針(policy)
 
-置き場はリポ直下の `repo.json` の `agent.*` の鍵(平らな 1 鍵 1 行、読み手は `src/lib/forkOwnership/forkIds.mjs`)。どのリポも自分の版を持つ。種類と既定値は上流のコード(`lib.kinds.mjs`)。書くのは `pnpm workflow repo-json set <鍵> <値>` か `/repo-policy`(直接の書き換えは許可のフックが止める)。
+置き場はリポ直下の `repo.json` の組 `agent`(入れ子、1 鍵 1 行、呼び方は点の道 `agent.<種類>`・`agent.entries.<種類>`。読み手は `src/lib/forkOwnership/forkIds.mjs`)。どのリポも自分の版を持つ。種類と既定値は上流のコード(`lib.kinds.mjs`)。書くのは `pnpm workflow repo-json set <鍵> <値>` か `/repo-config`(直接の書き換えは許可のフックが止める)。
 
 | 鍵 | 値 | 既定 |
 |---|---|---|
@@ -57,14 +57,14 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 | `agent.peer`(許可のフックだけの種類、計画の候補に出ない: `pnpm workflow peer`) | 同じ | `manual` |
 | `agent.enabled`(全体のスイッチ) | `true` / `false` | `true` |
 | `agent.db_push`(開発の DB の反映だけ)・`agent.env_production`(本番の env を書く)・`agent.deploy`(本番へ出す、本番の DB の反映を含む) | `off` / `manual`(`auto`・知らない値は `off`) | `manual` |
-| `agent.db_push.entry` | 入口の命令 | `pnpm db:push` |
-| `agent.env_production.entry` | 同じ(`-` = 上流の入口なし、fork が自分の命令を書く。Vercel の env は入口に数えず `pnpm ops vercel env-*` が自分で方針と evp の許可を読む: `scripts/operations/vercel/README.md`) | `-` |
-| `agent.deploy.entry` / `agent.deploy.db_entry` | 本番へ出す命令 / 本番の DB の反映の命令 | `pnpm live` / `pnpm db:push -- --env production` |
+| `agent.entries.db_push` | 入口の命令 | `pnpm db:push` |
+| `agent.entries.env_production` | 同じ(`-` = 上流の入口なし、fork が自分の命令を書く。Vercel の env は入口に数えず `pnpm ops vercel env-*` が自分で方針と evp の許可を読む: `scripts/operations/vercel/README.md`) | `-` |
+| `agent.entries.deploy` / `agent.entries.deploy_db` | 本番へ出す命令 / 本番の DB の反映の命令 | `pnpm live` / `pnpm db:push -- --env production` |
 | `agent.intervene`(別のタブの入力欄に 1 行打つ: `/intervene`・`pnpm workflow agent-terminal type`、D411) | `off` / `manual`(`auto`・知らない値は `off`) | `manual` |
 
-- 書いていない鍵は全部 `manual`(危険な 3 つ・`agent.intervene` も): 方針を書いていない fork では、確かめも人の 1 回分の許可の後にだけ走る。自動にしたい種類は `/repo-policy`(か `pnpm workflow repo-json set agent.<種類> auto`)で書く。next-starter 自身は自動にできる種類を全部 `auto`、危険な 3 つを `manual` と書いている(`repo.json`)
+- 書いていない鍵は全部 `manual`(危険な 3 つ・`agent.intervene` も): 方針を書いていない fork では、確かめも人の 1 回分の許可の後にだけ走る。自動にしたい種類は `/repo-config`(か `pnpm workflow repo-json set agent.<種類> auto`)で書く。next-starter 自身は自動にできる種類を全部 `auto`、危険な 3 つを `manual` と書いている(`repo.json`)
 
-- `auto` = go 1 回の中で実行 | `manual` = 人の 1 回分の許可(`/allow <スイッチ名>` か言葉)の後に 1 回だけ実行 | `off` = 実行せず人に頼む 1 行(「人が打つなら <コマンド>、任せるなら /repo-policy で <鍵> を manual に」。人が言ってもやらない。計画で「手で」、run は exit 4)
+- `auto` = go 1 回の中で実行 | `manual` = 人の 1 回分の許可(`/allow <スイッチ名>` か言葉)の後に 1 回だけ実行 | `off` = 実行せず人に頼む 1 行(「人が打つなら <コマンド>、任せるなら /repo-config で <鍵> を manual に」。人が言ってもやらない。計画で「手で」、run は exit 4)
 - スイッチ名(打つための呼び名、`lib.kinds.mjs` の `SWITCHES`): `sv` server・`br` browser・`lg` login・`dw` db-write・`dd` db-delete・`ea` env-add・`pr` peer・`dbp` db_push・`evp` env_production・`dep` deploy・`itv` intervene
 - `agent.intervene` の許可(`itv`)を使うのは `pnpm workflow agent-terminal type` 自身(宛先が 1 つに決まった時に 1 回分を消す)。許可のフックの 1 回分の許可の道と `devcheck danger` には入らない
 
@@ -76,12 +76,12 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 4. 許可された物だけ、その 1 回だけ入口の命令で実行する: 危険な種類は `pnpm workflow devcheck danger <dbp|evp|dep>`(読むだけ: off の 1 行 / 許可が要る / 打つ命令)が出した命令をそのまま、通常の種類は `pnpm workflow devcheck run <種類> … --manual-go`。結果を 1 行で報告する(成功 / 失敗: <理由>。失敗したら別の形で試さない)
 - 記録の寿命: 使ったスイッチはそれを読む所が消す(危険な 3 つは入口、通常の種類は許可のフック)/ 次の人の入力で全部消える(UserPromptSubmit の `hook.mjs prompt`)= 同じ番の中だけ。直接の Edit / Write は `.claude/settings.json` の `permissions.deny`(D420)
 - 方針を manual にしても、人の言葉かはフックからは見えない(`devcheck allow` を誰が打ったかは分からない)。人の言葉が要る決まりは `/allow` スキルの文が守る。`devcheck allow` はフックが通さない(印があっても普段どおり聞かれる)
-- 危険な 3 つの入口: `agent.db_push.entry`(既定 `pnpm db:push`、開発の DB だけ。止めない、D420 (3))/ `agent.deploy.db_entry`(本番の DB の反映)→ `agent.deploy.entry`(既定 `pnpm live`)/ `agent.env_production.entry`(既定 `-`、Vercel の env は `pnpm ops vercel env-*`)。本番は入口の守り(`scripts/runner/guard`)が方針とこの許可を読んで通し、許可はデプロイの入口(`pnpm live` ほか)が消す(本番の DB の反映は読むだけ。`--confirm=production` は付けない。端末の人だけの省略)。フックは危険な 3 つの命令を照らさない
+- 危険な 3 つの入口: `agent.entries.db_push`(既定 `pnpm db:push`、開発の DB だけ。止めない、D420 (3))/ `agent.entries.deploy_db`(本番の DB の反映)→ `agent.entries.deploy`(既定 `pnpm live`)/ `agent.entries.env_production`(既定 `-`、Vercel の env は `pnpm ops vercel env-*`)。本番は入口の守り(`scripts/runner/guard`)が方針とこの許可を読んで通し、許可はデプロイの入口(`pnpm live` ほか)が消す(本番の DB の反映は読むだけ。`--confirm=production` は付けない。端末の人だけの省略)。フックは危険な 3 つの命令を照らさない
 - 結果は 1 行だけ返す(チームの道具への「DB 済み」の印は無い)
 - `agent.enabled: false` = 全部の種類(peer・危険な 3 つも)を `off` とみなす(種類ごとの値より強い)。計画は全部「手で」、run は断り、許可のフックは印の道で何も通さない(入口の守りは off として拒む)
 - 宣言に無い `agent.*` の鍵・通常の種類の値の誤り・真偽値でない `agent.enabled`・空の入口は止める(exit 2、フックは壊れた方針として何も返さない)。`repo.json` が無い = 全部既定
 - 危険な 3 つの値と入口: 計画の 方針 の行と `devcheck danger` が読み、本番は入口の守りが読む(`off` は拒否、`manual` は 1 回分の許可)
-- 一度の命令: `db_push` は開発の DB だけ。本番の DB の反映は `deploy` の `db_entry` で扱う
+- 一度の命令: `db_push` は開発の DB だけ。本番の DB の反映は `agent.entries.deploy_db` で扱う
 
 ### fork の項目
 

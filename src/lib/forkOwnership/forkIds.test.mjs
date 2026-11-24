@@ -100,23 +100,37 @@ test("readForkIdentity: tier の欠落 = leaf、知らない値・root と CATAL
   assert.match(tier1Leaf.downstreamError ?? "", /Tier1 は root/);
 });
 
-test("repo.json の形: 平らな鍵・文字列か真偽値だけ・知っている鍵だけ、1 鍵 1 行で書く", () => {
-  assert.deepEqual(parseRepoJson('{"repo_id":"a","tier":"leaf","agent.server":"auto","agent.enabled":false}'), {
-    values: { repo_id: "a", tier: "leaf", "agent.server": "auto", "agent.enabled": false },
+test("repo.json の形: 入れ子(一番上 = repo_id・tier、組 agent(entries は中の組)・vercel)を点の道の表で返し、入れ子の 1 鍵 1 行で書く", () => {
+  const nested = '{"repo_id":"a","tier":"leaf","agent":{"server":"auto","enabled":false,"entries":{"deploy":"pnpm live"}},"vercel":{"plan":"pro"}}';
+  assert.deepEqual(parseRepoJson(nested), {
+    values: { repo_id: "a", tier: "leaf", "agent.server": "auto", "agent.enabled": false, "agent.entries.deploy": "pnpm live", "vercel.plan": "pro" },
     errors: [],
+    flat: [],
   });
   assert.match(parseRepoJson('{"repo_id":"a","x":1}').errors.join(), /知らない鍵 x/);
-  assert.match(parseRepoJson('{"repo_id":"a","agent.server":{"v":1}}').errors.join(), /文字列か真偽値だけ/);
-  assert.match(parseRepoJson('{"repo_id":"a","agent.list":["a"]}').errors.join(), /文字列か真偽値だけ/);
+  assert.match(parseRepoJson('{"repo_id":"a","agent":{"server":{"v":1}}}').errors.join(), /文字列か真偽値だけ/);
+  assert.match(parseRepoJson('{"repo_id":"a","agent":{"list":["a"]}}').errors.join(), /文字列か真偽値だけ/);
+  assert.match(parseRepoJson('{"repo_id":"a","agent":"x"}').errors.join(), /agent は組/);
+  assert.match(parseRepoJson('{"repo_id":"a","vercel":{"region":"x"}}').errors.join(), /知らない鍵 vercel\.region/);
   assert.match(parseRepoJson('{"repo_id":"a","tier":3}').errors.join(), /文字列か真偽値だけ/);
   assert.match(parseRepoJson("[1]").errors.join(), /オブジェクトでない/);
   assert.match(parseRepoJson("{nope").errors.join(), /JSON として読めない/);
+  // 平らな形 = 移し替えの命令を案内して止める(身元は読む)
+  const flat = parseRepoJson('{"repo_id":"a","tier":"leaf","agent.server":"auto","vercel.plan":"pro"}');
+  assert.deepEqual(flat.values, { repo_id: "a", tier: "leaf" });
+  assert.deepEqual(flat.flat, ["agent.server", "vercel.plan"]);
+  assert.match(flat.errors.join(), /pnpm workflow repo-json migrate/);
   assert.match(parseRepoIdentity('{"tier":"leaf"}').error ?? "", /repo_id が無い/);
   assert.match(parseRepoIdentity('{"repo_id":"Bad_Name"}').error ?? "", /使えない形/);
-  assert.equal(formatRepoJson({ "agent.b": true, tier: "leaf", repo_id: "x", "agent.a": "off" }), '{\n  "repo_id": "x",\n  "tier": "leaf",\n  "agent.a": "off",\n  "agent.b": true\n}\n');
-  // repo.json が読めない・無い = errors
+  assert.equal(
+    formatRepoJson({ "agent.b": true, "vercel.plan": "pro", tier: "leaf", "agent.entries.deploy": "pnpm live", repo_id: "x", "agent.a": "off" }),
+    '{\n  "repo_id": "x",\n  "tier": "leaf",\n  "agent": {\n    "a": "off",\n    "b": true,\n    "entries": {\n      "deploy": "pnpm live"\n    }\n  },\n  "vercel": {\n    "plan": "pro"\n  }\n}\n',
+  );
+  assert.equal(formatRepoJson({ tier: "leaf", repo_id: "x" }), '{\n  "repo_id": "x",\n  "tier": "leaf"\n}\n');
+  // repo.json が読めない・無い・平らな形 = errors
   assert.match(readForkIdentity(repo({ raw: "{bad", sections: ["next-starter"] })).errors.join(), /JSON として読めない/);
   assert.match(readForkIdentity(repo({ sections: ["next-starter"] })).errors.join(), /repo\.json が無い/);
+  assert.match(readForkIdentity(repo({ raw: '{"repo_id":"next-starter","tier":"root","agent.server":"auto"}', sections: ["next-starter"] })).errors.join(), /repo-json migrate/);
 });
 
 test("forkIdOfTexts: 過去の版は repo.json を先に、無ければ古い形の project.md", () => {
@@ -124,4 +138,6 @@ test("forkIdOfTexts: 過去の版は repo.json を先に、無ければ古い形
   assert.deepEqual(forkIdOfTexts({ repoJson: null, projectMd: "## TIER\nfork_id: old\n" }), { forkId: "old", error: null, source: "project.md" });
   assert.match(forkIdOfTexts({ repoJson: null, projectMd: null }).error ?? "", /どちらも|も無い/);
   assert.equal(forkIdOfTexts({ repoJson: '{"tier":"leaf"}', projectMd: "fork_id: old\n" }).forkId, null);
+  // 過去の版の平らな形も名前は読む(平らな形の誤りは数えない)
+  assert.deepEqual(forkIdOfTexts({ repoJson: '{"repo_id":"mid","agent.server":"auto"}', projectMd: null }), { forkId: "mid", error: null, source: "repo.json" });
 });

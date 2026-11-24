@@ -107,7 +107,7 @@ export async function prepareVercel(action, args, { print = console.log, cwd = p
       return { code: 2 };
     }
     if (agent.policy[KIND] !== "manual") {
-      print(`vercel: 呼んでいません — ${KIND} は方針で off: ${human}、任せるなら /repo-policy で ${policyKeyOf(KIND)} を manual に`);
+      print(`vercel: 呼んでいません — ${KIND} は方針で off: ${human}、任せるなら /repo-config で ${policyKeyOf(KIND)} を manual に`);
       return { code: 4 };
     }
     if (!readPermit(root)?.switches.includes(sw)) {

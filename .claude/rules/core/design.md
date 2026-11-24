@@ -79,7 +79,8 @@ map (every core file, loaded by its paths):
 - an ancestor's file is never edited, deleted or renamed below (ownership check) → /order <direct parent>; add your own business in another file | size ≤ 40,000 chars | not src/business (= business identity values)
 
 ## self_files (each repo keeps its own version, or the parent's as is)
-- project.md: this repo's overview + tier-only info (Tier1: the maker's duty and stance) | behavior.md: work rules | shortcuts.md: keyword shortcuts (a whole message that is one keyword runs it) | repo.json: machine values (repo_id, tier, agent policy, vercel.plan), flat keys one per line, written only through its command, read only via forkIds.mjs
+- project.md: this repo's overview + tier-only info (Tier1: the maker's duty and stance) | behavior.md: work rules | shortcuts.md: keyword shortcuts (a whole message that is one keyword runs it)
+  - repo.json: machine values, nested (repo_id and tier at the top, groups agent with its entries, and vercel), one key per line, keys named by dot paths (agent.server, agent.entries.deploy, vercel.plan) | written only through its command, read only via forkIds.mjs | the flat form → pnpm workflow repo-json migrate
 - take-in of every self file → core/change.md 5 self
 - root code configs (next.config.ts, eslint.config.mjs, playwright.config.ts): required | import the core body \<tool\>.config.core.\<ext\> (core, Tier1 only) and add / wrap / drop; playwright may skip it | Tier1's version only re-exports the core | a middle tier puts its part in its own lib's function and calls it, no per-tier file
   - kept by checks, not by reading order: eslint → pnpm check eslint (required rules), next → pnpm check next-config (the resolved config's promises) | playwright has no check

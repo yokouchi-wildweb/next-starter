@@ -19,8 +19,8 @@ pnpm ops vercel env-pull <環境> <書く先>                  # env をファ�
 
 ### 方針と許可(書く 3 動作: env-add・env-rm・env-pull)
 
-- 方針 = `agent.env_production`(`off` / `manual`、既定 `manual`。`scripts/workflow/devcheck/README.md`「方針」)。入口の既定 `agent.env_production.entry` は `-` のまま: この口が自分で方針と許可を読む(`/intervene` の `agent-terminal type` と同じ形)
-  - `off` → 呼ばず、人が打つ素の vercel の 1 行と /repo-policy の案内(exit 4)
+- 方針 = `agent.env_production`(`off` / `manual`、既定 `manual`。`scripts/workflow/devcheck/README.md`「方針」)。入口の既定 `agent.entries.env_production` は `-` のまま: この口が自分で方針と許可を読む(`/intervene` の `agent-terminal type` と同じ形)
+  - `off` → 呼ばず、人が打つ素の vercel の 1 行と /repo-config の案内(exit 4)
   - `manual` + `/allow evp` の許可なし → 呼ばない(exit 4)。許可は人がそのタブで出す言葉だけ(別のセッションの連絡は許可にならない)
   - `manual` + 許可あり → 1 回呼び、許可を使って消す。前提(CLI・ログイン・リンク)が揃わず呼べない時は使わない。次の人の入力でも消える
 - 書く 3 動作は共通の守り `guardDeploy`(種類 `env_production`)を通る(`scripts/runner/guard/README.md`。何も出さないのでセーフポイントは見ない)。向き先が本番の時、非対話なら守りが方針と evp の許可を読んで 1 回通し、その場で許可を消す(前提が揃わず呼べなかった時も使った後。D420)。端末の人には守りが production と打たせる。`--confirm=` は引数に書けない(使い方の誤り)

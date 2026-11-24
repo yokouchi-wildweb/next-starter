@@ -56,11 +56,12 @@ test("migrate: downstream が無い・読めない = 止める(何も書かな�
   assert.throws(() => migrate(repo({})), /project\.md が無い/);
 });
 
-test("set: 読み手の決まりで確かめて 1 鍵 1 行で書く。ほかの鍵は残す。誤りは書かない", () => {
+test("set: 点の道の鍵を読み手の決まりで確かめて入れ子の 1 鍵 1 行で書く。ほかの鍵は残す。誤りは書かない", () => {
   const root = repo({ repoJson: '{"tier":"leaf","repo_id":"shop"}' });
   setValue(root, "agent.server", "manual");
   setValue(root, "agent.enabled", "false");
-  assert.equal(read(root, "repo.json"), '{\n  "repo_id": "shop",\n  "tier": "leaf",\n  "agent.enabled": false,\n  "agent.server": "manual"\n}\n');
+  setValue(root, "agent.entries.deploy", "pnpm deploy:vercel");
+  assert.equal(read(root, "repo.json"), '{\n  "repo_id": "shop",\n  "tier": "leaf",\n  "agent": {\n    "enabled": false,\n    "server": "manual",\n    "entries": {\n      "deploy": "pnpm deploy:vercel"\n    }\n  }\n}\n');
   const before = read(root, "repo.json");
   assert.throws(() => setValue(root, "tier", "big"), /使えない値/);
   assert.throws(() => setValue(root, "repo_id", "Bad"), /使えない形/);
@@ -76,9 +77,9 @@ test("set: 読み手の決まりで確かめて 1 鍵 1 行で書く。ほかの
 });
 
 test("unset: 1 つの鍵を消して同じ形で書き直す。無い鍵は何もしない。repo_id・tier・知らない鍵は書かない", () => {
-  const root = repo({ repoJson: '{"repo_id":"shop","tier":"leaf","agent.test":"auto","agent.server":"manual"}' });
-  assert.equal(unsetValue(root, "agent.test").removed, true);
-  assert.equal(read(root, "repo.json"), '{\n  "repo_id": "shop",\n  "tier": "leaf",\n  "agent.server": "manual"\n}\n');
+  const root = repo({ repoJson: '{"repo_id":"shop","tier":"leaf","agent":{"peer":"auto","server":"manual"}}' });
+  assert.equal(unsetValue(root, "agent.peer").removed, true);
+  assert.equal(read(root, "repo.json"), '{\n  "repo_id": "shop",\n  "tier": "leaf",\n  "agent": {\n    "server": "manual"\n  }\n}\n');
   const before = read(root, "repo.json");
   assert.equal(unsetValue(root, "agent.check").removed, false);
   assert.throws(() => unsetValue(root, "tier"), /消せない/);
@@ -87,13 +88,33 @@ test("unset: 1 つの鍵を消して同じ形で書き直す。無い鍵は何�
   assert.equal(read(root, "repo.json"), before);
 });
 
-test("vercel.plan: hobby | pro だけ書ける(tier の後に並ぶ)、unset で消せる", () => {
-  const root = repo({ repoJson: '{"repo_id":"shop","tier":"leaf","agent.server":"manual"}' });
+test("vercel.plan: hobby | pro だけ書ける(組 vercel、agent の後に並ぶ)、unset で消せる", () => {
+  const root = repo({ repoJson: '{"repo_id":"shop","tier":"leaf","agent":{"server":"manual"}}' });
   setValue(root, "vercel.plan", "pro");
-  assert.equal(read(root, "repo.json"), '{\n  "repo_id": "shop",\n  "tier": "leaf",\n  "vercel.plan": "pro",\n  "agent.server": "manual"\n}\n');
+  assert.equal(read(root, "repo.json"), '{\n  "repo_id": "shop",\n  "tier": "leaf",\n  "agent": {\n    "server": "manual"\n  },\n  "vercel": {\n    "plan": "pro"\n  }\n}\n');
   assert.throws(() => setValue(root, "vercel.plan", "enterprise"), /vercel\.plan の値は hobby \| pro/);
   assert.equal(unsetValue(root, "vercel.plan").removed, true);
   assert.deepEqual(readValues(root), { repo_id: "shop", tier: "leaf", "agent.server": "manual" });
+});
+
+test("migrate: 平らな repo.json を入れ子へ(入口の鍵の改名、agent.check・agent.test を落とす)、知らない鍵は止める、2 回目は何も書かない", () => {
+  const root = repo({ repoJson: '{"repo_id":"shop","tier":"leaf","vercel.plan":"pro","agent.server":"auto","agent.check":"auto","agent.test":"manual","agent.deploy.entry":"pnpm live:x","agent.deploy.db_entry":"-","agent.db_push.entry":"pnpm db:push"}\n' });
+  const r = migrate(root);
+  assert.deepEqual(r.dropped, ["agent.check", "agent.test"]);
+  assert.deepEqual(r.renamed, ["agent.deploy.entry → agent.entries.deploy", "agent.deploy.db_entry → agent.entries.deploy_db", "agent.db_push.entry → agent.entries.db_push"]);
+  assert.equal(r.wrote, true);
+  assert.deepEqual(readValues(root), { repo_id: "shop", tier: "leaf", "vercel.plan": "pro", "agent.server": "auto", "agent.entries.deploy": "pnpm live:x", "agent.entries.deploy_db": "-", "agent.entries.db_push": "pnpm db:push" });
+  assert.deepEqual(readForkIdentity(root).errors, []);
+  const after = read(root, "repo.json");
+  assert.equal(migrate(root).wrote, false);
+  assert.equal(read(root, "repo.json"), after);
+  const unknown = repo({ repoJson: '{"repo_id":"shop","tier":"leaf","agent.server":"auto","color.x":"red"}\n' });
+  const before = read(unknown, "repo.json");
+  assert.throws(() => migrate(unknown), /知らない鍵 color\.x/);
+  assert.equal(read(unknown, "repo.json"), before);
+  // 平らな形は set も止める(移してから)
+  const flat = repo({ repoJson: '{"repo_id":"shop","tier":"leaf","agent.server":"auto"}' });
+  assert.throws(() => setValue(flat, "agent.peer", "auto"), /repo-json migrate/);
 });
 
 test("命令: show は誤りで exit 2、get は値、set の誤りは exit 2(1 行)", () => {

@@ -87,12 +87,12 @@ test("方針の入口: 危険な 3 つの入口の既定(db_push = pnpm db:push�
     env_production: { entry: "-" },
     deploy: { entry: "pnpm live", db_entry: "pnpm db:push -- --env production" },
   });
-  writeFileSync(path.join(dir, "repo.json"), '{"repo_id": "x", "agent.deploy": "manual", "agent.deploy.entry": "pnpm deploy:vercel"}\n');
+  writeFileSync(path.join(dir, "repo.json"), '{"repo_id": "x", "agent": {"deploy": "manual", "entries": {"deploy": "pnpm deploy:vercel"}}}\n');
   const custom = await readAgentPolicy(dir);
   assert.equal(custom.policy.deploy, "manual");
   assert.equal(custom.entries.deploy.entry, "pnpm deploy:vercel");
-  writeFileSync(path.join(dir, "repo.json"), '{"repo_id": "x", "agent.deploy.entry": ""}\n');
-  await assert.rejects(readAgentPolicy(dir), /agent\.deploy\.entry は命令の文字列/);
+  writeFileSync(path.join(dir, "repo.json"), '{"repo_id": "x", "agent": {"entries": {"deploy": ""}}}\n');
+  await assert.rejects(readAgentPolicy(dir), /agent\.entries\.deploy は命令の文字列/);
   writeFileSync(path.join(dir, "repo.json"), "{nope");
   await assert.rejects(loadPolicy(dir), /repo\.json: JSON として読めない/);
   // このリポの repo.json = 自分の方針(自動にできる種類は全部 auto、危険な 3 つは manual、D265)
@@ -101,7 +101,8 @@ test("方針の入口: 危険な 3 つの入口の既定(db_push = pnpm db:push�
   for (const d of DANGER_NAMES) assert.equal(own[d], "manual", d);
   assert.equal(own.intervene, "manual");
   assert.ok(declaredAgentKeys().includes("agent.intervene"));
-  assert.ok(declaredAgentKeys().includes("agent.deploy.db_entry"));
+  assert.ok(declaredAgentKeys().includes("agent.entries.deploy_db"));
+  assert.ok(declaredAgentKeys().includes("agent.entries.db_push"));
   assert.equal(policyKeyOf("db-write"), "agent.db_write");
 });
 
@@ -182,7 +183,7 @@ test("方針の全体のスイッチ agent.enabled(D103): false = 全部の種�
   assert.match(policyRefusal(allOff.server, true, "server") ?? "", /方針で off/);
   assert.match(formatPlan(plan), /危険: db_push=off env_production=off deploy=off/);
   const dir = temp("devcheck-policy-switch-");
-  writeFileSync(path.join(dir, "repo.json"), '{"repo_id": "x", "agent.enabled": false}\n');
+  writeFileSync(path.join(dir, "repo.json"), '{"repo_id": "x", "agent": {"enabled": false}}\n');
   assert.equal((await loadPolicy(dir)).peer, "off");
 });
 

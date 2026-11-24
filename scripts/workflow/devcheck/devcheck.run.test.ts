@@ -59,7 +59,7 @@ test("方針: off は打たずに断る(exit 4・手で)、manual は --manual-g
   const off = fake({ policy: { ...ALL_AUTO, login: "off" } });
   assert.equal((await execRun(["login"], off)).code, 4);
   assert.deepEqual(off.typed, []);
-  assert.match(off.lines[0], /方針で off: 人が打つなら .+、任せるなら \/repo-policy で agent\.\S+ を manual に/);
+  assert.match(off.lines[0], /方針で off: 人が打つなら .+、任せるなら \/repo-config で agent\.\S+ を manual に/);
   const manual = fake({ policy: { ...ALL_AUTO, login: "manual" } });
   assert.equal((await execRun(["login"], manual)).code, 4);
   assert.equal((await execRun(["login", "--manual-go"], manual)).code, 0);

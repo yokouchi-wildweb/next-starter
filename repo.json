@@ -1,15 +1,19 @@
 {
   "repo_id": "next-starter",
   "tier": "root",
-  "vercel.plan": "pro",
-  "agent.browser": "auto",
-  "agent.db_delete": "auto",
-  "agent.db_push": "manual",
-  "agent.db_write": "auto",
-  "agent.deploy": "manual",
-  "agent.env_add": "auto",
-  "agent.env_production": "manual",
-  "agent.login": "auto",
-  "agent.peer": "auto",
-  "agent.server": "auto"
+  "agent": {
+    "browser": "auto",
+    "db_delete": "auto",
+    "db_push": "manual",
+    "db_write": "auto",
+    "deploy": "manual",
+    "env_add": "auto",
+    "env_production": "manual",
+    "login": "auto",
+    "peer": "auto",
+    "server": "auto"
+  },
+  "vercel": {
+    "plan": "pro"
+  }
 }
