@@ -4,7 +4,7 @@
 
 - `src/app/admin/layout.tsx`・`admin/(protected)/layout.tsx` が描く管理画面の枠(ヘッダー・サイドバー・フッター)と、Screen が使うページ枠部品(AdminPage)を置く場所。import は別名なしの `@/app/admin/_layout/<X>`・`@/app/admin/(protected)/_layout/<X>`。
 - 部品は、それを描く layout のそばの `_layout/` に置く。admin 全体(login・setup も)で共有する物は共通の祖先 `admin/_layout/` に置く。
-- 範囲の方針は `admin/(protected)/guard.ts`(管理者カテゴリ、管理者 0 人なら `/admin/setup`)。layout は `await guard()` の後、管理の門番の値(`GateProvider`・`AdminCommandGateBridge`)で包んで `./_layout` の枠を素の import で描く(1 行スイッチではない)。`_layout/` の部品は枠を描くだけ。
+- 範囲の方針は `admin/(protected)/guard.ts`(管理者カテゴリ、管理者 0 人なら `/admin/setup`)。layout は待たずに `<Guard fallback={<loading />}>` を描き、その内側(守りを通った後)で管理の門番の値(`GateProvider`・`AdminCommandGateBridge`)で包んで `./_layout` の枠を素の import で描く(1 行スイッチではない)。`_layout/` の部品は枠を描くだけ。
 - 管理の画面部品(ListTop・SearchBox・SortSelect・SecTitle・SelectFilter・ItemNavigator。features の画面部品から使われる)は `src/components/Admin/`。ダッシュボードだけが使う DeveloperMotivationChart は `src/domains/core/admin/dashboard/components/parts/` にある
 
 ## Usage

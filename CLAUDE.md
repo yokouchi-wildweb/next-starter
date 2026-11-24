@@ -167,7 +167,7 @@ principal: handlers use ctx.user only | access = public | authenticated | {roles
 
 ## ROLES & PAGE_GUARD
 roles: core roles (admin, user, debugger) cannot be deleted or disabled by a fork | added roles = *.role.json → pnpm forge | a fork changes values only in \<json name\>.override.ts | an unused added role → enabled:false | ref: items/domains/user.md
-page_guard: range policy = guard.ts beside the layout (child narrows only), layout = `await guard()` | ranges: admin/(protected) | (user)/(protected) | debug/ | every page loader = nearest guard.ts createLoader({ access, … }) | never re-implement guards | → core/screens.md range
+page_guard: range policy = guard.ts beside the layout (child narrows only), layout = `<Guard fallback={<loading />}>` around its content (never awaits the guard), a shared segment in the range has a loading.tsx | ranges: admin/(protected) | (user)/(protected) | debug/ | every page loader = nearest guard.ts createLoader({ access, … }) | never re-implement guards | → core/screens.md range
 
 ## SCREENS (page layer that downstream replaces without editing core)
 before adding or replacing a page, frame layout, Screen or loader → read src/lib/screens/README.md

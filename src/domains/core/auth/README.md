@@ -160,12 +160,12 @@ return response;
 ### ページの認可(proxy → 範囲の guard.ts → loader の access)
 
 ```
-proxy (redirectProxy)  →  範囲の guard.ts(layout が guard() の 1 行)  →  _screen/loader.ts(createLoader の access)
+proxy (redirectProxy)  →  範囲の guard.ts(layout の Guard の境界)    →  _screen/loader.ts(createLoader の access)
 URL ルール              ロール + ステータス + 行き先(親子 AND)          ページの access を評価してから取得、主体は getUser()
 ```
 
 1. proxy(`src/proxies/redirect.ts`): 点 proxyRedirects の規則(`<ドメイン>/plugs/proxyRedirects/<名前>.ts`、サインアップモードの規則は user の `plugs/proxyRedirects/signupMode.ts`)で先にリダイレクト。セッションの判定は `resolveSessionUser`
-2. 範囲の guard.ts(layout の隣。root は `src/app/guard.ts`): 方針(access・allowStatuses・redirectTo・forbiddenRedirectTo・returnBack・statusRedirects・setupRedirectTo)を字面で書き、layout は `await guard()` の 1 行と `export const generateMetadata = guardMetadata(...)`(断られた訪問者にページの題名を出さない)。子は最寄りの親の `extend` で作る(親子 AND、狭めるだけ)
+2. 範囲の guard.ts(layout の隣。root は `src/app/guard.ts`): 方針(access・allowStatuses・redirectTo・forbiddenRedirectTo・returnBack・statusRedirects・setupRedirectTo)を字面で書き、layout は待たずに中身を `<Guard fallback={<その範囲の loading />}>` で包み(守りは境界の内側で確かめる)、`export const generateMetadata = guardMetadata(...)`(断られた訪問者にページの題名を出さない)。子は最寄りの親の `extend` で作る(親子 AND、狭めるだけ)
    - 上流の範囲: `(user)/(protected)`(利用者・管理者カテゴリ、`/login`、status 別の行き先)/ `admin/(protected)`(管理者カテゴリ、`/admin/login`、管理者 0 人なら `/admin/setup`)/ その `users`(admin ロール、`/admin`)/ `debug`(管理者カテゴリ + debugger、`/login`)
    - setup への誘導の判定は auth の `hasUserForAccess(access)`(範囲の access を満たしうる利用者が 1 人以上いるか、真偽値だけ)を wiring が作り手に渡す。guard.ts には行き先の値だけ
 3. loader: 最寄りの guard.ts の `createLoader({ access, key?, load })`。範囲の方針とページの access を取得前に評価し、主体は `load({ getUser })` の `await getUser()`(DB 同期、呼んだ時に解きリクエスト内 1 回。範囲の全段とページが public の鎖は呼ばなければセッションを読まない)。本人の列が要るなら `requireUserRecord(await getUser(), "/login")`(user のサービス)

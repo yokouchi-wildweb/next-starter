@@ -1030,8 +1030,8 @@ export const GUARD_POLICY_KEYS = ["access", "allowStatuses", "redirectTo", "forb
  */
 export function parseGuardFile(source) {
   const src = stripComments(source);
-  const exportsAll = /export\s+const\s*\{\s*guard\s*,\s*createLoader\s*,\s*guardMetadata\s*,\s*extend\s*\}\s*=/.test(src);
-  const problems = exportsAll ? [] : ["guard.ts は `export const { guard, createLoader, guardMetadata, extend } = …` の形にする"];
+  const exportsAll = /export\s+const\s*\{\s*Guard\s*,\s*createLoader\s*,\s*guardMetadata\s*,\s*extend\s*\}\s*=/.test(src);
+  const problems = exportsAll ? [] : ["guard.ts は `export const { Guard, createLoader, guardMetadata, extend } = …` の形にする"];
   const root = namedImportSource(src, "defineRootGuard");
   let parentImport = null;
   let callee;
@@ -1058,14 +1058,24 @@ export function parseGuardFile(source) {
 }
 
 /**
- * layout(か 1 行スイッチ先)が `guard()` を呼んでいるか(`./guard` から import して await)
+ * layout(か 1 行スイッチ先)が範囲の守りの境界 `<Guard fallback={…}>` を描いているか(`./guard` から import)。
+ * 守りは layout の頭で待たず境界の内側で確かめる(D76)
  * @param {string} source
  * @returns {boolean}
  */
-export function layoutCallsGuard(source) {
+export function layoutRendersGuard(source) {
   const src = stripComments(source);
-  const imp = namedImportSource(src, "guard");
-  return Boolean(imp && imp.source === "./guard" && /\bawait\s+guard\s*\(\s*\)/.test(src));
+  const imp = namedImportSource(src, "Guard");
+  return Boolean(imp && imp.source === "./guard" && /<Guard\b[^>]*\bfallback\s*=/.test(src));
+}
+
+/**
+ * layout(か 1 行スイッチ先)が範囲の守りを layout の頭で待っているか(`await guard()`)。境界の外で要求を待つので止める(D76)
+ * @param {string} source
+ * @returns {boolean}
+ */
+export function layoutAwaitsGuard(source) {
+  return /\bawait\s+guard\s*\(\s*\)/.test(stripComments(source));
 }
 
 /**
@@ -1080,4 +1090,31 @@ export function layoutGuardsMetadata(source) {
   const exported = /export\s+const\s+generateMetadata\s*=\s*guardMetadata\s*\(/.test(src);
   const staticMetadata = /export\s+const\s+metadata\b/.test(src);
   return Boolean(imp && imp.source === "./guard" && exported && !staticMetadata);
+}
+
+/**
+ * 2 つのページの間の client の遷移に共有される段(フォルダ)を求める: その段のページ + 下のページ、または別々の子の段の下の
+ * ページ 2 つ以上を持つ段。共有される段は遷移で再描画されないので、下のページの loader が要求を待つ境界は
+ * その段の loading.tsx が要る(D76。Next の instant の検証は境界の外で待つ遷移を知らせる)
+ * @param {string[]} pageDirs ページのフォルダ(repo 相対、`_` のフォルダを除いた木。routeTree の route.dir)
+ * @returns {string[]} 共有される段のフォルダ(並びは名前順)
+ */
+export function sharedNavigationSegments(pageDirs) {
+  const pages = new Set(pageDirs);
+  /** @type {Map<string, Set<string>>} */
+  const childrenWithPages = new Map();
+  for (const dir of pages) {
+    const parts = dir.split("/");
+    for (let i = 1; i < parts.length; i += 1) {
+      const ancestor = parts.slice(0, i).join("/");
+      const child = parts[i];
+      if (!childrenWithPages.has(ancestor)) childrenWithPages.set(ancestor, new Set());
+      childrenWithPages.get(ancestor)?.add(child);
+    }
+  }
+  const shared = [];
+  for (const [dir, children] of childrenWithPages) {
+    if ((pages.has(dir) ? 1 : 0) + children.size >= 2) shared.push(dir);
+  }
+  return shared.sort();
 }

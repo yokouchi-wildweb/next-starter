@@ -8,7 +8,9 @@ import {
   barrelTarget,
   checkAdminPageScreen,
   checkScreenLoaderCall,
-  layoutCallsGuard,
+  layoutAwaitsGuard,
+  layoutRendersGuard,
+  sharedNavigationSegments,
   layoutGuardsMetadata,
   parseGuardFile,
   parseLoaderGuard,
@@ -149,7 +151,7 @@ function checkLayout(layoutFile, fileSet, read) {
     const code = stripComments(src);
     for (const name of LEGACY_GUARD_CALLS) {
       if (new RegExp(`\\b${name}\\s*\\(`).test(code)) {
-        problems.push(`${file}: layout が旧方式のガード ${name}() を直接呼んでいる(範囲の守りは隣の guard.ts の guard() の 1 行)`);
+        problems.push(`${file}: layout が旧方式のガード ${name}() を直接呼んでいる(範囲の守りは隣の guard.ts の Guard の境界)`);
       }
     }
   }
@@ -157,8 +159,13 @@ function checkLayout(layoutFile, fileSet, read) {
   if (fileSet.has(guardFile)) {
     const { policy } = parseGuardFile(read(guardFile));
     const needsCall = policy && policy.access !== "public";
-    if (needsCall && !sources.some(([, src]) => layoutCallsGuard(src))) {
-      problems.push(`${layoutFile}: 隣の guard.ts があるのに guard() を呼んでいない(await guard() の 1 行)`);
+    if (needsCall && !sources.some(([, src]) => layoutRendersGuard(src))) {
+      problems.push(`${layoutFile}: 隣の guard.ts があるのに守りの境界を描いていない(<Guard fallback={<その範囲の loading />}>{children}</Guard>)`);
+    }
+    for (const [file, src] of sources) {
+      if (layoutAwaitsGuard(src)) {
+        problems.push(`${file}: 範囲の守りを layout の頭で待っている(await guard() は境界の外で要求を待つ。<Guard fallback={…}> の内側で確かめる)`);
+      }
     }
     if (needsCall && !sources.some(([, src]) => layoutGuardsMetadata(src))) {
       problems.push(
@@ -250,7 +257,33 @@ export function buildRouteMap({ files, read, gateRules = [] }) {
       chain,
     });
   }
+  problems.push(...checkGuardedSegmentLoading(routes.map((route) => route.dir), fileSet, read));
   return { rows, problems: [...new Set(problems)] };
+}
+
+/**
+ * 守りの範囲(最寄りの guard.ts が public でない)の段のうち、遷移に共有される段が loading.tsx を持つか(D76)。
+ * 共有される段は遷移で再描画されないので、下のページの loader の守りはその段の境界の内側で待つ
+ * @param {string[]} pageDirs
+ * @param {Set<string>} fileSet
+ * @param {ReadFile} read
+ * @returns {string[]}
+ */
+function checkGuardedSegmentLoading(pageDirs, fileSet, read) {
+  const problems = [];
+  for (const dir of sharedNavigationSegments(pageDirs)) {
+    if (!dir.startsWith(`${APP_DIR}/`)) continue;
+    const guardFile = findNearestGuard(dir, fileSet);
+    if (!guardFile) continue;
+    const { policy } = parseGuardFile(read(guardFile));
+    if (!policy || policy.access === "public") continue;
+    if (!fileSet.has(`${dir}/loading.tsx`)) {
+      problems.push(
+        `${dir}: 守りの範囲で遷移に共有される段に loading.tsx が無い(下のページの loader が境界の外で守りを待つ。文字なしの ScreenLoader の loading.tsx を置く)`,
+      );
+    }
+  }
+  return problems;
 }
 
 /**

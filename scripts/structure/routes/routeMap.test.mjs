@@ -58,16 +58,16 @@ export const ${name} = createLoader({
 const ROOT_GUARD = `import "server-only";
 import { defineRootGuard } from "@/wiring/pageGuard";
 
-export const { guard, createLoader, guardMetadata, extend } = defineRootGuard({ access: "public" });`;
+export const { Guard, createLoader, guardMetadata, extend } = defineRootGuard({ access: "public" });`;
 const childGuard = (parentPath, policy) => `import "server-only";
 import { extend as extendParent } from "${parentPath}";
 
-export const { guard, createLoader, guardMetadata, extend } = extendParent(${policy});`;
-const GUARD_LAYOUT = `import { guard, guardMetadata } from "./guard";
+export const { Guard, createLoader, guardMetadata, extend } = extendParent(${policy});`;
+const GUARD_LAYOUT = `import { Guard, guardMetadata } from "./guard";
+import Loading from "./loading";
 export const generateMetadata = guardMetadata({ robots: { index: false, follow: false } });
-export default async function L({ children }) {
-  await guard();
-  return <>{children}</>;
+export default function L({ children }) {
+  return <Guard fallback={<Loading />}>{children}</Guard>;
 }`;
 
 /** /x(root の public)と /admin/y(admin 範囲)のページを持つ正常な木 */
@@ -233,20 +233,30 @@ test("buildRouteMap: 字面で読めない access・方針・extend の親は生
   assert.ok(parent.problems.some((p) => p.includes("extend の親")));
 });
 
-test("buildRouteMap: guard.ts の範囲の layout が guard() を呼ばない・旧ガードを直接呼ぶと生成失敗", () => {
+test("buildRouteMap: guard.ts の範囲の layout が守りの境界を描かない・頭で await guard()・旧ガードを直接呼ぶと生成失敗", () => {
   const missing = buildRouteMap(
     healthyTree({ "src/app/admin/layout.tsx": `export default function L({ children }) { return children; }` }),
   );
-  assert.ok(missing.problems.some((p) => p.includes("guard() を呼んでいない")));
-  const legacy = buildRouteMap(
+  assert.ok(missing.problems.some((p) => p.includes("守りの境界を描いていない")));
+  const awaited = buildRouteMap(
     healthyTree({
-      "src/app/admin/layout.tsx": `import { guard, guardMetadata } from "./guard";
-import { authGuard } from "@/domains/core/auth/services/server/authorization";
+      "src/app/admin/layout.tsx": `import { Guard, guard, guardMetadata } from "./guard";
 export const generateMetadata = guardMetadata();
 export default async function L({ children }) {
   await guard();
+  return <Guard fallback={null}>{children}</Guard>;
+}`,
+    }),
+  );
+  assert.ok(awaited.problems.some((p) => p.includes("layout の頭で待っている")));
+  const legacy = buildRouteMap(
+    healthyTree({
+      "src/app/admin/layout.tsx": `import { Guard, guardMetadata } from "./guard";
+import { authGuard } from "@/domains/core/auth/services/server/authorization";
+export const generateMetadata = guardMetadata();
+export default async function L({ children }) {
   await ${"authGuard"}({ allowRoles: ["admin"] });
-  return children;
+  return <Guard fallback={null}>{children}</Guard>;
 }`,
     }),
   );
@@ -256,28 +266,59 @@ export default async function L({ children }) {
 test("buildRouteMap: guard.ts の範囲の layout が metadata を守りの後で出さない(guardMetadata 無し・静的な metadata)と生成失敗", () => {
   const noGuardMetadata = buildRouteMap(
     healthyTree({
-      "src/app/admin/layout.tsx": `import { guard } from "./guard";
+      "src/app/admin/layout.tsx": `import { Guard } from "./guard";
 export const metadata = { title: "管理" };
-export default async function L({ children }) {
-  await guard();
-  return children;
+export default function L({ children }) {
+  return <Guard fallback={null}>{children}</Guard>;
 }`,
     }),
   );
   assert.ok(noGuardMetadata.problems.some((p) => p.includes("metadata を守りの後で出していない")));
   const both = buildRouteMap(
     healthyTree({
-      "src/app/admin/layout.tsx": `import { guard, guardMetadata } from "./guard";
+      "src/app/admin/layout.tsx": `import { Guard, guardMetadata } from "./guard";
 export const generateMetadata = guardMetadata();
 export const metadata = { robots: { index: false } };
-export default async function L({ children }) {
-  await guard();
-  return children;
+export default function L({ children }) {
+  return <Guard fallback={null}>{children}</Guard>;
 }`,
     }),
   );
   assert.ok(both.problems.some((p) => p.includes("metadata を守りの後で出していない")));
   assert.deepEqual(buildRouteMap(healthyTree()).problems, []);
+});
+
+test("buildRouteMap: 守りの範囲で遷移に共有される段(段のページ + 下のページ / 別々の子の下のページ 2 つ)に loading.tsx が無いと生成失敗、公開の範囲は求めない", () => {
+  const adminPage = (dir, name) => ({
+    [`${dir}/page.tsx`]: page(name),
+    [`${dir}/_screen/${name}.tsx`]: adminScreen(name, `load${name}`),
+    [`${dir}/_screen/loader.ts`]: loader(`load${name}`, "@/app/admin/guard", `{ roles: ["admin"] }`),
+  });
+  const publicPage = (dir, name) => ({
+    [`${dir}/page.tsx`]: page(name),
+    [`${dir}/_screen/${name}.tsx`]: screen(name, `load${name}`),
+    [`${dir}/_screen/loader.ts`]: loader(`load${name}`, "@/app/guard", `"public"`),
+  });
+  const nested = {
+    ...adminPage("src/app/admin/y/new", "YNewScreen"),
+    ...adminPage("src/app/admin/z/a", "ZaScreen"),
+    ...adminPage("src/app/admin/z/b", "ZbScreen"),
+    ...publicPage("src/app/x/more", "XMoreScreen"),
+  };
+  const missing = buildRouteMap(healthyTree(nested)).problems.filter((p) => p.includes("loading.tsx が無い"));
+  assert.deepEqual(
+    missing.map((p) => p.split(":")[0]),
+    ["src/app/admin", "src/app/admin/y", "src/app/admin/z"],
+  );
+  const withLoading = buildRouteMap(
+    healthyTree({
+      ...nested,
+      "src/app/admin/loading.tsx": "export default function L() { return null; }",
+      "src/app/admin/y/loading.tsx": "export default function L() { return null; }",
+      "src/app/admin/z/loading.tsx": "export default function L() { return null; }",
+    }),
+  );
+  assert.deepEqual(withLoading.problems, []);
 });
 
 test("buildRouteMap: 無効な feature-gate の規則に当たるルートは gatedOff に最初のパターン(鎖は verified 必須)", () => {

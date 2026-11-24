@@ -96,9 +96,11 @@ export default function RootLayout({
         {/* Provider の入れ子は src/wiring/AppProviders.tsx(Tooltip → reCAPTCHA → 認証セッション → 管理コマンド → 画像ビューア) */}
         {/* 門番の client への受け渡し: 利用者の枠の値をここで計算して渡す(管理の枠は admin の守りの layout が包み直す) */}
         {/* Provider の入れ子は殻に入る(本体で request を読まない)。枠と本文(children)は request ごとに流し込む */}
-        <AppProviders gate={clientGateState("user")}>
-          <Suspense fallback={null}>{children}</Suspense>
-        </AppProviders>
+        {/* 境界は入れ子ごと包む: 認証セッションの読み(getSessionUser の promise、印がある時は connection() を待つ)を
+            境界の内側で始める(Next の文書の形: 要求を読む promise は境界の内側で作る)。入れ子は DOM を出さないので殻は同じ */}
+        <Suspense fallback={null}>
+          <AppProviders gate={clientGateState("user")}>{children}</AppProviders>
+        </Suspense>
         <Suspense fallback={null}>
           <RedirectToastProvider />
         </Suspense>

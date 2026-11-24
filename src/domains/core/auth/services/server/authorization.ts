@@ -1,7 +1,7 @@
 // src/domains/core/auth/services/server/authorization.ts
 //
 // ページの守り(lib/pageGuard)に auth が渡す部品。束は点 pageGuardUser の項目 ../../plugs/pageGuardUser/session.default.ts(結ぶのは生成物 src/wiring/pageGuard.ts)。
-// 旧来の authGuard・hasAdminUser は削除した(範囲の守りは guard.ts の guard()、主体は loader の文脈の getUser())。
+// 旧来の authGuard・hasAdminUser は削除した(範囲の守りは guard.ts の Guard、主体は loader の文脈の getUser())。
 
 import { headers } from "next/headers";
 

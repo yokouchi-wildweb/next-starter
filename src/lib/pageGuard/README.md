@@ -15,12 +15,14 @@ lib/pageGuard(汎用版: createPageGuard、結び目 wirePageGuard)
   ↑ 束: 点 pageGuardUser の項目(ちょうど 1 つ。上流は domains/core/auth の plugs/pageGuardUser/session.ts:
         利用者の解き方・access の評価・既定の status・今のパス・setup 誘導の判定 hasUserForAccess。fork は差替点 authPageGuardUser)
 生成物 src/wiring/pageGuard.ts → defineRootGuard(型引数 PageGuardUserMap で項目の利用者の型を運ぶ)
-src/app/guard.ts(root)= defineRootGuard({ access: "public" }) → { guard, createLoader, guardMetadata, extend }
-src/app/<範囲>/guard.ts(子)= 最寄りの親の extend({ ... }) → { guard, createLoader, guardMetadata, extend }
-src/app/<範囲>/layout.tsx = export const generateMetadata = guardMetadata(...) + await guard() の 1 行
+src/app/guard.ts(root)= defineRootGuard({ access: "public" }) → { Guard, createLoader, guardMetadata, extend }
+src/app/<範囲>/guard.ts(子)= 最寄りの親の extend({ ... }) → { Guard, createLoader, guardMetadata, extend }
+src/app/<範囲>/layout.tsx = export const generateMetadata = guardMetadata(...) + 待たずに <Guard fallback={<その範囲の loading />}>{children}</Guard>
 ```
 
-- guard.ts が export するのは `guard` / `createLoader` / `guardMetadata` / `extend` の 4 つ
+- guard.ts が export するのは `Guard` / `createLoader` / `guardMetadata` / `extend` の 4 つ
+- 範囲の layout は async にせず頭で守りを待たない。中身(枠・門番の包み直しを含む)は `<Guard fallback>` の内側に描く。fallback はその範囲の `loading.tsx`(文字なしの ScreenLoader。殻に入る)
+- 守りの範囲で、2 つのページの間の遷移に共有される段(段のページ + 下のページ、または別々の子の段の下のページ 2 つ以上)は `loading.tsx` を持つ(地図の検査 `src/lib/screens`。下のページの loader の守りはその段の境界の内側で待つ)
 
 ## API
 
@@ -36,10 +38,11 @@ src/app/<範囲>/layout.tsx = export const generateMetadata = guardMetadata(...)
 | `statusRedirects` | ロールは満たし status だけが通らないときの status 別の行き先(returnTo なし) |
 | `setupRedirectTo` | 範囲の access を満たす利用者が 1 人もいないときの行き先(初期セットアップの誘導) |
 
-### guard() と createLoader
+### Guard と createLoader
 
-- `guard()`: layout が 1 行で呼ぶ。範囲の全段を評価し、利用者は返さない(表示用の利用者は root の AuthSessionProvider → client の useAuthSession)
-- `guardMetadata(base?)`: 範囲の layout の `generateMetadata` を作る(`export const generateMetadata = guardMetadata({ robots: … })`)。guard() と同じ判定を先に通し、断られた訪問者には redirect / notFound を投げて metadata の解決ごと止める(Next は根からページへ順に解くので、配下のページの題名・説明は応答に出ない)。許された時は base を返す
+- `<Guard fallback={…}>{children}</Guard>`(props `GuardProps`: `fallback`・`children`): 範囲の layout が描く守りの境界。Suspense の内側の部品が範囲の全段を評価してから children を返す。断られた訪問者には redirect / notFound を中で投げ、children は描かない。利用者は返さない(表示用の利用者は root の AuthSessionProvider → client の useAuthSession)
+  - layout の頭で待たないので、client の遷移で範囲に入る時も守りの待ちは境界の内側(Next の instant の検証が境界の外の要求の待ちを知らせない)
+- `guardMetadata(base?)`: 範囲の layout の `generateMetadata` を作る(`export const generateMetadata = guardMetadata({ robots: … })`)。Guard と同じ判定を先に通し、断られた訪問者には redirect / notFound を投げて metadata の解決ごと止める(Next は根からページへ順に解くので、配下のページの題名・説明は応答に出ない)。許された時は base を返す
   - 断る時に metadata を返す形(投げない)は使わない: Next が配下のページの metadata を浅く重ね、題名が戻る
   - 断られた応答には robots も出ない。管理・デバッグの索引避けは proxy の飾り `domains/core/admin/plugs/proxyDecorators/noindex.ts` の `X-Robots-Tag`(/admin・/debug の全部の応答)
 - `createLoader({ access, allowStatuses?, key?, load?, shell? })`: 範囲の全段 → ページの `access` を単独で評価し、拒否なら `load` を呼ばない(layout と並列に描かれても取得は守られる)
@@ -55,7 +58,7 @@ src/app/<範囲>/layout.tsx = export const generateMetadata = guardMetadata(...)
 
 ## Internals
 
-- 範囲は方針の段の並び。`extend` は段を 1 つ足すだけで、guard() と loader は root から順に全段を評価する(親子 AND。子は狭めるだけで、親の拒否を子が覆せない)
+- 範囲は方針の段の並び。`extend` は段を 1 つ足すだけで、Guard と loader は root から順に全段を評価する(親子 AND。子は狭めるだけで、親の拒否を子が覆せない)
 - 遅らせる鎖: 範囲の全段とページの access が `public` で、どの段にも `setupRedirectTo` が無い loader は、範囲・ページの評価を先に回さない(public は誰でも通るので評価しても結果は同じ)。利用者は load が `getUser()`・`allows()` を呼んだ時だけ解く
   - 既定は load の前に `connection()`(next/server)を待つ = request 時に読む。build の事前の描画で DB・保管庫を読まず、古い値を殻に焼かない(データを読むページは殻に入らず、速さはキャッシュの標準で出す)
   - load の無い loader は何も待たずに返り、`shell: true` の load は待たずに走る: どちらも殻に入る

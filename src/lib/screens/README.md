@@ -31,7 +31,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 | page.tsx | `src/app/<route>/page.tsx` | 下流 | `export { XScreen as default } from "./_screen/XScreen";` の 1 行。書けるセグメント設定(`preferredRegion` / `maxDuration`)は page.tsx に書く。`dynamic`・`dynamicParams`・`fetchCache`・`revalidate`・`runtime` は書かない(cacheComponents と両立しない。lint `segment-config/cc-incompatible` が全 Tier error、page.tsx・layout.tsx の切り替えの形の検査でも違反。layout.tsx・route.ts も同じ)。`metadata` / `generateMetadata` は page.tsx に書くか Screen から re-export する |
 | 既定画面（page 層） | `src/app/<route>/_screen/<Name>Screen.tsx` | ルートを作った側 | 1 ルート 1 Screen。Server Component（`"use client"` 不可）。loader を await してセクションコンテナを描く。状態を持たない |
 | loader | `src/app/<route>/_screen/loader.ts` | ルートを作った側 | **契約**。最寄りの guard.ts の `createLoader` で作る page 入口（access の評価 → ドメインのサービスを呼んで組み立てる・redirect / notFound）。ルートの付属物なので Screen の隣に置く |
-| 範囲の方針 | `src/app/<range>/guard.ts`（layout.tsx の隣、root は `src/app/guard.ts`） | 範囲を作った側 | 配下の全ページに掛かる方針（親の `extend` で狭めるだけ）。layout は `await guard()` の 1 行（API の「範囲（guard.ts）と loader の書き方」） |
+| 範囲の方針 | `src/app/<range>/guard.ts`（layout.tsx の隣、root は `src/app/guard.ts`） | 範囲を作った側 | 配下の全ページに掛かる方針（親の `extend` で狭めるだけ）。layout は待たずに `<Guard fallback={<その範囲の loading />}>` で中身を包む（API の「範囲（guard.ts）と loader の書き方」） |
 | 既定 Screen 専用の部品 | `src/app/<route>/_screen/<Part>.tsx` または `_screen/<dir>/` | ルートを作った側 | 契約外。そのルートの既定 Screen だけが使う部品（例: `(user)/_screen/StarterHome/`、`(marketing)/entry/_screen/CampaignSection.tsx`、`maintenance/_screen/MaintenanceAutoRedirect.tsx`）。Screen からは相対 import。テストは Screen と `loader.ts` 以外を検査しない。複数ルートで使う部品はドメインの `components/` へ |
 | 下流の画面・page 専用部品 | `src/app/<route>/_components/` | 下流 | 下の「fork の物は `_components/`」。差し替え画面は `<Name>Screen.tsx` と命名する（部品の命名は自由。既存の部品を改名する必要はない） |
 | 管理画面の取得本体 | `src/domains/core/admin/services/server/screenData/` | 上流 | pnpm generate domain の管理画面が共有する取得の本体（service は外から受ける）。各ルートの `_screen/loader.ts` が `src/domains/core/admin/services/server/screenParts.ts` の共通部品の組を通して使う |
@@ -87,7 +87,7 @@ src/app/(user)/(protected)/points/
 ```
 
 画面の一覧へ手で足す登録は無い。`pnpm test scripts/structure/routes/screens.test.mjs` が page.tsx を自動検出し、スイッチ形であること・Screen が存在し Server Component であること・Screen が同じルートの loader を最上位で await すること・loader の規律を検査する。ルート地図（`src/app/route-map.jsonl`）は生成物なので、ページを足したら `pnpm generate routes` で書き直してコミットする（鎖（page → Screen → loader → 最寄りの guard.ts → root）を辿れないページは生成失敗。コミットした地図とのずれは `pnpm check routes` が出荷の門で止める。Internals の「ルート地図（`src/app/route-map.jsonl`）」）。
-新しい範囲（別の方針）が要るなら、その範囲の dir に子の guard.ts（最寄りの親の `extend`）と、`await guard()` の 1 行の layout.tsx を置く（API の「範囲（guard.ts）と loader の書き方」）。
+新しい範囲（別の方針）が要るなら、その範囲の dir に子の guard.ts（最寄りの親の `extend`）と、中身を `<Guard fallback={<その範囲の loading />}>` で包む layout.tsx と、その範囲の loading.tsx を置く（API の「範囲（guard.ts）と loader の書き方」）。
 
 #### 上流の画面を変えたい（例: `/wallet/[slug]`）
 
@@ -138,7 +138,7 @@ page.tsx を `_components/` に向けて上流の既定 Screen を使ってい�
 #### 注意
 
 - `mypage` 配下は layout が `UserPage` / `Stack` / `PageTransition` を巻く。Screen は fragment を返す
-- status / role の判定（suspended → `/restricted` 等）は範囲の guard.ts の方針（`statusRedirects` 等）が行い、guard() と全ての loader が同じ方針を評価する。範囲の外へページを移すなら、移した先の最寄りの guard.ts で loader を作り直す（地図が確かめる）
+- status / role の判定（suspended → `/restricted` 等）は範囲の guard.ts の方針（`statusRedirects` 等）が行い、範囲の Guard と全ての loader が同じ方針を評価する。範囲の外へページを移すなら、移した先の最寄りの guard.ts で loader を作り直す（地図が確かめる）
 
 ### コピーして動く例
 
@@ -220,12 +220,12 @@ import { BalanceCard } from "./BalanceCard";
 // src/app/guard.ts(root。全ページを覆う)
 import "server-only";
 import { defineRootGuard } from "@/wiring/pageGuard";
-export const { guard, createLoader, guardMetadata, extend } = defineRootGuard({ access: "public" });
+export const { Guard, createLoader, guardMetadata, extend } = defineRootGuard({ access: "public" });
 
 // src/app/(user)/(protected)/guard.ts(子。最寄りの親の extend で作る = 親子 AND、狭めるだけ)
 import "server-only";
 import { extend as extendRoot } from "@/app/guard";
-export const { guard, createLoader, guardMetadata, extend } = extendRoot({
+export const { Guard, createLoader, guardMetadata, extend } = extendRoot({
   access: { roleCategories: ["admin", "user"] },
   redirectTo: "/login",
   forbiddenRedirectTo: "/login",
@@ -234,9 +234,10 @@ export const { guard, createLoader, guardMetadata, extend } = extendRoot({
 });
 ```
 
-- 置き場は範囲の layout.tsx の隣。export は `guard` / `createLoader` / `guardMetadata` / `extend` の 4 つだけ（方針の値は外へ出さない）。方針は字面のオブジェクトで書く（ルート地図が読む。変数・スプレッドは生成失敗）
-- layout は `await guard()` の 1 行だけでセッションに触れる（利用者は返らない。表示用の利用者は client の `useAuthSession`）。public でない guard.ts の隣の layout が `guard()` を呼ばない、または layout が旧ガード（`authGuard` 等）を呼ぶと地図の生成が失敗する
-- public でない範囲の layout は metadata を `export const generateMetadata = guardMetadata({...})` で出す（静的な `export const metadata` は書かない）。守りを先に通して断られた訪問者の応答に配下のページの題名を出さないため（`src/lib/pageGuard/README.md`「guard() と createLoader」）。書かないと地図の生成が失敗する（`checks.mjs` の `layoutGuardsMetadata`）
+- 置き場は範囲の layout.tsx の隣。export は `Guard` / `createLoader` / `guardMetadata` / `extend` の 4 つだけ（方針の値は外へ出さない）。方針は字面のオブジェクトで書く（ルート地図が読む。変数・スプレッドは生成失敗）
+- layout は async にせず頭で守りを待たない。中身を `<Guard fallback={<その範囲の loading />}>{children}</Guard>` で包み、守りは境界（Suspense）の内側で確かめる（利用者は返らない。表示用の利用者は client の `useAuthSession`）。public でない guard.ts の隣の layout が `<Guard fallback>` を描かない・頭で `await guard()` する・旧ガード（`authGuard` 等）を呼ぶと地図の生成が失敗する
+- 守りの範囲で、2 つのページの間の遷移に共有される段（段のページ + 下のページ、または別々の子の段の下のページ 2 つ以上）は loading.tsx（文字なしの ScreenLoader）を持つ。共有される段は遷移で再描画されないので、下のページの loader の守りはその段の境界の内側で待つ。無いと地図の生成が失敗する（`checks.mjs` の `sharedNavigationSegments`）。pnpm generate domain の管理の一覧の段は loading.tsx を初回だけ書く
+- public でない範囲の layout は metadata を `export const generateMetadata = guardMetadata({...})` で出す（静的な `export const metadata` は書かない）。守りを先に通して断られた訪問者の応答に配下のページの題名を出さないため（`src/lib/pageGuard/README.md`「Guard と createLoader」）。書かないと地図の生成が失敗する（`checks.mjs` の `layoutGuardsMetadata`）
 - 上流の guard.ts は編集しない。fork が範囲を狭めたいときは、その下に子の guard.ts を置いて親の `extend` で作る（広げることはできない）
 
 #### loader
@@ -436,8 +437,8 @@ src/app/admin/(protected)/samples/
   - loader の `access` = `createLoader({ access })` の字面。管理画面の共通部品の組（`adminListParts("sample")` 等）は `{"registry":"sample.search"}`（serviceRegistry の entry から操作ごとに解く）。自前の load を書く loader も `access: <組>.access` なら同じ値に読む（同じファイルで 1 回だけ `const x = adminListParts("sample")` と束ねた `x.access`、またはインラインの `adminListParts("sample").access`
     - 組の関数は `@/domains/core/admin/services/server/screenParts` から import、domain は文字列の字面）。access を手書きの字面にすると domain の access が変わっても追随しないので、組を使う loader はこちらにする。`allowStatuses` は書いたときだけ（字面で読めない値は `{"expr":"USER_STATUSES"}`）
   - guard の `policy` = `defineRootGuard({…})` / 親の `extend({…})` の字面（`access`・`allowStatuses`・`redirectTo`・`forbiddenRedirectTo`・`returnBack`・`statusRedirects`・`setupRedirectTo` の順）
-- 生成失敗（`pnpm generate routes` が非 0、行と理由）: page.tsx から Screen を解決できない / Screen が同じルートの loader を import して本体の最上位（最初の `return` より前）で await しない（`pnpm test scripts/structure/routes/screens.test.mjs` も同じ解析で検査）/ loader が最寄りの guard.ts の `createLoader` を使わない / access・方針・extend の親が字面で読めない / guard.ts の範囲の layout（とスイッチ先）が `authGuard` 等の旧ガードを直接呼ぶ / public でない guard.ts の隣の layout が `guard()` を呼ばない
-- 解析は `checks.mjs`（`checkScreenLoaderCall`・`parseLoaderGuard`・`parseGuardFile`・`layoutCallsGuard`・`layoutGuardsMetadata`・`parseLiteral`）で、地図と `pnpm test scripts/structure/routes/screens.test.mjs` が共有する
+- 生成失敗（`pnpm generate routes` が非 0、行と理由）: page.tsx から Screen を解決できない / Screen が同じルートの loader を import して本体の最上位（最初の `return` より前）で await しない（`pnpm test scripts/structure/routes/screens.test.mjs` も同じ解析で検査）/ loader が最寄りの guard.ts の `createLoader` を使わない / access・方針・extend の親が字面で読めない / guard.ts の範囲の layout（とスイッチ先）が `authGuard` 等の旧ガードを直接呼ぶ / public でない guard.ts の隣の layout が `<Guard fallback>` を描かない・頭で `await guard()` する / 守りの範囲の遷移に共有される段に loading.tsx が無い
+- 解析は `checks.mjs`（`checkScreenLoaderCall`・`parseLoaderGuard`・`parseGuardFile`・`layoutRendersGuard`・`layoutAwaitsGuard`・`layoutGuardsMetadata`・`sharedNavigationSegments`・`parseLiteral`）で、地図と `pnpm test scripts/structure/routes/screens.test.mjs` が共有する
 - 既知の限界: 字面だけを読む。import の別名（`createLoader as x`）・変数に入れた方針・スプレッドは読めない（生成失敗になる）。組の access も上の 2 形だけ: 分割代入・別ファイルから import した組・let / var・名前の再宣言や再代入・`.access` の先まで辿る式は生成失敗（`pnpm test src/lib/screens/checks.test.mjs`）。Screen の `return` の後（JSX の中）の await は数えない
 - 地図は生成物: merge で衝突した時の解き方は `pnpm generate routes` での作り直し
 

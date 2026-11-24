@@ -12,7 +12,7 @@ import { resolveSessionUserOutcome, type SessionUserOutcome } from "./token";
  * 現在のリクエスト Cookie からセッションの利用者を DB で確かめた結果（障害を「利用者なし」と区別する）。
  *
  * React `cache()` でラップしているため、同一サーバーリクエスト内の重複呼び出しは
- * 1 回の DB 引きに圧縮される (例: AuthSessionProvider + guard.ts の guard() + 各ページの
+ * 1 回の DB 引きに圧縮される (例: AuthSessionProvider + guard.ts の Guard + 各ページの
  * getSessionUser + API の Factory が同居しても DB クエリは 1 回)。
  * getSessionUser と getSessionUserForRoute はこの 1 つの結果を共有する。
  */

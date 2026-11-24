@@ -2,12 +2,14 @@
 //
 // ページの守りの汎用版。束(利用者の解き方・access の評価・現在パス・前提の判定)を受けて root の範囲を作る。
 // 範囲は方針の段(root → 子 → 孫)の並びで、子は親の extend で 1 段足すだけ(全段を順に評価 = 親子 AND、子は狭めるだけ)。
-// 方針の値は外へ出さない(返すのは guard / createLoader / guardMetadata / extend の 4 つ)。
+// 方針の値は外へ出さない(返すのは Guard / createLoader / guardMetadata / extend の 4 つ)。
 
 import type { Metadata } from "next";
 import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
+
+import { createGuardBoundary } from "./guardBoundary";
 
 import type {
   LoaderKeyValue,
@@ -98,9 +100,8 @@ function buildGuard<TUser extends PageGuardUser>(
     return user;
   };
 
-  const guard = async (): Promise<void> => {
-    await enforceRange();
-  };
+  // 範囲の layout が描く境界: 守りを Suspense の内側で確かめてから children を返す(./guardBoundary.tsx)
+  const Guard = createGuardBoundary(enforceRange);
 
   // 遅らせる鎖: 範囲の全段とページが public で、前提の判定(setup 誘導)の無い鎖。範囲の評価を先に回さない(public は誰でも通る)。
   // 既定は load の前に connection() を待つ(request 時に読む。build の事前の描画で DB・保管庫を読まない、古い値を殻に焼かない)。
@@ -137,7 +138,7 @@ function buildGuard<TUser extends PageGuardUser>(
     };
   };
 
-  // 範囲の layout の generateMetadata: guard() と同じ判定を先に通す(断られた訪問者に題名を返さない)
+  // 範囲の layout の generateMetadata: Guard と同じ判定を先に通す(断られた訪問者に題名を返さない)
   const guardMetadata = (base: Metadata = {}) => async (): Promise<Metadata> => {
     await enforceRange();
     return base;
@@ -145,7 +146,7 @@ function buildGuard<TUser extends PageGuardUser>(
 
   const extend = (policy: PageGuardPolicy): PageGuard<TUser> => buildGuard(deps, [...levels, policy]);
 
-  return { guard, createLoader, guardMetadata, extend };
+  return { Guard, createLoader, guardMetadata, extend };
 }
 
 /**

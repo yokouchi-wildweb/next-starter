@@ -1,12 +1,15 @@
 // src/lib/pageGuard/types.ts
 //
-// ページの守り(guard.ts の guard()・createLoader・extend)の汎用版の型。
+// ページの守り(guard.ts の Guard・createLoader・guardMetadata・extend)の汎用版の型。
 // lib/pageGuard は利用者の解き方・access の評価・現在パス・前提の判定を自分で import せず、ここで決めた形で受け取る。
 // 束を作るのは持ち主のドメイン(点 pageGuardUser の項目、上流は domains/core/auth)、結ぶのは生成物 src/wiring/pageGuard.ts(./wire.ts)。
 
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 
 import type { DomainApiAccessRule } from "@/lib/domainAccess";
+
+import type { GuardProps } from "./guardBoundary";
 
 /** access の評価結果(API の Factory と同じ語彙) */
 export type PageAccessDecision = "granted" | "not_found" | "unauthenticated" | "forbidden";
@@ -93,17 +96,20 @@ export type PageLoaderConfig<TProps, TKey extends readonly LoaderKeyValue[], TDa
   shell?: true;
 };
 
-/** 範囲の guard.ts が export する 3 つ */
+/** 範囲の guard.ts が export する 4 つ(Guard・createLoader・guardMetadata・extend) */
 export type PageGuard<TUser extends PageGuardUser = PageGuardUser> = {
-  /** layout が 1 行で呼ぶ。利用者は返さない */
-  guard: () => Promise<void>;
+  /**
+   * 範囲の layout が描く守りの境界(`<Guard fallback={<その範囲の loading />}>{children}</Guard>`)。
+   * Suspense の内側で範囲の全段を評価してから children を返す。断られた訪問者には redirect / notFound を投げ、children は描かない
+   */
+  Guard: (props: GuardProps) => ReactNode;
   /** この範囲の設定済み loader の作り手 */
   createLoader: <TProps, TKey extends readonly LoaderKeyValue[] = [], TData = void>(
     config: PageLoaderConfig<TProps, TKey, TData, TUser>,
   ) => (props: TProps) => Promise<TData>;
   /**
    * 範囲の layout の generateMetadata を作る(layout が `export const generateMetadata = guardMetadata({...})` の 1 行)。
-   * 先に guard() と同じ判定を通し、断られた訪問者には redirect / notFound で止める(base を返さない)。
+   * 先に Guard と同じ判定を通し、断られた訪問者には redirect / notFound で止める(base を返さない)。
    * Next は metadata を根からページへ順に解くので、範囲の layout で断ればその下のページの題名は応答に出ない
    */
   guardMetadata: (base?: Metadata) => () => Promise<Metadata>;

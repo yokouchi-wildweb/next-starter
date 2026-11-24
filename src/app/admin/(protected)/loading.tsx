@@ -1,4 +1,4 @@
-// src/app/admin/loading.tsx
+// src/app/admin/(protected)/loading.tsx
 
 import { ScreenLoader } from "@/components/Overlays/Loading";
 

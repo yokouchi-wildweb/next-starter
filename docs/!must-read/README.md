@@ -103,7 +103,7 @@
 | 汎用 CRUD（`createCrudService`） | 一覧・検索・作成・更新・削除・並び替えなどを全ドメイン共通の実装で提供する。ドメインごとの差分だけを書けば済む | `src/lib/crud/README.md` |
 | API ルートのファクトリー（routeFactory） | すべての API ルートを 4 つのファクトリー（createDomainRoute / createApiRoute / createMeRoute / createDeviceRoute）のどれかで作り、認可・エラー変換・監査のコンテキストを強制する。認可の指定漏れは許可ではなく拒否に倒れる | `src/lib/routeFactory/README.md` |
 | エラーの流れ | サーバーは `DomainError`、クライアントは `HttpError` の 2 種類だけ。ユーザー向けの文言はサーバーサービスが決め、UI はそれを表示するだけ | [エラーハンドリング方針](エラーハンドリング方針.md) |
-| 認証と認可ガード | JWT セッションと、proxy → 範囲の guard.ts（layout が guard() の 1 行、親子 AND）→ loader の access（guard.ts の createLoader）の 3 段の守り。ロール・ステータスによる判定は必ず DB と同期した値（守りと API の Factory が解く利用者 = `getSessionUser`）で行う。JWT だけの軽い取得（`getTokenOnlySession`）は監査の記録者やデモ判定など、拒否に使わない用途に限る。JWT の中身は発行後に古くなり得るため | `src/domains/core/auth/README.md`、`src/lib/pageGuard/README.md` |
+| 認証と認可ガード | JWT セッションと、proxy → 範囲の guard.ts（layout が Guard の境界の内側で確かめる、親子 AND）→ loader の access（guard.ts の createLoader）の 3 段の守り。ロール・ステータスによる判定は必ず DB と同期した値（守りと API の Factory が解く利用者 = `getSessionUser`）で行う。JWT だけの軽い取得（`getTokenOnlySession`）は監査の記録者やデモ判定など、拒否に使わない用途に限る。JWT の中身は発行後に古くなり得るため | `src/domains/core/auth/README.md`、`src/lib/pageGuard/README.md` |
 | 登録表（registry） | `src/registry/` は「業務ドメインを全体で扱うため、ドメインを 1 つ作ると 1 行増える一覧」（serviceRegistry・schemaRegistry・domainConfigRegistry など。生成物）。serviceRegistry はドメイン名からサービス・表・主キーを引く正式な仕組みで、各ドメインの `services/server/domainEntry.ts` から生成する。下流の登録口ではない | `src/registry/README.md`、`src/lib/domain/README.md` |
 | 拡張点 | 機能ごとの差し込みは、持ち主のフォルダの受け口にファイルを置くと生成一覧に並ぶ。上流の既定の項目も fork の項目も同じ受け口に置く | `scripts/structure/extensions/README.md` |
 | 機能の門番（featureGate） | 機能 = 入切する単位で、規則が開くドメインを挙げる。閉じた機能のドメインはページ・API・テーブル・定期の作業がまとめて閉じる（第 2 法則、[3つの法則](3つの法則.md)） | `CLAUDE.md` DOMAINS_AND_FEATURES、`src/featureGate/README.md` |

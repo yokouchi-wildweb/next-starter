@@ -3,6 +3,7 @@
 
 export { createPageGuard } from "./createPageGuard";
 export { wirePageGuard } from "./wire";
+export type { GuardProps } from "./guardBoundary";
 export type { AnyPageGuardUserPlug, GuardUserOf, PageGuardUserPlug } from "./plugs";
 export type {
   LoaderKeyValue,
