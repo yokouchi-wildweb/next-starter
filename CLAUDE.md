@@ -207,6 +207,7 @@ scope: rules that apply even outside that item | detail in its card and README
 - ops_tasks: all via `pnpm task <name>`, no ad-hoc | tasks → core/scripts.md
 - cron_wiring (MANDATORY): 1 task = 1 folder src/app/api/cron/\<name\>/ (task.ts + 1-line route.ts), no list file | vercel.json crons = `pnpm generate cron` output only (the file is each deploying repo's own, 5 self) | upstream add / remove / retime → notice | → items/lib/cron.md
 - budgeted_cron (MANDATORY): sweeps over unbounded-growth tables use runBudgetedBatches + createDeadline (@/lib/cron); read models refresh via createIncrementalRefresh → items/lib/cron.md
+- outbox (MANDATORY): a durable external side effect (a provider call that must happen) → enqueueOutbox(tx, …) in the same TX as the source-of-truth update, run after commit (kickOutbox, then the outbox cron) | never call the provider directly inside the TX, nor after it without the outbox → items/domains/outbox.md
 - analytics_perf: before adding per-domain caches or snapshot tables → withAnalyticsCache or analytics rollups → items/domains/analytics.md
 - ai_agent: generic runtime src/lib/ai/, each agent owns its safety boundary → items/lib/{ai,dbAgent}.md
 
