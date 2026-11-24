@@ -138,12 +138,49 @@ export function isHoleRange(row) {
 }
 
 /**
- * 殻の HTML の道(.next/server/app/<path>.html、/ は index.html、[param] は名前のまま)
+ * 素の build(adapter なし)の殻の HTML の道(.next/server/app/<path>.html、/ は index.html、[param] は名前のまま)
  * @param {string} distDir
  * @param {string} path route-map の path
  */
 export function shellPath(distDir, path) {
   return join(distDir, "server", "app", `${path === "/" ? "/index" : path}.html`);
+}
+
+/** adapter の build(Vercel は env NEXT_ADAPTER_PATH で挿す)が殻を置く木: <distDir>/server/route-cache/APP_PAGE/<鍵>/$/<path>.html */
+const ROUTE_CACHE_APP_PAGE = ["server", "route-cache", "APP_PAGE"];
+
+/**
+ * build が置いた殻の HTML を path ごとに引く(path → ファイル)。置き場は build の形で 2 つ:
+ * - 素の build: <distDir>/server/app/<path>.html(shellPath)
+ * - adapter の build(Vercel): <distDir>/server/route-cache/APP_PAGE/<鍵>/$/<path>.html(Next 16.4.6 の
+ *   build/adapter/build-complete.js getPrerenderFilePath。onBuildComplete の outputs.prerenders[].fallback.filePath と同じ物)
+ * どちらも / は index.html、[param] は名前のまま。両方にあれば素の build の物
+ * @param {string} distDir
+ * @returns {Map<string, string>}
+ */
+export function locateShells(distDir) {
+  const shells = new Map();
+  const toPath = (rel) => {
+    const name = rel.split(/[\\/]/).join("/").replace(/\.html$/, "");
+    return name === "index" ? "/" : `/${name}`;
+  };
+  const cacheDir = join(distDir, ...ROUTE_CACHE_APP_PAGE);
+  if (existsSync(cacheDir)) {
+    for (const key of readdirSync(cacheDir)) {
+      const pages = join(cacheDir, key, "$");
+      if (!existsSync(pages)) continue;
+      for (const rel of readdirSync(pages, { recursive: true })) {
+        if (String(rel).endsWith(".html")) shells.set(toPath(String(rel)), join(pages, String(rel)));
+      }
+    }
+  }
+  const appDir = join(distDir, "server", "app");
+  if (existsSync(appDir)) {
+    for (const rel of readdirSync(appDir, { recursive: true })) {
+      if (String(rel).endsWith(".html")) shells.set(toPath(String(rel)), join(appDir, String(rel)));
+    }
+  }
+  return shells;
 }
 
 /**
@@ -285,16 +322,16 @@ export function stripSlots(html, slots) {
  * @param {string} distDir .next
  * @param {Array<{ path: string, gatedOff?: unknown, chain?: unknown[] }>} rows route-map.jsonl の行
  * @param {{ repoRoot?: string }} [options] loader のファイルを読む根(既定 = 今のディレクトリ)
- * @returns {{ problems: string[], holePages: number, publicPages: number, framedPages: number } | null} 殻の HTML が 1 本も無ければ null(未検証)
+ * @returns {{ problems: string[], holePages: number, publicPages: number, framedPages: number } | null} 殻の HTML が 1 本も見つからなければ null(未検証: locateShells の 2 つの置き場のどちらにも無い)
  */
 export function checkShells(distDir, rows, { repoRoot = "." } = {}) {
-  const appDir = join(distDir, "server", "app");
-  if (!existsSync(appDir) || !readdirSync(appDir, { recursive: true }).some((f) => String(f).endsWith(".html"))) return null;
+  const shells = locateShells(distDir);
+  if (shells.size === 0) return null;
   const problems = [];
   let holePages = 0;
   let framedPages = 0;
   for (const row of rows) {
-    const file = shellPath(distDir, row.path);
+    const file = shells.get(row.path) ?? shellPath(distDir, row.path);
     const loaderFile = (row.chain ?? []).find((link) => link.kind === "loader")?.file;
     const mode = loaderFile && existsSync(join(repoRoot, loaderFile)) ? loaderShellMode(readFileSync(join(repoRoot, loaderFile), "utf8")) : null;
     if (!isHoleRange(row)) {

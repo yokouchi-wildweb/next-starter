@@ -9,7 +9,7 @@ import { test } from "node:test";
 
 import { ROUTE_MAP_FILE, parseRouteMapJsonl } from "../../../src/lib/screens/node.mjs";
 
-import { USER_FRAME_PART_SLOTS, checkBuild, checkConfig, checkShells, frameRootHidden, isHoleRange, isUserFrame, loaderShellMode, readShellBody, resolveConfig, shellPath, stripHiddenSegments, stripSlots, unrevealedSegments } from "./lib.mjs";
+import { USER_FRAME_PART_SLOTS, checkBuild, checkConfig, checkShells, frameRootHidden, isHoleRange, isUserFrame, loaderShellMode, locateShells, readShellBody, resolveConfig, shellPath, stripHiddenSegments, stripSlots, unrevealedSegments } from "./lib.mjs";
 
 const repoRoot = join(import.meta.dirname, "../../..");
 
@@ -151,6 +151,28 @@ test("readShellBody: script・style・template・noscript の外の文字・メ�
 test("shellPath: / は index.html、[param] は名前のまま", () => {
   assert.equal(shellPath(".next", "/"), join(".next", "server", "app", "index.html"));
   assert.equal(shellPath(".next", "/admin/users/[id]"), join(".next", "server", "app", "admin", "users", "[id].html"));
+});
+
+test("locateShells: 素の build(server/app)と adapter の build(server/route-cache/APP_PAGE/<鍵>/$/)の両方から path ごとに引く", () => {
+  const dist = mkdtempSync(join(tmpdir(), "cc-shell-loc-"));
+  try {
+    assert.equal(locateShells(dist).size, 0);
+    const put = (rel, text) => {
+      mkdirSync(dirname(join(dist, rel)), { recursive: true });
+      writeFileSync(join(dist, rel), text);
+    };
+    put("server/route-cache/APP_PAGE/aa11/$/index.html", "root");
+    put("server/route-cache/APP_PAGE/bb22/$/admin.html", "admin");
+    put("server/route-cache/APP_PAGE/cc33/$/wallet/[slug].html", "wallet");
+    put("server/route-cache/APP_PAGE/dd44/$/admin.meta", "{}");
+    const adapter = locateShells(dist);
+    assert.deepEqual([...adapter.keys()].sort(), ["/", "/admin", "/wallet/[slug]"]);
+    assert.equal(adapter.get("/admin"), join(dist, "server/route-cache/APP_PAGE/bb22/$/admin.html"));
+    put("server/app/admin.html", "plain");
+    assert.equal(locateShells(dist).get("/admin"), join(dist, "server/app/admin.html"), "両方にあれば素の build の物");
+  } finally {
+    rmSync(dist, { recursive: true, force: true });
+  }
 });
 
 test("checkShells: 殻が無ければ null、殻に入れない範囲の文字・メニューとリンク・殻の無いページを名指し、空の外枠・公開の範囲・閉じた機能は見ない", () => {
