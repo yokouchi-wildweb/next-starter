@@ -17,5 +17,5 @@ editing:
 - gate_only: no enabled key in config.ts | on / off = the gate rule deviceFingerprint
 - authenticated_only: collect only in an authenticated context, never anonymous | demo users are not recorded
 - strong_component: similarity candidates need a strong component match (weak-only matches never surface)
-- retention: no unlimited keeping | row retention_days + the daily device-fingerprint-prune cron
+- retention: no unlimited keeping | row retention_days + the expiryRules item plugs/expiryRules/deviceFingerprintPrune.ts (pii: true, run by cron expiry-prune)
 read: threat model, signals → Overview | switch on, record, investigate → Usage | matching functions, table → API | config values → Extension | upsert, index, retention → Internals

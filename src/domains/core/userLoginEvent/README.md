@@ -153,7 +153,8 @@ core は画面を同梱しない。ユーザー詳細 (admin) に載せる場合
 ### retention と cron
 
 - `audit_logs` と同じ「行単位 `retention_days` + 日次 cron プルーニング」。IP は個人情報なので無期限に持たない
-- cron: `user-login-event-prune`(`src/app/api/cron/user-login-event-prune/`、1 日 1 回)。配線の仕組みは `src/lib/cron/README.md`
+- 削除: 増設点 expiryRules の項目 `plugs/expiryRules/userLoginEventPrune.ts`(個人情報 `pii: true`、cron `expiry-prune` が 1 日 1 回)。配線の仕組みは `src/lib/cron/README.md`
+- 旧 cron: `user-login-event-prune`(`src/app/api/cron/user-login-event-prune/`)は区切り expiry-retire-crons まで並んで動く(二重に消しても同じ)
 
 ### 既存フィールドとの関係
 

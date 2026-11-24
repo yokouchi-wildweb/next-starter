@@ -4,6 +4,7 @@
 
 - 複数種類のアプリ内通貨（ポイント、コイン等）を統一的に管理するウォレット機能
 - テーブル: `wallets`（残高）、`wallet_histories`（履歴）、有効期限を使う通貨は `wallet_lots`（ロット）
+- 消費し尽くしたロット（`remaining = 0`）は `lotPruneRetentionDays` が過ぎたら増設点 expiryRules の項目 `plugs/expiryRules/walletLotsPrune.ts`（cron `expiry-prune`。有効期限を使う通貨が無ければ何も消さない）が消す。旧 cron `wallet-lots-prune` は区切り expiry-retire-crons まで並んで動く
 - 通貨種別: `regular_point`、`temporary_point`、`regular_coin`（足すのは設定の `currency`）
 - 残高: `balance`（総残高）- `locked_balance`（予約済み）= 利用可能残高
 - ウォレットは遅延作成（初回操作時に自動作成）

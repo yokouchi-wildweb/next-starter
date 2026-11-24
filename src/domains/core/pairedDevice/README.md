@@ -327,7 +327,7 @@ server-only の API は `@/domains/pairedDevice/services/server`（サービス�
 - `paired_devices`: label / kind / scope(JSONB) / token_hash（SHA-256、サービス境界から出さない）/ token_expires_at /
   paired_at / last_seen_at・last_seen_ip（`lastSeenThrottleSeconds` で間引いて更新）/ revoked_at
 - `device_pairings`: flow / status / code_hash / pending_token_hash / expires_at。期限切れから 24 時間で
-  cron `paired-device-pairings-prune` が削除する
+  増設点 expiryRules の項目 `plugs/expiryRules/pairedDevicePairingsPrune.ts`（cron `expiry-prune`）が削除する（旧 cron `paired-device-pairings-prune` は区切り expiry-retire-crons まで並んで動く）
 - 照合用のランダムトークン・短いコードの生成は `@/lib/crypto`（secretToken.ts）
 
 ## Extension

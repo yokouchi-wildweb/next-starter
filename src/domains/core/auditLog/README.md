@@ -270,7 +270,7 @@ await runWithAuditContext(
 
 | タスク | 頻度 | 内容 |
 |---|---|---|
-| `audit-log-prune` | daily | `created_at + retention_days` を過ぎた行を削除。1000 件 × 最大 100 反復 / 回、`FOR UPDATE SKIP LOCKED`。上限到達時は `truncated: true` で次回に持ち越し |
+| `audit-log-prune` | daily | `created_at + retention_days` を過ぎた行を削除。1000 件 × 最大 100 反復 / 回、`FOR UPDATE SKIP LOCKED`。上限到達時は `truncated: true` で次回に持ち越し。同じ削除は増設点 expiryRules の項目 `plugs/expiryRules/auditLogPrune.ts`(個人情報 `pii: true`、cron `expiry-prune` が回す)に移った(旧 cron は区切り expiry-retire-crons まで並んで動く。二重に消しても同じ) |
 | `audit-log-recover-dead-letter` | hourly | `audit_logs_failed` を古い順に最大 500 件再投入し、成功分を削除 |
 
 - 配線: `src/app/api/cron/<task>/`（task.ts + route.ts）。`vercel.json` のエントリは `pnpm generate cron` が生成する。手動は `pnpm task <task>`

@@ -132,7 +132,8 @@ table: `user_daily_counters`（日次・retention 付き）
 - 単位: `(user_id, counter_key, date)` → `{ count, retention_days }`
 - 日界は `userCounterConfig.dailyTimeZone`（既定 Asia/Tokyo。既定と型は `config.ts`、fork の上書きは `src/config/domains/userCounter.config.ts`）
 - bumpDaily が累計と**同一トランザクション**で加算する（バッチ集計なし・集計漏れが構造的に無い）
-- ユーザー数 × 日数に比例して増えるため、行単位 `retention_days`（既定 730 日）で cron prune する。
+- ユーザー数 × 日数に比例して増えるため、行単位 `retention_days`（既定 730 日）で消す: 増設点 expiryRules の項目
+  `plugs/expiryRules/userDailyCounterPrune.ts`（個人情報 `pii: true`、cron `expiry-prune`。旧 cron `user-daily-counter-prune` は区切り expiry-retire-crons まで並んで動く）。
   累計側は prune 対象外なので合計値は失われない
 - シャーディング無し: 各ユーザーは自分の行しか書かないため、コンテンツ軸のようなホット行競合は発生しない
 

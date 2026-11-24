@@ -144,6 +144,7 @@ const { items, total, isLoading, hasMore, sentinelRef } = useInfiniteScrollQuery
 - HTTP: `GET /api/cron/interaction-event-prune`（Bearer `CRON_SECRET`）
 - スケジュール: 日次（`vercel.json` のエントリは `pnpm generate cron` が生成）
 - 削除対象は**明細のみ**。累計・日次集計は消えない
+- 同じ削除は増設点 expiryRules の項目 `plugs/expiryRules/interactionEventPrune.ts`（個人情報 `pii: true`、cron `expiry-prune`）に移った(旧 cron は区切り expiry-retire-crons まで並んで動く。二重に消しても同じ)
 - テーブルは schemaRegistry 登録済み。`pnpm db:push`（誰が回すかは repo.json `agent.db_push`）
 
 ## API

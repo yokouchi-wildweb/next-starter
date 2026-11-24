@@ -120,7 +120,7 @@ const rows = await findUsersBySimilarFingerprint(suspectUserId, { minScore: 6, l
 
 - 記録はどちらの経路も `(user_id, composite_hash)` UNIQUE で upsert。同じ端末の再訪は `seen_count++` / `last_seen_at` の更新に畳まれ、行は増え続けない
 - 強成分(canvas / audio / webgl / fonts)は個別のカラムに index を張り、`similarity` の JOIN の必須条件にしている
-- 保持: 行単位の `retention_days` + 日次の cron `device-fingerprint-prune`(1 日 1 回)で消す(`userLoginEvent` / `audit_logs` と同じバッチ + SKIP LOCKED の形)
+- 保持: 行単位の `retention_days` が過ぎた行を増設点 expiryRules の項目 `plugs/expiryRules/deviceFingerprintPrune.ts`(個人情報 `pii: true`、cron `expiry-prune` が 1 日 1 回)が消す(旧 cron `device-fingerprint-prune` は区切り expiry-retire-crons まで並んで動く。二重に消しても同じ)
 - 法務: 日本では改正電気通信事業法の外部送信規律の整理対象になり得る。不正検知の目的は比較的通しやすい類型
 
 ## Related
