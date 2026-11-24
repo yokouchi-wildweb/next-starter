@@ -469,6 +469,29 @@ test("plugs の点: 全ドメイン(core・業務)と lib の plugs/<点>/ を�
   assert.match(plan.outputs["src/lib/routeFactory/extensions/routeLazies.ts"], /\{ domain: "acme", name: "late", requires: \["coupon", "wallet"\], load: \(\) => import\("@\/domains\/acme\/plugs\/routeLazies\/late"\)\.then\(\(m\) => m\.plug\) \}/);
 });
 
+test("plugs の点の keyPrefix district: 鍵の先頭が項目を置いた地区なら通り、違う・点の無い・字面で読めない鍵は止める。宣言は plugs + key と一緒の \"district\" だけ", () => {
+  const H = (kind) => `export const handler = { kind: ${kind} };\n`;
+  const plan = planExtensions(
+    fixture({
+      "src/lib/box/extensionPoints.ts": point(`  boxHandlers: { change: "add", plugs: true, export: "handler", type: { from: "@/x", name: "H" }, side: "server", key: "kind", keyPrefix: "district" },`),
+      "src/domains/a/plugs/boxHandlers/good.ts": H('"a.sync"'),
+      "src/lib/mailKit/plugs/boxHandlers/libGood.ts": H('"mailKit.send"'),
+      "src/domains/a/plugs/boxHandlers/other.ts": H('"b.sync"'),
+      "src/domains/b/plugs/boxHandlers/noDot.ts": H('"b"'),
+      "src/domains/b/plugs/boxHandlers/computed.ts": H("KIND"),
+    }),
+  );
+  const lines = plan.problems.filter((p) => p.includes("boxHandlers"));
+  assert.ok(lines.some((p) => p.startsWith("src/domains/a/plugs/boxHandlers/other.ts") && /kind "b\.sync" の先頭は項目を置いた地区 a にする/.test(p)), lines.join("\n"));
+  assert.ok(lines.some((p) => p.startsWith("src/domains/b/plugs/boxHandlers/noDot.ts") && /先頭は項目を置いた地区 b/.test(p)));
+  assert.ok(lines.some((p) => p.startsWith("src/domains/b/plugs/boxHandlers/computed.ts") && /字面/.test(p)));
+  assert.equal(lines.length, 3, lines.join("\n"));
+  const bad = (spec) => readDeclaration("src/lib/box/extensionPoints.ts", point(`  boxHandlers: { change: "add", plugs: true, export: "handler", type: { from: "@/x", name: "H" }, side: "server"${spec} },`)).problems.join("\n");
+  assert.match(bad(', keyPrefix: "district"'), /keyPrefix は plugs の点で key と一緒に "district" だけ/);
+  assert.match(bad(', key: "kind", keyPrefix: "owner"'), /keyPrefix は/);
+  assert.equal(bad(', key: "kind", keyPrefix: "district"'), "");
+});
+
 test("plugs の点: 上限 max・順位 order declared・鍵の全体の一意・知らない点のフォルダ・点の名前の重なり・export の無い項目は止める", () => {
   const P = (extra = "") => `export const plug = { kind: "k" };\n${extra}`;
   const plan = planExtensions(

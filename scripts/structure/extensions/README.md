@@ -131,6 +131,7 @@ routeFactoryDevice: { change: "add", plugs: true, export: "plug", type: { from: 
   - `order: "file" | "declared"` … 増設点の順位の並び(plugs の点: <差す側>/<名前> の順 / 項目の `export const order`。意味がある点だけ)
   - `key: "<プロパティ>"` … 一覧を `Record<string, T>` にする(各項目の値のそのプロパティが鍵。重複は読み込み時に例外。null プロトタイプなので外から来た名前で引いても `constructor` などに当たらない)
   - `literalKeys: true` … `key` と一緒に使い、鍵の文字列を一覧の型に残す(項目の型が鍵を文字列リテラルで持つこと。登録済みの名前の union を型で導く点)
+  - `keyPrefix: "district"` … plugs の点で `key` と一緒に使い、項目の鍵の字面を `"<差した地区の名前>.<名前>"` に縛る(先頭が項目を置いた地区でない・字面で読めない鍵は生成で止める、`plugs.mjs`)。例 送り箱の処理の `kind`(`src/domains/core/outbox`)
   - `load: "lazy"` … 項目を import せず `{ name, load: () => import(…) }` の配列にする(必要なときだけ読む。key・derive とは併用不可)
   - `target: "wiring"` … 一覧を `src/wiring/<持ち主のフォルダ名>.ts` に出す(lib が持ち主の点。同じ lib の点は 1 本にまとめる)
   - lib の結び目 `export const wire = { name, export, side, registers? }`(同じ extensionPoints.ts、点の外に 1 つ、D31): `target: "wiring"` の plugs の点の一覧と一緒に、`src/wiring/<lib>.ts` の末尾に結び目を書く。一覧は門番で閉じたドメインの項目を外してから渡す(D26)

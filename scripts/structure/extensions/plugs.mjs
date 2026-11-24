@@ -123,7 +123,14 @@ export function discoverPlugs(repoRoot, points, discoverDir) {
       const seen = new Map();
       for (const item of items) {
         const key = keyPattern.exec(item.text)?.[1];
-        if (key === undefined) continue;
+        if (key === undefined) {
+          if (spec.keyPrefix === "district") problems.push(`${item.path}: 点 ${point.name} の ${spec.key} を字面("<地区>.<名前>")で書く(先頭が差した地区かを生成が確かめる)`);
+          continue;
+        }
+        // keyPrefix "district": 鍵の先頭は項目を置いた地区の名前(<地区>.<名前>、D23)
+        if (spec.keyPrefix === "district" && !key.startsWith(`${item.source}.`)) {
+          problems.push(`${item.path}: 点 ${point.name} の ${spec.key} "${key}" の先頭は項目を置いた地区 ${item.source} にする("${item.source}.<名前>")`);
+        }
         if (seen.has(key)) problems.push(`${item.path}: 点 ${point.name} の ${spec.key} "${key}" は ${seen.get(key)} とぶつかる(鍵は全体で一意)`);
         else seen.set(key, item.path);
       }

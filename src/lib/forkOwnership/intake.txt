@@ -159,6 +159,8 @@ add src/domains/**/plugs/messagingCategories/*.override.{ts,tsx}  # 上書き me
 add src/lib/*/plugs/messagingCategories/*.override.{ts,tsx}  # 上書き messagingCategories(label・adminLabel・description・channels・defaultChannels・group)の上流の項目の隣
 add src/domains/**/plugs/messagingLayouts/*/layout.override.{ts,tsx}  # 上書き messagingLayouts(disabled・adminSelectable)の上流の項目の隣
 add src/lib/*/plugs/messagingLayouts/*/layout.override.{ts,tsx}  # 上書き messagingLayouts(disabled・adminSelectable)の上流の項目の隣
+add src/domains/**/plugs/outboxHandlers/*.override.{ts,tsx}  # 上書き outboxHandlers(maxAttempts・backoff)の上流の項目の隣
+add src/lib/*/plugs/outboxHandlers/*.override.{ts,tsx}  # 上書き outboxHandlers(maxAttempts・backoff)の上流の項目の隣
 add src/domains/**/plugs/settingFields/*.override.{ts,tsx}  # 上書き settingFields(ui・public・default・allowRoles)の上流の項目の隣
 add src/lib/*/plugs/settingFields/*.override.{ts,tsx}  # 上書き settingFields(ui・public・default・allowRoles)の上流の項目の隣
 add src/domains/**/plugs/settingSections/*.override.{ts,tsx}  # 上書き settingSections(label・order・icon・allowRoles・description・groups)の上流の項目の隣

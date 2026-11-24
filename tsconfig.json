@@ -70,7 +70,8 @@
       "@/domains/pairedDevice/*": ["./src/domains/core/pairedDevice/*"],
       "@/domains/taskRun/*": ["./src/domains/core/taskRun/*"],
       "@/domains/userLoginEvent/*": ["./src/domains/core/userLoginEvent/*"],
-      "@/domains/couponIssuerGrant/*": ["./src/domains/core/couponIssuerGrant/*"]
+      "@/domains/couponIssuerGrant/*": ["./src/domains/core/couponIssuerGrant/*"],
+      "@/domains/outbox/*": ["./src/domains/core/outbox/*"]
     }
   },
   "include": [

@@ -212,12 +212,13 @@ test("LINE Webhook: 一致する項目を順に全部呼ぶ、失敗は続行、
   if (isTier1) assert.deepEqual(userLineProfileWebhookHandlers, []);
 });
 
-test("タスクの走査: 上流のドメインのタスク・移行 15 本、名前の一致と読み込み(置き方の誤りの形は scripts/runner/task/discover.test.ts)", async () => {
+test("タスクの走査: 上流のドメインのタスク・移行 16 本、名前の一致と読み込み(置き方の誤りの形は scripts/runner/task/discover.test.ts)", async () => {
   const tasks = listOneShotTasks(ROOT).filter((t) => t.file.startsWith("src/domains/core/"));
   assert.deepEqual(tasks.map((t) => t.name), [
     "analytics:rollup-backfill",
     "messaging:merge-dispatch-vars",
     "messaging:rename-template-vars",
+    "outbox:reprocess",
     "pairedDevice:pair",
     "purchaseQuota:cleanup",
     "setting:copy-list-per-page",

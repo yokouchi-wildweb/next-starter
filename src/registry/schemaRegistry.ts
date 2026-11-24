@@ -27,6 +27,7 @@ export * from "@/domains/core/messaging/entities/recipient";
 export * from "@/domains/core/messaging/entities/subscriber";
 export * from "@/domains/core/messaging/entities/template";
 export * from "@/domains/core/milestone/entities/drizzle";
+export * from "@/domains/core/outbox/entities/drizzle";
 export * from "@/domains/core/pairedDevice/entities/drizzle";
 export * from "@/domains/core/purchaseQuota/entities/drizzle";
 export * from "@/domains/core/purchaseRequest/entities/drizzle";
