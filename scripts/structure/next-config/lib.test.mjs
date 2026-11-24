@@ -17,7 +17,7 @@ const CORE_PATTERNS = [{ protocol: "https", hostname: "firebasestorage.googleapi
 /** 本体のままの設定(解いた後)と、check.ts が呼んだ rewrites()・generateBuildId() の答え */
 const okConfig = () => ({
   cacheComponents: true,
-  partialPrefetching: false,
+  partialPrefetching: true,
   generateBuildId: () => "b1",
   env: { NEXT_BUILD_ID: "b1", APP_ENV: "development", FEATURE_GATE_TIER1: "true" },
   images: { remotePatterns: [...CORE_PATTERNS] },
@@ -50,6 +50,7 @@ test("checkConfig: 約束ごとに 1 行(Tier1・段階・build の番号・Fire
   assert.match(one(() => {}, { rewrites: undefined }).join(), /Firebase の認証の転送/);
   assert.equal(one((c) => (c.cacheComponents = false)).length, 1);
   assert.equal(one((c) => delete c.partialPrefetching).length, 1);
+  assert.match(one((c) => (c.partialPrefetching = false)).join(), /partialPrefetching が true でない\(false\)/);
   assert.equal(checkConfig({}, expected({ rewrites: undefined, buildId: undefined, corePatterns: [] })).length, 6);
 });
 

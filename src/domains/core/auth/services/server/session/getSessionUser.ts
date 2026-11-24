@@ -2,6 +2,7 @@
 
 import { cache } from "react";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 
 import { parseSessionCookie } from "@/lib/jwt";
 import type { SessionUser } from "@/domains/core/auth/entities/session";
@@ -23,6 +24,10 @@ const getSessionUserOutcome = cache(async (): Promise<SessionUserOutcome> => {
     return { user: null };
   }
 
+  // 印がある時は request の時だけ確かめる(JWT の期限 = 今の時刻・DB の利用者 = request のデータ)。
+  // partialPrefetching のセッションごとの殻の事前の描画では、ここで止まりセッションの部分は穴になる
+  // (時刻を読むと Cache Components が事前の描画を落とす)。印の無い描画(未ログイン)は止めない = 公開の殻は変わらない
+  await connection();
   return resolveSessionUserOutcome(token);
 });
 

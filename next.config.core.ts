@@ -81,9 +81,11 @@ const nextConfig: NextConfig = {
   // Cache Components(静的な殻 + 実行時の中身の流し込み)を有効にする。両モードで同じ挙動の直しは区切り cc-prep で済み
   // (API と cron の入口の connection()・root layout は request を読まない・セッションは promise・segment config の 5 つの名なし)。
   // root layout の Suspense(fallback null)が Provider と URL を読む葉を殻から外す。fork はこの区間を取り込む時に build の検査を通す。
-  // partialPrefetching は段 3(見える読み手ごとの境界)まで false。書かないと Next が警告する(既定が変わる途中の鍵)
+  // partialPrefetching: リンクごとの先読みでなく、経路ごとに 1 つの殻(App Shell)を先読みする。全体で true(セグメントごとの
+  // prefetch = 'partial' は使わない)。URL のデータ(params・searchParams)は移動の後に流れる。ログイン中のセッションの部分は
+  // 穴(セッションの読みは印がある時 connection() を待つ: auth の getSessionUser)。Next の次の大きな版で true が唯一の動きになる
   cacheComponents: true,
-  partialPrefetching: false,
+  partialPrefetching: true,
   generateBuildId: () => buildId,
   env: {
     NEXT_BUILD_ID: buildId,

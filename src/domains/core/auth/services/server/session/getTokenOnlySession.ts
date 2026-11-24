@@ -1,6 +1,7 @@
 // src/domains/core/auth/services/server/session/getTokenOnlySession.ts
 
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 
 import { parseSessionCookie } from "@/lib/jwt";
 import type { SessionUser } from "@/domains/core/auth/entities/session";
@@ -26,5 +27,7 @@ export async function getTokenOnlySession(): Promise<SessionUser | null> {
     return null;
   }
 
+  // 印がある時は request の時だけ確かめる(JWT の期限 = 今の時刻。getSessionUser.ts と同じ理由)
+  await connection();
   return resolveSessionUserFromTokenOnly(token);
 }

@@ -138,6 +138,7 @@ return response;
   - Firebase の ID トークンをセッションに替えるとき(`createFirebaseSession`・`register`)も、`auth_time`(その Firebase のセッションの認証時刻)が境目より前なら 401(Firebase の取り消しが失敗していても止まる)。比較は `services/server/session/invalidationBoundary.ts`
   - Firebase のリフレッシュトークンも best-effort で revoke し、監査ログ `auth.session.invalidated` を残す。発火元はパスワード変更・`banned` / `security_locked` への遷移(user の update / changeStatus wrapper、ログインロックアウト)
 - `getTokenOnlySession` は JWT クレームのみ(DB を引かない stale な値)。監査ログの actor 抽出やデモ判定など
+- 印(セッションの Cookie)がある時は、`getSessionUser`・`getTokenOnlySession` が確かめの前に `connection()`(next/server)を待つ = request の時だけ確かめる(JWT の期限は今の時刻、利用者は DB の現在値 = request のデータ)。`partialPrefetching` のセッションごとの殻の事前の描画ではそこで止まり、セッションの部分は穴になる(時刻を読むと Cache Components が事前の描画を落とす)。印の無い描画(未ログイン)は止めない = 公開のページの殻は変わらない。root の `AuthSessionProvider` も `getSessionUser` で読む(守り・loader と 1 回の引きを共有)
 - JWT の署名・検証・Cookie 抽出の汎用部分は [lib/jwt](../../../lib/jwt/README.md)
 - `local` の管理者ログインは Firebase なしで完了する: Firebase のサーバー側が未設定(`isFirebaseServerConfigured()` が false)ならカスタムトークンを作らず `firebaseCustomToken: null` を返し、`useAdminLogin` は null かクライアントの Firebase が未設定なら Firebase Auth に触れない。設定済みなら今まで通りカスタムトークンでサインインする(Storage のルール・chatRoom・`useFirebaseAuthSync` 用)。設定済みで失敗したときはログインも失敗する
 

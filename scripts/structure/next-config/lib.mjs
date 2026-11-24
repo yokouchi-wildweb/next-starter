@@ -88,8 +88,10 @@ export function checkConfig(config, expected) {
       `next.config の cacheComponents が true でない(${JSON.stringify(config?.cacheComponents)})。false に戻さない(fork ごとのスイッチは無い。直すべき所は build の失敗が名指す)`,
     );
   }
-  if (typeof config?.partialPrefetching !== "boolean") {
-    problems.push("next.config の partialPrefetching を明示する(段 3 までは false。書かないと Next が警告する)");
+  if (config?.partialPrefetching !== true) {
+    problems.push(
+      `next.config の partialPrefetching が true でない(${JSON.stringify(config?.partialPrefetching)})。全体で true のまま(fork ごとのスイッチ・セグメントごとの prefetch = 'partial' は使わない。Next の次の大きな版で唯一の動きになる)`,
+    );
   }
   return problems;
 }
