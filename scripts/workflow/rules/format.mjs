@@ -1,5 +1,5 @@
 // scripts/workflow/rules/format.mjs — pnpm check rules の書式の検査: 札・README・対応表 existing_parts の入口
-// 止める: 上流の札の書式と札 → 品目の実在、対応表の入口の実在、決まりのファイル(.claude/rules の下の全部、fork の自前の物も)の paths の入れ子の波かっこ。fork が自分で足した札の書式は知らせだけ。
+// 止める: 上流の札の書式と札 → 品目の実在、Tier1 の札の受け口の置き場(宣言した plugs の点の全部)、対応表の入口の実在、決まりのファイル(.claude/rules の下の全部、fork の自前の物も)の paths の入れ子の波かっこ。fork が自分で足した札の書式は知らせだけ。
 // Tier1 で止め fork では数の 1 行の知らせ(countLineTarget): Tier1 の品目 → 札の実在、上流の README の書式。一覧は --items / --readme。
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -7,6 +7,7 @@ import { execFileSync } from "node:child_process";
 import { cardId, cardProblems, countLineTarget, existingPartRefs, h2Of, readmeProblems } from "./lib.ruleFormat.mjs";
 import { CORE_DIR, ITEMS_DIR, listItems, mdUnder, upstreamReader } from "./lib.ruleRepo.mjs";
 import { nestedBrace, parsePaths } from "./lib.rulePaths.mjs";
+import { isPlugsPoint, pointsFromFiles } from "../../../src/lib/districtMap/index.mjs";
 
 const root = join(import.meta.dirname, "../../..");
 const read = (p) => readFileSync(join(root, p), "utf8");
@@ -21,11 +22,17 @@ const folderOf = (category, name) => items.find((it) => it.category === category
 const countLine = countLineTarget(isTier1) === "fail" ? fails : notifies;
 const readmeH2 = (file) => (existsSync(join(root, file)) ? h2Of(read(file)) : null);
 
+// 品目のフォルダ → 宣言した plugs の点(札の paths に受け口の置き場を通す・Tier1 では全部を求める、D318)
+const srcFiles = execFileSync("git", ["ls-files", "--", "src"], { cwd: root, encoding: "utf8" }).split("\n").filter(Boolean);
+const { points } = pointsFromFiles(srcFiles, (p) => (existsSync(join(root, p)) ? read(p) : null));
+const plugsPointsOf = (folder) => points.filter((p) => p.owner === folder && isPlugsPoint(p.spec)).map((p) => p.name);
+
 // 札
 const cards = mdUnder(root, ITEMS_DIR);
 for (const path of cards) {
   const id = cardId(path);
-  const problems = cardProblems({ path, text: read(path), itemFolder: id ? folderOf(id.category, id.name) : null, readmeH2 });
+  const itemFolder = id ? folderOf(id.category, id.name) : null;
+  const problems = cardProblems({ path, text: read(path), itemFolder, readmeH2, plugsPoints: itemFolder ? plugsPointsOf(itemFolder) : [], requireReceptacles: isTier1 });
   for (const p of problems) (upstreamOf(path) ? fails : notifies).push(`${path}: ${p}`);
 }
 

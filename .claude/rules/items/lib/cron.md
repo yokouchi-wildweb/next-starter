@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/lib/cron/**"
+  - "src/**/plugs/{cronMaintenance,expiryRules}/**"
 ---
 # lib/cron
 what: the mechanism for scheduled tasks: one folder src/app/api/cron/<name>/ (task.ts + 1-line route.ts) read by the API route, `pnpm task` and the vercel.json generator, the time-budgeted batch runner, and the one expiry prune (point expiryRules, cron expiry-prune)

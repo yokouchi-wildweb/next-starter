@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/lib/formSuite/**"
+  - "src/**/plugs/formInputs/**"
 ---
 # lib/formSuite
 what: the form assembly (closed lib, entry @/lib/formSuite only): AppForm, the field frames Field (Manual / Controlled / Configured), the react-hook-form inputs ControlledTextInput … (over the shelf's @/components/Input units), FieldRenderer, AutoSave, FormActions, FormInputsProvider

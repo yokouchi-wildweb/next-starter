@@ -2,6 +2,7 @@
 paths:
   - "src/domains/core/wallet/**"
   - "src/config/domains/wallet.config.ts"
+  - "src/**/plugs/walletPurchaseBonuses/**"
 ---
 # domains/wallet
 what: per-user in-app currencies: balance, reservation, history, expiry lots | entry walletService (services/server/walletService), types @/domains/core/wallet

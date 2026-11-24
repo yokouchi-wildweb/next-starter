@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/domains/core/milestone/**"
+  - "src/**/plugs/{milestoneDefinitions,milestoneRenderers}/**"
 ---
 # domains/milestone
 what: detects and records a user reaching a condition at integration points (purchase_completed, user_registered, own triggers) and runs onAchieved | entry evaluateMilestones (services/server/wrappers), client MilestoneNotifications

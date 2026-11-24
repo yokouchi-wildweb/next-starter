@@ -2,6 +2,7 @@
 paths:
   - "src/domains/core/userGroup/**"
   - "src/config/domains/userGroup.config.ts"
+  - "src/**/plugs/userGroupCriteria/**"
 ---
 # domains/userGroup
 what: named, reusable sets of users (kind dynamic / scheduled / static) | entry services/server: userGroupEvaluator, staticMemberWriter

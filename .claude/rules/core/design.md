@@ -62,7 +62,7 @@ map (every core file, loaded by its paths):
 ## cards (.claude/rules/items/<category>/<name>.md)
 - category: lib (one per library) | domains (one per domain, Tier1 and business) | components (one per public category folder src/components/<Category>/, split only when too large) | no cards for hooks / utils: their common rules live in core files
 - who: each repo writes cards only for its own items (an ancestor's item lacking one → /order <direct parent>) | an item with a README or a mandatory rule | Tier1 items must have one, fork items may | plain names, never the repo name | never edit a Tier1 card downstream; a card a middle tier added may be fixed below it | rules forced on downstream → lineage.md
-- frontmatter: paths only = the item's folder + its config and declared receptacle places
+- frontmatter: paths only = the item's folder + its config and declared receptacle places | receptacle place = `src/**/plugs/<point>/**` (or `{p1,p2}`, one brace pair) for each plugs point the item declares in its extensionPoints.ts, all of them (pnpm check rules: required in Tier1)
 - reach: a card loads only there, never where the item is merely used → before using an item elsewhere, read its card (.claude/rules/items/\<category\>/\<name\>.md) | a rule every user of a layer needs stays in core / CLAUDE.md
 - body: `# <category>/<name>` then 5 parts in this order, no headings for the parts (a part may take several lines):
   - what: what it is and its entry, 1-2 sentences

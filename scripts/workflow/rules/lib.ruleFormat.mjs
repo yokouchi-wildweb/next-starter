@@ -26,6 +26,22 @@ function cardFrontmatter(text) {
   return { keys, paths, end: m[0].length };
 }
 
+// 受け口の置き場の paths の形: src/**/plugs/<点>/**(src/domains/**・src/lib/** も可。点は 1 つの名前か 1 段の波かっこの並び。波かっこは 1 組だけ)
+const RECEPTACLE_PATH = /^src\/(?:domains\/|lib\/)?\*\*\/plugs\/(?:\{([A-Za-z0-9,]+)\}|([A-Za-z0-9]+))\/\*\*$/;
+
+/** 受け口の置き場の paths なら、その点の名前の並び。違う形なら null */
+export function receptaclePointsOf(path) {
+  const m = path.match(RECEPTACLE_PATH);
+  if (!m) return null;
+  return (m[1] ?? m[2]).split(",").filter(Boolean);
+}
+
+/** 受け口の置き場の paths の 1 行(札に書く形)。点は名前の順 */
+export const receptaclePath = (points) => {
+  const sorted = [...points].sort();
+  return `src/**/plugs/${sorted.length === 1 ? sorted[0] : `{${sorted.join(",")}}`}/**`;
+};
+
 /** README の h2(コードの囲みの中は数えない) */
 export function h2Of(text) {
   const out = [];
@@ -42,10 +58,12 @@ export function h2Of(text) {
 
 /**
  * 札の書式の問題(空 = 適合)
- * @param {{ path: string, text: string, itemFolder: string | null, readmeH2: (file: string) => string[] | null }} input
- *   itemFolder = 札の品目のフォルダ(実在しなければ null)、readmeH2 = README の h2 を返す(無ければ null)
+ * @param {{ path: string, text: string, itemFolder: string | null, readmeH2: (file: string) => string[] | null, plugsPoints?: string[], requireReceptacles?: boolean }} input
+ *   itemFolder = 札の品目のフォルダ(実在しなければ null)、readmeH2 = README の h2 を返す(無ければ null)、
+ *   plugsPoints = 品目のフォルダが宣言した plugs の点(extensionPoints.ts、読み手 src/lib/districtMap/declarations.mjs)、
+ *   requireReceptacles = 宣言した点の置き場が paths に無ければ問題にする(Tier1 だけ。fork の自分の札には何も言わない)
  */
-export function cardProblems({ path, text, itemFolder, readmeH2 }) {
+export function cardProblems({ path, text, itemFolder, readmeH2, plugsPoints = [], requireReceptacles = false }) {
   const id = cardId(path);
   if (!id) return [`置き場が .claude/rules/items/<lib|domains|components>/<name>.md でない`];
   const problems = [];
@@ -62,7 +80,17 @@ export function cardProblems({ path, text, itemFolder, readmeH2 }) {
       const inFolder = p === itemFolder || p.startsWith(`${itemFolder}/`);
       const isConfig = p.startsWith("src/config/") && p.endsWith(`/${configName}`);
       const isOverride = p.startsWith("src/config/") && p.endsWith(`/${id.name}.override.ts`);
-      if (!inFolder && !isConfig && !isOverride) problems.push(`paths ${p} が品目のフォルダ・その設定の外`);
+      const receptacle = receptaclePointsOf(p);
+      if (receptacle) {
+        for (const point of receptacle) if (!plugsPoints.includes(point)) problems.push(`paths ${p} の受け口 ${point} を品目は宣言していない`);
+        continue;
+      }
+      if (!inFolder && !isConfig && !isOverride) problems.push(`paths ${p} が品目のフォルダ・その設定・宣言した受け口の置き場の外`);
+    }
+    if (requireReceptacles) {
+      const covered = new Set(fm.paths.flatMap((p) => receptaclePointsOf(p) ?? []));
+      const missing = plugsPoints.filter((point) => !covered.has(point));
+      if (missing.length) problems.push(`受け口 ${missing.join(", ")} の置き場が paths に無い(${receptaclePath(missing)})`);
     }
   }
 

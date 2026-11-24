@@ -2,6 +2,7 @@
 paths:
   - "src/domains/core/coupon/**"
   - "src/config/domains/coupon.config.ts"
+  - "src/**/plugs/couponSectionTabs/**"
 ---
 # domains/coupon
 what: coupon codes: issue, limits, validity, redeem and history; effects live in consumer handlers by category | entry couponService (services/server/couponService), hooks in hooks/

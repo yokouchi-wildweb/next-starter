@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/lib/serverErrorReport/**"
+  - "src/**/plugs/serverErrorReporters/**"
 ---
 # lib/serverErrorReport
 what: every server failure goes first to one default record (console.error, one JSON line), then to the reporter items (a fork's monitoring, e.g. Sentry), each independent with a time limit | entry @/lib/serverErrorReport (createServerErrorReport) | bound in the generated @/wiring/serverErrorReport (serverErrorReport: onRequestError / report) | Next entry src/instrumentation.ts

@@ -2,6 +2,7 @@
 paths:
   - "src/domains/core/user/**"
   - "src/config/domains/user.config.ts"
+  - "src/**/plugs/{userAdminManageTabs,userCleanupHandlers,userMypageMenu,userReservedNames}/**"
 ---
 # domains/user
 what: users (admins too), roles, status history, display names, delete cleanup | userService

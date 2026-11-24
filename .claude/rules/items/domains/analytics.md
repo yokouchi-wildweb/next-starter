@@ -2,6 +2,7 @@
 paths:
   - "src/domains/core/analytics/**"
   - "src/config/domains/analytics.config.ts"
+  - "src/**/plugs/{analyticsCoinIssuanceSources,analyticsExclusionProviders,analyticsRollupMetrics}/**"
 ---
 # domains/analytics
 what: read-only aggregation over other domains (services, admin API /api/admin/analytics/**, DAU, daily rollups); no admin page upstream, forks build screens

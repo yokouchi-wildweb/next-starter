@@ -2,7 +2,7 @@
 // 書式の検査(lib.ruleFormat.mjs)の振る舞い: 札・README・対応表 existing_parts。実行: pnpm test scripts/workflow/rules/ruleFormat.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cardId, cardProblems, countLineTarget, existingPartRefs, h2Of, readmeProblems } from "./lib.ruleFormat.mjs";
+import { cardId, cardProblems, countLineTarget, existingPartRefs, h2Of, readmeProblems, receptaclePath, receptaclePointsOf } from "./lib.ruleFormat.mjs";
 
 const PATH = ".claude/rules/items/lib/storage.md";
 const FOLDER = "src/lib/storage";
@@ -40,6 +40,26 @@ test("札: frontmatter は paths だけ・paths は品目のフォルダとそ�
   assert.ok(problems(card({ fm: '---\npaths:\n  - "src/lib/storage/**"\ndescription: x\n---\n' })).some((p) => p.includes("paths だけ")));
   assert.ok(problems(card({ fm: '---\npaths:\n  - "src/lib/**"\n---\n' })).some((p) => p.includes("src/lib/** が品目")));
   assert.ok(problems(card({ title: "# storage\n" })).some((p) => p.includes("題")));
+});
+
+test("札: paths に宣言した受け口の置き場を通し、Tier1 では全部を求める(D318)、fork の自分の札には何も言わない", () => {
+  const withPaths = (...extra) => card({ fm: `---\npaths:\n  - "src/lib/storage/**"\n${extra.map((p) => `  - "${p}"\n`).join("")}---\n` });
+  const run = (text, plugsPoints, requireReceptacles) => cardProblems({ path: PATH, text, itemFolder: FOLDER, readmeH2, plugsPoints, requireReceptacles });
+  // 形: 1 つの名前・波かっこ 1 組の並び・地区つき
+  assert.deepEqual(receptaclePointsOf("src/**/plugs/storagePurposes/**"), ["storagePurposes"]);
+  assert.deepEqual(receptaclePointsOf("src/**/plugs/{a,b}/**"), ["a", "b"]);
+  assert.deepEqual(receptaclePointsOf("src/domains/**/plugs/a/**"), ["a"]);
+  assert.equal(receptaclePointsOf("src/**/plugs/a/*.ts"), null);
+  assert.equal(receptaclePath(["b", "a"]), "src/**/plugs/{a,b}/**");
+  assert.equal(receptaclePath(["a"]), "src/**/plugs/a/**");
+  // 宣言した点だけ通る
+  assert.deepEqual(run(withPaths("src/**/plugs/{a,b}/**"), ["a", "b"], true), []);
+  assert.ok(run(withPaths("src/**/plugs/{a,c}/**"), ["a", "b"], false).some((p) => p.includes("受け口 c を品目は宣言していない")));
+  // Tier1: 宣言した点の置き場が無ければ止める、fork(requireReceptacles false): 何も言わない
+  assert.ok(run(withPaths("src/**/plugs/a/**"), ["a", "b"], true).some((p) => p.includes("受け口 b の置き場が paths に無い(src/**/plugs/b/**)")));
+  assert.deepEqual(run(withPaths(), ["a", "b"], false), []);
+  // 点を持たない品目は今までどおり
+  assert.deepEqual(run(withPaths(), [], true), []);
 });
 
 test("札: 欄の順・rules の分け・鍵の重なり", () => {

@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/domains/core/referralReward/**"
+  - "src/**/plugs/{referralRewardRewardGroups,referralRewardRewardHandlers}/**"
 ---
 # domains/referralReward
 what: tracks the delivery of rewards for a completed referral (pending / fulfilled / failed); the reward itself is done by handlers | entry referralRewardService (services/server/referralRewardService.ts), definitions rewardDefinitions.ts

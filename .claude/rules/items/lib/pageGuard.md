@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/lib/pageGuard/**"
+  - "src/**/plugs/pageGuardUser/**"
 ---
 # lib/pageGuard
 what: the generic page guard: range policies in guard.ts beside a layout and the page access of configured loaders, judged by one evaluator (the page version of lib/routeFactory) | closed lib, entry @/lib/pageGuard only: createPageGuard (bound in the generated src/wiring/pageGuard.ts as defineRootGuard)

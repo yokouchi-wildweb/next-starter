@@ -2,6 +2,7 @@
 paths:
   - "src/domains/core/userAcquisition/**"
   - "src/config/domains/userAcquisition.config.ts"
+  - "src/**/plugs/userAcquisitionChannels/**"
 ---
 # domains/userAcquisition
 what: stores the visit touches before signup (UTM, ad click ids, external referrer) in the service DB for first / last-touch and path analysis | public entry lib/classifyVisit (edge-safe), read API @/domains/userAcquisition/services/server

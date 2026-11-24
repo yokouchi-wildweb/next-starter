@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/lib/googleTag/**"
+  - "src/**/plugs/googleTagChannels/**"
 ---
 # lib/googleTag
 what: Google tag (gtag.js) and Google Ads conversion tracking, driven only by NEXT_PUBLIC_* env (unset = no-op); entry @/lib/googleTag (initGoogleTag, GoogleTag, useGoogleAdsConversion), root layout renders @/wiring/googleTag

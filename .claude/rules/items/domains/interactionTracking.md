@@ -2,6 +2,7 @@
 paths:
   - "src/domains/core/interactionTracking/**"
   - "src/config/domains/interactionTracking.config.ts"
+  - "src/**/plugs/interactionTrackingTargetRules/**"
 ---
 # domains/interactionTracking
 what: counts actions per content (target_type, target_id, action), anonymous users included: public ingest /api/interactions (+ /batch for impressions), interactionService on the server, lifetime and daily counters kept forever

@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/domains/core/userLineProfile/**"
+  - "src/**/plugs/userLineProfileWebhookHandlers/**"
 ---
 # domains/userLineProfile
 what: links a signed-in user to a LINE account (user_line_profiles) and receives the LINE webhook | userLineProfileService (@/domains/core/userLineProfile/services/server/userLineProfileService) | the LINE API, OAuth and messages live in @/lib/line

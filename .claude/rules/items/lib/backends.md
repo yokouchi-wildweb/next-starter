@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/lib/backends/**"
+  - "src/**/plugs/backendCapabilities/**"
 ---
 # lib/backends
 what: the shared parts of a backend port's implementations: declaration / adapter types, capability names, billing scales, compat, backendRequirements, the builtin none, the reserved names none / fake, the owner's override slot maker, the startup status task maker | entries @/lib/backends (client-safe), @/lib/backends/node (contract tests), @/lib/backends/points (item type)

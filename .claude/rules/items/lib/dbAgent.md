@@ -2,6 +2,7 @@
 paths:
   - "src/lib/dbAgent/**"
   - "src/config/lib/dbAgent.config.ts"
+  - "src/**/plugs/{dbAgentPromptFragments,dbAgentSuffixProviders,dbAgentTools}/**"
 ---
 # lib/dbAgent
 what: data layer of the admin DB investigation agent (natural language → read-only PostgreSQL) on @/lib/ai: runDbAgent, POST /api/admin/db-agent (SSE), streamDbAgentChat; entries @/lib/dbAgent (client-safe), @/lib/dbAgent/server. No UI

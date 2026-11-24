@@ -2,6 +2,7 @@
 paths:
   - "src/domains/core/pairedDevice/**"
   - "src/config/domains/pairedDevice.config.ts"
+  - "src/**/plugs/pairedDeviceKinds/**"
 ---
 # domains/pairedDevice
 what: shared devices (store tablets, kiosks) registered as a principal apart from user accounts, authenticated by a long-lived device token cookie; routes createDeviceRoute (@/wiring/apiRoute), pages deviceGuard / principalGuard (services/server/session), hooks @/domains/pairedDevice/hooks

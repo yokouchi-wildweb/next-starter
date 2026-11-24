@@ -2,6 +2,7 @@
 paths:
   - "src/lib/routeFactory/**"
   - "src/config/lib/routeFactory.config.ts"
+  - "src/**/plugs/{routeFactoryDevice,routeFactoryMaintenance,routeFactoryRateLimit,routeFactoryUser}/**"
 ---
 # lib/routeFactory
 what: the generic API route factories (createApiRoute, createDomainRoute / createDomainIdRoute, createMeRoute, createDeviceRoute, enforceAccessRule) | routes import the wired version @/wiring/apiRoute (src/wiring/apiRoute.ts)

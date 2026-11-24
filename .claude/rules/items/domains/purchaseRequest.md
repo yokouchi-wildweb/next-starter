@@ -2,6 +2,7 @@
 paths:
   - "src/domains/core/purchaseRequest/**"
   - "src/config/domains/purchaseRequest.config.ts"
+  - "src/**/plugs/{purchaseRequestCompleteHooks,purchaseRequestCompletionStrategies}/**"
 ---
 # domains/purchaseRequest
 what: external-payment purchases (purchase_requests): sessions, transitions, double-purchase guards | fulfilment = a strategy per purchase_type (built-in wallet_topup)

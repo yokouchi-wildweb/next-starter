@@ -2,6 +2,7 @@
 paths:
   - "src/domains/core/admin/**"
   - "src/config/domains/admin.config.ts"
+  - "src/**/plugs/{adminBulkActions,adminDashboardSections,adminMenuCategories,adminMenuItems}/**"
 ---
 # domains/admin
 what: admin screen parts: sidebar menu (menu/), /admin dashboard (dashboard/, entry @/domains/admin/dashboard), fetch bodies of admin list / edit / create / sort (services/server/screenData/)

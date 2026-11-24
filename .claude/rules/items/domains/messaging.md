@@ -2,6 +2,7 @@
 paths:
   - "src/domains/core/messaging/**"
   - "src/config/domains/messaging.config.ts"
+  - "src/**/plugs/{messagingCategories,messagingCategoryGroups,messagingChannels,messagingEnrichers,messagingLayoutEmails,messagingLayoutInApps,messagingLayouts,messagingSources,messagingSubscribers}/**"
 ---
 # domains/messaging
 what: messages to users (email, inbox, LINE, fork channels): definitions plugs/messages/<name>.ts sent by messagingService (@/domains/messaging/services/server), recorded as dispatches and deliveries

@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/lib/startup/**"
+  - "src/**/plugs/startupTasks/**"
 ---
 # lib/startup
 what: runs the work each server start needs once (e.g. a monitoring SDK's init), each item on its own with a time limit | closed lib: entry "." @/lib/startup (createStartup, wireStartup, StartupTask), entry "./points" @/lib/startup/points (the contract type StartupTask, types only)

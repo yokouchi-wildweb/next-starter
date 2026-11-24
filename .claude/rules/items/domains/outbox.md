@@ -2,6 +2,7 @@
 paths:
   - "src/domains/core/outbox/**"
   - "src/config/domains/outbox.config.ts"
+  - "src/**/plugs/outboxHandlers/**"
 ---
 # domains/outbox
 what: the outbox: a durable external side effect (provider sync, a delivery notice) is written as one row in the same transaction as the DB update (enqueueOutbox / withOutbox, @/domains/outbox/services/server), pushed once after commit (kickOutbox) and guaranteed by the budgeted cron outbox-dispatch

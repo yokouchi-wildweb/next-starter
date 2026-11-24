@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/domains/core/adminCommand/**"
+  - "src/**/plugs/{adminCommandCategories,adminCommandNavigationItems,adminCommandPlugins}/**"
 ---
 # domains/adminCommand
 what: the admin command palette (Ctrl/Cmd + Shift + Alt/Option + A, admins only) with categories, plugins and navigation items | entry @/domains/core/adminCommand (useAdminCommand), types in its base/types and types

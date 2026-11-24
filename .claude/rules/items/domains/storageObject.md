@@ -2,6 +2,7 @@
 paths:
   - "src/domains/core/storageObject/**"
   - "src/config/domains/storageObject.config.ts"
+  - "src/**/plugs/storageObjectPurposes/**"
 ---
 # domains/storageObject
 what: the file ledger storage_objects: upload grants, commit (check, strip images re-rendered), discard, private reads, binding to business rows | storageObjectService, routes /api/me/storage/uploads, /api/storage/objects, /api/storage/purposes | parts in @/lib/storage

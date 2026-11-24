@@ -2,6 +2,7 @@
 paths:
   - "src/lib/mail/**"
   - "src/config/lib/mail.config.ts"
+  - "src/**/plugs/mail/**"
 ---
 # lib/mail
 what: email sending (Resend / SendGrid) via send(), MailSendError, provider webhook verify + normalize, React Email frame parts and generated colors (@/lib/mail)

@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/domains/core/batchJob/**"
+  - "src/**/plugs/batchJobJobHandlers/**"
 ---
 # domains/batchJob
 what: a generic base that processes large data in chunks with progress tracking, idempotency and crash recovery; entry @/domains/batchJob/services/server (batchJobService), handler types @/domains/core/batchJob/types
