@@ -10,7 +10,7 @@ import { RECAPTCHA_DEBUG, RECAPTCHA_V2_INTERNALS, RECAPTCHA_V3_INTERNALS, verify
 import { BackendNoneSelectedError } from "@/lib/backends";
 import { BACKEND_NOT_CONFIGURED_CODE, BACKEND_NOT_SELECTED_CODE, isBackendNotConfiguredError, isDomainError, toDomainErrorBody } from "@/lib/errors";
 import { readClientIp } from "@/lib/request";
-import { runWithUserDirtyTracking } from "@/lib/userDirty";
+import { runWithUserDirtyTracking } from "@/lib/userDirty/server";
 import { runWithCacheTags } from "@/lib/cacheTags/server";
 
 import type { RouteGateDeps, RouteRateLimitDeps, RouteServerErrorDeps, RouteUserBase, RouteUserDeps } from "./deps";

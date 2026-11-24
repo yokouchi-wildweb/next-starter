@@ -15,7 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getAuditContext, runWithAuditContext } from "@/lib/audit/server";
 import { isDomainError, toDomainErrorBody } from "@/lib/errors";
-import { runWithUserDirtyTracking } from "@/lib/userDirty";
+import { runWithUserDirtyTracking } from "@/lib/userDirty/server";
 import { runWithCacheTags } from "@/lib/cacheTags/server";
 
 import type { ApiRouteBaseConfig, NextRouteHandler, RouteAccess, RouteCore } from "./createApiRoute";

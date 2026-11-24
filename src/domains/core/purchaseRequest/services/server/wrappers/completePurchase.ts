@@ -14,7 +14,7 @@ import { gate } from "@/featureGate";
 import { PURCHASE_DISCOUNT_CATEGORY } from "../../../types/couponEffect";
 import { commitQuota } from "@/domains/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper";
 import { getPurchaseCompleteHooks } from "../hooks/purchaseCompleteHookRegistry";
-import { markUserDirty } from "@/lib/userDirty";
+import { markUserDirty } from "@/lib/userDirty/server";
 import { getPurchaseCompletionStrategy } from "../completion";
 import { findByWebhookIdentifier } from "./purchaseHelpers";
 import type { CompletePurchaseParams, CompletePurchaseResult } from "./purchaseService";

@@ -15,7 +15,7 @@
 
 該当するなら、全件再計算を捨てて 3 層構成に置き換える:
 
-- 1. event-driven: 業務 TX 完了直後に対象 id を再計算。即時。部品 `@/lib/userDirty`（既存・変更不要）
+- 1. event-driven: 業務 TX 完了直後に対象 id を再計算。即時。部品 `@/lib/userDirty/server`（既存・変更不要）
 - 2. dirty 走査: ソースの `updated_at` ウォータマークから「変わった id」だけ再計算。cron 間隔（15 分等）。本ファクトリの dirty phase
 - 3. trickle: read-model の最古から少しずつ全件をなめる安全網。数日で一巡。本ファクトリの trickle phase
 

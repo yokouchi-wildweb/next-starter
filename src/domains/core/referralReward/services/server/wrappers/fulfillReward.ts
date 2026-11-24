@@ -6,7 +6,7 @@ import type { ReferralReward } from "../../../entities/model";
 import type { Referral } from "@/domains/core/referral/entities/model";
 import { getRewardDefinition } from "../../../utils/rewardDefinitionLookup";
 import { getRewardHandler } from "../rewardHandlerRegistry";
-import { markUserDirty } from "@/lib/userDirty";
+import { markUserDirty } from "@/lib/userDirty/server";
 import type { TransactionClient } from "@/lib/drizzle";
 import { eq, and } from "drizzle-orm";
 import { sql } from "drizzle-orm";

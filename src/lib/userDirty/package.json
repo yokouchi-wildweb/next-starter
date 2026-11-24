@@ -1,6 +1,6 @@
 {
   "exports": {
-    ".": "./index.ts"
+    "./server": "./server.ts"
   },
   "libs": ["appEnv"]
 }

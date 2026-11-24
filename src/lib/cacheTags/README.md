@@ -57,5 +57,5 @@ markCacheTags(cacheTagOf("post"), cacheTagOf("post", id));
 
 ## Related
 
-- `src/lib/userDirty`: 同じ形(要求の範囲に集めてコミットの後に流す)の再計算の回収口
+- `src/lib/userDirty`: 同じ形(要求の範囲に集めてコミットの後に流す)の再計算の回収口(入口 `@/lib/userDirty/server`)
 - `src/lib/requestMemo`: 1 つの要求の中だけのメモ化(要求をまたぐキャッシュはこの lib の側)
