@@ -43,6 +43,7 @@ import type {
 import type { AdminDispatchCategoryOption, AdminDispatchFilterOptions } from "@/domains/core/messaging/services/server/admin/readDispatches";
 import type { MessagePreview } from "@/domains/core/messaging/services/server/sendMessage/sender";
 import type { ContinueSendingResult } from "@/domains/core/messaging/services/server/sweep/sweep";
+import type { DispatchSentBy } from "@/domains/core/messaging/types/dispatchSentBy";
 
 const BASE = "/api/admin/messaging";
 
@@ -85,8 +86,8 @@ export type AdminDispatchFilters = {
   source?: string;
   /** 送った人の利用者 id(選択肢は getAdminDispatchFilters の actors。画面は name を出す) */
   actor?: string;
-  /** admin = 運営(管理者)が送った物だけ(D210) */
-  sentBy?: "admin";
+  /** admin = 手動送信 / system = 自動送信 / 無し = 全部(D210、types/dispatchSentBy.ts) */
+  sentBy?: DispatchSentBy;
   /** 件名の文字検索(送信チャンネルごとの件名・題のどれかに含む。1〜100 字) */
   q?: string;
   /** 削除した送信: exclude = 出さない(既定)/ only = 削除した送信だけ / include = 両方(D88) */

@@ -4,7 +4,7 @@
 //   カテゴリー(必須、bulk で送れる種別 direct・promotion だけ)、送り元、記録の宛先は利用者を解くだけ(afterSend は呼ばない)、監査 1 行、選択肢
 // - 送信 1 件の連絡定義の表示名 definitionLabel: 定義の送信は上書きの後の label、自由連絡・知らない鍵は null(鍵は出さない、D46)
 // - DTO の前の送る口の送信 = レイアウト(layout)が無い送信。自由連絡の送信(message_key null)は前の送信ではない
-// - 読む口: 絞り込みの検査(送り元・送った人・運営が送った物だけ・件名の文字、D210)、keyset の印、DTO(本文は記録の段次第、
+// - 読む口: 絞り込みの検査(送り元・送った人・手動送信 / 自動送信・件名の文字、D210)、keyset の印、DTO(本文は記録の段次第、
 //   provider の生の値と誤りの文は出さない、前の送る口の送信)、一覧の絞りの選択肢(送り元の表示名・送った人の名前)
 // - 詳細の宛先: 宛先の指定と人数だけ(宛先の一覧・受信者ごとの値は返さない、D210)
 // - グループ宛ての送信: 一覧・1 件に宛先のグループ { id(値だけ), name }、名前は 1 ページに 1 回引く、引けなければ null、detail.target は形と人数だけ
@@ -507,13 +507,16 @@ test("読む口: 1 件多く引いて次の印を作る、絞り込みを store 
   await listDispatches(deps, { cursor: first.nextCursor! });
   assert.deepEqual((seen[1] as { after: unknown }).after, { createdAt: rows[1].createdAt, id: "d2" });
   await assert.rejects(listDispatches(deps, { status: "nope" } as never), (e: unknown) => e instanceof DomainError && e.status === 400);
-  // 送り元・送った人・運営が送った物だけ・件名の文字(D210)。字は前後の空白を落として store へ、keyset はそのまま
+  // 送り元・送った人・手動送信(sentBy admin)・件名の文字(D210)。字は前後の空白を落として store へ、keyset はそのまま
   await listDispatches(deps, { source: "messaging.adminSend", actor: "admin1", sentBy: "admin", q: "  セール ", limit: 2 });
   assert.deepEqual(seen.at(-1), {
     filter: { source: "messaging.adminSend", actor: "admin1", sentBy: "admin", q: "セール", deleted: "exclude" },
     after: null,
     limit: 3,
   });
+  // 自動送信(sentBy system)も store へそのまま
+  await listDispatches(deps, { sentBy: "system" });
+  assert.deepEqual((seen.at(-1) as { filter: unknown }).filter, { sentBy: "system", deleted: "exclude" });
   for (const bad of [{ sentBy: "user" }, { q: "   " }, { q: "あ".repeat(101) }, { source: "" }, { actor: "x".repeat(201) }]) {
     await assert.rejects(listDispatches(deps, bad as never), (e: unknown) => e instanceof DomainError && e.status === 400, JSON.stringify(bad));
   }

@@ -11,7 +11,7 @@
 
 - `GET /api/admin/messaging/users/[userId]/history?cursor&limit&sentBy`（管理者、門の外 = 送信の管理画面を閉じても読める）→ `messagingService.listUserMessageHistory(userId, { cursor, limit, sentBy })`
   - client `getAdminUserMessageHistory`（`services/client/userHistoryClient.ts`）、公開の hook `useUserMessageHistory(userId, { limit?, enabled?, observerOptions? })`（カーソルの無限スクロール）。上流は画面を出さない（利用者の管理画面などに fork が置く）
-  - `limit` 既定 50、最大 100。`sentBy`: `admin` = 管理者が送った送信だけ（送信の `actor_type` が admin。送信の一覧の「運営が送った物だけ」D210 と同じ線）/ `system` = それ以外（連絡の自動の送信: 登録・購入の確認など）/ 無し = 全部。不正な利用者 id・cursor・limit・sentBy = 400、居ない利用者 = 404
+  - `limit` 既定 50、最大 100。`sentBy`: `admin` = 管理者が送った送信だけ（送信の `actor_type` が admin。送信の一覧の手動送信 / 自動送信の切り替え D210 と同じ線 = `../dispatchSentBy.ts` の `dispatchSentBySql`）/ `system` = それ以外（連絡の自動の送信: 登録・購入の確認など）/ 無し = 全部。不正な利用者 id・cursor・limit・sentBy = 400、居ない利用者 = 404
   - 返す形 `{ items: UserMessageHistoryItem[], nextCursor }`。1 行 = `type`・`dispatchId`・`messageKey`・`kind`・`source`・`actor`（`{ id, type }`、送信の詳細と同じ形。`type` admin = 管理者が送った）・`reason`（送信の理由・備考、無ければ null）・`headings`・`channels`・`createdAt`
     - `type: "dispatch"`: 配達を持つ送信。`channels` = この利用者への配達（`{ channel, status, sentAt }`、作った順）、`createdAt` = この利用者への最後の配達を作った時刻
     - `type: "sharedInApp"`: 共有のお知らせ。`channels` は `[{ channel: "inApp", status: null, sentAt: null }]`（配達の状態が無い）、`createdAt` = 公開の時刻

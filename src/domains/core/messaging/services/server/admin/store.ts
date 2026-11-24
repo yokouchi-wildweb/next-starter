@@ -18,6 +18,7 @@ import { MessageDispatchTable } from "../../../entities/drizzle";
 import { MessageInboxItemTable, MessageInboxReadTable } from "../../../entities/inbox";
 import type { MessageDeliveryStatus } from "../../../entities/model";
 import { isDispatchId } from "../dispatchId";
+import { dispatchSentBySql } from "../dispatchSentBy";
 import type { DispatchReadersStore } from "./dispatchReaders";
 import type { AdminDispatchStore } from "./readDispatches";
 import { UNDELIVERED_STATUSES, type SendResultsStore } from "./sendResults";
@@ -35,7 +36,8 @@ export const drizzleAdminDispatchStore: AdminDispatchStore = {
     if (filter.status) conditions.push(eq(t.status, filter.status));
     if (filter.source) conditions.push(eq(t.source, filter.source));
     if (filter.actor) conditions.push(eq(t.actor_id, filter.actor));
-    if (filter.sentBy === "admin") conditions.push(eq(t.actor_type, "admin"));
+    const sentBy = dispatchSentBySql(filter.sentBy);
+    if (sentBy) conditions.push(sentBy);
     if (filter.q) conditions.push(jsonbTextContains(t.headings, filter.q, "children"));
     // 削除した送信(D88): 既定は出さない / only = 削除した送信だけ / include = 両方
     if (filter.deleted === "only") conditions.push(isNotNull(t.deleted_at));

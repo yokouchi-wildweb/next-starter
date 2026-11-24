@@ -19,7 +19,7 @@ export async function AdminMessagingDispatchListScreen(props: ScreenProps) {
   await loadAdminMessagingDispatchListScreen(props);
 
   return (
-    // 「新規送信」は一覧の上の段の右(絞り込みの枠の右。AdminDispatchList が出す)
+    // 手動送信 / 自動送信の切り替えと「新規送信」(上の行の右端)は AdminDispatchList が出す
     <AdminPage title="メッセージ管理" center={<AdminMessagingSectionTabs variant="header" />}>
       <Section>
         <AdminDispatchList />

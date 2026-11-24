@@ -12,11 +12,12 @@ import axios from "axios";
 
 import { normalizeHttpError } from "@/lib/errors";
 
-import type { UserHistorySentBy, UserMessageHistoryItem } from "@/domains/core/messaging/services/server/history/dto";
+import type { UserMessageHistoryItem } from "@/domains/core/messaging/services/server/history/dto";
+import type { DispatchSentBy } from "@/domains/core/messaging/types/dispatchSentBy";
 
 const BASE = "/api/admin/messaging";
 
-export type { UserHistorySentBy, UserMessageHistoryItem };
+export type { UserMessageHistoryItem };
 
 /** 利用者ごとの履歴の 1 ページ */
 export type UserMessageHistoryPage = { items: UserMessageHistoryItem[]; nextCursor: string | null };
@@ -24,7 +25,7 @@ export type UserMessageHistoryPage = { items: UserMessageHistoryItem[]; nextCurs
 /** 1 人の利用者の連絡の履歴(時刻の新しい順、カーソル。limit 既定 50、最大 100)。居ない利用者は 404 */
 export async function getAdminUserMessageHistory(
   userId: string,
-  params: { cursor?: string | null; limit?: number; sentBy?: UserHistorySentBy } = {},
+  params: { cursor?: string | null; limit?: number; sentBy?: DispatchSentBy } = {},
 ): Promise<UserMessageHistoryPage> {
   try {
     const res = await axios.get<UserMessageHistoryPage>(`${BASE}/users/${encodeURIComponent(userId)}/history`, {

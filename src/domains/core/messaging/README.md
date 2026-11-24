@@ -102,7 +102,7 @@ export const category: MessageCategory = { key: "itemSoldInApp", label: "出品�
 HTTP の口と返す形は口のフォルダの README:
 
 - 送る口（`sendMessage` / `sendMessageToMany` / `sendFreeMessage`・プレビュー・見込み・間引き・本文の残し方・送信の結果）→ services/server/sendMessage/README.md
-- 管理の口 `/api/admin/messaging/**`（自由連絡を送る・一括送信・定義連絡を管理者が送る `definitions/**`（全員・ロール・グループの人数の見込み `definitions/estimate` も）・送信の結果 `send-results/[dispatchId]`・1 人の受け取れる送信チャンネル `recipients/[userId]/channels`・送信の読む口（一覧の絞り 送り元・送った人・運営が送った物だけ・件名の検索と、その選択肢 `dispatches/filters`・既読した利用者 `dispatches/[id]/readers`）・送信の操作・予約の直し（`PATCH dispatches/[id]` と直しの材料 `dispatches/[id]/edit-options`）・続きを送る・利用者ごとの履歴 `users/[userId]/history`）→ services/server/admin/README.md
+- 管理の口 `/api/admin/messaging/**`（自由連絡を送る・一括送信・定義連絡を管理者が送る `definitions/**`（全員・ロール・グループの人数の見込み `definitions/estimate` も）・送信の結果 `send-results/[dispatchId]`・1 人の受け取れる送信チャンネル `recipients/[userId]/channels`・送信の読む口（一覧の絞り 手動送信 / 自動送信（sentBy）・送り元・送った人・件名の検索と、その選択肢 `dispatches/filters`・既読した利用者 `dispatches/[id]/readers`）・送信の操作・予約の直し（`PATCH dispatches/[id]` と直しの材料 `dispatches/[id]/edit-options`）・続きを送る・利用者ごとの履歴 `users/[userId]/history`）→ services/server/admin/README.md
 - テンプレート `/api/admin/messaging/templates/**`・レイアウトのプレビュー `/api/admin/messaging/layouts/preview` → services/server/templates/README.md / テキストの編集 `/api/admin/messaging/overrides/**` → services/server/overrides/README.md
 - 本人の受け取り箱 `/api/me/messaging/inbox/**` → services/server/inbox/README.md / 好み `/api/me/messaging/preferences` → services/server/preferences/README.md / 端末の帳簿 `/api/me/messaging/endpoints` → services/server/endpoints/README.md
 - 配信停止 `/api/messaging/unsubscribe` と確認のページ `/unsubscribe` → services/server/unsubscribe/README.md

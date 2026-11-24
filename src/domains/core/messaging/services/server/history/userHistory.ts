@@ -18,16 +18,13 @@ import { DomainError } from "@/lib/errors";
 import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import type { InboxViewer } from "../inbox/visibility";
 import { decodeCursor, encodeCursor, type AdminCursor, type AdminPage } from "../admin/readDispatches";
-import { toUserHistoryItem, toUserSharedInAppItem, type UserHistorySentBy, type UserMessageHistoryItem } from "./dto";
+import { DISPATCH_SENT_BY, type DispatchSentBy } from "../../../types/dispatchSentBy";
+import { toUserHistoryItem, toUserSharedInAppItem, type UserMessageHistoryItem } from "./dto";
 
 export type UserHistoryDispatch = Pick<
   MessageDispatch,
   "id" | "message_key" | "kind" | "source" | "headings" | "actor_id" | "actor_type" | "reason"
 >;
-
-/** 誰が送った送信か(型は dto.ts: client も読む) */
-export const USER_HISTORY_SENT_BY = ["admin", "system"] as const satisfies readonly UserHistorySentBy[];
-export type { UserHistorySentBy };
 
 /** 店が返す送信の 1 行: 送信と、その送信のこの利用者への配達(作った順)。at = 最後の配達を作った時刻 */
 export type UserHistoryRow = {
@@ -47,15 +44,15 @@ export type UserHistoryStore = {
   /** 見る人(受け取り箱の規則が使うロール)。居ない利用者は null */
   findViewer: (userId: string) => Promise<InboxViewer | null>;
   /** その利用者への配達を持つ送信((at, 送信の id) の降順) */
-  listUserDispatches: (userId: string, after: AdminCursor | null, limit: number, sentBy: UserHistorySentBy | null) => Promise<UserHistoryRow[]>;
+  listUserDispatches: (userId: string, after: AdminCursor | null, limit: number, sentBy: DispatchSentBy | null) => Promise<UserHistoryRow[]>;
   /** 共有の行(user_id null)のうち viewer の受け取り箱に見える物 */
-  listSharedInApp: (viewer: InboxViewer, after: AdminCursor | null, limit: number, sentBy: UserHistorySentBy | null) => Promise<UserSharedInAppRow[]>;
+  listSharedInApp: (viewer: InboxViewer, after: AdminCursor | null, limit: number, sentBy: DispatchSentBy | null) => Promise<UserSharedInAppRow[]>;
 };
 
 export const UserMessageHistoryQuerySchema = z.object({
   cursor: z.string().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
-  sentBy: z.enum(USER_HISTORY_SENT_BY).optional(),
+  sentBy: z.enum(DISPATCH_SENT_BY).optional(),
 });
 export type UserMessageHistoryQuery = z.input<typeof UserMessageHistoryQuerySchema>;
 

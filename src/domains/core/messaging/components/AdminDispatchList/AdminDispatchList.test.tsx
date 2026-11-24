@@ -112,6 +112,23 @@ mock.module("@/components/Input/Select", {
     },
   },
 });
+// 送った側の切り替え: 選択肢を残す
+const radios: Record<string, { options?: { value: string; label: string }[]; value?: unknown }> = {};
+mock.module("@/components/Input/RadioGroupInput", {
+  namedExports: {
+    RadioGroupInput: (props: { name?: string; options?: { value: string; label: string }[]; value?: unknown }) => {
+      if (props.name) radios[props.name] = props;
+      return createElement("span", { "data-name": props.name });
+    },
+  },
+});
+// 絞り込みの Popover: 中の欄も描く(開閉は検査しない)
+mock.module("@/components/Overlays/Popover", {
+  namedExports: {
+    Popover: (props: { trigger?: ReactNode; children?: ReactNode }) =>
+      createElement("div", { "data-testid": "popover" }, props.trigger, props.children),
+  },
+});
 mock.module("@/components/Button/Button", {
   namedExports: {
     Button: (props: { children?: ReactNode; onClick?: () => void }) => createElement("button", { type: "button", onClick: props.onClick }, props.children),
@@ -277,14 +294,19 @@ const delivery = (over: Partial<AdminDeliveryRow> & Pick<AdminDeliveryRow, "id">
 });
 
 let kind = "";
+let sentBy: "admin" | "system" = "admin";
 let listItems: AdminDispatchDetail[] = [DISPATCH];
 mock.module("@/domains/core/messaging/hooks/useAdminDispatchFilters", {
   namedExports: {
     useAdminDispatchFilters: () => ({
-      filters: {},
-      apply: noop,
-      clear: noop,
+      filters: { sentBy: "admin" },
+      detailCount: kind ? 1 : 0,
+      clearAll: noop,
       fields: {
+        sentBy,
+        setSentBy: noop,
+        period: "all",
+        setPeriod: noop,
         fromDate: "",
         setFromDate: noop,
         toDate: "",
@@ -303,8 +325,6 @@ mock.module("@/domains/core/messaging/hooks/useAdminDispatchFilters", {
         setActor: noop,
         subject: "",
         setSubject: noop,
-        adminOnly: false,
-        setAdminOnly: noop,
       },
     }),
     DISPATCH_SUBJECT_QUERY_MAX: 100,
@@ -399,6 +419,7 @@ before(async () => {
 after(() => dom.window.close());
 beforeEach(() => {
   kind = "";
+  sentBy = "admin";
   nav.search = "";
   routerCalls.length = 0;
   detail = { ...DISPATCH };
@@ -475,12 +496,31 @@ test("既読数の列: 門 messagingAnalytics が閉なら集計の口を呼ば�
   await open.unmount();
 });
 
-test("一覧の絞り: 送り元・送った人は表示名・名前の選択肢、件名の欄と「運営が送った物だけ」がある(D210)", async () => {
+test("一覧の絞り: 手動送信 / 自動送信の切り替え、送り元・送った人は表示名・名前の選択肢、件名の欄。自動送信は送った人の欄を出さない(D210)", async () => {
   const view = await render(createElement(AdminDispatchList));
+  const side = radios["dispatch-filter-sent-by"];
+  assert.deepEqual(side?.options?.map((option) => option.label), ["手動送信", "自動送信"]);
+  assert.equal(side?.value, "admin", "既定 = 手動送信");
   assert.deepEqual(selects["dispatch-filter-source"].options, [{ value: "messaging.admin.free", label: "管理画面からの送信" }]);
   assert.deepEqual(selects["dispatch-filter-actor"].options, [{ value: "11111111-1111-4111-8111-111111111111", label: "運営 太郎" }]);
   assert.ok(view.container.querySelector("#dispatch-filter-subject"), "件名の欄");
-  assert.match(view.container.querySelector('[data-slot="dispatch-filter-actions"]')?.textContent ?? "", /運営が送った物だけ/);
+  assert.equal(view.container.querySelector('[data-slot="dispatch-filter-chips"]'), null, "絞り込みが無ければ札を出さない");
+  await view.unmount();
+
+  sentBy = "system";
+  delete selects["dispatch-filter-actor"];
+  const auto = await render(createElement(AdminDispatchList));
+  assert.equal(selects["dispatch-filter-actor"], undefined, "自動送信は送った人で絞らない");
+  await auto.unmount();
+});
+
+test("一覧の絞り: かけている詳しい絞り込みは表示名の札で出る(鍵は出さない)", async () => {
+  kind = "promotion";
+  const view = await render(createElement(AdminDispatchList));
+  const chips = view.container.querySelector('[data-slot="dispatch-filter-chips"]')?.textContent ?? "";
+  assert.match(chips, /種別:プロモーション/);
+  assert.match(chips, /すべて解除/);
+  assert.doesNotMatch(chips, /promotion/);
   await view.unmount();
 });
 

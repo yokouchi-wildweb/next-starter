@@ -11,6 +11,7 @@ import { categoryAdminLabel, MESSAGE_KINDS, type MessageCategory, type MessageKi
 
 import type { MessageDelivery, MessageDispatch } from "../../../entities/model";
 import { MESSAGE_DELIVERY_STATUSES, MESSAGE_DISPATCH_STATUSES } from "../../../entities/schema";
+import { DISPATCH_SENT_BY } from "../../../types/dispatchSentBy";
 import { assertAdminActor, type AdminCheckDeps } from "./assertAdmin";
 import { operationFlags, type DispatchPolicy } from "./operations";
 import { ADMIN_SEND_MAX_USERS } from "./send";
@@ -46,8 +47,8 @@ export const ListDispatchesQuerySchema = z.object({
   source: z.string().trim().min(1).max(200).optional(),
   /** 送った人の利用者 id(選択肢は dispatchFilterOptions の actors) */
   actor: z.string().trim().min(1).max(200).optional(),
-  /** admin = 運営(管理者)が送った物だけ(actor_type admin。D210)。無ければ全部(連絡の自動の送信も) */
-  sentBy: z.enum(["admin"]).optional(),
+  /** admin = 手動送信(actor_type admin)/ system = 自動送信(それ以外)。無ければ全部(D210、types/dispatchSentBy.ts) */
+  sentBy: z.enum(DISPATCH_SENT_BY).optional(),
   /** 件名の文字検索(送信チャンネルごとの件名・題 headings のどれかに含む。大文字小文字を区別しない、字そのまま) */
   q: z.string().trim().min(1).max(100).optional(),
   /** 削除した送信(D88): exclude = 出さない(既定)/ only = 削除した送信だけ / include = 両方 */

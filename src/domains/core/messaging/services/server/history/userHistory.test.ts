@@ -13,11 +13,11 @@ import { DomainError } from "@/lib/errors";
 import type { MessageKind } from "@/lib/messaging";
 
 import type { AdminCursor } from "../admin/readDispatches";
+import type { DispatchSentBy } from "../../../types/dispatchSentBy";
 import { isVisible, type InboxViewer, type VisibilityFacts } from "../inbox/visibility";
 import {
   listUserMessageHistory,
   type UserHistoryRow,
-  type UserHistorySentBy,
   type UserHistoryStore,
   type UserSharedInAppRow,
 } from "./userHistory";
@@ -88,10 +88,10 @@ function after(key: { createdAt: Date; id: string }, cursor: AdminCursor | null)
   return diff < 0 || (diff === 0 && key.id < cursor.id);
 }
 
-type Call = { userId: string; after: AdminCursor | null; limit: number; sentBy: UserHistorySentBy | null };
+type Call = { userId: string; after: AdminCursor | null; limit: number; sentBy: DispatchSentBy | null };
 
 /** 店の sentBy の写し(admin = actor_type admin / system = それ以外) */
-function sentByMatches(actorType: string | null, sentBy: UserHistorySentBy | null): boolean {
+function sentByMatches(actorType: string | null, sentBy: DispatchSentBy | null): boolean {
   if (sentBy === "admin") return actorType === "admin";
   if (sentBy === "system") return actorType !== "admin";
   return true;

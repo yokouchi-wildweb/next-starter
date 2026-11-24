@@ -10,9 +10,6 @@ import type { MessageChannelTextMap } from "../../../entities/schema";
 import { headingsOf } from "../admin/dispatchDto";
 import type { UserHistoryDispatch, UserHistoryRow, UserSharedInAppRow } from "./userHistory";
 
-/** 誰が送った送信か(admin = 送信の actor_type が admin / system = それ以外)。履歴の条件 sentBy */
-export type UserHistorySentBy = "admin" | "system";
-
 /** その送信のその利用者への 1 送信チャンネルの配達 */
 export type UserMessageHistoryChannel = {
   channel: string;

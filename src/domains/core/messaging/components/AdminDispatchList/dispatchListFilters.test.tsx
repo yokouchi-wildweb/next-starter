@@ -1,6 +1,8 @@
 // 送信の一覧の絞りの流れの検査(jsdom の上で hook を描く。client service と無限スクロールの土台は偽物)。
-// - 送り元・送った人・件名・運営が送った物だけ(D210)が「絞り込み」で確定し、送信の一覧の口(カーソル)へ source / actor / q / sentBy で届く
-// - 件名は前後の空白を落とし、空なら送らない・100 字で切る / クリアで全部が空に戻る
+// - 既定は手動送信(sentBy admin、D210)。選んだ絞り込みはすぐ送信の一覧の口(カーソル)へ source / actor / sentBy で届く
+// - 件名は打ち終えて待ってから q で届く。前後の空白を落とし、空なら送らない・100 字で切る
+// - 自動送信(sentBy system)は送った人で絞らない / すべて解除は送った側を残して全部を空に戻す
+// - 期間の区切り: 今日を含む日数の 0 時から / 指定 = 日付の from・翌日の 0 時(未満)
 // - 絞りの選択肢の口: 送り元は表示名、送った人は名前で並べ、鍵・id は値にだけ(D46)。名前の無い物は決まった文
 // 実行: pnpm test src/domains/core/messaging/components/AdminDispatchList/dispatchListFilters.test.tsx
 import { after, before, beforeEach, mock, test } from "node:test";
@@ -112,44 +114,82 @@ test("dispatchSubjectQueryOf: 前後の空白を落とす・空は undefined・1
   assert.equal(filtersMod.dispatchSubjectQueryOf("あ".repeat(120))?.length, 100);
 });
 
-test("送り元・送った人・件名・運営が送った物だけは「絞り込み」で確定し、一覧の口へ届く", async () => {
+/** 件名の入力が一覧に効くまで待つ */
+const waitSubject = () => new Promise((resolve) => setTimeout(resolve, filtersMod.DISPATCH_SUBJECT_DEBOUNCE_MS + 50));
+
+test("dispatchPeriodStartOf: 今日を含む日数の最初の日の 0 時。すべて・指定は undefined", () => {
+  const now = new Date(2026, 10, 25, 15, 30);
+  assert.equal(filtersMod.dispatchPeriodStartOf("today", now), new Date(2026, 10, 25).toISOString());
+  assert.equal(filtersMod.dispatchPeriodStartOf("7d", now), new Date(2026, 10, 19).toISOString());
+  assert.equal(filtersMod.dispatchPeriodStartOf("30d", now), new Date(2026, 9, 27).toISOString());
+  assert.equal(filtersMod.dispatchPeriodStartOf("all", now), undefined);
+  assert.equal(filtersMod.dispatchPeriodStartOf("custom", now), undefined);
+});
+
+test("既定は手動送信。選んだ絞り込みはすぐ一覧の口へ届き、件名は待ってから届く", async () => {
   const view = await renderHook(useFiltersAndList);
+  assert.equal((await fetchFirstPage()).sentBy, "admin", "既定 = 手動送信(sentBy admin)");
   await view.run(() => {
     const { fields } = view.get();
     fields.setSource("messaging.admin.free");
     fields.setActor("11111111-1111-4111-8111-111111111111");
     fields.setSubject("  春のお知らせ ");
-    fields.setAdminOnly(true);
   });
-  // 確定する前は送らない
-  assert.deepEqual(view.get().filters, {});
-  const before = await fetchFirstPage();
-  assert.equal(before.source, undefined);
-  assert.equal(before.q, undefined);
+  const picked = await fetchFirstPage();
+  assert.equal(picked.source, "messaging.admin.free");
+  assert.equal(picked.actor, "11111111-1111-4111-8111-111111111111");
+  assert.equal(picked.q, undefined, "件名は打ち終えてから");
+  assert.equal(view.get().detailCount, 2);
 
-  await view.run(() => view.get().apply());
-  const sent = await fetchFirstPage();
-  assert.equal(sent.source, "messaging.admin.free");
-  assert.equal(sent.actor, "11111111-1111-4111-8111-111111111111");
-  assert.equal(sent.q, "春のお知らせ");
-  assert.equal(sent.sentBy, "admin");
+  await view.run(waitSubject);
+  const typed = await fetchFirstPage();
+  assert.equal(typed.q, "春のお知らせ");
   assert.ok(lastQuery!.deps.includes("春のお知らせ"), "絞りが変われば先頭から取り直す(deps)");
 
-  await view.run(() => view.get().clear());
+  await view.run(() => view.get().clearAll());
   const { fields } = view.get();
-  assert.deepEqual([fields.source, fields.actor, fields.subject, fields.adminOnly], ["", "", "", false]);
+  assert.deepEqual([fields.source, fields.actor, fields.subject, fields.sentBy], ["", "", "", "admin"], "送った側は残す");
   const cleared = await fetchFirstPage();
   assert.equal(cleared.source, undefined);
   assert.equal(cleared.actor, undefined);
   assert.equal(cleared.q, undefined);
-  assert.equal(cleared.sentBy, undefined);
+  assert.equal(cleared.sentBy, "admin");
+  await view.unmount();
+});
+
+test("自動送信は sentBy system で、送った人で絞らない", async () => {
+  const view = await renderHook(useFiltersAndList);
+  await view.run(() => view.get().fields.setActor("11111111-1111-4111-8111-111111111111"));
+  await view.run(() => view.get().fields.setSentBy("system"));
+  assert.equal(view.get().fields.actor, "", "自動送信にすると送った人は空に戻す");
+  const sent = await fetchFirstPage();
+  assert.equal(sent.sentBy, "system");
+  assert.equal(sent.actor, undefined);
+  await view.unmount();
+});
+
+test("期間の指定は日付の from・翌日の 0 時(未満)。区切りに戻すと日付は空に戻る", async () => {
+  const view = await renderHook(useFiltersAndList);
+  await view.run(() => view.get().fields.setPeriod("custom"));
+  await view.run(() => {
+    view.get().fields.setFromDate("2026-11-01");
+    view.get().fields.setToDate("2026-11-10");
+  });
+  const custom = await fetchFirstPage();
+  assert.equal(custom.from, new Date(2026, 10, 1).toISOString());
+  assert.equal(custom.to, new Date(2026, 10, 11).toISOString());
+  await view.run(() => view.get().fields.setPeriod("all"));
+  assert.deepEqual([view.get().fields.fromDate, view.get().fields.toDate], ["", ""]);
+  const all = await fetchFirstPage();
+  assert.equal(all.from, undefined);
+  assert.equal(all.to, undefined);
   await view.unmount();
 });
 
 test("空白だけの件名は送らない", async () => {
   const view = await renderHook(useFiltersAndList);
   await view.run(() => view.get().fields.setSubject("   "));
-  await view.run(() => view.get().apply());
+  await view.run(waitSubject);
   assert.equal((await fetchFirstPage()).q, undefined);
   await view.unmount();
 });

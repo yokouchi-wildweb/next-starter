@@ -1,5 +1,5 @@
 // 管理のモーダルと一覧・送信の画面の流れの hook の検査(jsdom の上で描く。client service・toast・離れる前の確認は偽物)。
-// - useAdminDispatchFilters: 入力と確定を分ける・期間は日付 → ISO(まで = 翌日未満)・種別 → カテゴリー(種別を変えると空)・clear
+// - useAdminDispatchFilters: 選んだらすぐ効く・期間の指定は日付 → ISO(まで = 翌日未満)・種別 → カテゴリー(種別を変えると空)・clearAll(送った側は残す)
 // - useAdminDispatchCategories: 種別ごとの選択肢・表示名(鍵は出さない)
 // - useAdminDispatchDetail: 配達の絞り / 削除の見込み(確認を開いている間だけ)・削除する(onDeleted)・再送(includeUnknown を渡して戻す)・送信を再開 → 知らせ、失敗も知らせ。
 //   中身を残していない送信はプレビューを取らない
@@ -258,28 +258,32 @@ const mount = async <T, P>(useHook: (props: P) => T, initial: P) => {
 };
 const settle = () => act(async () => new Promise((r) => setTimeout(r, 0)));
 
-test("useAdminDispatchFilters: 入力は「絞り込み」で確定、期間は日付 → ISO、clear で空", async () => {
+test("useAdminDispatchFilters: 選んだらすぐ効く、期間の指定は日付 → ISO、clearAll で空(送った側は残す)", async () => {
   const view = await mount(() => hooks.useAdminDispatchFilters({ kind: "promotion" }), {});
   const f = () => view.value();
-  assert.deepEqual(f().filters, { kind: "promotion" });
+  assert.equal(f().filters.kind, "promotion");
+  assert.equal(f().filters.sentBy, "admin", "既定 = 手動送信");
   assert.equal(f().fields.kind, "promotion");
+  await act(async () => f().fields.setPeriod("custom"));
   await act(async () => {
     f().fields.setFromDate("2026-11-01");
     f().fields.setToDate("2026-11-03");
     f().fields.setCategory("campaign");
     f().fields.setStatus("completed");
   });
-  assert.deepEqual(f().filters, { kind: "promotion" }, "入力だけでは変わらない");
-  await act(async () => f().apply());
   assert.equal(f().filters.from, new Date("2026-11-01T00:00:00").toISOString());
   assert.equal(f().filters.to, new Date("2026-11-04T00:00:00").toISOString());
   assert.equal(f().filters.category, "campaign");
   assert.equal("messageKey" in f().filters, false, "定義の鍵では絞らない");
   assert.equal(f().filters.status, "completed");
   assert.equal(f().filters.channel, undefined);
-  await act(async () => f().clear());
-  assert.deepEqual(f().filters, {});
+  assert.equal(f().detailCount, 3, "種別・カテゴリー・状態");
+  await act(async () => f().clearAll());
+  assert.equal(f().filters.kind, undefined);
+  assert.equal(f().filters.from, undefined);
+  assert.equal(f().filters.sentBy, "admin");
   assert.equal(f().fields.fromDate, "");
+  assert.equal(f().fields.period, "all");
   // 種別を変えるとカテゴリーは空に戻る / 種別が無ければカテゴリーは送らない
   await act(async () => f().fields.setKind("promotion"));
   await act(async () => f().fields.setCategory("campaign"));
@@ -289,7 +293,6 @@ test("useAdminDispatchFilters: 入力は「絞り込み」で確定、期間は�
     f().fields.setKind("");
     f().fields.setCategory("orphan");
   });
-  await act(async () => f().apply());
   assert.equal(f().filters.category, undefined);
   assert.equal(hooks.dispatchFilterStartOf(""), undefined);
   assert.equal(hooks.dispatchFilterNextDay("x"), undefined);

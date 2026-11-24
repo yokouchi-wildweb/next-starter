@@ -6,10 +6,10 @@
 //   その利用者の配達だけを読む(保持の掃除 retention.deliveriesDays が量を区切る)
 // - 共有のお知らせ: user_id null の行を送信と結び、受け取り箱の規則 inboxVisibilitySql で見える物だけ、(published_at, id) の降順の keyset。
 //   索引 idx_message_inbox_items_published_id(published_at, id)
-// - sentBy: admin = 送信の actor_type が admin / system = それ以外(null を含む)。送信の一覧の「運営が送った物だけ」(D210)と同じ線
+// - sentBy: admin = 送信の actor_type が admin / system = それ以外(null を含む)。送信の一覧の手動送信 / 自動送信の切り替え(D210)と同じ線(dispatchSentBySql)
 // - 時刻は raw sql に JS の Date を渡さない(ISO の文字列で渡す。messaging の raw sql の決まり)
 
-import { and, asc, desc, eq, inArray, isNull, lt, ne, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, lt, or, sql, type SQL } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 
@@ -18,8 +18,9 @@ import { UserTable } from "@/domains/core/user/entities/drizzle";
 import { MessageDeliveryTable } from "../../../entities/delivery";
 import { MessageDispatchTable } from "../../../entities/drizzle";
 import { MessageInboxItemTable } from "../../../entities/inbox";
+import { dispatchSentBySql } from "../dispatchSentBy";
 import { inboxVisibilitySql } from "../inbox/visibility";
-import type { UserHistorySentBy, UserHistoryStore } from "./userHistory";
+import type { UserHistoryStore } from "./userHistory";
 
 const dispatchColumns = () => {
   const m = MessageDispatchTable;
@@ -35,14 +36,6 @@ const dispatchColumns = () => {
   };
 };
 
-/** 誰が送った送信か(null = 絞らない) */
-function sentBySql(sentBy: UserHistorySentBy | null): SQL | undefined {
-  const m = MessageDispatchTable;
-  if (sentBy === "admin") return eq(m.actor_type, "admin");
-  if (sentBy === "system") return or(isNull(m.actor_type), ne(m.actor_type, "admin"));
-  return undefined;
-}
-
 export const drizzleUserHistoryStore: UserHistoryStore = {
   async findViewer(userId) {
     const [row] = await db.select({ role: UserTable.role }).from(UserTable).where(eq(UserTable.id, userId)).limit(1);
@@ -54,7 +47,7 @@ export const drizzleUserHistoryStore: UserHistoryStore = {
     const m = MessageDispatchTable;
     // 印は JS の Date(ミリ秒)で往復するので、並びの時刻もミリ秒に切って比べる(マイクロ秒の差で行が重なり・抜けしない)
     const at = sql<string>`date_trunc('milliseconds', max(${d.createdAt}))`;
-    const filters = [eq(d.user_id, userId), sentBySql(sentBy)].filter((c): c is SQL => c !== undefined);
+    const filters = [eq(d.user_id, userId), dispatchSentBySql(sentBy)].filter((c): c is SQL => c !== undefined);
     const having = after
       ? sql`(${at} < ${after.createdAt.toISOString()}::timestamptz OR (${at} = ${after.createdAt.toISOString()}::timestamptz AND ${d.dispatch_id} < ${after.id}))`
       : undefined;
@@ -96,7 +89,7 @@ export const drizzleUserHistoryStore: UserHistoryStore = {
   async listSharedInApp(viewer, after, limit, sentBy) {
     const i = MessageInboxItemTable;
     const m = MessageDispatchTable;
-    const conditions = [isNull(i.user_id), inboxVisibilitySql(viewer), sentBySql(sentBy)].filter((c): c is SQL => c !== undefined);
+    const conditions = [isNull(i.user_id), inboxVisibilitySql(viewer), dispatchSentBySql(sentBy)].filter((c): c is SQL => c !== undefined);
     if (after) {
       conditions.push(or(lt(i.published_at, after.createdAt), and(eq(i.published_at, after.createdAt), lt(i.id, after.id)))!);
     }

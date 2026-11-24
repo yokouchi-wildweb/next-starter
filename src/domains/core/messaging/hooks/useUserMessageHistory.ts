@@ -10,11 +10,8 @@
 
 import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
 
-import {
-  getAdminUserMessageHistory,
-  type UserHistorySentBy,
-  type UserMessageHistoryItem,
-} from "../services/client/userHistoryClient";
+import { getAdminUserMessageHistory, type UserMessageHistoryItem } from "../services/client/userHistoryClient";
+import type { DispatchSentBy } from "../types/dispatchSentBy";
 
 const DEFAULT_LIMIT = 50;
 
@@ -22,7 +19,7 @@ export type UseUserMessageHistoryOptions = {
   /** 1 回の件数(既定 50、最大 100) */
   limit?: number;
   /** admin = 管理者が送った送信だけ / system = それ以外(連絡の自動の送信)/ 無し = 全部 */
-  sentBy?: UserHistorySentBy;
+  sentBy?: DispatchSentBy;
   enabled?: boolean;
   observerOptions?: IntersectionObserverInit;
 };
