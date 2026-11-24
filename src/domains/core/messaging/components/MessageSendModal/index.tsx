@@ -4,8 +4,9 @@
 // new / sameAs の口を門 messagingBroadcast で出し分けるのは置き場の入れ物(AdminDispatchList / AdminDispatchDetail)。bulk は門の外。
 // fork は自分の画面(例 発送リクエストの一覧)にもこの入れ物をそのまま置ける(公開の部品と hook)。
 // 画面(D126): 左右 2 つのペイン(左 = プレビュー、右 = 操作。狭い画面は操作が上)。「あなた宛ての表示例」は上に重ねるモーダル(SampleForYouModal、D129)。
-// 並び(D110 D115 D118 D195): 種別とカテゴリーの 1 行 → 送信方法 → 宛先(種別が許す物。new の initialRecipients があればその利用者から)
-// → レイアウト(初めは initialLayout、替えると白紙)→ テンプレート(任意の読み込み、その種別の物)→ 内容 → 送る時刻。内容(D118 D119 D120): テンプレートを読み込んだ直後は文を固定して見せ、専用の埋め込み情報の入力だけ。
+// 並び(D110 D115 D118 D195 D223): テンプレート(任意の読み込み。小窓は種別のタブ、D224)→ 種別とカテゴリーの 1 行(読み込んでいる間は
+// そのテンプレートの物でディセーブル)→ 送信方法 → 宛先(種別が許す物。new の initialRecipients があればその利用者から)
+// → レイアウト(初めは initialLayout、替えると白紙)→ 内容 → 送る時刻。内容(D118 D119 D120): テンプレートを読み込んだ直後は文を固定して見せ、専用の埋め込み情報の入力だけ。
 // 『文面を直す』でレイアウトの欄の入力(LayoutFields)と埋め込み情報のタグ、『テンプレートを更新』(Dialog で確かめる、送るとは別)。
 // プレビュー = レイアウトの実際の描き方(LayoutPreview、送信チャンネルのタブ、未入力は仮の文。種別を選ぶまでは案内だけ)。「あなた宛ての表示例」のボタン = 送る口で描いた表示例(埋め込み情報を差し込む)
 // 手で直した書きかけの上に読み込む時は Dialog で確かめる。書きかけのまま閉じる = Modal の confirmOnClose。ページの移動は hook の中の @/lib/unsavedGuard
@@ -195,17 +196,40 @@ export function MessageSendModal({
         {/* 送信設定 = 枠 1 つに「左の見出し | 右の操作」の行(見出しは 1 回だけ。狭い画面は見出しが上) */}
         <Block title="送信設定">
           <Grid className="grid-cols-1 items-start gap-x-4 gap-y-3 sm:grid-cols-[6.5rem_minmax(0,1fr)]" data-slot="send-settings">
+            {/* テンプレートは任意で一番上(D223。門 messagingTemplates が閉なら行ごと出さない)。小窓は種別のタブで候補を切り替える(D224) */}
+            {m.templatesAvailable ? (
+              <>
+                <SettingLabel>テンプレート</SettingLabel>
+                <SendTemplatePicker
+                  templates={m.pickerTemplates}
+                  kinds={m.kinds}
+                  initialKind={m.kind}
+                  loaded={m.loadedTemplate ? { ...m.loadedTemplate, edited: text.edited } : null}
+                  onLoad={m.loadTemplate}
+                  onUnload={m.unloadTemplate}
+                />
+              </>
+            ) : null}
             <SettingLabel>種別</SettingLabel>
-            <KindCategoryFields
-              idPrefix="send"
-              hideLabels
-              kinds={m.kinds.map((item) => ({ value: item.key, label: item.label }))}
-              kind={m.kind}
-              onKindChange={m.setKind}
-              categories={m.categories.map((item) => ({ value: item.key, label: item.label }))}
-              category={m.category}
-              onCategoryChange={m.setCategory}
-            />
+            {/* テンプレートを読み込んでいる間は種別・カテゴリーはそのテンプレートの物(選べない、D223) */}
+            <Stack gap="2xs">
+              <KindCategoryFields
+                idPrefix="send"
+                hideLabels
+                kinds={m.kinds.map((item) => ({ value: item.key, label: item.label }))}
+                kind={m.kind}
+                onKindChange={m.setKind}
+                categories={m.categories.map((item) => ({ value: item.key, label: item.label }))}
+                category={m.category}
+                onCategoryChange={m.setCategory}
+                disabled={m.categoryLocked}
+              />
+              {m.categoryLocked ? (
+                <Span size="xs" tone="muted" data-slot="send-category-locked">
+                  テンプレートの種別・カテゴリーで送ります。変える時はテンプレートの読み込みを解除してください
+                </Span>
+              ) : null}
+            </Stack>
             <SettingLabel>送信方法</SettingLabel>
             <SendCategoryChannels
               showCategory={false}
@@ -233,18 +257,6 @@ export function MessageSendModal({
             )}
             <SettingLabel>レイアウト</SettingLabel>
             <SendLayoutPicker hideLabel layouts={m.layoutChoices} value={m.layoutKey} onChange={m.chooseLayout} />
-            {/* テンプレートは任意の読み込みの道具(門 messagingTemplates が閉なら行ごと出さない) */}
-            {m.templatesAvailable ? (
-              <>
-                <SettingLabel>テンプレート</SettingLabel>
-                <SendTemplatePicker
-                  templates={m.pickerTemplates}
-                  loaded={m.loadedTemplate ? { ...m.loadedTemplate, edited: text.edited } : null}
-                  onLoad={m.loadTemplate}
-                  onUnload={m.unloadTemplate}
-                />
-              </>
-            ) : null}
           </Grid>
         </Block>
         <Block title="内容">

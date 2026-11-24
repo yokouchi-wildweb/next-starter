@@ -41,6 +41,8 @@ type SelectPopoverBaseProps = {
   title?: ReactNode;
   /** 説明文 */
   description?: ReactNode;
+  /** 見出しと一覧(検索)の間に置く物(一覧を切り替えるタブ等。options は呼び手が切り替える)。省略 = 何も置かない */
+  header?: ReactNode;
   /** 選択肢リスト */
   options: SelectOption[];
   /** 現在の選択値 */
@@ -132,6 +134,7 @@ export function SelectPopover({
   trigger,
   title,
   description,
+  header,
   options,
   value,
   confirmLabel = "適用",
@@ -265,6 +268,9 @@ export function SelectPopover({
             )}
           </PopoverHeader>
         )}
+
+        {/* 見出しと一覧の間の差し込み(タブ等) */}
+        {header ? <div className="border-b px-3 py-2">{header}</div> : null}
 
         {/* 検索 */}
         {searchable && (

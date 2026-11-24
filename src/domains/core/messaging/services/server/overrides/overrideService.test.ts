@@ -76,12 +76,28 @@ const plain = resolveMessageDefinition(
   { kind: "transactional", channels: ["email"] },
 ) as unknown as AnyResolvedMessageDefinition;
 
-function setup(options: { actorId?: string | null; role?: string; rows?: MessageOverrideRecord[] } = {}) {
+/** 受信者が止められる連絡(promotion・required でない) = 停止のリンクの見本を出す連絡 */
+const stoppable = resolveMessageDefinition(
+  defineTestMessage({
+    key: "shop.sale",
+    label: "テストのセール",
+    category: "shop",
+    vars: z.object({}),
+    layout: "notice",
+    values: { subject: "セール", blocks: [{ type: "paragraph", text: "本文" }] },
+  }),
+  undefined,
+  { kind: "promotion", channels: ["email"] },
+) as unknown as AnyResolvedMessageDefinition;
+
+function setup(
+  options: { actorId?: string | null; role?: string; rows?: MessageOverrideRecord[]; definitions?: Record<string, AnyResolvedMessageDefinition> } = {},
+) {
   const rows: MessageOverrideRecord[] = [...(options.rows ?? [])];
-  const previews: { channel: string; content: unknown }[] = [];
+  const previews: { channel: string; content: unknown; category: string | undefined }[] = [];
   const audits: AuditRecordInput[] = [];
   const applied: { removals: string[]; upserts: string[] }[] = [];
-  const definitions: Record<string, AnyResolvedMessageDefinition> = { "shop.notice": editable, "shop.plain": plain };
+  const definitions: Record<string, AnyResolvedMessageDefinition> = { "shop.notice": editable, "shop.plain": plain, ...options.definitions };
   const service = createOverrideService({
     context: () => ({ actorId: options.actorId === undefined ? ADMIN : options.actorId, actorType: "user" }) as never,
     roleCategoryOf: async () => options.role ?? "admin",
@@ -125,7 +141,7 @@ function setup(options: { actorId?: string | null; role?: string; rows?: Message
     varCatalog: (resolved) => messageVarCatalog(resolved, {}),
     channelContent: async (resolved, channel) => ({ channel, values: resolved.values }),
     channelPreview: async (channel, input) => {
-      previews.push({ channel, content: input.content });
+      previews.push({ channel, content: input.content, category: input.category });
       const values = (input.content as { values: { subject: string } }).values;
       return { html: `<p>${values.subject}</p>`, text: values.subject };
     },
@@ -329,6 +345,19 @@ test("プレビュー: 保存した値と未保存の値(検査を通る物)を�
   const content = previews.at(-1)!.content as { values: { blocks: { text: string }[] } };
   assert.match(content.values.blocks[0].text, /一/);
   await rejectsWith(service.previewMessage("shop.notice", { channel: "line" }), 400);
+});
+
+test("プレビュー: 停止のリンクの見本(category)は好みに従う連絡の時だけ送信チャンネルへ渡す(送る時と同じ判定)", async () => {
+  const { service, previews } = setup({ definitions: { "shop.sale": stoppable } });
+  // 止められない種別(transactional)・required は渡さない
+  await service.previewMessage("shop.notice", { channel: "email", values: {} });
+  await service.previewMessage("shop.plain", { channel: "email", values: {} });
+  // 止められる種別(promotion、required でない)は連絡のカテゴリーを渡す
+  await service.previewMessage("shop.sale", { channel: "email", values: {} });
+  assert.deepEqual(
+    previews.map((entry) => entry.category),
+    [undefined, undefined, "shop"],
+  );
 });
 
 test("管理者でなければ 403", async () => {

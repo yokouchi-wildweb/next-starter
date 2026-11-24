@@ -41,6 +41,7 @@ import {
   UpdateMessageTemplateInputSchema,
 } from "./schema";
 import type { MessageTemplateStore } from "./types";
+import { honoursPreferences } from "../sendMessage/stops";
 import { isAdminSendableKind } from "../sendMessage/templateDefinition";
 
 export type TemplateServiceDeps<Tx> = AdminCheckDeps & {
@@ -410,6 +411,9 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
       const channel = check.channels[channelKey];
       if (!channel || channel.enabled === false) throw new DomainError("使えない送信方法です", { status: 400 });
       if (category && !check.categories[category]) throw new DomainError("知らないカテゴリーです", { status: 400 });
+      // 停止のリンクの見本は送る時と同じ判定(好みに従う連絡 = honoursPreferences)の時だけ。自由連絡は required にならない
+      const stopCategory =
+        category && honoursPreferences({ kind: check.categories[category]!.kind, required: false, category }) ? category : undefined;
       const built = await buildChannelContent({
         layout,
         channelKey,
@@ -429,7 +433,7 @@ export function createTemplateService<Tx>(deps: TemplateServiceDeps<Tx>) {
       const rendered = await deps.channelPreview?.(channelKey, {
         messageKey: PREVIEW_MESSAGE_KEY,
         content: built.content,
-        ...(category ? { category } : {}),
+        ...(stopCategory ? { category: stopCategory } : {}),
       });
       return {
         channel: channelKey,

@@ -46,7 +46,7 @@ export const PreviewMessageLayoutInputSchema = z
   .object({
     layout: z.string().min(1).max(100),
     channel: z.string().min(1).max(100),
-    /** 送るカテゴリー(あれば停止のリンクの見本) */
+    /** 送るカテゴリー(好みに従う種別のカテゴリーの時だけ停止のリンクの見本) */
     category: z.string().min(1).max(100).optional(),
     values: z.record(z.string(), z.unknown()),
   })

@@ -40,6 +40,8 @@ import type { AuditRecordInput } from "@/lib/audit";
 import { DomainError } from "@/lib/errors";
 
 import type { AnyResolvedMessageDefinition } from "../sendMessage/definition";
+import { stopContextOf } from "../sendMessage/sender";
+import { honoursPreferences } from "../sendMessage/stops";
 import { assertAdminActor, type AdminCheckDeps } from "../admin/assertAdmin";
 import { layoutChannelView } from "../admin/layoutChannelView";
 import { bindOverrideImages, releaseOverrideImages, type OverrideImageLedger } from "./imageBinding";
@@ -248,7 +250,8 @@ export function createOverrideService(deps: OverrideServiceDeps) {
       const rendered = await deps.channelPreview?.(channel, {
         messageKey,
         content,
-        ...(saved.category ? { category: saved.category } : {}),
+        // 停止のリンクの見本は送る時と同じ判定(好みに従う連絡 = honoursPreferences)の時だけ
+        ...(saved.category && honoursPreferences(stopContextOf(saved)) ? { category: saved.category } : {}),
       });
       return {
         channel,

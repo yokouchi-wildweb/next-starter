@@ -1,14 +1,14 @@
 // 送るモーダルの hook useMessageSendModal(と文面の useSendTemplateText)の検査(jsdom の上で描く。client service・門・離れる前の確認は偽物)。
 // - 純粋な関数: scheduleErrorOf / kindsOf / blankLayoutOf / initialTextOf / sameAsNoteOf / initialTargetOf / overLimitText /
 //   varValuesForInput / missingVars / varPreviewValues
-// - new(D110 D115 D118 D195): 開いた時から初めのレイアウト(initialLayout)。種別を選ぶまで止まる → 種別 → カテゴリー(1 つなら自動)→ 宛先(種別が許す種類だけ)→ テンプレート(その種別の公開中の物、任意)。
+// - new(D110 D115 D118 D195): 開いた時から初めのレイアウト(initialLayout)。種別を選ぶまで止まる → 種別 → カテゴリー(1 つなら自動)→ 宛先(種別が許す種類だけ)→ テンプレート(公開中の物を種別で絞らず、任意)。
 //   読み込み直後は文を固定、専用の埋め込み情報の入力だけ(D119)→ 文面を直す → 直した印(D118)→ 予約の検査 → プレビュー・テスト送信 →
 //   見込み → 確認 → 送る(送る口の入力 { origin, values, edited, vars, category, channels }、鍵を作り直す)・書きかけの確認・閉じると初めに戻る
 // - 『テンプレートを更新』(D120): 直した文を 1 回の保存で新しい版に(D134)、新しい版へつなぎ直し直した印が消える / 変わらなければ unchanged
 // - 種別が 2 つ以上のカテゴリーを持つ時は選ぶ、送信方法はカテゴリーの最初の送信チャンネル(defaultChannels)。門 messagingTemplates が閉なら読み込める物は無い
 // - 読み込み: 手で直した後は確かめる / 解除はそのテンプレートのレイアウトへ(レイアウトが同じなら文を残す)、送る口は origin { layout }
 // - レイアウト: 選べるのは管理画面で選べる物だけ / 替えると白紙(前の値を持ち越さない)・書きかけがあれば確かめる / 読み込んだテンプレートは外れる /
-//   種別を替えてもレイアウトと文はそのまま(テンプレートは外れる)
+//   種別を替えてもレイアウトと文はそのまま / テンプレートが先(D223): 読み込むとそのカテゴリー・種別に固定(categoryLocked)、解除で選べる
 // - initialRecipients(new): 宛先は「選んだ利用者」のその人たちから(重なりは 1 つ)、変えられる、/send の体の宛先
 // - 制御された開閉(open / onOpenChange): 呼び手が開く、閉じる求めは onOpenChange へ、そこで初めに戻り鍵を新しく(開き直すと別の鍵)
 // - sameAs: カテゴリー → 種別・宛先の形・送信の中身(レイアウト + values)を写す / テンプレートの送信は今の版を読み込む(専用の値も)/
@@ -338,7 +338,6 @@ test("純粋な関数", () => {
   // 初めの文面
   const bulk = hooks.initialTextOf(
     { type: "bulk", target: "t", recordIds: ["r"], recordNoun: "記録" },
-    "direct",
     layouts as never,
     "notice",
     categories as never,
@@ -346,16 +345,15 @@ test("純粋な関数", () => {
   );
   assert.deepEqual([bulk?.source, bulk?.start, bulk?.unlocked], [NOTICE_SOURCE, {}, true], "bulk も初めのレイアウトの白紙から");
   assert.equal(
-    hooks.initialTextOf({ type: "bulk", target: "t", recordIds: ["r"], recordNoun: "記録" }, "direct", [layouts[0]] as never, "notice", categories as never, []),
+    hooks.initialTextOf({ type: "bulk", target: "t", recordIds: ["r"], recordNoun: "記録" }, [layouts[0]] as never, "notice", categories as never, []),
     null,
     "選べるレイアウトが無ければ文面は無い(テンプレートを読み込む)",
   );
   // 種別に依らず初めのレイアウトから始まる(D174)
-  const beforeKind = hooks.initialTextOf(NEW, "", layouts as never, "notice", categories as never, []);
+  const beforeKind = hooks.initialTextOf(NEW, layouts as never, "notice", categories as never, []);
   assert.deepEqual([beforeKind?.source, beforeKind?.start, beforeKind?.unlocked], [NOTICE_SOURCE, {}, true], "種別を選ぶ前も初めのレイアウトの白紙");
   const edited = hooks.initialTextOf(
     { type: "sameAs", dispatch: dispatchOf({ templateId: TEMPLATE_ID, templateEdited: true }, { discount: "30", gone: "x" }) } as never,
-    "promotion",
     layouts as never,
     "notice",
     categories as never,
@@ -364,40 +362,48 @@ test("純粋な関数", () => {
   assert.deepEqual(edited?.source, { type: "template", id: TEMPLATE_ID, name: "春", version: 3 });
   assert.deepEqual([edited?.start, edited?.versionValues, edited?.unlocked], [SAME_AS_DISPATCH.content.values, template.values, true], "直した送信は直した文で直す状態から");
   assert.deepEqual(edited?.vars, { discount: "30" }, "今の版が宣言する鍵だけ");
-  const otherKind = hooks.initialTextOf(
+  // テンプレートの送信は種別に依らずそのテンプレートを読み込む(種別・カテゴリーはテンプレートの物になる、D223)。送れないカテゴリーのテンプレートは写さない
+  const copied = hooks.initialTextOf(
     { type: "sameAs", dispatch: dispatchOf({ templateId: TEMPLATE_ID }) } as never,
-    "direct",
     layouts as never,
     "notice",
     categories as never,
     [template] as never,
   );
-  assert.deepEqual([otherKind?.source, otherKind?.start], [NOTICE_SOURCE, SAME_AS_DISPATCH.content.values], "種別を選び直した後は送信のレイアウトから");
+  assert.deepEqual(copied?.source, { type: "template", id: TEMPLATE_ID, name: "春", version: 3 });
+  const unsendable = hooks.initialTextOf(
+    { type: "sameAs", dispatch: dispatchOf({ templateId: TEMPLATE_ID }) } as never,
+    layouts as never,
+    "notice",
+    categories.filter((option) => option.key !== "campaign") as never,
+    [template] as never,
+  );
+  assert.deepEqual([unsendable?.source, unsendable?.start], [NOTICE_SOURCE, SAME_AS_DISPATCH.content.values], "送れないカテゴリーのテンプレートは送信のレイアウトから");
   // その場で書いた送信: 送信のレイアウトが管理画面で選べる物ならそのレイアウトに送信の values
   const letterMode = { type: "sameAs", dispatch: dispatchOf({ content: { layout: "letter", layoutVersion: 1, values: { subject: "手紙の件名" } } }) } as never;
-  const letterText = hooks.initialTextOf(letterMode, "promotion", layouts as never, "notice", categories as never, []);
+  const letterText = hooks.initialTextOf(letterMode, layouts as never, "notice", categories as never, []);
   assert.deepEqual([letterText?.source, letterText?.layout, letterText?.start], [{ type: "layout", layout: "letter", label: "手紙" }, "letter", { subject: "手紙の件名" }]);
   assert.equal(hooks.sameAsNoteOf(letterMode, letterText, []), null);
 
   // 写せなかった時の知らせ
   const goneMode = { type: "sameAs", dispatch: dispatchOf({ templateId: "gone" }) } as never;
-  const goneText = hooks.initialTextOf(goneMode, "promotion", layouts as never, "notice", categories as never, [template] as never);
+  const goneText = hooks.initialTextOf(goneMode, layouts as never, "notice", categories as never, [template] as never);
   assert.deepEqual(goneText?.start, SAME_AS_DISPATCH.content.values);
   assert.match(hooks.sameAsNoteOf(goneMode, goneText, [template] as never) ?? "", /白紙のテンプレートにコピーしました/);
   const emptyMode = { type: "sameAs", dispatch: dispatchOf({ templateId: "gone", content: null }) } as never;
-  assert.match(hooks.sameAsNoteOf(emptyMode, hooks.initialTextOf(emptyMode, "promotion", layouts as never, "notice", categories as never, []), []) ?? "", /入力し直してください/);
+  assert.match(hooks.sameAsNoteOf(emptyMode, hooks.initialTextOf(emptyMode, layouts as never, "notice", categories as never, []), []) ?? "", /入力し直してください/);
   // 定義連絡の送信はサーバーが写しを答えない(sameAs null、D193)= 中身があっても写さず初めのレイアウトの白紙
   const definitionMode = { type: "sameAs", dispatch: { ...SAME_AS_DISPATCH, sameAs: null } } as never;
-  const definitionText = hooks.initialTextOf(definitionMode, "promotion", layouts as never, "notice", categories as never, []);
+  const definitionText = hooks.initialTextOf(definitionMode, layouts as never, "notice", categories as never, []);
   assert.deepEqual([definitionText?.source, definitionText?.start], [NOTICE_SOURCE, {}]);
   // 管理画面で選べないレイアウト(legacy)・無いレイアウトの送信 = 初めのレイアウトの白紙 + 知らせ
   for (const layout of ["legacy", "welcome"]) {
     const otherLayout = { type: "sameAs", dispatch: dispatchOf({ content: { layout, layoutVersion: 1, values: { subject: "元" } } }) } as never;
-    const otherText = hooks.initialTextOf(otherLayout, "promotion", layouts as never, "notice", categories as never, []);
+    const otherText = hooks.initialTextOf(otherLayout, layouts as never, "notice", categories as never, []);
     assert.deepEqual([otherText?.source, otherText?.start], [NOTICE_SOURCE, {}], layout);
     assert.match(hooks.sameAsNoteOf(otherLayout, otherText, []) ?? "", /形と違うため/, layout);
   }
-  assert.equal(hooks.sameAsNoteOf(SAME_AS as never, hooks.initialTextOf(SAME_AS as never, "promotion", layouts as never, "notice", categories as never, []), []), null);
+  assert.equal(hooks.sameAsNoteOf(SAME_AS as never, hooks.initialTextOf(SAME_AS as never, layouts as never, "notice", categories as never, []), []), null);
   assert.equal(hooks.sameAsNoteOf(NEW, null, []), null);
 
   // 初めの宛先
@@ -458,8 +464,12 @@ test("new: 種別 → 宛先 → テンプレートを読み込む(固定)→ �
   assert.deepEqual(m().text.source, NOTICE_SOURCE, "読み込まない = 初めのレイアウト");
   assert.deepEqual([m().currentLayout, m().blank], [{ label: "汎用のお知らせ" }, { key: "notice", label: "汎用のお知らせ" }]);
   assert.equal(m().text.locked, false);
-  // テンプレートはその種別の公開中の物だけ
-  assert.deepEqual(m().pickerTemplates, [{ id: TEMPLATE_ID, name: "春", currentVersion: 3 }]);
+  // テンプレートは種別で絞らず公開中の物全部(小窓のタブ = kind、説明 = カテゴリーの表示名、D223 D224)
+  assert.deepEqual(m().pickerTemplates, [
+    { id: TEMPLATE_ID, name: "春", currentVersion: 3, kind: "promotion", categoryLabel: "キャンペーン" },
+    { id: NOTICE_TEMPLATE_ID, name: "告知", currentVersion: 1, kind: "announcement", categoryLabel: "お知らせ" },
+  ]);
+  assert.equal(m().categoryLocked, false);
   assert.equal(m().dirty, true);
   assert.equal(guarded.at(-1), true);
 
@@ -610,7 +620,7 @@ test("種別: 宛先は種別が許す種類だけ、カテゴリーが 2 つ以
   assert.deepEqual(m().categories.map((c) => c.key), ["notice", "lineNotice"]);
   assert.equal(m().category, "notice", "種別を替えると最初のカテゴリー");
   assert.deepEqual(m().allowedTargetTypes, ["all", "role"]);
-  assert.deepEqual(m().pickerTemplates.map((item) => item.id), [NOTICE_TEMPLATE_ID], "種別のテンプレートだけ");
+  assert.deepEqual(m().pickerTemplates.map((item) => item.id), [TEMPLATE_ID, NOTICE_TEMPLATE_ID], "種別で絞らない(D223)");
   await act(async () => m().setCategory("lineNotice"));
   assert.deepEqual(m().channels.map((c) => [c.key, c.on]), [
     ["email", false],
@@ -643,6 +653,7 @@ test("読み込み: 手で直した後は確かめる / 解除は初めのレイ
   // 解除: 初めのレイアウトへ。レイアウトが同じ(notice)なので今の文は残る。テンプレートの埋め込み情報は無くなる
   await act(async () => m().unloadTemplate());
   assert.equal(m().loadedTemplate, null);
+  assert.deepEqual([m().kind, m().category, m().categoryLocked], ["promotion", "campaign", false], "解除の後は直前のカテゴリーのまま、選べる");
   assert.deepEqual(m().text.source, NOTICE_SOURCE);
   assert.deepEqual(m().currentLayout, { label: "汎用のお知らせ" });
   assert.deepEqual(m().text.values, template.values);
@@ -663,6 +674,30 @@ test("読み込み: 手で直した後は確かめる / 解除は初めのレイ
   await act(async () => m().confirmLoad());
   assert.deepEqual(m().loadedTemplate, { type: "template", id: NOTICE_TEMPLATE_ID, name: "告知", version: 1 });
   assert.equal(m().currentLayout, null, "テンプレートを読み込んだ間はレイアウトの出どころは無い");
+  await view.unmount();
+});
+
+test("テンプレートが先(D223): 種別を選ぶ前に読み込むとそのテンプレートのカテゴリーと種別に固定、送る中身の category もそれ。解除すれば選べる", async () => {
+  const view = await open(NEW);
+  const m = () => view.value();
+  assert.equal(m().kind, "");
+  await act(async () => m().loadTemplate(NOTICE_TEMPLATE_ID));
+  assert.deepEqual([m().kind, m().category, m().categoryLocked], ["announcement", "notice", true]);
+  assert.deepEqual(m().allowedTargetTypes, ["all", "role"], "宛先は種別が許す種類(選べるまま)");
+  assert.deepEqual(m().sendChannels, ["email", "inApp"], "送信チャンネルはカテゴリーの既定");
+  await act(async () => m().toggleChannel("inApp", false));
+  assert.deepEqual(m().sendChannels, ["email"], "送信チャンネルの絞りは選べるまま");
+  assert.equal(m().buildContent().category, "notice");
+  // 別の種別のテンプレートに読み込み直す = そのカテゴリーへ、送信チャンネルはそのカテゴリーの既定に戻る
+  await act(async () => m().loadTemplate(TEMPLATE_ID));
+  if (m().pendingLoad) await act(async () => m().confirmLoad());
+  assert.deepEqual([m().kind, m().category, m().categoryLocked], ["promotion", "campaign", true]);
+  assert.deepEqual(m().sendChannels, ["email", "inApp"]);
+  assert.equal(m().buildContent().category, "campaign");
+  // 解除すれば種別・カテゴリーを選べる
+  await act(async () => m().unloadTemplate());
+  await act(async () => m().setKind("direct"));
+  assert.deepEqual([m().kind, m().category, m().categoryLocked], ["direct", "operatorDirect", false]);
   await view.unmount();
 });
 
@@ -700,16 +735,16 @@ test("レイアウト: 選んで替える(白紙から・書きかけは確か�
   if (m().pendingLoad) await act(async () => m().confirmLoad());
   assert.equal(m().loadedTemplate?.id, TEMPLATE_ID);
   assert.equal(m().layoutKey, "notice");
-  // 種別を替えるとテンプレートは外れ、そのレイアウト(notice)へ。文は残る
+  // 読み込んでいる間は種別・カテゴリーはテンプレートの物(D223): 種別・カテゴリーを選んでも何もしない
   await act(async () => m().setKind("announcement"));
-  assert.equal(m().loadedTemplate, null);
-  assert.deepEqual(m().text.source, NOTICE_SOURCE);
-  assert.deepEqual(m().text.values, template.values);
+  await act(async () => m().setCategory("notice"));
+  assert.deepEqual([m().kind, m().category, m().categoryLocked], ["promotion", "campaign", true]);
+  assert.equal(m().loadedTemplate?.id, TEMPLATE_ID);
   // レイアウトから書いている間に種別を替えても、レイアウトと文はそのまま
   await act(async () => m().chooseLayout("letter"));
   if (m().pendingLayout) await act(async () => m().confirmLayout());
   await typeField(m, "subject", "残る件名");
-  await act(async () => m().setKind("promotion"));
+  await act(async () => m().setKind("announcement"));
   assert.equal(m().layoutKey, "letter");
   assert.equal(m().text.values.subject, "残る件名");
   // 読み込んだ後にレイアウトを選ぶ = テンプレートは外れ、選んだレイアウトの白紙
@@ -787,6 +822,7 @@ test("sameAs: カテゴリー → 種別・宛先・中身を写す。テンプ�
   const fromTemplate = await open({ type: "sameAs", dispatch: dispatchOf({ templateId: TEMPLATE_ID, templateVersion: 2 }, { discount: "30" }) });
   const t = () => fromTemplate.value();
   assert.deepEqual(t().loadedTemplate, { type: "template", id: TEMPLATE_ID, name: "春", version: 3 }, "今の公開版を読み込む");
+  assert.deepEqual([t().kind, t().category, t().categoryLocked], ["promotion", "campaign", true], "テンプレートの写しは種別・カテゴリーを固定(D223)");
   assert.equal(t().text.locked, true);
   assert.deepEqual(t().text.values, template.values);
   assert.deepEqual(t().text.state?.vars, { discount: "30" }, "専用の値も写す");

@@ -51,7 +51,15 @@ const layouts = { ...TEST_LAYOUTS, notice: { ...TEST_LAYOUTS.notice!, adminSelec
 
 const IMAGE = "storage://pub/notification.image/00000000-0000-4000-8000-000000000001.png";
 
-function setup(options: { role?: string; kept?: TemplateKeptDispatch[]; layouts?: Record<string, MessageLayout> } = {}) {
+function setup(
+  options: {
+    role?: string;
+    kept?: TemplateKeptDispatch[];
+    layouts?: Record<string, MessageLayout>;
+    categories?: Record<string, MessageCategory>;
+    previews?: { channel: string; category: string | undefined }[];
+  } = {},
+) {
   const templates: MessageTemplate[] = [];
   const versions: MessageTemplateVersion[] = [];
   const audits: AuditRecordInput[] = [];
@@ -127,7 +135,13 @@ function setup(options: { role?: string; kept?: TemplateKeptDispatch[]; layouts?
       },
       copy: async (ref) => `${ref}#copy`,
     },
-    check: () => ({ channels, categories, layouts: options.layouts ?? layouts, enrichers }),
+    check: () => ({ channels, categories: options.categories ?? categories, layouts: options.layouts ?? layouts, enrichers }),
+    // プレビュー: email の notice はレイアウトの描き方を持つ扱い。送信チャンネルのプレビューが受けたカテゴリーを記録する
+    layoutRenderers: () => ({ email: { notice: true } }),
+    channelPreview: async (channelKey, previewInput) => {
+      options.previews?.push({ channel: channelKey, category: previewInput.category });
+      return { html: "<p>preview</p>" };
+    },
     initialLayout: () => "notice",
     context: () => ({ actorId: ADMIN, actorType: "user" }) as never,
     roleCategoryOf: async () => options.role ?? "admin",
@@ -353,6 +367,25 @@ test("無効のレイアウト: 一覧は使えない印(usable: false)付きで
   assert.deepEqual((await service.listTemplates()).items.map((t) => [t.name, t.usable]), [["a", false]]);
   assert.deepEqual((await service.templateOptions()).layouts, []);
   await rejectsWith(service.createTemplate(input({ name: "b" })), 400);
+});
+
+test("レイアウトのプレビュー: 停止のリンクの見本(category)は好みに従う種別(promotion・activity)のカテゴリーの時だけ送信チャンネルへ渡す(送る時と同じ判定)", async () => {
+  const previews: { channel: string; category: string | undefined }[] = [];
+  const withAnnouncement: Record<string, MessageCategory> = {
+    ...categories,
+    news: { key: "news", label: "お知らせ(全員)", kind: "announcement", channels: ["email"] },
+  };
+  const { service } = setup({ categories: withAnnouncement, previews });
+  for (const category of ["news", "operatorDirect", "promotion", "activity"]) {
+    const preview = await service.previewLayout({ layout: "notice", channel: "email", category, values: VALUES });
+    assert.equal(preview.cannotRender, null);
+  }
+  await service.previewLayout({ layout: "notice", channel: "email", values: VALUES });
+  assert.deepEqual(
+    previews.map((entry) => entry.category),
+    [undefined, undefined, "promotion", "activity", undefined],
+  );
+  await rejectsWith(service.previewLayout({ layout: "notice", channel: "email", category: "nope", values: VALUES }), 400);
 });
 
 test("管理者でなければ 403", async () => {

@@ -1,5 +1,6 @@
 // 送るモーダルの入れ物と、開く口の検査(jsdom の上で描く。hook・Modal・Dialog・部品は偽物)。
-// - 入れ物: ボタンで開く / 書く段は部品を並べる(左右 2 つのペイン: 操作 = 種別とカテゴリー → 送信方法 → 宛先 → レイアウト → テンプレート(門 messagingTemplates が開の時だけ)→ 内容 → 送信日時、
+// - 入れ物: ボタンで開く / 書く段は部品を並べる(左右 2 つのペイン: 操作 = テンプレート(門 messagingTemplates が開の時だけ、D223)→ 種別とカテゴリー
+//   (読み込んでいる間はディセーブル + 注記)→ 送信方法 → 宛先 → レイアウト → 内容 → 送信日時、
 //   プレビュー = LayoutPreview。種別を選ぶまでは案内だけ)/ テンプレートを読み込んだ直後は専用の埋め込み情報の入力と『文面を直す』だけ /
 //   予約は bulk で出さない / confirmOnClose に hook の closeConfirm を渡す / 下の帯のボタンで hook を呼ぶ
 // - 確認の段は「送信する」(予約なら「予約する」)で confirmSend、「戻る」で backToEdit、上限を超えたら送れない / 結果の段(送信へのリンクは dispatchDetailHref)
@@ -78,6 +79,7 @@ const baseState = () =>
     categories: [{ key: "notice", label: "お知らせ" }],
     category: "notice",
     setCategory: () => {},
+    categoryLocked: false,
     target: { type: "all", roles: [], groupId: "", userIds: [] },
     setTarget: () => {},
     allowedTargetTypes: ["all", "role", "group", "users"],
@@ -86,7 +88,7 @@ const baseState = () =>
     groupsEnabled: false,
     targetNote: null,
     templatesAvailable: true,
-    pickerTemplates: [{ id: "t1", name: "春", currentVersion: 2 }],
+    pickerTemplates: [{ id: "t1", name: "春", currentVersion: 2, kind: "notice", categoryLabel: "お知らせ" }],
     currentLayout: { label: "シンプル" },
     blank: { key: "simple", label: "シンプル" },
     layoutChoices: [
@@ -314,11 +316,16 @@ const NEW = { type: "new" } as const;
 
 test("書く段: 部品を並べ、confirmOnClose に closeConfirm、ボタンで hook を呼ぶ", async () => {
   const view = await render(createElement(MessageSendModal, { mode: NEW }));
-  // 並び(D110 D115 D118 D195): 種別とカテゴリー → 送信方法 → 宛先 → レイアウト → テンプレート → 内容(白紙 = レイアウトの欄)→ 送信日時、
+  // 並び(D110 D115 D118 D195 D223): テンプレート → 種別とカテゴリー → 送信方法 → 宛先 → レイアウト → 内容(白紙 = レイアウトの欄)→ 送信日時、
   // プレビューのペイン → 下の帯(埋め込み情報の吹き出し)。「あなた宛ての表示例」は表示例が無い間は出さない
-  assert.deepEqual(parts(view.container), ["kindCategory", "channels", "target", "layout", "template", "layoutFields", "schedule", "layoutPreview", "varPopover"]);
+  assert.deepEqual(parts(view.container), ["template", "kindCategory", "channels", "target", "layout", "layoutFields", "schedule", "layoutPreview", "varPopover"]);
   assert.equal(lastProps.get("target")!.kind, "select");
-  assert.deepEqual(lastProps.get("template")!.templates, [{ id: "t1", name: "春", currentVersion: 2 }]);
+  assert.deepEqual(lastProps.get("template")!.templates, [{ id: "t1", name: "春", currentVersion: 2, kind: "notice", categoryLabel: "お知らせ" }]);
+  // 小窓のタブ = hook の種別、開いた時のタブ = 今の種別(D224)
+  assert.deepEqual(lastProps.get("template")!.kinds, [{ key: "notice", label: "お知らせ" }]);
+  assert.equal(lastProps.get("template")!.initialKind, "notice");
+  assert.equal(lastProps.get("kindCategory")!.disabled, false);
+  assert.equal(view.container.querySelector("[data-slot=send-category-locked]"), null);
   assert.equal(lastProps.get("template")!.loaded, null);
   assert.deepEqual(lastProps.get("layout")!.layouts, [
     { key: "simple", label: "シンプル" },
@@ -354,6 +361,7 @@ test("書く段: 部品を並べ、confirmOnClose に closeConfirm、ボタン�
 test("テンプレートを読み込んだ直後: 専用の埋め込み情報の入力と『文面を直す』だけ(レイアウトの欄・吹き出しは出さない)", async () => {
   const declarations = [{ key: "discount", alias: "割引", type: "number", required: true }];
   state = make({
+    categoryLocked: true,
     loadedTemplate: { type: "template", id: "t1", name: "春", version: 2 },
     text: {
       ...baseText(),
@@ -363,8 +371,11 @@ test("テンプレートを読み込んだ直後: 専用の埋め込み情報の
     },
   });
   const view = await render(createElement(MessageSendModal, { mode: NEW }));
-  assert.deepEqual(parts(view.container), ["kindCategory", "channels", "target", "layout", "template", "vars", "schedule", "layoutPreview"]);
+  assert.deepEqual(parts(view.container), ["template", "kindCategory", "channels", "target", "layout", "vars", "schedule", "layoutPreview"]);
   assert.deepEqual(lastProps.get("template")!.loaded, { type: "template", id: "t1", name: "春", version: 2, edited: false });
+  // 読み込んでいる間は種別・カテゴリーはテンプレートの物(ディセーブル + 注記、D223)
+  assert.equal(lastProps.get("kindCategory")!.disabled, true);
+  assert.ok(view.container.querySelector("[data-slot=send-category-locked]"));
   assert.deepEqual(lastProps.get("vars")!.declarations, declarations);
   assert.deepEqual(lastProps.get("vars")!.values, { discount: "10" });
   assert.deepEqual(lastProps.get("vars")!.missing, ["discount"]);
@@ -379,7 +390,7 @@ test("bulk は宛先 = 選んだ記録の数、予約を出さない", async () 
   const view = await render(
     createElement(MessageSendModal, { mode: { type: "bulk", target: "t", recordIds: ["r1", "r2"], recordNoun: "記録" } }),
   );
-  assert.deepEqual(parts(view.container), ["kindCategory", "channels", "target", "layout", "template", "layoutFields", "layoutPreview", "varPopover"]);
+  assert.deepEqual(parts(view.container), ["template", "kindCategory", "channels", "target", "layout", "layoutFields", "layoutPreview", "varPopover"]);
   assert.equal(lastProps.get("target")!.kind, "bulk");
   assert.equal(lastProps.get("target")!.recordCount, 2);
   assert.equal(lastProps.get("target")!.recordNoun, "記録");

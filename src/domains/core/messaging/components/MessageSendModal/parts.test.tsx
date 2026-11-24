@@ -1,6 +1,7 @@
 // 送るモーダルの部品(props だけ)の検査。jsdom の上で描く(押す操作のある部品)・文字で見る。
 // - SendLayoutPicker: 選べるレイアウトの選択(値 = 今のレイアウト、選ぶと onChange(鍵))/ 選べるレイアウトが無ければテンプレートの読み込みを促す
-// - SendTemplatePicker: 任意の読み込みの道具。「テンプレートを読み込む」の小窓で選ぶ(公開中は版)/ 無ければその知らせ /
+// - SendTemplatePicker: 任意の読み込みの道具。「テンプレートを読み込む」の小窓で選ぶ(種別のタブで候補を切り替え、開くたびに今の種別のタブ、
+//   説明はカテゴリーと版、D224)/ 無ければその知らせ /
 //   読み込んだ後は名前・版・直した印・別の読み込み・「テンプレートの読み込みを解除」
 // - SendVarInputs: 読み込んだテンプレートの専用の埋め込み情報の入力(別名・必須の印・{{別名}}・型ごとの入力・既定値は仮の文・未入力の印・値の受け渡し)
 // - SendTargetPicker: bulk は選んだ記録の数だけ / select は種類の選び、グループは名前(種類)で選び id は出さない、
@@ -94,9 +95,11 @@ mock.module("@/components/Button/LinkButton", {
 // テンプレートを選ぶ小窓は偽物: 引き金と、選択肢ごとに「読む:<名前>」のボタン(押すと onConfirm)
 type FakePopoverProps = {
   trigger: unknown;
+  header?: unknown;
   options: { value: string; label: string; description?: string }[];
   confirmLabel?: string;
   onConfirm: (v: string) => void;
+  onOpenChange?: (open: boolean) => void;
 };
 let popoverProps: FakePopoverProps | null = null;
 mock.module("@/components/Overlays/Popover", {
@@ -107,9 +110,21 @@ mock.module("@/components/Overlays/Popover", {
         "div",
         null,
         props.trigger as never,
+        (props.header ?? null) as never,
         ...props.options.map((o) => createElement("button", { key: o.value, type: "button", onClick: () => props.onConfirm(o.value) }, `読む:${o.label}`)),
       );
     },
+  },
+});
+// 状態のタブは Radix を jsdom で動かさない偽物(タブごとのボタンで onValueChange)
+mock.module("@/components/Navigation/StateTabs", {
+  namedExports: {
+    StateTabs: (props: { tabs: { value: string; label: string }[]; value: string; onValueChange: (v: string) => void }) =>
+      createElement(
+        "nav",
+        { "data-tab": props.value },
+        ...props.tabs.map((tab) => createElement("button", { key: tab.value, type: "button", onClick: () => props.onValueChange(tab.value) }, `タブ:${tab.label}`)),
+      ),
   },
 });
 mock.module("@/domains/core/user/components/common/UserAsyncMultiSelect", {
@@ -158,12 +173,19 @@ test("SendTemplatePicker: 「テンプレートを読み込む」の小窓で選
   const loaded: string[] = [];
   let unloaded = 0;
   const templates = [
-    { id: "t0", name: "秋", currentVersion: 1 },
-    { id: "t1", name: "春", currentVersion: 2 },
+    { id: "t0", name: "秋", currentVersion: 1, kind: "promotion", categoryLabel: "キャンペーン" },
+    { id: "t1", name: "春", currentVersion: 2, kind: "promotion", categoryLabel: "キャンペーン" },
+    { id: "t2", name: "告知", currentVersion: 1, kind: "announcement", categoryLabel: "お知らせ" },
+  ];
+  const kinds = [
+    { key: "announcement", label: "全体のお知らせ" },
+    { key: "promotion", label: "販促" },
   ];
   const view = await render(
     createElement(parts.SendTemplatePicker, {
       templates,
+      kinds,
+      initialKind: "promotion",
       loaded: null,
       onLoad: (id: string) => void loaded.push(id),
       onUnload: () => void (unloaded += 1),
@@ -174,26 +196,45 @@ test("SendTemplatePicker: 「テンプレートを読み込む」の小窓で選
   assert.ok(button(view.container, "テンプレートを読み込む"));
   assert.equal(button(view.container, "呼び出す"), undefined, "呼び出すの段は無い");
   assert.equal(popoverProps!.confirmLabel, "読み込む");
+  // 初めのタブ = 今の種別(initialKind)、そのタブの種別のテンプレートだけ。説明はカテゴリーと版
+  assert.equal(view.container.querySelector("[data-tab]")!.getAttribute("data-tab"), "promotion");
+  assert.deepEqual(popoverProps!.options.map((o) => o.label), ["秋", "春"]);
   assert.deepEqual(
     popoverProps!.options.map((o) => o.description),
-    ["v1", "v2"],
-    "公開中は版",
+    ["キャンペーン · v1", "キャンペーン · v2"],
+    "カテゴリーと版",
   );
   await act(async () => button(view.container, "読む:春")!.click());
   assert.deepEqual(loaded, ["t1"]);
+  // タブを替えるとその種別のテンプレート
+  await act(async () => button(view.container, "タブ:全体のお知らせ")!.click());
+  assert.deepEqual(popoverProps!.options.map((o) => o.label), ["告知"]);
+  // 開き直すと今の種別のタブへ戻る
+  await act(async () => popoverProps!.onOpenChange!(true));
+  assert.deepEqual(popoverProps!.options.map((o) => o.label), ["秋", "春"]);
   await view.unmount();
 
-  // その種別のテンプレートが無い = 読み込む口は押せず、知らせ
+  // 今の種別が無い(まだ選んでいない)= 最初のタブ
+  const noKind = await render(
+    createElement(parts.SendTemplatePicker, { templates, kinds, initialKind: "", loaded: null, onLoad: () => {}, onUnload: () => {} }),
+  );
+  assert.equal(noKind.container.querySelector("[data-tab]")!.getAttribute("data-tab"), "announcement");
+  assert.deepEqual(popoverProps!.options.map((o) => o.label), ["告知"]);
+  await noKind.unmount();
+
+  // 公開中のテンプレートが 1 つも無い = 読み込む口は押せず、知らせ
   const none = await render(
-    createElement(parts.SendTemplatePicker, { templates: [], loaded: null, onLoad: () => {}, onUnload: () => {} }),
+    createElement(parts.SendTemplatePicker, { templates: [], kinds, initialKind: "", loaded: null, onLoad: () => {}, onUnload: () => {} }),
   );
   assert.equal(button(none.container, "テンプレートを読み込む")!.disabled, true);
-  assert.match(none.container.textContent ?? "", /この種別のテンプレートはありません/);
+  assert.match(none.container.textContent ?? "", /公開中のテンプレートはありません/);
   await none.unmount();
 
   const on = await render(
     createElement(parts.SendTemplatePicker, {
       templates,
+      kinds,
+      initialKind: "promotion",
       loaded: { id: "t1", name: "春", version: 2, edited: true },
       onLoad: () => {},
       onUnload: () => void (unloaded += 1),

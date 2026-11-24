@@ -4,7 +4,7 @@
 
 - ポップオーバー系のコンポーネント群。モーダルより軽量なオーバーレイ UI。入口は `@/components/Overlays/Popover`
 - 使う時・直す時の決まりは札 .claude/rules/items/components/Overlays.mdにある
-- 部品: Popover(基本)・ConfirmPopover(確認)・PromptPopover(入力)・ActionPopover(アクションメニュー)・ChecklistPopover(静的な選択肢からの複数選択)・InfoPopover(情報・ヘルプ)・SelectPopover(単一選択)・PopoverAsyncContent(非同期の中身の包み)
+- 部品: Popover(基本)・ConfirmPopover(確認)・PromptPopover(入力)・ActionPopover(アクションメニュー)・ChecklistPopover(静的な選択肢からの複数選択)・InfoPopover(情報・ヘルプ)・SelectPopover(単一選択。見出しと一覧の間に `header` = 一覧を切り替えるタブ等)・PopoverAsyncContent(非同期の中身の包み)
 
 ## Usage
 

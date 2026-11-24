@@ -10,9 +10,11 @@
 //   テンプレートの送信でそのテンプレートが今も公開中 = 今の版を読み込んだ形(直して送信した物は直した文で、文面を直す状態から。専用の埋め込み情報の値も写す)。
 //   公開中でない・レイアウトから書いた送信 = 送信のレイアウトに送信の values を入れた形(管理画面で選べないレイアウトなら写せない = sameAsNote)
 // - bulk: 管理一覧の一括操作。宛先 = 選んだ記録(target + recordIds)、POST /api/admin/messaging/bulk-send(門の外)。予約は無い
-// 流れ(D110 D115): 種別 → カテゴリー(種別に 2 つ以上ある時だけ選ぶ)→ 宛先(種別が許す種類だけ。direct はグループも、D109)
+// 流れ(D110 D115 D223): テンプレート(任意。公開中の物を種別で絞らず全部、選ぶ小窓は種別のタブで切り替える D224。使えないレイアウトの物はサーバーが出さない)
+// → 種別 → カテゴリー(種別に 2 つ以上ある時だけ選ぶ。テンプレートを読み込んでいる間はそのテンプレートのカテゴリーとその種別に固定 = categoryLocked、
+// 解除・テンプレートなしなら選べる)→ 宛先(種別が許す種類だけ。direct はグループも、D109)
 // → レイアウト(初めは選択肢の initialLayout。選べるのは管理画面で選べて無効でない物。替えると欄の中身は白紙、D171 D195)
-// → テンプレート(任意の読み込みの道具。その種別の公開中の物、使えないレイアウトの物はサーバーが出さない)→ 文面(useSendTemplateText: 読み込んだ直後は固定、
+// → 文面(useSendTemplateText: 読み込んだ直後は固定、
 // 『文面を直す』で全文、『テンプレートの読み込みを解除』でそのテンプレートのレイアウト(選べなければ初めのレイアウト)へ、『テンプレートを更新』で新しい版、D118 D119 D120)
 // → 送信チャンネルの絞り(カテゴリーの送信チャンネルの中、既定は全部オン)→ 予約(bulk 以外)→ プレビュー(レイアウトの描き方 useLayoutPreview がいつも、
 // 「プレビュー」= あなた宛ての表示例を送る口で描く)・自分へのテスト送信 → 見込み → 確認 → 送る → 結果。
@@ -114,9 +116,15 @@ export function kindsOf(categories: readonly AdminFreeTextCategoryOption[]): str
   return [...new Set(categories.map((option) => option.kind))];
 }
 
-/** mode から導く初めのカテゴリー(sameAs = 送信のカテゴリー。new・bulk は種別から選ぶ = null、決まった文面・カテゴリーは連絡定義の物、D195) */
-function preferredCategoryOf(mode: MessageSendMode): string | null {
-  return mode.type === "sameAs" ? mode.dispatch.category : null;
+/**
+ * mode と初めの文面から導く初めのカテゴリー(sameAs = 写したテンプレートのカテゴリー(テンプレートを写した時、D223)か送信のカテゴリー。
+ * new・bulk は種別から選ぶ = null、決まった文面・カテゴリーは連絡定義の物、D195)
+ */
+function preferredCategoryOf(mode: MessageSendMode, initialText: SendTextState | null, templates: readonly MessageSendTemplate[]): string | null {
+  if (mode.type !== "sameAs") return null;
+  const source = initialText?.source;
+  const template = source?.type === "template" ? templates.find((item) => item.id === source.id) : undefined;
+  return template?.category ?? mode.dispatch.category;
 }
 
 /**
@@ -141,7 +149,6 @@ function varsOfDispatch(sameAs: NonNullable<AdminDispatchDetail["sameAs"]>, temp
  */
 export function initialTextOf(
   mode: MessageSendMode,
-  kind: string,
   layouts: readonly AdminSendLayoutOption[],
   initialLayout: string | null,
   categories: readonly AdminFreeTextCategoryOption[],
@@ -155,10 +162,8 @@ export function initialTextOf(
   if (!same) return blankState;
   const templateId = same.template?.id ?? null;
   if (templateId) {
-    // 今の種別のテンプレートだけ(種別を選び直した後は白紙から)
-    const template = templates.find(
-      (item) => item.id === templateId && categories.find((option) => option.key === item.category)?.kind === kind,
-    );
+    // 送れるカテゴリーのテンプレートだけ(種別・カテゴリーはそのテンプレートの物になる、D223)
+    const template = templates.find((item) => item.id === templateId && categories.some((option) => option.key === item.category));
     if (template) {
       const copyEdited = same.template!.edited && same.layout === template.layout;
       return templateTextState(template, {
@@ -280,12 +285,21 @@ export function useMessageSendModal({ mode, onSent, open: openProp, onOpenChange
   }, [options]);
   const maxDays = sendOptions.options?.maxScheduleDays ?? 90;
 
+  // ---- 初めの文面(mode と選択肢から。種別・カテゴリーより先: テンプレートを写した sameAs はそのテンプレートのカテゴリーから始まる) ----
+  const initialText = useMemo(
+    () => (optionsLoaded ? initialTextOf(mode, layouts, initialLayout, allCategories, allTemplates) : null),
+    [optionsLoaded, mode, layouts, initialLayout, allCategories, allTemplates],
+  );
+
   // ---- 種別 → カテゴリー ----
+  // テンプレートを読み込んでいる間は種別・カテゴリーはそのテンプレートの物(D223): 読み込む時(applyLoad)と写した初め(preferredCategory)に
+  // そのテンプレートのカテゴリー・種別を入れ、読み込み中は setKind・setCategory が何もしない(categoryLocked)。
+  // text(useSendTemplateText)は送信チャンネル(= カテゴリー)を受けるので、カテゴリーは text から導かず state で持つ
   const kinds = useMemo(
     () => kindsOf(allCategories).map((key) => ({ key, label: messageKindAdminLabel(key) })),
     [allCategories],
   );
-  const preferredCategory = preferredCategoryOf(mode);
+  const preferredCategory = preferredCategoryOf(mode, initialText, allTemplates);
   // 新しく送る・一括送信は種別を選ばせる(先に選んでおかない、D110 D118 D195)。同じ内容で送るは送信のカテゴリーの種別
   const initialKind = allCategories.find((option) => option.key === preferredCategory)?.kind ?? "";
   const kind = kindState !== null && kinds.some((item) => item.key === kindState) ? kindState : initialKind;
@@ -314,9 +328,9 @@ export function useMessageSendModal({ mode, onSent, open: openProp, onOpenChange
     [allowedTargetTypes, rawTarget],
   );
 
-  // ---- テンプレート(選んだ種別の物) ----
-  const kindOfCategory = useCallback((key: string) => allCategories.find((option) => option.key === key)?.kind ?? null, [allCategories]);
-  const templates = useMemo(() => allTemplates.filter((item) => kindOfCategory(item.category) === kind), [allTemplates, kindOfCategory, kind]);
+  // ---- テンプレート(種別で絞らない。送れるカテゴリーの物だけ、D223) ----
+  const categoryOf = useCallback((key: string) => allCategories.find((option) => option.key === key) ?? null, [allCategories]);
+  const templates = useMemo(() => allTemplates.filter((item) => categoryOf(item.category) !== null), [allTemplates, categoryOf]);
   /** 初めのレイアウト(開いた時の出どころ。読み込みを解除してテンプレートのレイアウトが選べない時も) */
   const blank = useMemo(() => blankLayoutOf(layouts, initialLayout), [layouts, initialLayout]);
   /** 選べるレイアウト(管理画面で選べて無効でない物、受け口の順) */
@@ -329,10 +343,16 @@ export function useMessageSendModal({ mode, onSent, open: openProp, onOpenChange
     (key: string | null) => layoutChoices.find((option) => option.key === key) ?? blank,
     [layoutChoices, blank],
   );
-  /** 選ぶ小窓の並び = 公開中のテンプレート(門 messagingTemplates が開の時) */
+  /** 選ぶ小窓の並び = 公開中のテンプレート(門 messagingTemplates が開の時)。種別(小窓のタブ、D224)とカテゴリーの表示名つき */
   const pickerTemplates = useMemo(
-    () => (templatesOpen ? templates.map((item) => ({ id: item.id, name: item.name, currentVersion: item.currentVersion })) : []),
-    [templates, templatesOpen],
+    () =>
+      templatesOpen
+        ? templates.map((item) => {
+            const option = categoryOf(item.category)!;
+            return { id: item.id, name: item.name, currentVersion: item.currentVersion, kind: option.kind, categoryLabel: option.label };
+          })
+        : [],
+    [templates, templatesOpen, categoryOf],
   );
 
   // ---- 送信チャンネル ----
@@ -358,10 +378,6 @@ export function useMessageSendModal({ mode, onSent, open: openProp, onOpenChange
   );
 
   // ---- 文面 ----
-  const initialText = useMemo(
-    () => (optionsLoaded ? initialTextOf(mode, kind, layouts, initialLayout, allCategories, allTemplates) : null),
-    [optionsLoaded, mode, kind, layouts, initialLayout, allCategories, allTemplates],
-  );
   const touchText = useCallback(() => {
     setTextTouched(true);
     closePreview();
@@ -382,6 +398,8 @@ export function useMessageSendModal({ mode, onSent, open: openProp, onOpenChange
     [categoryOption, text.state],
   );
   const textDirty = textTouched || text.form.formState.isDirty;
+  /** 種別・カテゴリーがテンプレートの物に固定されているか(テンプレートを読み込んでいる間、D223) */
+  const categoryLocked = text.source?.type === "template";
   // 進行(書く → 確認 → 結果)と書きかけの確かめ。書きかけ = 手で触った物がある(写しただけ・開いただけは書きかけにしない)
   const steps = useSendSteps<MessageSendResult>({
     open,
@@ -412,44 +430,53 @@ export function useMessageSendModal({ mode, onSent, open: openProp, onOpenChange
   });
 
   // ---- 操作 ----
+  // 種別・カテゴリーを選ぶ(テンプレートを読み込んでいる間は固定 = 何もしない、D223。レイアウトと文は種別に関わらずそのまま)
   const setKind = useCallback(
     (next: string) => {
-      if (next === kind) return;
+      if (categoryLocked || next === kind) return;
       setKindState(next);
       // 種別を替えたらその種別の最初のカテゴリーを選び直す(D118)
       setChosenCategory(allCategories.find((option) => option.kind === next)?.key ?? null);
       // 送信方法は新しいカテゴリーの最初の送信チャンネルに戻す(D119)
       setChannelsOff(null);
       closePreview();
-      // レイアウトは種別に関わらない → 選んだレイアウトと文はそのまま。テンプレートは種別ごと → 読み込んでいれば外す(そのレイアウトへ、文は残す)
-      if (text.source?.type === "template") {
-        const back = backToLayoutOf(text.state?.layout ?? null);
-        text.reset(back ? text.toBlank(back) : null);
-      }
     },
-    [kind, allCategories, text, backToLayoutOf, closePreview],
+    [categoryLocked, kind, allCategories, closePreview],
   );
-  const setCategory = useCallback((key: string) => {
-    setChosenCategory(key);
-    setChannelsOff(null);
-    closePreview();
-  }, [closePreview]);
+  const setCategory = useCallback(
+    (key: string) => {
+      if (categoryLocked) return;
+      setChosenCategory(key);
+      setChannelsOff(null);
+      closePreview();
+    },
+    [categoryLocked, closePreview],
+  );
   const setTarget = useCallback(
     (patch: Partial<MessageSendTarget>) => setTargetState((prev) => ({ ...(prev ?? target), ...patch })),
     [target],
   );
 
-  /** テンプレートを読み込む(その版の文は固定から、D119) */
+  /**
+   * テンプレートを読み込む(その版の文は固定から、D119)。種別・カテゴリーはそのテンプレートの物になり、送信チャンネルはそのカテゴリーの既定へ(D223)。
+   * 解除した後もそのカテゴリーのまま(選び直せる)
+   */
   const applyLoad = useCallback(
     (templateId: string) => {
       setPendingLoad(null);
       const template = templates.find((item) => item.id === templateId);
       if (!template) return;
+      const option = categoryOf(template.category);
+      if (option && option.key !== category) {
+        setKindState(option.kind);
+        setChosenCategory(option.key);
+        setChannelsOff(null);
+      }
       text.reset(templateTextState(template));
       setTextTouched(false);
       closePreview();
     },
-    [templates, text, closePreview],
+    [templates, categoryOf, category, text, closePreview],
   );
   /** 読み込む。手で直した書きかけがあれば上書きを確かめる(pendingLoad → confirmLoad / cancelLoad) */
   const loadTemplate = useCallback(
@@ -728,6 +755,8 @@ export function useMessageSendModal({ mode, onSent, open: openProp, onOpenChange
     categories: kindCategories,
     category,
     setCategory,
+    /** 種別・カテゴリーがテンプレートの物に固定されているか(読み込んでいる間。入れ物は欄をディセーブルにする、D223) */
+    categoryLocked,
     // 宛先
     target,
     setTarget,
@@ -742,7 +771,7 @@ export function useMessageSendModal({ mode, onSent, open: openProp, onOpenChange
     // テンプレートと文面
     /** テンプレートを読み込めるか(門 messagingTemplates が開) */
     templatesAvailable: templatesOpen,
-    /** テンプレートの選ぶ小窓の並び(公開中のテンプレート) */
+    /** テンプレートの選ぶ小窓の並び(公開中のテンプレート、種別で絞らない。kind = 小窓のタブ、categoryLabel = 説明、D224) */
     pickerTemplates,
     /** 今のレイアウト(読み込んでいない時の出どころの表示名。DB のテンプレートを読み込んだ時は null) */
     currentLayout: text.source?.type === "layout" ? { label: text.source.label } : null,
