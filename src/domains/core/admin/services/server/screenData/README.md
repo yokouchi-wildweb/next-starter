@@ -46,6 +46,7 @@ export const loadAdminSampleEditScreen = createLoader(
 - `adminCreateParts(domainKey, { relations? })`: 追加。access `create`（write）。key なし。返り値 `{ relationFallback }`
 - `adminSortParts<T>(domainKey, sortOrderColumn?)`: 並び替え。access `searchForSorting`（read）。key なし。返り値 `{ results }`（sortOrderColumn 昇順、NULL 末尾、先頭 100 件）
 
+- どの組も `access`・`key`・`load` を持つ（`load` は必須の型）。組を合成する loader（例: `_components/loader.ts` で一覧の取得の後に足す）は `parts.load(ctx, ...key)` をそのまま呼べる（非 null 断定は要らない）
 - `domainKey` は serviceRegistry のキー（camelCase）
 - `options`（一覧の固定の検索条件）= `withRelations` / `hasManyLimit` / `orderBy` / `where` / `relationWhere`
 

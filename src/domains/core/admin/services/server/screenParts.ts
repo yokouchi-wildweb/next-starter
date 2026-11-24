@@ -39,8 +39,13 @@ import { toCamelCase } from "@/lib/stringCase/index.mjs";
 // access は汎用 API（createDomainRoute）と同じく serviceRegistry の entry から resolveAccessRule で操作ごとに解く。
 // 取得本体は domains/core/admin の screenData（service は外から受ける）。loader.ts の書き方: src/domains/core/admin/services/server/screenData/README.md
 
-/** 管理画面の組の型（利用者の型は見ないので unknown。createLoader に渡すと範囲の利用者の型で評価される） */
-type AdminParts<TProps, TKey extends readonly LoaderKeyValue[], TData> = PageLoaderConfig<TProps, TKey, TData, unknown>;
+/**
+ * 管理画面の組の型（利用者の型は見ないので unknown。createLoader に渡すと範囲の利用者の型で評価される）。
+ * どの組も取得本体を持つので load は必須（PageLoaderConfig では任意）: 組を合成する fork の loader が非 null 断定なしで呼べる
+ */
+type AdminParts<TProps, TKey extends readonly LoaderKeyValue[], TData> = PageLoaderConfig<TProps, TKey, TData, unknown> & {
+  load: NonNullable<PageLoaderConfig<TProps, TKey, TData, unknown>["load"]>;
+};
 
 /** 登録表の entry の access を操作ごとに解く（未登録はモジュール読み込み時に throw = 生成・配線のミスを即座に出す） */
 function domainAccess(domainKey: string, operation: DomainApiOperation, operationType: "read" | "write"): DomainApiAccessRule {
