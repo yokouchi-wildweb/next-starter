@@ -4,7 +4,7 @@ date: 2026-11-24T02:30:31Z
 severity: action-required
 checkpoint: bulk-action-target
 fixes: 20261123-033619-bulk-user-ops
-pick: clean
+pick: -
 resolves: 20261124-112423-bank-transfer-bulk-receptacle
 change: an admin bulk action item (point adminBulkActions, core/admin) may name the list it works on with `domain?: string` (the list's domain folder name; omitted = the plugging domain, as before): new type AdminBulkActionItemOf<Row> in @/domains/core/admin/types/adminBulkAction (AdminBulkActionItem = AdminBulkActionItemOf<any>); every domain's <Domain>AdminBulkActionItem (bankTransferReview, messaging, user, generated domains) is built from it; useDomainAdminBulkActions(domain) keeps items whose (item.domain ?? plugging domain) is that domain
 why: items are collected from every domain's plugs/adminBulkActions/, but the reader kept only items plugged by the list's own domain, so a fork could not add a bulk action to an upstream domain's list from its own domain (oripa-do's bulkDecision for bankTransferReview), and the bulk-user-ops examples (fork items for the user list in the fork's own domain) never showed
