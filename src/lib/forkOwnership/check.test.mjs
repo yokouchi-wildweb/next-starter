@@ -29,6 +29,8 @@ const lineageOf = (/** @type {CheckResult} */ result) => ("lineage" in result ? 
 
 // 走らせるのは pnpm workflow ownership check の入口(cli.mjs は読み込んだだけでは走らない。runOwnershipCheckCli を呼ぶ)
 const CLI = resolve(import.meta.dirname, "../../../scripts/workflow/ownership/check.mjs");
+// 台帳の行を足す道具(/flux が区間の commit の前に走らせる。src → scripts の import はしない: 子の node で走らせる)
+const LEDGER_CLI = resolve(import.meta.dirname, "../../../scripts/workflow/notices/ledger.mjs");
 const cli = (/** @type {string} */ cwd, /** @type {string[]} */ ...args) => spawnSync(process.execPath, [CLI, "--no-self", ...args], { cwd, env: ENV, encoding: "utf8" });
 
 describe("pnpm workflow ownership check", () => {
@@ -434,6 +436,29 @@ describe("pnpm workflow ownership check", () => {
     recordLedger(fork, "20261029-000000-new");
     commitAll(fork, "ledger");
     assert.equal(runCheck(fork).status, "pass");
+  });
+
+  test("notice の無い末尾の区間の台帳の行(tail-<sha>、pnpm workflow notices ledger --tail): 合格、Tier1 の版 = その upstream:", () => {
+    const parent = makeParent();
+    const fork = makeFork(parent);
+    write(parent, ".notices/20261124-000000-last.md", "# DOWNSTREAM NOTICE id:20261124-000000-last\n");
+    commitAll(parent, "last notice");
+    git(fork, "fetch", "-q", "upstream");
+    git(fork, "merge", "-q", "--no-edit", "upstream/main");
+    recordLedger(fork, "20261124-000000-last");
+    commitAll(fork, "segment");
+    write(parent, "src/lib/crud/index.ts", "export const crud = 2;\n");
+    commitAll(parent, "tail: no notice");
+    const tail = git(parent, "rev-parse", "HEAD").trim();
+    git(fork, "fetch", "-q", "upstream");
+    git(fork, "merge", "-q", "--no-edit", "upstream/main");
+    const ledger = spawnSync(process.execPath, [LEDGER_CLI, "--upstream=upstream/main", "--tail"], { cwd: fork, env: ENV, encoding: "utf8" });
+    assert.equal(ledger.status, 0, ledger.stdout + ledger.stderr);
+    assert.match(readFileSync(join(fork, `.notices/applied/${FORK_ID}.md`), "utf8"), new RegExp(`^- id:tail-${tail.slice(0, 9)} \\|.*upstream:${tail} \\| relay:none`, "m"));
+    commitAll(fork, "tail segment");
+    const result = ran(runCheck(fork));
+    assert.equal(result.status, "pass", JSON.stringify(violationsOf(result)));
+    assert.equal(result.tier1.sha, tail);
   });
 
   /** 下の Tier を作る: 親を clone、名前の宣言と、取り込んだ親の版を upstream: に書いた台帳 */

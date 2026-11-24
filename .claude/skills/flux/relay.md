@@ -32,7 +32,7 @@ read when the condition of SKILL.md ATTACHED FILES hits | the rules here act **i
 - pick-clean fixes (SKILL.md FIXES `pick: clean`) are taken only for notices the direct parent issued | never read a grandparent notice's `pick:` (that mark was tried on Tier1's tree, not the direct Tier's) | when the direct Tier took it ahead, that pick arrives in normal segments in the order of the direct Tier's ledger
 
 ## LEDGER ADDITIONS (SKILL.md step 7a)
-- after recording a covers-side notice, record each of its covered ids on its own line too (`notes:covered by <covers 側 id>`; never duplicate an id already in the ledger)
+- after recording a covers-side notice, record each of its covered ids on its own line too, with the same ledger tool (SKILL.md step 7a: `--id=<covered id> --notes=covered by <covers 側 id>`; it refuses an id already in the ledger)
 - the `relay:` field is written only by forks with downstream (the result of RELAY JUDGMENT below; covered ids get the same value as the covers side) | leaf forks omit the whole field
 
 ## STATUS --CHAIN

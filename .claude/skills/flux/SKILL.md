@@ -137,7 +137,7 @@ upstream writes `fixes: <notice id | commit:<sha>>` in a notice that fixes a bug
     - a fix of a fix is a target only when the earlier fix is applied / picked (upstream's judgment tried it on that tree too)
     - the origin applied before this sortie → take it before the first segment (contained in the first segment's merge target → arrives by merge, do not take it) | several → one at a time in history order
   - plan: in the origin segment's detailed plan, read the fix notice in full and add `直後に <修正 notice> を取る` with its required_actions and verify | that segment's approval doubles as approval of this pick (`all` does not stop either) | a segment with a pick is never a light segment
-  - execute: after the commit of the origin segment's step 7b, before 7c, the same as HOTFIX execute 1-3 below (`git cherry-pick -x <修正の追加 commit>` → the fix's required_actions, segment checks, verify → follow-up and ledger in a separate commit; the ledger line has the same form with `picked:`, `notes:` = `pick-clean after <修正元 id>`)
+  - execute: after the commit of the origin segment's step 7b, before 7c, the same as HOTFIX execute 1-3 below (`git cherry-pick -x <修正の追加 commit>` → the fix's required_actions, segment checks, verify → follow-up and ledger in a separate commit; the ledger line by the ledger tool of step 7a with `--picked=<元の commit>`, `--notes=pick-clean after <修正元 id>`)
     - then 7c `pnpm workflow ownership check` (the `picked:` part passes) → push with the segment at 7d
   - could not take it:
     - cherry-pick conflict (a conflict only in `.notices/shipped/` = an older commit still carrying the removed index: take the upstream side, or remove it when upstream deleted it, and continue; it does not count as not taken) → `git cherry-pick --abort`
@@ -168,7 +168,7 @@ a notice's commit for which upstream declared `hotfix:` is cherry-picked before 
      - its `notes` line goes into the ledger line's `notes:` as is (`hotfix pick; replaced: …; merged: …; left-out: …; gap: …`)
   2. the notice's required_actions, the segment checks (the same 3 as step 6; the picked tree lacks `scripts/runner/phases/` → skip the entry and write it in the report) and verify
   3. put the follow-up changes and the ledger in a commit separate from the pick commit (so the tier below can take only the pick commit)
-     - ledger line: `- id:<id> | date:<ISO8601> | commit:<pick の短 sha> | upstream:<git merge-base HEAD <upstream>/<branch> の完全な sha> | picked:<元の commit の完全な sha> | notes:<…>`
+     - ledger line: the ledger tool of step 7a with `--id=<id> --commit=<pick の短 sha> --upstream=<git merge-base HEAD <upstream>/<branch>> --picked=<元の commit> --notes=<…>`
      - never set `upstream:` to the original commit (the ownership check would misread the Tier1 version) | forks with downstream write `relay:` too, judged at the pick (relay.md RELAY JUDGMENT, case "hotfix pick": `relay-check.mjs --pick <元の commit>`)
   4. step 7c `pnpm workflow ownership check` (content equal to base + pick, or a file the pick changed whose content equals any upstream version of it, passes as `picked`) → push → report | a pick has no merge target, so instead of 7c's "skip when there is no intake.txt" decide by:
      - no check (`package.json` lacks `pnpm workflow ownership check`) → skip | write `所有の検査なし(後の区間で届く)` in the report and the ledger notes | do not stop
@@ -176,7 +176,7 @@ a notice's commit for which upstream declared `hotfix:` is cherry-picked before 
      - same version as upstream → as 7c (1 / 2 are stop conditions)
      - all of these = the same treatment as FOLLOW UPSTREAM'S LATEST STEPS 3 "skip steps of missing / different-version tools, never stop"
 - **after the pick**: rebuild the segments (ids recorded in the ledger are no checkpoints) | that spot conflicts at a later merge → take the upstream side when the fork has no edit (a replaced file always: it holds only upstream's content)
-- **picked by hand already**: an unapplied notice in the tree whose adding commit is an ancestor of `<upstream>/<branch>` but not of HEAD (not in the ledger) → apply it in segment 0 and write the ledger line in the form above (regardless of `hotfix:`) | confirm the original commit with the line of `git log --grep "cherry picked from commit"`
+- **picked by hand already**: an unapplied notice in the tree whose adding commit is an ancestor of `<upstream>/<branch>` but not of HEAD (not in the ledger) → apply it in segment 0 and write the ledger line with `--picked` as above (regardless of `hotfix:`) | confirm the original commit with the line of `git log --grep "cherry picked from commit"`
 
 ## LIGHT SEGMENTS (the `light` judgment; only segments planned in detail)
 - light segment = a segment meeting all of the following (one miss → not light): no fork follow-up / no db:push / no downtime / no manual data migration / no deviation (0 conflicts forecast, no `[user-run]`, no fork-side change in the notice's required_actions, no backfill) / not a segment whose origin is unapplied (FIXES above) / no pick-clean fix pick
@@ -287,7 +287,7 @@ a notice (a body added under `.notices/` in the upstream tip's history, read at 
    - **segment 0** = in-tree unapplied notices (no merge needed) | empty → none
    - then walk incoming in history order and **close a segment right after each checkpoint notice** (`checkpoint:` other than `-`, or an old schema without the field; but a notice named by `skip_checkpoint:` of any notice in the upstream tip's history list counts as `-`)
      - merge target of a closed segment = that checkpoint notice's checkpoint point commit | a `checkpoint: -` notice stays in the same segment up to the next checkpoint (upstream's exception declaration; the reason is in notes:)
-   - notices after the last checkpoint (empty if none) + the remaining commits = the **tail segment** | merge target = `<upstream>/<branch>` | even without notices, unmerged commits make a tail segment (merge only)
+   - notices after the last checkpoint (empty if none) + the remaining commits = the **tail segment** | merge target = `<upstream>/<branch>` | even without notices, unmerged commits make a tail segment (merge only; its ledger line: step 7a `--tail`)
    - as a result, normally 1 notice = 1 segment | several notices shipped in the same commit give consecutive segments with the same merge target (the merge completes on the first; later ones just say "already up to date"; normal)
 6. what each segment holds (overview): number / merge target (short sha, and checkpoint label or `HEAD`) / notice ids contained / commit count up to there / whether `moved:` exists / fix relations (the marks of FIXES above) / the numbers in `resolves:` that hit your own temporary permits (`upreq:` of `.fork-ownership/<名前>.permits.txt`)
    - hit lines expire after that segment's merge (lines whose numbers are all resolved) → show `可変域へ移す・元に戻す` (move to the intake point / revert) in the plan (`.notices/README.md` section `解決(resolves)`; `pnpm workflow ownership check` shows expired-resolved)
@@ -450,16 +450,16 @@ merge and porting carry the fork's edits as they are | when the destination is u
    - `pnpm typecheck` fails on **upstream `_screen/*` default Screens own fork does not use** (routes whose page.tsx points to `_components/`, etc.) → the cause is an incompatible core edit of own fork (added required props, deleted core code it does not use, etc.)
      - fix the core side (make added props optional with an empty default again, restore deleted things from upstream); never edit the upstream Screen (CLAUDE.md CORE_FILES `fork_core_edit_compat`, `src/lib/screens/README.md` §7) | write what was restored in the ledger notes
 7. **record and commit** (run in a row without confirmation):
-   a. append to own fork ledger `.notices/applied/<名前>.md` (create it with the header when missing; English):
-      ```
-      # APPLIED LEDGER fork:<own origin url>
-      - id:<notice id> | date:<ISO8601> | commit:<short sha or -> | upstream:<区間の merge 先の完全な sha> | relay:<none | relay notice id> | notes:<deviations from required_actions, or ->
-      ```
-      - every fork writes `upstream:` on every line (the upstream version taken in by that segment; never rewrite past lines)
+   a. append to own fork ledger `.notices/applied/<名前>.md` with the tip's ledger tool, never by hand (it creates the ledger with its header, writes `date:`, resolves `upstream:` to the full sha, and refuses an id the ledger already holds):
+      - `node <tmp tip.mjs> --upstream=<upstream>/<branch> --entry=scripts/workflow/notices/ledger.mjs -- --upstream=<区間の merge 先> --id=<notice id> [--id=…] --commit=<short sha | -> [--relay=<none | relay notice id>] [--notes=<deviations from required_actions>]` (`<tmp tip.mjs>` = `git show <upstream>/<branch>:.claude/skills/flux/tip.mjs > <tmp>`)
+      - **a tail segment with no notice** (merge only): `… -- --upstream=<区間の merge 先> --tail [--notes=…]` → one line `id:tail-<sha9>` with `upstream:` = the merge target
+        - why: the deploy gate reads only the ledger's last `upstream:`, so it reads `at` when the parent's safe tag sits on that merge (a departure merge outside any segment)
+        - it writes nothing when the ledger's last `upstream:` is already the merge target (a tail line written earlier, by hand too)
+      - every line carries `upstream:` (the upstream version taken in by that segment; never rewrite past lines)
       - `pnpm workflow ownership check` decides the Tier1 version by this field: from the `upstream:` version of the last line of your ledger, to the last `upstream:` of that version's ledger (named by that version repo's `repo_id`) … until a version without `.notices/applied/` (Tier1) (independent of the number of tiers; multi-tier ownership judgment, `src/lib/forkOwnership/README.md`)
       - align ledger names with `repo_id` (a ledger with another name at an intermediate version cannot be walked → exit 2)
-      - the `relay:` field is written only by forks with downstream; leaf forks omit the whole field | covered-id lines and `relay:` values when recording a covers-side notice → relay.md LEDGER ADDITIONS
-   b. commit the diff (application + ledger + relay notices drafted in this segment) (no push yet) | message: a one-line summary + blank line + `downstream-notice: <id>` (every id of the segment, one per line) + the Co-Authored-By trailer the environment specifies | branch handling follows this repo's policy
+      - `--relay` only for forks with downstream (the tool asks for it there and refuses it on a leaf; a tail line is always `relay:none`) | covered-id lines and `relay:` values when recording a covers-side notice → relay.md LEDGER ADDITIONS
+   b. commit the diff (application + ledger + relay notices drafted in this segment) (no push yet) | message: a one-line summary + blank line + `downstream-notice: <id>` (every notice id of the segment, one per line; a tail segment with no notice has none) + the Co-Authored-By trailer the environment specifies | branch handling follows this repo's policy
    c. **ownership check** (only when that segment's merge target has `src/lib/forkOwnership/intake.txt`; none → skip): `pnpm workflow ownership check` | it looks only at the committed HEAD (ledger, temporary permits and cleanup are read from HEAD too), so run it after b's commit, before push | middle Tiers with downstream too
       - 0 → d | its `[self-parent-lost]` lines (a self file whose own lines this take-in dropped; never a failure) → before d, ask per file: `親の版に従う` (nothing to do) / `自分の行を戻す` (restore them from `git show <the segment's merge>^1:<path>` in an extra commit of the segment, rerun the check)
       - 1 (violation) → stop condition | no push; show the violation list and settle it (move to an intake point / revert / temporary permit; how: `src/lib/forkOwnership/README.md` section `導入の段階` and required_actions of the cleanup notice `fork-ownership-cleanup`) | stack the cleanup in extra commits, rerun the check, go to d once it gives 0 | never push and close the segment with violations left
