@@ -20,6 +20,7 @@ import { fileURLToPath } from "node:url";
 
 import { CRON_ROUTE_DIR, gateClosedBy, listCronTaskDirs, loadCronTasks, scheduledCronTasks } from "./discover.ts";
 import { readForkIdentity, readVercelPlan } from "../../../src/lib/forkOwnership/node.mjs";
+import { configPath } from "../../../src/featureGate/node.ts";
 
 import nextServer from "next/server";
 
@@ -240,11 +241,15 @@ test("機能の門: 住所 /api/cron/<name> が閉じたタスクは closedBy �
   );
 });
 
-test("機能の門: 既定の判定は門番の gate.path(今の config。ウォレットは既定で閉)", async () => {
-  assert.equal(gateClosedBy("/api/cron/wallet-expire-lots"), "wallet");
+test("機能の門: 既定の判定は門番の gate.path(今の config。Tier1 ではウォレットは既定で閉)", async () => {
+  // Tier1 は上流の既定(ウォレットは閉)を固定で期待する。fork は自分の switches.config.ts でウォレットを開けうるので、
+  // 期待は門の今の答え(configPath = 規則の値の gate.path)から作る: 閉なら規則の名前 "wallet"、開なら null
+  const walletPath = "/api/cron/wallet-expire-lots";
+  const expected = readForkIdentity(repoRoot).isTier1 ? "wallet" : configPath(walletPath).open ? null : "wallet";
+  assert.equal(gateClosedBy(walletPath), expected);
   assert.equal(gateClosedBy("/api/cron/audit-log-recover-dead-letter"), null);
   const tasks = await loadCronTasks(repoRoot);
-  assert.equal(tasks.find((task) => task.name === "wallet-expire-lots")?.closedBy, "wallet");
+  assert.equal(tasks.find((task) => task.name === "wallet-expire-lots")?.closedBy, expected, "読み込んだ task の closedBy は門の答えと同じ");
 });
 
 test("createCronRoute: 依存の gate が閉と答えたら認証の後・enabled と本体の前に skipped(reason closed)、依存なしは今と同じ", async () => {
