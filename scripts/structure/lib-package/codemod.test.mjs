@@ -9,6 +9,7 @@ import path from "node:path";
 import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { closeTmp, commitAll, makeFork, makeParent, openTmp, write } from "../../../src/lib/forkOwnership/node.mjs";
 import { clearLibPackageCache } from "../../../src/lib/libPackage/node.mjs";
 import { scanInnerImports } from "./closed.mjs";
 import { applyCodemod, entryForFile, entryIndex, planCodemod, runCodemod } from "./codemod.mjs";
@@ -199,6 +200,25 @@ test("出荷済みの notice の道具(.notices/**)は走査しない: 書き換
   assert.deepEqual(plan.changes.map((c) => c.file), ["scripts/tool.mjs"]);
   assert.deepEqual(plan.stops, []);
   assert.deepEqual(scanInnerImports(root).get("box")?.samples.map((s) => s.split(" → ")[0]), ["scripts/tool.mjs"]);
+});
+
+test("fork では fork が足したファイルだけを書き換え、親の持ち物は upstreamFile で止まる一覧に(Polaris線 F3)", (t) => {
+  openTmp();
+  t.after(closeTmp);
+  const inner = 'import { useBox } from "@/lib/box/hooks/useBox";\nexport const a = useBox;\n';
+  const parent = makeParent();
+  write(parent, "tsconfig.json", JSON.stringify({ compilerOptions: { paths: { "@/*": ["./src/*"] } } }));
+  for (const [rel, content] of Object.entries(BOX)) write(parent, rel, typeof content === "string" ? content : JSON.stringify(content));
+  write(parent, "src/domains/core/user/upstreamThing.ts", inner);
+  commitAll(parent, "parent: a closed lib and a file of its own reading inside it");
+  const fork = makeFork(parent);
+  write(fork, "src/domains/game/G.ts", inner);
+  commitAll(fork, "fork: its own file reading inside the lib");
+  clearLibPackageCache();
+  const plan = planCodemod(fork);
+  assert.deepEqual(plan.changes.map((c) => c.file), ["src/domains/game/G.ts"]);
+  assert.deepEqual(plan.stops.map((s) => [s.kind, s.file]), [["upstreamFile", "src/domains/core/user/upstreamThing.ts"]]);
+  assert.equal(plan.note, undefined);
 });
 
 test("上流で回すと書き換え 0(閉じた lib の中を読む import は手で直してある)", () => {

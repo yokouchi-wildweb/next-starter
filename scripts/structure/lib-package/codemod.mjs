@@ -41,6 +41,7 @@ import ts from "typescript";
 import { resolveImport } from "../../../eslint-rules/resolve-import.mjs";
 import { LIB_DIR, findEntry, libOfPath } from "../../../src/lib/libPackage/index.mjs";
 import { listDeclaredLibs, readLibPackage } from "../../../src/lib/libPackage/node.mjs";
+import { forkAddedFiles } from "../../../src/lib/forkOwnership/node.mjs";
 import { scanFiles } from "./closed.mjs";
 import { movedRows } from "./moved.mjs";
 import { bindingRenameEdits, loadRenames, planMethodRenames } from "./renames.mjs";
@@ -269,7 +270,7 @@ function localizeSpecifier(file, original, specifier) {
  * 書き換えの計画を作る(ファイルは書かない)
  * @param {{ base?: string, table?: ReturnType<typeof loadRenames> }} [opts] base = moved の imports: の行と、名前の <base> での実体を引く比べの起点。
  *   table = 改名表(既定 renames.json)
- * @returns {{ scanned: number, rows: { from, to }[], changes: { file, line, from, to, names, start, end, text }[], stops: { file, line, specifier, kind, detail }[] }}
+ * @returns {{ scanned: number, rows: { from, to }[], changes: { file, line, from, to, names, start, end, text }[], stops: { file, line, specifier, kind, detail }[], note?: string | null }} note = fork の物か見分けられなかった時の 1 行(upstreamFile = fork で親の持ち物を書き換えずに止めた行)
  */
 export function planCodemod(root, { base, table = loadRenames() } = {}) {
   const reader = createExportReader(root);
@@ -561,7 +562,15 @@ export function planCodemod(root, { base, table = loadRenames() } = {}) {
   const methods = planMethodRenames(root, files, table);
   changes.push(...methods.changes);
   stops.push(...methods.stops);
-  return { scanned: files.length, rows, changes, stops };
+  // fork で回す時は fork が足したファイルだけを書き換える(親の持ち物を書き換えると fork_ownership の違反、Polaris線 F3)。
+  // 親の物かは所有の道具(直接の親との merge-base)で見る。Tier1 と見分けられない時(親の remote が無い等)は全部
+  const owned = closed.size === 0 ? null : forkAddedFiles(root, { fetch: false });
+  if (owned?.status === "unverified") return { scanned: files.length, rows, changes, stops, note: `fork の物か見分けられない(${owned.reason}): 全部のファイルを見ました` };
+  if (owned?.status !== "ok") return { scanned: files.length, rows, changes, stops };
+  for (const c of changes) {
+    if (!owned.added.has(c.file)) stops.push({ file: c.file, line: c.line, specifier: c.from, kind: "upstreamFile", detail: "親の持ち物: 書き換えない(上流が直す)" });
+  }
+  return { scanned: files.length, rows, changes: changes.filter((c) => owned.added.has(c.file)), stops };
 }
 
 /** 計画をファイルに書く(後ろから置き換えるので位置がずれない) */
@@ -611,11 +620,12 @@ export function runCodemod(root, argv = [], { stdout = process.stdout } = {}) {
   if (apply) applyCodemod(root, plan);
   if (flags.has("--json")) {
     const strip = ({ start, end, text, ...rest }) => ({ ...rest, text });
-    stdout.write(`${JSON.stringify({ apply, base: base ?? null, scanned: plan.scanned, rows: plan.rows, changes: plan.changes.map(strip), stops: plan.stops }, null, 2)}\n`);
+    stdout.write(`${JSON.stringify({ apply, base: base ?? null, scanned: plan.scanned, rows: plan.rows, changes: plan.changes.map(strip), stops: plan.stops, note: plan.note ?? null }, null, 2)}\n`);
     return 0;
   }
   for (const c of plan.changes) stdout.write(`${c.file}:${c.line} ${c.from} -> ${c.to} { ${c.names.join(", ")} }\n`);
   for (const s of plan.stops) stdout.write(`止まる ${s.kind} ${s.file}:${s.line} ${s.specifier}(${s.detail})\n`);
+  if (plan.note) stdout.write(`lib-package codemod: ${plan.note}\n`);
   const files = new Set(plan.changes.map((c) => c.file)).size;
   stdout.write(
     `lib-package codemod: ${apply ? "書き換えた" : "書き換える(dry-run、書くのは --apply)"} ${plan.changes.length} 文 / ${files} ファイル・止まる ${plan.stops.length}(走査 ${plan.scanned}、閉じた lib の中: ${LIB_DIR}/<名前>${base ? `、古い指定子の行 ${plan.rows.length}(--base ${base})` : ""})\n`,

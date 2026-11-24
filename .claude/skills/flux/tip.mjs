@@ -146,11 +146,26 @@ export function walk(repo, sha, entry) {
   return files;
 }
 
-/** 取り出す → { dir, reused, files }。<repo>/.flux/tip/<sha>/ が有ればそのまま使う */
+/** 取り出す → { dir, reused, files }。<repo>/.flux/tip/<sha>/ に entry が有ればそのまま使う */
 export function extract(repo, sha, entry) {
   const dir = join(repo, ".flux", "tip", sha);
   if (existsSync(join(dir, entry))) return { dir, reused: true, files: null };
   const files = walk(repo, sha, entry);
+  // 同じ sha で別の entry を取り出した後(who → selfKeep → phases/run.mjs): その closure の足りないファイルだけを足す。
+  // 同じ sha の木なので、有るファイルは同じ中身(上書きしない)。捨てると 2 つ目の entry が MODULE_NOT_FOUND(Polaris線 F1)
+  if (existsSync(dir)) {
+    const added = [];
+    for (const [path, text] of files) {
+      const to = join(dir, path);
+      if (existsSync(to)) continue;
+      mkdirSync(dirname(to), { recursive: true });
+      const tmp = `${to}.partial-${process.pid}`;
+      writeFileSync(tmp, text);
+      renameSync(tmp, to);
+      added.push(path);
+    }
+    return { dir, reused: false, files: added };
+  }
   const partial = `${dir}.partial-${process.pid}`;
   rmSync(partial, { recursive: true, force: true });
   for (const [path, text] of files) {

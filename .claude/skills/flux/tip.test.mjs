@@ -83,6 +83,23 @@ test("遅れた fork: 作業ツリーに無い先端のファイルを取り出�
   assert.ok(!existsSync(join(fork.dir, ".flux/tip", `${tipSha}.partial-${again.pid}`)));
 });
 
+test("同じ sha で 2 つ目の entry: 取り出し済みの場所に、その entry の足りないファイルを足す(1 つ目のファイルは残る)", (t) => {
+  const up = repo(t, "up");
+  const sha = up.commit({
+    "a.mjs": 'import { x } from "./lib/x.mjs";\nconsole.log(`a ${x}`);\n',
+    "lib/x.mjs": 'export const x = "x";\n',
+    "b.mjs": 'import { y } from "./lib/y.mjs";\nconsole.log(`b ${y}`);\n',
+    "lib/y.mjs": 'import { x } from "./x.mjs";\nexport const y = `y${x}`;\n',
+  });
+  const first = tip(up.dir, ["--upstream=main", "--entry=a.mjs"]);
+  assert.equal(first.status, 0, first.stderr);
+  assert.ok(!existsSync(join(up.dir, ".flux/tip", sha, "b.mjs")));
+  const second = tip(up.dir, ["--upstream=main", "--entry=b.mjs"]);
+  assert.equal(second.status, 0, second.stderr);
+  assert.equal(second.stdout.trim(), "b yx");
+  for (const f of ["a.mjs", "lib/x.mjs", "b.mjs", "lib/y.mjs"]) assert.ok(existsSync(join(up.dir, ".flux/tip", sha, f)), f);
+});
+
 test("リポの中を名指す import(@/)・先端に無いファイル・解けない ref は exit 2", (t) => {
   const up = repo(t, "up");
   up.commit({ "a.mjs": 'import x from "@/lib/x";\n', "b.mjs": 'import "./missing.mjs";\n' });

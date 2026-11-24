@@ -231,6 +231,13 @@ function runCheck(repo, argv, log) {
   }
   const passFile = passFilePath(repo);
   rmSync(passFile, { force: true });
+  // 開発サーバーの古い型(.next/dev/types: 消した route を指す validator.ts)は消してから回す: tsconfig の include に Next が入れた道で、
+  // next build の型検査は tsconfig の選ぶ全部を見るので、古いキャッシュで TS2307 / TS2344 に落ちた(Comet線)。次の next dev が作り直す
+  const devTypes = join(repo, ".next", "dev", "types");
+  if (existsSync(devTypes)) {
+    rmSync(devTypes, { recursive: true, force: true });
+    log("safe-point: 開発サーバーの古い型 .next/dev/types を消しました(next build が tsconfig の include ごと型を見るため)");
+  }
   for (const cmd of checks.length > 0 ? checks : FULL_CHECKS) {
     const r = spawnSync(cmd, { cwd: repo, shell: true, stdio: "inherit" });
     if (r.status !== 0) {

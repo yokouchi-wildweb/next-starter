@@ -255,6 +255,13 @@ function localRepos(self) {
     if (!e.isDirectory()) continue;
     const dir = join(dirname(self.top), e.name);
     if (!existsSync(join(dir, ".git"))) continue;
+    // linked worktree(.git がファイル)の本体が同じ親フォルダにあれば数えない: 本体が代表する。鉄道の作業場は上流の
+    // repo.json を持つので、数えると上流の名前のまとまりに入り、url を取り違えた(self の url が TriQ)
+    if (!statSync(join(dir, ".git")).isDirectory()) {
+      const common = git(dir, ["rev-parse", "--path-format=absolute", "--git-common-dir"]);
+      const main = common ? dirname(common) : "";
+      if (main && main !== dir && dirname(main) === dirname(self.top) && existsSync(join(main, ".git"))) continue;
+    }
     let info;
     try {
       info = repoInfo(dir);

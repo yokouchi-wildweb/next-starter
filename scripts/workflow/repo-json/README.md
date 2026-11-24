@@ -38,7 +38,7 @@ repo.json の形:
 
 ## Internals
 
-- 直接の書き換え(Edit / Write・シェルの書き込み)は許可のフックが止める。人が値を変える入口は `/repo-config`(repo.json 全体を組ごとに見せ、変える値と効き先を見せて確認の後にこの命令で書く)
+- 直接の書き換え: Edit / Write は `.claude/settings.json` の permissions deny(`Edit(/repo.json)`・`Write(/repo.json)`)が断る。フックは止めない(D420)、シェルの書き込みも止めない。人が値を変える入口は `/repo-config`(repo.json 全体を組ごとに見せ、変える値と効き先を見せて確認の後にこの命令で書く)
 - `set` は読み手と同じ決まりで確かめてから、ファイル全体を入れ子の 1 鍵 1 行に書き直す(並び = repo_id・tier・組 agent(鍵の名の順、entries は最後)・組 vercel)。誤り(知らない鍵・形違いの名前・知らない段・今のファイルが読めない)は何も書かず exit 2
 - `unset` は 1 つの鍵を消して同じ形で書き直す(set の対。廃止した方針の鍵を fork が外す時など)。`repo_id`・`tier` と知らない形の鍵は何も書かず exit 2、無い鍵は何もせず exit 0
 - `migrate`(1): 平らな `repo.json` を入れ子へ。入口の鍵 `agent.<種類>.entry` → `agent.entries.<種類>`、`agent.deploy.db_entry` → `agent.entries.deploy_db`、廃止した `agent.check`・`agent.test` は落とす(出力に名前を出す)、知らない鍵は何も書かずに止める。2 回目は何も書かない

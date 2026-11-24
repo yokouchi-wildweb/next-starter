@@ -48,6 +48,7 @@ pnpm check lib-package -- codemod [--apply] [--json] …
   - 改名の止まる一覧: `needsBase`(origin の行に `--base` が無い)・`renamedReexport`(改名する名前をファイルから出し直している。出す名前を変えると読み手が壊れるので手で決める)・`nameTaken`(新しい名前がファイルに既にある)・`untyped`(受け手の型が any / unknown / 解けない import で、ファイルがその lib を読んでいる。報告だけ)
   - method の program は表に method の行があり、古い名前を含むファイルがある時だけ立てる(repo 全体で数秒〜十数秒)
 - fork は notice を取り込んだ後、notice に書かれた上流の sha を `--base` に渡して回す(名前ごとの割り・origin の行・消えた束が `--base` で決まる)
+- fork で回すと、fork が足したファイル(所有の道具 `forkAddedFiles`: 直接の親との merge-base から足された物)だけを書き換える。親の持ち物は書き換えず、止まる一覧に `upstreamFile`(上流が直す)で出す(親のファイルの書き換えは fork_ownership の違反)。Tier1 は全部を見る。fork の物か見分けられない時(親の remote が無い・shallow)は全部を見て、その旨を 1 行出す
 - 出荷済みの notice の道具(`.notices/<id>.*.mjs` とそのテスト)は走査しない(書き換え・止まる一覧・閉じたかの検査の「中を読む」数のどれにも入らない。`closed.mjs` の `scanFiles`)。道具は自分の区切りの時点の木に対して走り、出荷後は書き換えないので、その木で正しい中の道を今の入口へ直さない(lint entry/only-entries も外す)
 - 本体と引数の詳細: `codemod.mjs`・`renames.mjs`(`-- codemod --help`)
 

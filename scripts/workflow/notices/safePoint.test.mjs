@@ -280,6 +280,16 @@ test("check: 全部通れば HEAD を記録、一つ落ちれば exit 1 で記�
   assert.equal(existsSync(passFile(r.dir)), false);
 });
 
+test("check: 開発サーバーの古い型 .next/dev/types を消してから回す(next build が tsconfig の include ごと型を見る、Comet線)", () => {
+  const r = tier1(1);
+  mkdirSync(join(r.dir, ".next/dev/types"), { recursive: true });
+  writeFileSync(join(r.dir, ".next/dev/types/validator.ts"), 'import "../../../src/app/gone/page";\n');
+  writeFileSync(join(r.dir, ".next/keep.txt"), "x\n");
+  assert.equal(run(r.dir, ["check", "--check=test ! -e .next/dev/types"], logs()), 0);
+  assert.equal(readFileSync(passFile(r.dir), "utf8").trim(), r.shas[0]);
+  assert.ok(existsSync(join(r.dir, ".next/keep.txt")), ".next のほかは触らない");
+});
+
 test("tag: 記録が無い・記録の commit が無い・push していないは exit 1、通れば注釈つきの tag を push、次は -2、同じ HEAD は既にある", () => {
   const r = tier1(1);
   const tag = () => {

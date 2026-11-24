@@ -116,6 +116,30 @@ test("CLI: by の repo-id・branch・commit は実行したリポから取る", 
   assert.match(text, new RegExp(`\\nby: acme--app \\| git@github\\.com:Acme/App\\.git \\| branch:main \\| commit:${sha} \\| pushed:no \\(no remote\\)\\n`));
 });
 
+test("CLI: repos は本体が同じ親フォルダにある linked worktree を数えない(別の repo.json を持つ鉄道の作業場で url を取り違えない)", () => {
+  const parent = mkdtempSync(join(tmpdir(), "mailbox-repos-"));
+  const mk = (name, origin, id) => {
+    const dir = join(parent, name);
+    mkdirSync(dir);
+    const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: dir, encoding: "utf8" }).trim();
+    run("init", "-q", "-b", "main");
+    run("remote", "add", "origin", origin);
+    writeFileSync(join(dir, "repo.json"), `{\n  "repo_id": "${id}",\n  "tier": "leaf"\n}\n`);
+    run("add", "-A");
+    run("commit", "-q", "-m", "x");
+    return { dir, run };
+  };
+  const self = mk("self", "git@github.com:Acme/self.git", "self-repo");
+  const other = mk("other", "git@github.com:Acme/other.git", "other-repo");
+  // other の作業場: その木は self の repo.json を持つ(鉄道の track が上流の repo.json を持つ形)
+  other.run("worktree", "add", "-q", "-b", "track", join(parent, "other.wt-track"));
+  writeFileSync(join(parent, "other.wt-track", "repo.json"), `{\n  "repo_id": "self-repo",\n  "tier": "leaf"\n}\n`);
+  const out = execFileSync("node", [SCRIPT, "repos"], { cwd: self.dir, encoding: "utf8" });
+  assert.match(out, /repo: self-repo \(self\)\n {2}url: git@github\.com:Acme\/self\.git\n {2}path: [^\n]*\/self\n/);
+  assert.match(out, /repo: other-repo\n {2}url: git@github\.com:Acme\/other\.git\n {2}path: [^\n]*\/other\n/);
+  assert.equal(out.includes("other.wt-track"), false);
+});
+
 test("from: ORDER_ACTOR があれば発行元 = その名前、リポは repo: に残す", () => {
   const where = { origin: "git@x:Acme/App.git", repoId: "acme--app", branch: "main", cwd: "/w/app" };
   assert.equal(fromLine({}, where), "git@x:Acme/App.git | branch:main | cwd:/w/app");
