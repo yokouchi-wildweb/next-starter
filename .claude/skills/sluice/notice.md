@@ -28,7 +28,7 @@ read when step 5 (commit.md) writes a notice, or a caller writes a notice from a
    notes: <anything else downstream should know>
    ```
    - `<slug>` = a short English kebab from change | saved at `.notices/<ts>-<slug>.md`
-   - leave `pick:` out: step 6's pickCheck writes it in the body
+   - leave `pick:` out: step 6's pickCheck writes it in the body (the result of trying the fix on the broken point's tree)
    - **`uses:`**: list the migrations (`src/domains/<domain>/scripts/migrations/`) and codemods (`.notices/<id>.<名前>.mjs`) required_actions run, and put them in the same commit | a notice with `uses:` makes `checkpoint:` a label (`-` not allowed) | `pnpm check notices` checks they exist and the checkpoint (`.notices/README.md` section `使う移行・codemod の欄`)
      - the codemod's `<id>` = this notice's, or one its `fixes:` names when the fix replaces that notice's tool (the replacement then counts as the commit's body)
    - **`skip_checkpoint:`**: only when the `fixes:` origin's checkpoint does not work (the fork's checks fail there) and step 6's pick-check gives `-` → write the origin's id (each id must be in `fixes:`; the fix notice itself is a labeled checkpoint) | the origin has `uses:` → cannot be skipped

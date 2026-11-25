@@ -195,9 +195,9 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 
 #### 先に取れる印(pick)
 
-修正元の区切りで止まった fork は、修正の区間に着くまで既知の不具合を抱えたまま push する。上流が出荷のときに「壊れた地点に修正だけを載せても通るか」を機械で試し、通った修正に印を付ければ、/flux は修正元の区間を取り込んだ直後にその修正を cherry-pick して、壊れた区切りのまま push せずに済む。
+修正元の区切りで止まった fork は、修正の区間に着くまで既知の不具合を抱えたまま push する。上流が出荷のときに壊れた地点の木に修正だけを載せて機械で試し、試せた修正に印を付ければ、/flux は修正元の区間を取り込んだ直後にその修正を cherry-pick して、壊れた区切りのまま push せずに済む。印は上流の木で試せたという事実で、その fork で取るかは fork の木(cherry-pick と区間の検査)で決める。
 
-- 欄: 本文の `pick: clean | -`。`fixes:` のある notice にだけ付く(`pnpm check notices` が検査)。欄なし(古い notice・判定できなかった notice)は `-` と同じ扱いで、今の動き(上の /flux の扱い)のまま
+- 欄: 本文の `pick: clean | -`(clean = 壊れた地点の木で試せた、- = 試せなかった・試していない)。`fixes:` のある notice にだけ付く(`pnpm check notices` が検査)。欄なし(古い notice・判定できなかった notice)は `-` と同じ扱いで、今の動き(上の /flux の扱い)のまま
 - 書くのは /sluice: `fixes:` の notice を含む commit の後(push の前の並べ替えの後)、push の前に `pnpm workflow notices pickCheck <commit>` が判定して**その notice の本文**(`fixes:` の直後)に書き、/sluice がそれを同じ commit に入れる(`git commit --amend`)。人の宣言は要らない
 - 試す土台 = 壊れた地点(修正元の区切りのコミット): 修正元(notice id ならその追加 commit、`commit:<sha>` ならその commit)から履歴を進んで最初に来る区切りの notice の追加 commit。修正の前に区切りが無ければ修正元と修正は同じ区間で届くので `-`。修正元が複数なら最も古い壊れた地点。fork の位置では試さない(上流からは見えない。fork 側の衝突は /flux が戻して今の動きに落とす)
 - clean の条件(全部): 本体と notice が同じ 1 commit / `pnpm-lock.yaml`・`src/app/route-map.jsonl` を含まない / 手順(required_actions 〜 manual_steps)が壊れた地点より後の notice を名指さない / 壊れた地点で cherry-pick が衝突しない / 載せた木で `pnpm typecheck`・`pnpm test scripts/structure/config/moduleLoad.test.mjs`・`pnpm check registry` が通る(その木に無い script は未実行として飛ばす)/ 前提の検査(`scripts/workflow/notices/lib.hotfixGaps.mjs`、緊急修正を当てた後の確かめと同じ: 足した・変えたルールの `paths:`・手順の `pnpm <script>`・名指すパス)が何も挙げない。cherry-pick が通っても間の commit に意味で依存する修正は壊れるので、型検査まで通して付ける
@@ -216,12 +216,12 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 - 上流の条件: 本体と notice を同じ 1 commit に入れる(本体 = `.notices/` の外のファイルか、`fixes:` が名指す notice の道具 `.notices/<その id>.<名前>.mjs` の差し替え: fork が先取りで当てる物があること)/ `pnpm-lock.yaml`・`src/app/route-map.jsonl` を含めない / `required_actions` は後の notice を前提にしない / `fixes:` があれば `pnpm workflow notices pickCheck` で壊れた地点に載ることを確かめる(`/sluice`。衝突・検査の失敗なら出さない。索引を外す前の commit の索引の変更は数えない: 上の「先に取れる印」)/ 1 つの目的に絞り、ファイルの移動・改名・置き場の変更と混ぜない(fork は 1 ファイルずつ当て、移したファイルは遅れた fork では前の場所でしか見つからない)/ /flux が上流の先端から読む道具(`.claude/skills/flux/` の下)だけの直しは緊急修正にしない(fork は先端の版を読むので届いている)。上流は fork の位置を見に行かない: 遅れた fork の木で足りない物は当てる側が報告する(下の「先取りの道具」)
 - 受け取り: 通常の `/flux` が未適用の `hotfix:` を見つけて通常の区間より先に計画する。専用のコマンドは無い。次の区間に入っているなら merge で届くので pick しない。`fixes:` の修正元が未適用の fork には不具合がまだ無いので pick しない
 - 台帳: `upstream:` は今の merge-base のまま、`picked:<元の commit>` を足す。記録済みなので後の区間の区切りにならない。後の merge では同じ変更が自動で解決される
-- 先取りの道具: `scripts/workflow/notices/hotfixApply.mjs`(/flux の HOTFIX・鉄道・艦隊が呼ぶ 1 つの部品)。いつも上流の先端の版で走らせる(`git archive <upstream>/<branch> scripts/workflow/notices scripts/workflow/rules` を一時の場所に出して node で。fork の木の版は使わない)。どの fork でも止まらずに当たることが目的で、元の commit が変えたファイルごとに人に聞かずに決める:
+- 先取りの道具: `scripts/workflow/notices/hotfixApply.mjs`(/flux の HOTFIX・鉄道・艦隊が呼ぶ 1 つの部品)。いつも上流の先端の版で走らせる(/flux の TIP TOOLS: `node $TIP/scripts/workflow/notices/hotfixApply.mjs`。fork の木の版は使わない)。どの fork でも止まらずに当たることが目的で、元の commit が変えたファイルごとに人に聞かずに決める:
   - 道具が上流の先端の版を読むファイル(`.claude/skills/flux/` の下)は外す(left-out)/ 出荷索引 `.notices/shipped/`(索引を外す前の commit だけ)は fork 側（sunset: 20261120-122554-notice-history。全部の fork が取り込んだら外す）
   - (c) fork の木の中身が上流のどれかの版(merge-base・元の commit の親・台帳の前の `picked:`)と同じ = fork が触っていない → 元の commit の版に置き換える(replaced)。fork が手で変えたファイルは 3 方向で合わせ(merged)、ぶつかった時だけ何も変えずに止まる(手で解く・飛ばす・区間で進める)
-  - 足すファイルは足す(added)/ (a) 直す相手が上流で後から移され、fork に前の場所がある → 前の場所に 3 方向(moved-merged)/ (b) 直す相手が fork の木に無い → 飛ばす(left-out。後の区間で届く)
+  - 足すファイルは足す(added)/ 直す相手が fork の木に無い → 飛ばす(left-out。後の区間で届く)。上流でそのパスの名前が変わった行(git diff -M の R の行の全部)を候補として出す(rename-candidate)。道具は選ばず書かない: 前の場所に手で当てるか区間を待つかは /flux のエージェントが決め、理由を台帳の notes に 1 行(D476)
   - 当てた後に fork の木で 3 つの確かめ(足した・変えたルールの `paths:` の当たり・notice の手順の `pnpm <script>`・名指すパス)を回し、足りない物を gap で報告する(止めない)
-  - 決めた事は台帳の行の `notes:` に `replaced:` / `merged:` / `moved-merged:` / `added:` / `left-out:` / `gap:` で残す
+  - 決めた事は台帳の行の `notes:` に `replaced:` / `merged:` / `moved-merged:`(D476 から出ない)/ `added:` / `left-out:` / `gap:` / `rename-candidate:` で残す
 - 所有の検査: `picked:` の分は基準 + pick と同じ中身、または pick がそのファイルを変えていて上流の履歴のそのパスのどれかの版と同じ中身(置き換えた形)なら合格(`src/lib/forkOwnership/README.md`「緊急修正の pick」)。手で解いたファイルや違反になったファイルは 1 ファイル 1 行の一時許可で通し、後の区間がそのファイルに触れたら許可を取り直す
 - 先取りした notice の検査: 台帳に `picked:` のある notice は「本体と同じ 1 commit」の照合(`pnpm check notices`)から外す。fork の木に無い本体は飛ばす(left-out)ので、取った側の commit は notice だけになりうる(`hotfixApply.mjs` ledgerPickedIds)
 - 後の区間の merge: 置き換えたファイルがぶつかったら上流の側(上流の中身しか持たない)

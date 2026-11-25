@@ -65,7 +65,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - first line = downstream intake verdict (measured): `取り込み判定: 安全 | 要注意(理由)| 危険(理由)`
      - `危険` (danger) = a plain merge breaks the fork's build, boot or existing behavior / needs manual work on the fork side / behavior or permissions change silently | `要注意` (caution) = only as far as merge conflicts may happen | no downstream → omit
    - commit short sha, push target (or why not pushed), check results, the notice id and a summary of change (none written → `notice 不要: <理由>`; `notice:defer` → `notice: 後で書く(材料)` and the material lines), the reference of `fixes:` if added, the order id of `resolves:` if added
-   - a `fixes:` notice shipped → give the `pick:` judgment (clean / `-` with the failed conditions / unverified)
+   - a `fixes:` notice shipped → give the `pick:` result on the broken point's tree (clean / `-` with the failed conditions / unverified)
    - `hotfix` → say it was shipped as an emergency fix, the result of the pick check, and that each fork needs `/flux` (forks do not notice until they run it)
    - the safe point: the tag name, or `セーフポイントなし: <理由>` (plain ship, `--quick`, `no-push`, a full check failed / could not run, the tag step failed)
    - plain ship (pushed): `pnpm workflow notices safePoint status` → write `セーフポイント: <line 1>` | exit 2 → `セーフポイント: 未確認(<理由>)` | not with `--quick` / `--safe`

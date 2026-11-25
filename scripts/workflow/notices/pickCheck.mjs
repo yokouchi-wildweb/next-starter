@@ -1,7 +1,8 @@
 // scripts/workflow/notices/pickCheck.mjs
-// 修正(fixes:)の notice が「先に取れる」かを、出荷の前に機械で判定する(/sluice。欄 pick: clean | -)。
-// /flux は pick: clean の修正を、修正元の区間を取り込んだ直後に cherry-pick する。そこで試す土台は fork の位置ではなく
-// 壊れた地点(修正元の区切りのコミット)で、その上に修正のコミットだけを載せた一時の木で次を全部満たすときだけ clean:
+// 修正(fixes:)の notice を、出荷の前に上流の壊れた地点の木で試す(/sluice。欄 pick: clean | -)。clean = そこで試せた、
+// - = 試せなかった・試していない。fork で取るかは fork の木で決める(/flux は pick: clean の修正を、修正元の区間を取り込んだ
+// 直後に cherry-pick し、区間の検査で確かめ、落ちれば戻す)。試す土台は fork の位置ではなく壊れた地点(修正元の区切りのコミット)で、
+// その上に修正のコミットだけを載せた一時の木で次を全部満たすときだけ clean:
 //   1. 機械で決まる hotfix の条件: notice と本体が同じ 1 commit / pnpm-lock.yaml・src/app/route-map.jsonl を含まない /
 //      required_actions 〜 manual_steps が、壊れた地点より後の notice を名指さない
 //   2. cherry-pick が衝突しない(出荷索引 .notices/shipped/ の変更は捨てて載せる: lib.pickDroppingIndex.mjs)
@@ -286,7 +287,7 @@ export function tryOnBase(repo, commit, { base, picks }, { checks = DEFAULT_CHEC
   }
 }
 
-/** 修正の commit が足した fixes: 付きの notice ごとの判定: [{ id, path, verdict: "clean" | "-" | null, reasons, base, skipped }] */
+/** 修正の commit が足した fixes: 付きの notice ごとに、壊れた地点の木で試した結果: [{ id, path, verdict: "clean"(試せた)| "-"(試せなかった)| null(試せない), reasons, base, skipped }] */
 export function judge(repo, commit, opts = {}) {
   const sha = git(repo, ["rev-parse", "--verify", "-q", `${commit}^{commit}`]).trim();
   const files = git(repo, ["-c", "core.quotePath=false", "show", "--name-only", "--format=", sha]).split("\n").filter(Boolean);
