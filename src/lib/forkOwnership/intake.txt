@@ -244,9 +244,15 @@ generated src/registry/recordTargetRegistry.ts  # 生成器 registry の出力
 generated src/domains/core/*/entities/display.ts  # 生成器 registry の出力
 generated src/domains/*/entities/display.ts  # 生成器 registry の出力
 generated src/registry/district-map.jsonl  # 生成器 district-map の出力
+generated src/wiring/backends.ts  # 生成器 extensions の出力
+generated src/wiring/cron.ts  # 生成器 extensions の出力
 generated src/wiring/dbAgent.ts  # 生成器 extensions の出力
 generated src/wiring/formSuite.ts  # 生成器 extensions の出力
+generated src/wiring/googleTag.ts  # 生成器 extensions の出力
+generated src/wiring/pageGuard.ts  # 生成器 extensions の出力
+generated src/wiring/routeFactory.ts  # 生成器 extensions の出力
 generated src/wiring/serverErrorReport.ts  # 生成器 extensions の出力
+generated src/wiring/startup.ts  # 生成器 extensions の出力
 generated src/**/extensions/**  # 生成器 extensions の出力
 generated src/app/route-map.jsonl  # 生成器 routes の出力
 generated src/lib/mail/generated/themeColors.ts  # 生成器 styles の出力
