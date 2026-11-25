@@ -31,7 +31,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 0, 1. → commit.md (check the order's owner, fix the range)
 2. **checks** (failed → fix and rerun; the fix is not obvious → STOP):
    - plain ship: `pnpm workflow notices safePoint quickFiles` first
-     - line 1 `<N> quick commits unchecked`, then the files the run of `Ship: quick` commits behind HEAD changed (the walk stops at an unmarked commit or this repo's own safe tag; it walks on through a merge with neither `Ship:` nor `downstream-notice:`, e.g. a work merge a cargo kept, so the side it joined counts too)
+     - line 1 `<N> quick commits unchecked`, then the files the run of `Ship: quick` commits behind HEAD changed (the walk stops at an unmarked commit or this repo's own safe tag; it walks on through a merge with neither `Ship:` nor `downstream-notice:`, e.g. a work merge on the line such as a guild ticket's merge, so the side it joined counts too)
      - add those files to the range the checks below look at (the commit range stays yours) | another session's quick change fails a check and the fix is not obvious → STOP | exit 2 → report `quick 分の検査: 未確認(<理由>)` and go on
    - always: `pnpm check --phase=ship` | failed → fix and rerun (generator drift → `pnpm generate <target>`)
      - it runs every check of the generators / checkers on phase ship, in order: role, domain, registry, routes, cron, cycles, config, eslint, and the watched rules (pnpm check rules when `CLAUDE.md` / `.claude/rules/` changed), notices (pnpm check notices when `.notices/` or the ship / flux skills changed)
@@ -88,7 +88,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 - any condition fails → STOP
 
 ## CATCH UP (laying your branch again on a moved push target — D395 (2))
-- `pnpm workflow notices catchUp [--onto=<ref>]` (default origin/main): the same commits in the same order on the target; a work merge (a guild ticket's merge a cargo kept) stays a merge, a merge that took main into the line is dropped (main's first-parent is one line), the line's root moves onto the target | never a plain `git rebase` (it flattens the work merges)
+- `pnpm workflow notices catchUp [--onto=<ref>]` (default origin/main): the same commits in the same order on the target; a work merge on the line (e.g. a guild ticket's merge) stays a merge, a merge that took main into the line is dropped (main's first-parent is one line), the line's root moves onto the target | never a plain `git rebase` (it flattens the work merges)
 - only for a line with one owner (the branch you /sluice); a line several build on (a guild's junction) catches up by the tool's merge, never this | it never reorders (not a reorder of a run with merges, D383)
 - tip rebuild (D402): origin/main is an ancestor of HEAD but the tip is a merge that took the target itself into the line (first parent = the line, second = the target)
   - → the same tree as a merge whose first parent is the target and second the line, the same author, subject `merge: <branch> を main へ`; one line `catchUp: 組み直した …`, never a stop
@@ -108,7 +108,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 - report: the checks' result, the quick commits covered, the tag name (or `セーフポイントなし: <理由>`) | an older commit than the tip → not covered here (needs a separate procedure)
 
 ## COMMITTED RANGE (step 1's range is empty, HEAD ahead of the push target)
-- the commits on HEAD the push target lacks (`git log --format='%h %s' <target>..HEAD`; target = `origin/main` on the WORKTREE ROUTE, else `origin/<branch>`) = commits made earlier by /sluice (e.g. `--quick no-push` ships, collected onto this branch): their notices are in them
+- the commits on HEAD the push target lacks (`git log --format='%h %s' <target>..HEAD`; target = `origin/main` on the WORKTREE ROUTE, else `origin/<branch>`) = commits made earlier by /sluice (e.g. `--quick no-push` ships made on this branch): their notices are in them
 - skip: step 0 (the caller answers the orders), steps 2-5, step 6's commit | never with `hotfix`
 - keep:
   - step 6's `pnpm workflow notices reorder` first (the range is unpushed; with `no-push` it waits for the push)

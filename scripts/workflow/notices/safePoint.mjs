@@ -22,7 +22,7 @@
 //                               /sluice のふつうの出荷の報告が使う(セーフポイントを作るかの提案)
 //   quickFiles                  HEAD から --first-parent でさかのぼり、`Ship: quick` の trailer がある commit が続く間(手元の自分の
 //                               safe tag の commit で止まる)を集め、1 行目に `<N> quick commits unchecked`、続けて変わったファイルを 1 行ずつ。
-//                               `Ship:` も `downstream-notice:` も無い merge(cargo が残す作業の合流など)では止まらず数に入れて辿る
+//                               `Ship:` も `downstream-notice:` も無い merge(線にあるギルドの作業票の合流など)では止まらず数に入れて辿る
 //                               (ファイルは起点からの diff なので合流の 2 番目の親の側も入る)。/flux の取り込み(downstream-notice:)では止まる
 //                               /sluice のふつうの出荷が、まだ検査していない quick の分を範囲に足すのに使う。quickChecked で記録した commit でも止まる
 //   quickFiles --through=<ref>  COMMITTED RANGE のふつうの出荷: <ref>(push 先)の祖先でない commit(= 出す範囲、道具が積んだ印の無い

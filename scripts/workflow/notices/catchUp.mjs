@@ -1,6 +1,6 @@
 // scripts/workflow/notices/catchUp.mjs
 // 持ち主 1 人の線の載せ直し(D395 (2)): /sluice する自分の枝を、進んだ push 先(origin/main)の上へ同じ順で載せ直す。
-// 作業のまとまりの合流(ギルドの作業票の merge・cargo が残した作業の merge)は merge のまま残し、main を線へ取り込んだ合流は
+// 作業のまとまりの合流(線にあるギルドの作業票の merge など)は merge のまま残し、main を線へ取り込んだ合流は
 // 落とす(main の first-parent は 1 本、main を取り込んだ合流は main に入れない)。素の git rebase は合流を平らにし、
 // git rebase --rebase-merges だけでは main を取り込んだ合流(`merge -C <元> onto`)と線の元の根元(`reset <元の根元>`)が残る。
 // - 持ち主 1 人の線(/sluice する自分の枝)だけ。何人もが土台にする線(ギルドの合流地点)には使わない(道具の merge で追いつく)
