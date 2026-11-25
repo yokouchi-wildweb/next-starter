@@ -9,7 +9,7 @@
 //   ## C<n>                 1 項目 = 1 つの期待
 //   source: <出どころ>       （同じ項目が別の出どころからも来れば行が増える）
 //   page: /<パス>
-//   as: guest | user | admin
+//   as: guest | user | admin | <fork が足した役割の名前>
 //   needs: <前提のデータ・機能の切り替え | ->
 //   steps:
 //     1. <手順>
@@ -22,7 +22,10 @@
 // ng のスクリーンショットはシートの隣の <シートの名前から .md を除いたもの>/（例 x.check/）に置く
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 
+// as: = 誰で見るか。guest(ログインなし)・user・admin が既定の 3 つ、fork が足した役割の名前も書ける
+// (user・admin は /patrol が devcheck login で入る。ほかの役割は回す側がその役割で入り、入れなければ skip に理由)
 export const AS = ["guest", "user", "admin"];
+export const AS_RE = /^[a-z][a-z0-9_-]*$/;
 export const RESULTS = ["ok", "ng", "skip"];
 export const DEFAULT_WIDTHS = "375,1280";
 const ITEM_KEYS = ["source", "page", "as", "needs", "steps", "expect", "widths", "result", "evidence", "ran_at", "was"];
@@ -121,7 +124,7 @@ function nextId(items) {
 export function checkItem({ page, as, steps, expect, widths }) {
   const bad = [];
   if (!page || !page.startsWith("/")) bad.push("--page=/<パス>");
-  if (!AS.includes(as)) bad.push(`--as=${AS.join("|")}`);
+  if (!as || !AS_RE.test(as)) bad.push(`--as=${AS.join("|")}|<役割の名前>`);
   if (!steps || !steps.length) bad.push("--step=<手順>（1 つ以上）");
   if (!expect) bad.push("--expect=<期待すること>");
   if (widths && !/^\d+(,\d+)*$/.test(widths)) bad.push("--widths=375,1280 の形");

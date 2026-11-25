@@ -12,7 +12,7 @@ mailbox: `~/.local/state/next-starter/orders/` (shared folder; real place = `roo
 - **own inbox** = `<root>/<own fork-id>/` (fork-id = `repo_id` of `repo.json`) | place and contents from `node .claude/skills/order/mailbox.mjs inbox` (run at the repo root) | never read other repos' inboxes
 - unhandled = `*.md` directly in the inbox | handled = moved to the inbox's `done/`
 - **state** (head `status:` of the order, one value; old orders without it = open): `open` = unhandled | `routed` = routed to a named owner (`routed_to:` = owner) | `taken` = the owner started (`taken_by:` = owner) | answers = done / partial / relayed / rejected / withdrawn (moved to `done/`)
-  - transitions stay in the order's trailing `## STATUS_LOG` | change the state with `mailbox.mjs route | take | release | unroute | resolve` (the faster way); a hand edit keeps the status: value and its STATUS_LOG line
+  - transitions stay in the order's trailing `## STATUS_LOG` | change the state with `mailbox.mjs route | take | release | resolve` (the faster way); a hand edit keeps the status: value and its STATUS_LOG line
 - **owner guard**:
   - taking = when the human approves the first proposal after reading the order (HANDLE step 3) → record it with `node .claude/skills/order/mailbox.mjs take <order>` | reading, choosing or launching is not taking
   - open = anyone may take | routed = only the routed target (otherwise mailbox.mjs prints the owner and refuses)

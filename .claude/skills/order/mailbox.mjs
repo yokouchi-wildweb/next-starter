@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 // 指令メールボックスの補助スクリプト（/order・/inbox 共通）
-// 置き場: $ORDER_STATE_DIR（既定 $XDG_STATE_HOME/next-starter/orders → ~/.local/state/next-starter/orders。古い ~/.team/orders は最初の 1 回に移し、そこへのリンクを残す）
+// 置き場: $ORDER_STATE_DIR（既定 $XDG_STATE_HOME/next-starter/orders → ~/.local/state/next-starter/orders）
 //   <root>/<fork-id>/*.md      = そのリポ宛ての未対応の指令
 //   <root>/<fork-id>/done/*.md = 対応済み
-//   fork-id = 各 checkout の repo.json の repo_id（古い形は .claude/rules/project.md の `fork_id:`。読みは forkIds.mjs の forkIdOfTexts、下記 forkIdOf）
+//   fork-id = 各 checkout の repo.json の repo_id（古い形は .claude/rules/project.md の `fork_id:`。読みは forkIds.mjs の forkIdOfTexts、下記 forkIdOf）。
+//   読めない時は自分の箱が要る命令(self・inbox・resolve・file --to=self)だけが理由の 1 行で止まる
 // 使い方:
 //   node mailbox.mjs self    自リポの fork-id と受信箱
 //   node mailbox.mjs from    起票する指令の from: 行（env ORDER_ACTOR があれば発行元はその名前。下記 fromLine）
@@ -11,18 +12,18 @@
 //   node mailbox.mjs me      この者の名前（taken_by / routed_by に書く値。下記 actorOf）
 //   node mailbox.mjs inbox [--kind=<値>]   自リポ宛ての未対応の指令（状態 open | routed | taken、waiting_on: の待ち、担当が自分なら (you)）。
 //                            --kind = 先頭の kind: がその値の指令だけ
-//   node mailbox.mjs route <指令> --to=<振り先の名前> [--by=]   振り先は中を読まない文字列（引き受ける者の me: の名前と完全一致で照合）
-//                            振り分ける: open | routed → routed（振り直し可）。着手中は断る
+//   node mailbox.mjs route <指令> --to=<振り先の名前> [--by=] [--force=<理由>]   振り先は中を読まない文字列（引き受ける者の me: の名前と完全一致で照合）
+//                            振り分ける: open | routed → routed（振り直し可）。着手中は取った者の物: --force=<理由> で振り直す（取った者を外し、ログに残す）
 //   node mailbox.mjs take <指令> [--as=<id>]      着手する: open → taken。routed は振り分け先の本人だけ（違えば担当を出して断る）
 //   node mailbox.mjs release <指令> [--as=<id>] [--force=<理由>]   手放す: taken → 取る前の状態（取った者だけ）
-//   node mailbox.mjs unroute <指令> [--as=<id>] [--force=<理由>]   振り分けを外す: routed → open（振り分け先か振り分けた者だけ）
 //   node mailbox.mjs name-check <名前> [--repos-file=<path>]   その名前を自リポの fork_id: にしてよいか（形・リポの一覧
 //                            （--repos-file か env DOWNSTREAM_REPOS_FILE: `<名前> <パス>` の行）・手元のリポ・既存の受信箱と
 //                            重ならないか。/fork-init が名前を決めるときに使う。重なれば理由を出して exit 1）
 //   node mailbox.mjs resolve <指令ファイル> --status=<done|partial|relayed|rejected|withdrawn> --body=<ファイル>
 //                            [--commit=<sha|->] [--pushed=<yes|no|...>] [--branch=<名前>] [--as=<id>] [--force=<理由>]
 //                            指令に答える: RESOLUTION を末尾に追記し、先頭の status: をその status に書き換えて done/ へ移す。
-//                            他人の taken・別の振り分け先の routed は断る（--force で通すと RESOLUTION に forced: が残る）
+//                            他人の taken・別の振り分け先の routed は断る（--force で通すと RESOLUTION に forced: が残る）。
+//                            done/ の指令・答え済みの指令は注意の 1 行で書き足す（done/ のまま）
 //                            （/inbox 手順 4 と道具の共通の書き手）。隣にブラウザ確認のシートがあれば一緒に done/ へ移す
 //   node mailbox.mjs file --to=<self | fork-id | checkout のパス> --title=<日本語の短い題> --need=<1 行> [--kind=<値>]
 //                            [--why=] [--done-when=] [--constraints=] [--refs=] [--notes=] [--tried=] [--from=<行>] [--slug=<kebab>] [--body=<ファイル>]
@@ -31,7 +32,7 @@
 //                            done_when / constraints / refs / notes / [tried]、--body があればその後に本文）で、一時ファイル経由で書き、パスを出す。
 //                            箱が無ければ作る。同じ秒の衝突は -2… | from = from の値（--from で上書き）| 省いた欄は `-`
 //   node mailbox.mjs check <add | file | attach | run | result | show> …   ブラウザ確認のシート（<指令>.check.md。書式は checkSheet.mjs）
-//                            add --sheet=<path> --page=/<パス> --as=guest|user|admin --step=<手順>（繰り返す）--expect=<期待>
+//                            add --sheet=<path> --page=/<パス> --as=guest|user|admin|<役割> --step=<手順>（繰り返す）--expect=<期待>
 //                                [--needs=] [--widths=375,1280] [--source=] [--title=] [--base=]   項目を足す（無ければ作る。同じ項目はまとめる）
 //                            file --sheet=<path> --to=<fork-id | checkout のパス> --title=<題> [--why=] [--only=C1,C2] [--slug=] [--from=]
 //                                宛先の受信箱にブラウザ確認の指令（kind: browser-check）とシートを並べて書く（道具の入口。元のシートは残す）
@@ -39,7 +40,7 @@
 //                            run <sheet>   1 回の確認の始まり（runs +1）| result <sheet> C<n> ok|ng|skip [--evidence=]   結果を書き戻す
 //                            show <sheet>  数と、まだ結果のない項目・スクリーンショットの置き場
 import { execFileSync } from "node:child_process";
-import { existsSync, linkSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, renameSync, rmdirSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, linkSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { forkIdOfTexts } from "../../../src/lib/forkOwnership/node.mjs";
 import { addItem, copySheet, isSheetFile, readSheet, setResult, sheetPathFor, shotsDirOf, startRun, summarize, writeSheet } from "./checkSheet.mjs";
 import { homedir } from "node:os";
@@ -53,28 +54,6 @@ export function ordersRoot(env = process.env) {
   return { root: join(base, "next-starter", "orders"), explicit: false };
 }
 
-// 既定の根を使う時の最初の 1 回: 根が無く古い置き場（~/.team/orders）が実のフォルダなら丸ごと移し（依頼の id・ファイル名・中の
-// リンクはそのまま）、古い場所に新しい根へのリンクを残す（古い道具も同じ箱を読む）。古い場所が既にリンクならその先を使う。
-// 移せなければ（別のファイルシステムなど）古い場所をそのまま使い、note に理由
-export function settleRoot(root, old = join(homedir(), ".team", "orders")) {
-  if (existsSync(root)) return { root };
-  let st;
-  try { st = lstatSync(old); } catch { return { root }; }
-  if (st.isSymbolicLink()) {
-    try { const t = resolve(dirname(old), readlinkSync(old)); if (existsSync(t)) return { root: t }; } catch { /* 壊れたリンク */ }
-    return { root };
-  }
-  if (!st.isDirectory()) return { root };
-  try {
-    mkdirSync(dirname(root), { recursive: true });
-    renameSync(old, root);
-    symlinkSync(root, old);
-    return { root, moved: old };
-  } catch (e) {
-    return { root: existsSync(root) ? root : old, note: `受け箱を ${root} へ移せませんでした（${String(e.message).split("\n")[0]}）: ${old} のまま使います` };
-  }
-}
-
 let ROOT = ordersRoot().root;
 
 function git(cwd, args) {
@@ -83,22 +62,6 @@ function git(cwd, args) {
   } catch {
     return "";
   }
-}
-
-// 旧い導き方（移行中の戻り先と、旧い受信箱の名前）: ホスト以降のパスから .git を除き、/ を -- に、小文字化
-export function forkIdFromUrl(url) {
-  if (!url) return "";
-  let path;
-  const scp = url.match(/^[^/@:]+@[^:]+:(.+)$/);
-  if (scp) path = scp[1];
-  else {
-    try {
-      path = new URL(url).pathname;
-    } catch {
-      path = url;
-    }
-  }
-  return path.replace(/^\/+/, "").replace(/\.git$/, "").replace(/\/+$/, "").split("/").join("--").toLowerCase();
 }
 
 export const FORK_ID_RE = /^[a-z0-9][a-z0-9-]*$/;
@@ -110,31 +73,17 @@ export function declaredForkId(top) {
   return forkIdOfTexts({ repoJson: read(join(top, "repo.json")), projectMd: read(join(top, ".claude", "rules", "project.md")) });
 }
 
-// 未宣言 = 名前の宣言が無いか、旧い `-` の印（受信箱の移行中だけ旧い導き方に戻る。名前そのものの読みは上の declaredForkId）
-function isUndeclared(top) {
-  const repoJson = join(top, "repo.json");
-  if (existsSync(repoJson)) {
-    try {
-      const v = JSON.parse(readFileSync(repoJson, "utf8"))?.repo_id;
-      return v === undefined || v === "-";
-    } catch {
-      return false;
-    }
-  }
-  const file = join(top, ".claude", "rules", "project.md");
-  const m = existsSync(file) ? readFileSync(file, "utf8").match(/^fork_id:[ \t]*(\S*)/m) : null;
-  return !m || m[1] === "" || m[1] === "-";
+// リポの名前（受信箱の名前）= repo.json の repo_id（古い形は project.md の fork_id:）。止めない: 読めなければ id: null と理由
+// （自分の箱が要る命令だけが needBox で止まる）
+export function forkIdOf(top) {
+  const { forkId, error } = declaredForkId(top);
+  return forkId ? { id: forkId, error: null } : { id: null, error: `${error || "repo_id がありません"}: ${top}/repo.json` };
 }
 
-// リポの名前（受信箱の名前）= repo.json の repo_id（古い形は project.md の fork_id:）。
-// 形が違えば throw。未宣言（行なし・旧い `-`）は移行中だけ旧い導き方に戻る（declared: false）。
-// env ORDER_REPO_ID_STRICT=1 なら未宣言も throw（移行の終わり）
-export function forkIdOf(top, origin, env = process.env) {
-  const { forkId, error } = declaredForkId(top);
-  if (forkId) return { id: forkId, declared: true };
-  if (!isUndeclared(top)) throw new Error(`repo_id の形が違います（${error}）: ${top}/repo.json`);
-  if (env.ORDER_REPO_ID_STRICT === "1") throw new Error(`repo_id が宣言されていません: ${top}/repo.json`);
-  return { id: origin ? forkIdFromUrl(origin) : `local--${basename(top).toLowerCase()}`, declared: false };
+// 箱の名前が要る所: 読めなければ宣言の仕方を 1 行で
+export function needBox(info) {
+  if (!info.repoId) throw new Error(`repo_id が読めません（${info.idError}）。pnpm workflow repo-json set repo_id <名前> で宣言する`);
+  return info.repoId;
 }
 
 function repoInfo(dir) {
@@ -142,63 +91,10 @@ function repoInfo(dir) {
   if (!top) return null;
   const origin = git(top, ["remote", "get-url", "origin"]);
   const upstream = git(top, ["remote", "get-url", "upstream"]);
-  const { id: repoId, declared } = forkIdOf(top, origin);
-  const oldId = origin ? forkIdFromUrl(origin) : `local--${basename(top).toLowerCase()}`;
-  if (declared) settleBox(repoId, oldId);
-  return { top, origin, upstream, repoId, declared, oldId };
+  const { id: repoId, error: idError } = forkIdOf(top);
+  return { top, origin, upstream, repoId, idError };
 }
 
-// 宣言済みのリポの受信箱を fork-id の名前へ移す（名前を読むたびに呼ぶ）:
-// 旧い箱だけ → 改名 / 両方（古い送り手が旧い箱を作り直した分裂）→ 旧い方の指令（open と done/）を移す。同名は上書きせず残して言う /
-// どちらもない → 新しく作る。最後に旧い名前を新しい箱へのリンクにする（旧い名前で書く送り手も同じ箱に入る）。旧い名前がリンクなら何もしない
-export function settleBox(id, oldId, root = ROOT) {
-  if (!oldId || oldId === id || !existsSync(root)) return;
-  const n = join(root, id);
-  const o = join(root, oldId);
-  let st = null;
-  try {
-    st = lstatSync(o);
-  } catch {
-    st = null;
-  }
-  if (st && st.isSymbolicLink()) return;
-  if (st && st.isDirectory() && !existsSync(n)) {
-    try {
-      renameSync(o, n);
-    } catch {
-      return; // 別の処理が先に移した
-    }
-  } else if (st && st.isDirectory()) {
-    let left = false;
-    for (const sub of ["", "done"]) {
-      const from = join(o, sub);
-      if (!existsSync(from)) continue;
-      mkdirSync(join(n, sub), { recursive: true });
-      for (const f of readdirSync(from)) {
-        if (!f.endsWith(".md") && !f.endsWith(".check")) continue;   // .check = ブラウザ確認のスクリーンショットの置き場
-        if (existsSync(join(n, sub, f))) left = true;
-        else renameSync(join(from, f), join(n, sub, f));
-      }
-    }
-    try {
-      if (existsSync(join(o, "done"))) rmdirSync(join(o, "done"));
-      rmdirSync(o);
-    } catch {
-      left = true;
-    }
-    if (left) {
-      console.error(`注意: 受信箱 ${o} に移せなかったファイルが残っています（${n} と同じ名前）`);
-      return;
-    }
-  } else {
-    mkdirSync(n, { recursive: true });
-  }
-  try {
-    symlinkSync(id, o);
-  } catch {
-    // 別の処理が先に張った
-  }
-}
 
 // リポの一覧のファイル（--repos-file か env DOWNSTREAM_REPOS_FILE）の `<名前> <パス>` の行（~ 可、# はコメント）。無ければ空
 function reposList(file) {
@@ -219,18 +115,9 @@ export function nameProblems(name, self, others, conf, root = ROOT) {
   for (const r of others) if (r.top !== self.top && r.repoId === name) out.push(`手元の別のリポ ${r.top} の名前です`);
   const box = join(root, name);
   if (existsSync(box)) {
-    const mine = self.repoId === name || self.oldId === name || linkTo(join(root, self.oldId)) === name;
-    if (!mine) out.push(`受信箱 ${box} がすでにあります（持ち主が別）`);
+    if (self.repoId !== name) out.push(`受信箱 ${box} がすでにあります（持ち主が別）`);
   }
   return out;
-}
-
-function linkTo(p) {
-  try {
-    return readlinkSync(p);
-  } catch {
-    return "";
-  }
 }
 
 function rulesPath(top) {
@@ -270,6 +157,10 @@ function localRepos(self) {
       continue;
     }
     if (!info || info.top !== dir) continue;
+    if (!info.repoId) {
+      console.error(`注意: ${dir} は repo_id が読めないので一覧に入れません（${info.idError}）`);
+      continue;
+    }
     if (!byId.has(info.repoId)) byId.set(info.repoId, { ...info, paths: [] });
     byId.get(info.repoId).paths.push(dir);
   }
@@ -457,22 +348,27 @@ function writeAtomic(path, text) {
   renameSync(tmp, path);
 }
 
-function liveOrder(orderPath) {
+// 指令を読む。done/ の指令・RESOLUTION のある指令は断らず注意の 1 行（守る物が無い: 書き足すのは呼んだ者の判断、core/tools.md）
+function liveOrder(orderPath, say = (line) => console.error(line)) {
   if (!existsSync(orderPath)) throw new Error(`指令がありません: ${orderPath}（対応済みなら done/ にあります）`);
-  if (basename(dirname(orderPath)) === "done") throw new Error(`done/ の指令の状態は変えません: ${orderPath}`);
+  if (inDone(orderPath)) say(`注意: done/ の指令です（対応済み）: ${orderPath}`);
   const text = readFileSync(orderPath, "utf8");
-  if (/^## RESOLUTION$/m.test(text)) throw new Error(`すでに RESOLUTION があります: ${orderPath}`);
+  if (/^## RESOLUTION$/m.test(text)) say(`注意: すでに RESOLUTION があります（書き足します）: ${orderPath}`);
   return text;
 }
 
-// 振り分ける: open | routed → routed（振り直しも可。ログに残る）。taken は断る（取った者が release してから）
-export function routeOrder(orderPath, { to, by, now = isoNow() }) {
+const inDone = (orderPath) => basename(dirname(orderPath)) === "done";
+
+// 振り分ける: open | routed → routed（振り直しも可。ログに残る）。taken は取った者の物: force = 理由で振り直す
+// （取った者を外し、ログに forced: と前の持ち主）
+export function routeOrder(orderPath, { to, by, force, now = isoNow() }) {
   if (!to) throw new Error("--to=<振り先の名前> が要ります");
   const text = liveOrder(orderPath);
   const s = orderStatus(text);
-  if (s === "taken") throw new Error(`着手中です（${whoHas(text)}）: 振り分けるなら取った者が release してから`);
-  const next = setHead(text, { status: "routed", routed_to: to, routed_by: by, routed_at: now });
-  writeAtomic(orderPath, appendLog(next, `- ${now} ${s} → routed | to:${to} | by:${by}`));
+  const holder = s === "taken" ? headField(text, "taken_by") : null;
+  if (holder && !force) throw new Error(`着手中です（${whoHas(text)}）: 取った者が release するか、人の判断で振り直すなら --force=<理由>`);
+  const next = setHead(text, { status: "routed", routed_to: to, routed_by: by, routed_at: now, ...(holder ? { taken_by: null, taken_at: null } : {}) });
+  writeAtomic(orderPath, appendLog(next, `- ${now} ${s} → routed | to:${to} | by:${by}${holder ? ` | forced:${force} (was taken by ${holder})` : ""}`));
   return { from: s, to: "routed" };
 }
 
@@ -510,22 +406,6 @@ export function releaseOrder(orderPath, { actor, as, force, now = isoNow() }) {
   return { from: s, to: back };
 }
 
-// 振り分けを外す: routed → open（routed_* は消える。ログに残る）。振り分け先の本人か振り分けた者だけ（force = 理由）。
-// 着手中は断る（取った者が release してから）
-export function unrouteOrder(orderPath, { actor, as, env = {}, force, now = isoNow() }) {
-  const text = liveOrder(orderPath);
-  const s = orderStatus(text);
-  if (s !== "routed") throw new Error(`振り分けられていません（${s === "taken" ? whoHas(text) : s}）${s === "taken" ? ": 外すなら取った者が release してから" : ""}`);
-  const to = headField(text, "routed_to");
-  const who = as || actor;
-  const mine = routedMatches(to, actor, as, env) || sameActor(headField(text, "routed_by"), who);
-  if (!mine && !force) throw new Error(`振り分け先は別の担当です: routed to ${to}（外すなら --force=<理由>）`);
-  const next = setHead(text, { status: "open", routed_to: null, routed_by: null, routed_at: null });
-  const why = mine ? "" : ` | forced:${force} (was routed to ${to})`;
-  writeAtomic(orderPath, appendLog(next, `- ${now} routed → open | to:${to} | by:${who}${why}`));
-  return { from: s, to: "open" };
-}
-
 // 答えてよいか: 他人の taken・別の振り分け先の routed は断る（force = 理由。RESOLUTION の forced: に残る）
 function resolveGuard(text, { actor, as, env, force }) {
   if (!actor) return "";
@@ -545,10 +425,7 @@ function resolveGuard(text, { actor, as, env, force }) {
 // 戻り値 = 移した先のパス
 export function resolveOrder(orderPath, { status, body, by, now = isoNow(), actor, as, env = {}, force }) {
   if (!REQUIRED[status]) throw new Error(`--status は ${Object.keys(REQUIRED).join(" | ")} のどれか（${status || "なし"}）`);
-  if (!existsSync(orderPath)) throw new Error(`指令がありません: ${orderPath}（対応済みなら done/ にあります）`);
-  if (basename(dirname(orderPath)) === "done") throw new Error(`done/ の指令には答えません: ${orderPath}`);
-  const text = readFileSync(orderPath, "utf8");
-  if (/^## RESOLUTION$/m.test(text)) throw new Error(`すでに RESOLUTION があります: ${orderPath}`);
+  const text = liveOrder(orderPath);
   const forced = resolveGuard(text, { actor, as, env, force });
   const lines = body.split("\n").map((l) => l.replace(/\s+$/, "")).filter((l) => l.trim() !== "");
   const full = status === "done" || status === "partial";
@@ -557,6 +434,7 @@ export function resolveOrder(orderPath, { status, body, by, now = isoNow(), acto
     : `by: ${by.repoId} | commit:- | pushed:-`;
   const block = ["", "## RESOLUTION", `resolved: ${now}   status: ${status}`, byLine, ...lines, ...(forced ? [forced] : []), ""].join("\n");
   writeAtomic(orderPath, setHead(text, { status }) + (text.endsWith("\n") ? "" : "\n") + block);
+  if (inDone(orderPath)) return orderPath;   // done/ の指令に書き足した: そのまま
   const doneDir = join(dirname(orderPath), "done");
   mkdirSync(doneDir, { recursive: true });
   const dest = join(doneDir, basename(orderPath));
@@ -765,6 +643,7 @@ function targetOf(self, name) {
     r = hits[0] || null;
   }
   if (!r) throw new Error(`宛先のリポが見つかりません: ${name}（fork-id か checkout のパス）`);
+  needBox(r);
   return { box: boxOf(r.repoId), to: `${r.origin || "-"} | box:${r.repoId}` };
 }
 
@@ -775,7 +654,7 @@ function checkCli(self, args) {
   const now = isoNow();
   if (sub === "add") {
     const sheet = home(opt(rest, "sheet"));
-    if (!sheet) throw new Error("usage: check add --sheet=<path> --page=/<パス> --as=guest|user|admin --step=<手順>… --expect=<期待> [--needs=] [--widths=] [--source=] [--title=] [--base=]");
+    if (!sheet) throw new Error("usage: check add --sheet=<path> --page=/<パス> --as=guest|user|admin|<役割> --step=<手順>… --expect=<期待> [--needs=] [--widths=] [--source=] [--title=] [--base=]");
     const r = addItem(
       sheet,
       { page: opt(rest, "page"), as: opt(rest, "as"), steps: opts(rest, "step"), expect: opt(rest, "expect"), needs: opt(rest, "needs"), widths: opt(rest, "widths"), source: opt(rest, "source") },
@@ -815,13 +694,6 @@ function checkCli(self, args) {
 }
 
 function main() {
-  // 既定の置き場への最初の移し（repoInfo が受け箱を読む前に）
-  if (!ordersRoot().explicit) {
-    const r = settleRoot(ROOT);
-    ROOT = r.root;
-    if (r.moved) console.error(`受け箱を ${r.moved} から ${ROOT} へ移しました（${r.moved} はリンクで残します）`);
-    if (r.note) console.error(r.note);
-  }
   let self;
   try {
     self = repoInfo(process.cwd());
@@ -834,10 +706,10 @@ function main() {
     process.exit(1);
   }
   const cmd = process.argv[2];
-  if (!self.declared && cmd !== "name-check") console.error(`注意: このリポは repo_id が未宣言です（移行中は旧い名前 ${self.repoId} を使う）`);
 
   if (cmd === "self") {
-    console.log(`self: ${self.repoId}\ndeclared: ${self.declared ? "yes" : "no (old name)"}\norigin: ${self.origin || "-"}\ntop: ${self.top}\nbox: ${boxOf(self.repoId)}\nroot: ${ROOT}`);
+    needBox(self);
+    console.log(`self: ${self.repoId}\norigin: ${self.origin || "-"}\ntop: ${self.top}\nbox: ${boxOf(self.repoId)}\nroot: ${ROOT}`);
   } else if (cmd === "from") {
     const branch = git(self.top, ["rev-parse", "--abbrev-ref", "HEAD"]);
     console.log(`from: ${fromLine(process.env, { origin: self.origin, repoId: self.repoId, branch, cwd: process.cwd() })}`);
@@ -864,25 +736,23 @@ function main() {
     const actor = actorOf(process.env, { ...self, branch: git(self.top, ["rev-parse", "--abbrev-ref", "HEAD"]) });
     const onlyKind = opt(process.argv.slice(3), "kind");
     if (onlyKind !== undefined && !KIND_RE.test(onlyKind)) throw new Error(`--kind は小文字・数字・ハイフンの値です（${onlyKind}）`);
-    console.log(`box: ${boxOf(self.repoId)}`);
+    console.log(`box: ${boxOf(needBox(self))}`);
     for (const p of mdFiles(boxOf(self.repoId))) {
       if (onlyKind !== undefined && kindOf(readFileSync(p, "utf8")) !== onlyKind) continue;
       printOrder(p, actor, process.env);
     }
-  } else if (["route", "take", "release", "unroute"].includes(cmd)) {
+  } else if (["route", "take", "release"].includes(cmd)) {
     const args = process.argv.slice(3);
     const file = args.find((a) => !a.startsWith("--"));
     const actor = actorOf(process.env, { ...self, branch: git(self.top, ["rev-parse", "--abbrev-ref", "HEAD"]) });
     try {
-      if (!file) throw new Error(`usage: node mailbox.mjs ${cmd} <指令ファイル> ${{ route: "--to=<id> [--by=]", take: "[--as=<id>]", release: "[--as=<id>] [--force=<理由>]", unroute: "[--as=<id>] [--force=<理由>]" }[cmd]}`);
+      if (!file) throw new Error(`usage: node mailbox.mjs ${cmd} <指令ファイル> ${{ route: "--to=<id> [--by=] [--force=<理由>]", take: "[--as=<id>]", release: "[--as=<id>] [--force=<理由>]" }[cmd]}`);
       const path = file.replace(/^~(?=\/)/, homedir());
       const r = cmd === "route"
-        ? routeOrder(path, { to: opt(args, "to"), by: opt(args, "by") || actor })
+        ? routeOrder(path, { to: opt(args, "to"), by: opt(args, "by") || actor, force: opt(args, "force") })
         : cmd === "take"
           ? takeOrder(path, { actor, as: opt(args, "as"), env: process.env })
-          : cmd === "release"
-            ? releaseOrder(path, { actor, as: opt(args, "as"), force: opt(args, "force") })
-            : unrouteOrder(path, { actor, as: opt(args, "as"), env: process.env, force: opt(args, "force") });
+          : releaseOrder(path, { actor, as: opt(args, "as"), force: opt(args, "force") });
       console.log(`${cmd}: ${r.from} → ${r.to} ${path}`);
     } catch (e) {
       console.error(`${cmd}: ${e.message}`);
@@ -900,7 +770,7 @@ function main() {
       const dest = resolveOrder(file.replace(/^~(?=\/)/, homedir()), {
         status: opt(args, "status"),
         body: readFileSync(bodyFile, "utf8"),
-        by: { repoId: self.repoId, origin: self.origin, branch, commit, pushed: opt(args, "pushed") },
+        by: { repoId: needBox(self), origin: self.origin, branch, commit, pushed: opt(args, "pushed") },
         actor,
         as: opt(args, "as"),
         env: process.env,
@@ -917,7 +787,7 @@ function main() {
     try {
       const to = opt(args, "to");
       if (!to || !opt(args, "title") || !opt(args, "need")) throw new Error("usage: node mailbox.mjs file --to=<self | fork-id | checkout のパス> --title=<題> --need=<1 行> [--kind=<値>] [--why=] [--done-when=] [--constraints=] [--refs=] [--notes=] [--tried=] [--from=<行>] [--slug=<kebab>] [--body=<ファイル>]");
-      const t = to === "self" ? { box: boxOf(self.repoId), to: `${self.origin || "-"} | box:${self.repoId}` } : targetOf(self, to);
+      const t = to === "self" ? { box: boxOf(needBox(self)), to: `${self.origin || "-"} | box:${self.repoId}` } : targetOf(self, to);
       const from = opt(args, "from") || fromLine(process.env, { origin: self.origin, repoId: self.repoId, branch: git(self.top, ["rev-parse", "--abbrev-ref", "HEAD"]), cwd: process.cwd() });
       const bodyFile = home(opt(args, "body"));
       const path = fileOrder({
@@ -949,7 +819,7 @@ function main() {
       process.exit(1);
     }
   } else {
-    console.error("usage: node mailbox.mjs self | from | me | repos | inbox | name-check <名前> | file --to=<self|fork-id|path> --title=<題> --need=<1 行> … | route <指令> --to=<id> | take <指令> [--as=] | release <指令> | unroute <指令> | resolve <指令ファイル> --status=… --body=<ファイル> | check <add | file | attach | run | result | show> …");
+    console.error("usage: node mailbox.mjs self | from | me | repos | inbox | name-check <名前> | file --to=<self|fork-id|path> --title=<題> --need=<1 行> … | route <指令> --to=<id> | take <指令> [--as=] | release <指令> | resolve <指令ファイル> --status=… --body=<ファイル> | check <add | file | attach | run | result | show> …");
     process.exit(1);
   }
 }

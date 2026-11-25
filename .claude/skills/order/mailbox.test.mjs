@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, readlinkSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,14 +19,14 @@ process.env.XDG_STATE_HOME = join(SANDBOX, "state");
 process.env.ORDER_STATE_DIR = join(SANDBOX, "orders");
 mkdirSync(process.env.HOME, { recursive: true });
 
-const { actorOf, attachSheet, fileCheckOrder, fileOrder, forkIdOf, fromLine, kindOf, nameProblems, orderStatus, ordersRoot, releaseOrder, requester, resolveOrder, routeOrder, routedMatches, sameActor, settleBox, settleRoot, slugOf, takeOrder, unrouteOrder } = await import("./mailbox.mjs");
+const { actorOf, attachSheet, fileCheckOrder, fileOrder, forkIdOf, fromLine, kindOf, nameProblems, needBox, orderStatus, ordersRoot, releaseOrder, requester, resolveOrder, routeOrder, routedMatches, sameActor, slugOf, takeOrder } = await import("./mailbox.mjs");
 
 const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "mailbox.mjs");
-const BY = { repoId: "acme--app", origin: "git@x:Acme/App.git", branch: "main", commit: "abc1234", pushed: "yes" };
+const BY = { repoId: "acme-app", origin: "git@x:Acme/App.git", branch: "main", commit: "abc1234", pushed: "yes" };
 const BODY = "implemented: did x\nconsume: -\npropagate: -\nnotice: -\nnotes: -\n";
 
 function box(from = "git@x:Acme/App.git | branch:main") {
-  const dir = join(mkdtempSync(join(tmpdir(), "mailbox-")), "acme--app");
+  const dir = join(mkdtempSync(join(tmpdir(), "mailbox-")), "acme-app");
   mkdirSync(dir, { recursive: true });
   const file = join(dir, "20260101-000000-x.md");
   writeFileSync(file, `# ORDER id:20260101-000000-x\nfrom: ${from}\nstatus: open\nneed: do x\n`);
@@ -40,7 +40,7 @@ test("done: RESOLUTION を追記して done/ へ移す（/wen と呼び手の道
   assert.equal(existsSync(file), false);
   const text = readFileSync(dest, "utf8");
   assert.match(text, /\nneed: do x\n\n## RESOLUTION\nresolved: 2026-01-01T00:00:00\+09:00   status: done\n/);
-  assert.match(text, /\nby: acme--app \| git@x:Acme\/App\.git \| branch:main \| commit:abc1234 \| pushed:yes\nimplemented: did x\n/);
+  assert.match(text, /\nby: acme-app \| git@x:Acme\/App\.git \| branch:main \| commit:abc1234 \| pushed:yes\nimplemented: did x\n/);
   assert.match(text, /\nnotes: -\n$/);
   assert.match(text, /^# ORDER id:20260101-000000-x\nfrom: .*\nstatus: done\nneed: do x\n/);
 });
@@ -85,23 +85,28 @@ test("done の --pushed が無ければ pushed:-", () => {
 test("relayed / rejected / withdrawn: 短い by 行と、それぞれの要る行", () => {
   const a = box();
   const dest = resolveOrder(a.file, { status: "relayed", body: "relayed_to: other--repo/1.md\nnotes: theirs\n", by: BY });
-  assert.match(readFileSync(dest, "utf8"), /status: relayed\nby: acme--app \| commit:- \| pushed:-\nrelayed_to: other--repo\/1\.md\n/);
+  assert.match(readFileSync(dest, "utf8"), /status: relayed\nby: acme-app \| commit:- \| pushed:-\nrelayed_to: other--repo\/1\.md\n/);
   const b = box();
   resolveOrder(b.file, { status: "withdrawn", body: "notes: no longer needed\n", by: BY });
 });
 
-test("知らない status・done/ の指令・二度目の RESOLUTION は断る", () => {
+test("知らない status は断る。done/ の指令・二度目の RESOLUTION は注意の 1 行で書き足す(done/ のまま)", (t) => {
+  const said = [];
+  t.mock.method(console, "error", (line) => said.push(line));
   const { file } = box();
   assert.throws(() => resolveOrder(file, { status: "ok", body: BODY, by: BY }), /--status/);
   const dest = resolveOrder(file, { status: "withdrawn", body: "notes: x\n", by: BY });
-  assert.throws(() => resolveOrder(dest, { status: "withdrawn", body: "notes: x\n", by: BY }), /done\//);
-  const c = box();
-  writeFileSync(c.file, readFileSync(c.file, "utf8") + "\n## RESOLUTION\nresolved: x\n");
-  assert.throws(() => resolveOrder(c.file, { status: "withdrawn", body: "notes: x\n", by: BY }), /すでに RESOLUTION/);
+  assert.equal(resolveOrder(dest, { status: "done", body: "notes: y\n", by: BY }), dest);
+  const text = readFileSync(dest, "utf8");
+  assert.equal(text.match(/^## RESOLUTION$/gm).length, 2);
+  assert.match(text, /^status: done$/m);
+  assert.ok(!existsSync(join(dirname(dest), "done", "20260101-000000-x.md")));
+  assert.ok(said.some((l) => /注意: done\/ の指令です/.test(l)) && said.some((l) => /注意: すでに RESOLUTION があります/.test(l)));
 });
 
 test("CLI: by の repo-id・branch・commit は実行したリポから取る", () => {
   const repo = mkdtempSync(join(tmpdir(), "mailbox-repo-"));
+  writeFileSync(join(repo, "repo.json"), '{"repo_id": "acme-app", "tier": "leaf"}\n');
   const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo, encoding: "utf8" }).trim();
   run("init", "-q", "-b", "main");
   run("remote", "add", "origin", "git@github.com:Acme/App.git");
@@ -113,7 +118,7 @@ test("CLI: by の repo-id・branch・commit は実行したリポから取る", 
   const out = execFileSync("node", [SCRIPT, "resolve", file, "--status=done", `--body=${bodyFile}`, "--pushed=no (no remote)"], { cwd: repo, encoding: "utf8" });
   assert.match(out, /^resolved: .*\/done\/20260101-000000-x\.md\n$/);
   const text = readFileSync(join(dirname(file), "done", "20260101-000000-x.md"), "utf8");
-  assert.match(text, new RegExp(`\\nby: acme--app \\| git@github\\.com:Acme/App\\.git \\| branch:main \\| commit:${sha} \\| pushed:no \\(no remote\\)\\n`));
+  assert.match(text, new RegExp(`\\nby: acme-app \\| git@github\\.com:Acme/App\\.git \\| branch:main \\| commit:${sha} \\| pushed:no \\(no remote\\)\\n`));
 });
 
 test("CLI: repos は本体が同じ親フォルダにある linked worktree を数えない(別の repo.json を持つ鉄道の作業場で url を取り違えない)", () => {
@@ -141,9 +146,9 @@ test("CLI: repos は本体が同じ親フォルダにある linked worktree を�
 });
 
 test("from: ORDER_ACTOR があれば発行元 = その名前、リポは repo: に残す", () => {
-  const where = { origin: "git@x:Acme/App.git", repoId: "acme--app", branch: "main", cwd: "/w/app" };
+  const where = { origin: "git@x:Acme/App.git", repoId: "acme-app", branch: "main", cwd: "/w/app" };
   assert.equal(fromLine({}, where), "git@x:Acme/App.git | branch:main | cwd:/w/app");
-  assert.equal(fromLine({}, { ...where, origin: "" }), "acme--app | branch:main | cwd:/w/app");
+  assert.equal(fromLine({}, { ...where, origin: "" }), "acme-app | branch:main | cwd:/w/app");
   assert.equal(fromLine({ ORDER_ACTOR: "lead l1 | role:Lead" }, where), "lead l1 | role:Lead | repo:git@x:Acme/App.git | branch:main | cwd:/w/app");
   assert.equal(fromLine({ ORDER_ACTOR: "  " }, where), "git@x:Acme/App.git | branch:main | cwd:/w/app");
   // 古いチームの印（TK_*）は読まない
@@ -160,6 +165,7 @@ test("requester: 先頭が発行元。名前（repo: 欄あり）/ repo を見�
 
 test("CLI: from は ORDER_ACTOR を読み、inbox の一覧は発行元の名前を出す", () => {
   const repo = mkdtempSync(join(tmpdir(), "mailbox-repo-"));
+  writeFileSync(join(repo, "repo.json"), '{"repo_id": "acme-app", "tier": "leaf"}\n');
   const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo, encoding: "utf8" }).trim();
   run("init", "-q", "-b", "main");
   run("remote", "add", "origin", "git@github.com:Acme/App.git");
@@ -176,6 +182,7 @@ test("CLI: from は ORDER_ACTOR を読み、inbox の一覧は発行元の名前
 
 test("CLI: inbox の一覧は title:（日本語の短い題）があれば need の前に出す。本文の title: は拾わない", () => {
   const repo = mkdtempSync(join(tmpdir(), "mailbox-repo-"));
+  writeFileSync(join(repo, "repo.json"), '{"repo_id": "acme-app", "tier": "leaf"}\n');
   const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo, encoding: "utf8" });
   run("init", "-q", "-b", "main");
   run("remote", "add", "origin", "git@github.com:Acme/App.git");
@@ -197,6 +204,7 @@ test("kind: 先頭の kind: の値だけを読む（題・本文の kind: は読
 
 test("CLI: inbox は kind: の行を出し、--kind=<値> でその値だけに絞る", () => {
   const repo = mkdtempSync(join(tmpdir(), "mailbox-repo-"));
+  writeFileSync(join(repo, "repo.json"), '{"repo_id": "acme-app", "tier": "leaf"}\n');
   const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo, encoding: "utf8" });
   run("init", "-q", "-b", "main");
   run("remote", "add", "origin", "git@github.com:Acme/App.git");
@@ -216,6 +224,7 @@ test("CLI: inbox は kind: の行を出し、--kind=<値> でその値だけに�
 
 test("CLI: resolve の後の口 ORDER_RESOLVED_HOOK は答えた指令のパスで呼ばれ、落ちても答えは残る。無ければ何もしない", () => {
   const repo = mkdtempSync(join(tmpdir(), "mailbox-repo-"));
+  writeFileSync(join(repo, "repo.json"), '{"repo_id": "acme-app", "tier": "leaf"}\n');
   const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo, encoding: "utf8" });
   run("init", "-q", "-b", "main");
   run("commit", "-q", "--allow-empty", "-m", "x");
@@ -280,7 +289,7 @@ test("route: open → routed、振り直しも記録。routed は振り分け先
   assert.throws(() => takeOrder(file, { actor: ME }), /振り分け先が別です: routed to guild g1/);
   takeOrder(file, { actor: GUILD, env: GUILD_ENV, now: "T3" });
   assert.equal(head(file, "taken_by"), GUILD);
-  assert.throws(() => routeOrder(file, { to: "guild g3", by: ME }), /着手中です（taken by guild g1/);
+  assert.throws(() => routeOrder(file, { to: "guild g3", by: ME }), /着手中です（taken by guild g1.*--force=<理由>/);
   releaseOrder(file, { actor: "guild g1 | role:Worker" });
   assert.equal(head(file, "status"), "routed");
   assert.equal(head(file, "routed_to"), "guild g1");
@@ -319,38 +328,26 @@ test("resolve の守り: 他人の taken・別の振り分け先は断る。--fo
   assert.doesNotMatch(text, /forced:/);
 });
 
-test("unroute: routed → open（振り分け先・振り分けた者だけ、--force は理由を残す）。着手中・未振り分けは断る", () => {
+test("route --force: 着手中の指令を理由つきで振り直す(取った者を外し、ログに forced: と前の持ち主)。done/ の指令は注意の 1 行で続ける", (t) => {
+  const said = [];
+  t.mock.method(console, "error", (line) => said.push(line));
   const { file } = box();
-  assert.throws(() => unrouteOrder(file, { actor: ME }), /振り分けられていません（open）/);
-  routeOrder(file, { to: "guild g1", by: "boss b1 | role:Lead", now: "T1" });
-  assert.throws(() => unrouteOrder(file, { actor: ME }), /振り分け先は別の担当です: routed to guild g1/);
-  unrouteOrder(file, { actor: GUILD, env: GUILD_ENV, now: "T2" });
-  assert.equal(head(file, "status"), "open");
-  assert.equal(head(file, "routed_to"), undefined);
-  assert.equal(head(file, "routed_by"), undefined);
-  assert.equal(head(file, "routed_at"), undefined);
-  assert.match(readFileSync(file, "utf8"), /\n- T2 routed → open \| to:guild g1 \| by:guild g1 \| role:Architect\n$/);
-  routeOrder(file, { to: "lead qa", by: "boss b1 | role:Lead", now: "T3" });
-  unrouteOrder(file, { actor: "boss b1 | role:Lead", now: "T4" });
-  assert.equal(head(file, "status"), "open");
-  routeOrder(file, { to: "lead qa", by: "boss b1 | role:Lead" });
-  takeOrder(file, { actor: "lead qa | role:Worker", env: { ORDER_ACTOR: "lead qa | role:Worker" } });
-  assert.throws(() => unrouteOrder(file, { actor: "lead qa | role:Worker", env: { ORDER_ACTOR: "lead qa | role:Worker" } }), /振り分けられていません（taken by lead qa.*release してから/);
-  releaseOrder(file, { actor: "lead qa | role:Worker" });
-  unrouteOrder(file, { actor: ME, force: "lead gone", now: "T9" });
-  assert.match(readFileSync(file, "utf8"), /- T9 routed → open \| to:lead qa \| by:.* \| forced:lead gone \(was routed to lead qa\)\n$/);
-});
-
-test("route / take / release は done/ の指令・答え済みの指令を断る", () => {
-  const { file } = box();
-  const dest = resolveOrder(file, { status: "withdrawn", body: "notes: x\n", by: BY });
-  assert.throws(() => takeOrder(dest, { actor: ME }), /done\//);
-  assert.throws(() => routeOrder(dest, { to: "guild g1", by: ME }), /done\//);
+  takeOrder(file, { actor: GUILD, env: GUILD_ENV, now: "T1" });
+  routeOrder(file, { to: "lead qa", by: ME, force: "g1 stopped", now: "T2" });
+  assert.equal(head(file, "status"), "routed");
+  assert.equal(head(file, "routed_to"), "lead qa");
+  assert.equal(head(file, "taken_by"), undefined);
+  assert.match(readFileSync(file, "utf8"), /- T2 taken → routed \| to:lead qa \| by:.* \| forced:g1 stopped \(was taken by guild g1 \| role:Architect\)\n$/);
+  const dest = resolveOrder(box().file, { status: "withdrawn", body: "notes: x\n", by: BY });
+  takeOrder(dest, { actor: ME });
+  assert.equal(head(dest, "status"), "taken");
+  assert.ok(said.some((l) => /注意: done\/ の指令です/.test(l)));
   assert.throws(() => routeOrder(box().file, { by: ME }), /--to=/);
 });
 
 test("CLI: take / route と inbox の状態・担当・(you)", () => {
   const repo = mkdtempSync(join(tmpdir(), "mailbox-repo-"));
+  writeFileSync(join(repo, "repo.json"), '{"repo_id": "acme-app", "tier": "leaf"}\n');
   const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo, encoding: "utf8" }).trim();
   run("init", "-q", "-b", "main");
   run("remote", "add", "origin", "git@github.com:Acme/App.git");
@@ -368,10 +365,10 @@ test("CLI: take / route と inbox の状態・担当・(you)", () => {
   cli({}, "route", file, "--to=guild g1");
   assert.match(cli(GUILD_ENV, "inbox"), /\nrouted .*\n[\s\S]*  routed_to: guild g1 \(you\)\n/);
   assert.throws(() => cli({}, "take", file), (e) => /振り分け先が別です: routed to guild g1/.test(e.stderr));
-  assert.match(cli(GUILD_ENV, "unroute", file), /^unroute: routed → open /);
+  assert.match(cli({}, "route", file, "--to=lead qa", "--force=gone"), /^route: routed → routed /);
 });
 
-// リポの名前 = repo.json の repo_id（~/.team/_bin の tk_fork_id_of と同じ規則）。未宣言は移行中だけ旧い導き方
+// リポの名前 = repo.json の repo_id（~/.team/_bin の tk_fork_id_of と同じ規則）。読めなければ id: null と理由
 function checkout(forkId) {
   const top = mkdtempSync(join(tmpdir(), "mailbox-fid-"));
   if (forkId !== undefined) {
@@ -381,75 +378,40 @@ function checkout(forkId) {
   return top;
 }
 
-test("forkIdOf: 宣言があればそれ、未宣言（行なし・旧い -）は旧い名前、形の違い・strict の未宣言は throw", () => {
-  const url = "git@github.com:Acme/Some-App.git";
-  assert.deepEqual(forkIdOf(checkout("some-app"), url, {}), { id: "some-app", declared: true });
-  assert.deepEqual(forkIdOf(checkout(), url, {}), { id: "acme--some-app", declared: false });
-  assert.deepEqual(forkIdOf(checkout("-"), url, {}), { id: "acme--some-app", declared: false });
-  assert.throws(() => forkIdOf(checkout("Some_App"), url, {}), /形が違います/);
-  assert.throws(() => forkIdOf(checkout(), url, { ORDER_REPO_ID_STRICT: "1" }), /宣言されていません/);
-  assert.deepEqual(forkIdOf(checkout("some-app"), url, { ORDER_REPO_ID_STRICT: "1" }), { id: "some-app", declared: true });
+test("forkIdOf: 宣言があればそれ、無い・形の違い・旧い - は id: null と理由(throw しない)。needBox は名前が要る所で宣言の仕方を 1 行", () => {
+  assert.deepEqual(forkIdOf(checkout("some-app")), { id: "some-app", error: null });
+  for (const top of [checkout(), checkout("-"), checkout("Some_App")]) {
+    const r = forkIdOf(top);
+    assert.equal(r.id, null);
+    assert.match(r.error, /repo\.json$/);
+  }
+  assert.throws(() => needBox({ repoId: null, idError: "x" }), /repo_id が読めません（x）。pnpm workflow repo-json set repo_id <名前> で宣言する/);
+  assert.equal(needBox({ repoId: "app" }), "app");
 });
 
-test("ordersRoot / settleRoot: 根の並び。古い実のフォルダは移してリンクを残す、既にリンクならその先、何も無ければ根（一時の置き場だけ）", () => {
+test("CLI: repo_id が読めないリポでは、自分の箱が要る命令(self・inbox)だけが 1 行で止まり、me・from は動く", () => {
+  const repo = mkdtempSync(join(tmpdir(), "mailbox-undeclared-"));
+  const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo, encoding: "utf8" }).trim();
+  run("init", "-q", "-b", "main");
+  run("remote", "add", "origin", "git@github.com:Acme/App.git");
+  run("commit", "-q", "--allow-empty", "-m", "x");
+  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("ORDER_")));
+  const env = { ...clean, ORDER_STATE_DIR: mkdtempSync(join(tmpdir(), "mailbox-undeclared-root-")) };
+  const cli = (...args) => execFileSync("node", [SCRIPT, ...args], { cwd: repo, encoding: "utf8", env, stdio: "pipe" });
+  assert.match(cli("me"), /^me: git@github\.com:Acme\/App\.git \| branch:main\n$/);
+  for (const cmd of ["self", "inbox"]) assert.throws(() => cli(cmd), (e) => /repo_id が読めません/.test(e.stderr));
+});
+
+test("ordersRoot: 根の並び ORDER_STATE_DIR → $XDG_STATE_HOME/next-starter/orders → ~/.local/state/next-starter/orders", () => {
   const t = mkdtempSync(join(tmpdir(), "mailbox-root-"));
   assert.deepEqual(ordersRoot({ ORDER_STATE_DIR: join(t, "x"), HOME: join(t, "h") }), { root: join(t, "x"), explicit: true });
   assert.deepEqual(ordersRoot({ XDG_STATE_HOME: join(t, "s"), HOME: join(t, "h") }), { root: join(t, "s", "next-starter", "orders"), explicit: false });
   assert.deepEqual(ordersRoot({ HOME: join(t, "h") }), { root: join(t, "h", ".local", "state", "next-starter", "orders"), explicit: false });
-  // 古い実のフォルダ → 根へ移し、古い場所は根へのリンク
-  const old = join(t, "team", "orders");
-  mkdirSync(join(old, "app"), { recursive: true });
-  writeFileSync(join(old, "app", "o1.md"), "o");
-  const root = join(t, "state", "next-starter", "orders");
-  assert.deepEqual(settleRoot(root, old), { root, moved: old });
-  assert.equal(readFileSync(join(root, "app", "o1.md"), "utf8"), "o");
-  assert.ok(lstatSync(old).isSymbolicLink());
-  assert.equal(readlinkSync(old), root);
-  // 根が既にある → そのまま
-  assert.deepEqual(settleRoot(root, old), { root });
-  // 根が無く古い場所が既にリンク → その先
-  const root2 = join(t, "other", "orders");
-  assert.deepEqual(settleRoot(root2, old), { root });
-  assert.ok(!existsSync(root2));
-  // どちらも無い → 根（何も作らない）
-  const root3 = join(t, "none", "orders");
-  assert.deepEqual(settleRoot(root3, join(t, "missing", "orders")), { root: root3 });
-  assert.ok(!existsSync(root3));
-});
-
-test("settleBox: 旧い箱を fork-id の名前へ移し、旧い名前は新しい箱へのリンクに（分裂のマージ・同名は上書きしない・どちらもない）", () => {
-  const root = mkdtempSync(join(tmpdir(), "mailbox-settle-"));
-  mkdirSync(join(root, "acme--app", "done"), { recursive: true });
-  writeFileSync(join(root, "acme--app", "o1.md"), "o");
-  writeFileSync(join(root, "acme--app", "done", "d1.md"), "d");
-  settleBox("app", "acme--app", root);
-  assert.equal(readFileSync(join(root, "app", "o1.md"), "utf8"), "o");
-  assert.equal(readFileSync(join(root, "app", "done", "d1.md"), "utf8"), "d");
-  assert.equal(readlinkSync(join(root, "acme--app")), "app");
-  settleBox("app", "acme--app", root);
-  assert.deepEqual(readdirSync(root).sort(), ["acme--app", "app"]);
-  // 古い送り手が旧い箱を作り直した（分裂）→ 指令を移す。同名は上書きせず残る
-  unlinkSync(join(root, "acme--app"));
-  mkdirSync(join(root, "acme--app"));
-  writeFileSync(join(root, "acme--app", "o2.md"), "n");
-  settleBox("app", "acme--app", root);
-  assert.equal(readFileSync(join(root, "app", "o2.md"), "utf8"), "n");
-  assert.ok(lstatSync(join(root, "acme--app")).isSymbolicLink());
-  unlinkSync(join(root, "acme--app"));
-  mkdirSync(join(root, "acme--app"));
-  writeFileSync(join(root, "acme--app", "o1.md"), "x");
-  settleBox("app", "acme--app", root);
-  assert.ok(lstatSync(join(root, "acme--app")).isDirectory());
-  assert.equal(readFileSync(join(root, "app", "o1.md"), "utf8"), "o");
-  // どちらもない → 新しい箱と旧い名前のリンク
-  const r2 = mkdtempSync(join(tmpdir(), "mailbox-settle-"));
-  settleBox("app", "acme--app", r2);
-  assert.ok(existsSync(join(r2, "app")) && readlinkSync(join(r2, "acme--app")) === "app");
 });
 
 test("nameProblems: 形・リポの一覧の別のパス・手元の別のリポ・持ち主が別の既存の受信箱と重なれば不可", () => {
   const root = mkdtempSync(join(tmpdir(), "mailbox-names-"));
-  const self = { top: "/w/app", repoId: "acme--app", oldId: "acme--app" };
+  const self = { top: "/w/app", repoId: "acme-app" };
   assert.deepEqual(nameProblems("app", self, [], [], root), []);
   assert.match(nameProblems("App_1", self, [], [], root)[0], /形が違います/);
   assert.match(nameProblems("shop", self, [], [{ name: "shop", path: "/w/shop" }], root)[0], /リポの一覧で \/w\/shop の名前/);
@@ -457,10 +419,9 @@ test("nameProblems: 形・リポの一覧の別のパス・手元の別のリポ
   assert.match(nameProblems("shop", self, [{ top: "/w/shop", repoId: "shop" }], [], root)[0], /手元の別のリポ/);
   mkdirSync(join(root, "shop"));
   assert.match(nameProblems("shop", self, [], [], root)[0], /受信箱 .* がすでにあります/);
-  // 自分の旧い名前のリンクが指す箱は自分のもの
+  // 自分の名前の箱は自分のもの
   mkdirSync(join(root, "app"));
-  symlinkSync("app", join(root, "acme--app"));
-  assert.deepEqual(nameProblems("app", { ...self, repoId: "acme--app" }, [], [], root), []);
+  assert.deepEqual(nameProblems("app", { ...self, repoId: "app" }, [], [], root), []);
 });
 
 // ---- ブラウザ確認のシート（checkSheet.mjs と mailbox.mjs check）----
@@ -477,7 +438,8 @@ test("シート: add は無ければ作り、同じ page・as・expect は 1 項
   assert.deepEqual(sheet.items[0].steps, ["一覧を開く", "保存"]);
   assert.equal(sheet.items[0].widths, "375,1280");
   assert.equal(parseSheet(renderSheet(sheet)).items.length, 2);
-  assert.throws(() => addItem(path, { page: "x", as: "root", steps: [], expect: "" }, { now: "T4" }), /--page=.*--as=.*--step=.*--expect=/);
+  assert.throws(() => addItem(path, { page: "x", as: "Root!", steps: [], expect: "" }, { now: "T4" }), /--page=.*--as=.*--step=.*--expect=/);
+  assert.equal(addItem(path, { ...ITEM, as: "store_staff" }, { now: "T5" }).merged, false, "fork が足した役割の名前も書ける");
 });
 
 test("シート: run で runs が増え、result は ok / ng / skip（ng・skip は evidence が要る）", () => {
@@ -499,12 +461,12 @@ test("指令とシート: file は kind: browser-check の指令とシートを�
   const { dir } = box();
   const src = join(dirname(dir), "acc.md");
   addItem(src, { ...ITEM, source: "fleet:f1 segment:s3" }, { now: "T1" });
-  const r = fileCheckOrder({ box: dir, to: "git@x:Acme/App.git | box:acme--app", from: "fleet f1 | role:Admiral", src, title: "確認", now: new Date(2026, 0, 2, 3, 4, 5) });
+  const r = fileCheckOrder({ box: dir, to: "git@x:Acme/App.git | box:acme-app", from: "fleet f1 | role:Admiral", src, title: "確認", now: new Date(2026, 0, 2, 3, 4, 5) });
   assert.equal(r.order, join(dir, "20260102-030405-browser-check.md"));
   assert.equal(r.sheet, join(dir, "20260102-030405-browser-check.check.md"));
   const text = readFileSync(r.order, "utf8");
   assert.match(text, /\nstatus: open\nkind: browser-check\ncheck_sheet: 20260102-030405-browser-check\.check\.md\ntitle: 確認\n/);
-  assert.match(readFileSync(r.sheet, "utf8"), /^# CHECK SHEET order:20260102-030405-browser-check {2}repo:acme--app\n/);
+  assert.match(readFileSync(r.sheet, "utf8"), /^# CHECK SHEET order:20260102-030405-browser-check {2}repo:acme-app\n/);
   assert.equal(existsSync(src), true);
   const again = fileCheckOrder({ box: dir, to: "-", from: "-", src, title: "確認", now: new Date(2026, 0, 2, 3, 4, 5) });
   assert.equal(again.order, join(dir, "20260102-030405-browser-check-2.md"));
@@ -518,12 +480,12 @@ test("指令とシート: file は kind: browser-check の指令とシートを�
 });
 
 test("fileOrder: /order の形で 1 件書く（省いた欄は -、kind / tried は指定した時だけ、本文は先頭の後）。同じ秒は -2、箱が無ければ作る", () => {
-  const dir = join(mkdtempSync(join(tmpdir(), "mailbox-")), "acme--app");
+  const dir = join(mkdtempSync(join(tmpdir(), "mailbox-")), "acme-app");
   const now = new Date(2026, 0, 2, 3, 4, 5);
-  const p = fileOrder({ box: dir, to: "git@x:Acme/App.git | box:acme--app", from: "git@x:Me.git | branch:main | cwd:/w", title: "題", need: "Fix the login\nbutton", kind: "special", constraints: "unchanged: x", tried: "t", body: "\n## DETAIL\nmore", now });
+  const p = fileOrder({ box: dir, to: "git@x:Acme/App.git | box:acme-app", from: "git@x:Me.git | branch:main | cwd:/w", title: "題", need: "Fix the login\nbutton", kind: "special", constraints: "unchanged: x", tried: "t", body: "\n## DETAIL\nmore", now });
   assert.equal(p, join(dir, "20260102-030405-fix-the-login-button.md"));
   const text = readFileSync(p, "utf8");
-  assert.match(text, /^# ORDER id:20260102-030405-fix-the-login-button\nfrom: git@x:Me\.git \| branch:main \| cwd:\/w\nto: git@x:Acme\/App\.git \| box:acme--app\ndate: 2026-01-02T03:04:05[+-]\d\d:\d\d\nstatus: open\nkind: special\ntitle: 題\nneed: Fix the login button\nwhy: -\ndone_when: -\nconstraints: unchanged: x\nrefs: -\nnotes: -\ntried: t\n\n## DETAIL\nmore\n$/);
+  assert.match(text, /^# ORDER id:20260102-030405-fix-the-login-button\nfrom: git@x:Me\.git \| branch:main \| cwd:\/w\nto: git@x:Acme\/App\.git \| box:acme-app\ndate: 2026-01-02T03:04:05[+-]\d\d:\d\d\nstatus: open\nkind: special\ntitle: 題\nneed: Fix the login button\nwhy: -\ndone_when: -\nconstraints: unchanged: x\nrefs: -\nnotes: -\ntried: t\n\n## DETAIL\nmore\n$/);
   assert.equal(orderStatus(text), "open");
   assert.equal(kindOf(text), "special");
   const again = fileOrder({ box: dir, to: "-", from: "-", title: "題", need: "Fix the login button", now });
@@ -539,6 +501,7 @@ test("fileOrder: /order の形で 1 件書く（省いた欄は -、kind / tried
 
 test("CLI: file は self / checkout のパスの受信箱に書いてパスだけを出す。from は from の値、--from で上書き、--body の本文を後に付ける", () => {
   const repo = mkdtempSync(join(tmpdir(), "mailbox-repo-"));
+  writeFileSync(join(repo, "repo.json"), '{"repo_id": "acme-app", "tier": "leaf"}\n');
   const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo, encoding: "utf8" }).trim();
   run("init", "-q", "-b", "main");
   run("remote", "add", "origin", "git@github.com:Acme/App.git");
@@ -581,6 +544,7 @@ test("指令とシート: attach --only は ng の項目だけを C1.. に写し
 
 test("CLI: inbox はシートを指令に数えず、kind と check_sheet の数を出す", () => {
   const repo = mkdtempSync(join(tmpdir(), "mailbox-repo-"));
+  writeFileSync(join(repo, "repo.json"), '{"repo_id": "acme-app", "tier": "leaf"}\n');
   const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo, encoding: "utf8" });
   run("init", "-q", "-b", "main");
   run("commit", "-q", "--allow-empty", "-m", "x");

@@ -7,7 +7,7 @@ argument-hint: "<宛先: self | リポ名 | 省略で会話から判断> [kind:<
 role: file an **ORDER** (write a one-off "do this / check this" into a named repo's inbox)
 
 ## MAILBOX LAYOUT
-- place: `~/.local/state/next-starter/orders/` (shared folder on this machine, env `ORDER_STATE_DIR` overrides; outside git; real place = `root:` of `mailbox.mjs self`) | the first run moves an old `~/.team/orders/` there once and leaves a link at the old place (order ids unchanged)
+- place: `~/.local/state/next-starter/orders/` (shared folder on this machine, env `ORDER_STATE_DIR` overrides; outside git; real place = `root:` of `mailbox.mjs self`)
 - **one inbox per repo**: `<root>/<fork-id>/` (unhandled) and `<fork-id>/done/` (handled)
   - fork-id = `repo_id` of that repo's `repo.json` (old form: `fork_id:` of `.claude/rules/project.md`; lowercase, digits, hyphens)
   - undeclared repos (no line / old `-`) use the old name only during migration (origin URL from the host on, `.git` removed, `/` → `--`, lowercase; no origin → `local--<directory name>`)
@@ -17,10 +17,10 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
 - the receiving repo reads its inbox with `/inbox` | the filing session checks the state with `/wen`
 - **order state** (head `status:`, one value): `open` → `routed` (routed to a named owner, any string; `routed_to:` / `routed_by:` / `routed_at:`) → `taken` (the owner started; `taken_by:` / `taken_at:`) → answer (done / partial / relayed / rejected / withdrawn, to `done/`)
   - transitions are appended to the trailing `## STATUS_LOG` | old orders without `status:` = open | mailbox.mjs refuses taking / answering by non-owners (usage: `.claude/skills/inbox/SKILL.md`, owner guard)
-- helper: `node .claude/skills/order/mailbox.mjs <self | from | me | repos | inbox [--kind=<値>] | name-check <名前> | file | route | take | release | unroute | resolve>` (run at the repo root)
+- helper: `node .claude/skills/order/mailbox.mjs <self | from | me | repos | inbox [--kind=<値>] | name-check <名前> | file | route | take | release | resolve>` (run at the repo root)
   - `file` = write one order into a repo's inbox (the single writer of order files: /order step 4 and the tools call it; options: mailbox.mjs head comment)
   - `from` = the `from:` line of the order being filed | `me` = your own name as written for an owner
-  - `route <order> --to=<owner name>` = route (an opaque string, matched exactly to the taker's `me` name or `--as`) | `take <order> [--as=]` = take | `release <order>` = let go | `unroute <order>` = take a route back (routed → open; the owner it was routed to or the one who routed it, else `--force=<reason>`)
+  - `route <order> --to=<owner name>` = route (an opaque string, matched exactly to the taker's `me` name or `--as`) | `take <order> [--as=]` = take | `release <order>` = let go | routing again changes a route; a taken order is the taker's: route it again with `--force=<reason>` (the taker is cleared, the log keeps it)
   - `name-check` = may this name become this repo's repo_id (no clash with the repos list `--repos-file=` / env `DOWNSTREAM_REPOS_FILE`, local repos, existing inboxes; used by /fork-init)
   - `resolve` = answer an order: append the RESOLUTION and move to done/ | env `ORDER_RESOLVED_HOOK` (path of an executable) set → after answering it is called with the done/ order's path (unset → nothing; a calling tool uses it, e.g. to notify the sender)
   - `inbox --kind=<値>` = only the orders whose head `kind:` is that value | steps: `.claude/skills/inbox/SKILL.md` step 4
@@ -64,7 +64,7 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
    - `<slug>` = a short kebab (English) from need
    - `title:` = a short Japanese title humans read in lists (`mailbox.mjs inbox`, tools' screens) | a noun phrase of about 20 chars saying what is done (e.g. `チャットルームの UID 不一致を直す`) | the list shows title and id side by side → no id or date in the title
    - `kind: <値>` = the order's kind (lowercase, digits, hyphens; any value) | its meaning belongs to whoever files and reads it — this repo's tools never read it, except `browser-check` (BROWSER CHECK ORDER) | this field is the only source of the mark: never put a mark in the title (lists and `inbox --kind=` read this field)
-   - `status:` = `open` at filing | afterwards mailbox.mjs rewrites it (route → routed, take → taken, release → the state before taking, unroute → open, resolve → to done/ with the RESOLUTION's status (done / partial / relayed / rejected / withdrawn); a hand edit keeps the same values and the STATUS_LOG line)
+   - `status:` = `open` at filing | afterwards mailbox.mjs rewrites it (route → routed, take → taken, release → the state before taking, resolve → to done/ with the RESOLUTION's status (done / partial / relayed / rejected / withdrawn); a hand edit keeps the same values and the STATUS_LOG line)
 4. **write the file without asking first** with `node .claude/skills/order/mailbox.mjs file` (never a hand Write) | once the target is fixed, waiting for approval like `この内容で起票していいですか?` is **prohibited** (filing is a plain md file, fixable later by edit / move / delete):
    - options = the fields of step 3: `--to=<self | target fork-id> --title=<title> --need=<need> [--kind=<値>] --why=<why> --done-when=<done_when> --constraints=<constraints> --refs=<refs> --notes=<notes> [--tried=<tried>] --slug=<slug>`
    - it fills `id` / `from:` / `to:` / `date:` / `status: open`, creates the inbox folder if missing, writes `<target box>/<ts>-<slug>.md` (a clash in the same second gets `-2`) and prints the path
