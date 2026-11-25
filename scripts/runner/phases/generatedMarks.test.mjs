@@ -15,8 +15,8 @@ import { isTier1Repo, matchIntake } from "../../../src/lib/forkOwnership/node.mj
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const tier1Only = { skip: isTier1Repo(repoRoot) ? false : "出力の宣言は上流の物(fork が足す生成物は宣言に無くてよい、Tier1 だけ)" };
 
-/** 生成物の印: 1 行目の注釈の頭が「生成物」 */
-const GENERATED_MARK = /^\s*(?:\/\/|#|\/\*|<!--|\{\/\*)?\s*生成物/;
+/** 生成物の印: 1 行目の注釈の頭が「生成物・編集不可」(印の説明を書いた注釈 = このファイルの 1 行目は当てない) */
+const GENERATED_MARK = /^\s*(?:\/\/|#|\/\*|<!--|\{\/\*)?\s*生成物・編集不可/;
 
 /** 全部の生成器の outputs の glob */
 function declaredGlobs() {

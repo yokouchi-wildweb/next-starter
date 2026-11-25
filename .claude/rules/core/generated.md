@@ -5,7 +5,7 @@ paths:
   - "src/domains/*/{components,hooks,services,constants,types}/**"
   - "src/domains/*/plugs/adminBulkActions/**"
   - "src/{registry/**,**/extensions/**,**/*.generated.ts,lib/*/generated/**}"
-  - "src/wiring/{cron,dbAgent,formSuite,googleTag,pageGuard,routeFactory,serverErrorReport,startup}.ts"
+  - "src/wiring/{backends,cron,dbAgent,formSuite,googleTag,pageGuard,routeFactory,serverErrorReport,startup}.ts"
   - "scripts/structure/domain/**"
   - "src/app/admin/**"
   - "src/app/route-map.jsonl"
