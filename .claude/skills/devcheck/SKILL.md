@@ -30,7 +30,7 @@ out_of_scope: a check sheet of an order (`<order>.check.md`) → /patrol | the s
    - db-write → one `INSERT INTO <table> … RETURNING <column>` (test data in development only; user / setting rows through the app's screens)
    - env-add → the value on stdin, never printed or echoed
    - `別に確認` (manual) items → ask for that item alone, then add `--manual-go`
-   - exit 4 (policy) → that item becomes `手で` | exit 5 (server limit) → report it, go on with what does not need the server
+   - exit 4 (policy) → that item becomes `手で` | a server line `上限` = more dev servers run than the limit: started anyway, say so in the report
 5. **continue without asking** only inside the go: the listed kinds whose policy is `自動`, the same server and the same development DB, deleting what this plan created
    - STOP and ask again for: an off kind, another environment or connection, deleting data this plan did not create, sending anything outside, any step not in the list
 6. **cleanup**: `pnpm workflow devcheck cleanup` always, also after a failure | exit 1 → report what was left

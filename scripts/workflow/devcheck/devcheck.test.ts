@@ -106,41 +106,40 @@ test("方針の入口: 危険な 3 つの入口の既定(db_push = pnpm db:push�
   assert.equal(policyKeyOf("db-write"), "agent.db_write");
 });
 
-test("fork の項目: このリポの入口だけを候補にし、知らない種類・外のコマンド・シェルの記号は理由つきで断る(本番の指定は入口の守りが守るので断らない)", () => {
+test("fork の項目: 打てる形の項目は command を問わず候補にし、JSON でない・名前・種類・command なし・シェルの記号だけ理由つきで断る(本番の指定は入口の守りが守る)", () => {
   const repo = temp("devcheck-items-");
-  mkdirSync(path.join(repo, "scripts/workflow/orders"), { recursive: true });
-  writeFileSync(path.join(repo, "scripts/workflow/orders/smoke.ts"), "");
   const items = path.join(repo, "items");
   mkdirSync(items);
   const put = (file: string, data: unknown) => writeFileSync(path.join(items, file), typeof data === "string" ? data : JSON.stringify(data));
   put("a-ok-script.json", { name: "orders-seed", kind: "db-write", command: "pnpm seed src/domains/order", what: "注文の確かめのデータ" });
   put("b-ok-workflow.json", { name: "orders-smoke", kind: "login", command: "pnpm workflow orders smoke" });
   put("c-kind.json", { name: "x", kind: "deploy", command: "pnpm test" });
-  put("d-foreign.json", { name: "x", kind: "login", command: "npx vitest" });
+  put("d-foreign.json", { name: "orders-vitest", kind: "login", command: "npx vitest" });
   put("e-shell.json", { name: "x", kind: "login", command: "pnpm test && rm -rf /" });
   put("f-pipe.json", { name: "x", kind: "login", command: "pnpm test | tee out" });
   put("g-prod.json", { name: "orders-smoke-prod", kind: "login", command: "pnpm workflow orders smoke --env production" });
-  put("h-missing-action.json", { name: "x", kind: "check", command: "pnpm workflow orders nope" });
+  put("h-no-command.json", { name: "x", kind: "login", command: " " });
   put("i-broken.json", "{ not json");
   put("j-name.json", { name: "Bad Name", kind: "test", command: "pnpm test" });
   put("k-test-kind.json", { name: "x", kind: "test", command: "pnpm workflow orders smoke" });
-  put("l-check-command.json", { name: "x", kind: "db-write", command: "pnpm test src/domains/order" });
-  const scanned = scanItems(items, repo, { test: "node run.mjs", seed: "node seed.mjs" });
+  put("l-check-command.json", { name: "orders-test", kind: "db-write", command: "pnpm test src/domains/order" });
+  const scanned = scanItems(items);
   assert.deepEqual(
     scanned.items.map((i) => [i.name, i.kind, i.command]),
     [
       ["orders-seed", "db-write", "pnpm seed src/domains/order"],
       ["orders-smoke", "login", "pnpm workflow orders smoke"],
+      ["orders-vitest", "login", "npx vitest"],
       ["orders-smoke-prod", "login", "pnpm workflow orders smoke --env production"],
+      ["orders-test", "db-write", "pnpm test src/domains/order"],
     ],
   );
   assert.deepEqual(
     scanned.rejected.map((r) => r.file),
-    ["c-kind.json", "d-foreign.json", "e-shell.json", "f-pipe.json", "h-missing-action.json", "i-broken.json", "j-name.json", "k-test-kind.json", "l-check-command.json"],
+    ["c-kind.json", "e-shell.json", "f-pipe.json", "h-no-command.json", "i-broken.json", "j-name.json", "k-test-kind.json"],
   );
   assert.match(scanned.rejected.find((r) => r.file === "e-shell.json")?.reason ?? "", /シェルの記号/);
-  assert.match(scanned.rejected.find((r) => r.file === "l-check-command.json")?.reason ?? "", /検査は出荷の道具の中だけ/);
-  assert.deepEqual(scanItems(path.join(repo, "none"), repo, {}), { items: [], rejected: [] });
+  assert.deepEqual(scanItems(path.join(repo, "none")), { items: [], rejected: [] });
 });
 
 test("文脈: 変数が無い = 単体。版つき key=value を読み、無い・知らない版・知らない鍵・悪い値は止める(チームの語の鍵は無い)", () => {

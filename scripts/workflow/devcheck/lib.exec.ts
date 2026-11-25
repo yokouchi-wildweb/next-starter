@@ -1,6 +1,6 @@
 // scripts/workflow/devcheck/lib.exec.ts
 //
-// run / cleanup の本体。外に触る物(コマンドを打つ・ファイル・待つ・数える)は Deps で受け、テストは偽の Deps で動かす。
+// run / cleanup の本体。外に触る物(コマンドを打つ・ファイル・数える)は Deps で受け、テストは偽の Deps で動かす。
 // 規則と使い方: scripts/workflow/devcheck/README.md
 
 import { DevcheckError, type Context, type Item, type Policy } from "./lib";
@@ -8,9 +8,7 @@ import {
   EMPTY_RECORD,
   ENV_ADD_FILE,
   EXIT_POLICY,
-  EXIT_WAIT,
   addRows,
-  appendEnv,
   checkStatement,
   cleanupSteps,
   dbQueryArgv,
@@ -20,7 +18,7 @@ import {
   policyRefusal,
   resolveRunTarget,
   serverArgv,
-  waitForSlot,
+  setEnv,
   type DevcheckRecord,
   type Runner,
 } from "./lib.run";
@@ -38,10 +36,6 @@ export type Deps = {
   writeEnvFile: (text: string) => void;
   readStdin: () => string;
   countLiveServers: () => number;
-  /** 数える → 立てるをリポの全部の作業場所で 1 つずつにするロック(取れなければ null。dev_max の競合を塞ぐ) */
-  withServerLock: <T>(fn: () => T) => T | null;
-  sleep: (ms: number) => Promise<void>;
-  waitSec: number;
   out: (line: string) => void;
 };
 
@@ -74,28 +68,12 @@ export const execRun = async (args: string[], deps: Deps): Promise<ExecResult> =
 
   switch (target.kind) {
     case "server": {
-      // 数えて空いていても、立てるまでの間に別の作業場所が立てうる: 数え直しと立てるをロックの中で 1 つにし、
-      // 埋まっていたら外で待ち直す(待つ間はロックを持たない)。待つ時間は全体で waitSec
-      for (let left = deps.waitSec; ; ) {
-        const ok = await waitForSlot(deps.context.devMax, deps.countLiveServers, deps.sleep, left);
-        if (!ok) {
-          deps.out(`server: 動いている開発サーバーが上限 ${deps.context.devMax} のまま ${deps.waitSec} 秒たった(立てていない、exit ${EXIT_WAIT})`);
-          return { code: EXIT_WAIT };
-        }
-        const result = deps.withServerLock(() =>
-          deps.context.devMax !== null && deps.countLiveServers() >= deps.context.devMax ? null : deps.runner(serverArgv(deps.context)),
-        );
-        if (result) {
-          if (devTabStarted(result)) deps.writeRecord({ ...record, startedServer: true });
-          return passThrough(deps, result);
-        }
-        if (left <= 0) {
-          deps.out(`server: 上限 ${deps.context.devMax} の空きを取れないまま ${deps.waitSec} 秒たった(立てていない、exit ${EXIT_WAIT})`);
-          return { code: EXIT_WAIT };
-        }
-        await deps.sleep(5000);
-        left -= 5;
-      }
+      // 上限(dev_max)は数の事実として 1 行出すだけ: 待たず・断らずに立てる(守る物を名指せない縛りは置かない、core/tools.md)
+      const live = deps.countLiveServers();
+      if (deps.context.devMax !== null && live >= deps.context.devMax) deps.out(`server: 動いている開発サーバー ${live} / 上限 ${deps.context.devMax}(待たずに立てる)`);
+      const result = deps.runner(serverArgv(deps.context));
+      if (devTabStarted(result)) deps.writeRecord({ ...record, startedServer: true });
+      return passThrough(deps, result);
     }
     case "login":
       return passThrough(deps, deps.runner(["pnpm", "-s", "workflow", "dev-admin", "run"]));
@@ -116,8 +94,9 @@ export const execRun = async (args: string[], deps: Deps): Promise<ExecResult> =
       const [key] = rest;
       if (!key || rest.length > 1) throw new DevcheckError("env-add <鍵>(値は標準入力から。表示しない)");
       const value = deps.readStdin().replace(/\r?\n$/, "");
-      deps.writeEnvFile(appendEnv(deps.readEnvFile(), key, value));
-      deps.out(`env-add: ${key} を ${ENV_ADD_FILE} に足しました(値は表示しない)`);
+      const { text, replaced } = setEnv(deps.readEnvFile(), key, value);
+      deps.writeEnvFile(text);
+      deps.out(`env-add: ${key} を ${ENV_ADD_FILE} ${replaced ? "で置き換えました" : "に足しました"}(値は表示しない)`);
       return { code: 0 };
     }
     default:

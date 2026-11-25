@@ -3,7 +3,7 @@
 // pnpm workflow devcheck の部品(読むだけの層)。開発中の確かめの入口が、事実と候補を出すための物。
 // - KINDS・方針の実体は lib.kinds.mjs(許可のフックも読む唯一の置き場)。ここは型を付けて出し直す
 // - 方針: リポ直下の repo.json の agent.* の鍵(種類・peer・enabled・危険な 3 つと入口、既定は lib.kinds.mjs)。auto | manual | off
-// - fork の項目: items/<名前>.json = { name, kind, command, what }。command はこのリポの入口(pnpm <script> / pnpm workflow / pnpm ops)だけ
+// - fork の項目: items/<名前>.json = { name, kind, command, what }。command はシェルを通さずに打つ 1 つのコマンド(シェルの記号は使えない)
 // - 文脈: 環境変数 DEVCHECK_CONTEXT=<絶対パス> の版つき key=value のファイル。無い = 単体、あるのに読めない・知らない版 = 止める
 // - 計画: 事実(方針・項目・文脈・今の状態)と候補。最後はいつも片付け
 // 規則と使い方: scripts/workflow/devcheck/README.md
@@ -84,24 +84,11 @@ export const applyAuto = (policy: Policy, kinds: string[]): Policy => applyAutoD
 export type Item = { name: string; kind: KindName; command: string; what: string; file: string };
 export type RejectedItem = { file: string; reason: string };
 
-/** シェルの記号(つなぐ・流す・置き換える)。項目のコマンドは 1 つの入口だけ */
+/** シェルの記号(つなぐ・流す・置き換える)。項目のコマンドはシェルを通さずに打つので、これを含む物は打てない */
 const SHELL_OPERATORS = /[;&|<>`]|\$\(/;
 
-/** このリポの入口か: pnpm <package.json の script> / pnpm workflow <対象> <動作> / pnpm ops <対象> <動作> */
-export const isRepoEntry = (command: string, repoRoot: string, scripts: Record<string, string>): boolean => {
-  const words = command.trim().split(/\s+/);
-  if (words[0] !== "pnpm" || !words[1]) return false;
-  if (words[1] === "workflow" || words[1] === "ops") {
-    const kindDir = words[1] === "workflow" ? "workflow" : "operations";
-    const [tool, action] = [words[2], words[3]];
-    if (!tool || !action || !/^[A-Za-z0-9_-]+$/.test(tool) || !/^[A-Za-z0-9_-]+$/.test(action)) return false;
-    return [".mjs", ".js", ".ts"].some((ext) => existsSync(path.join(repoRoot, "scripts", kindDir, tool, `${action}${ext}`)));
-  }
-  return Object.hasOwn(scripts, words[1]);
-};
-
-/** items/*.json を読み、使える項目と断った項目に分ける(断った項目は候補に出さない) */
-export const scanItems = (itemsDir: string, repoRoot: string, scripts: Record<string, string>): { items: Item[]; rejected: RejectedItem[] } => {
+/** items/*.json を読み、使える項目と打てない形の項目に分ける(打てない項目は候補に出さず、理由を plan に出す) */
+export const scanItems = (itemsDir: string): { items: Item[]; rejected: RejectedItem[] } => {
   const items: Item[] = [];
   const rejected: RejectedItem[] = [];
   if (!existsSync(itemsDir)) return { items, rejected };
@@ -119,8 +106,6 @@ export const scanItems = (itemsDir: string, repoRoot: string, scripts: Record<st
     else if (!(KIND_NAMES as unknown[]).includes(kind)) rejected.push({ file: entry, reason: `kind は ${KIND_NAMES.join(" / ")} のどれか` });
     else if (typeof command !== "string" || command.trim() === "") rejected.push({ file: entry, reason: "command がない" });
     else if (SHELL_OPERATORS.test(command)) rejected.push({ file: entry, reason: "command にシェルの記号(; & | < > ` $()は使えない" });
-    else if (/^pnpm\s+(-s\s+)?(test|check|typecheck|lint)(\s|$)/.test(command.trim())) rejected.push({ file: entry, reason: "command に検査(test / check / typecheck / lint)は使えない: 検査は出荷の道具の中だけ(D357)" });
-    else if (!isRepoEntry(command, repoRoot, scripts)) rejected.push({ file: entry, reason: "command はこのリポの入口(pnpm <script> / pnpm workflow / pnpm ops)だけ" });
     else items.push({ name, kind: kind as KindName, command: command.trim(), what: typeof what === "string" ? what : "", file: entry });
   }
   return { items, rejected };

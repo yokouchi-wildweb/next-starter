@@ -8,11 +8,11 @@ import { test } from "node:test";
 
 import { POLICY_KEYS, STANDALONE, parseAdminCheck, type Context, type Item, type Policy } from "./lib";
 import { execCleanup, execRun, type Deps } from "./lib.exec";
-import { appendEnv, checkStatement, deleteSql, devTabStarted, waitForSlot, type DevcheckRecord, type RunResult } from "./lib.run";
+import { checkStatement, deleteSql, devTabStarted, setEnv, type DevcheckRecord, type RunResult } from "./lib.run";
 
 const ALL_AUTO = { ...Object.fromEntries(POLICY_KEYS.map((k) => [k, "auto"])), db_push: "off", env_production: "off", deploy: "off" } as Policy;
 
-type Fake = Deps & { typed: string[][]; lines: string[]; record: DevcheckRecord | null; env: string; slept: number };
+type Fake = Deps & { typed: string[][]; lines: string[]; record: DevcheckRecord | null; env: string };
 
 const fake = (over: Partial<Deps> = {}, answers: (argv: string[]) => RunResult = () => ({ code: 0, stdout: "", stderr: "" })): Fake => {
   const f = {
@@ -20,7 +20,6 @@ const fake = (over: Partial<Deps> = {}, answers: (argv: string[]) => RunResult =
     lines: [] as string[],
     record: null as DevcheckRecord | null,
     env: "APP_ENV=development\n",
-    slept: 0,
   } as Fake;
   Object.assign(f, {
     root: "/repo",
@@ -44,11 +43,6 @@ const fake = (over: Partial<Deps> = {}, answers: (argv: string[]) => RunResult =
     },
     readStdin: () => "s3cret-value\n",
     countLiveServers: () => 0,
-    withServerLock: <T,>(fn: () => T) => fn(),
-    sleep: async (ms: number) => {
-      f.slept += ms;
-    },
-    waitSec: 10,
     out: (l: string) => f.lines.push(l),
     ...over,
   });
@@ -117,44 +111,35 @@ test("server: 文脈が裏なら --background。立てた時だけ記録し、cl
   assert.match(nothing.lines[0], /片付けるものなし/);
 });
 
-test("server の上限: dev_max 以上なら 5 秒ごとに数え直し、空けば立てる・待ちきれなければ exit 5 で立てない(3 は dev-tab の外のサーバー)", async () => {
+test("server の上限: dev_max 以上でも待たず・断らずに立て、数と上限を 1 行出す(3 は dev-tab の外のサーバー)", async () => {
   const ctx: Context = { ...STANDALONE, file: "/ctx", devMax: 2 };
-  let n = 3;
-  const freed = fake({ context: ctx, countLiveServers: () => n-- }, () => ({ code: 0, stdout: "開発サーバーを立てました: …", stderr: "" }));
-  assert.equal((await execRun(["server"], freed)).code, 0);
-  assert.equal(freed.slept, 10000);
-  const full = fake({ context: ctx, countLiveServers: () => 2, waitSec: 10 });
-  assert.equal((await execRun(["server"], full)).code, 5);
+  const full = fake({ context: ctx, countLiveServers: () => 2 }, () => ({ code: 0, stdout: "開発サーバーを立てました: …", stderr: "" }));
+  assert.equal((await execRun(["server"], full)).code, 0);
+  assert.equal(full.typed.length, 1);
+  assert.match(full.lines[0], /動いている開発サーバー 2 \/ 上限 2\(待たずに立てる\)/);
+  assert.equal(full.record?.startedServer, true);
+  const room = fake({ context: ctx, countLiveServers: () => 1 }, () => ({ code: 0, stdout: "開発サーバーを立てました: …", stderr: "" }));
+  assert.equal((await execRun(["server"], room)).code, 0);
+  assert.equal(room.lines.some((l) => /上限/.test(l)), false);
   const outside = fake({}, () => ({ code: 3, stdout: "", stderr: "この道具の外で開発サーバーが動いています" }));
   assert.equal((await execRun(["server"], outside)).code, 3);
   assert.equal(outside.record, null);
-  assert.deepEqual(full.typed, []);
-  assert.equal(await waitForSlot(null, () => 99, async () => {}, 0), true);
 });
 
-test("server の競合: 待って空いた後、ロックの中で数え直して埋まっていたら立てずに待ち直す(取れなければ exit 5)", async () => {
-  const ctx: Context = { ...STANDALONE, file: "/ctx", devMax: 1 };
-  // 外の数え(waitForSlot)は空き、ロックの中の数え直しで別の作業場所が先に立てていた → 立てない、次の回で空いて立てる
-  const seen = [0, 1, 0, 0];
-  const raced = fake({ context: ctx, countLiveServers: () => seen.shift() ?? 0 }, () => ({ code: 0, stdout: "開発サーバーを立てました: …", stderr: "" }));
-  assert.equal((await execRun(["server"], raced)).code, 0);
-  assert.equal(raced.typed.length, 1);
-  assert.equal(raced.slept, 5000);
-  // ロックが取れない(null)まま待ち切る → 立てない
-  const locked = fake({ context: ctx, withServerLock: () => null, waitSec: 10 });
-  assert.equal((await execRun(["server"], locked)).code, 5);
-  assert.deepEqual(locked.typed, []);
-});
-
-test("env-add: .env.development に足し、値は出さない。もうある鍵・形の違う鍵は断る", async () => {
+test("env-add: .env.development に足し、もうある鍵は置き換え、値は出さない。形の違う鍵・2 行の値は断る", async () => {
   const f = fake();
   assert.equal((await execRun(["env-add", "STRIPE_KEY"], f)).code, 0);
   assert.equal(f.env, "APP_ENV=development\nSTRIPE_KEY=s3cret-value\n");
   assert.equal(f.lines.join("\n").includes("s3cret"), false);
-  await assert.rejects(execRun(["env-add", "STRIPE_KEY"], f), /もう \.env\.development にある/);
-  assert.throws(() => appendEnv("", "lower", "v"), /英大文字/);
-  assert.throws(() => appendEnv("", "K", "a\nb"), /値は 1 行/);
-  assert.equal(appendEnv("A=1", "B", "2"), "A=1\nB=2\n");
+  f.env = "APP_ENV=development\nexport STRIPE_KEY=old\nOTHER=1\n";
+  assert.equal((await execRun(["env-add", "STRIPE_KEY"], f)).code, 0);
+  assert.equal(f.env, "APP_ENV=development\nSTRIPE_KEY=s3cret-value\nOTHER=1\n");
+  assert.match(f.lines.at(-1) ?? "", /置き換えました/);
+  assert.equal(f.lines.join("\n").includes("s3cret"), false);
+  assert.throws(() => setEnv("", "lower", "v"), /英大文字/);
+  assert.throws(() => setEnv("", "K", "a\nb"), /値は 1 行/);
+  assert.deepEqual(setEnv("A=1", "B", "2"), { text: "A=1\nB=2\n", replaced: false });
+  assert.deepEqual(setEnv("A=1\nB=x\n", "B", "$y"), { text: "A=1\nB=$y\n", replaced: true });
 });
 
 test("login / fork の項目: シェルを通さず打ち、終了コードをそのまま返す", async () => {

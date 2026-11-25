@@ -4,7 +4,7 @@
 // - 1 回に候補 1 つ。方針: off = 断る(手で)、manual = --manual-go の時だけ、auto = 実行
 // - この命令の記録 <checkout>/.agent/devcheck.json = 立てたサーバー・作った DB の行。片付け(cleanup)はこれだけを止めて消す
 // - DB に書くのは guard を通る入口(pnpm ops db inspect query --json、--env は付けない)だけ。1 文の INSERT … RETURNING / DELETE … WHERE に限る
-// - env-add は .env.development だけに足し、値は表示しない
+// - env-add は .env.development だけに書き(もうある鍵は置き換え)、値は表示しない
 // 規則と使い方: scripts/workflow/devcheck/README.md
 
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -18,9 +18,8 @@ export type RunResult = { code: number; stdout: string; stderr: string };
 /** コマンドを打つ物(シェルを通さない)。input = 標準入力に渡す文字列 */
 export type Runner = (argv: string[], options?: { input?: string }) => RunResult;
 
-/** 方針で止める時の終了コード / サーバーの上限で待ちきれない時の終了コード(dev-tab の 3 = 外のサーバー、とは分ける) */
+/** 方針で止める時の終了コード(dev-tab の 3 = 外のサーバー、とは分ける) */
 export const EXIT_POLICY = 4;
-export const EXIT_WAIT = 5;
 
 // ---- 何を実行するか -------------------------------------------------------------------------
 
@@ -122,25 +121,6 @@ export const addRows = (record: DevcheckRecord, rows: RowSet): DevcheckRecord =>
 /** dev-tab の答えから「この命令が立てた」か(もう動いていた・外のサーバー・失敗は立てていない) */
 export const devTabStarted = (result: RunResult): boolean => result.code === 0 && /開発サーバーを(立てました|起動中です)/.test(result.stdout);
 
-/**
- * 上限まで待つ: 生きている dev-tab の数が dev_max 未満になるまで pollSec ごとに数え直し、waitSec を過ぎたら false。
- * 上限が無ければすぐ true
- */
-export const waitForSlot = async (
-  devMax: number | null,
-  count: () => number,
-  sleep: (ms: number) => Promise<void>,
-  waitSec: number,
-  pollSec = 5,
-): Promise<boolean> => {
-  if (devMax === null) return true;
-  for (let waited = 0; ; waited += pollSec) {
-    if (count() < devMax) return true;
-    if (waited >= waitSec) return false;
-    await sleep(pollSec * 1000);
-  }
-};
-
 /** サーバーの種類の打つコマンド(argv) */
 export const serverArgv = (context: Context): string[] => ["pnpm", "-s", ...serverCommand(context.server).split(" ").slice(1)];
 
@@ -148,13 +128,14 @@ export const serverArgv = (context: Context): string[] => ["pnpm", "-s", ...serv
 
 export const ENV_ADD_FILE = ".env.development";
 
-/** .env.development の中身に KEY=値 を足した中身(鍵の形が違う・もうある鍵は断る) */
-export const appendEnv = (text: string, key: string, value: string): string => {
+/** .env.development の中身に KEY=値 を書いた中身: もうある鍵は最初の行を置き換え(replaced)、無ければ末尾に足す(鍵の形・1 行の値は断る) */
+export const setEnv = (text: string, key: string, value: string): { text: string; replaced: boolean } => {
   if (!/^[A-Z][A-Z0-9_]*$/.test(key)) throw new DevcheckError(`env-add: 鍵 ${key} は英大文字・数字・_ (先頭は英大文字)`);
   if (/[\r\n]/.test(value)) throw new DevcheckError("env-add: 値は 1 行");
-  if (new RegExp(`^\\s*(export\\s+)?${key}\\s*=`, "m").test(text)) throw new DevcheckError(`env-add: ${key} はもう ${ENV_ADD_FILE} にある(書き換えない)`);
+  const line = new RegExp(`^[ \\t]*(export[ \\t]+)?${key}[ \\t]*=.*$`, "m");
+  if (line.test(text)) return { text: text.replace(line, () => `${key}=${value}`), replaced: true };
   const body = text === "" || text.endsWith("\n") ? text : `${text}\n`;
-  return `${body}${key}=${value}\n`;
+  return { text: `${body}${key}=${value}\n`, replaced: false };
 };
 
 // ---- 片付け -------------------------------------------------------------------------------------
