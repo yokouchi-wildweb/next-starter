@@ -16,7 +16,7 @@ target: $ARGUMENTS
 - args given: that one id or path | id only → look for `<id>.md` in `*/` and `*/done/` of the mailbox root (`root:` of `node .claude/skills/order/mailbox.mjs self`)
 
 ## STATE (per order)
-- a file at the filed path → **not handled** (`まだ…`) | give recipient and need in one line, plus the class from the head `status:` (old orders without it = open):
+- where the file is and its head `status:` are the facts to show (old orders without `status:` = open) | a file at the filed path → **not handled** (`まだ…`) | give recipient and need in one line, plus its state:
   - `open`: nobody has picked it up yet
   - `routed`: `振り分け済み → <routed_to:>` (routed) (add `routed_at:`)
   - `taken`: `着手中 → <taken_by:>` (in progress) (add `taken_at:`) | an earlier taker existed → add one line from the trailing `## STATUS_LOG`
@@ -33,8 +33,8 @@ target: $ARGUMENTS
 - no permit file / no lines → end with one line `一時許可はありません` (no temporary permits)
 - per line, check each id at `*/<id>.md` and `*/done/<id>.md` of the mailbox root, classify as in STATE, plus:
   - handled (done): has the parent's notice brought `resolves:` (`git grep -n "^resolves:.*<id>" <upstream>/<branch> -- .notices`; not merged yet → `取り込めば失効` (merging it expires the permit)) | a line whose ids are all resolved → ask to move it to the intake point or revert it
-  - rejected: one of "revert / move to the intake point / re-permit under another policy" is **required** (never leave the line as is)
-  - not found: the mailbox is not local (another machine / an organization's parent) → say `確かめられない` (cannot verify; never treat as passed)
-- last, add one line with the permit state from `pnpm workflow ownership check` (refresh / expired-*, leftovers)
+  - rejected: the permit line has no open order behind it any more (fork_ownership temporary permit) → ask for revert / move to the intake point / re-permit under another policy
+  - not found: the mailbox is not local (another machine / an organization's parent) → report `確かめられない` (unverified, not a pass)
+- last, add one line with the permit state read from `pnpm workflow ownership check`'s report (refresh / expired-*, leftovers; a fact here, its pass / fail is /flux's)
 
 reply: Japanese

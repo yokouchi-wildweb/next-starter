@@ -9,7 +9,7 @@ role: handle the **ORDERs** addressed to this repo (one-off orders filed by `/or
 - every order: think whether to accept it against this repo's role before acting
 
 mailbox: `~/.local/state/next-starter/orders/` (shared folder; real place = `root:` of `mailbox.mjs self`; outside git; layout explained in `.claude/skills/order/SKILL.md`)
-- **own inbox** = `<root>/<own fork-id>/` (fork-id = `repo_id` of `repo.json`) | place and contents from `node .claude/skills/order/mailbox.mjs inbox` (run at the repo root) | never read other repos' inboxes
+- **own inbox** = `<root>/<own fork-id>/` (fork-id = `repo_id` of `repo.json`) | place and contents from `node .claude/skills/order/mailbox.mjs inbox` (run at the repo root) | the work is the own inbox's orders (a relay writes into another repo's box)
 - unhandled = `*.md` directly in the inbox | handled = moved to the inbox's `done/`
 - **state** (head `status:` of the order, one value; old orders without it = open): `open` = unhandled | `routed` = routed to a named owner (`routed_to:` = owner) | `taken` = the owner started (`taken_by:` = owner) | answers = done / partial / relayed / rejected / withdrawn (moved to `done/`)
   - transitions stay in the order's trailing `## STATUS_LOG` | change the state with `mailbox.mjs route | take | release | resolve` (the faster way); a hand edit keeps the status: value and its STATUS_LOG line
@@ -26,7 +26,8 @@ mailbox: `~/.local/state/next-starter/orders/` (shared folder; real place = `roo
 target: $ARGUMENTS
 
 ## LIST (args empty)
-0. this repo is Tier1 (owner of the first section of `src/lib/CATALOG.md`) → put line 1 of `pnpm workflow ownership check` (count of upstream debt rows) as one line at the head of the list (debt = places where upstream points downstream to an edit inside core; orders to build intake points sit in the inbox; src/lib/forkOwnership/README.md, its intake.txt section) | not Tier1 → nothing
+0. this repo is Tier1 (owner of the first section of `src/lib/CATALOG.md`) → put line 1 of `pnpm workflow ownership check` (count of upstream debt rows) as one line at the head of the list | not Tier1 → nothing
+   - a fact for the list (its pass / fail is /flux's) | debt = places where upstream points downstream to an edit inside core; orders to build intake points sit in the inbox (src/lib/forkOwnership/README.md, its intake.txt section)
 1. get the unhandled orders to this repo with `node .claude/skills/order/mailbox.mjs inbox` (first word of each = `open` / `routed` / `taken` / `waiting` / `resumable`; `routed_to:` / `taken_by:` lines = owner; trailing `(you)` = yourself)
 2. list them, using the output's `title:`, `need:`, `from:`:
    - a `kind:` line → prefix the title with its value | one kind only → `inbox --kind=<value>`
@@ -35,38 +36,38 @@ target: $ARGUMENTS
    - from: own repo → `自分宛て` | a named actor → its name and role (mailbox.mjs lists them as `from: <name> <role>`; never call them self-addressed even if they ran in this repo)
    - `waiting` → add `待ち（<待っている先>）` | `resumable` → add `再開可`
    - sender is a repo other than this one (a downstream fork) → add `下流の一時許可の元かもしれない → 出荷は resolves: 付き` (`.notices/README.md` section `解決(resolves)`; always pass `order:<id>` to the completion /sluice)
-3. branch on the count (not counted: `waiting`, routed / taken owned by someone else):
-   - 0: say `未対応の依頼はありません`
-   - **1: do not ask which to start; go straight to HANDLE steps 1-3 for that order** (read in full → summary → implementation proposal; no implementation)
-   - 2 or more: ask `どれに着手しますか？`; STOP
+3. **what to start** — cue: the orders you could start (not `waiting`, not routed / taken by someone else):
+   - none → say `未対応の依頼はありません`
+   - **exactly one → no question: go straight to HANDLE steps 1-3 for it** (read in full → summary → implementation proposal; no implementation)
+   - several → which one is the human's call: ask `どれに着手しますか？`; STOP
 
 ## HANDLE (args = an id / file name)
 1. read the order file in full | do not take it yet (take = when the human approves the step-3 proposal)
-   - `kind: browser-check` → no proposal of your own: say `/patrol <id> で回せます（項目 <n>）` and STOP | an order with a `check_sheet:` line of another kind → read the sheet too; its items are part of done_when (check them with `/patrol <id>` after the work)
+   - cue `kind: browser-check` → its work is /patrol: say `/patrol <id> で回せます（項目 <n>）`; STOP (the human starts it) | a `check_sheet:` on another kind → read the sheet too; its items are part of done_when (check them with `/patrol <id>` after the work)
    - already taken by someone else / routed to another owner (owner in the list or at the file head): give the summary and the owner; STOP: ask the human (owner guard above) | no proposal, no work
 2. **summarize in Japanese** (need / why / done_when / constraints)
    - `resumable` → also read the RESOLUTION of the `waiting_on:` targets (files moved to `done/`) and include it
    - an order with its own rules → also include them (boundary, `output:`, the extra RESOLUTION lines)
 3. **propose this repo's implementation** (placement by CODE_PLACEMENT, generalization, API design)
    - **first judge acceptance against this repo's role; state the verdict at the top**
-     - read this repo's project.md (role, TIER, split) and CLAUDE.md | verdict = accept / accept with changes / relay (hand off | ask and wait) / send back / withdraw
+     - read this repo's project.md (role, TIER, split) and CLAUDE.md | the verdict is yours: accept / accept with changes / relay (hand off | ask and wait) / send back / withdraw — weigh it on the cues below
      - self-addressed orders are judged the same way (no longer needed or stale after writing → withdraw)
-     - criterion ①: is it this repo's? | needs another repo's work first, or better carried on by another repo → relay (upstream, downstream or sibling alike) | should be kept by the sender → send back | steps: RELAY / SEND BACK / WITHDRAW below
-     - criterion ②: does it go against this repo's role / policy?
-     - criterion ③ (this repo has downstream forks): does it narrow every fork's freedom (data, logic, security boundary = upstream; screens, wording, design = downstream), can it be backed out without a breaking change | core UI returns fine-grained parts and default containers, never a prop for swapping (CLAUDE.md core_ui)
+     - cue ①: is it this repo's? | needs another repo's work first, or better carried on by another repo → relay (upstream, downstream or sibling alike) | should be kept by the sender → send back | steps: RELAY / SEND BACK / WITHDRAW below
+     - cue ②: does it go against this repo's role / policy?
+     - cue ③ (this repo has downstream forks): does it narrow every fork's freedom (data, logic, security boundary = upstream; screens, wording, design = downstream), can it be backed out without a breaking change | core UI returns fine-grained parts and default containers, never a prop for swapping (CLAUDE.md core_ui)
      - an API / implementation idea written by the sender = a proposal to critique, not a spec
-     - this repo is Tier1: an existing means passes every check with the same URL and the same result → return that means and close (a per-process copy is not a means) | an order whose premise differs from the current CLAUDE.md → send back (`.claude/rules/core/extensions.md`)
-   - **this repo has downstream forks** (`tier` root / middle in `repo.json`; read it like `/sluice`, `downstream` of `readForkIdentity` in `src/lib/forkOwnership/forkIds.mjs`; `none` = none; declaration missing / wrong → do not guess, STOP: have it declared) → put the downstream intake verdict (estimate) as one line at the head of the proposal:
+     - cue (Tier1): an existing means that gives the same URL and the same result answers the order — return it (a per-process copy is not a means) | a premise unlike the current CLAUDE.md is a reason to send back (`.claude/rules/core/extensions.md`)
+   - **this repo has downstream forks** (`tier` root / middle in `repo.json`; read it like `/sluice`, `downstream` of `readForkIdentity` in `src/lib/forkOwnership/forkIds.mjs`; `none` = none; unreadable → say so, propose without the line and suggest `pnpm workflow repo-json set tier <root|middle|leaf>`) → put the downstream intake verdict (your estimate) as one line at the head of the proposal:
      - `取り込み判定（見込み）: 安全 | 要注意（理由）| 危険（理由）`
      - `危険` (danger) = a plain merge breaks the fork's build, boot or existing behavior / needs manual work on the fork side (db:push, env, external resources …) / behavior or permissions change silently | `要注意` (caution) = only as far as merge conflicts may happen
      - a step held with `output: commit` → judge as "when the fork receives it at shipping" | no downstream → omit
    - **diagnose only after reproducing**: trust the symptom, but never treat "the cause is X" as fact until you reproduce it minimally yourself
      - e.g. a claim of a missing route → check with an unauthenticated `curl -i` (401/JSON = reached, 404 text/html = really missing) | a check that needs a running server → give the user the curl and get the result
-     - never widen the scope until the premise is solid
+     - widen the scope once the premise is reproduced
    - **judge downstream follow-up** (only when this repo has downstream forks):
      - this change makes the fork's existing code drift from the upstream spec (structure, generators, conventions, API …) → include in the proposal a migration bringing the fork's existing code to the new spec, shipped in `.notices/` in the same commit as the implementation
-     - never leave compat behind for forks to sit on; prefer a clean state without drift | the notice holds what changed and markers to find the target code in the fork (grep patterns etc.) | not needed → one word why
-   - **an order with a boundary (`まだやらないこと`)**: stop at it | problems outside it are not fixed → write them in the RESOLUTION at completion (`findings:` when the order asks for it) | include how the done conditions are verified in the proposal: by reading (diff, grep, output) and by the checks /sluice runs (name them; never run them during the work, core/notices.md checks_in_ship)
+     - no compat left behind for forks to sit on (CLAUDE.md debt_free); a clean state without drift | the notice holds what changed and markers to find the target code in the fork (grep patterns etc.) | not needed → one word why
+   - **an order with a boundary (`まだやらないこと`)**: stop at it (the sender's decision) | problems outside it are not fixed → write them in the RESOLUTION at completion (`findings:` when the order asks for it) | include how the done conditions are verified in the proposal: by reading (diff, grep, output) and by the checks /sluice runs (name them; they run inside /sluice, core/notices.md checks_in_ship)
    - **no implementation yet**; STOP: wait for the user's approval
    - **approved → record taking before working**: `node .claude/skills/order/mailbox.mjs take <the file>` (not needed when resuming a `resumable` or already taken by yourself; never for an approval of relay / send back / withdraw) | refused (meanwhile taken by someone else / routed to another owner): give the owner; STOP: ask the human | no work
    - after taking, the order is to be parked / left to another session → let it go with `node .claude/skills/order/mailbox.mjs release <the file>`
@@ -74,16 +75,16 @@ target: $ARGUMENTS
    - **the completion report and commit & push always go together** | `対応完了` doubles as the explicit commit / push instruction
    - **run a-d in a row with no confirmation, question or AskUserQuestion to the user in between** | `対応完了` is the only and sufficient approval; waiting for another approval is prohibited
    a. **ship with `/sluice`** (before the RESOLUTION, to fix the substance and get an exact commit sha): follow `.claude/skills/sluice/SKILL.md` with the argument `order:<order id>` (range, checks, notice judgment and composition, commit, push; it stops only when it hits /sluice's section STOP CASES) | a change for which the proposal decided to ship a notice → /sluice's judgment follows that
-      - an order of checks / investigation only with no diff → no /sluice, no commit (RESOLUTION `commit:- | pushed:-`)
+      - cues for this step: an order of checks / investigation only with no diff → no /sluice, no commit (RESOLUTION `commit:- | pushed:-`)
       - rejecting (rejected) an order from a downstream fork → write in the RESOLUTION notes what the sender does with its temporary permit (revert / move to the intake point / re-permit under another policy) (the sender's /wen permits shows it) | even a resolution without a diff, when the sender is a downstream fork → ship a resolves: notice per /sluice's judgment
       - already committed by the caller → make no new commit, use the current HEAD
       - branch follows behavior.md (already on a feature branch → stay)
-      - **an order with `output:` → follow it** (the order's declaration is the explicit push instruction):
+      - **an order with `output:` → follow it** (the order's declaration is the explicit push instruction; its three values):
         - `push` = as above
         - `commit` = **no push** (/sluice with `no-push`) → stack on the branch the order's `held:` names; before working `git switch <branch>` (missing → `git switch -c <branch> <the order's base:>`), commit, then `git switch <main>` back to main (`pushed: no (held)`)
         - `none` = no commit (only write the observed / measured results in the RESOLUTION; `commit:-`)
       - after /sluice, get the short sha by `git rev-parse --short HEAD` and the branch by `git rev-parse --abbrev-ref HEAD` | push failed → reflect it honestly in the RESOLUTION `pushed:` (never paper over it)
-   b. write the **RESOLUTION body** to a temp file (never inside the repo; e.g. `mktemp`) | the sender consumes it with `/wen` | English, structured | the `resolved:` and `by:` lines are written by the command in c, keep them out of the body:
+   b. write the **RESOLUTION body** to a temp file (`mktemp` or your scratchpad, so no repo commits it) | the sender consumes it with `/wen` | English, structured | the `resolved:` and `by:` lines are written by the command in c, keep them out of the body:
       ```
       implemented: <what was actually done>
       consume: <how the requester uses it: path + API | ->>
@@ -91,7 +92,7 @@ target: $ARGUMENTS
       notice: <.notices/<id>.md — apply with /flux | ->
       notes: <anything the requester needs>
       ```
-      - `propagate:` (sender repo = head of from:, for an order from a named actor its `repo:`): sender is a downstream fork of this repo = `pushed to origin — fetch & merge upstream into your fork to receive it` | self-addressed = `-` | otherwise = how it reaches the sender (`-` when the sender is unaffected)
+      - `propagate:` — say how the change reaches the sender (sender repo = head of from:, for a named actor its `repo:`) | e.g. a downstream fork: `pushed to origin — fetch & merge upstream into your fork to receive it` | self-addressed or unaffected: `-`
       - the order asks for extra lines → add them after `notes:` as it says (e.g. `findings: <問題・ずれ・範囲外・未確認 | none>` / `verify: <done_when をどう確かめたか(読んだ物・/sluice の検査の結果)、確かめていないことは「未確認」>`) | `status: partial` = stopped at part of the order (the reason in notes or findings)
    c. **answer** (append the RESOLUTION and move to `done/` in one go; run at the repo root):
       `node .claude/skills/order/mailbox.mjs resolve <the file> --status=done --pushed=<yes | no と理由 | -> --body=<file from b>`
@@ -107,11 +108,11 @@ target: $ARGUMENTS
    d. report in Japanese:
       - **first line = the downstream intake verdict (measured)**: same form as the estimate, re-judged from the actual diff | changed from the estimate → add why
       - commit sha / pushed branch / RESOLUTION appended and moved to done/ | push failed → say so explicitly
-      - an order with its own rules: the gist of its extra lines | `output: commit` → the branch name (not pushed) | never run ahead to a next step yourself
+      - an order with its own rules: the gist of its extra lines | `output: commit` → the branch name (not pushed) | the next step is the human's to start
 
 ## RELAY / SEND BACK / WITHDRAW (normal orders only; once the user approves the proposal, continue without asking)
 - **when to relay**: needs another repo's work first, or better carried on by another repo (upstream, downstream or sibling alike) | pick the target yourself from this repo's role and the target's role (project.md of `rules:` in `node .claude/skills/order/mailbox.mjs repos`)
-- **which relay** (state which, with the reason, in the proposal): the original order's `done_when` is met by the target's work alone → **hand off** | this repo has follow-up work after the target's result → **ask and wait**
+- **which relay** (your call; state it with the reason in the proposal) — cue: the target's work alone meets the original `done_when` → **hand off** | this repo has follow-up work after the target's result → **ask and wait**
 - **hand off** (closes the original order):
   a. write a new order into the target's inbox based on the original: new id (`date +%Y%m%d-%H%M%S`), `from:` stays the original sender, `to:` rewritten for the target, add the line `relayed_from: <original id> | via:<own fork-id>` after `to:` | other fields as they were (what this repo learned → add to `notes:`)
      - the original has `check_sheet:` → drop that line from the copy, then `node .claude/skills/order/mailbox.mjs check attach <new order> --sheet=<original's sheet>`

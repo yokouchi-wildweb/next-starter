@@ -10,15 +10,14 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
 - place: `~/.local/state/next-starter/orders/` (shared folder on this machine, env `ORDER_STATE_DIR` overrides; outside git; real place = `root:` of `mailbox.mjs self`)
 - **one inbox per repo**: `<root>/<fork-id>/` (unhandled) and `<fork-id>/done/` (handled)
   - fork-id = `repo_id` of that repo's `repo.json` (old form: `fork_id:` of `.claude/rules/project.md`; lowercase, digits, hyphens)
-  - undeclared repos (no line / old `-`) use the old name only during migration (origin URL from the host on, `.git` removed, `/` → `--`, lowercase; no origin → `local--<directory name>`)
-  - a declared repo's inbox moves from the old-name box when mailbox.mjs reads the name; the old name stays as a link to the new box
+  - a repo whose repo_id cannot be read: the commands that need its box (self, inbox, resolve, file to it) say how to declare it (`pnpm workflow repo-json set repo_id <name>`); the others run
 - the inbox holds one-off orders only | serial / grouped work is the caller's to run (its own tool)
 - **check sheet** = `<order name>.check.md` beside an order (browser checks: pages, steps, expectations, results) + `<order name>.check/` (screenshots of ng items) | the order's head `check_sheet:` names it | not an order: lists skip it, `resolve` moves it to done/ with the order | format: `.claude/skills/order/checkSheet.mjs` head comment
 - the receiving repo reads its inbox with `/inbox` | the filing session checks the state with `/wen`
 - **order state** (head `status:`, one value): `open` → `routed` (routed to a named owner, any string; `routed_to:` / `routed_by:` / `routed_at:`) → `taken` (the owner started; `taken_by:` / `taken_at:`) → answer (done / partial / relayed / rejected / withdrawn, to `done/`)
   - transitions are appended to the trailing `## STATUS_LOG` | old orders without `status:` = open | mailbox.mjs refuses taking / answering by non-owners (usage: `.claude/skills/inbox/SKILL.md`, owner guard)
 - helper: `node .claude/skills/order/mailbox.mjs <self | from | me | repos | inbox [--kind=<値>] | name-check <名前> | file | route | take | release | resolve>` (run at the repo root)
-  - `file` = write one order into a repo's inbox (the single writer of order files: /order step 4 and the tools call it; options: mailbox.mjs head comment)
+  - `file` = write one order into a repo's inbox (the default writer: /order step 4 and the tools call it; options: mailbox.mjs head comment) | a hand-written order keeps the same form (e.g. /inbox's hand-off)
   - `from` = the `from:` line of the order being filed | `me` = your own name as written for an owner
   - `route <order> --to=<owner name>` = route (an opaque string, matched exactly to the taker's `me` name or `--as`) | `take <order> [--as=]` = take | `release <order>` = let go | routing again changes a route; a taken order is the taker's: route it again with `--force=<reason>` (the taker is cleared, the log keeps it)
   - `name-check` = may this name become this repo's repo_id (no clash with the repos list `--repos-file=` / env `DOWNSTREAM_REPOS_FILE`, local repos, existing inboxes; used by /fork-init)
@@ -31,15 +30,14 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
 - args: $ARGUMENTS | first word = target | the word after the target is `kind:<値>` → file with that kind (`kind:` below) | `check` → file a browser check order (BROWSER CHECK ORDER below) | the rest = extra notes | starts with a word that is no target → all of it is extra notes, target omitted
 
 ## STEPS
-1. **get provenance with Bash** (never guess, never assemble by hand): use the `from:` line of `node .claude/skills/order/mailbox.mjs from` as is
+1. **provenance**: `file` (step 4) fills `from:`, the id time and `date:` itself | `node .claude/skills/order/mailbox.mjs from` shows the `from:` line beforehand
    - a session with env `ORDER_ACTOR` (a name its tool set) → the issuer is that name, not the repo
-   - id timestamp: `date +%Y%m%d-%H%M%S`
 2. **pick the target inbox**:
    - `self` (or `自分`): `box:` of `node .claude/skills/order/mailbox.mjs self`
    - a repo name: match `repo:` (fork-id) or the directory name of `path:` in `node .claude/skills/order/mailbox.mjs repos`, take its `box:`
    - omitted: decide the target from the conversation, look up the inbox with `repos`
    - not found / several match / the conversation cannot decide: show the candidates and ask with AskUserQuestion; STOP (never send on a guess)
-3. compose the order from the conversation and notes into **exactly this schema** (**a machine-to-machine file: English, terse, no prose or tables**; only `title:` is the exception, in Japanese):
+3. compose the order from the conversation and notes into this schema (the form `file` writes; a machine-to-machine file: English, terse; only `title:` is Japanese):
    ```
    # ORDER id:<ts>-<slug>
    from: <mailbox.mjs from の値>
@@ -63,9 +61,9 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
    - self-addressed: a later session without this context reads it → write everything known in this conversation into `why:` and `refs:` (how far it was decided, open points, files to read)
    - `<slug>` = a short kebab (English) from need
    - `title:` = a short Japanese title humans read in lists (`mailbox.mjs inbox`, tools' screens) | a noun phrase of about 20 chars saying what is done (e.g. `チャットルームの UID 不一致を直す`) | the list shows title and id side by side → no id or date in the title
-   - `kind: <値>` = the order's kind (lowercase, digits, hyphens; any value) | its meaning belongs to whoever files and reads it — this repo's tools never read it, except `browser-check` (BROWSER CHECK ORDER) | this field is the only source of the mark: never put a mark in the title (lists and `inbox --kind=` read this field)
+   - `kind: <値>` = the order's kind (lowercase, digits, hyphens; any value) | its meaning belongs to whoever files and reads it — this repo's tools never read it, except `browser-check` (BROWSER CHECK ORDER) | the mark goes here, not in the title (lists and `inbox --kind=` read this field)
    - `status:` = `open` at filing | afterwards mailbox.mjs rewrites it (route → routed, take → taken, release → the state before taking, resolve → to done/ with the RESOLUTION's status (done / partial / relayed / rejected / withdrawn); a hand edit keeps the same values and the STATUS_LOG line)
-4. **write the file without asking first** with `node .claude/skills/order/mailbox.mjs file` (never a hand Write) | once the target is fixed, waiting for approval like `この内容で起票していいですか?` is **prohibited** (filing is a plain md file, fixable later by edit / move / delete):
+4. **write the file without asking first** with `node .claude/skills/order/mailbox.mjs file` | once the target is fixed, waiting for approval like `この内容で起票していいですか?` is **prohibited** (filing is a plain md file, fixable later by edit / move / delete):
    - options = the fields of step 3: `--to=<self | target fork-id> --title=<title> --need=<need> [--kind=<値>] --why=<why> --done-when=<done_when> --constraints=<constraints> --refs=<refs> --notes=<notes> [--tried=<tried>] --slug=<slug>`
    - it fills `id` / `from:` / `to:` / `date:` / `status: open`, creates the inbox folder if missing, writes `<target box>/<ts>-<slug>.md` (a clash in the same second gets `-2`) and prints the path
 5. after writing, report in Japanese:
@@ -80,7 +78,7 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
 - one item = one page + one expectation (`page:` path, `as:` guest | user | admin, `needs:` data or switches it stands on, `steps:`, `expect:`, `widths:` default 375,1280) | a long flow → several items
 - an item says what to see, never how the code works | write it so a session without this conversation can run it
 1. steps 1-2 above (provenance, target)
-2. collect the items from the conversation into a temp sheet (never inside a repo): per item `node .claude/skills/order/mailbox.mjs check add --sheet=<tmp>.md --page=/<path> --as=<who> --step=<step> [--step=…] --expect=<what is seen> [--needs=] [--source=<where it came from>]`
+2. collect the items from the conversation into a temp sheet (your scratchpad, so no repo commits it): per item `node .claude/skills/order/mailbox.mjs check add --sheet=<tmp>.md --page=/<path> --as=<who> --step=<step> [--step=…] --expect=<what is seen> [--needs=] [--source=<where it came from>]`
 3. `node .claude/skills/order/mailbox.mjs check file --sheet=<tmp>.md --to=<target fork-id> --title=<日本語の短い題> --why=<the situation>` → writes the order (`kind: browser-check`, `check_sheet:`) and its sheet into the target's inbox
 4. report as step 5 (the order's path) + the item count | the receiver runs it with `/patrol <order id>`
 - a sheet on an ordinary order (e.g. a fix order whose done_when is "these items pass"): write the order by steps 1-4 above, then `node .claude/skills/order/mailbox.mjs check attach <order file> --sheet=<sheet> [--only=C<n>,…]` (`--only` = copy those items only, results cleared, the old result kept in `was:`)
@@ -89,10 +87,10 @@ role: file an **ORDER** (write a one-off "do this / check this" into a named rep
 ## TEMPORARY PERMIT REQUEST (a fork passing an ownership-check violation)
 - violations of `pnpm workflow ownership check` that cannot move to an intake point or be reverted (capabilities upstream lacks, upstream bug / perf / security fixes) pass by an order to the direct parent + a temporary permit (`src/lib/forkOwnership/README.md` section `一時許可`)
 1. target = the direct parent (TIER of `.claude/rules/project.md`, else the repo of a remote other than origin) | file it by the steps above | need = the violating paths and what upstream needs (intake point, fix) | refs = the check's violation lines and the draft permit line (`<path> upreq:<依頼の番号> base:… head:…`) | why = why the fork needs that edit now
-   - a permit request for delete / rename is limited to "please provide an intake that switches it off (feature-gate etc.)"; an addition to an ancestor lib to "please take it into that lib / please add an intake point"
-   - never file for upstream debt spots (debt of intake.txt) or orders upstream already accepted (fix orders in its inbox) | use the reason field of the intake.txt debt / the order id as is
+   - a fork never deletes or renames parent code (CLAUDE.md fork_core_edit_compat): for delete / rename ask "please provide an intake that switches it off (feature-gate etc.)"; for an addition to an ancestor lib "please take it into that lib / please add an intake point"
+   - upstream debt spots (debt rows of intake.txt) and orders upstream already accepted (fix orders in its inbox) already have an id: use the intake.txt debt reason / that order id as is, no new order
 2. fill the draft's `<依頼の番号>` and `<理由>` with the filed id, paste it into `.fork-ownership/<fork-id>.permits.txt`, one line per file (several orders on one file → `upreq:<id>,<id>`)
-3. commit the permit file | the next /flux's ownership check (a check: never run it as a step here, core/notices.md checks_in_ship) confirms the line is permitted
+3. commit the permit file | the next /flux's ownership check confirms the line is permitted (it runs there, core/notices.md checks_in_ship)
 4. check the request state with `/wen permits` | resolved (the parent notice's `resolves:`) or rejected → drop the line and move to the intake point or revert
 
 ## SELF-ADDRESSED USE
