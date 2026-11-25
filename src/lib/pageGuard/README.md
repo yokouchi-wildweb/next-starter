@@ -17,12 +17,12 @@ lib/pageGuard(汎用版: createPageGuard、結び目 wirePageGuard)
 生成物 src/wiring/pageGuard.ts → defineRootGuard(型引数 PageGuardUserMap で項目の利用者の型を運ぶ)
 src/app/guard.ts(root)= defineRootGuard({ access: "public" }) → { Guard, createLoader, guardMetadata, extend }
 src/app/<範囲>/guard.ts(子)= 最寄りの親の extend({ ... }) → { Guard, createLoader, guardMetadata, extend }
-src/app/<範囲>/layout.tsx = export const generateMetadata = guardMetadata(...) + 待たずに <Guard fallback={<その範囲の loading />}>{children}</Guard>
+src/app/<範囲>/layout.tsx = export const generateMetadata = guardMetadata(...) + 待たずに <Guard fallback={<ScreenWait />}>{children}</Guard>
 ```
 
 - guard.ts が export するのは `Guard` / `createLoader` / `guardMetadata` / `extend` の 4 つ
-- 範囲の layout は async にせず頭で守りを待たない。中身(枠・門番の包み直しを含む)は `<Guard fallback>` の内側に描く。fallback はその範囲の `loading.tsx`(文字なしの ScreenLoader。殻に入る)
-- 守りの範囲で、2 つのページの間の遷移に共有される段(段のページ + 下のページ、または別々の子の段の下のページ 2 つ以上)は `loading.tsx` を持つ(地図の検査 `src/lib/screens`。下のページの loader の守りはその段の境界の内側で待つ)
+- 範囲の layout は async にせず頭で守りを待たない。中身(枠・門番の包み直しを含む)は `<Guard fallback>` の内側に描く。fallback は待つ間の既定 `ScreenWait`(`@/app/_layout/ScreenWait`、文字なし。殻に入る。枠の外は画面の高さ、枠の中は本文の所)。上流は loading.tsx を持たない(待ちの境界は範囲の Guard と画面の `createScreen` の中)
+- Guard が止めるのは範囲の layout が描く枠と子の入口。ページの区画は Guard と別に描かれる(匿名の直の要求でもページの文字が flight に入りうる)ので、ページの中身と題名を止めるのは画面の作り手 `createScreen`(load = 範囲とページの確かめの後にだけ描く・返す、`src/lib/screens/README.md`)。データの読みは loader が独立に認可する(D105)
 
 ## API
 
@@ -40,7 +40,7 @@ src/app/<範囲>/layout.tsx = export const generateMetadata = guardMetadata(...)
 
 ### Guard と createLoader
 
-- `<Guard fallback={…}>{children}</Guard>`(props `GuardProps`: `fallback`・`children`): 範囲の layout が描く守りの境界。Suspense の内側の部品が範囲の全段を評価してから children を返す。断られた訪問者には redirect / notFound を中で投げ、children は描かない。利用者は返さない(表示用の利用者は root の AuthSessionProvider → client の useAuthSession)
+- `<Guard fallback={…}>{children}</Guard>`(props `GuardProps`: `fallback`・`children`): 範囲の layout が描く守りの境界。Suspense の内側の部品が範囲の全段を評価してから children(枠と子の入口)を返す。断られた訪問者には redirect / notFound を中で投げ、children は描かない(ページの中身と題名は createScreen が止める、D105)。利用者は返さない(表示用の利用者は root の AuthSessionProvider → client の useAuthSession)
   - layout の頭で待たないので、client の遷移で範囲に入る時も守りの待ちは境界の内側(Next の instant の検証が境界の外の要求の待ちを知らせない)
 - `guardMetadata(base?)`: 範囲の layout の `generateMetadata` を作る(`export const generateMetadata = guardMetadata({ robots: … })`)。Guard と同じ判定を先に通し、断られた訪問者には redirect / notFound を投げて metadata の解決ごと止める(Next は根からページへ順に解くので、配下のページの題名・説明は応答に出ない)。許された時は base を返す
   - 断る時に metadata を返す形(投げない)は使わない: Next が配下のページの metadata を浅く重ね、題名が戻る

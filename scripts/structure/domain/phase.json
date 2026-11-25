@@ -58,7 +58,6 @@
     {"glob": "src/app/admin/(protected)/{route}/sort/_screen/Admin{Pascal}SortScreen.tsx", "kind": "every-run", "source": "{dir}/domain.json"},
     {"glob": "src/app/admin/(protected)/{route}/sort/_screen/loader.ts", "kind": "every-run", "source": "{dir}/domain.json"},
     {"glob": "src/app/admin/(protected)/{route}/[id]/edit/page.tsx", "kind": "write-once", "source": "the written file itself (hand-owned after the first write)"},
-    {"glob": "src/app/admin/(protected)/{route}/loading.tsx", "kind": "write-once", "source": "the written file itself (hand-owned after the first write)"},
     {"glob": "src/app/admin/(protected)/{route}/new/page.tsx", "kind": "write-once", "source": "the written file itself (hand-owned after the first write)"},
     {"glob": "src/app/admin/(protected)/{route}/page.tsx", "kind": "write-once", "source": "the written file itself (hand-owned after the first write)"},
     {"glob": "src/app/admin/(protected)/{route}/sort/page.tsx", "kind": "write-once", "source": "the written file itself (hand-owned after the first write)"},

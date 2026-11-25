@@ -34,7 +34,7 @@ if (isLoading) return <InlineLoader />;
 <InlineLoader size="sm" message="読み込み中" />
 ```
 
-- ページ遷移中の表示は App Router の標準手段で出す: ルートの `loading.tsx`(`src/app/(user)/loading.tsx`・`src/app/admin/(protected)/loading.tsx` が `ScreenLoader` を出す)、リンク単位の表示は `next/link` の `useLinkStatus`、自前の遷移は `useTransition` の pending。App Router には全体の遷移イベントが無い
+- ページ遷移中の表示は App Router の標準手段で出す: 画面の作り手 `createScreen` の fallback(既定 `src/app/_layout/ScreenWait` = `PageWait`。上流は `loading.tsx` を置かない)、リンク単位の表示は `next/link` の `useLinkStatus`、自前の遷移は `useTransition` の pending。App Router には全体の遷移イベントが無い
 
 ## API
 

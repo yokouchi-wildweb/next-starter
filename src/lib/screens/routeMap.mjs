@@ -11,7 +11,6 @@ import {
   checkScreenLoaderCall,
   layoutAwaitsGuard,
   layoutRendersGuard,
-  sharedNavigationSegments,
   layoutGuardsMetadata,
   parseGuardFile,
   parseLoaderGuard,
@@ -260,33 +259,7 @@ export function buildRouteMap({ files, read, gateRules = [] }) {
       chain,
     });
   }
-  problems.push(...checkGuardedSegmentLoading(routes.map((route) => route.dir), fileSet, read));
   return { rows, problems: [...new Set(problems)] };
-}
-
-/**
- * 守りの範囲(最寄りの guard.ts が public でない)の段のうち、遷移に共有される段が loading.tsx を持つか(D76)。
- * 共有される段は遷移で再描画されないので、下のページの loader の守りはその段の境界の内側で待つ
- * @param {string[]} pageDirs
- * @param {Set<string>} fileSet
- * @param {ReadFile} read
- * @returns {string[]}
- */
-function checkGuardedSegmentLoading(pageDirs, fileSet, read) {
-  const problems = [];
-  for (const dir of sharedNavigationSegments(pageDirs)) {
-    if (!dir.startsWith(`${APP_DIR}/`)) continue;
-    const guardFile = findNearestGuard(dir, fileSet);
-    if (!guardFile) continue;
-    const { policy } = parseGuardFile(read(guardFile));
-    if (!policy || policy.access === "public") continue;
-    if (!fileSet.has(`${dir}/loading.tsx`)) {
-      problems.push(
-        `${dir}: 守りの範囲で遷移に共有される段に loading.tsx が無い(下のページの loader が境界の外で守りを待つ。文字なしの ScreenLoader の loading.tsx を置く)`,
-      );
-    }
-  }
-  return problems;
 }
 
 /**

@@ -1114,29 +1114,3 @@ export function layoutGuardsMetadata(source) {
   return Boolean(imp && imp.source === "./guard" && exported && !staticMetadata);
 }
 
-/**
- * 2 つのページの間の client の遷移に共有される段(フォルダ)を求める: その段のページ + 下のページ、または別々の子の段の下の
- * ページ 2 つ以上を持つ段。共有される段は遷移で再描画されないので、下のページの loader が要求を待つ境界は
- * その段の loading.tsx が要る(D76。Next の instant の検証は境界の外で待つ遷移を知らせる)
- * @param {string[]} pageDirs ページのフォルダ(repo 相対、`_` のフォルダを除いた木。routeTree の route.dir)
- * @returns {string[]} 共有される段のフォルダ(並びは名前順)
- */
-export function sharedNavigationSegments(pageDirs) {
-  const pages = new Set(pageDirs);
-  /** @type {Map<string, Set<string>>} */
-  const childrenWithPages = new Map();
-  for (const dir of pages) {
-    const parts = dir.split("/");
-    for (let i = 1; i < parts.length; i += 1) {
-      const ancestor = parts.slice(0, i).join("/");
-      const child = parts[i];
-      if (!childrenWithPages.has(ancestor)) childrenWithPages.set(ancestor, new Set());
-      childrenWithPages.get(ancestor)?.add(child);
-    }
-  }
-  const shared = [];
-  for (const [dir, children] of childrenWithPages) {
-    if ((pages.has(dir) ? 1 : 0) + children.size >= 2) shared.push(dir);
-  }
-  return shared.sort();
-}

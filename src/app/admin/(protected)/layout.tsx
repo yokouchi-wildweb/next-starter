@@ -10,7 +10,7 @@ import { GateProvider } from "@/featureGate/client";
 
 import { AdminProtectedLayout } from "./_layout/AdminProtectedLayout";
 import { Guard, guardMetadata } from "./guard";
-import AdminLoading from "./loading";
+import { ScreenWait } from "@/app/_layout/ScreenWait";
 
 // 先に守りを通してから metadata を返す(断られた訪問者の応答に配下のページの題名を出さない。Next は根からページへ順に解き、
 // 断りは redirect / notFound を投げて解決ごと止める)。許された時は robots noindex・nofollow を配下の全ページが継承する。
@@ -18,13 +18,14 @@ import AdminLoading from "./loading";
 // X-Robots-Tag(/admin 以下の全部の応答)
 export const generateMetadata = guardMetadata({ robots: { index: false, follow: false } });
 
-// 守りは layout の頭で待たず、境界(Guard = Suspense + この範囲の loading)の内側で確かめてから枠と中身を描く(D76)。
-// 枠(サイドバーのメニュー)と管理の門番の値も境界の内側: 断られた訪問者と殻には loading の箱だけが出る
+// 守りは layout の頭で待たず、境界(Guard = Suspense + 待つ間の既定 ScreenWait)の内側で確かめてから枠と中身を描く(D76)。
+// 枠(サイドバーのメニュー)と管理の門番の値も境界の内側: Guard が止めるのは枠と子の入口。ページの中身と題名は
+// createScreen が load(範囲とページの確かめ)の後にだけ出し、データは loader が独立に認可する(D105)
 export default function AdminLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   return (
-    <Guard fallback={<AdminLoading />}>
+    <Guard fallback={<ScreenWait />}>
       {/* 門番の管理の枠: 守りの後で /admin の下の閉じた住所を足した値で包み直す(公開ページの HTML に管理の住所を出さない) */}
       <GateProvider state={clientGateState("admin")}>
         {/* 管理のコマンドパレットの移動の候補もこの枠の値で絞る(L2.4) */}

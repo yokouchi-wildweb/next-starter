@@ -106,7 +106,7 @@ export type PageLoader<TProps, TData> = ((props: TProps) => Promise<TData>) & { 
 /** 範囲の guard.ts が export する 4 つ(Guard・createLoader・guardMetadata・extend) */
 export type PageGuard<TUser extends PageGuardUser = PageGuardUser> = {
   /**
-   * 範囲の layout が描く守りの境界(`<Guard fallback={<その範囲の loading />}>{children}</Guard>`)。
+   * 範囲の layout が描く守りの境界(`<Guard fallback={<ScreenWait />}>{children}</Guard>`)。
    * Suspense の内側で範囲の全段を評価してから children を返す。断られた訪問者には redirect / notFound を投げ、children は描かない
    */
   Guard: (props: GuardProps) => ReactNode;

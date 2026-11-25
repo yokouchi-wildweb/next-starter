@@ -87,7 +87,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 
 - layout を置く範囲が URL フォルダの配下と一致するなら URL フォルダの layout、ずれるときだけ group にする(例: `(user)` は共通の URL の先頭が無いので group、`admin` は全ページが `/admin` なので URL フォルダ)
 - 方針(ログイン要否など)の違うページで枠を共有するなら、枠をガードの外に置く。その方針専用の枠ならガードと同居してよい
-- 枠を出したくないページは、枠の外の兄弟の枝に置く(例: `(marketing)/` は `(user)/` の枠の外)。元の group の `loading` / `error` / `not-found` も外れるので、要るなら兄弟側に置く。枠の一部を隠すだけならルートの隣の枠の宣言 `frame.ts` / `frame.override.ts`(`src/app/(user)/_layout/README.md`「枠の部位を隠す・fill(枠の宣言)」)
+- 枠を出したくないページは、枠の外の兄弟の枝に置く(例: `(marketing)/` は `(user)/` の枠の外)。元の group の `error` / `not-found` も外れるので、要るなら兄弟側に置く。枠の一部を隠すだけならルートの隣の枠の宣言 `frame.ts` / `frame.override.ts`(`src/app/(user)/_layout/README.md`「枠の部位を隠す・fill(枠の宣言)」)
 - group の名前は今の語彙を使う: `(protected)` ログインが要る / `(public)` 公開 / `(auth)` ログイン・登録の流れ / `(legal)` 法的ページ / `(marketing)` 枠の外のランディング
 - root の `lang` は事業の素性(`@/business` の `htmlLang`、`src/lib/business/README.md`)、`viewport` は root の枠の設定(`src/app/_layout/config.ts`、上書き `src/config/layout/root.config.ts`)の値。fork が全ページに足す client 部品(バナーなど)と Provider は自分のドメインの `plugs/rootProviders/<名前>.tsx`(根の枠の点 rootProviders の項目、`export const provider` と `export const stage = "project"`。`src/app/_layout/extensionPoints.ts`)に書く(`/entry` などの枠の外のページにも届く)。`layout.tsx` は編集しない
 - root layout は 1 つ(`src/app/layout.tsx`)。複数にすると root layout をまたぐ遷移が full reload になる
@@ -125,7 +125,7 @@ loader はドメインの features ではなくルートの中に置く（複数
 
 - ルートセグメント: `kebab-case`
 - Route Group: `(lowercase)`
-- ファイル: `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`
+- ファイル: `page.tsx`, `layout.tsx`, `error.tsx`(上流は `loading.tsx` を置かない: 待つ間は画面の createScreen の fallback と範囲の Guard の fallback = ScreenWait)
 
 ### レイアウト継承
 
@@ -137,8 +137,7 @@ src/app/
 │   ├── layout.tsx          ← ユーザー側の枠(1 行スイッチ → _layout/)
 │   ├── (protected)/
 │   │   ├── guard.ts        ← 範囲の方針(ログイン必須・status 別の行き先)。root の src/app/guard.ts を extend
-│   │   ├── layout.tsx      ← <Guard fallback={<loading />}> で中身を包む(守りは境界の内側)+ generateMetadata = guardMetadata()。枠はガードの外 = (user)/layout.tsx
-│   │   └── loading.tsx     ← 範囲の境界の fallback(文字なし。遷移に共有される段も loading.tsx を持つ)
+│   │   └── layout.tsx      ← <Guard fallback={<ScreenWait />}> で子の入口を包む(守りは境界の内側)+ generateMetadata = guardMetadata()。枠はガードの外 = (user)/layout.tsx。ページの中身と題名は createScreen が止める
 │   ├── (public)/ (auth)/ (legal)/   ← layout なし。(user) の枠をそのまま継ぐ
 │   └── demo/ maintenance/
 ├── (marketing)/
@@ -147,8 +146,7 @@ src/app/
 ├── admin/                  ← URL フォルダの layout(枠 = 1 行スイッチ → _layout/。ガードは (protected)/ の layout)
 └── debug/
     ├── guard.ts            ← 管理者カテゴリ + デバッガーの範囲
-    ├── layout.tsx          ← <Guard fallback={<loading />}> で中身を包む + generateMetadata = guardMetadata()
-    └── loading.tsx         ← 範囲の境界の fallback
+    └── layout.tsx          ← <Guard fallback={<ScreenWait />}> で子の入口を包む + generateMetadata = guardMetadata()
 ```
 
 - layout はサーバー側でデータを取らない（services/server・DB・loader を import しない。認可は authorization の関数だけ）。取得は loader で行う。lint `page-authz`、詳細: [auth README「置き場所の検査」](../domains/core/auth/README.md)

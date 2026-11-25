@@ -65,10 +65,10 @@ import { extend as extendParent } from "${parentPath}";
 
 export const { Guard, createLoader, guardMetadata, extend } = extendParent(${policy});`;
 const GUARD_LAYOUT = `import { Guard, guardMetadata } from "./guard";
-import Loading from "./loading";
+import { ScreenWait } from "@/app/_layout/ScreenWait";
 export const generateMetadata = guardMetadata({ robots: { index: false, follow: false } });
 export default function L({ children }) {
-  return <Guard fallback={<Loading />}>{children}</Guard>;
+  return <Guard fallback={<ScreenWait />}>{children}</Guard>;
 }`;
 
 /** /x(root の public)と /admin/y(admin 範囲)のページを持つ正常な木 */
@@ -297,37 +297,14 @@ export default function L({ children }) {
   assert.deepEqual(buildRouteMap(healthyTree()).problems, []);
 });
 
-test("buildRouteMap: 守りの範囲で遷移に共有される段(段のページ + 下のページ / 別々の子の下のページ 2 つ)に loading.tsx が無いと生成失敗、公開の範囲は求めない", () => {
+test("buildRouteMap: 守りの範囲の段に loading.tsx を求めない(待ちの境界は Screen の createScreen と範囲の Guard、D102・D106)", () => {
   const adminPage = (dir, name) => ({
     [`${dir}/page.tsx`]: page(name),
     [`${dir}/_screen/${name}.tsx`]: adminScreen(name, `load${name}`),
     [`${dir}/_screen/loader.ts`]: loader(`load${name}`, "@/app/admin/guard", `{ roles: ["admin"] }`),
   });
-  const publicPage = (dir, name) => ({
-    [`${dir}/page.tsx`]: page(name),
-    [`${dir}/_screen/${name}.tsx`]: screen(name, `load${name}`),
-    [`${dir}/_screen/loader.ts`]: loader(`load${name}`, "@/app/guard", `"public"`),
-  });
-  const nested = {
-    ...adminPage("src/app/admin/y/new", "YNewScreen"),
-    ...adminPage("src/app/admin/z/a", "ZaScreen"),
-    ...adminPage("src/app/admin/z/b", "ZbScreen"),
-    ...publicPage("src/app/x/more", "XMoreScreen"),
-  };
-  const missing = buildRouteMap(healthyTree(nested)).problems.filter((p) => p.includes("loading.tsx が無い"));
-  assert.deepEqual(
-    missing.map((p) => p.split(":")[0]),
-    ["src/app/admin", "src/app/admin/y", "src/app/admin/z"],
-  );
-  const withLoading = buildRouteMap(
-    healthyTree({
-      ...nested,
-      "src/app/admin/loading.tsx": "export default function L() { return null; }",
-      "src/app/admin/y/loading.tsx": "export default function L() { return null; }",
-      "src/app/admin/z/loading.tsx": "export default function L() { return null; }",
-    }),
-  );
-  assert.deepEqual(withLoading.problems, []);
+  const nested = { ...adminPage("src/app/admin/y/new", "YNewScreen"), ...adminPage("src/app/admin/z/a", "ZaScreen"), ...adminPage("src/app/admin/z/b", "ZbScreen") };
+  assert.deepEqual(buildRouteMap(healthyTree(nested)).problems, []);
 });
 
 test("buildRouteMap: 無効な feature-gate の規則に当たるルートは gatedOff に最初のパターン(鎖は verified 必須)", () => {

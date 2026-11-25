@@ -344,7 +344,7 @@ export const frame = {
   - 枠の根(外枠)は URL もセッションも読まない(殻 = build で焼く最初の HTML に入る)。判定は部位ごとに包みの中で読むので、ルートの段が request で決まる時([id] 等)も部位と判定が同じ塊で届く(Suspense の内側、ちらつかない)
   - `src/styles/core/frame.css`(手書きの静的な規則)が包みの印の下の部位を `display: none` にし、外枠の変数(ヘッダー・ボトムナビの高さの 0)と fill の確定高さ + `overflow: clip` は外枠の `:has()` が包みの印を読む(D56)
   - 部品はアンマウントしない
-- 効く時点: 印は部位の包みに付き、URL が固定のルートでは殻(初回の HTML)に入る(JavaScript なしでも効く)。client 遷移では loading.tsx の間から次のルートの宣言に切り替わる。戻る・進むも同じ
+- 効く時点: 印は部位の包みに付き、URL が固定のルートでは殻(初回の HTML)に入る(JavaScript なしでも効く)。client 遷移では次のルートの枠の宣言(待つ間は画面の createScreen の fallback)に切り替わる。戻る・進むも同じ
 - 狙う先: 部位の印 `[data-slot="<部位>"]`(下の「data-slot の一覧」)だけで全部隠せる。差し替えた部品は外側の要素に `data-slot="<部位>"` を付ければ従う
 - 寸法変数: ボトムナビを隠している間、外枠の `--app-bottom-nav-height` は 0px
 - 部位の一覧と CSS の規則の一致・読み手の行の選び方は `src/app/_layout/frame` のテスト(`pnpm test src/app/_layout/frame/`)、一覧と要素の data-slot の照合と表の結線は `UserFrame.test.tsx`(`pnpm test 'src/app/(user)/_layout/'`)

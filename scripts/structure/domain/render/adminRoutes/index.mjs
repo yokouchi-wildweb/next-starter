@@ -2,7 +2,6 @@
 //
 // 出力の構造（SCREENS: src/lib/screens/README.md §12）:
 //   <domains>/page.tsx            1 行スイッチ。初回のみ生成（write-once）、以後上書きしない
-//   <domains>/loading.tsx         一覧の段の境界(下のページからの遷移で共有される段、D76)。初回のみ生成（write-once）
 //   <domains>/_screen/<Name>.tsx  既定画面。毎回再生成（手で編集しない）
 //   <domains>/_screen/loader.ts   既定画面の loader（最寄りの guard.ts の createLoader に domains/core/admin/services/server/screenParts.ts の共通部品の組を渡す 1 行）。毎回再生成
 // 既存の page.tsx が旧形式（本体を直接持つ）なら一度だけ 1 行スイッチへ書き換える（移行）。_components/ には触らない（fork 所有）
@@ -90,13 +89,5 @@ export function renderAdminRoutes(ctx, workspace) {
       }),
     );
   }
-  // 一覧の段は下のページ(new・[id]/edit・sort)からの遷移で共有されるので境界を持つ(地図の検査が求める、D76)
-  const loading = ["__domains__", "loading.tsx"];
-  outputs.push(
-    writeOnce(outputPath(loading), render(loading), {
-      label: "管理画面の一覧の段の loading を生成しました",
-      keptLabel: "loading.tsx は既存のため保持しました(write-once)",
-    }),
-  );
   return outputs;
 }
