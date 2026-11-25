@@ -13,15 +13,15 @@ read when the condition of SKILL.md ATTACHED FILES hits | the rules here act **i
   - no field (old ledger) → note in the plan `<直上 upstream> からの中継 notice なし。required_actions は中間 Tier の状態を前提に書かれている`, read `notes:` of that id's line in the middle Tier's ledger and map onto this fork's reality
   - `relay:<id>` but that relay notice has not arrived yet → normally impossible, since a relay notice ships in the same commit as the ledger record | if it happens, include it in the report and treat it like the no-field case
 
-## ADDITIONS TO UNAPPLIED JUDGMENT
+## COVERED IDS IN THE UNAPPLIED SET (incoming.mjs computes it; the rule explained)
 - a covered-side id is applied when its covers-side notice is applied | covers side unapplied → stays unapplied and is absorbed into the covers side's segment (never applied alone)
 
-## ADDITIONS TO BUILDING SEGMENTS (numbers match SKILL.md's section of the same name)
-- 2: a grandparent notice's checkpoint point is not the normal adding commit but the "grandparent notice's checkpoint point" above (the middle Tier's ledger-record commit)
-- 3: drop covered-side notices (ids in the covers index) from the incoming order and put them in the covers-side notice's segment (no checkpoint point)
-  - covers side already applied → covered side treated as applied too (ADDITIONS TO UNAPPLIED JUDGMENT above) | a grandparent notice whose covers side has not arrived yet cannot be known as covered → treat it as a normal grandparent notice (checkpoint point = the middle Tier's ledger-record commit)
-- 5: in the covers-side notice's segment, also list the ids it covers as `covered`
-- 6: in the segment's notice list, mark covered ids and grandparent notices as such
+## GRANDPARENT AND COVERED NOTICES IN SEGMENTS (incoming.mjs builds them; the rules explained)
+- checkpoint point: a grandparent notice's checkpoint point is not the normal adding commit but the "grandparent notice's checkpoint point" above (the middle Tier's ledger-record commit)
+- covered side: drop covered-side notices (ids in the covers index) from the incoming order and put them in the covers-side notice's segment (no checkpoint point)
+  - covers side already applied → covered side treated as applied too (COVERED IDS IN THE UNAPPLIED SET above) | a grandparent notice whose covers side has not arrived yet cannot be known as covered → treat it as a normal grandparent notice (checkpoint point = the middle Tier's ledger-record commit)
+- covers side: in the covers-side notice's segment, also list the ids it covers as `covered`
+- marks: in the segment's notice list, mark covered ids and grandparent notices as such
 - for `moved:` target pairs, combine the `moved:` of both covers side and covered side (`moved.md` step 0)
 
 ## HOTFIX (SKILL.md HOTFIX)
@@ -48,7 +48,7 @@ as a middle Tier, decide whether applied upstream notices must be relayed downst
   - a hotfix pick (SKILL.md HOTFIX) is judged at the pick, not in a segment (case "hotfix pick" below) | an id already in the ledger is not applied by a later segment, so it is never judged twice
 - **judgment** (after verify of the segment's step 6, before step 7; per notice | any one of ①-③ hits → relay needed; none hits → `relay:none`):
   - reference points:
-    - `Q` = that notice's checkpoint point (the checkpoint point of BUILDING SEGMENTS = `point` of `incoming.mjs`'s output; segment 0 → the adding commit; grandparent notice → the middle Tier's ledger-record commit)
+    - `Q` = that notice's checkpoint point (the checkpoint point = `point` of `incoming.mjs`'s output; segment 0 → the adding commit; grandparent notice → the middle Tier's ledger-record commit)
     - `P` = the checkpoint point of the notice right before it in upstream's history (the previous notice's `point`; none → the fork founding point = the output's `forkPoint`)
     - `A` = HEAD right after this segment's step 5 (the merge commit; fast-forward → where it arrived; segment 0 → HEAD at the segment start)
   - **case "hotfix pick"** (when: once, after the pick's required_actions and verify, before the commit of its follow-up changes and ledger, SKILL.md HOTFIX execute 3):

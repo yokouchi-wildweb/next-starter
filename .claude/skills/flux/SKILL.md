@@ -15,7 +15,7 @@ the following files in this folder hold rules needed only by forks / segments th
   - own `tier` is root or middle (OWN FORK IDENTITY AND LEDGER 5 below; declaration missing / wrong → stop there)
   - mode is `status --chain`
 - **the caller's steps file** (argument `steps:<path>`, a tool that runs /flux its own way): read it **first, before anything else**, and follow it | where it says nothing, this skill holds as written | it says itself where the ledger, the checks and the push happen (and any modes or cues of its own)
-- **`patterns.md`** (the 4 merge patterns: Backport / Refine / Handoff / Rejoin): read before the overview of every run that builds segments | the plan names a pattern where it applies, in its line form, and takes the usual approval
+- **`patterns.md`** (the 3 merge patterns: Backport / Refine / Handoff): read before the overview of every run that builds segments | the plan names a pattern where it applies, in its line form, and takes the usual approval
 - **`moved.md`** (porting moves / renames): any notice of the next segment (covers side and covered side included) has `moved:` → read it before that segment's detailed plan (step 2)
 - notice id mode (no reconnaissance, no segment building): judge the same conditions for the target notice and this fork; when they hit, read before step 5
 
@@ -47,7 +47,7 @@ another session or machine may have pushed this fork's branch (a /flux of its ow
   - the replies a segment end reads are the 4: `go` / `go last` / `再計画` / `ここで終える` (the words a calling tool sends; a person's other wording is read for which of the 4 it means) (`go last` = advance the segment of the shown plan, then end this sortie without making the next plan; GO LAST below | `再計画` = advance nothing, rebuild the next segment's plan and ask again; REPLAN below)
   - how far to go is fixed by the launch arguments (the reconnaissance and the plan file are cut to that width; to widen, end with `ここで終える` and relaunch with a width)
   - going on without stopping only with `all`; then repeat "plan → execute" per segment (each plan is made after the previous merge, which changes it)
-  - either way, **hitting STOP CONDITIONS or HEAVY SEGMENTS below, stopping wins** (approval means "go on if it goes as planned", not "push through whatever comes up")
+  - either way, **hitting STOP CONDITIONS or HUMAN GO SEGMENTS below, stopping wins** (approval means "go on if it goes as planned", not "push through whatever comes up")
 - **advance by segments**: split unapplied notices into segments per checkpoint (`checkpoint:`); per segment complete "merge → apply → verify → ledger → commit → push"
   - **default: 1 notice = 1 checkpoint** (only notices upstream declared as exceptions with `checkpoint: -`, and notices named by a later fix's `skip_checkpoint:`, stay in the same segment up to the next checkpoint; old schema without the field = a checkpoint = the safe side)
   - stopped midway, the fork sits at the previous checkpoint; rerunning continues from there (state is derived by set arithmetic, so no extra record is needed)
@@ -86,7 +86,7 @@ another session or machine may have pushed this fork's branch (a /flux of its ow
   - position (HEAD sha, segment k/N, state)
   - segment table (number | checkpoint label | merge target sha | notice id | marks for fix, porting, hotfix)
   - the next segment's script (application steps, conflict forecast, upstream changes and the fork's uses, ownership review judgments, check items, `[user-run]` join points)
-  - decision grounds (relay criteria, excluded picked ones, Tier layout, light / heavy judgment)
+  - decision grounds (relay criteria, excluded picked ones, Tier layout, light / human go judgment, the order chosen at a join)
   - per-segment `aligned:` `kept_old:` (below)
   - for resuming (sha and push state per segment, next merge target, decisions the human made, pending findings)
   - every upstream finding with its grounds and draft order text
@@ -98,31 +98,25 @@ another session or machine may have pushed this fork's branch (a /flux of its ow
 
 ## STOP CONDITIONS (win over the run-to-the-end principle)
 any of the following during a segment's merge / application → **stop without committing that segment and report** (earlier segments are committed, so the fork stays consistent):
-- the upstream change breaks this fork's own logic or data: the merge erases fork behavior / the `[user-run]` db:push diff includes data loss such as DROP or column deletion / the notice's steps touch fork-specific tables or files
-- the notice's `required_actions` disagree with reality, verify fails, and the fix is not obvious
-- in porting `moved:` (→ moved.md), part of the fork's edits cannot be re-applied to the new paths and the fix is not obvious
-- the upstream change itself shows a bug or design problem; taking it as is makes the fork regress
-- it contradicts the constraints / business intent in the fork's `.claude/rules/project.md`
-- a conflict where the judgment is really split (as before)
-- the fork's uses cannot be fully aligned to the upstream change (aligning to the new usage needs a fork-specific judgment / aligning changes the fork's behavior) | never commit silently keeping the old usage
+- the `[user-run]` db:push diff includes data loss (DROP, a column deletion)
 - the segment checks (step 6 check entry, typecheck, lint) fail and the fix is not obvious (known failures excluded: FIXES below)
-- the merge result changed files outside the segment's upstream diff (step 5d out-of-segment check; git's rename guess pours upstream files into an unrelated fork directory, deletes fork files, etc.)
 - the ownership check (step 7c `pnpm workflow ownership check`) gave 1 (violation) or 2 (unverified) | this stop happens after the commit, before push: keep the segment's commit, do not push, stack the cleanup / fix in extra commits and rerun the check (no `git merge --abort`)
+- and the cue for everything else: taking the change as it is would break the fork's behavior, data or intent and the fix is not obvious → stop and show what you found, the grounds and the options
+  - e.g. its logic, its `.claude/rules/project.md`, a notice step that disagrees with reality, a move that cannot be re-applied, files changed outside the segment's diff at 5d, uses that cannot be aligned without a fork-specific judgment
 
 how to stop:
 - mid-merge (uncommitted) → `git merge --abort` back to before the segment | mid-application → leave the changes as they are and show what changed
 - then present `何を見つけたか / 根拠(ファイル・差分・出力)/ 選択肢(手で直して続行・上記「区間の完了」の条件で残す・上流に報告して待つ)` (what was found / grounds / options; `区間の完了` = "segment done" of PRINCIPLES); STOP: **wait** | never skip or push through on your own
 - resume on the user's instruction (same session → by that reply; after closing → `/flux` or a notice id continues from where it was)
 
-## HEAVY SEGMENTS (stop before that segment even mid-`all` / mid-batch)
-- heavy segment = in the next segment's plan (the 6 points of flux-stop `次の区間`), fork follow-up is `作り直し` or `判断が要る` / db:push `あり` / downtime `要る` / manual data migration present
-- even mid-`all`, **stop before that segment's merge** and get approval (the default flow stops before segments anyway) | a batch (`<n>`) never puts a heavy segment with others: cut the batch before the heavy one, which gets its own approval
-- `重い` (heavy) is a word of the work memo and the PLAN FILE | chat gives the 6 points and lets the reader judge
-- a heavy segment is still one segment: its porting is shown and done with it, not stopped halfway or sent back upstream as a notice-granularity problem | the weight of porting is set by the fork's edits, upstream cannot predict it, and shipped commits cannot be split afterwards | one notice that brought heavy porting → one line in FINDINGS FOR UPSTREAM (d)
+## HUMAN GO SEGMENTS (stop before that segment even mid-`all` / mid-`light` / mid-batch)
+- a segment whose plan has a DB step (db:push, backfill), downtime or a data move stops before its merge for the human's go, in every mode | a batch (`<n>`) is cut before it, and it gets its own approval
+- `light` (the mode, and the `light` mark on the PLAN FILE's SEGMENTS row that a calling tool counts) = a segment planned in detail that has none of these, no hotfix or pick-clean pick, and whose `fixes:` origin is applied (FIXES below) | only the next segment / batch is judged (the rest of the overview is not read)
+- such a segment is still one segment: its porting is shown and done with it, not sent back upstream as a notice-granularity problem (the weight is set by the fork's edits; shipped commits cannot be split) | a notice that brought heavy porting → one line in FINDINGS FOR UPSTREAM (d)
 
 ## FIXES (a segment with a fix ahead)
 upstream writes `fixes: <notice id | commit:<sha>>` in a notice that fixes a bug of an earlier shipment (`.notices/README.md` section `修正(fixes)`) | stopping at the origin's checkpoint means sitting at a point with a known bug
-- **matching** (in BUILDING SEGMENTS 5): read `fixes:` of each incoming / in-tree notice | a referenced notice id → that notice's segment; `commit:<sha>` → the segment whose merge-target range (previous segment's merge target → that segment's merge target) contains the commit = the origin's segment
+- **matching** (from incoming.mjs's `fields`): read `fixes:` of each incoming / in-tree notice | a referenced notice id → that notice's segment; `commit:<sha>` → the segment whose merge-target range (previous segment's merge target → that segment's merge target) contains the commit = the origin's segment
   - the reference is found nowhere → report it (never skip silently) | the reference is an applied / inherited notice, or a commit already an ancestor of HEAD → `修正元は適用済み` (origin already applied)
 - **origin unapplied**:
   - mark the origin's segment in the overview with `修正あり: 区間 K の <修正 notice>`
@@ -149,10 +143,10 @@ upstream writes `fixes: <notice id | commit:<sha>>` in a notice that fixes a bug
 
 ## HOTFIX (take it ahead, skipping what is in between)
 a notice's commit for which upstream declared `hotfix:` is cherry-picked before the normal segments (`.notices/README.md` section `緊急修正(hotfix)`) | no dedicated command; found by reconnaissance in every mode | only those with a `hotfix:` declaration are taken, never arbitrary commits
-- **finding** (in BUILDING SEGMENTS 5): the `hotfix:` field of incoming unapplied notices (the reason sentence in the body's last version) | original commit = that notice's adding commit (grandparent notices → relay.md HOTFIX)
+- **finding** (from incoming.mjs's `fields`): the `hotfix:` field of incoming unapplied notices (the reason sentence in the body's last version) | original commit = that notice's adding commit (grandparent notices → relay.md HOTFIX)
 - **when not to pick** (one-line reason in the overview): the first segment's merge target contains the original commit (arrives by merge) / every `fixes:` reference is unapplied (the bug is not in that fork yet; the origin's segment follows FIXES)
 - **plan**: present the hotfix in the plan before the next segment, reading the notice in full (several → one at a time in history order)
-  - stopping: default, `<n>`, `light` get approval here (never a light segment even with `light`); STOP | `all` reports 1-2 lines and goes on | `status` only displays
+  - stopping: default, `<n>`, `light` get approval here (never `light`); STOP | `all` reports 1-2 lines and goes on | `status` only displays
   - `いいえ` → skip it this time and go to the normal segments (it arrives by a later merge)
 - **execute** (do steps 6-8 as follows):
   1. the upstream tip's version of the tool (a lagging fork's own one may lack the fix's handling): `node $TIP/scripts/workflow/notices/hotfixApply.mjs <元の commit> --upstream=<upstream>/<branch>` (TIP TOOLS)
@@ -176,11 +170,6 @@ a notice's commit for which upstream declared `hotfix:` is cherry-picked before 
      - all of these = the same treatment as FOLLOW UPSTREAM'S LATEST STEPS 3 "skip steps of missing / different-version tools, never stop"
 - **after the pick**: rebuild the segments (ids recorded in the ledger are no checkpoints) | that spot conflicts at a later merge → take the upstream side when the fork has no edit (a replaced file always: it holds only upstream's content)
 - **picked by hand already**: an unapplied notice in the tree whose adding commit is an ancestor of `<upstream>/<branch>` but not of HEAD (not in the ledger) → apply it in segment 0 and write the ledger line with `--picked` as above (regardless of `hotfix:`) | confirm the original commit with the line of `git log --grep "cherry picked from commit"`
-
-## LIGHT SEGMENTS (the `light` judgment; only segments planned in detail)
-- light segment = a segment meeting all of the following (one miss → not light): no fork follow-up / no db:push / no downtime / no manual data migration / no deviation (0 conflicts forecast, no `[user-run]`, no fork-side change in the notice's required_actions, no backfill) / not a segment whose origin is unapplied (FIXES above) / no pick-clean fix pick
-- only segments planned in detail can be judged (next segment, next batch) | the remaining segments of the overview stay unmarked (their material is not read)
-- write the light judgment in the work memo and add `light` to the SEGMENTS row of the PLAN FILE (a calling tool may count "the next N segments are light") | `軽い` (light) is a word of those two, not of chat
 
 ## FINDINGS FOR UPSTREAM (findings)
 - pile what you notice during application into the work memo (all of them + grounds + draft order text)
@@ -228,7 +217,7 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
 
 ## MODES ($ARGUMENTS)
 - **empty (default)**: FULL FLOW (below) | stop after each segment and wait for the instruction to continue (step 4)
-- **`all`**: same as FULL FLOW, but only the first segment's plan gets approval; then repeat "next segment's plan → execute" per segment without stopping to the end (stops at stop conditions and heavy segments) | for when the app need not be checked between segments, or a calling tool takes the whole run
+- **`all`**: same as FULL FLOW, but only the first segment's plan gets approval; then repeat "next segment's plan → execute" per segment without stopping to the end (stops at stop conditions and HUMAN GO SEGMENTS) | for when the app need not be checked between segments, or a calling tool takes the whole run
 - **`next`**: same as default (one segment at a time) | accepted as an alias of the old name
 - **`<n>`** (integer ≥ 2): width n | plan the next n segments in detail as a "batch", advance them on one approval and stop | the next plan shown on stopping is n segments too (BATCHES below)
 - **`to <checkpoint ラベル | commit>`** (end point; combinable with a width: `<n> to <位置>` / `all to <位置>`): end this sortie at the segment reaching that position (the first segment whose merge target contains the commit)
@@ -236,8 +225,8 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
   - mark the end-point segment in the overview and write `今回の出撃の外` for the segments beyond
   - after the end-point segment, make no next plan; give the final report (step 8) and end (a `go` at the segment end does not go further; to continue, launch anew)
   - the position is not in upstream's history → say so; STOP: wait for the human's answer (never guess) | already taken in → report there is nothing to advance this time and end (nothing to take in)
-- **`light`** (combinable with a width and `to`: `light` / `2 light` / `to <位置> light`): at a segment end, when the next segment's detailed plan is a light segment (LIGHT SEGMENTS above), continue with that plan without waiting for approval (report 1-2 lines of the segment report and the gist of the next plan)
-  - before a segment that is not light, stop as default and get approval (STOP) | the first segment's plan always gets approval | stop conditions, heavy segments and the end point still apply
+- **`light`** (combinable with a width and `to`: `light` / `2 light` / `to <位置> light`): at a segment end, when the next segment's detailed plan is `light` (HUMAN GO SEGMENTS above), continue with that plan without waiting for approval (report 1-2 lines of the segment report and the gist of the next plan)
+  - before a segment that is not light, stop as default and get approval (STOP) | the first segment's plan always gets approval | stop conditions, HUMAN GO SEGMENTS and the end point still apply
 - **`status`**: state report only | list fetch + unmerged commit count + overview of all segments (one line each, as in step 2) + the results of inherited / ledger matching, then end | **never merge or apply anything** (no detailed plan either)
 - **`status --chain`**: report only the relay state per grandparent notice (no merge, no application) | output form → relay.md
 - **`steps:<path>`** (combinable with every mode): a calling tool's steps file, read first (ATTACHED FILES) | the words after it are read as that file says (its own modes or cues), the rest as here
@@ -258,9 +247,10 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
 - output: per segment number / merge target (`target`; none for segment 0) / label / notices, and `warnings`
   - each notice: `id`, `owner` = whose notice it is (from the body's `from:`), `grandparent`, `point` = checkpoint point (the adding commit, or the body's `checkpoint_at:` when it holds)
   - and `body` = where to read the body's last version (`<tip>:<パス>`, or `<消した commit>^:<パス>`), `fields` = the body's fields, `covered` = covered ids riding on that notice, `skipCheckpoint`
-- a segment with `pattern: "Rejoin"` (→ patterns.md REJOIN): upstream history split into lines and merged
-  - the tool already put the line with the most checkpoints first (same number: upstream's first-parent line) and the other lines left into the segment whose target is the merge (`rejoinMerge`) | name it in the overview with its line form
-  - `rejoin.undecided` = the tool did not decide because a notice on one line names one on another (`why`): show it with the reason and STOP before that segment (ask which line goes first; never reorder by hand without the answer)
+  - and `owner_by` = the ground of `owner` (`url`: the `from:` URL matched / `name`: a name matched / `none`: an empty `from:` leaned to the upstream), `from` = the body's `from:` as written
+- segments come in the history order of their checkpoint points | `joins` = upstream merges with unapplied checkpoints on two or more sides: `merge`, `parents`, `sides` (each side's unapplied notices: `id`, `point`, `break`), `naming` (a notice's `fixes:` / `covers:` / `uses:` / `skip_checkpoint:` naming one on another side) | a segment holding such a notice has `pattern: "join"`, `join: <merge>`
+- a join (cue): the tool does not choose the order; you choose it (e.g. one side's checkpoints one by one, then the merge as the target that brings the other side whole; `naming` binds what must come first) and write one line why in the work memo | the side whose segment shows `offLine` in history order is usually the one to take through the merge
+- `owner_by` `name` / `none` (cue): the owner is a guess; read `from:` and, when the notice is in fact this fork's own or already in it, record it with the ledger tool (step 7a) instead of taking it
 - a segment with `offLine: true` (a `脇の commit` line in the human-readable output) = its merge target is not a descendant of the previous position (merge-base of HEAD and upstream / the previous segment's merge target)
   - the shape where a fix was shipped as a side commit off the broken point and merged; appears in forks that did not take (did not pick / could not pick) that fix
   - show that segment in the overview with the label below; it stops at step 5a
@@ -269,31 +259,11 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
     ```
 - always read the body (required_actions etc.) with `git show <body>` (the body's last version: a correction upstream made after shipping reaches you, which the segment's merge target or the adding commit's version lacks)
 - exit 2 = stop (shallow clone, a checkpoint point not an ancestor of the upstream tip, no repo_id) | pass the reason on as is; never go on as zero unapplied
-- the tool cannot be obtained with `git show` (upstream from before this tool): proceed by the manual steps of UNAPPLIED JUDGMENT and BUILDING SEGMENTS below (those steps also explain the same rules as the tool)
+- every upstream tip carries the tool | `git show` cannot read it → say so in one line and stop (it decides the segments; there is no manual way kept beside it)
 
-## UNAPPLIED JUDGMENT (the same rules for in-tree and incoming; with the tool, its output is authoritative)
-a notice (a body added under `.notices/` in the upstream tip's history, read at its last version) is excluded when any of the following holds; the rest are **unapplied**:
-- yours: the repo of its `from:` is your origin (ignore ssh / https notation and `.git`), or your name
-- contained in the inherited set (automatic judgment above) → treated as applied
-- the id is recorded in own fork ledger → applied
-- a covered-side id (an id bundled into another notice by `covers:`) → judged by relay.md's rules
-
-## BUILDING SEGMENTS (with the tool, its output is authoritative; below = manual work for upstream without the tool, and the tool's rules explained)
-1. split unapplied notices into 2 groups:
-   - **in-tree** (`*.md` directly under `.notices/`, excluding `done/` and `applied/`; merged by an earlier partial run but unapplied)
-   - **incoming** (`*.md` directly under it among `git diff --name-only HEAD...<upstream>/<branch> -- .notices/`; read the content with `git show <upstream>/<branch>:.notices/<id>.md`)
-2. map each incoming notice to its **checkpoint point commit**: normally the adding commit `git log --diff-filter=A --format=%H <upstream>/<branch> -- .notices/<id>.md` (usually one; several → the oldest) | grandparent notices' checkpoint points → relay.md | the `from: commit:` field is reference only, not used for the judgment
-3. covered-side notices are no checkpoint points; they go into the covers side's segment (→ relay.md)
-4. order the remaining incoming notices by the history order of their checkpoint point commits (position on `git rev-list --reverse --topo-order HEAD..<upstream>/<branch>`; a checkpoint point already an ancestor of HEAD → segment 0)
-5. cut segments (for all segments):
-   - read here only the lines needed for the checkpoint judgment, `checkpoint:`, `covers:`, `moved:`, `fixes:`, `pick:`, plus `resolves:` (expiring temporary permits) and `hotfix:` (hotfixes) | never the notice's full text
-   - incoming: narrow `git show <upstream>/<branch>:.notices/<id>.md` with `grep -E '^(checkpoint|covers|moved|fixes|pick|resolves|hotfix):'` | `hotfix:` present → HOTFIX above
-   - **segment 0** = in-tree unapplied notices (no merge needed) | empty → none
-   - then walk incoming in history order and **close a segment right after each checkpoint notice** (`checkpoint:` other than `-`, or an old schema without the field; but a notice named by `skip_checkpoint:` of any notice in the upstream tip's history list counts as `-`)
-     - merge target of a closed segment = that checkpoint notice's checkpoint point commit | a `checkpoint: -` notice stays in the same segment up to the next checkpoint (upstream's exception declaration; the reason is in notes:)
-   - notices after the last checkpoint (empty if none) + the remaining commits = the **tail segment** | merge target = `<upstream>/<branch>` | even without notices, unmerged commits make a tail segment (merge only; its ledger line: step 7a `--tail`)
-   - as a result, normally 1 notice = 1 segment | several notices shipped in the same commit give consecutive segments with the same merge target (the merge completes on the first; later ones just say "already up to date"; normal)
-6. what each segment holds (overview): number / merge target (short sha, and checkpoint label or `HEAD`) / notice ids contained / commit count up to there / whether `moved:` exists / fix relations (the marks of FIXES above) / the numbers in `resolves:` that hit your own temporary permits (`upreq:` of `.fork-ownership/<名前>.permits.txt`)
+## SEGMENT CONTENTS (the overview of each segment, from incoming.mjs's output)
+- unapplied = the upstream tip's notices minus your own (`owner`), the inherited set, your ledger and covered ids whose covers side is applied (the tool computes it; relay.md for grandparent notices and covers) | segment 0 = unapplied notices already in the tree (no merge)
+- what each segment holds: number / merge target (short sha, and checkpoint label or `HEAD`) / notice ids contained / commit count up to there / whether `moved:` exists / fix relations (the marks of FIXES above) / the numbers in `resolves:` that hit your own temporary permits (`upreq:` of `.fork-ownership/<名前>.permits.txt`)
    - hit lines expire after that segment's merge (lines whose numbers are all resolved) → show `可変域へ移す・元に戻す` (move to the intake point / revert) in the plan (`.notices/README.md` section `解決(resolves)`; `pnpm workflow ownership check` shows expired-resolved)
    - the same `resolves:` ids against your provisional rules (a rule you wrote while your order to the parent was open, line ending `(order: <id>)`): `git grep -n -E '\(order: (<id>|<id>…)\)' -- .claude/rules ':!.claude/rules/core' ':!.claude/rules/items'`
      - list each hit in the plan and ask `消す / 残す(理由)` (remove / keep with a reason) | removals go in their own commit after that segment's merge (never inside the merge commit) | none → `仮の決まり: なし`
@@ -331,7 +301,7 @@ merge and porting carry the fork's edits as they are | when the destination is u
 3. nothing applies → one line `なし` in the work memo's script (not in chat) | something applies → include it under `fork の追従` | which one is decided by the go on the plan (unsure ones → list the options and ask)
 
 ## BATCHES (launched with width `<n>`)
-- batch = consecutive segments advanced on one approval | width n = the next n segments (fewer if fewer remain; cut at the end-point segment when `to` is given) | cut before a heavy segment (heavy ones alone)
+- batch = consecutive segments advanced on one approval | width n = the next n segments (fewer if fewer remain; cut at the end-point segment when `to` is given) | cut before a HUMAN GO SEGMENT (it goes alone)
 - plan: for each segment of the batch, put step 2's detailed plan separately per segment (notices, application plan, conflict forecast, upstream changes, ownership review) | conflict forecast and uses for the 2nd segment on are computed read-only from the previous segment's merge target (start `git merge-tree` from the previous segment's merge target), with `前の区間の結果しだいで変わりうる`
 - approval: in plain text `区間 k〜m/N をこの計画で進めてよいですか?(go / go last / いいえ)`; STOP | go = approval of the plans of every segment of the batch (go last = advance every segment of the batch, then end)
 - execute: complete steps 5-7 per segment (commit, push, ledger per segment)
@@ -339,12 +309,12 @@ merge and porting carry the fork's edits as they are | when the destination is u
   - stop conditions apply mid-batch as they are
 - end of a batch: stop the same as step 4's segment end (the segment report covers every segment of the batch, the next plan = the next batch)
 
-## TAKE-IN TABLE (step 5c and CONFLICT FORECAST; one row per answer of the tip's who, never a row per file name)
+## TAKE-IN TABLE (step 5c and CONFLICT FORECAST; the row follows the tip's who answer for the path, not its file name)
 - reader: `node $TIP/scripts/workflow/ownership/who.mjs --json --no-fetch --base=<区間の merge 先> <files>` (TIP TOOLS)
   - per path: `type`, `kind` (intake row, null = none), `owner.tier` (tier1 | middle | fork | missing), `generated` { generator, command, part, region } | the data comes from the segment's tree (`--base`), the reader from the tip
   - exit 2 / `status: unverified` (it cannot read the rows) → one line why in the work memo, then the same judgment by hand from the segment tree's `src/lib/forkOwnership/intake.txt` and CLAUDE.md CORE_FILES | step 7c's ownership check checks the result
-- rows (first match wins):
-  1. `generated` set, `part` null, not a region (a whole generated file, e.g. a registry, the route map, pnpm-lock.yaml): never hand-merge | take either side; the segment rebuild rewrites it (generator `generated.generator`) | a change inside 5d's allowed set
+- rows (the first row that fits is the default; taking another one → one line why in the work memo):
+  1. `generated` set, `part` null, not a region (a whole generated file, e.g. a registry, the route map, pnpm-lock.yaml): take either side, not a hand merge: the segment rebuild rewrites it (generator `generated.generator`) | a change inside 5d's allowed set
   2. type 5 (`kind` self): the fork's version, conflicted or not → core/change.md 5 self | conflicted → `git checkout --ours -- <path>`; every self file the segment touches is then restored by the `keep self files` step of 5c | `generated.part` set (vercel.json's crons) → the segment rebuild rewrites only that part
   3. `kind` region: the fork's lines only between its `fork entries start / end` pair, upstream's everywhere else | a generator's region (`generated.region`) → the rebuild rewrites outside the pair
   4. `kind` marker: upstream's side above the `fork entries below` line, the fork's below it
@@ -352,17 +322,17 @@ merge and porting carry the fork's edits as they are | when the destination is u
   6. `kind` edit / add / debt (a place the fork may write): reconcile both intents | an upstream core body read by a self file (`<tool>.config.core.<ext>`) has no row → row 9
   7. `owner.tier` fork (a file this fork added): the fork's version, with upstream's change ported only where it applies
   8. `owner.tier` middle (a middle Tier's file you are below): keep your judgment (deleted stays deleted, rewritten stays yours) | record in the segment report and the ledger `notes:` that the upstream change was not taken in
-  9. `owner.tier` tier1 or missing with `kind` null (a parent-owned file in no row, or one upstream adds; e.g. a core body, the old index `.notices/shipped/`): take the upstream side (`git checkout --theirs -- <path>`), or `git rm` it when upstream deleted it | never edit it by hand
+  9. `owner.tier` tier1 or missing with `kind` null (a parent-owned file in no row, or one upstream adds; e.g. a core body, the old index `.notices/shipped/`): take the upstream side (`git checkout --theirs -- <path>`), or `git rm` it when upstream deleted it | a change the fork needs in it → /order <direct parent> (a parent-owned file)
 - a file the old tree had and upstream deleted, still in this fork (old route-map.txt, feature-map.txt …) = row 9 with upstream deleted → `git rm`
 
 ## FULL FLOW
-1. **reconnaissance**: uncommitted changes check (below) → ORIGIN SYNC above → `git fetch <upstream>` → unmerged commit count (`git rev-list --count HEAD..<upstream>/<branch>`) → BUILDING SEGMENTS above (up to the overview of all segments) | uncommitted changes in the working tree → report them first; STOP: confirm whether they may be stashed
+1. **reconnaissance**: uncommitted changes check (below) → ORIGIN SYNC above → `git fetch <upstream>` → unmerged commit count (`git rev-list --count HEAD..<upstream>/<branch>`) → INCOMING TOOL and SEGMENT CONTENTS above (up to the overview of all segments) | uncommitted changes in the working tree → report them first; STOP: confirm whether they may be stashed
 2. **overview and the next segment's plan**:
    - **overview**: every remaining segment, one line each
      - the work memo's segment table: number / short sha of the merge target / checkpoint label / notice id / marks for fix, porting, hotfix, and the count excluded as inherited
      - chat: only number + Japanese gist + notes that matter for the decision (`区間 13 で修正される`, `移植あり`) (flux-stop `残りの概観`) | it is the human's material for how far to go today, so write nothing more
-     - a merge pattern that applies (→ patterns.md: Rejoin from the tool's output; Backport / Refine / Handoff found while planning or applying) → its one line in the overview or the next segment's plan | it changes no approval
-   - **the next segment's script**: read in full only the notices of the next segment (segment 0 when it exists) (`git show <incoming.mjs の body>`; for upstream without the tool, incoming ones with `git show <upstream>/<branch>:.notices/<id>.md`)
+     - a merge pattern that applies (→ patterns.md: Backport / Refine / Handoff found while planning or applying; a join from the tool's output → INCOMING TOOL) → its one line in the overview or the next segment's plan | it changes no approval
+   - **the next segment's script**: read in full only the notices of the next segment (segment 0 when it exists) (`git show <incoming.mjs の body>`)
      - turn required_actions into **an application plan mapped onto this repo's reality** (target files, commands, order, `[user-run]` join points, verify steps) and write it in the work memo
      - also put in the script: CONFLICT FORECAST, `移動元の編集` (→ moved.md), UPSTREAM CHANGE SWEEP, REVIEW OF FORK EDITS IN UPSTREAM-OWNED PATHS (above; merge-only segments without notices too), and, with porting, its content (move source → destination per pair, file count, line count, gist of the fork's edits)
      - chat: the 6 points of flux-stop `次の区間` (`変わる点` / `体験の変化` / `fork の追従` / `db:push` / `ダウンタイム` / `手動のデータ移行`, plus `逸脱` when needed), by role
@@ -394,8 +364,8 @@ merge and porting carry the fork's edits as they are | when the destination is u
      - never redo the report of the segment just finished (step 8) (that segment's result stands)
    - **on receiving go**: HEAD still the previous segment's commit, clean work tree, ORIGIN SYNC steps 1-2 give behind 0, (when the next segment is the tail segment) the upstream branch head unchanged since planning → all hold → go on with that plan
      - a segment closed by a checkpoint has a fixed merge target, so the plan does not change even when upstream moved ahead | any differs → rebuild the next segment's plan, show the diff; STOP: get approval again
-   - `all`: at each segment switch, report `区間 k/N 完了(checkpoint: <label>)` and the gist of the next segment's plan in 1-2 lines, and go on to the next plan → execute without stopping | the next segment is heavy, or its origin is unapplied (except those with a pick-clean fix pick) → stop before it; STOP: get approval | with an end point (`to`), end at that segment
-   - `light`: at a segment end, make the next segment's detailed plan; light (above) → report 1-2 lines like `all` and go on without approval | not light → stop as default; STOP: get approval
+   - `all`: at each segment switch, report `区間 k/N 完了(checkpoint: <label>)` and the gist of the next segment's plan in 1-2 lines, and go on to the next plan → execute without stopping | the next segment is a HUMAN GO SEGMENT, or its origin is unapplied (except those with a pick-clean fix pick) → stop before it; STOP: get approval | with an end point (`to`), end at that segment
+   - `light`: at a segment end, make the next segment's detailed plan; `light` (HUMAN GO SEGMENTS above) → report 1-2 lines like `all` and go on without approval | not light → stop as default; STOP: get approval
    - **resumable after the conversation breaks**: the state of stopping at a segment end can be derived from the ledger and git, and step 8's segment report holds the material for the rest, so even after closing the session / compacting, typing `/flux` again continues from the next segment's plan
 5. **merge** (skipped for segment 0):
    a. preparation:
@@ -422,7 +392,7 @@ merge and porting carry the fork's edits as they are | when the destination is u
         - rebuild's outputs = a file outside the first two that the segment rebuild wrote and the tip's who answers with `generated` (its generator ran in the rebuild): `node $TIP/scripts/workflow/ownership/who.mjs --json --no-fetch --base=<区間の merge 先> <those paths>` | `generated: null` or a generator that did not run → not allowed
       - actual changes = `git diff --no-renames --name-only <pre>` (staged and unstaged)
       - add `--no-renames` to both: with rename guessing, `--name-only` shows only the destination, the source (deletion) of an upstream rename drops out of the allowed set and it stops falsely as out-of-segment | with it, the source shows as a deletion and the destination as an addition in both
-      - write both to temp files and match with `comm -13` | a file outside the allowed set → stop condition (the segment would carry a change no notice of it names): `git merge --abort` and show that list as grounds
+      - write both to temp files and match with `comm -13` | a file outside the allowed set → the segment would carry a change no notice of it names (STOP CONDITIONS cue): `git merge --abort` by default and show that list as grounds
       - a fast-forward needs no check (no merge guessing)
    e. passed → make the merge commit with `git commit --no-edit` | after the merge, rescan the notices in the tree; a mismatch with the segment's expectation → report and STOP
 6. **execute**: carry out the segment's plan in order
