@@ -24,7 +24,7 @@
 - `guard.ts` は `@/wiring/pageGuard`（守りの作り手）だけ
 - root の `src/app/layout.tsx` は `@/wiring/AppProviders` だけ（データに届くのは中の AuthSessionProvider = 名前付き例外）
   - `AppProviders` は Suspense の外で描かれ、殻（build で焼く最初の HTML）に入る。中の Provider は本体で request（セッション・URL）を読まず、読む部分は Suspense の内側の子に置く。枠と本文（children）は AppProviders の内側の Suspense で request ごとに流し込む
-- Screen・page.tsx・layout・`_layout/`・`_components/` の部品は不可。`src/proxies/**`・`src/proxy.ts` は既存の契約で可
+- Screen・page.tsx・layout・`_layout/`・`_components/` の部品は不可（データに届かない `screen.tsx` の画面の作り手は Screen が読む）。`src/proxies/**`・`src/proxy.ts` は既存の契約で可
 
 ## API
 
@@ -50,6 +50,8 @@
   - 全ドメインの設定 → `getDomainConfig` / `hasDomainConfig`（server 専用）
 - `pageGuard.ts`（生成物）: データに届くか = 届く（項目の利用者の束 → auth → getSessionUser → DB）
   - ページの守りの利用者の束の一覧 `pageGuardUser`（ちょうど 1 つ、上流は `domains/core/auth` の 1 行スイッチ、差替点 `authPageGuardUser`）+ `lib/pageGuard` の `wirePageGuard`（型引数 `PageGuardUserMap` で利用者の型を運ぶ）→ `defineRootGuard`（root の `src/app/guard.ts` だけが呼ぶ。子の guard.ts は親の `extend` で作る。宣言 `src/lib/pageGuard/extensionPoints.ts`）
+- `screen.tsx`: データに届くか = 届かない
+  - `lib/screens` の `createScreenMaker` + 既定の待つ間の表示 `src/app/_layout/ScreenWait`（1 行スイッチ、fork は `.replace` で替える）→ `createScreen`（画面 = `_screen/<Name>Screen.tsx`・fork の `_components/<X>Screen.tsx` がここから読む。`src/lib/screens/README.md`「画面の作り手」）
 - 管理画面の共通部品の組（前の `adminScreenParts.ts`）は admin の概念なので `src/domains/core/admin/services/server/screenParts.ts` にある（注文 34）
 - `AppProviders.tsx`: データに届くか = 届く（AuthSessionProvider → セッション解決。データとセッションを読む場所の名前付き例外）
   - アプリ全体の Provider の入れ子。root の `src/app/layout.tsx` が 1 か所で描く（server。自分ではデータを取らない）。並び:

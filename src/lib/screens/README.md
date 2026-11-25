@@ -8,8 +8,8 @@
 
 この構造は上流のルートだけでなく、**fork が作るユーザー向けページにも原則として適用**します（「下流から見た手順」）。登録作業はありません。page.tsx を 1 行にして `_screen/` に本体を置けば、`pnpm test scripts/structure/routes/screens.test.mjs` が自動で検出して検査します。
 
-- 入口(閉じた lib): `.` = `@/lib/screens`(型 `ScreenProps`・`ScreenSearchParams`、設定 `screensConfig`・`ScreensOverride`)、`./node` = `src/lib/screens/node.mjs`(下の検査の部品の全部。道具・検査・テストが読む)
-- 部品: `types.ts`(`ScreenProps<P, S>` = Screen と loader が受け取る props)・`checks.mjs`(副作用の無い検査関数。fork が独自の検査を書くときはこれを import)・`routeTree.mjs`(`src/app` 全体のページの発見)・`routeMap.mjs`(ルート地図の生成、CLI は `scripts/structure/routes/map.mjs`)・`routeMapView.mjs`(地図を見る側)
+- 入口(閉じた lib): `.` = `@/lib/screens`(画面の作り手の汎用版 `createScreenMaker`(画面は設定済み版 `@/wiring/screen` を読む)、型 `ScreenProps`・`ScreenSearchParams`、設定 `screensConfig`・`ScreensOverride`)、`./node` = `src/lib/screens/node.mjs`(下の検査の部品の全部。道具・検査・テストが読む)
+- 部品: `createScreen.tsx`(画面の作り手、API「画面の作り手」)・`types.ts`(`ScreenProps<P, S>` = Screen と loader が受け取る props)・`checks.mjs`(副作用の無い検査関数。fork が独自の検査を書くときはこれを import)・`routeTree.mjs`(`src/app` 全体のページの発見)・`routeMap.mjs`(ルート地図の生成、CLI は `scripts/structure/routes/map.mjs`)・`routeMapView.mjs`(地図を見る側)
 - 生成物: `src/app/route-map.jsonl`(ルート地図、1 ページ 1 行の守りの鎖の JSON)
 - 設定: `src/config/lib/screens.config.ts`(構造の検査の除外 `forkScanExcludes`、既定 `src/lib/screens/config.ts`。upstream は空で出荷、作成後は下流所有)
 
@@ -287,6 +287,28 @@ export const loadWalletBalanceScreen = createLoader({
 - 所有権や存在の秘匿（他人のリクエストは 404）は主体を取った後の判定として `notFound()` で行う
 - 新しいパスリテラルを増やさない。既存の定数・設定に寄せる
 - 複数ルートで共通する判定はドメインの `utils/` に置き、各ルートの loader が呼ぶ。多数のルートが同じ取得を使う場合（管理画面、Internals の「生成される管理画面ルート（pnpm generate domain）」）は取得本体をドメインに置き、各ルートの loader.ts が組を渡す 1 行にする
+
+### 画面の作り手（createScreen）
+
+画面は `createScreen({ load, render, fallback?, metadata? })` 1 つで書く（D110）。設定済み版は `@/wiring/screen` の `createScreen`（lib の汎用版 `createScreenMaker({ defaultFallback })` に既定の待つ間の表示 `src/app/_layout/ScreenWait` を結んだ物）。今ある画面の移し替えと、地図の検査（Screen の export は createScreen の呼び出し）は次の段で入る。
+
+```tsx
+// _screen/<Name>Screen.tsx
+import { createScreen } from "@/wiring/screen";
+import { load<Name>Screen } from "./loader";
+
+export const { Screen: <Name>Screen, generateMetadata } = createScreen({
+  load: load<Name>Screen,
+  render: (data, props) => <UserPage>…</UserPage>,
+  metadata: (data) => ({ title: data.title }),
+});
+```
+
+- `Screen(props)`: 境界（Suspense）の内側の部品が `await load(props)` の後にだけ `render(data, props)` を返す。見出しを含む本文は範囲とページの確かめが解けてからだけ描かれ、作り手の外には何も描かない
+- `fallback`: load を待つ間の表示。省略 = `ScreenWait`（fork は `ScreenWait.replace` で丸ごと替える）、画面ごとはここで渡す
+- `generateMetadata(props)`: `metadata` が値なら load を通してから返す、関数 `(data, props)` なら load の結果で作る、省略なら load を呼ばずに `{}`（範囲の layout の `guardMetadata` が先に守る）。loader は鍵のプリミティブで React の cache に入るので、本文と題名の 2 つの呼びは 1 回の読みになる
+- load の redirect / notFound はそのまま投げる（本文も題名も返さない）
+- 試し: `pnpm test src/lib/screens/createScreen.test.tsx`
 
 ### Screen の書き方
 
