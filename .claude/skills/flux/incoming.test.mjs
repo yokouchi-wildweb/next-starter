@@ -482,3 +482,36 @@ test("own: --own names the repo when the work tree's repo.json is upstream's (a 
   assert.equal(run(f.dir, ["--upstream=upstream/main", "--own=Bad_Name"], (s) => lines.push(s)), 2);
   assert.match(lines.at(-1), /repo_id の形でない/);
 });
+
+test("Rejoin: 先に置く線が途中で上流の別の線を merge して持ち込んだ区切りは、それを含む区間の前に並ぶ(後ろに残らない)", (t) => {
+  // up の first-parent = k の線(k1, k2, 合流地点 J の merge, k3)。J = k2 に別の線 q(B0 から)を merge した線(Polaris の 6c1d732ea・
+  // 4af4e3618 の形: その merge の両側の merge-base は k2 で、q はどちらの側にも数えない)。脇 S は q から分かれて s0、最後に S を合流
+  const up = repo(t, "up", "up");
+  up.ship(N(0), ["checkpoint: zero"]);
+  const f = repo(t, "f", "f", up);
+  const b0 = up.g("rev-parse", "HEAD");
+  const k1 = up.ship("20990101-000201-k1", ["checkpoint: k1"]);
+  const k2 = up.ship("20990101-000202-k2", ["checkpoint: k2"]);
+  up.g("switch", "-q", "-c", "q", b0);
+  const q = up.ship("20990101-000203-q", ["checkpoint: q"]);
+  up.g("switch", "-q", "-c", "s", q);
+  const s0 = up.ship("20990101-000205-s0", ["checkpoint: s0"]);
+  up.g("switch", "-q", "-c", "j", k2);
+  up.g("merge", "-q", "--no-ff", "-m", "junction takes q", "q");
+  up.g("switch", "-q", "main");
+  up.g("merge", "-q", "--no-ff", "-m", "k line takes the junction", "j");
+  const k3 = up.ship("20990101-000204-k3", ["checkpoint: k3"]);
+  up.g("merge", "-q", "--no-ff", "-m", "rejoin s", "s");
+  f.fetch();
+  const r = incoming(f.dir, { upstream: "upstream/main" });
+  const segs = r.segments.filter((x) => x.target);
+  const ids = segs.map((x) => x.notices.map((n) => n.id).join("+"));
+  assert.ok(ids.indexOf("20990101-000203-q") >= 0, summary(r).join("\n"));
+  assert.ok(ids.indexOf("20990101-000203-q") < ids.indexOf("20990101-000204-k3"), `q は k3(q を含む)の前: ${ids.join(" ")}`);
+  for (let i = 0; i < segs.length; i++) {
+    for (const later of segs.slice(i + 1)) {
+      for (const n of later.notices) assert.ok(spawnSync("git", ["-C", f.dir, "merge-base", "--is-ancestor", n.point, segs[i].target]).status !== 0, `区間 ${i} の目標が後ろの ${n.id} を含む: ${ids.join(" ")}`);
+    }
+  }
+  assert.deepEqual([k1, k2, s0].map(Boolean), [true, true, true]);
+});

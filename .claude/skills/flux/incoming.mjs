@@ -235,6 +235,7 @@ function remoteUrl(g, remote) {
 // 独立の区間にせず、合流の merge を目標にする区間 1 つにまとめる(merge すればその線が丸ごと入る)。数が同じなら上流の
 // first-parent の線(parents[0] の側)が先。前の merge が並べた区切りは次の merge で並べ直さない。
 // 線の区切りの数・持ち主・名指しは merge 全体(all: fork が取り込み済みの区切りも)で読む(途中まで取った線を続ける、84 の形)。
+// 先に置いた線が途中で上流 main を merge して持ち込んだ区切り(両側の merge-base より下)は、それを含む最初の区間の直前に並べる。
 // 決めない(印だけ付けて履歴の順)のは、ある線の notice の fixes / covers / uses / skip_checkpoint が他の線の notice を名指して
 // 順が縛られる時だけ
 const NAMING = ["fixes", "covers", "uses", "skip_checkpoint"];
@@ -277,7 +278,19 @@ export function rejoin(g, items, { base, tip, all: everything = items }) {
     const rest = out.filter((it) => block.has(it.id) && !on[more].some((x) => x.id === it.id));
     const b = rest.map((it, i, arr) => (i === arr.length - 1 ? { ...it, break: true, point: m, rejoin: { merge: m, joined: true } } : { ...it, break: false, rejoin: { merge: m, joined: true } }));
     const at = out.findIndex((it) => block.has(it.id));
-    out = [...out.slice(0, at).filter((it) => !block.has(it.id)), ...a, ...b, ...out.slice(at).filter((it) => !block.has(it.id))];
+    const placed = [...a, ...b];
+    // 先に置いた線が途中で上流 main を merge して持ち込んだ区切り(merge-base より下で、どちらの側にも数えない物)は後ろに残さず、
+    // それを含む最初の区間の直前に(独立の区間のまま、履歴の順)
+    const post = out.slice(at).filter((it) => !block.has(it.id));
+    const reach = placed.map((x) => new Set((g.tryGit(["rev-list", `${base}..${x.point}`]) ?? "").split("\n").filter(Boolean)));
+    const before = placed.map(() => []);
+    const rest2 = [];
+    for (const it of post) {
+      const k = reach.findIndex((r) => r.has(it.point));
+      if (k < 0) rest2.push(it);
+      else before[k].push(it);
+    }
+    out = [...out.slice(0, at).filter((it) => !block.has(it.id)), ...placed.flatMap((x, k) => [...before[k], x]), ...rest2];
     for (const id of block) taken.add(id);
   }
   return out;
