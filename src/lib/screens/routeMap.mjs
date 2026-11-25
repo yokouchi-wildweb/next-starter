@@ -7,6 +7,7 @@
 import {
   barrelTarget,
   checkAdminPageScreen,
+  checkScreenFile,
   checkScreenLoaderCall,
   layoutAwaitsGuard,
   layoutRendersGuard,
@@ -216,6 +217,8 @@ export function buildRouteMap({ files, read, gateRules = [] }) {
       if (route.dir === ADMIN_DIR || route.dir.startsWith(`${ADMIN_DIR}/`)) {
         for (const p of checkAdminPageScreen(read(screenFile))) rowProblems.push(`${screenFile}: ${p}`);
       }
+      // Screen は createScreen の呼び出しで、load = 同じルートの loader(本文と題名は load の後だけ、D110)
+      for (const p of checkScreenFile(read(screenFile), target.name)) rowProblems.push(`${screenFile}: ${p}`);
       const call = checkScreenLoaderCall(read(screenFile), target.name);
       for (const p of call.problems) rowProblems.push(`${screenFile}: ${p}`);
       const loaderFile = call.loaderImport ? resolveImportFile(screenFile, call.loaderImport, fileSet) : null;

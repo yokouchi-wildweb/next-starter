@@ -31,23 +31,24 @@ function tree(entries) {
 }
 
 // 正常な鎖の部品(仮想のファイル木)
-const page = (name) => `export { ${name} as default } from "./_screen/${name}";`;
-const screen = (name, loader) => `import type { ScreenProps } from "@/lib/screens";
+const page = (name) => `export { ${name} as default, generateMetadata } from "./_screen/${name}";`;
+const screen = (name, loader) => `import { createScreen } from "@/wiring/screen";
 import { ${loader} } from "./loader";
 
-export async function ${name}(props: ScreenProps) {
-  const data = await ${loader}(props);
-  return <div>{"it's" + JSON.stringify(data)}</div>;
-}`;
+export const { Screen: ${name}, generateMetadata } = createScreen({
+  load: ${loader},
+  render: (data) => <div>{"it's" + JSON.stringify(data)}</div>,
+});`;
 /** 管理のページの Screen(AdminPage を描く = checkAdminPageScreen) */
-const adminScreen = (name, loader) => `import type { ScreenProps } from "@/lib/screens";
+const adminScreen = (name, loader) => `import { createScreen } from "@/wiring/screen";
 import { AdminPage } from "@/app/admin/_layout/AdminPage";
 import { ${loader} } from "./loader";
 
-export async function ${name}(props: ScreenProps) {
-  const data = await ${loader}(props);
-  return <AdminPage title="y">{JSON.stringify(data)}</AdminPage>;
-}`;
+export const { Screen: ${name}, generateMetadata } = createScreen({
+  load: ${loader},
+  render: (data) => <AdminPage title="y">{JSON.stringify(data)}</AdminPage>,
+  metadata: { title: "y" },
+});`;
 const loader = (name, guardPath, access) => `import "server-only";
 import { createLoader } from "${guardPath}";
 
@@ -195,24 +196,32 @@ export const loadYScreen = createLoader(adminListParts<Sample>("sample"));`,
   assert.deepEqual(rows.find((r) => r.path === "/admin/y").chain[2].access, { registry: "sample.search" });
 });
 
-test("buildRouteMap: Screen が loader を呼ばない・最上位で await しないと生成失敗", () => {
+test("buildRouteMap: Screen が createScreen でない・load が同じルートの loader でない・静的な metadata を出すと生成失敗(D110)", () => {
   const noCall = buildRouteMap(
     healthyTree({ "src/app/x/_screen/XScreen.tsx": `export function XScreen() { return null; }` }),
   );
   assert.ok(noCall.problems.some((p) => p.includes("/x") && p.includes("loader")));
-  const nested = buildRouteMap(
+  const old = buildRouteMap(
     healthyTree({
       "src/app/x/_screen/XScreen.tsx": `import { loadXScreen } from "./loader";
 export async function XScreen(props) {
-  if (props.flag) {
-    await loadXScreen(props);
-  }
+  await loadXScreen(props);
   return null;
 }`,
     }),
   );
-  assert.ok(nested.problems.some((p) => p.includes("最上位")));
-  assert.equal(nested.rows.some((r) => r.path === "/x"), false, "読めない行は地図に載せない");
+  assert.ok(old.problems.some((p) => p.includes("createScreen")));
+  assert.equal(old.rows.some((r) => r.path === "/x"), false, "読めない行は地図に載せない");
+  const wrapped = buildRouteMap(
+    healthyTree({ "src/app/x/_screen/XScreen.tsx": screen("XScreen", "loadXScreen").replace("load: loadXScreen", "load: (p) => loadXScreen(p)") }),
+  );
+  assert.ok(wrapped.problems.some((p) => p.includes("load: loadXScreen")));
+  const staticTitle = buildRouteMap(
+    healthyTree({ "src/app/x/_screen/XScreen.tsx": `${screen("XScreen", "loadXScreen")}\nexport const metadata = { title: "x" };` }),
+  );
+  assert.ok(staticTitle.problems.some((p) => p.includes("静的な metadata")));
+  const noTitleSwitch = buildRouteMap(healthyTree({ "src/app/x/page.tsx": `export { XScreen as default } from "./_screen/XScreen";` }));
+  assert.ok(noTitleSwitch.problems.some((p) => p.includes("/x") && p.includes("1 行スイッチ")), "generateMetadata の無いスイッチ");
 });
 
 test("buildRouteMap: 最寄りでない guard.ts の createLoader は生成失敗", () => {

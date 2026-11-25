@@ -228,8 +228,17 @@ const CC_INCOMPATIBLE_SEGMENT_CONFIG = ["dynamic", "dynamicParams", "fetchCache"
 const ccIncompatibleProblem = (name) =>
   `segment config \`${name}\` は書かない(cacheComponents と両立しない。lint segment-config/cc-incompatible、消すだけでよい)`;
 
-/** Screen のファイルから default と一緒に re-export してよい名前(Next が実行時に読む値・関数) */
-export const REEXPORTABLE_FROM_SCREEN = ["metadata", "generateMetadata", "viewport", "generateViewport"];
+/**
+ * Screen のファイルから default と一緒に re-export してよい名前(Next が実行時に読む値・関数)。
+ * generateMetadata は必ず(createScreen が返す題名の関数。metadata を省いた画面は空を返す、D110)。静的な metadata は再 export しない
+ */
+export const REEXPORTABLE_FROM_SCREEN = ["generateMetadata", "viewport", "generateViewport"];
+
+/** page.tsx の 1 行スイッチが必ず再 export する名前 */
+export const REQUIRED_FROM_SCREEN = ["generateMetadata"];
+
+/** 題名の止まる文(page.tsx・Screen の静的な metadata) */
+const PAGE_TITLE_HINT = "題名は createScreen の metadata へ(値も関数 (data, props) も load = 範囲とページの確かめの後だけ返る)。page.tsx は `export { XScreen as default, generateMetadata } from \"./_screen/XScreen\"`";
 
 /**
  * `start` 以降で最初に現れる open と対応する close の位置(括弧の釣り合い)を返す。
@@ -327,8 +336,8 @@ export const ROUTE_LOADER_FILE = "loader";
 
 /**
  * page.tsx が許される import 元か。
- * 設定 export(metadata / generateMetadata)に必要なもの: next(型)、lib、config、ルート内 loader。
- * 画面ロジックに当たるもの(セクションコンテナ・hook・next/navigation 等)は不可
+ * 設定 export(viewport 等、layout は metadata / generateMetadata も)に必要なもの: next(型)、lib、config。
+ * 画面ロジックに当たるもの(セクションコンテナ・hook・next/navigation 等)とルート内 loader は不可(題名は Screen の createScreen の metadata)
  * @param {string} source
  * @returns {boolean}
  */
@@ -336,7 +345,6 @@ function isAllowedImportSource(source) {
   if (source === "next") return true;
   if (/^@\/lib\//.test(source)) return true;
   if (/^@\/config\//.test(source)) return true;
-  if (SCREEN_DIRS.some((dir) => source === `./${dir}/${ROUTE_LOADER_FILE}`)) return true;
   return false;
 }
 
@@ -345,14 +353,15 @@ export const LAYOUT_DIRS = ["_layout"];
 
 /** スイッチの種類ごとの文言(page と layout は同じ検査関数を共有する。報告書 §2「Screen と Layout は同じ概念の対」) */
 const SWITCH_KINDS = {
-  page: { file: "page.tsx", dirs: SCREEN_DIRS, target: "Screen", example: "XScreen" },
-  layout: { file: "layout.tsx", dirs: LAYOUT_DIRS, target: "組み立て", example: "XLayout" },
+  page: { file: "page.tsx", dirs: SCREEN_DIRS, target: "Screen", example: "XScreen", reexportable: REEXPORTABLE_FROM_SCREEN, required: REQUIRED_FROM_SCREEN, ownTitle: false },
+  layout: { file: "layout.tsx", dirs: LAYOUT_DIRS, target: "組み立て", example: "XLayout", reexportable: ["metadata", ...REEXPORTABLE_FROM_SCREEN], required: [], ownTitle: true },
 };
 
 /**
  * page.tsx / layout.tsx を解析し、1 行スイッチ形かどうかと参照先を返す(共通の本体)。
- * 許されるもの: `./<dir>/<X>` からの `export { <Name> as default[, metadata, generateMetadata] }` 1 つ、
- * 書ける設定 export(metadata / viewport / preferredRegion / maxDuration)、generateMetadata、それらに必要な import。
+ * 許されるもの: `./<dir>/<X>` からの re-export 1 つ(page = `export { <Name> as default, generateMetadata[, viewport] }`、
+ * generateMetadata は必ず・metadata は不可 | layout = `export { <Name> as default[, metadata, generateMetadata] }`)、
+ * 書ける設定 export(viewport / preferredRegion / maxDuration、layout は metadata・generateMetadata も)、それらに必要な import。
  * dynamic 等 cacheComponents と両立しない 5 つの名は違反。
  * @param {string} source ファイルの内容
  * @param {"page" | "layout"} kind
@@ -360,7 +369,7 @@ const SWITCH_KINDS = {
  *   problems が空ならスイッチ形。target は参照先(screenDir = 参照先のディレクトリ名、file = import パスの末尾、name = default に束ねた export 名)
  */
 function parseSwitchModule(source, kind) {
-  const { file: fileLabel, dirs, target: targetLabel, example } = SWITCH_KINDS[kind];
+  const { file: fileLabel, dirs, target: targetLabel, example, reexportable, required, ownTitle } = SWITCH_KINDS[kind];
   const dirLabel = dirs.map((dir) => `./${dir}/`).join(" または ");
   const problems = [];
   /** @type {SwitchTarget | null} */
@@ -387,17 +396,22 @@ function parseSwitchModule(source, kind) {
         problems.push(`指す先 ./${screenDir}/${target.file} は既定の <X> か丸ごと置き換えの <X>.replace だけ(旧い fork の印は共有の棚の印の移行の notice で改名する)`);
       }
     }
+    for (const name of required) {
+      if (!specifiers.includes(name)) problems.push(`re-export に \`${name}\` が無い(${PAGE_TITLE_HINT})`);
+    }
     for (const spec of specifiers) {
       if (spec === defaultSpec) continue;
-      if (REEXPORTABLE_FROM_SCREEN.includes(spec)) continue;
-      if (spec === "default") {
+      if (reexportable.includes(spec)) continue;
+      if (spec === "metadata" && !ownTitle) {
+        problems.push(`静的な metadata は再 export しない(${PAGE_TITLE_HINT})`);
+      } else if (spec === "default") {
         problems.push(`${targetLabel} は default export しない。\`export { ${example} as default } from ...\` の形で束ねる`);
       } else if (CC_INCOMPATIBLE_SEGMENT_CONFIG.includes(spec)) {
         problems.push(ccIncompatibleProblem(spec));
       } else if (PAGE_CONFIG_EXPORTS.includes(spec)) {
         problems.push(`\`${spec}\` は ${targetLabel} から re-export できない(Next が静的解析するため ${fileLabel} 自体に書く)`);
       } else {
-        problems.push(`${targetLabel} から re-export できる名前は default と ${REEXPORTABLE_FROM_SCREEN.join(" / ")} だけ(${spec})`);
+        problems.push(`${targetLabel} から re-export できる名前は default と ${reexportable.join(" / ")} だけ(${spec})`);
       }
     }
     src = src.replace(whole, "");
@@ -416,7 +430,14 @@ function parseSwitchModule(source, kind) {
   for (const [, name] of src.matchAll(ccNames)) problems.push(ccIncompatibleProblem(name));
   for (let next = stripConfigExport(src, CC_INCOMPATIBLE_SEGMENT_CONFIG); next !== null; next = stripConfigExport(src, CC_INCOMPATIBLE_SEGMENT_CONFIG)) src = next;
 
-  // 4. 書ける設定 export と generateMetadata は取り除く(中身は検査しない)
+  // 4. page.tsx は題名を自分で出さない(Screen の generateMetadata を再 export する)。layout は書ける(守りの範囲は guardMetadata、layoutGuardsMetadata)
+  if (!ownTitle) {
+    if (/export\s+(?:const|let)\s+metadata\b/.test(src)) problems.push(`${fileLabel} に静的な metadata を書かない(${PAGE_TITLE_HINT})`);
+    if (/export\s+(?:async\s+)?function\s+generateMetadata\b|export\s+const\s+generateMetadata\b/.test(src)) {
+      problems.push(`${fileLabel} に generateMetadata を書かない(${PAGE_TITLE_HINT})`);
+    }
+  }
+  // 書ける設定 export と generateMetadata は取り除く(中身は検査しない)
   for (let next = stripConfigExport(src); next !== null; next = stripConfigExport(src)) src = next;
   for (let next = stripGenerateMetadata(src); next !== null; next = stripGenerateMetadata(src)) src = next;
 
@@ -430,8 +451,9 @@ function parseSwitchModule(source, kind) {
 
 /**
  * page.tsx を解析し、スイッチ形かどうかと参照先を返す。
- * 許されるもの: `./_screen/<X>` または `./_components/<X>` からの `export { <Name> as default[, metadata, generateMetadata] }` 1 つ、
- * 書ける設定 export(metadata / viewport / preferredRegion / maxDuration)、generateMetadata、それらに必要な import
+ * 許されるもの: `./_screen/<X>` または `./_components/<X>` からの `export { <Name> as default, generateMetadata }` 1 つ
+ * (generateMetadata は必ず。静的な metadata・自前の generateMetadata は不可 = 題名は createScreen の metadata、D110)、
+ * 書ける設定 export(viewport / preferredRegion / maxDuration)、それらに必要な import
  * (dynamic 等 cacheComponents と両立しない 5 つの名は違反)。
  * @param {string} source page.tsx の内容
  * @returns {{ problems: string[], target: SwitchTarget | null }}
@@ -483,21 +505,89 @@ export function checkSwitchPage(source, screen) {
   return problems;
 }
 
+/** 画面の作り手の設定済み版の import 元(src/wiring/screen.tsx、D110) */
+export const SCREEN_MAKER_IMPORT = "@/wiring/screen";
+
+/** Screen の形の直し方(止まる文に添える 1 行) */
+const SCREEN_FORM_HINT = `\`export const { Screen: XScreen, generateMetadata } = createScreen({ load: loadXScreen, render: (data, props) => …, metadata? })\`(createScreen は ${SCREEN_MAKER_IMPORT} から)`;
+
 /**
- * Screen ファイルの検査。問題があれば理由の配列を返す。
- * - `<name>` を named export している(関数 / const / barrel の `export { name }` のいずれか)
+ * Screen のファイルの作り手の呼び出しを読む: `export const { Screen: <name>, generateMetadata } = createScreen({ … })` の
+ * 設定のオブジェクトの最上位の字面(入れ子の括弧の中身と文字列を空けた物)。読めなければ problems に理由
+ * @param {string} src コメントを除いた Screen のファイル
+ * @param {string} name Screen の名前(named export)
+ * @returns {{ problems: string[], top: string | null }}
+ */
+function readScreenMaker(src, name) {
+  const problems = [];
+  const imported = /import\s*\{([^}]*)\}\s*from\s*["']([^"']+)["']/g;
+  const makerImported = [...src.matchAll(imported)].some(
+    (m) => m[2] === SCREEN_MAKER_IMPORT && m[1].split(",").some((s) => s.trim() === "createScreen"),
+  );
+  if (!makerImported) problems.push(`createScreen を ${SCREEN_MAKER_IMPORT} から import していない(${SCREEN_FORM_HINT})`);
+  const calls = [...src.matchAll(/export\s+const\s*\{([^}]*)\}\s*=\s*createScreen\s*\(\s*\{/g)];
+  if (calls.length !== 1) {
+    problems.push(`${name} が createScreen の呼び出しの export でない(${SCREEN_FORM_HINT})`);
+    return { problems, top: null };
+  }
+  const specs = calls[0][1].split(",").map((s) => s.replace(/\s+/g, " ").trim()).filter(Boolean);
+  if (specs.length !== 2 || specs[0] !== `Screen: ${name}` || specs[1] !== "generateMetadata") {
+    problems.push(`createScreen の戻り値の受け方は \`{ Screen: ${name}, generateMetadata }\` だけ(${specs.join(", ")})`);
+  }
+  const open = calls[0].index + calls[0][0].length - 1;
+  const close = findBalancedEnd(src, open, "{", "}");
+  if (close < 0) {
+    problems.push(`${name} の createScreen の設定のオブジェクトが読めない`);
+    return { problems, top: null };
+  }
+  let depth = 0;
+  let top = "";
+  /** @type {string | null} */
+  let quote = null;
+  for (let i = open + 1; i < close; i += 1) {
+    const ch = src[i];
+    if (quote) {
+      if (ch === "\\") i += 1;
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      quote = ch;
+      if (depth === 0) top += " ";
+      continue;
+    }
+    if ("({[".includes(ch)) {
+      if (depth === 0) top += " ";
+      depth += 1;
+      continue;
+    }
+    if (")}]".includes(ch)) {
+      depth -= 1;
+      continue;
+    }
+    if (depth === 0) top += ch;
+  }
+  return { problems, top };
+}
+
+/**
+ * Screen のファイルの検査(D110)。問題があれば理由の配列を返す。
+ * - `createScreen` を `@/wiring/screen` から import し、`export const { Screen: <name>, generateMetadata } = createScreen({ … })` を 1 つ持つ
+ * - Screen を関数で書かない・静的な `metadata` や自前の `generateMetadata` を出さない(題名は createScreen の metadata、load の後だけ)
  * - default export しない(page.tsx が as default で再 export する)
  * - `"use client"` を持たない(Screen は Server Component。hook を使う部分はセクションコンテナへ下ろす)
+ * load が同じルートの loader かは checkScreenLoaderCall が見る
  * @param {string} source Screen ファイルの内容
  * @param {string} name 期待する named export 名
  */
 export function checkScreenFile(source, name) {
-  const problems = [];
   const src = stripComments(source);
-  const declared = new RegExp(`export\\s+(async\\s+)?(function|const)\\s+${name}\\b`).test(src);
-  const barrel = new RegExp(`export\\s*\\{[^}]*\\b${name}\\b[^}]*\\}`).test(src);
-  if (!declared && !barrel) {
-    problems.push(`\`export function ${name}\` を持たない`);
+  const { problems } = readScreenMaker(src, name);
+  if (new RegExp(`export\\s+(async\\s+)?function\\s+${name}\\b`).test(src)) {
+    problems.push(`${name} を関数で書かない(本文は load の後だけ: ${SCREEN_FORM_HINT})`);
+  }
+  if (/export\s+(const|let)\s+metadata\b/.test(src) || /export\s+(async\s+)?function\s+generateMetadata\b/.test(src)) {
+    problems.push("Screen は静的な metadata・自前の generateMetadata を出さない(題名は createScreen の metadata へ。値も関数 (data, props) も load の後だけ返る)");
   }
   if (/export\s+default/.test(src)) {
     problems.push("default export しない(page.tsx が as default で再 export する)");
@@ -854,7 +944,8 @@ export const ADMIN_PARTS_OPERATIONS = {
 };
 
 /**
- * D21: Screen が同じルートの loader を import し、Screen 本体の最上位で await しているか。
+ * D21・D110: Screen の createScreen の load が同じルートの loader か。loader の名前は設定の最上位の `load: <名前>` の字面から取る
+ * (Screen は load の後にだけ本文を描く。作り手の形の他の問題は checkScreenFile が見る)
  * @param {string} source Screen ファイル
  * @param {string} name Screen の名前(named export)
  * @returns {{ problems: string[], loaderName: string | null, loaderImport: string | null }}
@@ -867,52 +958,16 @@ export function checkScreenLoaderCall(source, name) {
     ? imp[1].split(",").map((s) => s.trim()).filter((s) => /^load[A-Z]\w*$/.test(s))
     : [];
   if (!imp || loaderNames.length === 0) return { problems: ["同じルートの loader(./loader の load<Name>)を import していない"], loaderName: null, loaderImport: null };
-  const fm = new RegExp(`export\\s+(?:async\\s+)?function\\s+${name}\\s*\\(`).exec(src)
-    ?? new RegExp(`export\\s+const\\s+${name}\\s*=\\s*(?:async\\s*)?\\(`).exec(src);
-  if (!fm) return { problems: [`${name} の関数本体が読めない(export function / export const = (…) => の形にする)`], loaderName: null, loaderImport: null };
-  const paramsEnd = findBalancedEnd(src, fm.index + fm[0].length - 1, "(", ")");
-  const bodyOpen = paramsEnd < 0 ? -1 : src.indexOf("{", paramsEnd);
-  if (bodyOpen < 0) return { problems: [`${name} の関数本体が読めない`], loaderName: null, loaderImport: null };
-  // 本体の最上位(深さ 0)の文を、最上位の最初の return まで集める(if / try / コールバックの中の await は数えない)。
-  // return 以降(JSX)は読まない: JSX のテキストの引用符で括弧の釣り合いが崩れるため。loader の await は return より前に置く
-  let depth = 0;
-  let top = "";
-  /** @type {string | null} */
-  let quote = null;
-  for (let i = bodyOpen + 1; i < src.length; i += 1) {
-    const ch = src[i];
-    if (quote) {
-      if (ch === "\\") i += 1;
-      else if (ch === quote) quote = null;
-      if (depth === 0) top += " ";
-      continue;
-    }
-    if (depth === 0 && /^return\b/.test(src.slice(i, i + 7)) && /[\s;{}]/.test(src[i - 1])) break;
-    if (ch === '"' || ch === "'" || ch === "`") {
-      quote = ch;
-      if (depth === 0) top += " ";
-      continue;
-    }
-    if ("({[".includes(ch)) {
-      if (depth === 0) top += ch;
-      depth += 1;
-      continue;
-    }
-    if (")}]".includes(ch)) {
-      if (depth === 0) break; // 本体の終わり
-      depth -= 1;
-      if (depth === 0) top += ch;
-      continue;
-    }
-    if (depth === 0) top += ch;
+  const { top } = readScreenMaker(src, name);
+  if (top === null) return { problems: [`${name} の createScreen の呼び出しが読めない(${SCREEN_FORM_HINT})`], loaderName: null, loaderImport: imp[2] };
+  const load = /(?:^|,)\s*load\s*:\s*([A-Za-z_$][\w$]*)\s*(?=,|$)/.exec(top.trim());
+  if (!load) {
+    return { problems: [`${name} の createScreen に \`load: ${loaderNames[0]}\` が無い(同じルートの loader をそのまま渡す。包む関数・式は不可)`], loaderName: null, loaderImport: imp[2] };
   }
-  const called = loaderNames.find((loader) =>
-    new RegExp(`(^|[;\\n])\\s*(?:(?:const|let)\\s+[^=;]+=\\s*)?await\\s+${loader}\\s*\\(`).test(top),
-  );
-  if (!called) {
-    return { problems: [`${name} の本体の最上位で await ${loaderNames[0]}(props) を呼んでいない(条件分岐・try・コールバックの中は不可)`], loaderName: null, loaderImport: imp[2] };
+  if (!loaderNames.includes(load[1])) {
+    return { problems: [`${name} の createScreen の load(${load[1]})が同じルートの loader(${loaderNames.join(" / ")})でない`], loaderName: null, loaderImport: imp[2] };
   }
-  return { problems: [], loaderName: called, loaderImport: imp[2] };
+  return { problems: [], loaderName: load[1], loaderImport: imp[2] };
 }
 
 const PARTS_CALL_HEAD = /^(admin(?:List|Edit|Create|Sort)Parts)\s*(?:<[^()]*>)?\(\s*["']([\w]+)["']/;

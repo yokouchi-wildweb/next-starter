@@ -81,7 +81,7 @@ test("access: 字面のオブジェクトは従来どおり", () => {
 
 // 管理のページの Screen は AdminPage を描く(指令 17 d3)。純関数で Tier を受け取らない = fork の管理のページにも同じに効く
 const ADMIN_IMPORT = `import { AdminPage } from "@/app/admin/_layout/AdminPage";\n`;
-const screen = (/** @type {string} */ imports, /** @type {string} */ body) => `${imports}import { loadX } from "./loader";\n\nexport async function XScreen() {\n  await loadX();\n  return ${body};\n}\n`;
+const screen = (/** @type {string} */ imports, /** @type {string} */ body) => `${imports}import { createScreen } from "@/wiring/screen";\nimport { loadXScreen } from "./loader";\n\nexport const { Screen: XScreen, generateMetadata } = createScreen({\n  load: loadXScreen,\n  render: () => ${body},\n});\n`;
 
 test("checkAdminPageScreen: AdminPage を import して描く Screen は合格(named・default・別名・相対・属性つき)", () => {
   assert.deepEqual(checkAdminPageScreen(screen(ADMIN_IMPORT, `<AdminPage title="一覧" actions={<X />}>body</AdminPage>`)), []);

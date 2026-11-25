@@ -173,7 +173,7 @@ page_guard: range policy = guard.ts beside the layout (child narrows only), layo
 ## SCREENS (page layer that downstream replaces without editing core)
 before adding or replacing a page, frame layout, Screen or loader → read src/lib/screens/README.md
 route_groups (access comes from each range's guard.ts, never the folder name): (user)/(protected) = login | (user)/(public) | (user)/(auth) = login / signup | (user)/(legal) | (marketing)/ = landing outside the user layout | admin/ | debug/ | ref: src/app/README.md
-route: page.tsx = 1-line switch → _screen/\<Name\>Screen.tsx (server, default) + _screen/loader.ts | 1 route = 1 Screen | a fork replaces it by copying to _components/\<X\>Screen.tsx, keeps calling the upstream loader, points page.tsx at it, never edits _screen/ (CHANGE_TYPES, FORK_EXTENSION) | → core/screens.md
+route: page.tsx = 1-line switch (default + generateMetadata) → _screen/\<Name\>Screen.tsx = createScreen({ load, render }) of @/wiring/screen (server, default) + _screen/loader.ts | 1 route = 1 Screen | a fork replaces it by copying to _components/\<X\>Screen.tsx, keeps calling the upstream loader, points page.tsx at it, never edits _screen/ (CHANGE_TYPES, FORK_EXTENSION) | → core/screens.md
 
 ## COMPONENTS
 placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ (a domain's part shown in a frame → that domain's plugs/, at the frame's named point) | one domain: section container → domains/\<domain\>/components/\<Name\>, shared part → …/components/common/ | ref: src/components/README.md

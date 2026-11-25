@@ -52,21 +52,21 @@ src/app/(user)/(protected)/wallet/[slug]/
 
 ```tsx
 // src/app/(user)/(protected)/wallet/[slug]/page.tsx
-export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
+export { WalletBalanceScreen as default, generateMetadata } from "./_screen/WalletBalanceScreen";
 ```
 
-書けるセグメント設定(`preferredRegion` / `maxDuration`)は page.tsx に書きます(`dynamic`・`dynamicParams`・`fetchCache`・`revalidate`・`runtime` は cacheComponents と両立しないので書きません。lint `segment-config/cc-incompatible`)。`metadata` / `generateMetadata` は page.tsx に書くか、Screen 側に書いて `export { XScreen as default, metadata } from "./_screen/XScreen"` と一緒に re-export します。それ以外のロジック（JSX、セクションコンテナの import、`redirect` / `notFound`）は書きません（`pnpm test scripts/structure/routes/screens.test.mjs` が page.tsx を自動検出して検査。登録は不要）。
+書けるセグメント設定(`preferredRegion` / `maxDuration`)は page.tsx に書きます(`dynamic`・`dynamicParams`・`fetchCache`・`revalidate`・`runtime` は cacheComponents と両立しないので書きません。lint `segment-config/cc-incompatible`)。題名は Screen の `createScreen` の `metadata` に書き、page.tsx は Screen の `generateMetadata` を必ず一緒に re-export します(静的な `metadata` は page.tsx にも Screen にも書きません。断られた訪問者の応答に題名を出さないため)。それ以外のロジック（JSX、セクションコンテナの import、`redirect` / `notFound`）は書きません（`pnpm test scripts/structure/routes/screens.test.mjs` が page.tsx を自動検出して検査。登録は不要）。
 
 ### `_screen/<Name>Screen.tsx`（ページ層の本体）
 
-Server Component。loader を await し、`UserPage` と `UserPageTitle`、セクションコンテナを並べるだけです。状態を持たず、hook を呼びません。
+Server Component。画面の作り手 `createScreen`(`@/wiring/screen`)1 つで書きます: `load` に同じルートの loader を渡し、`render` で `UserPage` と `UserPageTitle`、セクションコンテナを並べるだけです。本文(見出しを含む)と題名は loader(範囲とページの確かめ)が解けた後にだけ出ます。状態を持たず、hook を呼びません。
 
 ```tsx
 // src/app/(user)/(protected)/wallet/[slug]/_screen/WalletBalanceScreen.tsx
-export async function WalletBalanceScreen(props: ScreenProps<{ slug: string }>) {
-  const data = await loadWalletBalanceScreen(props); // 404 / 未ログインは loader が処理する
-
-  return (
+export const { Screen: WalletBalanceScreen, generateMetadata } = createScreen({
+  load: loadWalletBalanceScreen, // 404 / 未ログインは loader が処理する
+  metadata: (data) => ({ title: `${data.label}管理` }),
+  render: (data) => (
     <UserPage containerType="narrowStack">
       <Stack gap="lg">
         <UserPageTitle>{data.label}管理</UserPageTitle>
@@ -78,12 +78,12 @@ export async function WalletBalanceScreen(props: ScreenProps<{ slug: string }>) 
         />
       </Stack>
     </UserPage>
-  );
-}
+  ),
+});
 ```
 
 - `UserPage` が `<main>` を、`UserPageTitle` が `<h1>` を出力します（生の `<main>` / `<h1>` は書かない）
-- `mypage` 配下のように layout が `UserPage` / `Stack` / `PageTransition` を巻くグループでは、Screen は fragment を返します
+- `mypage` 配下のように layout が `UserPage` / `Stack` / `PageTransition` を巻くグループでは、Screen の `render` は fragment を返します
 - 1 ルートに Screen は必ず 1 つ。複数のセクションコンテナを並べてよい
 - hook や状態が要る部分は、セクションコンテナか `_screen/` の `"use client"` 部品に下ろします（例: `maintenance/_screen/MaintenanceAutoRedirect`、`logout/_screen/LogoutSection`）
 

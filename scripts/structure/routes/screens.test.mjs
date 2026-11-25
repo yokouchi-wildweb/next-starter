@@ -8,9 +8,9 @@
 //   - 検出した各ルートの _screen/loader.ts と _components/loader.ts(ルート内 loader)
 //
 // 守りたい契約(設計: src/lib/screens/README.md):
-// 1. page.tsx は「./_screen/<X> または ./_components/<X> からの 1 行 re-export」+ 任意のページ設定
-//    (metadata 等の export、generateMetadata、それらに必要な import)だけ。dynamic 等 5 つ(cacheComponents と両立しない)は違反。画面ロジックを page.tsx に置かない
-// 2. 参照先の Screen が存在し、その名前を named export していて、default export も "use client" も持たない
+// 1. page.tsx は「./_screen/<X> または ./_components/<X> からの `export { X as default, generateMetadata }`」+ 任意のページ設定
+//    (viewport 等、それらに必要な import)だけ。静的な metadata・自前の generateMetadata・dynamic 等 5 つ(cacheComponents と両立しない)は違反。画面ロジックを page.tsx に置かない
+// 2. 参照先の Screen が存在し、`export const { Screen: X, generateMetadata } = createScreen({ load: <同じルートの loader>, … })`(@/wiring/screen)で、default export も "use client" も持たない(D110)
 // 3. loader は `import "server-only"` と、最寄りの guard.ts の createLoader(Factory が cache を張る)か React の cache() を使い load<Xxx> を export する
 // 4. 未移行の例外リストは無い(upstream も fork も全ページがスイッチ形、D30 K11)。スイッチでない page.tsx は失敗
 // 5. 枠を描く layout.tsx(FRAME_LAYOUTS)と ./_layout/ を指す re-export を持つ layout.tsx は page.tsx と同じ 1 行スイッチ形
@@ -189,7 +189,7 @@ for (const page of pages) {
     assert.deepEqual(
       problems,
       [],
-      `${page}: ${problems.join(" / ")}\n→ page.tsx を \`export { XScreen as default } from "./_screen/XScreen"\` にして本体を _screen/ へ移す` +
+      `${page}: ${problems.join(" / ")}\n→ page.tsx を \`export { XScreen as default, generateMetadata } from "./_screen/XScreen"\` にして本体を _screen/ へ移す` +
         `(fork の差し替えは _components/ の Screen へ向ける。未移行の例外リストは無い)`,
     );
   });
@@ -210,7 +210,7 @@ for (const page of pages) {
         assert.deepEqual(adminProblems, [], `${file}: ${adminProblems.join(" / ")}`);
       });
     }
-    test(`${dir}: ${target.name} が同じルートの loader を import し本体の最上位で await する(D21)`, () => {
+    test(`${dir}: ${target.name} の createScreen の load が同じルートの loader(D21・D110)`, () => {
       const file = resolveScreenFile(dir, target);
       if (!file) return;
       const { problems: callProblems } = checkScreenLoaderCall(read(file), target.name);
@@ -335,65 +335,66 @@ test("stripComments: 行コメント内の /** をブロックコメントの開
   assert.equal(out.split("\n").length, src.split("\n").length, "行数を保つ");
 });
 
-test("parseSwitchPage: _screen / _components / metadata re-export を許可し、画面ロジックを弾く", () => {
+test("parseSwitchPage: default + generateMetadata の再 export の 1 形。静的な metadata・自前の題名・画面ロジックを弾く(D110)", () => {
   const ok = `
-    import type { Metadata } from "next";
-    import { createMetadata } from "@/lib/metadata";
-    import { loadWalletBalanceScreen, type WalletBalanceScreenParams } from "./_screen/loader";
-    import type { ScreenProps } from "@/lib/screens";
-
+    import type { Viewport } from "next";
     export const maxDuration = 60;
-    export const metadata: Metadata = {
-      title: "ウォレット",
-      openGraph: { images: ["/og.png"] },
-    };
-
-    export async function generateMetadata(props: ScreenProps<WalletBalanceScreenParams>): Promise<Metadata> {
-      const { label } = await loadWalletBalanceScreen(props);
-      return createMetadata({ title: \`\${label}管理\` });
-    }
-
-    export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
+    export const viewport: Viewport = { themeColor: "#000" };
+    export { WalletBalanceScreen as default, generateMetadata } from "./_screen/WalletBalanceScreen";
   `;
   assert.deepEqual(parseSwitchPage(ok).problems, []);
   assert.deepEqual(parseSwitchPage(ok).target, { screenDir: "_screen", file: "WalletBalanceScreen", name: "WalletBalanceScreen" });
   assert.deepEqual(checkSwitchPage(ok, "WalletBalanceScreen"), []);
 
-  const replaced = `export { Home as default } from "./_components/Home";`;
+  const replaced = `export { Home as default, generateMetadata } from "./_components/Home";`;
   assert.deepEqual(parseSwitchPage(replaced).problems, []);
   assert.equal(parseSwitchPage(replaced).target.screenDir, "_components");
   assert.ok(checkSwitchPage(replaced, "HomeScreen").length > 0, "期待名を指定したときは _screen の同名であること");
 
-  const satisfies = `
-    import type { Metadata, Viewport } from "next";
+  const noTitle = `export { XScreen as default } from "./_screen/XScreen";`;
+  assert.ok(parseSwitchPage(noTitle).problems.some((p) => p.includes("`generateMetadata` が無い")), "generateMetadata は必ず再 export");
+
+  const staticReexport = `export { AdminSampleListScreen as default, generateMetadata, metadata } from "./_screen/AdminSampleListScreen";`;
+  assert.ok(parseSwitchPage(staticReexport).problems.some((p) => p.includes("静的な metadata は再 export しない")));
+
+  const ownStatic = `
+    import type { Metadata } from "next";
     export const metadata = { title: "x" } satisfies Metadata;
-    export const viewport: Viewport = { themeColor: "#000" };
-    export function generateViewport(): Viewport { return { themeColor: "#fff" }; }
+    export { XScreen as default, generateMetadata } from "./_screen/XScreen";
+  `;
+  assert.deepEqual(parseSwitchPage(ownStatic).problems, ["page.tsx に静的な metadata を書かない(題名は createScreen の metadata へ(値も関数 (data, props) も load = 範囲とページの確かめの後だけ返る)。page.tsx は `export { XScreen as default, generateMetadata } from \"./_screen/XScreen\"`)"]);
+
+  const ownGenerate = `
+    import type { Metadata } from "next";
+    export async function generateMetadata(): Promise<Metadata> { return { title: "x" }; }
     export { XScreen as default } from "./_screen/XScreen";
   `;
-  assert.deepEqual(parseSwitchPage(satisfies).problems, []);
+  assert.ok(parseSwitchPage(ownGenerate).problems.some((p) => p.includes("generateMetadata を書かない")));
+
+  const routeLoader = `
+    import { loadWalletBalanceScreen } from "./_screen/loader";
+    export { WalletBalanceScreen as default, generateMetadata } from "./_screen/WalletBalanceScreen";
+  `;
+  assert.ok(parseSwitchPage(routeLoader).problems.some((p) => p.includes("./_screen/loader")), "ルート内 loader の import は不可(題名は Screen の createScreen)");
 
   const defaultSpec = `export { default } from "./_screen/XScreen";`;
   assert.ok(parseSwitchPage(defaultSpec).problems.some((p) => p.includes("default export しない")));
 
-  const generated = `export { AdminSampleListScreen as default, metadata } from "./_screen/AdminSampleListScreen";`;
-  assert.deepEqual(parseSwitchPage(generated).problems, []);
-
   // cacheComponents と両立しない segment config は形の違反(名ごとに 1 件、残りの記述としては二重に出さない)
   const forceDynamic = `
     export const dynamic = "force-dynamic";
-    export { AdminSampleListScreen as default, metadata } from "./_screen/AdminSampleListScreen";
+    export { AdminSampleListScreen as default, generateMetadata } from "./_screen/AdminSampleListScreen";
   `;
   assert.deepEqual(parseSwitchPage(forceDynamic).problems, [
     "segment config `dynamic` は書かない(cacheComponents と両立しない。lint segment-config/cc-incompatible、消すだけでよい)",
   ]);
-  const revalidate = `export const revalidate = 60;\nexport const runtime = "nodejs";\nexport { XScreen as default } from "./_screen/XScreen";`;
+  const revalidate = `export const revalidate = 60;\nexport const runtime = "nodejs";\nexport { XScreen as default, generateMetadata } from "./_screen/XScreen";`;
   assert.equal(parseSwitchPage(revalidate).problems.length, 2);
   assert.ok(parseSwitchPage(revalidate).problems.every((p) => p.startsWith("segment config ")));
   const layoutDynamic = `export const dynamic = "force-dynamic";\nexport { XLayout as default } from "./_layout/XLayout";`;
   assert.ok(parseSwitchLayout(layoutDynamic).problems.some((p) => p.includes("segment config `dynamic`")));
 
-  const dynamicReexport = `export { AdminSampleListScreen as default, dynamic } from "./_screen/AdminSampleListScreen";`;
+  const dynamicReexport = `export { AdminSampleListScreen as default, generateMetadata, dynamic } from "./_screen/AdminSampleListScreen";`;
   assert.ok(parseSwitchPage(dynamicReexport).problems.some((p) => p.includes("dynamic")));
 
   const jsx = `
@@ -404,29 +405,15 @@ test("parseSwitchPage: _screen / _components / metadata re-export を許可し�
 
   const navigation = `
     import { notFound } from "next/navigation";
-    export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
+    export { WalletBalanceScreen as default, generateMetadata } from "./_screen/WalletBalanceScreen";
   `;
   assert.ok(parseSwitchPage(navigation).problems.some((p) => p.includes("next/navigation")));
 
   const sectionContainer = `
     import { WalletBalance } from "@/domains/core/wallet/components/WalletBalance";
-    export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
+    export { WalletBalanceScreen as default, generateMetadata } from "./_screen/WalletBalanceScreen";
   `;
   assert.ok(parseSwitchPage(sectionContainer).problems.some((p) => p.includes("components/WalletBalance")));
-
-  // generateMetadata がルート内 loader を呼ぶ形(_screen / _components どちらの loader も可)
-  const routeLoader = `
-    import type { Metadata } from "next";
-    import { loadWalletBalanceScreen } from "./_screen/loader";
-    export async function generateMetadata(props: ScreenProps<{ slug: string }>): Promise<Metadata> {
-      const { label } = await loadWalletBalanceScreen(props);
-      return { title: label };
-    }
-    export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
-  `;
-  assert.deepEqual(parseSwitchPage(routeLoader).problems, []);
-  assert.deepEqual(parseSwitchPage(routeLoader.replace("./_screen/loader", "./_components/loader")).problems, []);
-  assert.ok(parseSwitchPage(routeLoader.replace("./_screen/loader", "./_screen/utils")).problems.length > 0, "loader 以外の相対 import は不可");
 });
 
 test("checkScreenImports: index.tsx を持つコンテナの内側(部品)は弾き、グループ分けのディレクトリは名前空間として通す", () => {
@@ -463,21 +450,31 @@ test("isContainerDir: index.tsx を持つディレクトリだけをコンテナ
   assert.equal(isContainerDir("@/domains/no-such-domain/components/X"), false);
 });
 
-test("checkScreenFile: named export / barrel を認め、default export と \"use client\" を弾く", () => {
-  assert.deepEqual(checkScreenFile(`export async function XScreen() { return null; }`, "XScreen"), []);
-  assert.deepEqual(checkScreenFile(`export { XScreen } from "./XScreen";`, "XScreen"), []);
-  assert.ok(checkScreenFile(`export default function XScreen() {}`, "XScreen").length > 0);
-  assert.ok(checkScreenFile(`"use client";\nexport function XScreen() { return null; }`, "XScreen").some((p) => p.includes("use client")));
-  assert.ok(checkScreenFile(`export function Other() {}`, "XScreen").length > 0);
+test("checkScreenFile: createScreen の呼び出しの export だけ。関数の Screen・静的な metadata・default export・\"use client\" を弾く(D110)", () => {
+  const ok = `import { createScreen } from "@/wiring/screen";\nimport { loadXScreen } from "./loader";\nexport const { Screen: XScreen, generateMetadata } = createScreen({\n  load: loadXScreen,\n  render: (data) => <p>{"it's"}{data.a}</p>,\n  metadata: { title: "x" },\n});\n`;
+  assert.deepEqual(checkScreenFile(ok, "XScreen"), []);
+  const old = `import { loadXScreen } from "./loader";\nexport const metadata = { title: "x" };\nexport async function XScreen(props) { const d = await loadXScreen(props); return null; }`;
+  const oldProblems = checkScreenFile(old, "XScreen");
+  assert.ok(oldProblems.some((p) => p.includes("createScreen を @/wiring/screen から import していない")), oldProblems.join(" / "));
+  assert.ok(oldProblems.some((p) => p.includes("関数で書かない")));
+  assert.ok(oldProblems.some((p) => p.includes("静的な metadata")));
+  const libMaker = ok.replace("@/wiring/screen", "@/lib/screens");
+  assert.ok(checkScreenFile(libMaker, "XScreen").some((p) => p.includes("@/wiring/screen")), "lib の汎用版を画面が直に読むのは不可");
+  const wrongName = ok.replace("Screen: XScreen", "Screen: YScreen");
+  assert.ok(checkScreenFile(wrongName, "XScreen").some((p) => p.includes("{ Screen: XScreen, generateMetadata }")));
+  const noTitle = ok.replace("Screen: XScreen, generateMetadata", "Screen: XScreen");
+  assert.ok(checkScreenFile(noTitle, "XScreen").length > 0, "generateMetadata も受ける");
+  assert.ok(checkScreenFile(`${ok}export default XScreen;`, "XScreen").some((p) => p.includes("default export")));
+  assert.ok(checkScreenFile(`"use client";\n${ok}`, "XScreen").some((p) => p.includes("use client")));
 });
 
 test("例外リストの鮮度: _components への差し替えは移行済み扱いにしない(fork で upstream の一覧が落ちない)", () => {
   // tradelaw は upstream の未移行ルート。fork が ./_components/ に差し替えた状態を想定して判定だけ確認する
-  const forkReplaced = `export { Tradelaw as default } from "./_components/Tradelaw";`;
+  const forkReplaced = `export { Tradelaw as default, generateMetadata } from "./_components/Tradelaw";`;
   const { problems, target } = parseSwitchPage(forkReplaced);
   assert.deepEqual(problems, []);
   assert.equal(target.screenDir, "_components");
-  const upstreamMigrated = `export { TradelawScreen as default } from "./_screen/TradelawScreen";`;
+  const upstreamMigrated = `export { TradelawScreen as default, generateMetadata } from "./_screen/TradelawScreen";`;
   assert.equal(parseSwitchPage(upstreamMigrated).target.screenDir, "_screen");
 });
 
@@ -600,7 +597,7 @@ test("findRouteReplaceProblems: スイッチの向け先と .default の隣は�
 test("findRouteReplaceProblems: _screen/ の下の .replace は向け先でも .default の隣でも孤立でも in-screen、_layout/ の .replace は通る", () => {
   const texts = {
     "src/app/(user)/layout.tsx": 'export { UserLayout as default } from "./_layout/UserLayout.replace";\n',
-    "src/app/(user)/w/page.tsx": 'export { WScreen as default } from "./_screen/WScreen.replace";\n',
+    "src/app/(user)/w/page.tsx": 'export { WScreen as default, generateMetadata } from "./_screen/WScreen.replace";\n',
   };
   const files = [
     ...Object.keys(texts),
@@ -727,8 +724,8 @@ test("parseSwitchLayout: ./_layout/ への 1 行スイッチだけを許し、JS
   assert.deepEqual(parseSwitchLayout(replaced).problems, []);
   assert.deepEqual(parseSwitchLayout(replaced).target, { screenDir: "_layout", file: "UserLayout.replace", name: "AcmeUserLayout" });
   assert.match(parseSwitchLayout(`export { L as default } from "./_layout/UserLayout.acme";`).problems.join(), /既定の <X> か丸ごと置き換えの <X>\.replace だけ/);
-  assert.deepEqual(parseSwitchPage(`export { WScreen as default } from "./_screen/WScreen.replace";`).problems, []);
-  assert.deepEqual(parseSwitchPage(`export { WScreen as default } from "./_components/WScreen";`).problems, []);
+  assert.deepEqual(parseSwitchPage(`export { WScreen as default, generateMetadata } from "./_screen/WScreen.replace";`).problems, []);
+  assert.deepEqual(parseSwitchPage(`export { WScreen as default, generateMetadata } from "./_components/WScreen";`).problems, []);
   assert.match(parseSwitchPage(`export { WScreen as default } from "./_components/WScreen.custom";`).problems.join(), /\.replace だけ/);
   assert.match(parseSwitchPage(`export { WScreen as default } from "./_screen/WScreen.default";`).problems.join(), /\.replace だけ/);
   const withMetadata = `import type { Metadata } from "next";\nexport const metadata: Metadata = { title: "x" };\nexport { XLayout as default } from "./_layout/XLayout";`;
@@ -747,17 +744,18 @@ test("checkLayoutTarget: named export を要求し、default export を弾き、
   assert.ok(checkLayoutTarget(`export function UserLayout() { return null; }\nexport default UserLayout;`, "UserLayout").length > 0);
 });
 
-test("checkScreenLoaderCall(D21): 同じルートの loader を import し本体の最上位で await する。差し替え Screen は ../_screen/loader も可", () => {
-  const ok = `import { loadXScreen } from "./loader";\nexport async function XScreen(props) {\n  const data = await loadXScreen(props);\n  return <p>{"it's"}{data.a}</p>;\n}`;
-  assert.deepEqual(checkScreenLoaderCall(ok, "XScreen").problems, []);
-  const fork = `import { loadXScreen } from "../_screen/loader";\nexport async function AcmeXScreen(props) {\n  await loadXScreen(props);\n  return null;\n}`;
-  assert.deepEqual(checkScreenLoaderCall(fork, "AcmeXScreen").problems, []);
-  const none = `export function XScreen() { return null; }`;
+test("checkScreenLoaderCall(D21・D110): createScreen の load が同じルートの loader。差し替え Screen は ../_screen/loader も可", () => {
+  const make = (imp, load, name = "XScreen") =>
+    `import { createScreen } from "@/wiring/screen";\nimport { loadXScreen } from "${imp}";\nexport const { Screen: ${name}, generateMetadata } = createScreen({\n  load: ${load},\n  render: (data, props) => <p title={"it's"}>{data.a}</p>,\n});\n`;
+  assert.deepEqual(checkScreenLoaderCall(make("./loader", "loadXScreen"), "XScreen"), { problems: [], loaderName: "loadXScreen", loaderImport: "./loader" });
+  assert.deepEqual(checkScreenLoaderCall(make("../_screen/loader", "loadXScreen", "AcmeXScreen"), "AcmeXScreen").problems, []);
+  const none = `import { createScreen } from "@/wiring/screen";\nexport const { Screen: XScreen, generateMetadata } = createScreen({ load: async () => 1, render: () => null });`;
   assert.ok(checkScreenLoaderCall(none, "XScreen").problems[0].includes("import していない"));
-  const inIf = `import { loadXScreen } from "./loader";\nexport async function XScreen(props) {\n  if (props.a) {\n    await loadXScreen(props);\n  }\n  return null;\n}`;
-  assert.ok(checkScreenLoaderCall(inIf, "XScreen").problems[0].includes("最上位"));
-  const afterReturn = `import { loadXScreen } from "./loader";\nexport async function XScreen(props) {\n  return <Wrap data={await loadXScreen(props)} />;\n}`;
-  assert.ok(checkScreenLoaderCall(afterReturn, "XScreen").problems[0].includes("最上位"));
-  const other = `import { loadXScreen } from "@/app/y/_screen/loader";\nexport async function XScreen(props) {\n  await loadXScreen(props);\n  return null;\n}`;
-  assert.ok(checkScreenLoaderCall(other, "XScreen").problems.length > 0, "別ルートの loader は不可");
+  assert.ok(checkScreenLoaderCall(make("./loader", "(props) => loadXScreen(props)"), "XScreen").problems[0].includes("load: loadXScreen"), "包む関数は不可");
+  assert.ok(checkScreenLoaderCall(make("./loader", "loadYScreen"), "XScreen").problems[0].includes("同じルートの loader"), "取り違え");
+  const nested = `import { createScreen } from "@/wiring/screen";\nimport { loadXScreen } from "./loader";\nexport const { Screen: XScreen, generateMetadata } = createScreen({\n  load: async () => ({}),\n  render: () => <W x={{ load: loadXScreen }} />,\n});\n`;
+  assert.ok(checkScreenLoaderCall(nested, "XScreen").problems[0].includes("同じルートの loader"), "入れ子の load: は数えない");
+  const old = `import { loadXScreen } from "./loader";\nexport async function XScreen(props) {\n  const data = await loadXScreen(props);\n  return null;\n}`;
+  assert.ok(checkScreenLoaderCall(old, "XScreen").problems[0].includes("createScreen の呼び出しが読めない"), "古い形は受けない");
+  assert.ok(checkScreenLoaderCall(make("@/app/y/_screen/loader", "loadXScreen"), "XScreen").problems.length > 0, "別ルートの loader は不可");
 });

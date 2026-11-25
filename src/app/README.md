@@ -55,7 +55,7 @@ Next.js App Router のルートディレクトリ。Route Group を活用して�
 
 ```
 src/app/(user)/(protected)/wallet/[slug]/
-├── page.tsx          1 行スイッチ(下流所有)。export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
+├── page.tsx          1 行スイッチ(下流所有)。export { WalletBalanceScreen as default, generateMetadata } from "./_screen/WalletBalanceScreen";
 ├── _screen/          既定画面と loader.ts(上流所有。下流は編集・削除しない)
 └── _components/      任意。下流の差し替え画面(<Name>Screen.tsx)、page 専用の部品
 ```
@@ -105,9 +105,9 @@ src/app/(user)/(protected)/wallet/[slug]/
 
 ```
 src/app/(user)/.../<route>/
-├── page.tsx                     export { XScreen as default } from "./_screen/XScreen";(metadata もここ。dynamic 等のセグメント設定は書かない: src/lib/screens/README.md)
+├── page.tsx                     export { XScreen as default, generateMetadata } from "./_screen/XScreen";(題名は Screen の createScreen の metadata。dynamic 等のセグメント設定は書かない: src/lib/screens/README.md)
 └── _screen/
-    ├── XScreen.tsx              Server Component。load<X>Screen(props) を await してセクションコンテナを描く
+    ├── XScreen.tsx              Server Component。createScreen({ load: load<X>Screen, render: (data) => セクションコンテナ })(@/wiring/screen)
     └── loader.ts                最寄りの guard.ts の createLoader({ access, key?, load })。redirect / notFound / 取得(データが無くても access だけの loader を置く)
 ```
 
