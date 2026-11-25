@@ -228,8 +228,7 @@ import "server-only";
 import { extend as extendRoot } from "@/app/guard";
 export const { Guard, createLoader, guardMetadata, extend } = extendRoot({
   access: { roleCategories: ["admin", "user"] },
-  redirectTo: "/login",
-  forbiddenRedirectTo: "/login",
+  redirectTo: "/login", // 未ログインの人だけ。ログイン済みで通らない人は notFound(forbiddenRedirectTo はログインと別の値の時だけ)
   returnBack: true,
   statusRedirects: { inactive: "/reactivate", suspended: "/restricted" },
 });
@@ -436,7 +435,7 @@ src/app/admin/(protected)/samples/
   {"kind":"page","file":"src/app/admin/(protected)/users/general/page.tsx"},
   {"kind":"screen","file":"…/_screen/AdminGeneralUserListScreen.tsx","name":"AdminGeneralUserListScreen"},
   {"kind":"loader","file":"…/_screen/loader.ts","access":{"roles":["admin"]}},
-  {"kind":"guard","file":"src/app/admin/(protected)/users/guard.ts","policy":{"access":{"roles":["admin"]},"redirectTo":"/admin","forbiddenRedirectTo":"/admin"}},
+  {"kind":"guard","file":"src/app/admin/(protected)/users/guard.ts","policy":{"access":{"roles":["admin"]},"forbiddenRedirectTo":"/admin"}},
   {"kind":"guard","file":"src/app/admin/(protected)/guard.ts","policy":{"access":{"roleCategories":["admin"]},…,"setupRedirectTo":"/admin/setup"}},
   {"kind":"guard","file":"src/app/guard.ts","policy":{"access":"public"}}]}
 ```
@@ -447,7 +446,7 @@ src/app/admin/(protected)/samples/
   - loader の `access` = `createLoader({ access })` の字面。管理画面の共通部品の組（`adminListParts("sample")` 等）は `{"registry":"sample.search"}`（serviceRegistry の entry から操作ごとに解く）。自前の load を書く loader も `access: <組>.access` なら同じ値に読む（同じファイルで 1 回だけ `const x = adminListParts("sample")` と束ねた `x.access`、またはインラインの `adminListParts("sample").access`
     - 組の関数は `@/domains/core/admin/services/server/screenParts` から import、domain は文字列の字面）。access を手書きの字面にすると domain の access が変わっても追随しないので、組を使う loader はこちらにする。`allowStatuses` は書いたときだけ（字面で読めない値は `{"expr":"USER_STATUSES"}`）
   - guard の `policy` = `defineRootGuard({…})` / 親の `extend({…})` の字面（`access`・`allowStatuses`・`redirectTo`・`forbiddenRedirectTo`・`returnBack`・`statusRedirects`・`setupRedirectTo` の順）
-- 生成失敗（`pnpm generate routes` が非 0、行と理由）: page.tsx から Screen を解決できない / Screen が `@/wiring/screen` の createScreen の呼び出しでない・その `load:` が同じルートの loader でない・静的な `metadata` を出す（`pnpm test scripts/structure/routes/screens.test.mjs` も同じ解析で検査）/ loader が最寄りの guard.ts の `createLoader` を使わない / access・方針・extend の親が字面で読めない / guard.ts の範囲の layout（とスイッチ先）が `authGuard` 等の旧ガードを直接呼ぶ / public でない guard.ts の隣の layout が `<Guard fallback>` を描かない・頭で `await guard()` する
+- 生成失敗（`pnpm generate routes` が非 0、行と理由）: page.tsx から Screen を解決できない / Screen が `@/wiring/screen` の createScreen の呼び出しでない・その `load:` が同じルートの loader でない・静的な `metadata` を出す（`pnpm test scripts/structure/routes/screens.test.mjs` も同じ解析で検査）/ loader が最寄りの guard.ts の `createLoader` を使わない / 鎖のどれかの段の `forbiddenRedirectTo` が同じ鎖の `redirectTo`(ログイン)と同じ値(D116) / access・方針・extend の親が字面で読めない / guard.ts の範囲の layout（とスイッチ先）が `authGuard` 等の旧ガードを直接呼ぶ / public でない guard.ts の隣の layout が `<Guard fallback>` を描かない・頭で `await guard()` する
 - 解析は `checks.mjs`（`checkScreenLoaderCall`・`parseLoaderGuard`・`parseGuardFile`・`layoutRendersGuard`・`layoutAwaitsGuard`・`layoutGuardsMetadata`・`parseLiteral`）で、地図と `pnpm test scripts/structure/routes/screens.test.mjs` が共有する
 - 既知の限界: 字面だけを読む。import の別名（`createLoader as x`）・変数に入れた方針・スプレッドは読めない（生成失敗になる）。組の access も上の 2 形だけ: 分割代入・別ファイルから import した組・let / var・名前の再宣言や再代入・`.access` の先まで辿る式は生成失敗（`pnpm test src/lib/screens/checks.test.mjs`）。Screen の `return` の後（JSX の中）の await は数えない
 - 地図は生成物: merge で衝突した時の解き方は `pnpm generate routes` での作り直し

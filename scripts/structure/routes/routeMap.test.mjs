@@ -297,6 +297,29 @@ export default function L({ children }) {
   assert.deepEqual(buildRouteMap(healthyTree()).problems, []);
 });
 
+test("buildRouteMap: 鎖のどれかの段の forbiddenRedirectTo が同じ鎖のログイン(redirectTo)と同じ値なら生成失敗、別の値は通る(D116)", () => {
+  const same = buildRouteMap(
+    healthyTree({ "src/app/admin/guard.ts": childGuard("@/app/guard", `{ access: { roleCategories: ["admin"] }, redirectTo: "/admin/login", forbiddenRedirectTo: "/admin/login" }`) }),
+  );
+  assert.ok(same.problems.some((p) => p.includes("src/app/admin/guard.ts") && p.includes("同じ鎖のログイン")), same.problems.join(" / "));
+  const childSame = buildRouteMap(
+    healthyTree({
+      "src/app/admin/y/guard.ts": childGuard("../guard", `{ access: { roles: ["admin"] }, forbiddenRedirectTo: "/admin/login" }`),
+      "src/app/admin/y/layout.tsx": GUARD_LAYOUT,
+      "src/app/admin/y/_screen/loader.ts": loader("loadYScreen", "../guard", `{ roles: ["admin"] }`),
+    }),
+  );
+  assert.ok(childSame.problems.some((p) => p.includes("src/app/admin/y/guard.ts") && p.includes("同じ鎖のログイン")), "親の段のログインと同じ値も止める");
+  const other = buildRouteMap(
+    healthyTree({
+      "src/app/admin/y/guard.ts": childGuard("../guard", `{ access: { roles: ["admin"] }, forbiddenRedirectTo: "/admin" }`),
+      "src/app/admin/y/layout.tsx": GUARD_LAYOUT,
+      "src/app/admin/y/_screen/loader.ts": loader("loadYScreen", "../guard", `{ roles: ["admin"] }`),
+    }),
+  );
+  assert.deepEqual(other.problems, []);
+});
+
 test("buildRouteMap: 守りの範囲の段に loading.tsx を求めない(待ちの境界は Screen の createScreen と範囲の Guard、D102・D106)", () => {
   const adminPage = (dir, name) => ({
     [`${dir}/page.tsx`]: page(name),

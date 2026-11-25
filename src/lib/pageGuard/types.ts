@@ -49,7 +49,11 @@ export type PageGuardPolicy = {
   allowStatuses?: readonly string[];
   /** 未認証の行き先(省略 = notFound) */
   redirectTo?: string;
-  /** 権限不足(ロール不一致・status で行き先の無いもの)の行き先(省略 = notFound) */
+  /**
+   * 範囲の段の権限不足(ログイン済みでロール不一致・status で行き先の無いもの)の行き先(省略 = notFound)。
+   * ログイン済みの人を別の画面へ送る時だけ書く(例 /admin/users → /admin)。同じ鎖のどれかの段の redirectTo(ログイン)と
+   * 同じ値は地図の検査が止める。ページの access の拒否には使わない(notFound、D116)
+   */
   forbiddenRedirectTo?: string;
   /** 行き先に ?returnTo=<今のパス> を付ける */
   returnBack?: boolean;

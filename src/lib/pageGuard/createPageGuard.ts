@@ -35,7 +35,11 @@ async function withReturnTo<TUser extends PageGuardUser>(
   return `${to}${separator}returnTo=${encodeURIComponent(current)}`;
 }
 
-/** 方針の段 1 つを評価する。通れば何もしない、拒否なら redirect / notFound で止める */
+/**
+ * 方針の段 1 つを評価する。通れば何もしない、拒否なら redirect / notFound で止める。
+ * ログイン済みの拒否: status だけが通らない → statusRedirects、それ以外 → forbiddenRedirectTo(ログインと別の画面へ送る時だけ書く。
+ * ログインと同じ値は地図の検査が止める)→ 無ければ notFound(D116)
+ */
 async function enforceLevel<TUser extends PageGuardUser>(
   deps: PageGuardDeps<TUser>,
   level: PageGuardPolicy,
@@ -60,7 +64,10 @@ async function enforceLevel<TUser extends PageGuardUser>(
   notFound();
 }
 
-/** ページ自身の access を評価する。行き先は最寄りの段の方針を使う */
+/**
+ * ページ自身の access を評価する。未認証は最寄りの段の redirectTo(ログイン)へ。ログイン済みの拒否は notFound
+ * (範囲の forbiddenRedirectTo に送らない。ログインの画面へ送るのは未ログインの人だけ、D116)
+ */
 async function enforcePageAccess<TUser extends PageGuardUser>(
   deps: PageGuardDeps<TUser>,
   levels: readonly PageGuardPolicy[],
@@ -74,9 +81,6 @@ async function enforcePageAccess<TUser extends PageGuardUser>(
   if (decision === "granted") return;
   if (decision === "unauthenticated" && nearest.redirectTo) {
     redirect(await withReturnTo(deps, nearest.redirectTo, nearest.returnBack));
-  }
-  if (decision === "forbidden" && nearest.forbiddenRedirectTo) {
-    redirect(await withReturnTo(deps, nearest.forbiddenRedirectTo, nearest.returnBack));
   }
   notFound();
 }

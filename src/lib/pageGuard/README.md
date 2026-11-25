@@ -33,7 +33,7 @@ src/app/<範囲>/layout.tsx = export const generateMetadata = guardMetadata(...)
 | `access` | `public` / `authenticated` / `{ roles, roleCategories }`(範囲は `none` を持たない) |
 | `allowStatuses` | 通す status(省略 = 束の既定。fail-closed) |
 | `redirectTo` | 未認証の行き先(省略 = notFound) |
-| `forbiddenRedirectTo` | 権限不足の行き先(省略 = notFound) |
+| `forbiddenRedirectTo` | 範囲の段で、ログイン済みの権限不足の行き先(省略 = notFound)。ログイン済みの人を別の画面へ送る時だけ書く(例 `/admin/users` → `/admin`)。同じ鎖のどれかの段の `redirectTo`(ログイン)と同じ値は地図の検査が止める(拒まれた人とログインの画面が行き来する、D116) |
 | `returnBack` | 行き先に `?returnTo=<今のパス>` を付ける |
 | `statusRedirects` | ロールは満たし status だけが通らないときの status 別の行き先(returnTo なし) |
 | `setupRedirectTo` | 範囲の access を満たす利用者が 1 人もいないときの行き先(初期セットアップの誘導) |
@@ -49,7 +49,7 @@ src/app/<範囲>/layout.tsx = export const generateMetadata = guardMetadata(...)
   - 返る loader は `publicChain`(範囲の全段とページの `access` が public で前提の判定の無い遅らせる鎖か)を持つ(型 `PageLoader`)。画面の作り手 `createScreen`(`src/lib/screens/README.md`)が読み、この鎖で題名が値なら load を待たずに返す(殻と `<head>` に入る、D119)
   - `load` はデータの無いページでは省く(access だけを評価して undefined。公開の鎖では殻に入る)
   - `shell: true`: load が DB・保管庫・request(`key`・`getUser`・`allows`)を読まない宣言。公開の鎖で connection() を待たずに load を呼び、ページが殻に入る。宣言の可否は `src/lib/screens` の `checkLoaderFile` と build:post の殻の検査が名指す
-  - ページの `access` の拒否: `none` → notFound、未認証 → 最寄りの段の `redirectTo`(無ければ notFound)、権限不足 → 最寄りの段の `forbiddenRedirectTo`(無ければ notFound)
+  - ページの `access` の拒否: `none` → notFound、未認証 → 最寄りの段の `redirectTo`(無ければ notFound)、ログイン済みの権限不足 → notFound(範囲の `forbiddenRedirectTo` に送らない。ログインの画面へ送るのは未ログインの人だけ、D116)
   - `load({ getUser, allows }, ...key)`: どちらも非同期で、呼んだ時に利用者を解く(リクエスト内 1 回、2 つで共有)
     - `await getUser()`: DB 同期の利用者。`access: "public"` では Cookie があり利用可能な status(ページか最寄りの段の `allowStatuses`、無ければ既定)のときだけ非 null
     - `await allows(rule)`: 別の access を同じ利用者・status で評価する(取得前の追加の判定。例: 管理画面の関連先ごとの list の access)
@@ -65,7 +65,7 @@ src/app/<範囲>/layout.tsx = export const generateMetadata = guardMetadata(...)
   - load の無い loader は何も待たずに返り、`shell: true` の load は待たずに走る: どちらも殻に入る
   - 理由: cacheComponents の殻は request を読まない部分だけで作られる。先に利用者を解くと Cookie を読み、公開のページの Screen まで殻から外れる
   - それ以外の鎖(ログイン必須・管理・debug、setup 誘導のある段)は今どおり、全段 → ページの access を評価してから load を呼ぶ(拒否なら load を呼ばない)
-- 段ごとの順: setup 誘導 → access(未認証 → `redirectTo`、status だけ不可 → `statusRedirects`、それ以外の拒否 → `forbiddenRedirectTo`、行き先が無ければ notFound)
+- 段ごとの順: setup 誘導 → access(未認証 → `redirectTo`、status だけ不可 → `statusRedirects`、それ以外のログイン済みの拒否 → `forbiddenRedirectTo`(ログインと別の値)、無ければ notFound)
 - 利用者の解き方・access の評価・既定の status・今のパス・setup 誘導の判定は束(点 `pageGuardUser` の項目、上流は `domains/core/auth` の `plugs/pageGuardUser/session.ts`)が持つ。lib は束を生成物 `src/wiring/pageGuard.ts` の結び目 `wirePageGuard` から受ける(宣言 `./extensionPoints.ts`、約束の型 `./plugs.ts`)
 
 ## Verification

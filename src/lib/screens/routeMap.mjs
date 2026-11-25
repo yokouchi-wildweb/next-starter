@@ -126,7 +126,25 @@ export function walkGuards(guardFile, fileSet, read) {
     if (!dirOf(file).startsWith(`${dirOf(parent)}/`)) problems.push(`${file}: extend の親 ${parent} が祖先の範囲でない`);
     file = parent;
   }
+  problems.push(...forbiddenEqualsLogin(stages));
   return { stages, problems };
+}
+
+/**
+ * 範囲の鎖のどれかの段の forbiddenRedirectTo が、同じ鎖のどれかの段の redirectTo(未ログインの行き先 = ログイン)と同じ値か(D116)。
+ * ログイン済みで拒まれた人をログインの画面へ送ると、ログインの画面が戻す先へ戻して行き来する(/debug ↔ /login)。
+ * ログイン済みの拒否は notFound、別の画面へ送る時だけ別の値の forbiddenRedirectTo を書く
+ * @param {GuardStage[]} stages
+ * @returns {string[]}
+ */
+function forbiddenEqualsLogin(stages) {
+  const logins = new Set(stages.map((stage) => stage.policy.redirectTo).filter((to) => typeof to === "string"));
+  return stages
+    .filter((stage) => typeof stage.policy.forbiddenRedirectTo === "string" && logins.has(stage.policy.forbiddenRedirectTo))
+    .map(
+      (stage) =>
+        `${stage.file}: forbiddenRedirectTo(${stage.policy.forbiddenRedirectTo})が同じ鎖のログイン(redirectTo)と同じ値(ログイン済みで拒まれた人とログインの画面が行き来する。外せば notFound、別の画面へ送るなら別の値、D116)`,
+    );
 }
 
 /**

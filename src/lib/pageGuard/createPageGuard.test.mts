@@ -77,20 +77,19 @@ const root = defineRootGuard({ access: "public" });
 const userRange = root.extend({
   access: { roleCategories: ["admin", "user"] },
   redirectTo: "/login",
-  forbiddenRedirectTo: "/login",
   returnBack: true,
   statusRedirects: { inactive: "/reactivate" },
 });
 const adminRange = root.extend({
   access: { roleCategories: ["admin"] },
   redirectTo: "/admin/login",
-  forbiddenRedirectTo: "/admin/login",
   returnBack: true,
   setupRedirectTo: "/admin/setup",
 });
 // 子が親より広い access を書いても、親の段が先に評価されるので広がらない
 const widenedChild = adminRange.extend({ access: "public" });
-const usersRange = adminRange.extend({ access: { roles: ["admin"] }, redirectTo: "/admin", forbiddenRedirectTo: "/admin" });
+// ログイン済みの人を別の画面へ送る forbiddenRedirectTo(ログインと別の値、D116)
+const usersRange = adminRange.extend({ access: { roles: ["admin"] }, forbiddenRedirectTo: "/admin" });
 
 /** redirect / notFound の結果を文字列にする(通れば "ok") */
 async function outcome(run: () => Promise<unknown>): Promise<string> {
@@ -130,8 +129,9 @@ test("Guard の守り: status だけが通らないときは status 別の行き
   assert.equal(await as(active, enforce(userRange)), "ok");
 });
 
-test("Guard の守り: ロール不一致は forbiddenRedirectTo、行き先が無ければ notFound", async () => {
-  assert.equal(await as(active, enforce(adminRange)), `redirect:/admin/login?returnTo=${encodeURIComponent("/mypage/account")}`);
+test("Guard の守り: ログイン済みのロール不一致は forbiddenRedirectTo、無ければ notFound(ログインへは送らない、D116)", async () => {
+  assert.equal(await as(active, enforce(adminRange)), "notFound", "会員が管理を開くと notFound");
+  assert.equal(await as(editor, enforce(usersRange)), "redirect:/admin", "別の画面へ送る forbiddenRedirectTo は残る");
   const bare = root.extend({ access: { roles: ["admin"] } });
   assert.equal(await as(active, enforce(bare)), "notFound");
   assert.equal(await as(null, enforce(bare)), "notFound");
@@ -144,13 +144,14 @@ test("Guard の守り: setup 誘導は access の判定より先", async () => {
 });
 
 test("extend: 親子 AND。子は狭めるだけで、広い access を書いても親が先に止める", async () => {
-  assert.equal(await as(active, enforce(widenedChild)), `redirect:/admin/login?returnTo=${encodeURIComponent("/mypage/account")}`);
+  assert.equal(await as(active, enforce(widenedChild)), "notFound");
   assert.equal(await as(admin, enforce(widenedChild)), "ok");
   // 子の段: 管理者カテゴリでも admin ロール以外は子の行き先へ
   assert.equal(await as(editor, enforce(usersRange)), "redirect:/admin");
   assert.equal(await as(admin, enforce(usersRange)), "ok");
-  // 親の段が先: 管理者カテゴリでない利用者は親の行き先へ
-  assert.equal(await as(active, enforce(usersRange)), `redirect:/admin/login?returnTo=${encodeURIComponent("/mypage/account")}`);
+  // 親の段が先: 管理者カテゴリでない利用者は親の段で notFound、未ログインは親のログインへ
+  assert.equal(await as(active, enforce(usersRange)), "notFound");
+  assert.equal(await as(null, enforce(usersRange)), `redirect:/admin/login?returnTo=${encodeURIComponent("/mypage/account")}`);
 });
 
 test("createLoader: 範囲かページの access が拒否なら load を呼ばない", async () => {
@@ -163,7 +164,7 @@ test("createLoader: 範囲かページの access が拒否なら load を呼ば�
     },
   });
   assert.equal(await as(null, () => load({})), `redirect:/login?returnTo=${encodeURIComponent("/mypage/account")}`);
-  assert.equal(await as(active, () => load({})), `redirect:/login?returnTo=${encodeURIComponent("/mypage/account")}`);
+  assert.equal(await as(active, () => load({})), "notFound", "ページの access で拒まれたログイン済みの人は notFound(D116)");
   assert.equal(calls, 0);
   assert.equal(await as(admin, () => load({})), "ok");
   assert.equal(calls, 1);
@@ -173,6 +174,13 @@ test("createLoader: 返る loader の publicChain = 範囲の全段とページ�
   assert.equal(root.createLoader({ access: "public" }).publicChain, true);
   assert.equal(root.createLoader({ access: { roles: ["admin"] } }).publicChain, false);
   assert.equal(userRange.createLoader({ access: "public" }).publicChain, false, "守りの範囲の public のページは公開の鎖でない");
+});
+
+test("createLoader: ページの拒否は範囲に forbiddenRedirectTo があっても notFound、未認証は最寄りの段のログイン(D116)", async () => {
+  const load = usersRange.createLoader({ access: { roles: ["owner"] } });
+  assert.equal(await as(admin, () => load({})), "notFound");
+  const inUser = userRange.createLoader({ access: { roles: ["admin"] } });
+  assert.equal(await as(null, () => inUser({})), `redirect:/login?returnTo=${encodeURIComponent("/mypage/account")}`);
 });
 
 test("createLoader: access none は notFound", async () => {
@@ -320,7 +328,7 @@ test("guardMetadata: 断られた訪問者には Guard と同じ redirect / notF
   const base = { robots: { index: false, follow: false } };
   const run = (range: typeof adminRange) => async () => range.guardMetadata(base)();
   assert.equal(await as(null, run(adminRange)), `redirect:/admin/login?returnTo=${encodeURIComponent("/mypage/account")}`);
-  assert.equal(await as(active, run(adminRange)), `redirect:/admin/login?returnTo=${encodeURIComponent("/mypage/account")}`);
+  assert.equal(await as(active, run(adminRange)), "notFound", "ログイン済みの会員は notFound(D116)");
   const bare = root.extend({ access: { roles: ["admin"] } });
   assert.equal(await as(null, async () => bare.guardMetadata()()), "notFound");
   usersExist = false;
