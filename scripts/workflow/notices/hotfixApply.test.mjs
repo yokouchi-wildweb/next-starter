@@ -128,12 +128,17 @@ test("fork が手で変えたファイルは 3 方向で合わせる(別の行�
   assert.equal(read(fork, "src/a.ts"), "MINE\n2\n3\n4\nFIX\n");
 });
 
-test("(a) 上流で後から移されたファイルの直しは fork の前の場所に 3 方向で当てる", () => {
+test("上流で後から移されたファイルの直しは left-out、名前の変わった候補を出すだけ(前の場所は変えない、D476)", () => {
   const { fork, hot } = small({ files: { "src/old.ts": "1\n2\n3\n4\n5\n" }, moves: [["src/old.ts", "src/new.ts"]], hot: { "src/new.ts": "1\n2\n3\n4\nFIX\n" } });
   const r = hotfixApply(fork, hot, "upstream/main");
   assert.equal(r.status, "picked");
-  assert.deepEqual(r.movedMerged, [{ from: "src/old.ts", to: "src/new.ts" }]);
-  assert.equal(read(fork, "src/old.ts"), "1\n2\n3\n4\nFIX\n");
+  assert.deepEqual(r.leftOut, ["src/new.ts"]);
+  assert.equal(r.renameCandidates.length, 1);
+  assert.deepEqual([r.renameCandidates[0].path, r.renameCandidates[0].from, r.renameCandidates[0].to], ["src/new.ts", "src/old.ts", "src/new.ts"]);
+  assert.match(r.renameCandidates[0].score, /^R\d+$/);
+  assert.equal(read(fork, "src/old.ts"), "1\n2\n3\n4\n5\n");
+  assert.match(ledgerNotes(r), /left-out: src\/new\.ts; rename-candidate: src\/old\.ts->src\/new\.ts\(R\d+\)$/);
+  assert.ok(!("movedMerged" in r));
 });
 
 test("(b) 直す相手が fork の木に無ければ飛ばして left-out(止めない)", () => {
