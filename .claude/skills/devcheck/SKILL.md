@@ -7,10 +7,10 @@ argument-hint: "[確かめたいこと(省略で変更の中身から選ぶ)]"
 role: check the change of this session with `pnpm workflow devcheck plan|run|cleanup` and Playwright MCP, after one go
 source_of_truth: kinds, commands, policy, fork items, exit codes, DEVCHECK_CONTEXT = scripts/workflow/devcheck/README.md | the processing stays in the command
 args: $ARGUMENTS
-out_of_scope: a check sheet of an order (`<order>.check.md`) → /patrol | the schema push (pnpm db:push) and anything on production are never a check | tests, lint, types and pnpm check are never a devcheck: checks run only inside a ship tool (D357: /sluice step 2, /flux's segment checks)
+out_of_scope: a check sheet of an order (`<order>.check.md`) → /patrol | the schema push (pnpm db:push) and anything on production are never a check (the dangerous kinds: /allow)
 
 ## STEPS
-1. **facts**: `pnpm workflow devcheck plan` | exit 2 → tell the user its one line; STOP
+1. **facts**: `pnpm workflow devcheck plan` | exit 2 (policy, items or context unreadable) → tell the user its one line; check by hand what you can, or fix the cause it names
    - read: policy per kind (`自動` / `別に確認` / `手で`), fork items, context (`単体` = take a go | approval=auto = no go), state (server, live servers / limit, admin)
 2. **pick** from the candidates what this change needs (the args, else the diff of this session): only what proves the change works
    - kinds: server · browser · login · db-write · db-delete · env-add · fork items | cleanup is always the last bullet
@@ -26,13 +26,14 @@ out_of_scope: a check sheet of an order (`<order>.check.md`) → /patrol | the s
    STOP: wait for go | a changed list → show it again and wait
 4. **run** in the listed order, each with `pnpm workflow devcheck run <name> [args]`:
    - server → use the printed URL | a line `この道具の外で開発サーバーが動いています` = a server outside the tool serves this checkout → use it | login → its email / password / loginUrl, log in with Playwright
-   - browser → Playwright MCP (navigate, act, read the page, console errors); never create data except through the app's screens
-   - db-write → one `INSERT INTO <table> … RETURNING <column>` (test data in development only; user / setting rows through the app's screens)
-   - env-add → the value on stdin, never printed or echoed
+   - browser → Playwright MCP (navigate, act, read the page, console errors) | data: through the app's screens by default
+   - db-write → test rows the screens cannot make: one `INSERT INTO <table> … RETURNING <column>` on the development DB (cleanup deletes them)
+   - env-add → the value on stdin (the command never prints it; keep it out of your own lines too)
    - `別に確認` (manual) items → ask for that item alone, then add `--manual-go`
    - exit 4 (policy) → that item becomes `手で` | a server line `上限` = more dev servers run than the limit: started anyway, say so in the report
-5. **continue without asking** only inside the go: the listed kinds whose policy is `自動`, the same server and the same development DB, deleting what this plan created
-   - STOP and ask again for: an off kind, another environment or connection, deleting data this plan did not create, sending anything outside, any step not in the list
+5. **continue without asking** inside the go: the listed kinds whose policy is `自動`, the same server and the same development DB, deleting what this plan created
+   - ask again only for what is the user's call: an off or `別に確認` kind not in the go, anything on production
+   - another step the change needs → do it and give it one line in the report
 6. **cleanup**: `pnpm workflow devcheck cleanup` always, also after a failure | exit 1 → report what was left
 7. **report** once:
    ```

@@ -7,10 +7,11 @@ argument-hint: "[key value]"
 role: change the keys of repo.json through `pnpm workflow repo-json set|unset`, after one yes
 source_of_truth: the file form, keys and groups = scripts/workflow/repo-json/README.md | agent keys, values, defaults = scripts/workflow/devcheck/README.md (section `方針`) | the processing stays in the commands
 args: $ARGUMENTS
-never: edit repo.json yourself (the hook stops Edit / Write and shell writes) | write `repo_id` or `tier` (shown only: they belong to /fork-init and `pnpm workflow repo-json migrate`) | set a dangerous kind to `auto` (read as off) | change a key the user did not ask for
+tool: repo.json is written by `pnpm workflow repo-json set|unset` (it checks the form; settings.json permissions.deny stops Edit / Write of repo.json) | `repo_id`, `tier`: shown only by default (/fork-init and `pnpm workflow repo-json migrate` set them)
+never: change a key the user did not ask for (their decision) | a dangerous kind as `auto` is read as off: offer `manual`
 
 ## STEPS
-1. **now**: `pnpm workflow repo-json show` and `pnpm workflow devcheck plan` (its `方針` line = the agent values in effect, defaults included) | show exit 2 (a flat repo.json, an unknown key) → tell its lines and `pnpm workflow repo-json migrate`; STOP
+1. **now**: `pnpm workflow repo-json show` and `pnpm workflow devcheck plan` (its `方針` line = the agent values in effect, defaults included) | show exit 2 (a flat repo.json, an unknown key) → tell its lines; `pnpm workflow repo-json migrate` puts the form right, then go on
 2. **show by group** (only the groups the request touches, or all when the user asked to see the settings):
    - identity: `repo_id`, `tier` (shown only)
    - agent: the kinds server · browser · login · db_write · db_delete · env_add · peer (auto | manual | off), `agent.enabled` (true | false), the dangerous `agent.db_push` · `agent.env_production` · `agent.deploy` and `agent.intervene` (off | manual) — a key not written shows `既定 <値>` from the `方針` line
