@@ -1,11 +1,12 @@
 // scripts/operations/deploy/lib.ts — デプロイの動作(all・app・room)が共有する段
 //
-// 段: checkCron(事前検査) → deployRoom(Worker) → deployApp(Vercel)。
+// 段: checkCron(事前検査) → syncEnv(アプリを本番に出す時だけ) → deployRoom(Worker) → deployApp(Vercel)。
 // どの段も失敗したら理由を出して exit 1 で止める(次の段に進まない)。
 // 本番に出す前の確認は共通の守り(scripts/runner/guard の guardDeploy): 手で打つなら「production」と打たせ、
 // 非対話(TTY なし・CI・エージェント)は方針 agent.deploy と人の 1 回分の許可 dep がある時だけ通す(--confirm=production だけでは通さない、
 // D420)。プレビュー(--prod でない vercel)は確認なし。
-// env ファイルは読まない・上げない(ホスティング側の env で動く)。アプリ(Vercel)に上げるのは HEAD の commit の中身だけ:
+// env ファイルは上げない(ホスティング側の env で動く)。本番に出す前に .env.production の鍵で Vercel の本番に無い名だけを
+// その値で足す(syncEnv: 足すだけ・上書きしない・足した名を画面に。デプロイの守りの後なので evp は見ない、D462 (2))。アプリ(Vercel)に上げるのは HEAD の commit の中身だけ:
 // git archive で一時の場所に書き出し、リンク(.vercel/project.json)だけを写してそこから vercel を呼ぶ(作業場所の .env*・
 // 未追跡・無視されたファイル・手元の build は上がらない。上がる木 = セーフポイントの知らせが見た commit)。
 // 本番に出す時は確認の後に今セーフポイントの上かを 1 行出す(reportSafePoint。止めない、D317。仕様 = .notices/README.md「区切り(checkpoint)と区間適用」のセーフポイント)。
@@ -16,6 +17,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { realtimeRoomConfig } from "@/lib/realtimeRoom";
+import { syncProductionEnv } from "../vercel/lib.vercel.mjs";
 import { deployPosition } from "../../workflow/notices/safePoint.mjs";
 import { deployRoomWorker, roomDeployReady } from "../room/lib.deploy";
 
@@ -41,6 +43,18 @@ export function checkCron(): void {
 export function deployRoom(args: readonly string[] = []): void {
   // 同じプロセスの中で出す(子の pnpm ops room deploy にしない: 確認と許可は呼び手の守りで済んでいる)
   if (roomDeployReady()) deployRoomWorker(args);
+}
+
+/**
+ * デプロイの前の env の揃え(アプリを本番に出す時だけ呼ぶ): .env.production の空でない鍵のうち Vercel の本番に無い名を足す。
+ * 足すのに失敗したら(名前が読めない時も)デプロイせず止める
+ */
+export function syncEnv(): void {
+  const r = syncProductionEnv({ root: repoRoot, run: (argv: string[], opts: object = {}) => spawnSync("vercel", argv, { cwd: repoRoot, shell: false, encoding: "utf8", ...opts }) });
+  if (!r.ok) {
+    console.error("\n✗ Vercel の本番の env を揃えられなかったため、デプロイを中止します(scripts/operations/vercel/README.md)");
+    process.exit(1);
+  }
 }
 
 /** アプリ(Vercel)。引数はそのまま vercel CLI へ渡す。無指定なら --prod */

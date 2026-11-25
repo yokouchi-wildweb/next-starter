@@ -1,6 +1,6 @@
 ---
 name: vercel
-description: Operate Vercel through the one entry pnpm ops vercel - look freely (status, env-ls), and add, remove or pull environment variables only under this repo's agent.env_production policy (off or manual) and the user's one-time /allow evp permit; values go in through stdin or a file, never as arguments | When the user asks about or wants a change to the Vercel project, its deployments or its environment variables; never for deploying to production (that is agent.deploy's entry, pnpm live)
+description: Operate Vercel through the one entry pnpm ops vercel - look freely (status, env-ls), write development / preview env freely, and add, remove or pull production env only under agent.env_production (off or manual) and the user's one-time /allow evp (a production add also writes .env.production); values via stdin or a file, never as arguments | When the user asks about or wants a change to the Vercel project, its deployments or its environment variables; never for deploying to production (that is agent.deploy's entry, pnpm live)
 argument-hint: "<status | env-ls | env-add | env-rm | env-pull> [<引数>...]"
 ---
 
@@ -12,8 +12,8 @@ never: a bare `vercel env add|rm|pull` (the permit hook stops it and points here
 
 ## STEPS
 1. look (`status`, `env-ls [<環境>]`): run `pnpm ops vercel <動作>` → REPORT
-2. write or pull (`env-add`, `env-rm`, `env-pull`):
-   1. the permit: the user's own words in this tab that allow it → `pnpm workflow devcheck allow evp --words "<their words, as given>"` (or the user's own `/allow evp`) | no such words → STOP: ask the user, run nothing
+2. write or pull (`env-add`, `env-rm`, `env-pull`) | `development` / `preview`: no policy, no permit → go to 2.2
+   1. the permit (`production` only): the user's own words in this tab that allow it → `pnpm workflow devcheck allow evp --words "<their words, as given>"` (or the user's own `/allow evp`) | no such words → STOP: ask the user, run nothing
       - exit 4 → the policy is off: show its line (the user runs the bare vercel line themselves, or changes agent.env_production with /repo-config); STOP
    2. the value (env-add): from a file the user named → `--value-file=<道>` | a value the user gave in chat → write it to a file in your scratchpad, pass `--value-file`, delete the file after | never as an argument
    3. run `pnpm ops vercel <動作> <引数>` in this same turn (the permit ends at the user's next message; the command uses it once)

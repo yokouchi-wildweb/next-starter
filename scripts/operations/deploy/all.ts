@@ -20,16 +20,19 @@
 // ※ vercel CLI に --preview フラグは存在しない。素のデプロイ (=プレビュー) は本コマンドでは
 //    --prod フォールバックに塞がれているため、プレビューは --target=preview を明示すること
 // 本番なら今セーフポイントの上かを 1 行出す(止めない、D317。scripts/runner/guard/README.md)
+// アプリを本番に出すなら、ルームより前に .env.production の鍵で Vercel の本番に無い名を足す(syncEnv、D462)
 
 import { guardDeploy } from "../../runner/guard";
-import { argsOf, checkCron, deployApp, deployRoom, isProductionVercel, reportSafePoint, roomWillDeploy } from "./lib";
+import { argsOf, checkCron, deployApp, deployRoom, isProductionVercel, reportSafePoint, roomWillDeploy, syncEnv } from "./lib";
 
 console.log("=== live:all (room → app) ===\n");
 // 本番に出すなら(アプリが --prod か、ルームの Worker を出すなら)確認を 1 回。非対話は方針と人の 1 回分の許可 dep。何かを打つ前に止める
-const production = roomWillDeploy() || isProductionVercel(argsOf(process.argv.slice(2)).filter((a) => !a.startsWith("--confirm=")));
+const appProduction = isProductionVercel(argsOf(process.argv.slice(2)).filter((a) => !a.startsWith("--confirm=")));
+const production = roomWillDeploy() || appProduction;
 guardDeploy("pnpm live:all(ルームとアプリを本番に出す)", production);
 reportSafePoint(production);
 checkCron();
+if (appProduction) syncEnv();
 // 確認は済んだので、ルームの Worker は同じプロセスの中で出す(二度聞かない)
 deployRoom();
 deployApp(argsOf(process.argv.slice(2)));

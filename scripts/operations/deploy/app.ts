@@ -9,9 +9,10 @@
 //   pnpm live -- --target=preview      # プレビュー(vercel CLI に --preview は無い)
 // ※ ルームサーバーのプロトコルを変えた変更は pnpm live:all で出す(Worker → アプリの順で揃える)
 // 本番なら今セーフポイントの上かを 1 行出す(止めない、D317。scripts/runner/guard/README.md)
+// 本番なら出す前に .env.production の鍵で Vercel の本番に無い名を足す(syncEnv、D462)
 
 import { guardDeploy } from "../../runner/guard";
-import { argsOf, checkCron, deployApp, isProductionVercel, reportSafePoint } from "./lib";
+import { argsOf, checkCron, deployApp, isProductionVercel, reportSafePoint, syncEnv } from "./lib";
 
 console.log("=== live:app (app) ===\n");
 const production = isProductionVercel(argsOf(process.argv.slice(2)).filter((a) => !a.startsWith("--confirm=")));
@@ -19,5 +20,6 @@ const production = isProductionVercel(argsOf(process.argv.slice(2)).filter((a) =
 guardDeploy("pnpm live(アプリを本番に出す)", production);
 reportSafePoint(production);
 checkCron();
+if (production) syncEnv();
 deployApp(argsOf(process.argv.slice(2)));
 console.log("\n✓ デプロイ完了 (app)");

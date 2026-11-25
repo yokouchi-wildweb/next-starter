@@ -241,6 +241,14 @@ test("デプロイ(指令 45 の事故の形): 非対話の pnpm live:all は許
   writePermit(ROOT, ["dep"], "guard.test の進む側");
   const allowed = run([]);
   assert.equal(allowed.status, 0, allowed.stdout + allowed.stderr);
-  assert.deepEqual(readFileSync(log, "utf8").trim().split("\n"), ["--version", "--prod"], "--confirm は vercel に渡さない");
+  // 本番に出す前の env の揃え(syncEnv、D462)は偽の vercel に env ls / env add を呼ぶ(値は標準入力、記録には名前だけ)。揃えの呼びを除いた
+  // 残りが --version → --prod で、揃えは --prod より前
+  const calls = readFileSync(log, "utf8").trim().split("\n");
+  assert.deepEqual(calls.filter((c) => !c.startsWith("env ")), ["--version", "--prod"], "--confirm は vercel に渡さない");
+  const env = calls.map((c, i) => [c, i] as const).filter(([c]) => c.startsWith("env "));
+  if (env.length) {
+    assert.equal(env[0][0], "env ls production");
+    assert.ok(env.every(([c, i]) => /^env (ls|add \S+) production$/.test(c) && i < calls.indexOf("--prod")), calls.join(" | "));
+  }
   assert.equal(readPermit(ROOT), null, "許可は使って消える");
 });
