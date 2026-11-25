@@ -2,11 +2,14 @@
 // .notices/20261122-180722-district-stage1.domains-rename.mjs
 // ドメインの置き場の改名 features → domains(地区の議会 段 1、D10・D43)。上流(Tier1)も fork も同じ道具で、リポのルートで走らせる。
 // (notice .notices/20261122-180722-district-stage1.md の uses: の道具。fork が取り込みの merge の途中に走らせる。上流は出荷の次の commit で消す)
-// 使い方: node .notices/20261122-180722-district-stage1.domains-rename.mjs [--apply] [--json] [--base <sha>]
+// 使い方: node .notices/20261122-180722-district-stage1.domains-rename.mjs [--apply] [--json] [--merge <sha> | --base <sha>]
 //   既定は dry-run(移動・書き換えの計画と止める一覧を出すだけ、何も書かない)。--apply で書き換え → 移動の順に書く。
 //   --base <sha> = 取り込みの merge を先に commit した時(鉄道・艦隊の取り込みなど)の 3 方向の merge の基準(取り込み前の fork と
 //   上流の merge-base: 取り込みの merge commit を M として `git merge-base M^1 M^2`)。merge の途中(MERGE_HEAD がある)なら
 //   MERGE_HEAD との merge-base が勝ち、--base は使わない
+//   --merge <sha> = 取り込みの merge commit M そのもの(merge を先に commit した取り込みはこちら): 基準 = `git merge-base M^1 M^2`、
+//   木に無い fork の版(下の modify/delete の項)は取り込み前の fork M^1 から拾う。--base だけでは基準しか分からず、木に無い fork の版は
+//   拾わない(その旨を 1 行出す)。merge の途中なら MERGE_HEAD が勝つ
 //   何度走らせても同じ結果(2 回目の --apply は何も変えない。止める一覧は残る)
 //
 // 動かす物(フォルダごと。fork が足したファイルも一緒に動く。git の木なら git mv):
@@ -25,6 +28,7 @@
 //   - merge の途中で、古い道のファイルが作業の木に無いのに HEAD(fork)にはあり、基準の版と違う物(fork が値を変えた上流のファイル。
 //     小さい設定ファイルは git が改名と見ず modify/delete(UD)になり、古い道の版が木から消えることがある)→ HEAD の版を自分として
 //     同じ 3 方向の merge に入れる(移す先が無ければ HEAD の版を書き換えて置く)。上流の版で黙って置き換えて fork の行を落とさない
+//     merge を commit した後(--merge)は HEAD でなく取り込み前の fork M^1 の版で同じことをする(取り込みの merge が古い道を消した物)
 //   ファイルごとに動かした道は git add -A で索引に載せる(取り込みの merge の衝突もここで解ける)
 //
 // 書き換える形(文字列のパスだけ。語としての feature(門番の機能)は触らない。`\/` の正規表現の字面も同じに読む):
@@ -255,17 +259,27 @@ function listEmpty(abs) {
  * @param {string} root
  * @param {{ base?: string | null }} [opts]
  */
-export function mergeBaseReader(root, { base: given = null } = {}) {
+export function mergeBaseReader(root, { base: given = null, merge = null } = {}) {
   if (!existsSync(join(root, ".git"))) return () => null;
-  const head = spawnSync("git", ["rev-parse", "-q", "--verify", "MERGE_HEAD"], { cwd: root, encoding: "utf8" });
   let base = "";
-  if (head.status === 0) base = spawnSync("git", ["merge-base", "HEAD", "MERGE_HEAD"], { cwd: root, encoding: "utf8" }).stdout.trim();
+  if (inMerge(root)) base = spawnSync("git", ["merge-base", "HEAD", "MERGE_HEAD"], { cwd: root, encoding: "utf8" }).stdout.trim();
+  else if (merge) base = spawnSync("git", ["merge-base", ...mergeParents(root, merge)], { cwd: root, encoding: "utf8" }).stdout.trim();
   else if (given) base = resolveBase(root, given);
   if (!base) return () => null;
   return (path) => {
     const r = spawnSync("git", ["show", `${base}:${path}`], { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
     return r.status === 0 ? r.stdout : null;
   };
+}
+
+/** merge の途中か(MERGE_HEAD がある) */
+const inMerge = (root) => spawnSync("git", ["rev-parse", "-q", "--verify", "MERGE_HEAD"], { cwd: root, encoding: "utf8" }).status === 0;
+
+/** --merge の sha を取り込みの merge commit の 2 つの親 [取り込み前の fork, 上流] に解く(解けない・merge でなければ投げる) */
+export function mergeParents(root, merge) {
+  const parents = ["1", "2"].map((n) => spawnSync("git", ["rev-parse", "-q", "--verify", `${merge}^${n}^{commit}`], { cwd: root, encoding: "utf8" }));
+  if (parents.some((r) => r.status !== 0 || !r.stdout.trim())) throw new Error(`--merge ${merge} は取り込みの merge commit(親が 2 つ)に解けません(git log --merges で取り込みの merge を探す)`);
+  return parents.map((r) => r.stdout.trim());
 }
 
 /** --base の sha を commit に解く(解けなければ投げる: 打ち間違いの基準で黙って both-exist に落とさない) */
@@ -276,21 +290,25 @@ export function resolveBase(root, given) {
 }
 
 /**
- * merge の途中(MERGE_HEAD がある)で、移す元の下にあり作業の木に無い HEAD(fork)のファイルのうち、基準の版と違う物(fork が変えた物)。
- * modify/delete(UD)で古い道の版が木から消えた時、fork の版はここにしか無い。戻り: Map<道, HEAD の中身>
+ * 移す元の下にあり作業の木に無い fork のファイルのうち、基準の版と違う物(fork が変えた物)。fork の版を読む先 = merge の途中なら HEAD、
+ * merge を commit した後は fork(--merge の M^1、取り込み前の fork)。どちらも無ければ拾わない(--base だけの時)。
+ * modify/delete(UD)で古い道の版が木から消えた時、fork の版はここにしか無い。戻り: Map<道, fork の中身>(読んだ先は .ref)
  * @param {string} root
  * @param {(path: string) => string | null} baseText
+ * @param {{ fork?: string | null }} [opts]
  */
-export function headOnlyForkFiles(root, baseText) {
+export function headOnlyForkFiles(root, baseText, { fork = null } = {}) {
   const found = new Map();
   if (!existsSync(join(root, ".git"))) return found;
-  if (spawnSync("git", ["rev-parse", "-q", "--verify", "MERGE_HEAD"], { cwd: root, encoding: "utf8" }).status !== 0) return found;
+  const ref = inMerge(root) ? "HEAD" : fork;
+  if (!ref) return found;
+  found.ref = ref;
   for (const move of MOVES) {
-    const r = spawnSync("git", ["ls-tree", "-r", "-z", "--name-only", "HEAD", "--", move.from], { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
+    const r = spawnSync("git", ["ls-tree", "-r", "-z", "--name-only", ref, "--", move.from], { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
     if (r.status !== 0) continue;
     for (const path of r.stdout.split("\0").filter(Boolean)) {
       if (existsSync(join(root, path)) || skipReason(path) === "binary") continue;
-      const head = spawnSync("git", ["show", `HEAD:${path}`], { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+      const head = spawnSync("git", ["show", `${ref}:${path}`], { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
       if (head.status !== 0) continue;
       if (head.stdout === baseText(path)) continue; // fork が変えていない(上流が動かした物をそのまま受ける)
       found.set(path, head.stdout);
@@ -340,6 +358,7 @@ export function planRename(root, { baseText = mergeBaseReader(root), headOnly = 
   const files = listFiles(root);
   const moves = [];
   const stops = [];
+  const forkRef = headOnly.ref ?? "HEAD";
   for (const move of MOVES) {
     if (!existsSync(join(root, move.from)) && ![...headOnly.keys()].some((f) => f.startsWith(`${move.from}/`))) continue;
     const inside = files.filter((f) => f.startsWith(`${move.from}/`));
@@ -347,7 +366,7 @@ export function planRename(root, { baseText = mergeBaseReader(root), headOnly = 
     const target = join(root, move.to);
     if (!(existsSync(target) && readdirSync(target).length > 0)) {
       if (existsSync(join(root, move.from))) moves.push({ ...move, mode: "folder", files: inside.length });
-      for (const from of fromHead) stops.push({ path: from, line: 0, kind: "head-only", text: `${from} は作業の木に無く HEAD にだけある(fork が変えた版)`, suggest: `git checkout HEAD -- ${from} で戻してから走らせ直す` });
+      for (const from of fromHead) stops.push({ path: from, line: 0, kind: "head-only", text: `${from} は作業の木に無く ${forkRef} にだけある(fork が変えた版)`, suggest: `git checkout ${forkRef} -- ${from} で戻してから走らせ直す` });
       continue;
     }
     // 移す先がある: ファイルごと
@@ -370,7 +389,7 @@ export function planRename(root, { baseText = mergeBaseReader(root), headOnly = 
         continue;
       }
       const merged = mergeOne(root, from, to, rewriteFile, baseText, headOnly.get(from));
-      if (merged.stop) stops.push({ path: from, line: 0, ...merged.stop, suggest: `${merged.stop.suggest}(fork の版は git show HEAD:${from})` });
+      if (merged.stop) stops.push({ path: from, line: 0, ...merged.stop, suggest: `${merged.stop.suggest}(fork の版は git show ${forkRef}:${from})` });
       else items.push({ from, to, how: merged.same ? "same" : "merge", head: true });
     }
     moves.push({ ...move, mode: "files", files: items.length, items });
@@ -443,32 +462,37 @@ export function applyRename(root, plan, { baseText = mergeBaseReader(root), head
   return { moved: plan.moves.map((m) => m.to), edited: plan.edits.length };
 }
 
-/** 引数: --apply / --json / --base <sha>(--base=<sha> も) */
+/** 引数: --apply / --json / --merge <sha> / --base <sha>(--merge=<sha>・--base=<sha> も) */
 export function parseArgs(args) {
-  let base = null;
+  const values = { base: null, merge: null };
+  const what = { base: "取り込みの merge-base", merge: "取り込みの merge commit" };
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--base") {
-      base = args[i + 1] && !args[i + 1].startsWith("--") ? args[++i] : "";
-      if (!base) throw new Error("--base には取り込みの merge-base の sha を渡す");
-    } else if (args[i].startsWith("--base=")) base = args[i].slice("--base=".length);
+    for (const key of ["base", "merge"]) {
+      if (args[i] === `--${key}`) {
+        values[key] = args[i + 1] && !args[i + 1].startsWith("--") ? args[++i] : "";
+        if (!values[key]) throw new Error(`--${key} には${what[key]}の sha を渡す`);
+      } else if (args[i].startsWith(`--${key}=`)) values[key] = args[i].slice(`--${key}=`.length);
+    }
   }
-  return { apply: args.includes("--apply"), json: args.includes("--json"), base };
+  return { apply: args.includes("--apply"), json: args.includes("--json"), ...values };
 }
 
 function main() {
   const root = process.cwd();
   let opts;
   let baseText;
+  let fork = null;
   try {
     opts = parseArgs(process.argv.slice(2));
-    baseText = mergeBaseReader(root, { base: opts.base });
+    baseText = mergeBaseReader(root, { base: opts.base, merge: opts.merge });
+    if (opts.merge) fork = mergeParents(root, opts.merge)[0];
   } catch (error) {
     console.error(`[domains-rename] ${error.message}`);
     process.exitCode = 2;
     return;
   }
   const { apply } = opts;
-  const headOnly = headOnlyForkFiles(root, baseText);
+  const headOnly = headOnlyForkFiles(root, baseText, { fork });
   const plan = planRename(root, { baseText, headOnly });
   const result = { mode: apply ? "apply" : "dry-run", ...plan };
   if (apply) Object.assign(result, applyRename(root, plan, { baseText, headOnly }));
@@ -478,8 +502,9 @@ function main() {
   }
   const byKind = (list) => Object.entries(list.reduce((acc, s) => ((acc[s.kind] = (acc[s.kind] ?? 0) + 1), acc), {})).map(([k, n]) => `${k} ${n}`).join(" / ");
   console.log(`[domains-rename] ${result.mode}`);
+  if (headOnly.ref === undefined && opts.base) console.log("木に無い fork の版は数えていない(--base だけでは取り込み前の fork が分からない): --merge <取り込みの merge commit> で回すと、取り込みの merge が古い道から消した fork の版も拾う");
   console.log(`移動: ${plan.moves.length} 件`);
-  for (const m of plan.moves) console.log(`  ${m.from} → ${m.to}(${m.mode === "files" ? `ファイルごと ${m.files} ファイル: 移す ${m.items.filter((i) => i.how === "move").length}・3 方向の merge ${m.items.filter((i) => i.how === "merge").length}・同じ中身 ${m.items.filter((i) => i.how === "same").length}・うち木に無い fork の版(HEAD)${m.items.filter((i) => i.head).length}` : `${m.files} ファイル`})`);
+  for (const m of plan.moves) console.log(`  ${m.from} → ${m.to}(${m.mode === "files" ? `ファイルごと ${m.files} ファイル: 移す ${m.items.filter((i) => i.how === "move").length}・3 方向の merge ${m.items.filter((i) => i.how === "merge").length}・同じ中身 ${m.items.filter((i) => i.how === "same").length}・うち木に無い fork の版(${headOnly.ref === "HEAD" || headOnly.ref === undefined ? "HEAD" : `取り込み前の fork ${headOnly.ref.slice(0, 9)}`})${m.items.filter((i) => i.head).length}` : `${m.files} ファイル`})`);
   console.log(`書き換え: ${plan.edits.length} ファイル(${Object.entries(plan.totals).map(([k, n]) => `${k} ${n}`).join(" / ") || "なし"})`);
   console.log(`見ない物: ${Object.entries(plan.skipped).map(([k, n]) => `${k} ${n}`).join(" / ") || "なし"}`);
   console.log(`止めた物(書き換えない): ${plan.stops.length} 件${plan.stops.length ? `(${byKind(plan.stops)})` : ""}`);

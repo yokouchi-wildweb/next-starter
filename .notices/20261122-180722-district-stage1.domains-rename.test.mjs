@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-import { applyRename, headOnlyForkFiles, mergeBaseReader, parseArgs, planRename, rewriteText } from "./20261122-180722-district-stage1.domains-rename.mjs";
+import { applyRename, headOnlyForkFiles, mergeBaseReader, mergeParents, parseArgs, planRename, rewriteText } from "./20261122-180722-district-stage1.domains-rename.mjs";
 
 function fixture(files) {
   const root = mkdtempSync(join(tmpdir(), "domains-rename-"));
@@ -324,10 +324,13 @@ test("MERGE_HEAD があれば --base より MERGE_HEAD の merge-base が勝つ�
     rmSync(open.root, { recursive: true, force: true });
     rmSync(committed.root, { recursive: true, force: true });
   }
-  assert.deepEqual(parseArgs(["--apply", "--base", "abc123"]), { apply: true, json: false, base: "abc123" });
-  assert.deepEqual(parseArgs(["--base=abc123", "--json"]), { apply: false, json: true, base: "abc123" });
-  assert.deepEqual(parseArgs([]), { apply: false, json: false, base: null });
+  assert.deepEqual(parseArgs(["--apply", "--base", "abc123"]), { apply: true, json: false, base: "abc123", merge: null });
+  assert.deepEqual(parseArgs(["--base=abc123", "--json"]), { apply: false, json: true, base: "abc123", merge: null });
+  assert.deepEqual(parseArgs(["--merge", "m1", "--apply"]), { apply: true, json: false, base: null, merge: "m1" });
+  assert.deepEqual(parseArgs(["--merge=m1"]), { apply: false, json: false, base: null, merge: "m1" });
+  assert.deepEqual(parseArgs([]), { apply: false, json: false, base: null, merge: null });
   assert.throws(() => parseArgs(["--base", "--apply"]), /--base には/);
+  assert.throws(() => parseArgs(["--merge"]), /--merge には/);
 });
 
 // merge の途中の modify/delete(UD): 小さい設定ファイルは git が改名と見ず、fork が変えた古い道の版が作業の木から消えることがある
@@ -393,6 +396,49 @@ test("木に無い fork の版で上流と食い違えば merge-conflict で止�
     assert.deepEqual(plan.stops.map((s) => [s.kind, s.path]), [["merge-conflict", CFG_OLD]]);
     assert.match(plan.stops[0].suggest, /git show HEAD:src\/config\/features\/auth\.config\.ts/);
     assert.equal(read(root, CFG_NEW), udCfg("domains", 10, 4));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+// merge を commit した後(鉄道の取り込み: merge が先、道具は後の手番): UD を消す側で解いて commit した木では、fork の版は
+// 取り込み前の fork M^1 にしか無い。--merge M は基準(M^1 と M^2 の merge-base)と M^1 の版の両方を取る
+function committedUdMerge() {
+  const root = openUdMerge({ gitRm: true });
+  git(root, "commit", "-q", "--no-edit");
+  return { root, M: git(root, "rev-parse", "HEAD") };
+}
+
+test("--merge: commit 済みの取り込みの merge が古い道から消した fork の版を M^1 から拾い、3 方向の merge で fork の行を残す", () => {
+  const { root, M } = committedUdMerge();
+  try {
+    assert.equal(existsSync(join(root, CFG_OLD)), false);
+    const [fork] = mergeParents(root, M);
+    assert.equal(fork, git(root, "rev-parse", `${M}^1`));
+    const reader = { baseText: mergeBaseReader(root, { merge: M }) };
+    const headOnly = headOnlyForkFiles(root, reader.baseText, { fork });
+    assert.deepEqual([...headOnly.keys()], [CFG_OLD]);
+    assert.equal(headOnly.ref, fork);
+    const plan = planRename(root, { ...reader, headOnly });
+    assert.deepEqual(plan.stops, []);
+    assert.deepEqual(plan.moves.find((m) => m.to === "src/config/domains")?.items, [{ from: CFG_OLD, to: CFG_NEW, how: "merge", head: true }]);
+    applyRename(root, plan, { ...reader, headOnly });
+    assert.equal(read(root, CFG_NEW), udCfg("domains", 10, 30), "上流の a と fork の c が両方入る");
+    assert.throws(() => mergeParents(root, `${M}^1`), /--merge .* は取り込みの merge commit/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("--base だけでは commit 済みの merge が消した fork の版を拾わない(拾う先が無い: main が案内の 1 行を出す)", () => {
+  const { root, M } = committedUdMerge();
+  try {
+    const baseText = mergeBaseReader(root, { base: git(root, "merge-base", `${M}^1`, `${M}^2`) });
+    const headOnly = headOnlyForkFiles(root, baseText);
+    assert.equal(headOnly.size, 0);
+    assert.equal(headOnly.ref, undefined);
+    const out = execFileSync(process.execPath, [join(import.meta.dirname, "20261122-180722-district-stage1.domains-rename.mjs"), "--base", git(root, "merge-base", `${M}^1`, `${M}^2`)], { cwd: root, encoding: "utf8" });
+    assert.match(out, /--merge <取り込みの merge commit> で回すと/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
