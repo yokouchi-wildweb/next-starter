@@ -27,7 +27,7 @@ read when the condition of SKILL.md ATTACHED FILES hits | the rules here act **i
 ## HOTFIX (SKILL.md HOTFIX)
 - original commit of a grandparent notice's `hotfix:` = the commit the direct Tier picked (`commit:` of that id's line in `git show <upstream>/<branch>:.notices/applied/<中間 Tier の名前>.md`) | never take the Tier1 commit directly
 - the direct Tier's ledger has no line (not picked yet) → one line in the overview that it cannot be taken, and go on to the normal segments
-- the pick is the same tool (`pnpm workflow notices hotfixApply <the direct Tier's commit> --upstream=<upstream>/<branch>`): "never changed by the fork" and "the upstream's version" are read against the direct parent (its merge-base, its commit), never Tier1
+- the pick is the same tool, the upstream tip's version (`node $TIP/scripts/workflow/notices/hotfixApply.mjs <the direct Tier's commit> --upstream=<upstream>/<branch>`, SKILL.md TIP TOOLS): "never changed by the fork" and "the upstream's version" are read against the direct parent (its merge-base, its commit), never Tier1
 - relay judgment of a pick (forks with downstream): judged once at the pick, with the pick's own reference points (RELAY JUDGMENT, case "hotfix pick") → `node .claude/skills/flux/relay-check.mjs --pick <original commit>` | the ledger line of the pick carries its `relay:` | the notice's own segment later finds the id in the ledger and does not judge it again
 - pick-clean fixes (SKILL.md FIXES `pick: clean`) are taken only for notices the direct parent issued | never read a grandparent notice's `pick:` (that mark was tried on Tier1's tree, not the direct Tier's) | when the direct Tier took it ahead, that pick arrives in normal segments in the order of the direct Tier's ledger
 
@@ -42,7 +42,7 @@ read when the condition of SKILL.md ATTACHED FILES hits | the rules here act **i
 - no middle Tier (the direct upstream is the top) → print only `祖父 notice なし`
 
 ## RELAY JUDGMENT (forks with downstream only)
-as a middle Tier, decide mechanically **by git diffs only** whether applied upstream notices must be relayed downstream (never judge by interpreting the text)
+as a middle Tier, decide whether applied upstream notices must be relayed downstream **from git diffs**: ① ② are relay-check.mjs's hunk and file comparisons, ③ is what the session that applied the notice knows of its own deviations (the notice's text is not the ground)
 - **target forks**: forks with `tier` root / middle in `repo.json` (read as SKILL.md OWN FORK IDENTITY AND LEDGER 5; only reader `forkIds.mjs`) | `tier` leaf = a leaf fork, does nothing | declaration missing / wrong → never guess from the text; STOP (same item of SKILL.md)
 - **target notices**: notices applied in the segment whose `from:` is not your origin (grandparent notices and upstream relay notices included) | a covered id is judged as one with its covers side
   - a hotfix pick (SKILL.md HOTFIX) is judged at the pick, not in a segment (case "hotfix pick" below) | an id already in the ledger is not applied by a later segment, so it is never judged twice
@@ -78,6 +78,10 @@ as a middle Tier, decide mechanically **by git diffs only** whether applied upst
   - shapes where fork lines sit right next to upstream's change, like marker files, are caught by ①'s touching | changes depending on each other semantically with distant line ranges are not caught
 - **unjudged** (old ledger lines from before this mechanism):
   - ids of your ledger with no `relay:` field, whose `from:` is not your origin, and in no `covers:` of notices from your origin (inherited ids and ids with no notice in the history excluded)
+  - count them (no tool counts them yet):
+    1. candidates = `grep -v -e 'relay:' -e '^#' .notices/applied/<名前>.md`
+    2. drop the ids in `covers:` of your origin's notices: `git grep -h '^covers:' -- $(git grep -l "^from: $(git remote get-url origin)" -- '.notices/*.md')`
+    3. drop inherited ids (`git ls-tree --name-only <fork 成立点> .notices/`), ids whose body has no history (`git log --format=%h -1 -- .notices/<id>.md` empty) and ids whose body's `from:` is your origin | the rest = N
   - one or more → one line in the report:
     ```
     中継未判定の旧 notice が N 件あります: <id>, ...。次のコミットで covers: に入れた中継 notice を下書きします

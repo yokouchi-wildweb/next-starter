@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 role: as the **downstream (fork)**, take in the upstream repo's changes and handle **DOWNSTREAM NOTICEs** (follow-up notifications, `.notices/*.md`) | used for any upstream → downstream pair (T1→T2, T2→T3 …) | notices are written by upstream's `/sluice`; the fields written and read match the schema of `.notices/README.md` | spec detail: `.notices/README.md`
 
-## ATTACHED FILES (must read when the condition hits; never go on without reading)
+## ATTACHED FILES (the steps they hold are there only: read each when its condition hits)
 the following files in this folder hold rules needed only by forks / segments that meet their condition | `→ relay.md` / `→ moved.md` throughout the body point to them
 - **`relay.md`** (relay, 3 or more Tiers): read before building segments when any of these hits:
   - the direct upstream is a middle Tier (OWN FORK IDENTITY AND LEDGER 5 below)
@@ -40,37 +40,36 @@ another session or machine may have pushed this fork's branch (a /flux of its ow
 - **plan in detail only the next segment, approve per segment** (default)
   - the remaining segments stay a one-line overview each (material for the human to decide how far to go) | the notice's full text, upstream changes, conflict forecast, porting and fork follow-up spots are investigated and planned **only for the next segment**
   - a width (`<n>`) given at launch → read "next segment" as "next batch" (consecutive segments advanced on one approval; BATCHES below)
-  - never read the material of later segments (fills the context and mixes into the decision at hand; later segments' details change with the earlier merges, so working them out ahead has little value)
+  - leave the material of later segments unread: it fills the context and mixes into the decision at hand, and later segments' details change with the earlier merges, so working them out ahead has little value
 - **stop at the end of a segment, present the next segment's plan and wait**
   - after approval, run that segment's merge, code fixes, DB operations, backfill, verification, ledger, commit, push with no confirmation in between; when the segment is done, report the result and **the next segment's detailed plan**; STOP: wait
   - `go` to that report = approval of the next segment's plan (still one stop per segment)
-  - the only replies at a segment end are the 4: `go` / `go last` / `再計画` / `ここで終える` (`go last` = advance the segment of the shown plan, then end this sortie without making the next plan; GO LAST below | `再計画` = advance nothing, rebuild the next segment's plan and ask again; REPLAN below)
-  - how far to go is fixed by the launch arguments (never widen the range again after reconnaissance; to widen, end with `ここで終える` and relaunch with a width)
-  - going on without stopping only with `all`; then repeat "plan → execute" per segment (never make the plans together ahead)
+  - the replies a segment end reads are the 4: `go` / `go last` / `再計画` / `ここで終える` (the words a calling tool sends; a person's other wording is read for which of the 4 it means) (`go last` = advance the segment of the shown plan, then end this sortie without making the next plan; GO LAST below | `再計画` = advance nothing, rebuild the next segment's plan and ask again; REPLAN below)
+  - how far to go is fixed by the launch arguments (the reconnaissance and the plan file are cut to that width; to widen, end with `ここで終える` and relaunch with a width)
+  - going on without stopping only with `all`; then repeat "plan → execute" per segment (each plan is made after the previous merge, which changes it)
   - either way, **hitting STOP CONDITIONS or HEAVY SEGMENTS below, stopping wins** (approval means "go on if it goes as planned", not "push through whatever comes up")
 - **advance by segments**: split unapplied notices into segments per checkpoint (`checkpoint:`); per segment complete "merge → apply → verify → ledger → commit → push"
   - **default: 1 notice = 1 checkpoint** (only notices upstream declared as exceptions with `checkpoint: -`, and notices named by a later fix's `skip_checkpoint:`, stay in the same segment up to the next checkpoint; old schema without the field = a checkpoint = the safe side)
   - stopped midway, the fork sits at the previous checkpoint; rerunning continues from there (state is derived by set arithmetic, so no extra record is needed)
 - **align the fork clean per segment**: when committing a segment, the fork's code has fully followed that segment's upstream changes | whether a notice exists does not matter (changes upstream forgot to notice too)
-  - parts, libs or core usage changed → find every use in the fork and align it to the new usage | never "keep it because the old usage still works" (UPSTREAM CHANGE SWEEP below, step 6)
-  - never move to the next segment until aligned (CONDITIONS TO MOVE ON below)
+  - parts, libs or core usage changed → find every use in the fork and align it to the new usage, even where the old usage still works (UPSTREAM CHANGE SWEEP below, step 6)
+  - the next segment starts from an aligned fork (CONDITIONS TO MOVE ON below)
 - **segment done**: each item of required_actions is done / not applicable (with reason) / kept → done
   - only 3 kinds may be kept: within a check's scope → a temporary permit with an order id (`open: <項目> | order:<id>`) | outside checks → the human's decision with a reason (`open: <項目> | human:<理由>`) | a migration the human split into another order (`open: <項目> | migration:<自分の受信箱の依頼の id>`, SPLIT A MIGRATION INTO ANOTHER ORDER below)
   - write them in the ledger `notes:`, list them in the next `/flux`'s first report | once settled, delete that `open:` | whether the next segment may start = CONDITIONS TO MOVE ON below
 - **never close a segment that fails the ownership check**: a segment whose base has `src/lib/forkOwnership/intake.txt` → after the commit, no push until `pnpm workflow ownership check` gives 0 (step 7c) | settle violations on the spot: move to an intake point / revert / temporary permit (no grace period)
 - **approval of the application plan = explicit instruction to run every step, DB operations included** | while this skill runs, this rule wins over general rules like "ask the user for DB operations" | `[user-run]` steps (db push etc.) follow repo.json's policy: off → the in-session user run below | manual → ask for `/allow <switch>` and run it once after it (the /allow skill)
 - **run inside a calling tool's tab whose steps file or role text says the human is asked elsewhere → never ask in that tab**: every approval, question, `[user-run]` step and `/allow` this skill would ask for goes the way that text says | the relayed `go` / words are the answer (the /allow skill takes them) | run by a person in their own session → ask in plain text as written here
-- **chat is for humans; scripts and identifiers go to the work memo**: every stop's report is written in the format of `.claude/skills/fmt/flux-stop.md` (step 8) | file names, shas, notice ids, application steps and decision grounds are never put in chat; they go to WORK MEMO below
+- **chat is for humans; scripts and identifiers go to the work memo**: every stop's report is written in the format of `.claude/skills/fmt/flux-stop.md` (step 8) | file names, shas, notice ids, application steps and decision grounds go to WORK MEMO below, not chat
 
-## CONDITIONS TO MOVE ON (never move to the next segment until all hold)
+## CONDITIONS TO MOVE ON (the next segment starts when all 4 hold: later notices are written assuming a fork aligned to the earlier spec)
 - check the 4 below one by one, twice: before the commit (end of step 6: 1, 2, 4, and 3 up to the checks) and at the segment end after push (step 4: all 4, before moving to the next segment's plan / merge) | checking before the commit too = finding leftovers before push
-- one missing → never move to the next segment (same for default, `<n>`, `all`, `light`, mid-batch) | settle the missing part inside that segment, or stop as a stop condition
-- never move on because "the old usage still works" / "fix it later in a later segment" (later notices are written assuming a fork aligned to the earlier spec)
+- one missing (in every mode: default, `<n>`, `all`, `light`, mid-batch) → settle it inside that segment, or stop as a stop condition | "the old usage still works" and "fix it later in a later segment" do not count as held
 - [ ] **all architecture follow-up done**: the fork's code fully follows that segment's upstream changes (the notice's required_actions, the drift sweep, what UPSTREAM CHANGE SWEEP found, changes without a notice too) | no remaining calls of old APIs, compat shims, dependencies on old names / old paths (step 6 sweep and follow-up)
 - [ ] **all data fixes done**: backfills, data migrations, `[user-run]` db:push all run, and the results checked by verify
 - [ ] **checks passed and closed**: the segment checks (step 6: the check entry `pnpm check --phase=ship`, typecheck, lint), the notice's verify and the ownership check (step 7c) passed, the ledger written, committed and pushed
 - [ ] **only allowed kinds kept**: the 3 of "segment done" above (`order:` = waiting on an upstream change / `human:` = the human's decision with a reason / `migration:` = migration split into another order), written in the ledger `open:` and the work memo `kept_old:` | nothing else kept
-- a gap found after push (noticed a leftover at the segment-end check, etc.): never move to the next segment; settle it with an extra commit in the same segment (align the follow-up / run the data fix and verify) → redo the segment checks (step 6) and the ownership check (step 7c) → push → check the 4 again
+- a gap found after push (noticed a leftover at the segment-end check, etc.): settle it with an extra commit in the same segment (align the follow-up / run the data fix and verify) → redo the segment checks (step 6) and the ownership check (step 7c) → push → check the 4 again
   - never rewrite pushed ledger lines (write what was settled under `こちらの誤り` in the segment report) | the fix needs a fork-specific judgment → stop as a stop condition
 
 ## SPLIT A MIGRATION INTO ANOTHER ORDER (only when the human chooses it)
@@ -118,8 +117,8 @@ how to stop:
 ## HEAVY SEGMENTS (stop before that segment even mid-`all` / mid-batch)
 - heavy segment = in the next segment's plan (the 6 points of flux-stop `次の区間`), fork follow-up is `作り直し` or `判断が要る` / db:push `あり` / downtime `要る` / manual data migration present
 - even mid-`all`, **stop before that segment's merge** and get approval (the default flow stops before segments anyway) | a batch (`<n>`) never puts a heavy segment with others: cut the batch before the heavy one, which gets its own approval
-- never write `重い` (heavy) in chat | the 6 points let the reader judge | keep the heavy judgment in the work memo and the PLAN FILE
-- never stop inside a segment (showing only the porting first) or send it back upstream as a notice-granularity problem | the weight of porting is set by the fork's edits, upstream cannot predict it, and shipped commits cannot be split afterwards | one notice that brought heavy porting → one line in FINDINGS FOR UPSTREAM (d)
+- `重い` (heavy) is a word of the work memo and the PLAN FILE | chat gives the 6 points and lets the reader judge
+- a heavy segment is still one segment: its porting is shown and done with it, not stopped halfway or sent back upstream as a notice-granularity problem | the weight of porting is set by the fork's edits, upstream cannot predict it, and shipped commits cannot be split afterwards | one notice that brought heavy porting → one line in FINDINGS FOR UPSTREAM (d)
 
 ## FIXES (a segment with a fix ahead)
 upstream writes `fixes: <notice id | commit:<sha>>` in a notice that fixes a bug of an earlier shipment (`.notices/README.md` section `修正(fixes)`) | stopping at the origin's checkpoint means sitting at a point with a known bug
@@ -131,7 +130,7 @@ upstream writes `fixes: <notice id | commit:<sha>>` in a notice that fixes a bug
   - when the fix is a PICK-CLEAN FIX below, instead of this question put `直後に <修正 notice> を取る` in that segment's plan (ask this question before push only when it could not be taken)
   - never batch segments together automatically (deployment to production differs per fork and the user knows it; if push goes to production, the user decides whether to stop)
 - **what failed in the origin segment's checks**: failures hitting files the fix notice's commit touches (`git diff --name-only <修正 notice の区切り点>^ <修正 notice の区切り点>`; commit given → that commit) may be written in the ledger `notes:` as `既知(修正は区間 K)` and committed (not a stop condition) | other failures as usual
-- **never get ahead**: even knowing a fix is ahead, never implement the same fix in that segment (it conflicts at the later merge and leaves a fork-own version)
+- **the fix comes with its segment**: a fix known to be ahead is taken from upstream, not written again in this segment (the same fix conflicts at the later merge and leaves a fork-own version)
 - **PICK-CLEAN FIX**: a fix notice upstream judged with `/sluice` and marked `pick: clean` in its body (read in the body's last version, like every field; `.notices/README.md` section `修正(fixes)`, part `先に取れる印(pick)`) → cherry-pick it right after taking in the origin's segment, so a broken checkpoint is never pushed | `pick: -` / no field (old notices included) → the current behavior above
   - target: unapplied, right after one of its `fixes:` references became applied (merged / picked in this sortie included), and the fix's adding commit is not yet an ancestor of HEAD | only notices of the direct parent (grandparent notices' `pick:` is not read → relay.md HOTFIX)
     - a fix of a fix is a target only when the earlier fix is applied / picked (upstream's judgment tried it on that tree too)
@@ -156,7 +155,7 @@ a notice's commit for which upstream declared `hotfix:` is cherry-picked before 
   - stopping: default, `<n>`, `light` get approval here (never a light segment even with `light`); STOP | `all` reports 1-2 lines and goes on | `status` only displays
   - `いいえ` → skip it this time and go to the normal segments (it arrives by a later merge)
 - **execute** (do steps 6-8 as follows):
-  1. always the upstream tip's version of the tool (never the fork's): `git archive <upstream>/<branch> scripts/workflow/notices scripts/workflow/rules | tar -x -C <tmp>` → `node <tmp>/scripts/workflow/notices/hotfixApply.mjs <元の commit> --upstream=<upstream>/<branch>`
+  1. the upstream tip's version of the tool (a lagging fork's own one may lack the fix's handling): `node $TIP/scripts/workflow/notices/hotfixApply.mjs <元の commit> --upstream=<upstream>/<branch>` (TIP TOOLS)
      - in the fork's checkout (the tree must be clean) — every file settled without asking, one commit (`.notices/README.md` `緊急修正(hotfix)`):
      - files the tools read from the upstream tip (`.claude/skills/flux/`) → left out (`left-out`) | `.notices/shipped/` (older hotfix commits only) → the fork side (`index`)
        - sunset: 20261120-122554-notice-history (remove once every fork has taken that notice)
@@ -180,8 +179,8 @@ a notice's commit for which upstream declared `hotfix:` is cherry-picked before 
 
 ## LIGHT SEGMENTS (the `light` judgment; only segments planned in detail)
 - light segment = a segment meeting all of the following (one miss → not light): no fork follow-up / no db:push / no downtime / no manual data migration / no deviation (0 conflicts forecast, no `[user-run]`, no fork-side change in the notice's required_actions, no backfill) / not a segment whose origin is unapplied (FIXES above) / no pick-clean fix pick
-- only segments planned in detail can be judged (next segment, next batch) | never mark the remaining segments of the overview (their material is not read)
-- write the light judgment in the work memo and add `light` to the SEGMENTS row of the PLAN FILE (a calling tool may count "the next N segments are light") | never write `軽い` (light) in chat
+- only segments planned in detail can be judged (next segment, next batch) | the remaining segments of the overview stay unmarked (their material is not read)
+- write the light judgment in the work memo and add `light` to the SEGMENTS row of the PLAN FILE (a calling tool may count "the next N segments are light") | `軽い` (light) is a word of those two, not of chat
 
 ## FINDINGS FOR UPSTREAM (findings)
 - pile what you notice during application into the work memo (all of them + grounds + draft order text)
@@ -198,7 +197,7 @@ a notice's commit for which upstream declared `hotfix:` is cherry-picked before 
     - **never a failure, never fix it** (project.md is the fork's, D34) | no disagreement → `なし`
 - before giving a draft for (a)(c), check whether upstream already fixed it: `fixes:` of incoming notices, upstream's not-yet-taken commits on that file (`git log HEAD..<upstream>/<branch> -- <file>`) | fixed → no draft, write `上流で修正済み(区間 K / commit <sha>)`
 - each item: 1-2 lines by role in chat | grounds (files, commits, output) and a one-line draft order live in the work memo
-- **never file /order automatically** | keep it in a form the user can file from the memo's grounds by typing `/order <上流リポ>`
+- **/flux run by a person: the human files the orders** | keep each in a form the user can file from the memo's grounds by typing `/order <上流リポ>` | an unattended run files only the cases that meet every HANDOFF condition (patterns.md) and reports them
 - the ledger `notes:` holds deviations only; findings go to the report side (the ledger is the fork's record, not addressed upstream)
 
 ## OWN FORK IDENTITY AND LEDGER
@@ -245,7 +244,7 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
 - **notice id / file name**: only that notice; do FULL FLOW from step 5 on (no merge; targets a notice already in the tree; no segment split)
 
 ## TIP TOOLS (the upstream tip's version of a tool, run inside this fork)
-- the readers and writers the steps name (who, selfKeep, the stage runner, ledger) run as the upstream tip's version, with cwd = this fork's repo (they read the repo they run in)
+- the readers and writers the steps name (who, selfKeep, the stage runner, ledger, hotfixApply) run as the upstream tip's version, with cwd = this fork's repo (they read the repo they run in)
 - extract once per tip, reused across segments: `TIP=.flux/tip/$(git rev-parse <upstream>/<branch>)` | missing → `mkdir -p $TIP && git archive <upstream>/<branch> scripts src/lib | tar -x -C $TIP` (`.flux/` is git-ignored; their imports stay inside scripts and src/lib, bare names resolve from this fork's node_modules)
 - run: `node $TIP/<entry> <args>` | an old `.flux/tip/<sha>/` of an earlier tip may be deleted
 
@@ -268,7 +267,7 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
     ```
     脇の commit の区間(本線では `mainline` の commit)
     ```
-- always read the body (required_actions etc.) with `git show <body>` (the body's last version: a correction upstream made after shipping reaches you; never substitute the segment's merge target or the adding commit's version)
+- always read the body (required_actions etc.) with `git show <body>` (the body's last version: a correction upstream made after shipping reaches you, which the segment's merge target or the adding commit's version lacks)
 - exit 2 = stop (shallow clone, a checkpoint point not an ancestor of the upstream tip, no repo_id) | pass the reason on as is; never go on as zero unapplied
 - the tool cannot be obtained with `git show` (upstream from before this tool): proceed by the manual steps of UNAPPLIED JUDGMENT and BUILDING SEGMENTS below (those steps also explain the same rules as the tool)
 
@@ -342,7 +341,8 @@ merge and porting carry the fork's edits as they are | when the destination is u
 
 ## TAKE-IN TABLE (step 5c and CONFLICT FORECAST; one row per answer of the tip's who, never a row per file name)
 - reader: `node $TIP/scripts/workflow/ownership/who.mjs --json --no-fetch --base=<区間の merge 先> <files>` (TIP TOOLS)
-  - per path: `type`, `kind` (intake row, null = none), `owner.tier` (tier1 | middle | fork | missing), `generated` { generator, command, part, region } | the data comes from the segment's tree (`--base`), the reader from the tip | exit 2 / `status: unverified` → STOP (no row = no judgment)
+  - per path: `type`, `kind` (intake row, null = none), `owner.tier` (tier1 | middle | fork | missing), `generated` { generator, command, part, region } | the data comes from the segment's tree (`--base`), the reader from the tip
+  - exit 2 / `status: unverified` (it cannot read the rows) → one line why in the work memo, then the same judgment by hand from the segment tree's `src/lib/forkOwnership/intake.txt` and CLAUDE.md CORE_FILES | step 7c's ownership check checks the result
 - rows (first match wins):
   1. `generated` set, `part` null, not a region (a whole generated file, e.g. a registry, the route map, pnpm-lock.yaml): never hand-merge | take either side; the segment rebuild rewrites it (generator `generated.generator`) | a change inside 5d's allowed set
   2. type 5 (`kind` self): the fork's version, conflicted or not → core/change.md 5 self | conflicted → `git checkout --ours -- <path>`; every self file the segment touches is then restored by the `keep self files` step of 5c | `generated.part` set (vercel.json's crons) → the segment rebuild rewrites only that part
@@ -378,7 +378,7 @@ merge and porting carry the fork's edits as they are | when the destination is u
      - finished the end-point (`to`) segment → make no next plan, do not ask, give the final report (step 8) and end
      - `ここで終える` → give the final report (step 8) and end (the rest continues with the next `/flux`; relaunch there to change the width too)
      - `再計画 移行は別の依頼` → do the rebuild of REPLAN below without the migration (SPLIT A MIGRATION INTO ANOTHER ORDER above)
-     - any other reply (e.g. `あと 2 区間`) is outside the plan: do not accept it, answer the line below and wait
+     - a reply that widens the width (e.g. `あと 2 区間`): the width is the launch's, so answer the line below and wait
        ```
        ここで終えて `/flux <n>` で起動し直してください
        ```
@@ -413,16 +413,16 @@ merge and porting carry the fork's edits as they are | when the destination is u
         - each listed path's parent diff (its `親の差分` command) is shown once in the segment report; port what fits by hand in a separate commit of the segment
       - **segment rebuild** (after the self files are kept, before d): the tip's stage entry over the segment's upstream diff (D315), then `git add` what it wrote
         - `node $TIP/scripts/runner/phases/run.mjs generate --phase=ship --range=<pre>...<区間の merge 先>` (TIP TOOLS)
-        - the tip's runner, never the segment tree's: an older runner ignores `--range` silently and picks generators by this fork's own work | the declarations and generators it runs are the segment tree's
+        - the tip's runner, not the segment tree's: an older runner ignores `--range` silently and picks generators by this fork's own work | the declarations and generators it runs are the segment tree's
         - a segment from before repo.json `vercel.plan` existed (its cron generator skips without `--plan`, and its reader refuses the key, so the plan cannot be set there): `pnpm generate cron -- --plan <hobby|pro>` with the plan this fork's vercel.json crons use, `git add vercel.json`
       - **compare hand-held domains** (D308; after the rebuild): the segment's upstream diff touches `scripts/structure/<generator>/**` and this fork has domains with `"generate": false` → `pnpm check domain -- --compare` (read-only; `--detail` per file)
-        - per file: port by hand, in this segment, only what fits the hand-held version | record the ported / left files in the work memo | never a generate flag per file
+        - per file: port by hand, in this segment, only what fits the hand-held version | record the ported / left files in the work memo | the domain's `generate` flag stays as it is (it is per domain, not per file)
    d. **out-of-segment check** (mandatory; after c and porting, before the merge commit; read-only):
       - allowed set = `git diff --no-renames --name-only <pre>...<区間の merge 先>` (= from their merge-base) + the segment's `moved:` destinations (a directory → everything under it) + the rebuild's outputs
         - rebuild's outputs = a file outside the first two that the segment rebuild wrote and the tip's who answers with `generated` (its generator ran in the rebuild): `node $TIP/scripts/workflow/ownership/who.mjs --json --no-fetch --base=<区間の merge 先> <those paths>` | `generated: null` or a generator that did not run → not allowed
       - actual changes = `git diff --no-renames --name-only <pre>` (staged and unstaged)
       - add `--no-renames` to both: with rename guessing, `--name-only` shows only the destination, the source (deletion) of an upstream rename drops out of the allowed set and it stops falsely as out-of-segment | with it, the source shows as a deletion and the destination as an addition in both
-      - write both to temp files and match with `comm -13` | even one file outside the allowed set → stop condition: `git merge --abort` and show that list as grounds
+      - write both to temp files and match with `comm -13` | a file outside the allowed set → stop condition (the segment would carry a change no notice of it names): `git merge --abort` and show that list as grounds
       - a fast-forward needs no check (no merge guessing)
    e. passed → make the merge commit with `git commit --no-edit` | after the merge, rescan the notices in the tree; a mismatch with the segment's expectation → report and STOP
 6. **execute**: carry out the segment's plan in order
@@ -455,12 +455,12 @@ merge and porting carry the fork's edits as they are | when the destination is u
    - `pnpm typecheck` fails on **upstream `_screen/*` default Screens own fork does not use** (routes whose page.tsx points to `_components/`, etc.) → the cause is an incompatible core edit of own fork (added required props, deleted core code it does not use, etc.)
      - fix the core side (make added props optional with an empty default again, restore deleted things from upstream); never edit the upstream Screen (CLAUDE.md CORE_FILES `fork_core_edit_compat`, `src/lib/screens/README.md` §7) | write what was restored in the ledger notes
 7. **record and commit** (run in a row without confirmation):
-   a. append to own fork ledger `.notices/applied/<名前>.md` with the tip's ledger tool, never by hand (it creates the ledger with its header, writes `date:`, resolves `upstream:` to the full sha, and refuses an id the ledger already holds):
+   a. append to own fork ledger `.notices/applied/<名前>.md` with the tip's ledger tool, the default writer (it creates the ledger with its header, writes `date:`, resolves `upstream:` to the full sha, skips an id the ledger already holds with a 「ledger: 注意」 line; a hand-added line in the same form is read alike, `.notices/README.md`):
       - `node $TIP/scripts/workflow/notices/ledger.mjs --upstream=<区間の merge 先> --id=<notice id> [--id=…] --commit=<short sha | -> [--relay=<none | relay notice id>] [--notes=<deviations from required_actions>]` (TIP TOOLS)
       - **a tail segment with no notice** (merge only): `… -- --upstream=<区間の merge 先> --tail [--notes=…]` → one line `id:tail-<sha9>` with `upstream:` = the merge target
         - why: the deploy gate reads only the ledger's last `upstream:`, so it reads `at` when the parent's safe tag sits on that merge (a departure merge outside any segment)
         - it writes nothing when the ledger's last `upstream:` is already the merge target (a tail line written earlier, by hand too)
-      - every line carries `upstream:` (the upstream version taken in by that segment; never rewrite past lines)
+      - every line carries `upstream:` (the upstream version taken in by that segment; past lines are the pushed record the ownership check walks, so they stay as written)
       - `pnpm workflow ownership check` decides the Tier1 version by this field: from the `upstream:` version of the last line of your ledger, to the last `upstream:` of that version's ledger (named by that version repo's `repo_id`) … until a version without `.notices/applied/` (Tier1) (independent of the number of tiers; multi-tier ownership judgment, `src/lib/forkOwnership/README.md`)
       - align ledger names with `repo_id` (a ledger with another name at an intermediate version cannot be walked → exit 2)
       - `--relay` only for forks with downstream (the tool asks for it there and refuses it on a leaf; a tail line is always `relay:none`) | covered-id lines and `relay:` values when recording a covers-side notice → relay.md LEDGER ADDITIONS

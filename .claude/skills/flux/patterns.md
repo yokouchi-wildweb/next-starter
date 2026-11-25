@@ -3,7 +3,7 @@ role: the one definition of the 4 merge patterns (name, when it applies, what to
 
 ## COMMON
 - a pattern is named in the plan where it applies, one line per case in the form of LINES below | /flux run by a person: the plan shows it and takes the usual approval (a pattern never skips an approval here)
-- an unattended run: a case that meets every condition goes on without asking and is reported once, one line per case, at the next report point (a stop report first when there is one); a case that misses a condition is asked as before
+- an unattended run: a case that meets every condition goes on without asking (a HANDOFF case files its order; a person's run leaves filing to the human, SKILL.md FINDINGS FOR UPSTREAM) and is reported once, one line per case, at the next report point (a stop report first when there is one); a case that misses a condition is asked as before
 - records: the fork's ledger and commits keep plain facts (what was aligned, which check was deferred and why, which fix cleared it); never the pattern name
 - the conditions below are all required (AND) | `mechanical` = a tool can check it | `reading` = needs the reader's judgment
 
