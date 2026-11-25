@@ -1,0 +1,18 @@
+# DOWNSTREAM NOTICE id:20261125-180150-cc-denial-notfound
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:build/20261103-144009-cache-components-adoption.2 | commit:(this commit)
+date: 2026-11-25T18:01:50+09:00
+severity: breaking
+checkpoint: cc-denial-notfound
+change: a signed-in visitor refused by a range or by a page's access now gets notFound; the login page (redirectTo) is for signed-out visitors only; a page-level refusal no longer goes to the range's forbiddenRedirectTo; a forbiddenRedirectTo equal to a redirectTo of the same guard chain fails the route map
+why: sending a signed-in visitor to the login page made the login page send them back to the refused page (e.g. /debug ↔ /login without end); behavior changes silently for fork pages (a signed-in visitor refused by a page's access used to be redirected, usually to the login) and fork guard.ts files whose forbiddenRedirectTo equals their login now fail pnpm generate routes
+required_actions:
+1. Take the segment (upstream side on conflicts in upstream guard.ts files: (user)/(protected), admin/(protected), debug lose forbiddenRedirectTo; admin/(protected)/users keeps forbiddenRedirectTo "/admin" and loses its unreachable redirectTo "/admin").
+2. List your own guard.ts policies: `git grep -n -E 'forbiddenRedirectTo|redirectTo' -- 'src/app/**/guard.ts'`. For each forbiddenRedirectTo whose value equals any redirectTo of the same chain (that guard.ts and every parent guard.ts it extends, up to src/app/guard.ts): remove it (signed-in refused visitors then get notFound) — keep a forbiddenRedirectTo only when it sends signed-in visitors to another page (example: admin/(protected)/users → "/admin").
+3. A redirectTo on a child range that a parent range always catches first (the parent's own redirectTo sends signed-out visitors before the child is evaluated) may be removed; keep it if your child range is reachable signed out.
+4. Pages that relied on a page-level refusal being redirected (a loader `access` stricter than its range, refused signed-in visitors used to land on the range's forbiddenRedirectTo): they now get notFound; if a page must send them elsewhere, do it in the loader (`if (!(await allows(rule))) redirect("<page>")`) with a destination that is not the login.
+5. Rule key: .claude/rules/core/screens.md range_denial -> new key (signed-out → login; signed-in refused → notFound; forbiddenRedirectTo only to another page, never a redirectTo of the chain). Check your own rules for the old behavior: `git grep -n -E 'forbiddenRedirectTo' -- .claude/rules ':!.claude/rules/core' ':!.claude/rules/items'`.
+6. Run `pnpm generate routes` and commit the rebuilt src/app/route-map.jsonl.
+verify: `pnpm generate routes` succeeds (no "同じ鎖のログイン" line) | `pnpm test src/lib/pageGuard/createPageGuard.test.mts scripts/structure/routes/routeMap.test.mjs` pass | `pnpm typecheck` passes
+manual_steps: -
+refs: src/lib/pageGuard/createPageGuard.ts enforcePageAccess / enforceLevel, src/lib/pageGuard/types.ts PageGuardPolicy.forbiddenRedirectTo, src/lib/screens/routeMap.mjs forbiddenEqualsLogin, src/lib/pageGuard/README.md, .claude/rules/core/screens.md range_denial, council 20261103-144009-cache-components-adoption build b2 order 77 (D116)
+notes: returnTo is unchanged: the login, admin login and OAuth signup loaders already keep it to own-site paths (sanitizeRedirectPath: starts with "/", not "//" or "/\", same origin); the login loader does not check the destination's access | range-level order stays setup → redirectTo (signed out) → statusRedirects (status only) → forbiddenRedirectTo → notFound
