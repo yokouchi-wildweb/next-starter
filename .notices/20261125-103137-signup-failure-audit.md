@@ -1,0 +1,13 @@
+# DOWNSTREAM NOTICE id:20261125-103137-signup-failure-audit
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:build/20261026-152333-shared-shelf.4r | commit:- (this commit)
+date: 2026-11-25T10:31:37Z
+severity: info
+checkpoint: signup-failure-audit
+resolves: 20261125-192104-signup-failure-audit
+change: signup-flow failures are recorded to audit_logs with a reason, like login failures (loginAudit) | new src/domains/core/auth/services/server/signupAudit.ts: recordSignupFailure({ flow, reason, email, user?, detail? }) — actions auth.signup.failed (flows email_link / early_registration_link / register) and auth.password_reset.failed, reasons in src/domains/core/auth/constants/signupFailure.ts, bestEffort, 90-day retention, targetId user.id or unknown:<email hash> with attemptedEmail only for an unknown user | recorded in the domain and the routes: register (invalid input, role, token, uid / credential / email mismatch, not pre-registered, session invalidated, already registered 409, password missing / set failed), send-email-link and send-early-registration-link (missing email, disposable email and hide-my-email block — still answering success —, hide-my-email challenge 428), forgot-password (missing email, user not found, link / mail failures) | lib/routeFactory createApiRoute gains an optional `onRejected(rejection, req)`, called inside the audit context when the factory itself refuses (rate limit 429 ip / subnet, reCAPTCHA 403 / 428), answers unchanged, errors swallowed | register / send-email-link / send-early-registration-link pass signupRejectionRecorder: rate_limited_ip / rate_limited_subnet (at most one row per category and key per window, counted on rateLimit scope auth.signupRejectionAudit) and recaptcha_failed / recaptcha_challenge (version, error, score in metadata) | client answers unchanged everywhere
+why: a live signup failure (3 failed POST /api/auth/register, then 429) could not be explained: 4xx, reCAPTCHA failures, 429s and silent blocks left no trace
+required_actions: none
+verify: a refused signup (e.g. a disposable address on /signup) leaves one audit_logs row with action auth.signup.failed and metadata.reason (pnpm ops db inspect)
+manual_steps: -
+refs: src/domains/core/auth/services/server/signupAudit.ts | src/domains/core/auth/constants/signupFailure.ts | src/lib/routeFactory/README.md (onRejected) | order 20261125-192104-signup-failure-audit
+notes: a fork that replaced these routes with its own may pass `onRejected: signupRejectionRecorder("<flow>")` and call recordSignupFailure the same way | no new table (audit_logs; the dedupe key lives in rate_limits)
