@@ -92,7 +92,8 @@ export function applyMessageOverride<Vars extends z.AnyZodObject>(
   definition: MessageDefinition<Vars>,
   override?: MessageOverride,
 ): OverriddenMessageDefinition<Vars> {
-  const resolved: OverriddenMessageDefinition<Vars> = { ...definition, enabled: true };
+  // 入切: 上書きの enabled > 定義の enabled > true
+  const resolved: OverriddenMessageDefinition<Vars> = { ...definition, enabled: definition.enabled ?? true };
   if (!override) return resolved;
 
   if (override.values) resolved.values = { ...definition.values, ...override.values };
@@ -180,6 +181,9 @@ export function validateMessageDefinition<
     add("missing_label", `${label}: label(管理画面に出す連絡の名前。例 "パスワードの再設定")を書く`);
   }
 
+  if (definition.required && definition.enabled === false) {
+    add("required_disabled", `${label}: required の連絡は enabled:false にできない`);
+  }
   if (options.override) {
     for (const key of OVERRIDE_FORBIDDEN_KEYS) {
       if (key in options.override) {

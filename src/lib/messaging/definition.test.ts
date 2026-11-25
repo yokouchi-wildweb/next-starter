@@ -145,6 +145,17 @@ test("上書きを重ねた結果を検査: required への enabled:false・emai
   ]);
 });
 
+test("定義の enabled(既定 true): false = 既定で送らない。上書きの enabled が書いてあれば上書きが勝つ。required は false にできない", () => {
+  assert.equal(applyMessageOverride(reply).enabled, true, "書かない定義は今までどおり true");
+  const off = defineMessage({ ...reply, enabled: false });
+  assert.deepEqual(validate(off), []);
+  assert.equal(applyMessageOverride(off).enabled, false);
+  assert.equal(applyMessageOverride(off, { label: "名前だけ" }).enabled, false, "enabled を書かない上書きは定義の値のまま");
+  assert.equal(applyMessageOverride(off, { enabled: true }).enabled, true, "上書きの enabled:true で開け直せる");
+  assert.equal(applyMessageOverride(defineMessage({ ...reply, enabled: true }), { enabled: false }).enabled, false);
+  assert.deepEqual(codes(validate(defineMessage({ ...verification, enabled: false }))), ["required_disabled"]);
+});
+
 test("上書きで key・kind・vars・required・defaultChannels は変えられない(category は付け替えられる)", () => {
   const override = { required: false, key: "auth.other", label: "テストの連絡", defaultChannels: ["email"] } as never;
   assert.deepEqual(codes(validate(verification, { override })), ["override_forbidden_key", "override_forbidden_key", "override_forbidden_key"]);

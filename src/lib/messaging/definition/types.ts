@@ -101,6 +101,11 @@ export type MessageDefinition<
   /** 止められない連絡(認証など)。enabled:false・email の除外・adminEditableOnly・throttle を付けられない */
   required?: boolean;
   /**
+   * 連絡 1 本の既定の入切(既定 true)。false = 既定で送らない(送る口は上書きの enabled:false と同じに扱う)。
+   * 上書きの enabled が書いてあれば上書きが勝つ(override の enabled:true で開け直せる)。required の連絡は false にできない
+   */
+  enabled?: boolean;
+  /**
    * 管理画面で直せる欄の絞り(レイアウトの欄の鍵、D132)。無い = レイアウトの欄のうちカテゴリーの送信チャンネルで使う物を全部直せる(種別の性質
    * adminTextOverride が true・required でない連絡)。書いた時だけその欄に絞る。required の連絡は付けない
    */
@@ -153,7 +158,7 @@ export type MessageOverride = {
   /** レイアウトの欄の中身を欄ごとに差し替える */
   values?: MessageLayoutValuesSource;
   extras?: Record<string, unknown>;
-  /** 連絡 1 本の入切(既定 true)。上流の functional の連絡は止められない(D68) */
+  /** 連絡 1 本の入切(既定 = 定義の enabled、それも無ければ true。書けば定義より勝つ)。上流の functional の連絡は止められない(D68) */
   enabled?: boolean;
   /** 管理画面で直せる欄の絞り(レイアウトの欄の鍵) */
   adminEditableOnly?: readonly string[];

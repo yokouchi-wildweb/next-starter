@@ -81,6 +81,7 @@ export const messageOverride = {
   - 実行時は `validateMessageDefinition`(`missing_var_name` / `invalid_var_name` / `var_name_clash`)。上書きで変えられない。`pnpm generate message` は `--var <鍵>:<別名>:<説明>` で書く
   - 秘密の値(トークン入りの URL・ワンタイムコード)は `secretVar(z.string())` で印を付ける。印の鍵を持つ連絡は描いた本文をどこにも残さず(`record: "full"` でも)、vars の写しからその鍵を落とす(送る口が守る)。印は `isSecretVar` / `listSecretVarKeys` で読む。vars は上書きできないので印は外せない
 - `required`: 止められない連絡(認証など)。`enabled: false`・email の除外・`adminEditableOnly`・`throttle` を付けられない
+- `enabled`: 連絡 1 本の既定の入切(既定 true)。`false` = 既定で送らない(送る口は上書きの `enabled: false` と同じに扱う: 送信も配達も作らない、管理者の送る画面の一覧にも出ない)。自分のドメインの連絡を既定で止める時は定義に書く(自分の項目に override を書かない)。上書きの `enabled` が書いてあれば上書きが勝つ(`applyMessageOverride`: 上書き > 定義 > true。`enabled: true` の上書きで開け直せる)。required の連絡は `false` にできない(`required_disabled`)
 - `adminEditableOnly`: 管理画面で直せる欄の絞り(レイアウトの欄の鍵)。無い = レイアウトの欄のうちカテゴリーの送信チャンネルで使う物を全部直せる(`adminEditableFields`: 種別の性質 `adminTextOverride` が true で required でない連絡)。書いた時だけその欄に絞る。required の連絡は付けない。レイアウトに無い鍵は `unknown_admin_editable`
 - `record`: 本文の残し方 `meta` | `vars`(既定)| `full`
 - `throttle`: 会話の間引き `{ by: [vars の鍵], mode: "untilRead" | "window", seconds }`
@@ -239,7 +240,7 @@ export const messageOverride = {
 
 - 全部の定義: `label`(字面の空でない文字列)が無い / `category` が無い・受け口に無い / `layout` が無い・レイアウトの受け口のフォルダに無い。上書きの `category`(付け替え)も受け口の鍵で、下の守りは付け替えた後のカテゴリーで見る
 - 送信チャンネルの固定(`channelModes`、上書きがあれば上書きの物を丸ごと): required か email を外せない種別(functional・security)の連絡の `email: "off"`
-- required の定義: カテゴリーの送信チャンネルに `"email"` が無い・`adminEditableOnly` が空でない・`throttle` がある。その上書き: `enabled: false`・空でない `adminEditableOnly`・`throttle`(`null` で外すのは通す)
+- required の定義: カテゴリーの送信チャンネルに `"email"` が無い・`enabled: false`・`adminEditableOnly` が空でない・`throttle` がある。その上書き: `enabled: false`・空でない `adminEditableOnly`・`throttle`(`null` で外すのは通す)
 - 上流(`src/domains/core`)の functional のカテゴリーの連絡(付け替えた後のカテゴリーで見る): 上書きで `enabled: false`
 - カテゴリーの上書き(`plugs/messagingCategories/<名前>.override.ts`): functional・security のカテゴリーの `channels` から `"email"` を外す・空にする。`group` が 点 messagingCategoryGroups に無い・1 つのグループに別の種別のカテゴリー
 - 守りに関わる値が変数・式だと止まる。種別の性質は `definition/kinds.ts` を字面で読む
