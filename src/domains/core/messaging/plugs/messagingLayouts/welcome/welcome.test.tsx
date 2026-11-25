@@ -20,8 +20,8 @@ const layouts = keyedPlugs(messagingLayouts, (l) => l.key);
 const layoutEmails = keyedPlugs(messagingLayoutEmails, (r) => r.layout);
 const layoutInApps = keyedPlugs(messagingLayoutInApps, (r) => r.layout);
 import { layout } from "./layout";
-import { WelcomeEmail } from "./WelcomeEmail";
-import { WelcomeInApp } from "./WelcomeInApp";
+import { WelcomeEmail } from "./WelcomeEmail.default";
+import { WelcomeInApp } from "./WelcomeInApp.default";
 
 const values = {
   subject: "【App】会員登録が完了しました",

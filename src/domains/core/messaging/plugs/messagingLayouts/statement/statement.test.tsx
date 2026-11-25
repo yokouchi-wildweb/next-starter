@@ -20,8 +20,8 @@ const layouts = keyedPlugs(messagingLayouts, (l) => l.key);
 const layoutEmails = keyedPlugs(messagingLayoutEmails, (r) => r.layout);
 const layoutInApps = keyedPlugs(messagingLayoutInApps, (r) => r.layout);
 import { layout } from "./layout";
-import { StatementEmail } from "./StatementEmail";
-import { StatementInApp } from "./StatementInApp";
+import { StatementEmail } from "./StatementEmail.default";
+import { StatementInApp } from "./StatementInApp.default";
 
 const values = {
   subject: "コインの有効期限が近づいています",

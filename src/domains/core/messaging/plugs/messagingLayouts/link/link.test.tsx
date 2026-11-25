@@ -20,8 +20,8 @@ const layouts = keyedPlugs(messagingLayouts, (l) => l.key);
 const layoutEmails = keyedPlugs(messagingLayoutEmails, (r) => r.layout);
 const layoutInApps = keyedPlugs(messagingLayoutInApps, (r) => r.layout);
 import { layout } from "./layout";
-import { LinkEmail } from "./LinkEmail";
-import { LinkInApp } from "./LinkInApp";
+import { LinkEmail } from "./LinkEmail.default";
+import { LinkInApp } from "./LinkInApp.default";
 
 const values = {
   subject: "メールアドレスの確認",

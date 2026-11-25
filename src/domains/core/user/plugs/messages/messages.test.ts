@@ -4,6 +4,7 @@
 // 実行: pnpm test src/domains/core/user/messages
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { resolve } from "node:path";
 import { createElement } from "react";
 
 import { render } from "@react-email/render";
@@ -16,11 +17,16 @@ import { messagingCategories } from "@/domains/core/messaging/extensions/messagi
 import { messagingLayoutEmails } from "@/domains/core/messaging/extensions/messagingLayoutEmails";
 import { messagingLayouts } from "@/domains/core/messaging/extensions/messagingLayouts";
 import { keyedPlugs } from "@/domains/core/messaging/services/server/lists";
+import { isTier1Repo } from "@/lib/forkOwnership/node.mjs";
 
 // 生成の一覧を鍵で引く表に(検査は門番で絞らない全部の項目)
 const categories = keyedPlugs(messagingCategories, (c) => c.key);
 const layouts = keyedPlugs(messagingLayouts, (l) => l.key);
 const layoutEmails = keyedPlugs(messagingLayoutEmails, (r) => r.layout);
+
+// 描いた文面(レイアウトのメールの描き方 = 1 行スイッチを通した部品)を前の文面と比べる検査は Tier1 だけ:
+// fork はレイアウトの描き方を <部品>.replace.tsx に差し替えてよい(変え方 1)。定義の値・カテゴリー・レイアウトの検査はどの段でも走る
+const tier1Only = { skip: isTier1Repo(resolve(import.meta.dirname, "../../../../../..")) ? false : "fork は描き方を差し替えうるので、上流の描いた文面は見ない(Tier1 だけ)" };
 
 /** {{鍵}} を差し込む(送る口と同じく、文字列の値だけ) */
 function fill(value: unknown, vars: Record<string, string>): unknown {
@@ -57,7 +63,7 @@ async function draw(definition: { vars: { parse: (v: unknown) => unknown }; layo
 
 const TAIL = "ご不明な点がございましたら、 お気軽にお問い合わせください。";
 
-test("registrationComplete: 件名と文面が前のテンプレートと同じ", async () => {
+test("registrationComplete: 件名と文面が前のテンプレートと同じ", tier1Only, async () => {
   const drawn = await draw(registrationComplete, {
     displayName: "山田",
     serviceNameShort: "next-starter",
@@ -70,7 +76,7 @@ test("registrationComplete: 件名と文面が前のテンプレートと同じ"
   );
 });
 
-test("earlyRegistrationComplete: 件名と文面が前のテンプレートと同じ(ボタンなし)", async () => {
+test("earlyRegistrationComplete: 件名と文面が前のテンプレートと同じ(ボタンなし)", tier1Only, async () => {
   const drawn = await draw(earlyRegistrationComplete, {
     displayName: "山田",
     serviceNameShort: "next-starter",

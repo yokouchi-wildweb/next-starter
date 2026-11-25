@@ -5,6 +5,7 @@
 // 実行: pnpm test src/domains/core/auth/messages
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { resolve } from "node:path";
 import { createElement } from "react";
 
 import { render } from "@react-email/render";
@@ -21,11 +22,16 @@ import { messagingCategories } from "@/domains/core/messaging/extensions/messagi
 import { messagingLayoutEmails } from "@/domains/core/messaging/extensions/messagingLayoutEmails";
 import { messagingLayouts } from "@/domains/core/messaging/extensions/messagingLayouts";
 import { keyedPlugs } from "@/domains/core/messaging/services/server/lists";
+import { isTier1Repo } from "@/lib/forkOwnership/node.mjs";
 
 // 生成の一覧を鍵で引く表に(検査は門番で絞らない全部の項目)
 const categories = keyedPlugs(messagingCategories, (c) => c.key);
 const layouts = keyedPlugs(messagingLayouts, (l) => l.key);
 const layoutEmails = keyedPlugs(messagingLayoutEmails, (r) => r.layout);
+
+// 描いた文面(レイアウトのメールの描き方 = 1 行スイッチを通した部品)を前の文面と比べる検査は Tier1 だけ:
+// fork はレイアウトの描き方を <部品>.replace.tsx に差し替えてよい(変え方 1)。定義の値・カテゴリー・レイアウトの検査はどの段でも走る
+const tier1Only = { skip: isTier1Repo(resolve(import.meta.dirname, "../../../../../..")) ? false : "fork は描き方を差し替えうるので、上流の描いた文面は見ない(Tier1 だけ)" };
 
 /** {{鍵}} を差し込む(送る口と同じく、文字列の値だけ) */
 function fill(value: unknown, vars: Record<string, string>): unknown {
@@ -62,7 +68,7 @@ async function draw(definition: { vars: { parse: (v: unknown) => unknown }; layo
 
 const LINK_TAIL = "ボタンがクリックできない場合は、以下のURLをブラウザに貼り付けてください。";
 
-test("verification: 件名と文面が前のテンプレートと同じ", async () => {
+test("verification: 件名と文面が前のテンプレートと同じ", tier1Only, async () => {
   const drawn = await draw(verification, { email: "a@x.test", verificationUrl: "https://x.test/v?oob=1" });
   assert.equal(drawn.subject, "メールアドレスの確認");
   assert.equal(
@@ -71,7 +77,7 @@ test("verification: 件名と文面が前のテンプレートと同じ", async 
   );
 });
 
-test("earlyRegistration: 件名と文面が前のテンプレートと同じ", async () => {
+test("earlyRegistration: 件名と文面が前のテンプレートと同じ", tier1Only, async () => {
   const drawn = await draw(earlyRegistration, {
     email: "a@x.test",
     verificationUrl: "https://x.test/v?oob=1",
@@ -84,7 +90,7 @@ test("earlyRegistration: 件名と文面が前のテンプレートと同じ", a
   );
 });
 
-test("passwordReset: 件名と文面が前のテンプレートと同じ", async () => {
+test("passwordReset: 件名と文面が前のテンプレートと同じ", tier1Only, async () => {
   const drawn = await draw(passwordReset, { resetUrl: "https://x.test/r?oob=1" });
   assert.equal(drawn.subject, "パスワードのリセット");
   assert.equal(
@@ -93,7 +99,7 @@ test("passwordReset: 件名と文面が前のテンプレートと同じ", async
   );
 });
 
-test("emailChange: 件名と文面が前のテンプレートと同じ", async () => {
+test("emailChange: 件名と文面が前のテンプレートと同じ", tier1Only, async () => {
   const drawn = await draw(emailChange, { newEmail: "n@x.test", verificationUrl: "https://x.test/e?oob=1" });
   assert.equal(drawn.subject, "メールアドレス変更の確認");
   assert.equal(
@@ -107,7 +113,7 @@ const LOCKED_HEAD =
 const LOCKED_TAIL =
   "お心当たりがない場合: 第三者によるログイン試行の可能性があります。サポートまでご連絡のうえ、パスワード変更をご検討ください。 お心当たりがある場合: ロックを解除するには管理者またはサポートまでご連絡ください。 このメールは自動送信されています。返信は受け付けておりません。";
 
-test("accountLocked: 件名と文面が前のテンプレートと同じ(IP が空なら IP の行を出さない)", async () => {
+test("accountLocked: 件名と文面が前のテンプレートと同じ(IP が空なら IP の行を出さない)", tier1Only, async () => {
   const withIp = await draw(accountLocked, { occurredAt: "2026/11/11 9:00:00", ip: "203.0.113.1" });
   assert.equal(withIp.subject, "【重要】アカウントがセキュリティロックされました");
   assert.equal(withIp.text, `${LOCKED_HEAD} 発生時刻 2026/11/11 9:00:00 アクセス元 IP 203.0.113.1 ${LOCKED_TAIL}`);

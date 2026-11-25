@@ -20,8 +20,8 @@ const layouts = keyedPlugs(messagingLayouts, (l) => l.key);
 const layoutEmails = keyedPlugs(messagingLayoutEmails, (r) => r.layout);
 const layoutInApps = keyedPlugs(messagingLayoutInApps, (r) => r.layout);
 import { layout } from "./layout";
-import { NoticeEmail } from "./NoticeEmail";
-import { NoticeInApp } from "./NoticeInApp";
+import { NoticeEmail } from "./NoticeEmail.default";
+import { NoticeInApp } from "./NoticeInApp.default";
 
 const values = {
   subject: "メンテナンスのお知らせ",

@@ -20,8 +20,8 @@ const layouts = keyedPlugs(messagingLayouts, (l) => l.key);
 const layoutEmails = keyedPlugs(messagingLayoutEmails, (r) => r.layout);
 const layoutInApps = keyedPlugs(messagingLayoutInApps, (r) => r.layout);
 import { layout } from "./layout";
-import { AlertEmail } from "./AlertEmail";
-import { AlertInApp } from "./AlertInApp";
+import { AlertEmail } from "./AlertEmail.default";
+import { AlertInApp } from "./AlertInApp.default";
 
 const values = {
   subject: "【重要】アカウントがロックされました",

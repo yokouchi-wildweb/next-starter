@@ -207,11 +207,16 @@ const HEADER = withWrappers(withoutLegacyMarks(BEFORE_HEADER).replace(/ id="admi
 /** AdminPage の行 = HEADER + 置き方のクラス(上端に固定・全幅・header-layer) */
 const PAGE_HEADER = HEADER.replace(' sm:px-6 sm:text-lg">', ' sm:px-6 sm:text-lg fixed inset-x-0 top-0 header-layer">');
 
+// 上流の AdminHeader の既定の見た目(固定の HTML・クラス)を見る検査は Tier1 だけ: fork はヘッダーを 1 行スイッチの
+// AdminHeader.replace.tsx に差し替えてよい(変え方 1)。差し替えに依らない器・slot の検査はどの段でも走る
+const { isTier1Repo } = require("../../../lib/forkOwnership/node.mjs") as typeof import("../../../lib/forkOwnership/node.mjs");
+const tier1Only = { skip: isTier1Repo(join(__dirname, "../../../..")) ? false : "fork はヘッダーを差し替えうるので、上流のヘッダーの固定の見た目は見ない(Tier1 だけ)" };
+
 test("props なしの AdminLayout はヘッダーを描かない器: 前の外枠からヘッダーを除き、子の領域に上の余白だけを足した DOM", () => {
   assert.equal(render(<AdminLayout>CHILD</AdminLayout>), CONTAINER_OUTER);
 });
 
-test("ヘッダーの行の高さは決まった値で中身に依らない: 外枠は --app-header-height を inline に書かず(frame.css の初期値 = 行の高さ)、行は actions の有無で同じクラス", () => {
+test("ヘッダーの行の高さは決まった値で中身に依らない: 外枠は --app-header-height を inline に書かず(frame.css の初期値 = 行の高さ)、行は actions の有無で同じクラス", tier1Only, () => {
   assert.equal(render(<AdminLayout>CHILD</AdminLayout>).includes("style="), false);
   const plain = page(<AdminPage>CHILD</AdminPage>);
   const withActions = page(<AdminPage actions={<b id="pa" />}>CHILD</AdminPage>);
@@ -274,7 +279,7 @@ test("footer slot: (protected) は要素で置き換え / null で描かない",
 // Main 自身の data-slot(main・main-layout・main-container)は Main の持ち物(src/components/Layout/Main.tsx)なので除いて比べる
 const page = (node: ReactNode) => render(node).replace(/ data-slot="main(?:-layout|-container)?"/g, "");
 
-test("props なしの AdminPage = ヘッダーの行(前の Header と同じ DOM + 固定の置き方)+ 前と同じ Main。tabs は本文の前に mb-6", () => {
+test("props なしの AdminPage = ヘッダーの行(前の Header と同じ DOM + 固定の置き方)+ 前と同じ Main。tabs は本文の前に mb-6", tier1Only, () => {
   assert.equal(page(<AdminPage>CHILD</AdminPage>), BEFORE_LOGO_PRELOAD + PAGE_HEADER + PAGE_MAIN);
   assert.equal(
     page(<AdminPage tabs={<i id="t" />}>CHILD</AdminPage>),
@@ -288,7 +293,7 @@ const TITLE_BODY = BEFORE_TITLE_PAGE.replace("mb-8 sm:text-3xl", "mb-8 sm:text-3
 /** title="T" のヘッダー側 = 前の PageTitle の圧縮の題と同じクラスの飾りの文字(h1 ではない、aria-hidden) */
 const TITLE_COMPACT = withWrappers(`<p title="T" aria-hidden="true" class="relative min-w-0 text-base font-semibold tracking-tight text-foreground sm:text-lg after:absolute after:-bottom-1 after:left-0 after:h-1 after:w-12 after:rounded-full after:bg-primary after:content-[&#x27;&#x27;] animate-in fade-in slide-in-from-left-2 duration-200"><span class="block max-w-[40vw] truncate">T</span></p>`);
 
-test("AdminPage title = ページの題: h1 は本文の先頭の 1 つ(SP は大見出し、PC は sm:sr-only)、PC で見える圧縮の題はヘッダーの題の受け口の中の飾りの文字", () => {
+test("AdminPage title = ページの題: h1 は本文の先頭の 1 つ(SP は大見出し、PC は sm:sr-only)、PC で見える圧縮の題はヘッダーの題の受け口の中の飾りの文字", tier1Only, () => {
   const html = page(<AdminPage title="T" tabs={<i id="t" />}>CHILD</AdminPage>);
   assert.equal((html.match(/<h1\b/g) ?? []).length, 1, "h1 は 1 つ");
   assert.ok(html.includes(withWrappers(`<div data-slot="admin-header-title" class="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex">${TITLE_COMPACT}</div>`)), html);
@@ -297,7 +302,7 @@ test("AdminPage title = ページの題: h1 は本文の先頭の 1 つ(SP は�
   assert.equal(TITLE_BODY.replace(" sm:sr-only", " sm:hidden").replace(' data-slot="admin-page-title"', ""), BEFORE_TITLE_HEADER);
 });
 
-test("AdminPage の center / actions は行の中央・右の位置(data-slot admin-header-center / -right の要素)に描く", () => {
+test("AdminPage の center / actions は行の中央・右の位置(data-slot admin-header-center / -right の要素)に描く", tier1Only, () => {
   const html = page(
     <AdminPage center={<b id="pc" />} actions={<b id="pa" />}>
       CHILD
@@ -309,17 +314,17 @@ test("AdminPage の center / actions は行の中央・右の位置(data-slot ad
   assert.equal(withoutProps, BEFORE_LOGO_PRELOAD + PAGE_HEADER + PAGE_MAIN, "props の中身のほかは props なしと同じ DOM");
 });
 
-test("main={false} + title: ヘッダーの題に加え、本文の大見出しは children の前(login・setup の自分のスクロール領域の上)", () => {
+test("main={false} + title: ヘッダーの題に加え、本文の大見出しは children の前(login・setup の自分のスクロール領域の上)", tier1Only, () => {
   const html = page(<AdminPage main={false} title="T">CHILD</AdminPage>);
   assert.ok(html.endsWith(`</header>${TITLE_BODY}CHILD`), html);
   assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
 });
 
-test("main={false} はヘッダーの行だけを描き、children をそのまま続ける(login・setup 用)", () => {
+test("main={false} はヘッダーの行だけを描き、children をそのまま続ける(login・setup 用)", tier1Only, () => {
   assert.equal(page(<AdminPage main={false}>CHILD</AdminPage>), BEFORE_LOGO_PRELOAD + PAGE_HEADER + "CHILD");
 });
 
-test("AdminHeader は 1 行スイッチ(./AdminHeader.default を指す re-export 1 文)。行は data-slot admin-header・-title・-center・-right を持ち、受け口の id は無い", () => {
+test("AdminHeader は 1 行スイッチ(./AdminHeader.default を指す re-export 1 文)。行は data-slot admin-header・-title・-center・-right を持ち、受け口の id は無い", tier1Only, () => {
   const sw = readFileSync(join(__dirname, "AdminHeader.tsx"), "utf8").replace(/^\s*\/\/.*$/gm, "").trim();
   assert.equal(sw, 'export { AdminHeader, type AdminHeaderProps } from "./AdminHeader.default";');
   const html = render(<AdminHeader />);
@@ -344,7 +349,7 @@ const hasAll = (set: Set<string>, words: string[]) => {
   for (const w of words) assert.ok(set.has(w), `${w} が無い: ${[...set].join(" ")}`);
 };
 
-test("行のはみ出しの決まり: ロゴと明暗の切り替えは縮めない / 題・中央は縮む(題は … で省く)/ 右の操作は SP だけ縮み PC は縮めない", () => {
+test("行のはみ出しの決まり: ロゴと明暗の切り替えは縮めない / 題・中央は縮む(題は … で省く)/ 右の操作は SP だけ縮み PC は縮めない", tier1Only, () => {
   const html = page(<AdminPage title="T" center={<b id="pc" />} actions={<b id="pa" />}>CHILD</AdminPage>);
   hasAll(classesOf(html, /<a class="([^"]*)" href="\/admin">/), ["shrink-0"]);
   hasAll(classesOf(html, /class="([^"]*)" data-slot="admin-header-title"/), ["min-w-0", "shrink"]);
@@ -358,7 +363,7 @@ test("行のはみ出しの決まり: ロゴと明暗の切り替えは縮めな
   hasAll(classesOf(html, /<x-button data-variant="outline"[^>]* class="([^"]*)">/), ["shrink-0"]);
 });
 
-test("名前のとても長い項目の編集: 明暗の切り替えは行の中・操作の後に描き、選択欄は SP だけ最小幅を外し、値はどの画面幅でも … で省く(ラベルは SP で見た目だけ隠す)、PC の大きさは前のまま", () => {
+test("名前のとても長い項目の編集: 明暗の切り替えは行の中・操作の後に描き、選択欄は SP だけ最小幅を外し、値はどの画面幅でも … で省く(ラベルは SP で見た目だけ隠す)、PC の大きさは前のまま", tier1Only, () => {
   const html = page(
     <AdminPage title="T" actions={<AdminEditItemNavigator domain={{ singular: "sample", plural: "samples" } as never} current={{ id: "a" }} />}>
       CHILD
