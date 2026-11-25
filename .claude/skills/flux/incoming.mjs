@@ -38,18 +38,6 @@ class Stop extends Error {
   }
 }
 
-/** 「- id:<id> | key:value …」の 1 行 → { id, fields }(古い索引の行の形。比べる用)。行でなければ null */
-export function parseRow(line) {
-  if (!line.startsWith("- id:")) return null;
-  const [head, ...rest] = line.slice(2).split(" | ");
-  const fields = {};
-  for (const part of rest) {
-    const i = part.indexOf(":");
-    if (i > 0) fields[part.slice(0, i)] = part.slice(i + 1);
-  }
-  return { id: head.slice("id:".length), fields };
-}
-
 /** notice 本文 → { id, fields(一覧の欄), from } */
 export function rowFromBody(text) {
   const lines = text.split("\n");

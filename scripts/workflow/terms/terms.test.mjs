@@ -28,7 +28,7 @@ test("置き場: 文脈ファイル・道具・見ない所", () => {
   assert.equal(areaOf("eslint.config.core.mjs"), "tools");
   assert.equal(areaOf("package.json"), "tools");
   assert.equal(areaOf("scripts/workflow/terms/terms.json"), null);
-  assert.equal(areaOf("scripts/workflow/rules/renames.json"), null);
+  assert.equal(areaOf("scripts/structure/lib-package/renames.json"), null);
   assert.equal(areaOf("src/domains/x/README.md"), null);
   assert.equal(areaOf(".notices/20261101-000000-x.md"), null);
 });
@@ -73,7 +73,7 @@ test("走査: 見る所の当たりを集め、見ない所と fork の自前の
     "scripts/workflow/terms/terms.json": TABLE,
     "CLAUDE.md": "domain: src/features/\n",
     "scripts/x/run.mjs": "// --gate\n",
-    "scripts/workflow/rules/renames.json": '{ "old": "src/features" }\n',
+    "scripts/structure/lib-package/renames.json": '{ "old": "src/features" }\n',
     "src/domains/a/README.md": "src/features\n",
     "scripts/mine/fork.mjs": "--gate\n",
   });

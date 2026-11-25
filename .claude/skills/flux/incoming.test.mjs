@@ -6,7 +6,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { forkIdOf, incoming, isBreak, normalizeUrl, parseRow, rowFromBody, run, summary } from "./incoming.mjs";
+import { forkIdOf, incoming, isBreak, normalizeUrl, rowFromBody, run, summary } from "./incoming.mjs";
 import { forkIdOfTexts } from "../../../src/lib/forkOwnership/node.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -80,9 +80,7 @@ function twoTier(t) {
   return { up, f, p1, p3 };
 }
 
-test("rows: parseRow reads the old index line form (old histories); checkpoint absent = break, skip_checkpoint = not a break", () => {
-  const row = parseRow(rowOf(N(1), ["checkpoint: a", "hotfix: reason", "fixes: x, commit:abc1234"]));
-  assert.deepEqual(row, { id: N(1), fields: { severity: "info", checkpoint: "a", fixes: "x, commit:abc1234", hotfix: "yes" } });
+test("rows: checkpoint absent = break, skip_checkpoint = not a break", () => {
   assert.equal(isBreak({ id: "a", fields: {} }, new Set()), true);
   assert.equal(isBreak({ id: "a", fields: { checkpoint: "-" } }, new Set()), false);
   assert.equal(isBreak({ id: "a", fields: { checkpoint: "a" } }, new Set(["a"])), false);

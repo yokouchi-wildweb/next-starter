@@ -101,7 +101,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 - plain:
   - `pnpm workflow notices safePoint quickFiles` | `0 quick commits unchecked` → report `出荷するものなし(検査していない quick の分もなし)` and end
   - else step 2's checks on those files (`pnpm check --phase=ship`, the code checks and the area checks they hit) | failed → fix in a new commit and ship it as a plain ship (step 1 onward) | the fix is not obvious → STOP
-  - all pass → `pnpm workflow notices safePoint quickChecked` (records HEAD; the next `quickFiles` stops there) → step 8's report with `safePoint status` (may propose a safe point)
+  - all pass → step 8's report with `safePoint status` (may propose a safe point) | nothing records the pass: the next `quickFiles` counts the same quick commits again until a plain commit or a safe tag lies above them
 - `--safe`:
   - HEAD already carries an own safe tag (`pnpm workflow notices safePoint status` prints `at <tag>`) → report `セーフポイント: 既にある <tag>` and end
   - step 7's full checks (`pnpm workflow notices safePoint check`) → step 7's tag (`pnpm workflow notices safePoint tag`) | exit codes as there
