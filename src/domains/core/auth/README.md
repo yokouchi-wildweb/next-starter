@@ -96,7 +96,7 @@ return response;
 - パスワード再設定メール: `useForgotPassword` → `services/client/forgotPassword.ts`(`sendPasswordResetEmail`)→ `POST /api/auth/forgot-password`
 - 利用者のログイン(`/login`): セクションコンテナ `UserLogin` = メールのフォームの部品 `UserLoginEmailForm` + 外部のログインの手段 `ThirdPartySignupOptions` + 新規登録へのリンク。手段を替える fork は自分の Screen(`_components/`)で `UserLoginEmailForm`(入口 `@/domains/core/auth/components/UserLogin`)と自分の手段を並べる(フォームを写さない。部品の中身は `API.md`「ログイン form」)
 - 管理者ログイン: `AdminLogin` + `useAdminLogin` → `POST /api/auth/local/login`(admin カテゴリのみ、失敗は `loginAudit` で記録・ロックアウト判定)
-- 登録まわりの失敗の記録: メールリンク・先行登録リンク・本登録・パスワード再設定の失敗は `signupAudit.recordSignupFailure` が理由つきで audit_logs に残す(`auth.signup.failed` / `auth.passwordReset.failed`、流れと理由 = `constants/signupFailure.ts`、`loginAudit` と同じ形・個人情報の方針・保持 90 日・bestEffort)。黙った止め(使い捨てメール・Hide My Email)も記録し、利用者への答えは変えない
+- 登録まわりの失敗の記録: メールリンク・先行登録リンク・本登録・パスワード再設定の失敗は `signupAudit.recordSignupFailure` が理由つきで audit_logs に残す(`auth.signup.failed` / `auth.password_reset.failed`、流れと理由 = `constants/signupFailure.ts`、`loginAudit` と同じ形・個人情報の方針・保持 90 日・bestEffort)。黙った止め(使い捨てメール・Hide My Email)も記録し、利用者への答えは変えない
 - 画面を作り替える fork は同じルートの `_components/` の Screen で公開 hook を呼び、返る `form` を `AppForm` + 任意の markup(`FieldRenderer` 等)で描く(hook の契約は `API.md`)
 
 ## API

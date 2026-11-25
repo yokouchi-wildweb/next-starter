@@ -7,7 +7,7 @@
  * - email_link: メールリンクの送信(POST /api/auth/send-email-link)
  * - early_registration_link: 先行登録リンクの送信(POST /api/auth/send-early-registration-link)
  * - register: 本登録(POST /api/auth/register)
- * - password_reset: パスワード再設定のリンク(POST /api/auth/forgot-password。action は auth.passwordReset.failed)
+ * - password_reset: パスワード再設定のリンク(POST /api/auth/forgot-password。action は auth.password_reset.failed)
  *
  * 理由(reason):
  * - invalid_email: メールアドレスが無い・文字列でない

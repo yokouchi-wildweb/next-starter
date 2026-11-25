@@ -3,7 +3,7 @@
 // 登録まわりの失敗の記録(recordSignupFailure)が loginAudit と同じ形と個人情報の方針で audit_logs に書くことの検査(DB なし)。
 // - 既知ユーザー: targetId / subjectUserId = user.id、metadata は { flow, reason } だけ(attemptedEmail を持たない)
 // - 不明ユーザー: targetId = unknown:<email のハッシュ>、subjectUserId null、attemptedEmail あり。email が無ければ unknown:none
-// - action: password_reset は auth.passwordReset.failed、ほかは auth.signup.failed / 保持 90 日 / bestEffort
+// - action: password_reset は auth.password_reset.failed、ほかは auth.signup.failed / 保持 90 日 / bestEffort
 // 実行: pnpm test src/domains/core/auth/services/server/signupAudit.test.ts
 // (package.json に type: module が無いので tsx は CJS として読む → before() で import)
 import { before, beforeEach, mock, test } from "node:test";
@@ -67,10 +67,10 @@ test("不明ユーザー: targetId は unknown:<ハッシュ>、試されたメ�
   assert.deepEqual(recorded[0]?.metadata, { flow: "email_link", reason: "disposable_email", attemptedEmail: "x@spam.test" });
 });
 
-test("メールが取れない時は unknown:none で attemptedEmail を持たない。パスワード再設定は auth.passwordReset.failed", async () => {
+test("メールが取れない時は unknown:none で attemptedEmail を持たない。パスワード再設定は auth.password_reset.failed", async () => {
   await recordSignupFailure({ flow: "password_reset", reason: "invalid_email", email: null });
   assert.equal(recorded[0]?.targetId, "unknown:none");
-  assert.equal(recorded[0]?.action, "auth.passwordReset.failed");
+  assert.equal(recorded[0]?.action, "auth.password_reset.failed");
   assert.deepEqual(recorded[0]?.metadata, { flow: "password_reset", reason: "invalid_email" });
 });
 

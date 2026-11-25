@@ -29,7 +29,7 @@ export type RecordSignupFailureInput = {
 /**
  * 登録まわりの失敗を audit_logs に記録する(loginAudit.recordLoginFailure と同じ形と個人情報の方針)。
  *
- * - action: password_reset は auth.passwordReset.failed、ほかは auth.signup.failed
+ * - action: password_reset は auth.password_reset.failed、ほかは auth.signup.failed
  * - 既知ユーザー: targetId = user.id, subjectUserId = user.id, metadata = { flow, reason }
  * - 不明ユーザー: targetId = "unknown:<email_hash>"(email が無ければ "unknown:none"), subjectUserId = null,
  *                metadata = { flow, reason, attemptedEmail }(attemptedEmail は email がある時だけ)
@@ -45,11 +45,24 @@ export async function recordSignupFailure({ flow, reason, email, user = null, de
     metadata.attemptedEmail = email;
   }
 
+  // action は lint(audit/action-naming・subject-required)が字面で読むので、分かれ道ごとにリテラルで書く
+  if (flow === "password_reset") {
+    await auditLogger.record({
+      targetType: "user",
+      targetId,
+      subjectUserId: user?.id ?? null,
+      action: "auth.password_reset.failed",
+      metadata,
+      defaultRetentionDays: SIGNUP_FAILURE_RETENTION_DAYS,
+      bestEffort: true,
+    });
+    return;
+  }
   await auditLogger.record({
     targetType: "user",
     targetId,
     subjectUserId: user?.id ?? null,
-    action: flow === "password_reset" ? "auth.passwordReset.failed" : "auth.signup.failed",
+    action: "auth.signup.failed",
     metadata,
     defaultRetentionDays: SIGNUP_FAILURE_RETENTION_DAYS,
     bestEffort: true,
