@@ -8,14 +8,13 @@
 
 ```bash
 pnpm workflow devcheck plan [--json]      # 事実(方針・fork の項目・文脈・今の状態)と候補。最後の候補はいつも片付け
-pnpm workflow devcheck status [--json]    # 今の状態だけ(この作業場所のサーバー・動いている dev-tab の数と上限・管理者の有無)
 pnpm workflow devcheck run <候補> [引数…] [--manual-go]   # 候補 1 つを実行
 pnpm workflow devcheck cleanup            # この命令が作った DB の行を消し、立てたサーバーを止める
 pnpm workflow devcheck allow <スイッチ名…> [--words "<人の言葉>"]   # manual の種類に 1 回分の許可を書く(/allow スキルだけが打つ)
 pnpm workflow devcheck danger <dbp|evp|dep>   # 危険な種類に今できること(読むだけ: off の 1 行 / 許可が要る / 打つ命令)
 ```
 
-plan と status は何も書かない(記録を消さない。管理者の有無は `pnpm workflow dev-admin run --check` の読む入口)。
+plan は何も書かない(記録を消さない。管理者の有無は `pnpm workflow dev-admin run --check` の読む入口)。
 
 ## API
 
@@ -40,7 +39,7 @@ plan と status は何も書かない(記録を消さない。管理者の有無
 
 ### 終了コード
 
-- plan / status: 0 = 出した / 2 = 方針・項目・文脈が読めない
+- plan: 0 = 出した / 2 = 方針・項目・文脈が読めない
 - allow: 0 = 書いた / 2 = 知らないスイッチ名 / 4 = 方針で断った(off・auto)| danger: 0 = 打つ命令を出した / 2 = 危険な種類でない / 4 = 打てない
 - run: 打ったコマンドのもの(server で dev-tab の外のサーバーが動いていれば、立てずにそれを使う 1 行で 0)/ 1 = 失敗・使い方 / 2 = 方針・項目・文脈が読めない・断った文 / 4 = 方針で断った
 - cleanup: 0 = 片付けた(片付けるもの無しも)/ 1 = 残った物がある
@@ -125,7 +124,7 @@ auto=<種類>[,<種類>…]   # v=2: 方針が manual の通常の種類を、�
 1. **1 回分の許可の道**(印は要らない): manual の通常の種類の `devcheck run <種類> … --manual-go` でそのスイッチの許可がある → allow して許可を消す(上の「1 回分の許可」)。危険な 3 つの命令は照らさない(入口が読む)。許可のあるスイッチの `pnpm workflow devcheck danger <スイッチ名>`(読むだけ)も印なしで通す(許可は使わない)
 2. **allow**: 手元の印 `DEVCHECK_GRANT=on`(`.claude/settings.local.json` の env。整えるスキルが書く)があり、その種類の方針が `off` でなく、許可してよい形の時だけ
    - 形はシェルの記号の無い 1 つのコマンドだけ(引用符の外の `; & | < > $ ( ) { } * ? # ! ~ [ ]`・`\`・改行は不可。`'…'` の中は文字、`"…"` の中は `$` と `` ` `` だけを見る)
-   - `pnpm workflow devcheck plan|status [--json]`・`cleanup`・`danger <スイッチ名>`(種類の方針は見ない。全部の種類が `off`(`enabled: false` を含む)の時は通さない)/ `devcheck run <種類|fork の項目> […]`(その種類の方針が `auto` の時だけ。`manual` は印の道では通さず、1 回分の許可の道だけ)
+   - `pnpm workflow devcheck plan [--json]`・`cleanup`・`danger <スイッチ名>`(種類の方針は見ない。全部の種類が `off`(`enabled: false` を含む)の時は通さない)/ `devcheck run <種類|fork の項目> […]`(その種類の方針が `auto` の時だけ。`manual` は印の道では通さず、1 回分の許可の道だけ)
    - 種類の命令: server = `pnpm workflow dev-tab run [start|status|stop] [--background] [--port <n>]` / login = `pnpm workflow dev-admin run [--check]`
    - db-write・db-delete は `devcheck run` だけ(生の `pnpm ops db inspect query` は返さない = 文の検査と片付けの記録を通す)
    - peer(フックだけの種類): `pnpm workflow peer send|reply|inbox|read|ack|who …`

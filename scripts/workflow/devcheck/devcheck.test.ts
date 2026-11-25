@@ -1,7 +1,7 @@
 // scripts/workflow/devcheck/devcheck.test.ts — pnpm test scripts/workflow/devcheck
 //
 // 読むだけの層: 種類の表(スキーマの push・本番が無い)・方針の重ね・fork の項目の走査・文脈ファイル(無い / 良い / 壊れた / 知らない版)・
-// 生きている dev-tab の数・計画(片付けが最後・手での種類)と、一時のリポで plan / status を実際に動かした出力。
+// 生きている dev-tab の数・計画(片付けが最後・手での種類)と、一時のリポで plan を実際に動かした出力。
 
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
@@ -217,7 +217,7 @@ test("計画: 上流の種類 + fork の項目、最後はいつも片付け。�
   assert.equal(buildPlan({ ...facts, context: STANDALONE }).candidates.find((c) => c.name === "server")?.command, "pnpm workflow dev-tab run");
 });
 
-test("通し: 一時のリポで plan / status を動かす(単体・文脈あり・壊れた文脈は exit 2 で 1 行)", () => {
+test("通し: 一時のリポで plan を動かす(単体・文脈あり・壊れた文脈は exit 2 で 1 行)", () => {
   const repo = temp("devcheck-run-");
   execFileSync("git", ["init", "-q"], { cwd: repo });
   writeFileSync(path.join(repo, "package.json"), JSON.stringify({ name: "devcheck-run", private: true, scripts: { test: "node t.js" } }));
@@ -238,7 +238,7 @@ test("通し: 一時のリポで plan / status を動かす(単体・文脈あ�
   assert.equal(json.candidates.at(-1).name, "cleanup");
   const ctx = path.join(repo, "ctx");
   writeFileSync(ctx, "v=1\nserver=background\ndev_max=2\n");
-  const withCtx = run("status", { DEVCHECK_CONTEXT: ctx });
+  const withCtx = run("plan", { DEVCHECK_CONTEXT: ctx });
   assert.equal(withCtx.status, 0, withCtx.stderr);
   assert.match(withCtx.stdout, /動いている dev-tab: 0 \/ 上限 2/);
   writeFileSync(ctx, "v=9\n");

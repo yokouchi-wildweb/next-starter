@@ -86,7 +86,6 @@ test("止めは無い(D420): 前の固定の止めの形は、印・方針に依
 const ALLOWS = [
   ["pnpm workflow devcheck plan", null],
   ["pnpm workflow devcheck plan --json", null],
-  ["pnpm workflow devcheck status --json", null],
   ["pnpm workflow devcheck cleanup", null],
   ["pnpm workflow devcheck run server", "server"],
   ["pnpm workflow devcheck run login", "login"],
@@ -135,7 +134,7 @@ test("方針 off → 何も返さない(deny にしない)/ manual → 印の道
   const manual = fakeDeps({ policy: () => ({ ...ALL_AUTO, "db-write": "manual" }) });
   assert.equal(verdict(bash('pnpm workflow devcheck run db-write "INSERT INTO t (a) VALUES (1) RETURNING id" --manual-go'), manual), "none");
   assert.equal(verdict(bash("pnpm workflow devcheck run seed-shop --manual-go"), manual), "none");
-  // devcheck の入口(plan / status / cleanup)は種類の方針を見ない(どれかが off でなければ通す)
+  // devcheck の入口(plan / cleanup)は種類の方針を見ない(どれかが off でなければ通す)
   const mostlyOff = fakeDeps({ policy: () => ({ ...Object.fromEntries(POLICY_KEYS.map((k) => [k, "off"])), peer: "manual" }) });
   assert.equal(verdict(bash("pnpm workflow devcheck cleanup"), mostlyOff), "allow");
 });
@@ -250,7 +249,7 @@ test("browser: dev-tab の記録が無い・印なし・方針 off → 何も返
 test("方針の全体のスイッチ enabled:false(D103): 印があっても allow の形は全部何も返さない", () => {
   const off = fakeDeps({ policy: () => Object.fromEntries(POLICY_KEYS.map((k) => [k, "off"])) });
   for (const [command, kind] of ALLOWS) if (kind) assert.equal(verdict(bash(command), off), "none", command);
-  for (const command of ["pnpm workflow devcheck plan", "pnpm workflow devcheck status --json", "pnpm workflow devcheck cleanup"]) assert.equal(verdict(bash(command), off), "none", command);
+  for (const command of ["pnpm workflow devcheck plan", "pnpm workflow devcheck cleanup"]) assert.equal(verdict(bash(command), off), "none", command);
   assert.equal(verdict(pw("navigate", { url: DEV }), off), "none");
 });
 

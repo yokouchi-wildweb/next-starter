@@ -1,6 +1,6 @@
 // scripts/workflow/devcheck/lib.facts.ts
 //
-// plan / status / run / cleanup が共有する、環境に触る部品(事実を集める・本物の Deps)。純粋な部品は lib.ts・lib.run.ts、本体は lib.exec.ts
+// plan / run / cleanup が共有する、環境に触る部品(事実を集める・本物の Deps)。純粋な部品は lib.ts・lib.run.ts、本体は lib.exec.ts
 // 事実を集める側は読むだけ(記録を消さない・何も書かない。管理者は dev-admin run --check の読む入口)
 // 規則と使い方: scripts/workflow/devcheck/README.md
 

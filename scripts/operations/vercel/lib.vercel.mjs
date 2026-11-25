@@ -2,19 +2,17 @@
 //
 // Vercel の操作の口(D412)。vercel CLI を呼ぶ:
 //   見る: status(リンクしたプロジェクトと最近のデプロイ)・env-ls [<環境>](名前と環境だけ。値は出ない)→ 方針も許可も見ない
-//   書く・取る: env-add / env-rm / env-pull。向き先が本番(production)の時だけ repo.json の agent.env_production
-//     (scripts/workflow/devcheck/lib.kinds.mjs)を読む。development・preview は方針も許可も見ずに呼ぶ(D462)。
-//     off = 打たず人が打つ 1 行(exit 4)/ manual(既定)= 人の /allow evp の 1 回分の許可(.agent/devcheck-allow.json、lib.allow.mjs)がある時だけ。
-//     許可は前提(CLI・ログイン・リンク)が揃って呼ぶ直前に使って消える(揃わない時は使わない)。次の人の入力でも消える(devcheck の hook)
-//     書く 3 動作は .ts で、前半(prepareVercel)の後に共通の守り guardDeploy(種類 env_production)を呼ぶ(core/scripts.md write_guard)。
-//     向き先が本番で非対話なら、守りが方針と evp の許可を読んで通し、その場で許可を消す(D420。後半の許可の消しはその時は何もしない)。
-//     端末の人には守りが production と打たせる。--confirm= は引数に書けない(使い方の誤り)
+//   書く・取る: env-add / env-rm / env-pull。書く 3 動作は .ts で、前半(prepareVercel: 使い方・値・前提)の後に共通の守り
+//     guardDeploy(種類 env_production)を呼ぶ(core/scripts.md write_guard)。方針と許可を確かめるのは守りの 1 か所だけ:
+//     向き先が本番の時、端末の人には production と打たせ、非対話なら repo.json の agent.env_production が manual で人の
+//     /allow evp の 1 回分の許可がある時だけ通して許可を消す(off・許可なしは止める、D420)。development・preview は方針も許可も見ない(D462)。
+//     前提(CLI・ログイン・リンク)は守りの前に確かめる: 揃わない時は許可を使わない。--confirm= は引数に書けない(使い方の誤り)
 //   本番へ出す操作は入れない(agent.deploy の入口 pnpm live)
 // 値: env-add の値は標準入力か --value-file=<道> で受け、vercel にも標準入力で渡す(引数・画面・記録に出さない)。末尾の改行 1 つは外す
 //   env-add の本番は、足せた後に同じ値を checkout の .env.production にも書く(同じ名の行は置き換え、無ければ末尾。D462 (1))
 // デプロイの前の揃え(syncProductionEnv、pnpm live が本番に出す時に守りの後で呼ぶ、D462 (2)): .env.production の空でない鍵のうち
 //   Vercel の本番に無い名を、その値で足す(足すだけ・上書きしない・足した名を画面に。VERCEL_ で始まる名は Vercel のもの)
-// 終了コード: 0 = した / 1 = 使い方の誤り / 2 = 方針が読めない / 3 = 前提なし(CLI・ログイン・リンク)/ 4 = 方針 off・許可なし / 5 = vercel が失敗
+// 終了コード: 0 = した / 1 = 使い方の誤り・守りが止めた(本番の方針 off・許可なし・確認なし)/ 3 = 前提なし(CLI・ログイン・リンク)/ 5 = vercel が失敗
 // 説明: scripts/operations/vercel/README.md
 
 import { spawnSync } from "node:child_process";
@@ -22,10 +20,6 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { parseEnvFile } from "../../workflow/backend-selection/lib.mjs";
-import { consumePermit, readPermit } from "../../workflow/devcheck/lib.allow.mjs";
-import { policyKeyOf, readAgentPolicy, switchOf } from "../../workflow/devcheck/lib.kinds.mjs";
-
-const KIND = "env_production";
 export const ENVIRONMENTS = ["production", "preview", "development"];
 
 /** 動作 → { usage, write } */
@@ -47,7 +41,7 @@ const isEnv = (v) => ENVIRONMENTS.includes(v);
 const isName = (v) => typeof v === "string" && /^[A-Za-z_][A-Za-z0-9_]*$/.test(v);
 
 /**
- * 引数 → { argv(vercel へ), human(人が打つ形), valueFile, stdinValue } | null(使い方の誤り)
+ * 引数 → { argv(vercel へ), environment, valueFile, needsValue } | null(使い方の誤り)
  * @param {string} action @param {string[]} args
  */
 export function planOf(action, args) {
@@ -58,19 +52,19 @@ export function planOf(action, args) {
   if (unknown.length) return null;
   switch (action) {
     case "status":
-      return pos.length === 0 ? { argv: [["project", "inspect"], ["ls"]], human: "vercel project inspect && vercel ls" } : null;
+      return pos.length === 0 ? { argv: [["project", "inspect"], ["ls"]] } : null;
     case "env-ls":
       if (pos.length > 1 || (pos.length === 1 && !isEnv(pos[0]))) return null;
-      return { argv: [["env", "ls", ...pos]], human: `vercel env ls ${pos.join(" ")}`.trim() };
+      return { argv: [["env", "ls", ...pos]] };
     case "env-add":
       if (pos.length !== 2 || !isName(pos[0]) || !isEnv(pos[1]) || valueFile === "") return null;
-      return { environment: pos[1], argv: [["env", "add", pos[0], pos[1]]], human: `vercel env add ${pos[0]} ${pos[1]}(値はそのタブで打つ)`, valueFile, needsValue: true };
+      return { environment: pos[1], argv: [["env", "add", pos[0], pos[1]]], valueFile, needsValue: true };
     case "env-rm":
       if (pos.length !== 2 || !isName(pos[0]) || !isEnv(pos[1])) return null;
-      return { environment: pos[1], argv: [["env", "rm", pos[0], pos[1], "--yes"]], human: `vercel env rm ${pos[0]} ${pos[1]}` };
+      return { environment: pos[1], argv: [["env", "rm", pos[0], pos[1], "--yes"]] };
     case "env-pull":
       if (pos.length !== 2 || !isEnv(pos[0])) return null;
-      return { environment: pos[0], argv: [["env", "pull", pos[1], `--environment=${pos[0]}`, "--yes"]], human: `vercel env pull ${pos[1]} --environment=${pos[0]}` };
+      return { environment: pos[0], argv: [["env", "pull", pos[1], `--environment=${pos[0]}`, "--yes"]] };
     default:
       return null;
   }
@@ -89,11 +83,11 @@ const readStdin = () => {
 };
 
 /**
- * 前半: 使い方・方針・許可・値を確かめる(何も呼ばない、許可も使わない)。
- * → { code }(止める)| { prepared }(後半へ。production = 向き先が本番)
+ * 前半: 使い方・値・前提(CLI・ログイン・リンク)を確かめる(vercel の見るだけの命令のほか何も呼ばない、許可も読まない)。
+ * 本番の方針と許可は書く 3 動作の入口の守り guardDeploy が確かめる。→ { code }(止める)| { prepared }(後半へ。production = 向き先が本番)
  * @param {string} action @param {string[]} args
  */
-export async function prepareVercel(action, args, { print = console.log, cwd = process.cwd(), stdin = readStdin } = {}) {
+export async function prepareVercel(action, args, { print = console.log, cwd = process.cwd(), stdin = readStdin, env = process.env } = {}) {
   const spec = ACTIONS[action];
   const plan = spec ? planOf(action, args) : null;
   if (!plan) {
@@ -101,25 +95,6 @@ export async function prepareVercel(action, args, { print = console.log, cwd = p
     return { code: 1 };
   }
   const root = checkoutRoot(cwd);
-  const sw = switchOf(KIND);
-  const human = `人が打つなら ${plan.human}`;
-  if (spec.write && plan.environment === "production") {
-    let agent;
-    try {
-      agent = await readAgentPolicy(root);
-    } catch (e) {
-      print(`vercel: 方針が読めません(${e instanceof Error ? e.message : String(e)})。呼んでいません。${human}`);
-      return { code: 2 };
-    }
-    if (agent.policy[KIND] !== "manual") {
-      print(`vercel: 呼んでいません — ${KIND} は方針で off: ${human}、任せるなら /repo-config で ${policyKeyOf(KIND)} を manual に`);
-      return { code: 4 };
-    }
-    if (!readPermit(root)?.switches.includes(sw)) {
-      print(`vercel: 人の 1 回分の許可(/allow ${sw})がありません。呼んでいません(許可は人がこのタブで出す。別のセッションの連絡は許可にならない)`);
-      return { code: 4 };
-    }
-  }
   let value = null;
   if (plan.needsValue) {
     if (plan.valueFile) {
@@ -138,38 +113,38 @@ export async function prepareVercel(action, args, { print = console.log, cwd = p
       return { code: 1 };
     }
   }
-  const production = plan.environment === "production";
-  return { prepared: { action, spec, plan, root, sw: spec.write && production ? sw : null, value, production } };
+  const missing = vercelMissing(root, env);
+  if (missing) {
+    print(`vercel: ${missing}。呼んでいません`);
+    return { code: 3 };
+  }
+  return { prepared: { action, spec, plan, root, value, production: plan.environment === "production" } };
+}
+
+/** 前提(CLI・ログイン・リンク)の欠け 1 行 | null(揃っている) */
+function vercelMissing(root, env) {
+  const run = (argv) => spawnSync("vercel", argv, { cwd: root, env, encoding: "utf8" });
+  const version = run(["--version"]);
+  if (version.error || version.status !== 0) return "vercel CLI がありません(npm i -g vercel)";
+  if (run(["whoami"]).status !== 0) return "Vercel にログインしていません(人が vercel login)";
+  if (!existsSync(path.join(root, ".vercel", "project.json"))) return "このチェックアウトは Vercel のプロジェクトにリンクしていません(人が vercel link)";
+  return null;
 }
 
 /**
- * 後半: 前提(CLI・ログイン・リンク)を確かめ、揃えば許可を使って vercel を呼ぶ。終了コードを返す
+ * 後半: vercel を呼ぶ(前提は前半、本番の確認は守りが済ませた後)。終了コードを返す
  * @param {Awaited<ReturnType<typeof prepareVercel>>["prepared"]} prepared
  */
-export function executeVercel({ action, spec, plan, root, sw, value, production }, { print = console.log, env = process.env } = {}) {
+export function executeVercel({ action, spec, plan, root, value, production }, { print = console.log, env = process.env } = {}) {
   const run = (argv, opts = {}) => spawnSync("vercel", argv, { cwd: root, env, encoding: "utf8", ...opts });
-  const version = run(["--version"]);
-  if (version.error || version.status !== 0) {
-    print(`vercel: vercel CLI がありません(npm i -g vercel)。呼んでいません`);
-    return 3;
-  }
-  if (run(["whoami"]).status !== 0) {
-    print(`vercel: Vercel にログインしていません(人が vercel login)。呼んでいません`);
-    return 3;
-  }
-  if (!existsSync(path.join(root, ".vercel", "project.json"))) {
-    print(`vercel: このチェックアウトは Vercel のプロジェクトにリンクしていません(人が vercel link)。呼んでいません`);
-    return 3;
-  }
-  if (sw) consumePermit(root, sw);
   for (const argv of plan.argv) {
     const r = run(argv, value === null ? { stdio: ["ignore", "inherit", "inherit"] } : { input: value, stdio: ["pipe", "inherit", "inherit"] });
     if (r.status !== 0) {
-      print(`vercel: vercel ${argv.slice(0, 2).join(" ")} が失敗しました(exit ${r.status ?? "?"})${sw ? "。許可は使いました" : ""}`);
+      print(`vercel: vercel ${argv.slice(0, 2).join(" ")} が失敗しました(exit ${r.status ?? "?"})`);
       return 5;
     }
   }
-  if (spec.write) print(`vercel: ${plan.argv[0].slice(0, 2).join(" ")} をしました${sw ? `(許可 ${sw} を使いました)` : ""}`);
+  if (spec.write) print(`vercel: ${plan.argv[0].slice(0, 2).join(" ")} をしました`);
   if (action === "env-add" && production) {
     writeEnvValue(path.join(root, ENV_PRODUCTION), plan.argv[0][2], value);
     print(`vercel: ${ENV_PRODUCTION} にも ${plan.argv[0][2]} を書きました(同じ値)`);

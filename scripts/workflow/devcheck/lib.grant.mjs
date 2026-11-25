@@ -121,7 +121,7 @@ export const hasShellSymbols = (/** @type {string} */ command) => {
 
 /**
  * @typedef {{ kind: string; manualGo?: boolean; always?: boolean; ship?: boolean }} Match
- * kind = 方針の鍵 / always = 方針を見ない(devcheck の plan / status / cleanup) / ship = 出荷の検査の命令(pnpm test・pnpm check、方針の鍵なしで通す)
+ * kind = 方針の鍵 / always = 方針を見ない(devcheck の plan / cleanup) / ship = 出荷の検査の命令(pnpm test・pnpm check、方針の鍵なしで通す)
  */
 
 /**
@@ -138,7 +138,7 @@ export const classifyBash = (command, itemKind) => {
   if (rest[0] === "-s" || rest[0] === "--silent") rest = rest.slice(1);
   const [a, b, c] = rest;
   if (a === "workflow" && b === "devcheck") {
-    if (["plan", "status"].includes(c) && rest.slice(3).every((w) => w === "--json")) return { kind: "devcheck", always: true };
+    if (c === "plan" && rest.slice(3).every((w) => w === "--json")) return { kind: "devcheck", always: true };
     if (c === "cleanup" && rest.length === 3) return { kind: "devcheck", always: true };
     // danger = 読むだけ(今その危険な種類にできること)。allow(1 回分の許可を書く)は通さない = 普段どおり聞かれる(人に見える)
     if (c === "danger" && rest.length === 4 && /^[a-z]+$/.test(rest[3])) return { kind: "devcheck", always: true };
@@ -269,7 +269,7 @@ export const decide = (req, deps) => {
   if (!match) return null;
   if (match.ship) return { decision: "allow", reason: "devcheck の許可: 印あり・出荷の検査の命令(方針の鍵なし、回す所は checks_in_ship)" };
   const policy = deps.policy();
-  // devcheck の入口(plan / status / cleanup・allow / danger)は種類を持たない: どれかの種類が off でない間だけ通す
+  // devcheck の入口(plan / cleanup・allow / danger)は種類を持たない: どれかの種類が off でない間だけ通す
   // (全体のスイッチ enabled:false = 全部 off → 印の道では何も通さない、D103)
   if (match.always) return POLICY_KEYS.some((k) => policy[k] !== undefined && policy[k] !== "off") ? { decision: "allow", reason: "devcheck の許可: 印あり・devcheck の入口" } : null;
   // manual は印の道では通さない(1 回分の許可の道だけ)

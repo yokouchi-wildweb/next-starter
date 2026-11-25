@@ -1,6 +1,6 @@
 // scripts/operations/vercel/env-add.ts — pnpm ops vercel env-add <名前> <production|preview|development> [--value-file=<道>](値は標準入力か --value-file)
-// 書く動作: 方針 agent.env_production と人の /allow evp の 1 回分の許可(lib.vercel.mjs の前半)→ 共通の守り guardDeploy → vercel。
-// 向き先が本番なら守りが種類 env_production の方針と evp の許可で通し、許可を消す(D412・D420)。本体と説明: lib.vercel.mjs・README.md
+// 書く動作: 前半(lib.vercel.mjs prepareVercel: 使い方・値・前提)→ 共通の守り guardDeploy → vercel。
+// 向き先が本番の時だけ守りが確かめる(端末は production と打つ・非対話は種類 env_production の方針と evp の許可、許可を消す。D412・D420)。本体と説明: lib.vercel.mjs・README.md
 
 import { guardDeploy } from "../../runner/guard";
 import { executeVercel, prepareVercel } from "./lib.vercel.mjs";

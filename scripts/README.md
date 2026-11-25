@@ -37,7 +37,7 @@ pnpm ops data export|import|update|delete <domain>  # 全ドメイン共通の�
 pnpm ops features list | set <規則名> on|off        # 機能を閉じる規則の一覧と入切
 pnpm workflow worktree new <branch> | sync | remove <path>
 pnpm workflow dev-tab run [stop|status]             # 開発サーバーを tmux のタブか裏のプロセスで
-pnpm workflow devcheck plan|status|run|cleanup     # 開発中の確かめの事実と候補・実行・片付け
+pnpm workflow devcheck plan|run|cleanup            # 開発中の確かめの事実と候補・実行・片付け
 pnpm workflow local-settings show|plan|apply       # 手元の Claude Code の設定(許可の層の印)を整える
 pnpm workflow repo-json show|get|set|migrate       # リポ直下の repo.json(名前・段・方針)を読む・書く
 pnpm workflow backend-selection fill|set|show      # 根の backend-selection.json(口 → 実装の名前)を埋める・選ぶ・見る

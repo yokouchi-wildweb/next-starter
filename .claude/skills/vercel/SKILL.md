@@ -20,7 +20,7 @@ never: a bare `vercel env add|rm|pull` (the permit hook stops it and points here
 3. read the result:
    - exit 0 → REPORT
    - exit 3 (no CLI, not logged in, not linked) → show the line; the user runs `vercel login` / `vercel link` themselves; the permit is kept
-   - exit 4 (off, or no permit) / exit 1 / exit 5 → show the line; run nothing else
+   - exit 1 (usage, or the guard stopped: policy off, no permit, no confirm) / exit 5 → show the line; run nothing else
 
 ## REPORT
 ```

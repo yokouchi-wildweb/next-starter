@@ -1,5 +1,5 @@
 // scripts/operations/vercel/lib.vercel.test.mjs — pnpm test scripts/operations/vercel
-// Vercel の口の env の決まり(D462): 本番だけ方針と許可を見る・env-add の本番は .env.production にも同じ値・デプロイの前の揃え
+// Vercel の口の env の決まり(D462): 方針と許可は守りだけが見る(前半は前提まで)・env-add の本番は .env.production にも同じ値・デプロイの前の揃え
 // (syncProductionEnv)は Vercel の本番に無い名だけを足す。本物の vercel は呼ばない(偽の vercel を PATH の先頭に置く・run を差し替える)
 
 import assert from "node:assert/strict";
@@ -27,18 +27,21 @@ function checkout(t) {
   return { root, log, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } };
 }
 
-test("方針と許可は向き先が本番の時だけ: development・preview は許可が無くても呼ぶ準備ができ、本番は許可が無ければ exit 4", async (t) => {
-  const { root } = checkout(t);
+test("前半は本番でも方針と許可を読まない(確かめは守り guardDeploy の 1 か所): 本番も許可なしで準備ができ、前提(CLI・ログイン・リンク)が無ければ守りの前に 3", async (t) => {
+  const { root, env } = checkout(t);
   const quiet = () => {};
-  for (const environment of ["development", "preview"]) {
-    const r = await prepareVercel("env-add", ["FOO", environment], { cwd: root, print: quiet, stdin: () => "v\n" });
-    assert.equal(r.prepared?.sw, null, environment);
-    assert.equal(r.prepared?.production, false);
+  for (const environment of ["development", "preview", "production"]) {
+    const r = await prepareVercel("env-add", ["FOO", environment], { cwd: root, print: quiet, stdin: () => "v\n", env });
+    assert.equal(r.prepared?.production, environment === "production", environment);
   }
-  const rm = await prepareVercel("env-rm", ["FOO", "preview"], { cwd: root, print: quiet });
-  assert.ok(rm.prepared, "env-rm の preview も方針なし");
-  const prod = await prepareVercel("env-add", ["FOO", "production"], { cwd: root, print: quiet, stdin: () => "v\n" });
-  assert.equal(prod.code, 4, "本番は今まで通り方針と許可を見る(許可が無ければ呼ばない)");
+  const rm = await prepareVercel("env-rm", ["FOO", "production"], { cwd: root, print: quiet, env });
+  assert.ok(rm.prepared, "env-rm の本番も前半は方針を見ない");
+  const lines = [];
+  const noCli = await prepareVercel("env-add", ["FOO", "production"], { cwd: root, print: (l) => lines.push(l), stdin: () => "v\n", env: { ...env, PATH: "/nonexistent" } });
+  assert.equal(noCli.code, 3);
+  assert.match(lines[0], /vercel CLI がありません/);
+  rmSync(path.join(root, ".vercel"), { recursive: true });
+  assert.equal((await prepareVercel("env-rm", ["FOO", "preview"], { cwd: root, print: quiet, env })).code, 3, "リンクが無ければ 3");
 });
 
 test("env-add の本番: vercel に足せた後、.env.production の同じ名の行を同じ値で置き換える(無い名は末尾に)。development は .env.production に触らない", (t) => {
@@ -46,7 +49,7 @@ test("env-add の本番: vercel に足せた後、.env.production の同じ名�
   writeFileSync(path.join(root, ".env.production"), "# c\nAPP_ENV=production\nFOO=old\n");
   const quiet = () => {};
   const add = (name, environment, value) =>
-    executeVercel({ action: "env-add", spec: ACTIONS["env-add"], plan: planOf("env-add", [name, environment]), root, sw: null, value, production: environment === "production" }, { print: quiet, env });
+    executeVercel({ action: "env-add", spec: ACTIONS["env-add"], plan: planOf("env-add", [name, environment]), root, value, production: environment === "production" }, { print: quiet, env });
   assert.equal(add("FOO", "production", "new value"), 0);
   assert.equal(add("BAR", "production", "b"), 0);
   assert.equal(add("DEV_ONLY", "development", "d"), 0);
