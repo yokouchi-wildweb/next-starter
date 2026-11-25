@@ -18,9 +18,11 @@
 //   区切り = 欄 checkpoint がラベルか欄なし。ただし先端のどれかの本文の skip_checkpoint: <id> に名指された物は - とみなす
 //   区間 0 = 区切り点が HEAD の祖先。以降は区切り点の履歴順に、区切りの直後で閉じる。最後の区切り以降 + 残りの commit = 末尾区間
 //   offLine = 前の位置(HEAD と先端の merge-base / 前の区間の merge 先)が merge 先の祖先でない区間(脇の commit。mainline = 本線でそれを含む最初の commit)
-//   Rejoin パターン(patterns.md) = 区切りのある線が 1 つの merge で合わさる形(2 本以上): 多い線の区間を先に 1 つずつ、ほかの残る線は
-//            合流の merge を目標の区間 1 つに(区間に pattern:"Rejoin"、合流の区間は rejoinMerge)。線どうしの名指しで決めない時だけ
-//            rejoin:{ undecided, why, merge }
+//   joins = 上流の first-parent の merge のうち、未適用の区切りが 2 つ以上の側にある物(事実だけ、並べ替えない: 順は取り込む側が
+//            決める、D473): merge・parents・側ごとの未適用の notice(id・point・break)・他の側の notice を名指す欄(naming)。
+//            その側の notice を持つ区間に pattern:"join" と join:<merge>
+//   owner_by = 持ち主の根拠: url(from: の URL が origin / 直上と一致、祖父はその URL)/ name(名前の一致)/ none(空の from:、直上の
+//            URL が読めない: 直上に寄せた)。from = 本文の生の from:
 //   body = 本文を読む場所(最後の版: <先端>:<パス> か <消した commit>^:<パス>)
 //   exit 0 = 出した | 2 = 止まる(浅い clone・区切り点が先端の祖先でない・repo_id が無い)
 import { execFileSync } from "node:child_process";
@@ -169,12 +171,22 @@ function readBodies(g, specs) {
   return out;
 }
 
-/** repo の ref の履歴の一覧(ほかの読み手・比べる用): [{ owner, id, fields, add, body }] */
+/** repo の ref の履歴の一覧(ほかの読み手・比べる用): [{ owner, owner_by, from, id, fields, add, body }] */
 export function historyList(repo, ref, { own = "(own)", mid = "(upstream)", originUrl = null, upstreamUrl = null } = {}) {
-  return historyRows(makeGit(repo), ref, { own, mid, originUrl, upstreamUrl }).map((r) => ({ owner: r.owner, id: r.row.id, fields: r.row.fields, add: r.add, body: r.body }));
+  return historyRows(makeGit(repo), ref, { own, mid, originUrl, upstreamUrl }).map((r) => ({ owner: r.owner, owner_by: r.ownerBy, from: r.from, id: r.row.id, fields: r.row.fields, add: r.add, body: r.body }));
 }
 
-/** 先端の履歴の一覧: [{ owner, row, add, body }]。owner は本文の from: の URL で own / 直上 / 祖父 に分ける */
+/** 持ち主と根拠: [owner, owner_by]。URL の一致が答え(url)、名前の一致(name)・空の from: や直上の URL が無い時の直上への寄せ(none)は見当 */
+export function ownerOf({ repoUrl, name, own, mid, originUrl, upstreamUrl }) {
+  if (originUrl && repoUrl === originUrl) return [own, "url"];
+  if (name === own) return [own, "name"];
+  if (upstreamUrl && repoUrl && repoUrl === upstreamUrl) return [mid, "url"];
+  if (!upstreamUrl || !repoUrl) return [mid, "none"];
+  if (name === mid) return [mid, "name"];
+  return [`grandparent:${repoUrl}`, "url"];
+}
+
+/** 先端の履歴の一覧: [{ owner, ownerBy, from, row, add, body }]。owner は本文の from: の URL で own / 直上 / 祖父 に分ける */
 function historyRows(g, tip, { own, mid, originUrl, upstreamUrl }) {
   const adds = addCommits(g, tip);
   const last = lastBodies(g, tip, adds);
@@ -187,8 +199,8 @@ function historyRows(g, tip, { own, mid, originUrl, upstreamUrl }) {
     // from: is the repo's URL, or (older relay bodies) its name: 「next-starter (tier1 upstream)」
     const repoUrl = normalizeUrl((r.from.match(/^(\S+)/) ?? ["", ""])[1].replace(/[|,].*$/, ""));
     const name = repoUrl.split("/").pop();
-    const owner = (originUrl && repoUrl === originUrl) || name === own ? own : !upstreamUrl || repoUrl === upstreamUrl || !repoUrl || name === mid ? mid : `grandparent:${repoUrl}`;
-    out.push({ owner, row: { id, fields: r.fields }, add, body: last.get(id) });
+    const [owner, ownerBy] = ownerOf({ repoUrl, name, own, mid, originUrl, upstreamUrl });
+    out.push({ owner, ownerBy, from: r.from, row: { id, fields: r.fields }, add, body: last.get(id) });
   }
   return out;
 }
@@ -217,69 +229,36 @@ function remoteUrl(g, remote) {
   return remote ? normalizeUrl(g.tryGit(["remote", "get-url", remote]) ?? "") : "";
 }
 
-// Rejoin パターン(.claude/skills/flux/patterns.md): 上流の履歴が何本かの線に分かれ、1 つの merge で合わさり、2 本以上の線に区切りが
-// ある形。止まって人に聞かない(D378): 残り(items)の区切りが 1 つも無い線(取り込み済み)は数えず、残る線が 1 本なら普段の並び。
-// 残る線が 2 本以上(3 本以上の octopus も)なら区切りの多い線の区間を 1 つずつ先に(その線の上の区切り点)、ほかの残る線の notice は
-// 独立の区間にせず、合流の merge を目標にする区間 1 つにまとめる(merge すればその線が丸ごと入る)。数が同じなら上流の
-// first-parent の線(parents[0] の側)が先。前の merge が並べた区切りは次の merge で並べ直さない。
-// 線の区切りの数・持ち主・名指しは merge 全体(all: fork が取り込み済みの区切りも)で読む(途中まで取った線を続ける、84 の形)。
-// 先に置いた線が途中で上流 main を merge して持ち込んだ区切り(両側の merge-base より下)は、それを含む最初の区間の直前に並べる。
-// 決めない(印だけ付けて履歴の順)のは、ある線の notice の fixes / covers / uses / skip_checkpoint が他の線の notice を名指して
-// 順が縛られる時だけ
+// 分かれた線の合流の事実(D473: 並べ替えない、順は取り込む側が決める)。上流の first-parent の merge ごとに、各側(merge-base から
+// その親まで)に乗る未適用の notice を数え、区切りのある側が 2 つ以上の時だけ出す。1 つの版の中の分かれだけ(全部が同じ持ち主で
+// 祖父の行が無い): 中間 Tier が上流を merge した形(片側が中間 Tier の行、片側が祖父の行)は普段の取り込みで合流ではない。
+// naming = ある側の notice の欄(fixes / covers / uses / skip_checkpoint)が他の側の notice を名指す物(順を縛る事実)
 const NAMING = ["fixes", "covers", "uses", "skip_checkpoint"];
-/** 区切り点の並び(items、履歴の順)を Rejoin で並べ直す。items の各物に rejoin: { merge, joined? | more? | undecided?, why? }。
- * all = items を含む全部の区切り点(省くと items) */
-export function rejoin(g, items, { base, tip, all: everything = items }) {
-  if (!base || !items.length) return items;
+/** items = 未適用の区切り点(fork の木に無い物)、all = 名指しを読む全部の未適用 → [{ merge, parents, sides, naming }] */
+export function joinsOf(g, items, { base, tip, all = items }) {
+  if (!base || !items.length) return [];
   const merges = (g.tryGit(["rev-list", "--reverse", "--first-parent", "--merges", `${base}..${tip}`]) ?? "").split("\n").filter(Boolean);
-  let out = [...items];
-  const taken = new Set();
+  const out = [];
   for (const m of merges) {
     const parents = g.git(["rev-list", "--parents", "-n", "1", m]).trim().split(/\s+/).slice(1);
     const mb = (g.tryGit(["merge-base", "--octopus", ...parents]) ?? "").trim();
     if (!mb) continue;
     const sides = parents.map((p) => new Set((g.tryGit(["rev-list", `${mb}..${p}`]) ?? "").split("\n").filter(Boolean)));
-    // 前の merge が並べた区切りは数えない(並べ直さない)
-    const on = sides.map((s) => out.filter((it) => s.has(it.point) && !taken.has(it.id)));
-    const whole = sides.map((s) => everything.filter((it) => s.has(it.point)));
-    if (whole.filter((s) => s.some((it) => it.break)).length < 2) continue;
-    // 残りのある線だけ(取り込み済みの線は数えない)。1 本なら普段の並び
-    const live = on.map((s, k) => k).filter((k) => on[k].length > 0);
-    if (live.length < 2) continue;
-    // 1 つの版の中の分かれだけ(全部が同じ持ち主の行で、祖父の行が無い)。中間 Tier が上流を merge した形(片側が中間 Tier の
-    // 行、片側が祖父の行)は普段の取り込みで Rejoin ではない
-    const owners = new Set(whole.flat().map((it) => it.owner));
-    if (owners.size !== 1 || whole.flat().some((it) => it.grandparent)) continue;
-    const all = live.flatMap((k) => on[k]);
-    const ids = whole.map((s) => new Set(s.map((it) => it.id)));
-    const binds = live.some((k) => whole[k].some((it) => NAMING.some((f) => list(it.fields[f]).some((x) => live.some((j) => j !== k && ids[j].has(x))))));
-    if (binds) {
-      for (const it of all) it.rejoin = { merge: m, undecided: true, why: "ある線の notice が他の線の notice を名指す(順が縛られる)" };
-      for (const it of all) taken.add(it.id);
-      continue;
-    }
-    // 区切りの多い線(merge 全体で数える)、同じ数なら first-parent の側(番号の小さい parents)
-    const counts = whole.map((s) => s.filter((it) => it.break).length);
-    const more = live.reduce((best, k) => (counts[k] > counts[best] ? k : best), live[0]);
-    const block = new Set(all.map((it) => it.id));
-    const a = on[more].map((it) => ({ ...it, rejoin: { merge: m, more: true } }));
-    const rest = out.filter((it) => block.has(it.id) && !on[more].some((x) => x.id === it.id));
-    const b = rest.map((it, i, arr) => (i === arr.length - 1 ? { ...it, break: true, point: m, rejoin: { merge: m, joined: true } } : { ...it, break: false, rejoin: { merge: m, joined: true } }));
-    const at = out.findIndex((it) => block.has(it.id));
-    const placed = [...a, ...b];
-    // 先に置いた線が途中で上流 main を merge して持ち込んだ区切り(merge-base より下で、どちらの側にも数えない物)は後ろに残さず、
-    // それを含む最初の区間の直前に(独立の区間のまま、履歴の順)
-    const post = out.slice(at).filter((it) => !block.has(it.id));
-    const reach = placed.map((x) => new Set((g.tryGit(["rev-list", `${base}..${x.point}`]) ?? "").split("\n").filter(Boolean)));
-    const before = placed.map(() => []);
-    const rest2 = [];
-    for (const it of post) {
-      const k = reach.findIndex((r) => r.has(it.point));
-      if (k < 0) rest2.push(it);
-      else before[k].push(it);
-    }
-    out = [...out.slice(0, at).filter((it) => !block.has(it.id)), ...placed.flatMap((x, k) => [...before[k], x]), ...rest2];
-    for (const id of block) taken.add(id);
+    const on = sides.map((s) => items.filter((it) => s.has(it.point)));
+    if (on.filter((s) => s.some((it) => it.break)).length < 2) continue;
+    const owners = new Set(on.flat().map((it) => it.owner));
+    if (owners.size !== 1 || on.flat().some((it) => it.grandparent)) continue;
+    const ids = sides.map((s) => new Set(all.filter((it) => s.has(it.point)).map((it) => it.id)));
+    const naming = [];
+    on.forEach((side, k) => {
+      for (const it of side) {
+        for (const field of NAMING) {
+          const names = list(it.fields[field]).filter((x) => ids.some((set, j) => j !== k && set.has(x)));
+          if (names.length) naming.push({ id: it.id, field, names });
+        }
+      }
+    });
+    out.push({ merge: m, parents, sides: parents.map((parent, k) => ({ parent, notices: on[k].map((it) => ({ id: it.id, point: it.point, break: it.break })) })), naming });
   }
   return out;
 }
@@ -300,7 +279,6 @@ export function incoming(repo, { upstream, own: ownArg }) {
   const warnings = [];
 
   const rows = historyRows(g, tip, { own, mid: mid ?? "(upstream)", originUrl: remoteUrl(g, "origin"), upstreamUrl: remoteUrl(g, upstream.split("/")[0]) });
-  const rowById = new Map(rows.map((r) => [r.row.id, r]));
   const skipped = new Set(rows.flatMap((r) => list(r.row.fields.skip_checkpoint)));
 
   // 継承済み = fork 成立点の履歴に足された本文 ∪ その木の notice
@@ -322,7 +300,7 @@ export function incoming(repo, { upstream, own: ownArg }) {
   const pending = rows.filter((r) => r.owner !== own && !applied(r.row.id) && !(coverOf.has(r.row.id) && applied(coverOf.get(r.row.id))));
 
   const items = [];
-  for (const { owner, row } of pending) {
+  for (const { owner, ownerBy, from, row } of pending) {
     const add = adds.get(row.id);
     let point = add.commit;
     const grand = owner !== mid && owner !== own && midIsTier;
@@ -338,7 +316,7 @@ export function incoming(repo, { upstream, own: ownArg }) {
       else warnings.push(`${row.id}: checkpoint_at: ${row.fields.checkpoint_at} を採らない(足した commit の子孫・次のお知らせより前・先端の祖先でない): 足した commit で区切る`);
     }
     if (!g.isAncestor(point, tip)) throw new Stop(`${row.id}: 区切り点 ${point.slice(0, 8)} が ${upstream} の祖先でない(上流の履歴の書き換え)`);
-    items.push({ id: row.id, owner, grandparent: grand, point, add: add.commit, body: bodyOf.get(row.id), fields: row.fields, break: isBreak(row, skipped), skipCheckpoint: skipped.has(row.id), inTree: g.isAncestor(point, "HEAD") });
+    items.push({ id: row.id, owner, owner_by: ownerBy, from, grandparent: grand, point, add: add.commit, body: bodyOf.get(row.id), fields: row.fields, break: isBreak(row, skipped), skipCheckpoint: skipped.has(row.id), inTree: g.isAncestor(point, "HEAD") });
   }
 
   // covered はその covers 側の区間に入る(covers 側が未適用で並ぶとき)。covers 側がまだ届いていなければ通常の notice
@@ -352,11 +330,11 @@ export function incoming(repo, { upstream, own: ownArg }) {
   }
   main.sort((a, b) => (pos.get(a.point) ?? -1) - (pos.get(b.point) ?? -1) || (a.id < b.id ? -1 : 1));
   const base0 = (g.tryGit(["merge-base", "HEAD", tip]) ?? "").trim() || null;
-  // Rejoin の数は merge 全体で(取り込み済み = 継承・台帳の upstream の行も、足した commit を区切り点に)
-  const taken0 = rows.filter((r) => r.owner !== own && !itemIds.has(r.row.id) && adds.get(r.row.id)).map((r) => ({
-    id: r.row.id, owner: r.owner, grandparent: r.owner !== mid && midIsTier, point: adds.get(r.row.id).commit, fields: r.row.fields, break: isBreak(r.row, skipped),
-  }));
-  const ordered = rejoin(g, main.filter((i) => !i.inTree), { base: base0, tip, rowById, all: [...main, ...taken0] });
+  // 区間は区切り点の履歴の順(並べ替えない)。分かれた線の合流は事実として joins に
+  const ordered = main.filter((i) => !i.inTree);
+  const joins = joinsOf(g, ordered, { base: base0, tip, all: main });
+  const joinOf = new Map();
+  for (const j of joins) for (const side of j.sides) for (const n of side.notices) if (!joinOf.has(n.id)) joinOf.set(n.id, j.merge);
   const withCovered = (it) => ({ ...it, covered: (riding.get(it.id) ?? []).sort() });
 
   const segments = [];
@@ -368,12 +346,10 @@ export function incoming(repo, { upstream, own: ownArg }) {
     cur.push(withCovered(it));
     if (it.break) {
       const s = { n: segments.length + (zero.length ? 0 : 1), target: it.point, label: it.fields.checkpoint && it.fields.checkpoint !== "-" ? it.fields.checkpoint : it.id, notices: cur };
-      if (cur.some((c) => c.rejoin)) {
-        // Rejoin パターン(patterns.md): 合流の区間・多い側の区間、または決めない印(どれか 1 つでも決めない側なら決めない)
-        const u = cur.find((c) => c.rejoin?.undecided);
-        s.pattern = "Rejoin";
-        if (u) s.rejoin = { undecided: true, why: u.rejoin.why, merge: u.rejoin.merge };
-        else if (cur.some((c) => c.rejoin.joined)) s.rejoinMerge = it.point;
+      const j = cur.map((c) => joinOf.get(c.id)).find(Boolean);
+      if (j) {
+        s.pattern = "join";
+        s.join = j;
       }
       segments.push(s);
       last = it.point;
@@ -393,7 +369,7 @@ export function incoming(repo, { upstream, own: ownArg }) {
     }
     prev = s.target;
   }
-  return { tip, own, mid, midIsTier, forkPoint, segments, warnings };
+  return { tip, own, mid, midIsTier, forkPoint, segments, joins, warnings };
 }
 
 /** 比べやすい形(区間ごとの merge 先と notice の id、covered) */
@@ -416,9 +392,16 @@ export function run(repo, argv, log = console.log) {
     for (const s of r.segments) {
       const ids = s.notices.map((n) => `${n.id}${n.grandparent ? "(祖父)" : ""}${n.skipCheckpoint ? "(区切りを外された)" : ""}${n.covered.length ? ` covers ${n.covered.join(", ")}` : ""}`);
       log(`区間 ${s.n} → ${s.target ? s.target.slice(0, 8) : "merge なし"} ${s.label}: ${ids.join(" / ") || "(notice なし、merge のみ)"}`);
-      if (s.pattern === "Rejoin") log(s.rejoin?.undecided ? `  Rejoin パターン(決めない: ${s.rejoin.why}、合流 ${s.rejoin.merge.slice(0, 8)}): 並べ替えず止まって聞く(patterns.md)` : s.rejoinMerge ? `  Rejoin パターン: ほかの線を合流の merge ${s.rejoinMerge.slice(0, 8)} で取る` : "  Rejoin パターン: 区切りの多い側の線を 1 つずつ先に");
+      if (s.join) log(`  合流 ${s.join.slice(0, 8)} の側の notice を持つ(joins)`);
       if (s.offLine) log(`  脇の commit: merge 先が前の位置の子孫でない(merge すると上流との merge-base が 2 つになる)。本線で含む commit ${s.mainline ? s.mainline.slice(0, 8) : "-"}。merge せず止まる(SKILL.md 手順 5a)`);
     }
+    for (const j of r.joins) {
+      const sides = j.sides.map((x) => x.notices.filter((n) => n.break).length).join(" / ");
+      const naming = j.naming.map((x) => `${x.id} ${x.field}: ${x.names.join(", ")}`).join("; ");
+      log(`合流 ${j.merge.slice(0, 8)}: 側ごとの未適用の区切り ${sides}${naming ? `、名指し ${naming}` : ""}。区間は履歴の順、取る順は取り込む側が決める`);
+    }
+    const guessed = r.segments.flatMap((s) => s.notices).filter((n) => n.owner_by !== "url");
+    if (guessed.length) log(`持ち主の見当(owner_by が url でない): ${guessed.map((n) => `${n.id}(${n.owner_by})`).join(", ")}`);
     for (const w of r.warnings) log(`警告: ${w}`);
     return 0;
   } catch (e) {
