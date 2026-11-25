@@ -146,7 +146,7 @@ export function run(repo, argv, log = console.log, deps = {}) {
   return 0;
 }
 
-// 書く台帳 = cwd の git のリポ(/flux は上流の先端の道具を fork の cwd で走らせる: .claude/skills/flux/tip.mjs)
+// 書く台帳 = cwd の git のリポ(/flux は上流の先端の道具を git archive で .flux/tip/<sha>/ に取り出して fork の cwd で走らせる: /flux TIP TOOLS)
 function main(argv) {
   const repo = tryGit(process.cwd(), ["rev-parse", "--show-toplevel"]);
   if (!repo) {

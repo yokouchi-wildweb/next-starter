@@ -244,6 +244,11 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
 - **`steps:<path>`** (combinable with every mode): a calling tool's steps file, read first (ATTACHED FILES) | the words after it are read as that file says (its own modes or cues), the rest as here
 - **notice id / file name**: only that notice; do FULL FLOW from step 5 on (no merge; targets a notice already in the tree; no segment split)
 
+## TIP TOOLS (the upstream tip's version of a tool, run inside this fork)
+- the readers and writers the steps name (who, selfKeep, the stage runner, ledger) run as the upstream tip's version, with cwd = this fork's repo (they read the repo they run in)
+- extract once per tip, reused across segments: `TIP=.flux/tip/$(git rev-parse <upstream>/<branch>)` | missing → `mkdir -p $TIP && git archive <upstream>/<branch> scripts src/lib | tar -x -C $TIP` (`.flux/` is git-ignored; their imports stay inside scripts and src/lib, bare names resolve from this fork's node_modules)
+- run: `node $TIP/<entry> <args>` | an old `.flux/tip/<sha>/` of an earlier tip may be deleted
+
 ## INCOMING TOOL (incoming.mjs)
 - the unapplied judgment, inherited set and segment building (and relay.md's grandparent checkpoint points / covers) are produced mechanically by `.claude/skills/flux/incoming.mjs` of the upstream tip's version
 - it reads only the upstream tip's history: the list = every body ever added under `.notices/` (a body a merge added included, a renamed body under its new name)
@@ -336,7 +341,7 @@ merge and porting carry the fork's edits as they are | when the destination is u
 - end of a batch: stop the same as step 4's segment end (the segment report covers every segment of the batch, the next plan = the next batch)
 
 ## TAKE-IN TABLE (step 5c and CONFLICT FORECAST; one row per answer of the tip's who, never a row per file name)
-- reader: `git show <upstream>/<branch>:.claude/skills/flux/tip.mjs > <tmp> && node <tmp> --upstream=<upstream>/<branch> --entry=scripts/workflow/ownership/who.mjs -- --json --no-fetch --base=<区間の merge 先> <files>`
+- reader: `node $TIP/scripts/workflow/ownership/who.mjs --json --no-fetch --base=<区間の merge 先> <files>` (TIP TOOLS)
   - per path: `type`, `kind` (intake row, null = none), `owner.tier` (tier1 | middle | fork | missing), `generated` { generator, command, part, region } | the data comes from the segment's tree (`--base`), the reader from the tip | exit 2 / `status: unverified` → STOP (no row = no judgment)
 - rows (first match wins):
   1. `generated` set, `part` null, not a region (a whole generated file, e.g. a registry, the route map, pnpm-lock.yaml): never hand-merge | take either side; the segment rebuild rewrites it (generator `generated.generator`) | a change inside 5d's allowed set
@@ -404,17 +409,17 @@ merge and porting carry the fork's edits as they are | when the destination is u
       - upstream's real directory moves are handled by `moved:` porting | porting targets → port here (→ moved.md steps 3-4)
    c. resolve conflicts yourself, each conflicted file by its TAKE-IN TABLE row (above; read the rows of all conflicted files first with one who call) | confirm with the user only those where the judgment is really split
       - **keep self files** (after every conflict is resolved, before the rebuild): the tip's selfKeep puts every type 5 self file the segment's upstream diff touches back to this fork's pre-merge version (D314; which ones are optional comes from the declarations)
-        - `node <tmp tip.mjs> --upstream=<upstream>/<branch> --entry=scripts/workflow/ownership/selfKeep.mjs -- --pre=<pre> --target=<区間の merge 先> --apply` → `git add` / `git rm` the paths it changed
+        - `node $TIP/scripts/workflow/ownership/selfKeep.mjs --pre=<pre> --target=<区間の merge 先> --apply` (TIP TOOLS) → `git add` / `git rm` the paths it changed
         - each listed path's parent diff (its `親の差分` command) is shown once in the segment report; port what fits by hand in a separate commit of the segment
       - **segment rebuild** (after the self files are kept, before d): the tip's stage entry over the segment's upstream diff (D315), then `git add` what it wrote
-        - `git show <upstream>/<branch>:.claude/skills/flux/tip.mjs > <tmp> && node <tmp> --upstream=<upstream>/<branch> --entry=scripts/runner/phases/run.mjs -- generate --phase=ship --range=<pre>...<区間の merge 先>`
+        - `node $TIP/scripts/runner/phases/run.mjs generate --phase=ship --range=<pre>...<区間の merge 先>` (TIP TOOLS)
         - the tip's runner, never the segment tree's: an older runner ignores `--range` silently and picks generators by this fork's own work | the declarations and generators it runs are the segment tree's
         - a segment from before repo.json `vercel.plan` existed (its cron generator skips without `--plan`, and its reader refuses the key, so the plan cannot be set there): `pnpm generate cron -- --plan <hobby|pro>` with the plan this fork's vercel.json crons use, `git add vercel.json`
       - **compare hand-held domains** (D308; after the rebuild): the segment's upstream diff touches `scripts/structure/<generator>/**` and this fork has domains with `"generate": false` → `pnpm check domain -- --compare` (read-only; `--detail` per file)
         - per file: port by hand, in this segment, only what fits the hand-held version | record the ported / left files in the work memo | never a generate flag per file
    d. **out-of-segment check** (mandatory; after c and porting, before the merge commit; read-only):
       - allowed set = `git diff --no-renames --name-only <pre>...<区間の merge 先>` (= from their merge-base) + the segment's `moved:` destinations (a directory → everything under it) + the rebuild's outputs
-        - rebuild's outputs = a file outside the first two that the segment rebuild wrote and the tip's who answers with `generated` (its generator ran in the rebuild): `node <tmp tip.mjs> --upstream=<upstream>/<branch> --entry=scripts/workflow/ownership/who.mjs -- --json --no-fetch --base=<区間の merge 先> <those paths>` | `generated: null` or a generator that did not run → not allowed
+        - rebuild's outputs = a file outside the first two that the segment rebuild wrote and the tip's who answers with `generated` (its generator ran in the rebuild): `node $TIP/scripts/workflow/ownership/who.mjs --json --no-fetch --base=<区間の merge 先> <those paths>` | `generated: null` or a generator that did not run → not allowed
       - actual changes = `git diff --no-renames --name-only <pre>` (staged and unstaged)
       - add `--no-renames` to both: with rename guessing, `--name-only` shows only the destination, the source (deletion) of an upstream rename drops out of the allowed set and it stops falsely as out-of-segment | with it, the source shows as a deletion and the destination as an addition in both
       - write both to temp files and match with `comm -13` | even one file outside the allowed set → stop condition: `git merge --abort` and show that list as grounds
@@ -451,7 +456,7 @@ merge and porting carry the fork's edits as they are | when the destination is u
      - fix the core side (make added props optional with an empty default again, restore deleted things from upstream); never edit the upstream Screen (CLAUDE.md CORE_FILES `fork_core_edit_compat`, `src/lib/screens/README.md` §7) | write what was restored in the ledger notes
 7. **record and commit** (run in a row without confirmation):
    a. append to own fork ledger `.notices/applied/<名前>.md` with the tip's ledger tool, never by hand (it creates the ledger with its header, writes `date:`, resolves `upstream:` to the full sha, and refuses an id the ledger already holds):
-      - `node <tmp tip.mjs> --upstream=<upstream>/<branch> --entry=scripts/workflow/notices/ledger.mjs -- --upstream=<区間の merge 先> --id=<notice id> [--id=…] --commit=<short sha | -> [--relay=<none | relay notice id>] [--notes=<deviations from required_actions>]` (`<tmp tip.mjs>` = `git show <upstream>/<branch>:.claude/skills/flux/tip.mjs > <tmp>`)
+      - `node $TIP/scripts/workflow/notices/ledger.mjs --upstream=<区間の merge 先> --id=<notice id> [--id=…] --commit=<short sha | -> [--relay=<none | relay notice id>] [--notes=<deviations from required_actions>]` (TIP TOOLS)
       - **a tail segment with no notice** (merge only): `… -- --upstream=<区間の merge 先> --tail [--notes=…]` → one line `id:tail-<sha9>` with `upstream:` = the merge target
         - why: the deploy gate reads only the ledger's last `upstream:`, so it reads `at` when the parent's safe tag sits on that merge (a departure merge outside any segment)
         - it writes nothing when the ledger's last `upstream:` is already the merge target (a tail line written earlier, by hand too)

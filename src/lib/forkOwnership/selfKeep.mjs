@@ -1,6 +1,6 @@
 // pnpm workflow ownership selfKeep の本体: /flux の区間の merge の後、型 5 self を取り込みの前の自分の版に戻す(D314、衝突しなかった変更も)。
-// 計画は self.mjs の planSelfKeep(純)、ここは git から集めて書く。/flux は先端の版を .claude/skills/flux/tip.mjs で走らせる:
-//   node <tmp tip.mjs> --upstream=<上流>/<枝> --entry=scripts/workflow/ownership/selfKeep.mjs -- --pre=<区間の前> --target=<区間の merge 先> --apply
+// 計画は self.mjs の planSelfKeep(純)、ここは git から集めて書く。/flux は先端の版を git archive で .flux/tip/<sha>/ に取り出して走らせる(/flux TIP TOOLS):
+//   node $TIP/scripts/workflow/ownership/selfKeep.mjs --pre=<区間の前> --target=<区間の merge 先> --apply
 // 見る self = 先端の SELF_FILES ∪ 作業ツリー(区間の木)の受け口の一覧の self の行。そのうち git diff <前>...<先> に入ったパスだけ。
 // 必ず持つか = 先端の SELF_REQUIRED(区間の木の一覧に足された self は持たなくてよい物として扱う)
 // 出す物: パスごとの扱いと、区間で 1 度見せる親の差分の命令(git diff <前>...<先> -- <パス>)。--apply で書く(既定は何も書かない)

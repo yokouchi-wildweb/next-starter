@@ -16,7 +16,7 @@ pnpm generate [<対象>] [--phase=<段階>] [--range=<前>...<先>] [-- <入口�
 - `--phase=<段階>` = その段階に乗る対象だけ
 - `--all` = watch を見ずに全部回す(下の「watch」)
 - `--range=<前>...<先>` = watch の範囲を、取り込む区間の上流の差分にする(下の「watch」)。/flux が区間の作り直しで渡す。`...` の無い値は exit 2
-- リポ = cwd の git の直下。宣言・入口・`features.ts` はそこから読む(遅れた fork で先端の版を `.claude/skills/flux/tip.mjs` で走らせても、その fork の木を読む)
+- リポ = cwd の git の直下。宣言・入口・`features.ts` はそこから読む(遅れた fork で先端の版を `git archive` で `.flux/tip/<sha>/` に取り出して走らせても、その fork の木を読む。/flux SKILL.md TIP TOOLS)
 - exit 0 = 全部通る(対象なしも含む)/ 1 = 落ちた・build の検査が外に届いた / 2 = 宣言の誤り
 
 ## API

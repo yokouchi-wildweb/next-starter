@@ -57,7 +57,7 @@ pnpm workflow ownership who <path...> --base=<rev>   # その版を基準(親の
 
 ```sh
 pnpm workflow ownership selfKeep --pre=<区間の前> --target=<区間の merge 先>          # 何をするかだけ出す(dry-run)
-pnpm workflow ownership selfKeep --pre=<区間の前> --target=<区間の merge 先> --apply  # 書く(/flux は先端の版を tip.mjs で走らせる)
+pnpm workflow ownership selfKeep --pre=<区間の前> --target=<区間の merge 先> --apply  # 書く(/flux は先端の版を git archive で取り出して走らせる: /flux TIP TOOLS)
 ```
 
 - 区間の merge の後(コミットの前)、区間の上流の差分(`git diff <前>...<先>`)に入った型 5 self のファイルを、衝突したかどうかによらず取り込みの前の版に戻す(D314: いつも自分の版を残す)

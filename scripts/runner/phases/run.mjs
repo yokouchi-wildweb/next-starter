@@ -13,7 +13,7 @@
 //   --range=<前>...<先> = 範囲をその 2 点の分岐点から <先> までの差分だけにする(作業ツリー・未追跡は入れない)。/flux が取り込む区間の
 //   上流の差分を渡す口(D315: pnpm generate --phase=ship --range=<区間の前>...<区間の merge 先>)。この時の phase.json は取り込む区間の木の
 //   宣言として読む(outputs の古い形もそろえて読む、D313)。... の無い値は exit 2
-//   リポ = cwd の git の直下(自分の置き場所ではない): 遅れた fork で先端の版を .claude/skills/flux/tip.mjs で取り出して走らせても、
+//   リポ = cwd の git の直下(自分の置き場所ではない): 遅れた fork で先端の版を git archive で .flux/tip/<sha>/ に取り出して走らせても(/flux TIP TOOLS)、
 //   宣言・入口・features.ts はその fork の木から読む
 //   exit 0 = 全部通る(対象なし含む)| 1 = 落ちた・外に届いた | 2 = 宣言の誤り(知らない段階・欄・入口のファイル・after の循環)
 import { spawnSync } from "node:child_process";
