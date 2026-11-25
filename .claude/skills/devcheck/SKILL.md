@@ -25,7 +25,7 @@ out_of_scope: a check sheet of an order (`<order>.check.md`) → /patrol | the s
    ```
    STOP: wait for go | a changed list → show it again and wait
 4. **run** in the listed order, each with `pnpm workflow devcheck run <name> [args]`:
-   - server → use the printed URL | exit 3 = a server outside the tool serves this checkout → use it | login → its email / password / loginUrl, log in with Playwright
+   - server → use the printed URL | a line `この道具の外で開発サーバーが動いています` = a server outside the tool serves this checkout → use it | login → its email / password / loginUrl, log in with Playwright
    - browser → Playwright MCP (navigate, act, read the page, console errors); never create data except through the app's screens
    - db-write → one `INSERT INTO <table> … RETURNING <column>` (test data in development only; user / setting rows through the app's screens)
    - env-add → the value on stdin, never printed or echoed

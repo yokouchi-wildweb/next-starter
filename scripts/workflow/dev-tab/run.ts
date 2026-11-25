@@ -5,7 +5,7 @@
 // pnpm workflow dev-tab run status
 //
 // どこで動かすか: lib.ts decideMode(--background・AGENT_TERMINAL=none・tmux が無い → 裏のプロセス、ほかはタブ)
-// 終了コード: 0 = できた(既に動いていた場合も)/ 1 = 失敗 / 3 = 立てなかった(この道具の外で動いているサーバーがある)
+// 終了コード: 0 = できた(既に動いていた場合も)/ 1 = 失敗(この道具の外で動いているサーバーがあれば立てずにそれを使う 1 行で 0)
 // 規則と使い方: scripts/workflow/dev-tab/README.md
 
 import { spawn } from "node:child_process";
@@ -107,11 +107,10 @@ const start = async () => {
 
   const outside = findDevProcesses(root);
   if (outside.length > 0) {
-    console.error(
-      `pnpm workflow dev-tab run: ${describeCheckout(root)} ではこの道具の外で開発サーバーが動いています(立てません。そのまま使うか、止めてからもう一度):`,
-    );
-    for (const proc of outside.slice(0, 3)) console.error(`  ${proc.pid} ${proc.command}`);
-    process.exit(3);
+    // 止めない(守る物が無い): 同じ作業場所に 2 つ目は立てず、動いている物を使うよう 1 行知らせて終える(core/tools.md)
+    console.log(`${describeCheckout(root)} ではこの道具の外で開発サーバーが動いています(立てずにそれを使う。立て直すなら止めてからもう一度):`);
+    for (const proc of outside.slice(0, 3)) console.log(`  ${proc.pid} ${proc.command}`);
+    return;
   }
 
   const lock = path.join(root, ".next/dev/lock");

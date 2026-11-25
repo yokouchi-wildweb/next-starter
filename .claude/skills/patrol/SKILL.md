@@ -21,7 +21,7 @@ target: $ARGUMENTS
 3. **read**: `node .claude/skills/order/mailbox.mjs check show <sheet>` (items, results so far, `shots:` dir) | then `node .claude/skills/order/mailbox.mjs check run <sheet>` (starts a run)
    - Playwright tools (`mcp__playwright__*`) missing in this session → STOP: say so (the run needs them) | release the order if you took it
 4. **app** (running this skill is the go for the server and the login it needs):
-   - `pnpm workflow devcheck run server` → the URL | exit 3 (a server outside the tool serves this checkout) → use it | exit 4 (policy off) or any other failure → STOP: report
+   - `pnpm workflow devcheck run server` → the URL | a line `この道具の外で開発サーバーが動いています` (a server outside the tool serves this checkout) → use it | exit 4 (policy off) or any other failure → STOP: report
    - any item with `as: user | admin` → `pnpm workflow devcheck run login` → email / password / loginUrl | `user` = that admin too (an admin reaches (user)/(protected) pages)
    - login stops (no DB, not development, policy off) → items needing a login become `skip` with that reason; guest items still run
 5. **run every item**, guest items first (logged out), then log in once at loginUrl and run the rest:

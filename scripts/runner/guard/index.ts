@@ -159,6 +159,11 @@ export function confirmProduction(flags: Pick<GuardFlags, "confirm">, io: GuardI
 /** 向き先を決めて確かめる(ファイルは読むが process.env には入れない)。通らなければ GuardError */
 export function resolveTarget(argv: readonly string[], options: ResolveOptions, io: GuardIO): WriteTarget {
   const flags = parseGuardFlags(argv);
+  // 食い違い: 書く入口は止める。読むだけの入口(write: false)は守る物が無いので、注意の 1 行を出して続ける(core/tools.md)
+  const mismatch = (message: string): void => {
+    if (options.write) throw new GuardError(message);
+    io.say(`注意: ${message}(読むだけなので続けます)`);
+  };
   const explicitFile = io.env.ENV_FILE && io.env.ENV_FILE.trim() !== "" ? io.env.ENV_FILE : null;
   const fileStage = explicitFile ? stageOfFileName(explicitFile) : null;
   if (explicitFile && !fileStage) throw new GuardError(`ENV_FILE=${explicitFile} の名前から段階が分かりません(.env.development / .env.staging / .env.production …)`);
@@ -174,20 +179,20 @@ export function resolveTarget(argv: readonly string[], options: ResolveOptions, 
     throw new GuardError(`${envFile} がありません(${hint})`);
   }
   const marker = base.APP_ENV;
-  if (!marker) throw new GuardError(`${envFile} に段階の印 APP_ENV がありません(APP_ENV=${stage} の 1 行を書く)`);
-  if (!(APP_ENVS as readonly string[]).includes(marker)) throw new GuardError(`${envFile} の APP_ENV=${marker} は知らない段階です(${APP_ENVS.join(" / ")})`);
-  if (marker !== stage) throw new GuardError(`${envFile} の段階の印 APP_ENV=${marker} がファイル名・向き先の ${stage} と違います`);
+  if (!marker) mismatch(`${envFile} に段階の印 APP_ENV がありません(APP_ENV=${stage} の 1 行を書く)`);
+  else if (!(APP_ENVS as readonly string[]).includes(marker)) mismatch(`${envFile} の APP_ENV=${marker} は知らない段階です(${APP_ENVS.join(" / ")})`);
+  else if (marker !== stage) mismatch(`${envFile} の段階の印 APP_ENV=${marker} がファイル名・向き先の ${stage} と違います`);
 
   const localFile = `${envFile}.local`;
   const local = explicitFile || hostMode ? null : readValues(io, localFile);
-  if (local?.APP_ENV && local.APP_ENV !== stage) throw new GuardError(`${localFile} の APP_ENV=${local.APP_ENV} が ${stage} と違います`);
+  if (local?.APP_ENV && local.APP_ENV !== stage) mismatch(`${localFile} の APP_ENV=${local.APP_ENV} が ${stage} と違います`);
   const values: Record<string, string> = hostMode ? {} : { ...base, ...(local ?? {}) };
   const dbUrl = hostMode ? io.env.DATABASE_URL : values.DATABASE_URL;
-  if (io.env.APP_ENV && io.env.APP_ENV !== stage) throw new GuardError(`環境変数 APP_ENV=${io.env.APP_ENV} が向き先の ${stage} と違います(シェルの APP_ENV を外す)`);
+  if (io.env.APP_ENV && io.env.APP_ENV !== stage) mismatch(`環境変数 APP_ENV=${io.env.APP_ENV} が向き先の ${stage} と違います(シェルの APP_ENV を外す)`);
   // 継いだ DATABASE_URL はファイルの値より勝つ(guardEntry は上書きしない)。検査した DB と繋ぐ DB をそろえる(ホストの env は継いだ値そのもの)
   const inheritedDb = io.env.DATABASE_URL;
   if (!hostMode && inheritedDb && inheritedDb.trim() !== "" && dbIdentity(inheritedDb) !== dbIdentity(values.DATABASE_URL)) {
-    throw new GuardError(
+    mismatch(
       `環境変数 DATABASE_URL(${shownDb(inheritedDb)})が向き先 ${envFile} の DATABASE_URL(${shownDb(values.DATABASE_URL)})と違います(シェルの DATABASE_URL を外す)`,
     );
   }
@@ -201,7 +206,7 @@ export function resolveTarget(argv: readonly string[], options: ResolveOptions, 
     if (prodDb !== null && devDb !== null && prodDb === devDb) io.say(`注意: 本番と開発が同じ DB(${prodDb})を指しています — 開発の作業もこの DB に書きます。分けるなら Neon のブランチ`);
   }
   if (options.write && stage === "production") confirmProduction(flags, io, options.what, options.kind ?? "deploy");
-  else if (flags.confirm !== null && flags.confirm !== stage) throw new GuardError(`--confirm=${flags.confirm} は向き先(${stage})と違います`);
+  else if (flags.confirm !== null && flags.confirm !== stage) mismatch(`--confirm=${flags.confirm} は向き先(${stage})と違います`);
 
   return { stage, envFile: hostMode ? "(ホストの env)" : envFile, dryRun: flags.dryRun, rest: flags.rest, values };
 }

@@ -103,7 +103,7 @@ test("server: 文脈が裏なら --background。立てた時だけ記録し、cl
   const already = fake({}, () => ({ code: 0, stdout: "開発サーバーはもう動いています: …\n", stderr: "" }));
   await execRun(["server"], already);
   assert.equal(already.record, null);
-  assert.equal(devTabStarted({ code: 3, stdout: "", stderr: "外で動いています" }), false);
+  assert.equal(devTabStarted({ code: 0, stdout: "… ではこの道具の外で開発サーバーが動いています(立てずにそれを使う。…):\n  123 next dev\n", stderr: "" }), false);
   assert.equal(devTabStarted({ code: 0, stdout: "開発サーバーを起動中です(60 秒で応答なし…)", stderr: "" }), true);
   const nothing = fake();
   assert.equal(execCleanup(nothing).code, 0);
@@ -111,7 +111,7 @@ test("server: 文脈が裏なら --background。立てた時だけ記録し、cl
   assert.match(nothing.lines[0], /片付けるものなし/);
 });
 
-test("server の上限: dev_max 以上でも待たず・断らずに立て、数と上限を 1 行出す(3 は dev-tab の外のサーバー)", async () => {
+test("server の上限: dev_max 以上でも待たず・断らずに立て、数と上限を 1 行出す(dev-tab の外のサーバーは立てずに 0、記録しない)", async () => {
   const ctx: Context = { ...STANDALONE, file: "/ctx", devMax: 2 };
   const full = fake({ context: ctx, countLiveServers: () => 2 }, () => ({ code: 0, stdout: "開発サーバーを立てました: …", stderr: "" }));
   assert.equal((await execRun(["server"], full)).code, 0);
@@ -121,8 +121,8 @@ test("server の上限: dev_max 以上でも待たず・断らずに立て、数
   const room = fake({ context: ctx, countLiveServers: () => 1 }, () => ({ code: 0, stdout: "開発サーバーを立てました: …", stderr: "" }));
   assert.equal((await execRun(["server"], room)).code, 0);
   assert.equal(room.lines.some((l) => /上限/.test(l)), false);
-  const outside = fake({}, () => ({ code: 3, stdout: "", stderr: "この道具の外で開発サーバーが動いています" }));
-  assert.equal((await execRun(["server"], outside)).code, 3);
+  const outside = fake({}, () => ({ code: 0, stdout: "… ではこの道具の外で開発サーバーが動いています(立てずにそれを使う。…):\n  123 next dev\n", stderr: "" }));
+  assert.equal((await execRun(["server"], outside)).code, 0);
   assert.equal(outside.record, null);
 });
 

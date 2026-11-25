@@ -71,6 +71,31 @@ test("止める: ファイルが無い・印が無い・知らない値・印と
   assert.throws(() => resolveTarget([], W, io({ ".env.development": DEV }, { env: { APP_ENV: "production" } })), /環境変数 APP_ENV=production/);
 });
 
+test("読むだけの入口(write: false): 段階の印・.local とシェルの APP_ENV・継いだ DATABASE_URL・--confirm の食い違いは止めずに注意の 1 行。読むファイルが無い・ENV_FILE と --env が違うは止める", () => {
+  const R = { write: false, what: "読む" };
+  const files = { ".env.development": DEV, ".env.production": PROD };
+  const cases: Array<[string[], Record<string, string>, Record<string, string>, RegExp]> = [
+    [[], { ".env.development": "DATABASE_URL=x\n" }, {}, /段階の印 APP_ENV がありません/],
+    [[], { ".env.development": "APP_ENV=dev\n" }, {}, /知らない段階/],
+    [[], { ".env.development": "APP_ENV=production\n" }, {}, /ファイル名・向き先の development と違います/],
+    [[], { ".env.development": DEV, ".env.development.local": "APP_ENV=production\n" }, {}, /\.local の APP_ENV=production/],
+    [[], files, { APP_ENV: "production" }, /環境変数 APP_ENV=production/],
+    [[], files, { DATABASE_URL: "postgres://u:secret@prod.example/app" }, /環境変数 DATABASE_URL\(prod\.example\/app\)/],
+    [["--confirm=production"], files, {}, /--confirm=production は向き先\(development\)と違います/],
+  ];
+  for (const [argv, f, env, line] of cases) {
+    const read = io(f, { env });
+    assert.doesNotThrow(() => resolveTarget(argv, R, read));
+    assert.equal(read.said.length, 1);
+    assert.match(read.said[0], line);
+    assert.match(read.said[0], /^注意: .*\(読むだけなので続けます\)$/);
+    assert.equal(read.said[0].includes("secret"), false);
+    assert.throws(() => resolveTarget(argv, W, io(f, { env })), line);
+  }
+  assert.throws(() => resolveTarget([], R, io({})), /\.env\.development がありません/);
+  assert.throws(() => resolveTarget(["--env", "development"], R, io(files, { env: { ENV_FILE: ".env.production" } })), /と --env development が違います/);
+});
+
 test(".env.production が無いことは本番を指した時だけ止める", () => {
   assert.doesNotThrow(() => resolveTarget([], W, io({ ".env.development": DEV })));
   assert.throws(() => resolveTarget(["--env", "production"], W, io({ ".env.development": DEV })), /\.env\.production がありません/);
