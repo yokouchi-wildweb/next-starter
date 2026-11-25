@@ -26,6 +26,8 @@
  * - password_missing / password_set_failed: パスワードが無い / Firebase への設定に失敗
  * - user_not_found: パスワード再設定で該当のユーザーが無い(黙った止め)
  * - link_generation_failed / mail_send_failed: パスワード再設定のリンクの生成 / メールの送信に失敗
+ * - rate_limited_ip / rate_limited_subnet: ルートの回数制限(IP / /24)で断った(429。区切りごとに最初の 1 回だけ記録)
+ * - recaptcha_failed / recaptcha_challenge: reCAPTCHA で断った(403)/ v2 の追加の認証を求めた(428)。版・誤り・点数は metadata
  *
  * 足す時は、集計の SQL・管理画面の表示も同じ commit で揃える。
  */
@@ -52,6 +54,10 @@ export const SIGNUP_FAILURE_REASONS = [
   "user_not_found",
   "link_generation_failed",
   "mail_send_failed",
+  "rate_limited_ip",
+  "rate_limited_subnet",
+  "recaptcha_failed",
+  "recaptcha_challenge",
 ] as const;
 
 export type SignupFailureReason = (typeof SIGNUP_FAILURE_REASONS)[number];

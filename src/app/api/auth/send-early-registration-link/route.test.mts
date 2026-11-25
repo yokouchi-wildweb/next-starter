@@ -16,7 +16,10 @@ const failures: Array<Record<string, unknown>> = [];
 const sent: string[] = [];
 mock.module("@/lib/spamGuard", { namedExports: { isDisposableEmail: async () => disposable } });
 mock.module("@/domains/core/auth/services/server/signupAudit", {
-  namedExports: { recordSignupFailure: async (input: Record<string, unknown>) => void failures.push(input) },
+  namedExports: {
+    recordSignupFailure: async (input: Record<string, unknown>) => void failures.push(input),
+    signupRejectionRecorder: () => async () => {},
+  },
 });
 mock.module("@/domains/core/auth/services/server/sendEarlyRegistrationLink", {
   namedExports: { sendEarlyRegistrationLink: async ({ email }: { email: string }) => void sent.push(email) },

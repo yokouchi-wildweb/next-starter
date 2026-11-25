@@ -137,7 +137,18 @@ export type ApiRouteBaseConfig<TCategory extends string = string> = {
    * 中央の一覧は無い: 通す経路はそのルート自身が宣言する。詳細: src/lib/routeFactory/README.md
    */
   maintenance?: "pass";
+  /**
+   * Factory 自身が断った時(回数制限の 429・reCAPTCHA の 403 / 428)に呼ぶ口(省略可)。答えが決まった後・返す前に、
+   * 監査の文脈(IP・UA・requestId)の中で待って呼ぶ。口の誤りは記録して飲み込み、答えは変えない(bestEffort)。
+   * 例: 登録の API が失敗の理由を audit_logs に残す(auth の signupRejectionRecorder)。lib はドメインを知らない
+   */
+  onRejected?: (rejection: RouteRejection<TCategory>, req: NextRequest) => Promise<void> | void;
 };
+
+/** Factory 自身が断った理由(onRejected に渡す)。identifier = 数えた鍵(IP か /24 のサブネット) */
+export type RouteRejection<TCategory extends string = string> =
+  | { kind: "rateLimit"; scope: "ip" | "subnet"; category: TCategory; identifier: string }
+  | { kind: "recaptcha"; version: "v2" | "v3"; outcome: "failed" | "challenge"; error?: string; score?: number };
 
 /**
  * APIルートの設定
@@ -260,6 +271,17 @@ export function makeRouteCore<TCategory extends string = string>(
       // ハンドラには渡さない（ハンドラは ctx.user を使う）
       const session = await deps.resolveTokenSession();
       const auditContext = buildAuditContext(req, session);
+      /** Factory 自身の断り: onRejected を監査の文脈の中で待って呼び(誤りは飲み込む)、決めた答えを返す */
+      const reject = async (rejection: RouteRejection<TCategory>, response: NextResponse): Promise<NextResponse> => {
+        if (config.onRejected) {
+          try {
+            await runWithAuditContext(auditContext, async () => config.onRejected?.(rejection, req));
+          } catch (error) {
+            console.error(`${config.operation} onRejected failed:`, error);
+          }
+        }
+        return response;
+      };
 
       try {
         // ===== 共通処理（前処理） =====
@@ -290,7 +312,7 @@ export function makeRouteCore<TCategory extends string = string>(
           const limit = await rateLimit.checkRateLimit(config.rateLimit, ip);
           if (!limit.allowed) {
             const retryAfterSeconds = Math.max(1, Math.ceil((limit.resetAt.getTime() - Date.now()) / 1000));
-            return NextResponse.json(
+            return reject({ kind: "rateLimit", scope: "ip", category: config.rateLimit, identifier: ip }, NextResponse.json(
               {
                 message: "リクエスト回数の上限に達しました。しばらく経ってから再度お試しください。",
                 resetAt: limit.resetAt,
@@ -299,7 +321,7 @@ export function makeRouteCore<TCategory extends string = string>(
                 status: 429,
                 headers: { "Retry-After": String(retryAfterSeconds) },
               }
-            );
+            ));
           }
         }
 
@@ -311,7 +333,7 @@ export function makeRouteCore<TCategory extends string = string>(
           const limit = await rateLimit.checkRateLimit(config.rateLimitSubnet, subnet);
           if (!limit.allowed) {
             const retryAfterSeconds = Math.max(1, Math.ceil((limit.resetAt.getTime() - Date.now()) / 1000));
-            return NextResponse.json(
+            return reject({ kind: "rateLimit", scope: "subnet", category: config.rateLimitSubnet, identifier: subnet }, NextResponse.json(
               {
                 message: "リクエスト回数の上限に達しました。しばらく経ってから再度お試しください。",
                 resetAt: limit.resetAt,
@@ -321,7 +343,7 @@ export function makeRouteCore<TCategory extends string = string>(
                 status: 429,
                 headers: { "Retry-After": String(retryAfterSeconds) },
               }
-            );
+            ));
           }
         }
 
@@ -352,9 +374,9 @@ export function makeRouteCore<TCategory extends string = string>(
             }
             if (!v2Result.valid) {
               console.warn(`[reCAPTCHA] v2 verification failed: ${v2Result.error}`);
-              return NextResponse.json(
-                { message: "現在は登録ができません。" },
-                { status: 403 }
+              return reject(
+                { kind: "recaptcha", version: "v2", outcome: "failed", error: v2Result.error },
+                NextResponse.json({ message: "現在は登録ができません。" }, { status: 403 }),
               );
             }
             // v2検証成功 → 続行
@@ -385,20 +407,23 @@ export function makeRouteCore<TCategory extends string = string>(
 
               // v2チャレンジが必要な場合（中間スコア）
               if (result.requireV2Challenge && RECAPTCHA_V2_INTERNALS.enabled) {
-                return NextResponse.json(
-                  {
-                    message: "追加の認証が必要です",
-                    requireV2Challenge: true,
-                    recaptchaV2SiteKey: RECAPTCHA_V2_INTERNALS.siteKey,
-                  },
-                  { status: 428 } // Precondition Required
+                return reject(
+                  { kind: "recaptcha", version: "v3", outcome: "challenge", error: result.error, score: result.score },
+                  NextResponse.json(
+                    {
+                      message: "追加の認証が必要です",
+                      requireV2Challenge: true,
+                      recaptchaV2SiteKey: RECAPTCHA_V2_INTERNALS.siteKey,
+                    },
+                    { status: 428 }, // Precondition Required
+                  ),
                 );
               }
 
               // 完全なブロック
-              return NextResponse.json(
-                { message: "現在は登録ができません。" },
-                { status: 403 }
+              return reject(
+                { kind: "recaptcha", version: "v3", outcome: "failed", error: result.error, score: result.score },
+                NextResponse.json({ message: "現在は登録ができません。" }, { status: 403 }),
               );
             }
           }

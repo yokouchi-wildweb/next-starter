@@ -7,7 +7,7 @@ import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha";
 import { RECAPTCHA_V2_INTERNALS } from "@/lib/recaptcha/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { isDisposableEmail, isHideMyEmail } from "@/lib/spamGuard";
-import { recordSignupFailure } from "@/domains/core/auth/services/server/signupAudit";
+import { recordSignupFailure, signupRejectionRecorder } from "@/domains/core/auth/services/server/signupAudit";
 import { sendSignInLink } from "@/domains/core/auth/services/server/sendSignInLink";
 import { INVITE_LINK_COOKIE_NAME } from "@/domains/core/referral/lib/inviteLinkCookie";
 import { gate } from "@/featureGate";
@@ -20,6 +20,8 @@ export const POST = createApiRoute(
     skipForDemo: true,
     rateLimit: "signupEmail",
     recaptcha: { action: RECAPTCHA_ACTIONS.SEND_EMAIL_LINK },
+    // 回数制限・reCAPTCHA で断った時も失敗の理由を audit_logs に残す(signupAudit、答えは変えない)
+    onRejected: signupRejectionRecorder("email_link"),
   },
   async (req) => {
     const body = await req.json();

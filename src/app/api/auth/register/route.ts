@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { gate } from "@/featureGate";
 import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha";
 import { createApiRoute } from "@/wiring/apiRoute";
+import { signupRejectionRecorder } from "@/domains/core/auth/services/server/signupAudit";
 import { register } from "@/domains/core/auth/services/server/registration";
 import { issueSessionCookie } from "@/domains/core/auth/services/server/session/issueSessionCookie";
 import { INVITE_LINK_COOKIE_NAME } from "@/domains/core/referral/lib/inviteLinkCookie";
@@ -25,6 +26,8 @@ export const POST = createApiRoute(
     rateLimit: "signupRegister",
     rateLimitSubnet: "signupSubnet",
     recaptcha: { action: RECAPTCHA_ACTIONS.REGISTER },
+    // 回数制限・reCAPTCHA で断った時も失敗の理由を audit_logs に残す(signupAudit、答えは変えない)
+    onRejected: signupRejectionRecorder("register"),
   },
   async (req) => {
     const body = await req.json();

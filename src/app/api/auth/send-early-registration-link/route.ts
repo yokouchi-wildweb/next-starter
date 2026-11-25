@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { gate } from "@/featureGate";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { isDisposableEmail } from "@/lib/spamGuard";
-import { recordSignupFailure } from "@/domains/core/auth/services/server/signupAudit";
+import { recordSignupFailure, signupRejectionRecorder } from "@/domains/core/auth/services/server/signupAudit";
 import { sendEarlyRegistrationLink } from "@/domains/core/auth/services/server/sendEarlyRegistrationLink";
 import { INVITE_LINK_COOKIE_NAME } from "@/domains/core/referral/lib/inviteLinkCookie";
 
@@ -16,6 +16,8 @@ export const POST = createApiRoute(
     access: "public",
     skipForDemo: true,
     rateLimit: "signupEmail",
+    // 回数制限・reCAPTCHA で断った時も失敗の理由を audit_logs に残す(signupAudit、答えは変えない)
+    onRejected: signupRejectionRecorder("early_registration_link"),
   },
   async (req) => {
     const body = await req.json();

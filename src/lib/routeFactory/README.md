@@ -181,6 +181,7 @@ export const POST = createApiRoute(
 | `skipForDemo` | `boolean` | 下の表 |
 | `rateLimit` / `rateLimitSubnet` | `TCategory`(wiring が `RateLimitCategory` を渡す) | IP / サブネット（/24）単位のレート制限(カテゴリの持ち主 `src/domains/core/rateLimit/config.ts`。lib はカテゴリの名前を知らず、`createRouteFactories` の型引数 `TCategory` で受ける) |
 | `recaptcha` | `RecaptchaConfig` | reCAPTCHA v3（中間スコアは v2 チャレンジ） |
+| `onRejected` | `(rejection: RouteRejection, req) => Promise<void>` | Factory 自身が断った時(回数制限の 429 = `{ kind: "rateLimit", scope: "ip" \| "subnet", category, identifier }`・reCAPTCHA の 403 / 428 = `{ kind: "recaptcha", version, outcome: "failed" \| "challenge", error?, score? }`)に、答えが決まった後・返す前に監査の文脈の中で待って呼ぶ口(省略可)。口の誤りは記録して飲み込み、答えは変えない。例: 登録の API の失敗の記録(auth の `signupRejectionRecorder`) |
 | `maintenance` | `"pass"` | メンテナンス中も書き込みを通す宣言（省略 = 止める。Usage の「メンテナンス中の書き込みの停止」）。`createMeRoute` / `createDeviceRoute` も同じ |
 
 `skipForDemo`: 省略 = `operationType: "write"` なら自動スキップ / `true` = 常にスキップ / `false` = デモでも実行（ログイン処理・決済の戻り先など）。スキップ時の応答は `{ success: true, demo: true }`。認可はデモスキップより前に評価する。
