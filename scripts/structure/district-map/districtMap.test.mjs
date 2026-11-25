@@ -11,7 +11,7 @@ import { test } from "node:test";
 import { configRules } from "../../../src/featureGate/node.ts";
 import { DISTRICT_MAP_FILE } from "../../../src/lib/districtMap/index.mjs";
 import { collectPoints, readDistrictMapAt } from "../../../src/lib/districtMap/node.mjs";
-import { readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
+import { assertUpstreamItems, readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
 import { scanFeatureTables } from "../registry/tableScan.mjs";
 import { ENTRIES_EXPORT, listDomainDirs, readObjectKeys } from "../registry/serviceRegistry/discover.mjs";
 import { buildDistrictMap, checkDistrictMap, generateDistrictMap, repoRoot } from "./map.mjs";
@@ -30,12 +30,13 @@ test("features = src/domains と core の直下の _ でないフォルダ(登�
   const libs = readdirSync(join(repoRoot, "src/lib"), { withFileTypes: true }).filter((e) => e.isDirectory() && !e.name.startsWith(".")).map((e) => e.name).sort();
   assert.deepEqual(districts.filter((d) => d.kind === "lib").map((d) => d.name), libs);
   assert.deepEqual(districts.filter((d) => d.kind === "proxies").map((d) => d.dir), ["src/proxies"]);
-  // 枠の宣言(_layout/config.ts の frame:)。admin・root・user(地区のクエストで書いた、L1.13)
-  assert.deepEqual(districts.filter((d) => d.kind === "frame").map((d) => [d.name, d.dir]), [
-    ["admin", "src/app/admin/_layout"],
-    ["root", "src/app/_layout"],
-    ["user", "src/app/(user)/_layout"],
-  ]);
+  // 枠の宣言(_layout/config.ts の frame:)。上流は admin・root・user(地区のクエストで書いた、L1.13)。
+  // 枠は fork も足せる地区の種類(KINDS の frame は addedBy: "any")なので、Tier1 は完全一致、fork は上流の 3 つを含むこと
+  assertUpstreamItems(
+    districts.filter((d) => d.kind === "frame").map((d) => `${d.name} ${d.dir}`),
+    ["admin src/app/admin/_layout", "root src/app/_layout", "user src/app/(user)/_layout"],
+    { repoRoot },
+  );
 });
 
 test("apiKeys = 各ドメインの domainEntry.ts のキー(登録表の生成と同じ読み方)", () => {

@@ -24,6 +24,7 @@ import { rules } from "@/featureGate/node";
 import { adminSidebarHrefs } from "../../../src/featureGate/checks/__tests__/adminSidebar";
 import { folderSourcePattern, gatedImports } from "../../../src/featureGate/checks/alwaysOnEntries.mjs";
 import { loadCronTasks } from "../cron/discover";
+import { assertUpstreamItems } from "../../../src/lib/forkOwnership/node.mjs";
 import { planExtensions } from "../extensions/extensions.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../../..");
@@ -81,11 +82,8 @@ const offFolders = () => offRules().flatMap((rule) => rule.domains ?? []);
 test("(a) cron: wallet / payment のタスクは住所が閉じ、discover の closedBy が付く", async () => {
   const tasks = await withWalletOff(() => loadCronTasks(ROOT));
   const closed = tasks.filter((task) => task.closedBy !== null).map((task) => `${task.name}:${task.closedBy}`).sort();
-  assert.deepEqual(closed, [
-    "expire-pending-purchases:payment",
-    "wallet-expiration-notice:wallet",
-    "wallet-expire-lots:wallet",
-  ]);
+  // Tier1 は完全一致。fork は自分の cron を wallet / payment に依る機能の住所に置いてよいので、上流の 3 つを含むこと
+  assertUpstreamItems(closed, ["expire-pending-purchases:payment", "wallet-expiration-notice:wallet", "wallet-expire-lots:wallet"], { repoRoot: ROOT });
   const open = await withWalletOff(() => loadCronTasks(ROOT), []);
   assert.ok(open.every((task) => task.closedBy === null));
 });

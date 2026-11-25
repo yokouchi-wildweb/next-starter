@@ -9,11 +9,12 @@ import assert from "node:assert/strict";
 
 import { LineApiError, lineRetryKey } from "@/lib/line";
 
-import { messagingConfig } from "@/domains/core/messaging/config";
+import { messagingConfigDef } from "@/domains/core/messaging/config";
 import { classifyLineError, createLineChannel } from "./createLineChannel";
 
-test("既定は切(config の channels.line.enabled = false)", () => {
-  assert.equal(messagingConfig.channels.line.enabled, false);
+test("既定は切(持ち主の既定値の channels.line.enabled = false)", () => {
+  // 上流の既定は持ち主の既定値で見る(fork は messaging.config.ts で LINE を開けてよい)
+  assert.equal(messagingConfigDef.defaults.channels.line.enabled, false);
   const channel = createLineChannel({ enabled: false, findLineUserIds: async () => [], push: async () => ({}) });
   assert.equal(channel.enabled, false);
   assert.equal(channel.key, "line");

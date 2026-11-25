@@ -10,14 +10,17 @@ import { MESSAGE_KINDS } from "@/lib/messaging";
 import { createInAppChannel } from "@/domains/core/messaging/plugs/messagingChannels/inApp/createInAppChannel";
 import { createLineChannel } from "@/domains/core/messaging/plugs/messagingChannels/line/createLineChannel";
 import { MESSAGE_CHANNEL_LABELS, messageChannelLabel } from "./channelLabels";
-import { messagingConfig } from "../config";
+import { messagingConfig, messagingConfigDef } from "../config";
 import { messageKindAdminLabel, messageKindAdminOptions, messageKindLabel } from "../presenters";
 
 test("種別の表示名は MESSAGE_KINDS と同じ 7 つ・同じ順、管理画面は adminLabel ?? label、知らない種別は鍵のまま", () => {
   assert.deepEqual(Object.keys(messagingConfig.kindLabels), [...MESSAGE_KINDS]);
   assert.deepEqual(messageKindAdminOptions().map((option) => option.value), [...MESSAGE_KINDS]);
-  assert.equal(messageKindLabel("transactional"), "手続き通知");
-  assert.equal(messageKindAdminLabel("transactional"), messagingConfig.kindLabels.transactional.adminLabel ?? "手続き通知");
+  // 上流の既定の名前は持ち主の既定値で見る(fork は messaging.config.ts の kindLabels で名前を変えてよい)
+  assert.equal(messagingConfigDef.defaults.kindLabels.transactional.label, "手続き通知");
+  const transactional = messagingConfig.kindLabels.transactional;
+  assert.equal(messageKindLabel("transactional"), transactional.label);
+  assert.equal(messageKindAdminLabel("transactional"), transactional.adminLabel ?? transactional.label);
   assert.equal(messageKindLabel("nope"), "nope");
   assert.equal(messageKindAdminLabel("nope"), "nope");
 });

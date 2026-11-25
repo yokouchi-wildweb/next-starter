@@ -15,7 +15,7 @@ import { publicSettingKeys, settingKeysFor } from "./access";
 import { buildSectionForm, CODE_VALUE_HELPER_TEXT, firstOpenSection, listSections, settingSectionHref } from "../../utils/sectionForm";
 import { readSettingValues, settingDefaultOf } from "./read";
 import { mergedExtendedSql, validateSettingInput } from "./save";
-import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
+import { assertUpstreamItems as assertUpstreamItemsIn, readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../../../../../..");
 const { isTier1 } = readForkIdentity(ROOT);
@@ -24,15 +24,9 @@ const tier1Only = { skip: isTier1 ? false : "上流の既定の値の検査（Ti
 /** 上流が持つキーとセクション（fields/・sections/ の上流の項目） */
 const UPSTREAM_KEYS = ["adminListPerPage", "maintenance"];
 const UPSTREAM_SECTIONS = ["general", "maintenance"];
-/** Tier1 は完全一致、fork は上流の項目を同じ順で含むこと（fork の項目は間に入ってよい） */
-const assertUpstreamItems = (actual: readonly string[], upstream: readonly string[]) => {
-  if (isTier1) {
-    assert.deepEqual([...actual], [...upstream]);
-    return;
-  }
-  const present = actual.filter((item) => upstream.includes(item));
-  assert.deepEqual(present, [...upstream], `上流の項目が欠けているか順が違う: ${actual.join(", ")}`);
-};
+/** Tier1 は完全一致、fork は上流の項目を同じ順で含むこと（fork の項目は間に入ってよい。共有の部品 lib/forkOwnership upstreamItems） */
+const assertUpstreamItems = (actual: readonly string[], upstream: readonly string[]) =>
+  assertUpstreamItemsIn(actual, upstream, { repoRoot: ROOT, ordered: true });
 
 const defs = {
   count: { schema: z.coerce.number().int().min(1).default(100) },

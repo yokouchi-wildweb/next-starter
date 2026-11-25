@@ -109,6 +109,11 @@ pnpm workflow ownership selfKeep --pre=<区間の前> --target=<区間の merge 
 - `forkIdOfTexts({ repoJson, projectMd })`: 過去の版を読む所(repo.json を先に、無ければ古い形)
 - 古い形: `parseForkIdDeclaration(text)` / `parseDownstreamDeclaration(text)`
 
+### 上流の値の比べ方(`upstreamItems.mjs`、テストの部品)
+
+- `isTier1Repo(repoRoot)`: Tier1 か(`readForkIdentity(repoRoot).isTier1`)
+- `assertUpstreamItems(actual, upstream, { repoRoot, ordered?, message? })`: 実際のリポを読むテストの一覧の比べ方。Tier1 は完全な一致(同じ順)、fork は上流の項目が全部あること(`ordered` = 上流の項目どうしの順も同じ、fork の項目は間に入ってよい)。使う所の決まり = `.claude/rules/core/scripts.md` tests の fork_values
+
 ### 中間層の規則(`lineage.mjs`)
 
 - `checkLineageStructure` / `formatProblems`(中身は Internals の「中間層の規則」)

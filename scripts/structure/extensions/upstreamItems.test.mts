@@ -42,7 +42,7 @@ import { EXAMPLE_BUSINESS } from "@/lib/business";
 import { messageRegistry } from "@/registry/messageRegistry";
 import { messagingLayouts } from "@/domains/core/messaging/extensions/messagingLayouts";
 import { configEnabled } from "@/featureGate/node";
-import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
+import { assertUpstreamItems as assertUpstreamItemsIn, readForkIdentity } from "@/lib/forkOwnership/node.mjs";
 import { listOneShotTasks, loadOneShotTask } from "../../runner/task/discover";
 import { itemsOf, planExtensions } from "./extensions.mjs";
 
@@ -51,11 +51,8 @@ const tx = {} as never;
 const { isTier1 } = readForkIdentity(ROOT);
 /** 上流の既定の値の検査(fork では飛ばす) */
 const tier1Only = { skip: isTier1 ? false : "上流の既定の値の検査(Tier1 だけ)" };
-/** Tier1 は完全一致、fork は上流の項目を含むこと */
-const assertUpstreamItems = (actual: readonly string[], upstream: readonly string[]) => {
-  if (isTier1) assert.deepEqual([...actual], [...upstream]);
-  else for (const item of upstream) assert.ok(actual.includes(item), `上流の項目 ${item} が無い`);
-};
+/** Tier1 は完全一致、fork は上流の項目を含むこと(共有の部品 lib/forkOwnership upstreamItems) */
+const assertUpstreamItems = (actual: readonly string[], upstream: readonly string[]) => assertUpstreamItemsIn(actual, upstream, { repoRoot: ROOT });
 
 test("後片付け: 必須 → 任意の順、無効は走らない、任意の失敗は続行", async () => {
   const log: string[] = [];
