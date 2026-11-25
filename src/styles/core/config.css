@@ -36,6 +36,15 @@
   --layout-width-wide-showcase: 96rem;
 
   /*
+   * 本文の待ちの部品(PageWait、src/components/Overlays/Loading)の高さ(D103・D107。どちらを使うかは frame.css の [data-page-wait])。
+   * --page-wait-min-height      : 枠のある画面の最小の高さ(本文の所だけに出す)
+   * --page-wait-frameless-height: 枠の無い画面(枠の root が無い・fill・部位を全部隠す)の高さ = 画面の高さ
+   * fork は自分の CSS(src/styles)の :root で上書きする
+   */
+  --page-wait-min-height: 300px;
+  --page-wait-frameless-height: var(--viewport-height, 100dvh);
+
+  /*
    * 枠の寸法トークン（既定値）。
    * --app-header-height / --app-banner-height / --app-bottom-nav-height は
    * UserLayout・AdminLayout が外枠の inline style で実値（実測値または config の値）を書き、

@@ -163,3 +163,40 @@
   padding-block: var(--admin-page-padding-block);
   padding-inline: var(--admin-page-padding-inline);
 }
+
+/*
+ * 本文の待ちの部品(PageWait、src/components/Overlays/Loading/PageWait.tsx)の高さ(D103・D106・D107)。新しい宣言は足さず、
+ * 今の枠の root と宣言の印で選ぶ: 枠のある画面 = --page-wait-min-height(本文の所だけ)、枠の無い画面 = --page-wait-frameless-height。
+ * 枠の無い画面 = 枠の root([data-frame-root])の外 / fill / 部位を全部隠す(利用者 = ヘッダーとフッターと、描かれていればボトムナビ、
+ * 管理 = ヘッダー・サイドバー・フッター)。印は SSR の最初の HTML に入る(利用者 = 部位の包み、管理 = 外枠の属性)ので最初の一瞬から当たる
+ */
+[data-page-wait] {
+  min-height: var(--page-wait-frameless-height);
+}
+[data-frame-root] [data-page-wait] {
+  min-height: var(--page-wait-min-height);
+}
+[data-frame-root][data-slot="app-container"]:has(> [data-frame-part][data-frame-fill]) [data-page-wait],
+[data-frame-root][data-frame-fill] [data-page-wait] {
+  min-height: var(--page-wait-frameless-height);
+}
+@media (width < 40rem) {
+  [data-frame-root][data-slot="app-container"]:has([data-frame-part][data-frame-hide~="header-sp"]):has(
+      [data-frame-part][data-frame-hide~="footer-sp"]
+    ):is(:has([data-frame-part][data-frame-hide~="bottom-nav-sp"]), :not(:has([data-slot="bottom-nav"])))
+    [data-page-wait],
+  [data-frame-root][data-frame-hide~="admin-header-sp"][data-frame-hide~="admin-sidebar-sp"][data-frame-hide~="admin-footer-sp"]
+    [data-page-wait] {
+    min-height: var(--page-wait-frameless-height);
+  }
+}
+@media (width >= 40rem) {
+  [data-frame-root][data-slot="app-container"]:has([data-frame-part][data-frame-hide~="header-pc"]):has(
+      [data-frame-part][data-frame-hide~="footer-pc"]
+    ):is(:has([data-frame-part][data-frame-hide~="bottom-nav-pc"]), :not(:has([data-slot="bottom-nav"])))
+    [data-page-wait],
+  [data-frame-root][data-frame-hide~="admin-header-pc"][data-frame-hide~="admin-sidebar-pc"][data-frame-hide~="admin-footer-pc"]
+    [data-page-wait] {
+    min-height: var(--page-wait-frameless-height);
+  }
+}

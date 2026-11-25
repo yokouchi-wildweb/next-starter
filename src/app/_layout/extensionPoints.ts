@@ -3,6 +3,14 @@
 // 枠はドメインを値も型も読まない(D22・D25)。部品は持ち主のドメインの plugs/<点>/<名前>.ts(x) に置いて差し、閉じたドメインの部品は門番が外す。約束の型: ./types.ts
 
 export const extensionPoints = {
+  // 差替点: 1 行スイッチ ScreenWait = 画面の本文の読みを待つ間の既定の表示(createScreen の fallback を省いた時、D106)。
+  // fork は隣に ScreenWait.replace.tsx を作りスイッチを向け替える(画面ごとは createScreen の fallback)
+  screenWait: {
+    change: "replace",
+    default: "src/app/_layout/ScreenWait.default.tsx",
+    type: { from: "@/app/_layout/points", name: "ScreenWaitProps" },
+    side: "shared",
+  },
   // 置き場: ブランドの favicon(Next のファイルの決まり。上流は見本を出荷)
   appIcon: { change: "counterpart", placement: "src/app/favicon.ico", kind: "edit" },
   // 枠のログインの状態とログアウト: 差す側の <ドメイン>/plugs/frameSession/<名前>.ts の export const plug({ useSession, useLogout })。

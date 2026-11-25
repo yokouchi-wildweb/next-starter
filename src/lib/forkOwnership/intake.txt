@@ -173,6 +173,7 @@ add src/domains/**/plugs/userMypageMenu/*.override.{ts,tsx}  # 上書き userMyp
 add src/lib/*/plugs/userMypageMenu/*.override.{ts,tsx}  # 上書き userMypageMenu(hidden・order・title・description・icon・variant・pendingTitle)の上流の項目の隣
 add src/domains/**/plugs/walletPurchaseBonuses/*.override.{ts,tsx}  # 上書き walletPurchaseBonuses(enabled・order)の上流の項目の隣
 add src/lib/*/plugs/walletPurchaseBonuses/*.override.{ts,tsx}  # 上書き walletPurchaseBonuses(enabled・order)の上流の項目の隣
+edit src/app/_layout/ScreenWait.tsx  # 差替点 screenWait(src/app/_layout/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
 edit src/app/admin/_layout/AdminHeader.tsx  # 差替点 adminHeader(src/app/admin/_layout/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
 edit src/domains/core/auth/components/Registration/RateLimitWarningContent.tsx  # 差替点 rateLimitWarningContent(src/domains/core/auth/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
 edit src/domains/core/auth/plugs/frameSession/session.ts  # 差替点 authFrameSession(src/domains/core/auth/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
@@ -196,6 +197,7 @@ edit src/domains/core/messaging/plugs/messagingLayouts/welcome/WelcomeInApp.tsx 
 edit src/domains/core/purchaseRequest/services/server/payment/sessionEnricher.ts  # 差替点 sessionEnricher(src/domains/core/purchaseRequest/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
 edit src/domains/core/rateLimit/plugs/routeFactoryRateLimit/ipRate.ts  # 差替点 rateLimitRouteFactoryRateLimit(src/domains/core/rateLimit/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
 edit src/lib/mail/frame/MailFrame.tsx  # 差替点 mailFrame(src/lib/mail/extensionPoints.ts)の 1 行スイッチ(向け先を ./<名前>.replace に替える)
+add src/app/_layout/ScreenWait.replace.{ts,tsx}  # 差替点 screenWait の丸ごと置き換え
 add src/app/admin/_layout/AdminHeader.replace.{ts,tsx}  # 差替点 adminHeader の丸ごと置き換え
 add src/domains/core/auth/components/Registration/RateLimitWarningContent.replace.{ts,tsx}  # 差替点 rateLimitWarningContent の丸ごと置き換え
 add src/domains/core/auth/plugs/frameSession/session.replace.{ts,tsx}  # 差替点 authFrameSession の丸ごと置き換え

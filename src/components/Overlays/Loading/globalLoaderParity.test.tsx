@@ -53,7 +53,7 @@ async function renderLib(options: Options): Promise<string> {
   return html;
 }
 
-/** 棚の側: 今までの GlobalScreenLoader と同じ渡し方(className はそのまま) */
+/** 棚の側: 今までの GlobalScreenLoader と同じ渡し方(className はそのまま)。mount の後の body 直下の要素 */
 async function renderShelf(options: Options): Promise<string> {
   document.body.innerHTML = "";
   const { className, ...rest } = options;
@@ -63,7 +63,12 @@ async function renderShelf(options: Options): Promise<string> {
   await act(async () =>
     root.render(h(Shelf.ScreenLoader, { mode: "fullscreen", className, ...rest })),
   );
-  const html = container.firstElementChild?.outerHTML ?? "";
+  // fullscreen は mount の後に body 直下へ移る(FullscreenLayer): 外の入れ物には残らない
+  assert.equal(container.firstElementChild, null, "fullscreen が mount の後も入れ物の中に残っている");
+  const el = document.body.querySelector(':scope > [role="status"]');
+  assert.ok(el, "ScreenLoader fullscreen が mount の後に body 直下へ移っていない");
+  assert.ok(el.className.includes("fixed") && el.className.includes("cover-layer") && el.className.includes("pointer-events-auto"), el.className);
+  const html = el.outerHTML;
   await act(async () => root.unmount());
   return html;
 }
