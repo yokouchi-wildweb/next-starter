@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { runCheck } from "./check.mjs";
-import { checkAll, checkSkill, descriptionProblems, parsePending, parseSkill, proseProblems, readVocabulary, RULE_FILE } from "./lib.skillFormat.mjs";
+import { checkAll, checkSkill, descriptionProblems, parseSkill, proseProblems, readVocabulary, RULE_FILE } from "./lib.skillFormat.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const vocabulary = new Set(["AGENT_TERMINAL=tmux"]);
@@ -56,30 +56,18 @@ test("本文と付属の .md: 囲みの外の日本語・長すぎる行・name 
 
 test("上流のスキルの誤りは errors、fork が足したスキルは warnings(exit 0 の側)", () => {
   const bad = skill("bad", { description: "日本語の説明" });
-  const r = checkAll({ skills: [bad, skill("fork-bad", { description: "日本語" })], isUpstream: (n) => n === "bad", pending: new Set(), vocabulary });
+  const r = checkAll({ skills: [bad, skill("fork-bad", { description: "日本語" })], isUpstream: (n) => n === "bad", vocabulary });
   assert.ok(r.errors.length > 0 && r.errors.every((e) => e.includes("/bad/")));
   assert.ok(r.warnings.length > 0 && r.warnings.every((e) => e.includes("/fork-bad/")));
 });
 
 test("requires の知らない鍵: 上流は error、fork は warning", () => {
   const s = (name) => skill(name, { description: "Do | When | requires: FORK_THING=on" });
-  const r = checkAll({ skills: [s("up"), s("mine")], isUpstream: (n) => n === "up", pending: new Set(), vocabulary });
+  const r = checkAll({ skills: [s("up"), s("mine")], isUpstream: (n) => n === "up", vocabulary });
   assert.equal(r.errors.length, 1);
   assert.match(r.errors[0], /up\/SKILL\.md: requires の FORK_THING=on は上流の語彙/);
   assert.equal(r.warnings.length, 1);
   assert.match(r.warnings[0], /mine/);
-});
-
-test("例外の一覧: 載っているスキルは保留(落とさない)、満たしたら外す案内、無いスキルの名前は誤り", () => {
-  const r = checkAll({
-    skills: [skill("old", { description: "古い説明" }), skill("done")],
-    isUpstream: () => true,
-    pending: parsePending("# comment\nold\ndone  # 書き直し済み\nghost\n"),
-    vocabulary,
-  });
-  assert.deepEqual(r.pending, ["old(2 件)"]);
-  assert.deepEqual(r.passingPending, ["done"]);
-  assert.deepEqual(r.errors, ["scripts/workflow/skills/pending.txt: ghost というスキルが無い(一覧から消す)"]);
 });
 
 function forkRepo(t, { ledger }) {

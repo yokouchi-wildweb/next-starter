@@ -6,7 +6,6 @@ import { join } from "node:path";
 
 export const SKILLS_DIR = ".claude/skills";
 export const RULE_FILE = ".claude/rules/core/skills.md";
-export const PENDING_FILE = "scripts/workflow/skills/pending.txt";
 export const MAX_LISTING_CHARS = 1536; // description + when_to_use(一覧はここで切られる)
 export const MAX_LINE_CHARS = 400;
 
@@ -149,46 +148,21 @@ export function readSkills(root) {
     });
 }
 
-// 例外の一覧(1 行 1 スキル名、# から行末はコメント)
-export function parsePending(text) {
-  return new Set(
-    text
-      .split("\n")
-      .map((line) => line.replace(/#.*$/, "").trim())
-      .filter(Boolean),
-  );
-}
-
 /**
- * 全スキルを確かめて、上流は誤り・fork が足した物は警告・例外の一覧は保留に分ける
- * @param {{ skills: { name: string, files: Record<string, string> }[], isUpstream: (name: string) => boolean, pending: Set<string>, vocabulary: Set<string> }} input
- * @returns {{ errors: string[], warnings: string[], pending: string[], passingPending: string[] }}
+ * 全スキルを確かめて、上流は誤り・fork が足した物は警告に分ける
+ * @param {{ skills: { name: string, files: Record<string, string> }[], isUpstream: (name: string) => boolean, vocabulary: Set<string> }} input
+ * @returns {{ errors: string[], warnings: string[] }}
  */
-export function checkAll({ skills, isUpstream, pending, vocabulary }) {
+export function checkAll({ skills, isUpstream, vocabulary }) {
   const errors = [];
   const warnings = [];
-  const pendingOut = [];
-  const passingPending = [];
-  const names = new Set(skills.map((s) => s.name));
-  for (const name of pending) {
-    if (!names.has(name)) errors.push(`${PENDING_FILE}: ${name} というスキルが無い(一覧から消す)`);
-  }
   for (const skill of skills) {
-    const upstream = isUpstream(skill.name);
     const { problems, unknownRequires } = checkSkill(skill, vocabulary);
     const requireMsgs = unknownRequires.map(
       (pair) => `${SKILLS_DIR}/${skill.name}/SKILL.md: requires の ${pair} は上流の語彙(${RULE_FILE} の ## REQUIRES)に無い`,
     );
-    if (pending.has(skill.name)) {
-      if (problems.length + requireMsgs.length === 0) passingPending.push(skill.name);
-      else pendingOut.push(`${skill.name}(${problems.length + requireMsgs.length} 件)`);
-      continue;
-    }
-    if (upstream) {
-      errors.push(...problems, ...requireMsgs);
-    } else {
-      warnings.push(...problems, ...requireMsgs);
-    }
+    if (isUpstream(skill.name)) errors.push(...problems, ...requireMsgs);
+    else warnings.push(...problems, ...requireMsgs);
   }
-  return { errors, warnings, pending: pendingOut, passingPending };
+  return { errors, warnings };
 }

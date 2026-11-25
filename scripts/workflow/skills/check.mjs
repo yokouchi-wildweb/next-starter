@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { readBaseFiles, readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
-import { checkAll, parsePending, PENDING_FILE, readSkills, readVocabulary, RULE_FILE, SKILLS_DIR } from "./lib.skillFormat.mjs";
+import { checkAll, readSkills, readVocabulary, RULE_FILE, SKILLS_DIR } from "./lib.skillFormat.mjs";
 
 /**
  * 上流のスキルかを決める関数を作る。Tier1 = 全部上流。fork = 基準の版にある SKILL.md が上流、無い物は fork が足した物
@@ -35,19 +35,15 @@ export function runCheck(root, { base = null, log = console.log } = {}) {
   }
   const rulePath = join(root, RULE_FILE);
   const vocabulary = existsSync(rulePath) ? readVocabulary(readFileSync(rulePath, "utf8")) : new Set();
-  const pendingPath = join(root, PENDING_FILE);
-  const pending = existsSync(pendingPath) ? parsePending(readFileSync(pendingPath, "utf8")) : new Set();
-  const result = checkAll({ skills: readSkills(root), isUpstream: upstream.isUpstream, pending, vocabulary });
+  const result = checkAll({ skills: readSkills(root), isUpstream: upstream.isUpstream, vocabulary });
 
   for (const line of result.warnings) log(`skills: 警告(fork が足したスキル): ${line}`);
-  if (result.pending.length > 0) log(`skills: 書き直し待ち(${PENDING_FILE}): ${result.pending.join(", ")}`);
-  for (const name of result.passingPending) log(`skills: ${name} は書式を満たしている → ${PENDING_FILE} から外す`);
   for (const line of result.errors) log(`skills: ${line}`);
   if (result.errors.length > 0) {
     log(`skills: 落ちた(${result.errors.length} 件、${upstream.label})。決まり: ${RULE_FILE}`);
     return 1;
   }
-  log(`skills: 通る(${upstream.label}、警告 ${result.warnings.length} 件・書き直し待ち ${result.pending.length} 個)`);
+  log(`skills: 通る(${upstream.label}、警告 ${result.warnings.length} 件)`);
   return 0;
 }
 

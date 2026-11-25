@@ -36,6 +36,5 @@ human_templates: Japanese only inside fenced blocks (as human_text)
 
 ## CHECK
 test: guarded by pnpm check skills (phase ship, run by /sluice) | upstream skill breaks the form → error | fork-added skill → warning | base unreadable in a fork → exit 2 (unverified, never a pass) | ref: scripts/workflow/skills/README.md
-pending: scripts/workflow/skills/pending.txt = skills not yet rewritten (reported as pending, not failed) | a rewrite removes its line | upstream-owned, empties over time
 mechanical_proxy: English = no CJK outside fenced blocks and inline code
 codex: the source of skills is .claude/skills/; .agents/skills is a symlink to it, never a copy | never change a SKILL.md or its frontmatter for Codex | a skill with Claude-only operations or invocation limits → check how Codex treats it (.codex/README.md)
