@@ -1,5 +1,7 @@
 // scripts/workflow/notices/ledger.mjs
-// 自分の適用台帳 .notices/applied/<repo_id>.md に /flux の行を足す道具(台帳の行の書き方はここだけ。手で足さない)。
+// 自分の適用台帳 .notices/applied/<repo_id>.md に /flux の行を足す道具(行の既定の書き手。手で足した行も同じ形なら読む手は読む)。
+// 断るのは書く中身が決まらない時だけ(知らない引数・名前が読めない・Tier1・commit でない rev・--id / --tail の欠けと重ね)。
+// ほかの食い違いは注意の 1 行で書く(core/tools.md)
 // /flux が区間の commit の前(手順 7a)・緊急修正 / 先に取れる修正の pick の後に走らせる。
 //
 // 実行: pnpm workflow notices ledger --upstream=<rev> (--id=<notice id> [--id=…] | --tail) [--commit=<sha | ->]
@@ -15,7 +17,7 @@
 //   行の形: - id:<id> | date:<ISO8601> | commit:<sha | -> | upstream:<完全な sha> [| picked:<完全な sha>] [| relay:<…>] | notes:<…>
 //   台帳が無ければ見出し `# APPLIED LEDGER fork:<origin の url>` で作る
 //   書く台帳 = cwd の git のリポ(道具の置き場ではない)
-//   exit 0 = 書いた / 書く物が無い | 2 = 書けない(理由。何も書かない)
+//   exit 0 = 書いた / 書く物が無い(注意の行があっても)| 2 = 書けない(中身が決まらない。理由。何も書かない)
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -40,7 +42,7 @@ export const ledgerIds = (text) => [...(text ?? "").matchAll(/^- id:(\S+)/gm)].m
 export const tailId = (sha) => `tail-${sha.slice(0, 9)}`;
 
 /**
- * 足す行を作る(書かない)。{ lines, skip?, path, header? } か、投げる(理由)
+ * 足す行を作る(書かない)。{ lines, notes, skip?, path, header? } か、投げる(中身が決まらない理由)。notes = 注意の行
  * @param {string} repo
  * @param {string[]} argv
  * @param {{ now?: () => Date }} [deps]
@@ -72,38 +74,47 @@ export function planLedger(repo, argv, { now = () => new Date() } = {}) {
   if (!tail && ids.length === 0) throw new Error("--id=<notice id> か --tail が要る");
   if (tail && picked) throw new Error("--tail と --picked は一緒に使えない");
 
+  const warn = [];
+  // 行の欄に入らない字: | は /、改行・空白(id)は置き換えて書く
+  const clean = (name, value) => {
+    const next = name === "id" ? value.replace(/[|]/g, "/").replace(/\s+/g, "-") : value.replace(/[|]/g, "/").replace(/[\r\n]+/g, " ");
+    if (next !== value) warn.push(`--${name} の | ・改行${name === "id" ? "・空白" : ""}を置き換えて書きます(${next})`);
+    return next;
+  };
   let relay = option(argv, "relay");
   if (withRelay && tail) relay = relay ?? "none";
-  if (withRelay && relay === null) throw new Error("下流を持つ fork は --relay=<none | 中継 notice の id> が要る");
-  if (!withRelay && relay !== null) throw new Error("leaf の fork は relay: を書かない(--relay を外す)");
-  if (withRelay && tail && relay !== "none") throw new Error("末尾の区間の行は relay:none だけ");
-
-  const commit = option(argv, "commit") ?? "-";
-  const notes = option(argv, "notes") ?? "-";
-  for (const [name, value] of [["commit", commit], ["relay", relay ?? ""], ["notes", notes], ...ids.map((id) => ["id", id])]) {
-    if (/[|\n\r]/.test(value)) throw new Error(`--${name} に改行・| は使えない`);
+  if (withRelay && relay === null) warn.push("下流を持つ fork の行に relay: がありません(中継は未判定として書く。判定したら --relay を渡す)");
+  if (!withRelay && relay !== null) {
+    warn.push("leaf の fork は relay: を書かないので --relay を外して書きます");
+    relay = null;
   }
-  for (const id of ids) if (!/^\S+$/.test(id)) throw new Error(`--id=${id} に空白は使えない`);
+  if (relay !== null) relay = clean("relay", relay);
+
+  const commit = clean("commit", option(argv, "commit") ?? "-");
+  const notes = clean("notes", option(argv, "notes") ?? "-");
+  const given = ids.map((id) => clean("id", id));
 
   const path = join(".notices/applied", `${identity.own}.md`);
   const abs = join(repo, path);
   const text = existsSync(abs) ? readFileSync(abs, "utf8") : null;
   if (tail && text !== null && lastUpstreamSha(text) && upstream.startsWith(lastUpstreamSha(text) ?? "")) {
-    return { path, lines: [], skip: `台帳の最後の upstream: がもう ${upstream.slice(0, 9)}(末尾の行は書いてある)` };
+    return { path, lines: [], notes: warn, skip: `台帳の最後の upstream: がもう ${upstream.slice(0, 9)}(末尾の行は書いてある)` };
   }
-  const lineIds = tail ? [tailId(upstream)] : ids;
   const recorded = new Set(ledgerIds(text));
-  const dup = lineIds.filter((id) => recorded.has(id));
-  if (dup.length > 0) throw new Error(`もう台帳にある id: ${dup.join(", ")}(過去の行は書き換えない)`);
-  if (new Set(lineIds).size !== lineIds.length) throw new Error("同じ --id が 2 回ある");
+  const wanted = [...new Set(tail ? [tailId(upstream)] : given)];
+  if (!tail && wanted.length !== given.length) warn.push("同じ --id が 2 回あるので 1 行にします");
+  const dup = wanted.filter((id) => recorded.has(id));
+  if (dup.length > 0) warn.push(`もう台帳にある id は足しません(過去の行はそのまま): ${dup.join(", ")}`);
+  const lineIds = wanted.filter((id) => !recorded.has(id));
+  if (lineIds.length === 0) return { path, lines: [], notes: warn, skip: "足す行がない(どれももう台帳にある)" };
 
   const date = now().toISOString().replace(/\.\d{3}Z$/, "Z");
   const lines = lineIds.map(
     (id) =>
-      `- id:${id} | date:${date} | commit:${commit} | upstream:${upstream}${picked ? ` | picked:${picked}` : ""}${withRelay ? ` | relay:${relay}` : ""} | notes:${notes}`,
+      `- id:${id} | date:${date} | commit:${commit} | upstream:${upstream}${picked ? ` | picked:${picked}` : ""}${relay !== null ? ` | relay:${relay}` : ""} | notes:${notes}`,
   );
   const header = text === null ? `# APPLIED LEDGER fork:${tryGit(repo, ["remote", "get-url", "origin"]) ?? "-"}` : null;
-  return { path, lines, header };
+  return { path, lines, notes: warn, header };
 }
 
 /**
@@ -120,6 +131,7 @@ export function run(repo, argv, log = console.log, deps = {}) {
     log(`ledger: 書けない — ${e.message}`);
     return 2;
   }
+  for (const note of plan.notes ?? []) log(`ledger: 注意 — ${note}`);
   if (plan.skip) {
     log(`ledger: 書く物なし — ${plan.skip}`);
     return 0;

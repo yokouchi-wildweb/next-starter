@@ -81,17 +81,17 @@ describe("pnpm workflow notices ledger", () => {
     const { code } = runLog(fork, ["--upstream=upstream/main", "--id=20261125-000003-c"]);
     assert.equal(code, 0);
     assert.equal(read(fork), `# APPLIED LEDGER fork:git@github.com:acme/child.git\n- id:20261125-000003-c | date:2026-11-25T01:02:03Z | commit:- | upstream:${target} | notes:-\n`);
-    assert.equal(runLog(fork, ["--upstream=upstream/main", "--id=20261125-000004-d", "--relay=none"]).code, 2);
+    const leafRelay = runLog(fork, ["--upstream=upstream/main", "--id=20261125-000004-d", "--relay=none"]);
+    assert.equal(leafRelay.code, 0);
+    assert.match(leafRelay.out, /注意 — leaf の fork は relay: を書かないので --relay を外して書きます/);
+    assert.equal(read(fork).trimEnd().split("\n").at(-1), `- id:20261125-000004-d | date:2026-11-25T01:02:03Z | commit:- | upstream:${target} | notes:-`);
   });
 
-  test("書けない(exit 2、何も書かない): 台帳にある id・commit でない upstream・relay の欠け・| の入った notes・--tail と --id", () => {
+  test("書けない(exit 2、何も書かない)のは中身が決まらない時だけ: commit でない upstream・--tail と --id・知らない引数", () => {
     const { fork } = forkWithTarget();
     const before = read(fork);
     for (const argv of [
-      ["--upstream=upstream/main", "--id=fork-init", "--relay=none"],
       ["--upstream=nope", "--id=20261125-000005-e", "--relay=none"],
-      ["--upstream=upstream/main", "--id=20261125-000005-e"],
-      ["--upstream=upstream/main", "--id=20261125-000005-e", "--relay=none", "--notes=a | b"],
       ["--upstream=upstream/main", "--tail", "--id=20261125-000005-e"],
       ["--upstream=upstream/main", "--id=20261125-000005-e", "--relay=none", "--bogus=1"],
     ]) {
@@ -99,5 +99,22 @@ describe("pnpm workflow notices ledger", () => {
       assert.equal(read(fork), before);
     }
     assert.ok(existsSync(join(fork, LEDGER)));
+  });
+
+  test("食い違いは注意の 1 行で書く: 台帳にある id は足さず残りを書く・同じ --id は 1 行・relay の欠けは relay なし・| と改行は置き換え", () => {
+    const { fork, target } = forkWithTarget();
+    const dup = runLog(fork, ["--upstream=upstream/main", "--id=fork-init", "--id=20261125-000006-f", "--id=20261125-000006-f", "--relay=none", "--notes=a | b\nc"]);
+    assert.equal(dup.code, 0);
+    assert.match(dup.out, /注意 — もう台帳にある id は足しません\(過去の行はそのまま\): fork-init/);
+    assert.match(dup.out, /注意 — 同じ --id が 2 回あるので 1 行にします/);
+    assert.match(dup.out, /注意 — --notes の \| ・改行を置き換えて書きます/);
+    assert.equal(read(fork).trimEnd().split("\n").at(-1), `- id:20261125-000006-f | date:2026-11-25T01:02:03Z | commit:- | upstream:${target} | relay:none | notes:a / b c`);
+    const noRelay = runLog(fork, ["--upstream=upstream/main", "--id=20261125-000007-g"]);
+    assert.equal(noRelay.code, 0);
+    assert.match(noRelay.out, /注意 — 下流を持つ fork の行に relay: がありません/);
+    assert.equal(read(fork).trimEnd().split("\n").at(-1), `- id:20261125-000007-g | date:2026-11-25T01:02:03Z | commit:- | upstream:${target} | notes:-`);
+    const only = runLog(fork, ["--upstream=upstream/main", "--id=fork-init", "--relay=none"]);
+    assert.equal(only.code, 0);
+    assert.match(only.out, /書く物なし/);
   });
 });

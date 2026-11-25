@@ -37,7 +37,8 @@
 //    (中の相対の指定は新しい場所から引き直す)。行き先に同じ名があれば止める
 // 3. 機械では直せない所を一覧に出す: 表にない名前・名前の重なり(STOP)、分けるモジュールを指す export *・mock.module・import()・
 //    その他の文字列、JSON・Markdown の旧パスの字面(hand)
-// STOP が 1 つでもあれば --apply でも書かない(手で直してから走らせ直す)。
+// STOP があっても --apply は書けるものを書く(STOP の行は書き換えずに残り、移し先の重なるファイルは動かさない)。STOP の行は
+// 手で直してから走らせ直す(何度走らせても同じ結果。messaging-records の codemod と同じ、core/tools.md)。exit 0
 // fork の手順: 上流のこの区切りを取り込む → dry-run → STOP を直す → --apply → hand を手で直す → pnpm typecheck・pnpm lint
 //   (lint deprecated-imports が残りの旧パスを挙げる)
 import { execFileSync } from "node:child_process";
@@ -862,10 +863,9 @@ function main() {
   for (const { file, line, text } of result.stops) console.log(`STOP ${at(file, line)}: ${text}`);
   for (const { file, line, text } of result.hands) console.log(`hand ${at(file, line)}: ${text}`);
   if (!result.rewrites.length && !result.moves.length && !result.stops.length) console.log("変えるものなし");
-  if (result.stops.length) process.exit(1);
   if (process.argv.includes("--apply")) {
     apply(root, result);
-    console.log("applied");
+    console.log(result.stops.length ? `applied(STOP ${result.stops.length} 件は書き換えずに残した: 手で直してから走らせ直す)` : "applied");
   } else console.log("dry-run(--apply で書く)");
 }
 
