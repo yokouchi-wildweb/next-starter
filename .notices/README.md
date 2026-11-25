@@ -126,6 +126,7 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 - `20261111-143012-messaging-switch.messaging-switch` — 旧 notification・古い送る口・core/mail・BulkSendEmail の撤去: 形が同じ名前(受け取り箱の client の関数・未読のモーダル・existingIdempotencyKeys・MAIL_THEME_COLORS の import 先)と未読のモーダルの値(notification.config.ts → messaging.config.ts の inbox)・notificationModal={null}・管理メニューの上書き・消えた門の値を機械で直し、形の違う名前は対応つきで手直しに出す(取り込みのコミットの前に走らせる)
 - `20261121-141602-priority-mark.priority-mark` — lineage の上書きの書式をやめる: project.md と自分の節の `overrides: <owner>.<key> = <value> | why: <reason>` を `- <key> (priority): <value> (why: <reason>)` へ、自分の節の `(default)` を外す(祖先の節は触らない)
 - `20261121-153726-cc-prep.force-dynamic` — src/app の page・layout・route から `export const dynamic = "force-dynamic";` の行を消す(別の値・dynamicParams・fetchCache・revalidate・runtime は消さずに止めた一覧へ)
+- `20261125-174936-cc-screen-maker.screen-maker` — page.tsx が指す Screen を画面の作り手 createScreen(`@/wiring/screen`)の形へ、Screen の静的な metadata を作り手へ、page.tsx の metadata の再 export を generateMetadata へ(形の違う物は直し方 1 行の止まる一覧)
 
 共有の棚の道具の順番(notice の区切りごとに、その区切りの道具を取り込みの後に走らせる。前の区切りの道具を先に):
 

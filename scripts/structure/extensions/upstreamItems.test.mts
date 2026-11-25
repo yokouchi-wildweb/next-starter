@@ -129,6 +129,7 @@ test("1 行スイッチの既定: 何も足さない状態で今までと同じ(
   // NoticeEmail.default・NoticeInApp.default は上流のレイアウト「汎用」の見た目(messaging/plugs/messagingLayouts/notice、指令 54 d5)
   // Link・Welcome・Statement・Alert の Email / InApp.default は上流のレイアウト「認証のリンク」「ようこそ」「明細」「セキュリティの警告」の見た目(指令 55 d4)
   // SimpleEmail.default・SimpleInApp.default は上流のレイアウト「シンプル」の見た目(messaging/plugs/messagingLayouts/simple、D119)
+  // ScreenWait.default は画面の本文の読みを待つ間の既定(src/app/_layout/ScreenWait、区切り cc-screen-maker: fork は ScreenWait.replace で丸ごと替える)
   const targets = plan.switches.map((s: { target: string }) => s.target).sort();
   assert.deepEqual(targets, [
     "AdminHeader.default",
@@ -140,6 +141,7 @@ test("1 行スイッチの既定: 何も足さない状態で今までと同じ(
     "NoticeEmail.default",
     "NoticeInApp.default",
     "RateLimitWarningContent.default",
+    "ScreenWait.default",
     "SimpleEmail.default",
     "SimpleInApp.default",
     "StatementEmail.default",
