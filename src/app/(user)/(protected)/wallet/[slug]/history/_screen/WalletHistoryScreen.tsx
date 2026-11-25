@@ -6,20 +6,19 @@
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
-import type { ScreenProps } from "@/lib/screens";
 import { WalletHistory } from "@/domains/core/wallet/components/WalletHistory";
+import { createScreen } from "@/wiring/screen";
 
-import { loadWalletHistoryScreen, type WalletHistoryScreenParams } from "./loader";
+import { loadWalletHistoryScreen } from "./loader";
 
-export async function WalletHistoryScreen(props: ScreenProps<WalletHistoryScreenParams>) {
-  const data = await loadWalletHistoryScreen(props);
-
-  return (
+export const { Screen: WalletHistoryScreen, generateMetadata } = createScreen({
+  load: loadWalletHistoryScreen,
+  render: (data) => (
     <UserPage containerType="narrowStack">
       <Stack gap="lg">
         <UserPageTitle>{data.label}履歴</UserPageTitle>
         <WalletHistory slug={data.slug} />
       </Stack>
     </UserPage>
-  );
-}
+  ),
+});

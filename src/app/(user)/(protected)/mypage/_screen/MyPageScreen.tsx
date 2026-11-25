@@ -5,19 +5,18 @@
 // loader は access の評価だけ(サーバー側の取得も遷移制御も無い。未ログインは範囲 (user)/(protected)/guard.ts が弾く)。
 // mypage 配下は layout が UserPage + Stack + PageTransition を巻くので Screen は fragment を返す。
 
-import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { MainMenu } from "@/domains/core/user/components/MainMenu";
+import { createScreen } from "@/wiring/screen";
 
 import { loadMyPageScreen } from "./loader";
 
-export async function MyPageScreen(props: ScreenProps) {
-  await loadMyPageScreen(props);
-
-  return (
+export const { Screen: MyPageScreen, generateMetadata } = createScreen({
+  load: loadMyPageScreen,
+  render: () => (
     <>
       <UserPageTitle>マイページ</UserPageTitle>
       <MainMenu />
     </>
-  );
-}
+  ),
+});

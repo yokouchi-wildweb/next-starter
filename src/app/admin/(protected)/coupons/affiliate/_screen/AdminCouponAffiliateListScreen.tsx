@@ -5,7 +5,6 @@
 //
 // loader は access の評価だけ(準備中の案内だけ)。説明文に足す 1 文は couponConfig.affiliateDescription(fork は上書きに書く)。
 
-import type { ScreenProps } from "@/lib/screens";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
@@ -15,17 +14,13 @@ import { couponConfig } from "@/domains/coupon/config";
 import { Construction } from "lucide-react";
 
 import { AdminCouponSectionTabs } from "@/domains/core/coupon/components/AdminCouponSectionTabs";
+import { createScreen } from "@/wiring/screen";
 
 import { loadAdminCouponAffiliateListScreen } from "./loader";
 
-export const metadata = {
-  title: "クーポン一覧（アフィリエイト）",
-};
-
-export async function AdminCouponAffiliateListScreen(props: ScreenProps) {
-  await loadAdminCouponAffiliateListScreen(props);
-
-  return (
+export const { Screen: AdminCouponAffiliateListScreen, generateMetadata } = createScreen({
+  load: loadAdminCouponAffiliateListScreen,
+  render: () => (
     <AdminPage title="クーポン管理" center={<AdminCouponSectionTabs variant="header" />}>
       <Section>
         <Stack gap="lg">
@@ -50,5 +45,8 @@ export async function AdminCouponAffiliateListScreen(props: ScreenProps) {
         </Stack>
       </Section>
     </AdminPage>
-  );
-}
+  ),
+  metadata: {
+    title: "クーポン一覧（アフィリエイト）",
+  },
+});

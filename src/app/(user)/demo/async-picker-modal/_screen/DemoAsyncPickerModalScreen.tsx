@@ -1,23 +1,18 @@
 // src/app/(user)/demo/async-picker-modal/_screen/DemoAsyncPickerModalScreen.tsx
 // /demo/async-picker-modal(デモ)の既定画面。
 
-import type { ScreenProps } from "@/lib/screens";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { Para } from "@/components/TextBlocks/Para";
+import { createScreen } from "@/wiring/screen";
 
 import { SamplePickerDemo } from "./SamplePickerDemo";
 
 import { loadDemoAsyncPickerModalScreen } from "./loader";
 
-export const metadata = {
-  title: "AsyncPickerModal デモ",
-};
-
-export async function DemoAsyncPickerModalScreen(props: ScreenProps) {
-  await loadDemoAsyncPickerModalScreen(props);
-
-  return (
+export const { Screen: DemoAsyncPickerModalScreen, generateMetadata } = createScreen({
+  load: loadDemoAsyncPickerModalScreen,
+  render: () => (
     <UserPage>
       <UserPageTitle>AsyncPickerModal デモ</UserPageTitle>
       <Para size="sm" tone="muted">
@@ -26,5 +21,8 @@ export async function DemoAsyncPickerModalScreen(props: ScreenProps) {
       </Para>
       <SamplePickerDemo />
     </UserPage>
-  );
-}
+  ),
+  metadata: {
+    title: "AsyncPickerModal デモ",
+  },
+});

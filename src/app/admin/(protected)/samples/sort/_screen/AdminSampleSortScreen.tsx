@@ -3,22 +3,20 @@
 // このファイルは pnpm generate domain が生成する(再生成で上書きされるため手で編集しない)。
 // 画面を変えるときは _components/ にコピーして page.tsx の import 先を向ける。
 
-import type { ScreenProps } from "@/lib/screens";
 import AdminSampleSort from "@/domains/sample/components/AdminSampleSort";
 import AdminPage from "@/app/admin/_layout/AdminPage";
+import { createScreen } from "@/wiring/screen";
 
 import { loadAdminSampleSortScreen } from "./loader";
 
-export const metadata = {
-  title: "サンプル並び替え",
-};
-
-export async function AdminSampleSortScreen(props: ScreenProps) {
-  const { results: samples } = await loadAdminSampleSortScreen(props);
-
-  return (
+export const { Screen: AdminSampleSortScreen, generateMetadata } = createScreen({
+  load: loadAdminSampleSortScreen,
+  render: ({ results: samples }) => (
     <AdminPage title="サンプル並び替え">
       <AdminSampleSort initialSamples={samples} />
     </AdminPage>
-  );
-}
+  ),
+  metadata: {
+    title: "サンプル並び替え",
+  },
+});

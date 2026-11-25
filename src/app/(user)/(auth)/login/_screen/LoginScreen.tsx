@@ -9,19 +9,18 @@ import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Flex } from "@/components/Layout/Flex";
 import { UserLogin } from "@/domains/core/auth/components/UserLogin";
-import type { ScreenProps } from "@/lib/screens";
+import { createScreen } from "@/wiring/screen";
 
-import { loadLoginScreen, type LoginScreenSearchParams } from "./loader";
+import { loadLoginScreen } from "./loader";
 
-export async function LoginScreen(props: ScreenProps<Record<string, never>, LoginScreenSearchParams>) {
-  const { redirectTo } = await loadLoginScreen(props);
-
-  return (
+export const { Screen: LoginScreen, generateMetadata } = createScreen({
+  load: loadLoginScreen,
+  render: ({ redirectTo }) => (
     <UserPage containerType="narrowStack">
       <Flex direction="column" justify="center" align="center" gap="lg">
         <UserPageTitle>ログイン</UserPageTitle>
         <UserLogin redirectTo={redirectTo} />
       </Flex>
     </UserPage>
-  );
-}
+  ),
+});

@@ -6,20 +6,19 @@
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
-import type { ScreenProps } from "@/lib/screens";
 import { PurchaseComplete } from "@/domains/core/purchaseRequest/components/PurchaseComplete";
+import { createScreen } from "@/wiring/screen";
 
-import { loadWalletPurchaseCompleteScreen, type WalletPurchaseCompleteScreenParams } from "./loader";
+import { loadWalletPurchaseCompleteScreen } from "./loader";
 
-export async function WalletPurchaseCompleteScreen(props: ScreenProps<WalletPurchaseCompleteScreenParams>) {
-  const data = await loadWalletPurchaseCompleteScreen(props);
-
-  return (
+export const { Screen: WalletPurchaseCompleteScreen, generateMetadata } = createScreen({
+  load: loadWalletPurchaseCompleteScreen,
+  render: (data) => (
     <UserPage containerType="narrowStack">
       <Stack gap="lg">
         <UserPageTitle>購入完了</UserPageTitle>
         <PurchaseComplete slug={data.slug} />
       </Stack>
     </UserPage>
-  );
-}
+  ),
+});

@@ -3,23 +3,17 @@
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける(loader の import は ../_screen/loader に直す)。
 // 手順: src/lib/screens/README.md
 
-import type { ListPageSearchParams } from "@/lib/crud";
-import type { ScreenProps } from "@/lib/screens";
 import { GeneralUserList } from "@/domains/core/user/components/admin";
 import AdminPage from "@/app/admin/_layout/AdminPage";
+import { createScreen } from "@/wiring/screen";
 
 import { loadAdminGeneralUserListScreen } from "./loader";
 
-export const metadata = {
-  title: "登録ユーザー",
-};
-
 const LIST_PATH = "/admin/users/general";
 
-export async function AdminGeneralUserListScreen(props: ScreenProps<Record<string, never>, ListPageSearchParams>) {
-  const { users, page, perPage, total, sortBy } = await loadAdminGeneralUserListScreen(props);
-
-  return (
+export const { Screen: AdminGeneralUserListScreen, generateMetadata } = createScreen({
+  load: loadAdminGeneralUserListScreen,
+  render: ({ users, page, perPage, total, sortBy }) => (
     <AdminPage title="登録ユーザー">
       <GeneralUserList
         users={users}
@@ -31,5 +25,8 @@ export async function AdminGeneralUserListScreen(props: ScreenProps<Record<strin
         sortBy={sortBy}
       />
     </AdminPage>
-  );
-}
+  ),
+  metadata: {
+    title: "登録ユーザー",
+  },
+});

@@ -3,19 +3,18 @@
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける(loader の import は ../_screen/loader に直す)。
 // 手順: src/lib/screens/README.md。mypage 配下は layout が UserPage を巻くので fragment を返す
 
-import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { EditEmail } from "@/domains/core/user/components/EditEmail";
+import { createScreen } from "@/wiring/screen";
 
 import { loadMyPageAccountEmailScreen } from "./loader";
 
-export async function MyPageAccountEmailScreen(props: ScreenProps) {
-  const { email } = await loadMyPageAccountEmailScreen(props);
-
-  return (
+export const { Screen: MyPageAccountEmailScreen, generateMetadata } = createScreen({
+  load: loadMyPageAccountEmailScreen,
+  render: ({ email }) => (
     <>
       <UserPageTitle srOnly>メールアドレスを編集</UserPageTitle>
       <EditEmail currentEmail={email} />
     </>
-  );
-}
+  ),
+});

@@ -6,20 +6,14 @@
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
-import type { ScreenProps } from "@/lib/screens";
 import { BankTransferInstruction } from "@/domains/core/purchaseRequest/components/BankTransferInstruction";
+import { createScreen } from "@/wiring/screen";
 
-import {
-  loadWalletPurchaseBankTransferScreen,
-  type WalletPurchaseBankTransferScreenParams,
-} from "./loader";
+import { loadWalletPurchaseBankTransferScreen } from "./loader";
 
-export async function WalletPurchaseBankTransferScreen(
-  props: ScreenProps<WalletPurchaseBankTransferScreenParams>,
-) {
-  const data = await loadWalletPurchaseBankTransferScreen(props);
-
-  return (
+export const { Screen: WalletPurchaseBankTransferScreen, generateMetadata } = createScreen({
+  load: loadWalletPurchaseBankTransferScreen,
+  render: (data) => (
     <UserPage containerType="narrowStack">
       <Stack gap="sm">
         <UserPageTitle>銀行振込のご案内</UserPageTitle>
@@ -35,5 +29,5 @@ export async function WalletPurchaseBankTransferScreen(
         />
       </Stack>
     </UserPage>
-  );
-}
+  ),
+});

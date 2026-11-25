@@ -13,6 +13,7 @@ export type {
   PageGuardDeps,
   PageGuardPolicy,
   PageGuardUser,
+  PageLoader,
   PageLoaderConfig,
   PageLoaderContext,
   PageRangeAccess,

@@ -1,7 +1,6 @@
 // src/app/(user)/demo/status-badge/_screen/DemoStatusBadgeScreen.tsx
 // /demo/status-badge(デモ)の既定画面。
 
-import type { ScreenProps } from "@/lib/screens";
 import { Check, X, AlertTriangle, Clock, Star, Info, AlertCircle } from "lucide-react";
 
 import { Block } from "@/components/Layout/Block";
@@ -14,13 +13,13 @@ import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Span } from "@/components/TextBlocks/Span";
 import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { SolidBadge } from "@/components/Badge/SolidBadge";
+import { createScreen } from "@/wiring/screen";
 
 import { loadDemoStatusBadgeScreen } from "./loader";
 
-export async function DemoStatusBadgeScreen(props: ScreenProps) {
-  await loadDemoStatusBadgeScreen(props);
-
-  return (
+export const { Screen: DemoStatusBadgeScreen, generateMetadata } = createScreen({
+  load: loadDemoStatusBadgeScreen,
+  render: () => (
     <Block className="px-6 py-10">
       <Flex direction="column" gap="xl" className="mx-auto w-full max-w-3xl">
         {/* ヘッダー */}
@@ -163,5 +162,5 @@ export async function DemoStatusBadgeScreen(props: ScreenProps) {
         </Section>
       </Flex>
     </Block>
-  );
-}
+  ),
+});

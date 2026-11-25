@@ -6,15 +6,14 @@
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
-import type { ScreenProps } from "@/lib/screens";
 import { WalletBalance } from "@/domains/core/wallet/components/WalletBalance";
+import { createScreen } from "@/wiring/screen";
 
-import { loadWalletBalanceScreen, type WalletBalanceScreenParams } from "./loader";
+import { loadWalletBalanceScreen } from "./loader";
 
-export async function WalletBalanceScreen(props: ScreenProps<WalletBalanceScreenParams>) {
-  const data = await loadWalletBalanceScreen(props);
-
-  return (
+export const { Screen: WalletBalanceScreen, generateMetadata } = createScreen({
+  load: loadWalletBalanceScreen,
+  render: (data) => (
     <UserPage containerType="narrowStack">
       <Stack gap="lg">
         <UserPageTitle>{data.label}管理</UserPageTitle>
@@ -26,5 +25,5 @@ export async function WalletBalanceScreen(props: ScreenProps<WalletBalanceScreen
         />
       </Stack>
     </UserPage>
-  );
-}
+  ),
+});

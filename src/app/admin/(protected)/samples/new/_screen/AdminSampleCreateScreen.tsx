@@ -3,24 +3,23 @@
 // このファイルは pnpm generate domain が生成する(再生成で上書きされるため手で編集しない)。
 // 画面を変えるときは _components/ にコピーして page.tsx の import 先を向ける。
 
-import type { ScreenProps } from "@/lib/screens";
 import { SWRConfig } from "swr";
 import AdminSampleCreate from "@/domains/sample/components/AdminSampleCreate";
 import AdminPage from "@/app/admin/_layout/AdminPage";
+import { createScreen } from "@/wiring/screen";
 
 import { loadAdminSampleCreateScreen } from "./loader";
 
-export const metadata = {
-  title: "サンプル追加",
-};
-
-export async function AdminSampleCreateScreen(props: ScreenProps) {
-  const { relationFallback } = await loadAdminSampleCreateScreen(props);
-  return (
+export const { Screen: AdminSampleCreateScreen, generateMetadata } = createScreen({
+  load: loadAdminSampleCreateScreen,
+  render: ({ relationFallback }) => (
   <SWRConfig value={{ fallback: relationFallback }}>
     <AdminPage title="サンプル追加">
       <AdminSampleCreate redirectPath="/admin/samples" />
     </AdminPage>
   </SWRConfig>
-  );
-}
+  ),
+  metadata: {
+    title: "サンプル追加",
+  },
+});

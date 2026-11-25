@@ -4,4 +4,4 @@
 // 下流は自分の画面を _components/<Name>Screen.tsx に作り、下の 1 行の import 先だけを差し替える。
 // metadata / dynamic 等のページ設定もこのファイルに書いてよい。手順: src/lib/screens/README.md
 
-export { WalletIndexScreen as default } from "./_screen/WalletIndexScreen";
+export { WalletIndexScreen as default, generateMetadata } from "./_screen/WalletIndexScreen";

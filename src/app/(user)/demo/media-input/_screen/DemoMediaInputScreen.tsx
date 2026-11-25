@@ -1,7 +1,6 @@
 // src/app/(user)/demo/media-input/_screen/DemoMediaInputScreen.tsx
 // /demo/media-input(デモ)の既定画面。
 
-import type { ScreenProps } from "@/lib/screens";
 import { Main } from "@/components/Layout/Main";
 import { PageTitle } from "@/components/TextBlocks/PageTitle";
 import { Para } from "@/components/TextBlocks/Para";
@@ -9,6 +8,7 @@ import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Span } from "@/components/TextBlocks/Span";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
+import { createScreen } from "@/wiring/screen";
 import { MediaPreviewDemo } from "../MediaPreviewDemo";
 import { MediaInputDemo } from "../MediaInputDemo";
 import { MediaUploadDemo } from "../MediaUploadDemo";
@@ -16,10 +16,9 @@ import { MediaUploadMultiDemo } from "../MediaUploadMultiDemo";
 
 import { loadDemoMediaInputScreen } from "./loader";
 
-export async function DemoMediaInputScreen(props: ScreenProps) {
-  await loadDemoMediaInputScreen(props);
-
-  return (
+export const { Screen: DemoMediaInputScreen, generateMetadata } = createScreen({
+  load: loadDemoMediaInputScreen,
+  render: () => (
     <Main padding={{ base: "lg", sm: "2xl" }}>
       <Stack gap="lg">
         <PageTitle>MediaInputSuite プレビュー</PageTitle>
@@ -70,5 +69,5 @@ export async function DemoMediaInputScreen(props: ScreenProps) {
         </Section>
       </Stack>
     </Main>
-  );
-}
+  ),
+});

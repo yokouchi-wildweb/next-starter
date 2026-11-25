@@ -3,29 +3,20 @@
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける(loader の import は ../_screen/loader に直す)。
 // 手順: src/lib/screens/README.md
 
-import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import AdminPage from "@/app/admin/_layout/AdminPage";
-import type { ScreenProps } from "@/lib/screens";
 import { Section } from "@/components/Layout/Section";
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
-import { openSections } from "@/domains/core/setting/definitions";
-import { gate } from "@/featureGate";
+import { createScreen } from "@/wiring/screen";
 
 import EditSettingSectionForm from "./EditSettingSectionForm";
-import { loadAdminSettingSectionScreen, type AdminSettingSectionScreenParams } from "./loader";
+import { loadAdminSettingSectionScreen } from "./loader";
 
-/** タイトル = セクション名(未知のキーは既定の「システム設定」。404 にするのは loader) */
-export async function generateMetadata({ params }: { params: Promise<AdminSettingSectionScreenParams> }): Promise<Metadata> {
-  const { section } = await params;
-  return { title: openSections(gate.plugs)[section]?.label ?? "システム設定" };
-}
-
-export async function AdminSettingSectionScreen(props: ScreenProps<AdminSettingSectionScreenParams>) {
-  const { sectionKey, section, setting, redirectPath, codeKeys } = await loadAdminSettingSectionScreen(props);
-
-  return (
+// 題名 = セクション名(load の後だけ。未知のキー・閉じた節は loader が 404 にする)
+export const { Screen: AdminSettingSectionScreen, generateMetadata } = createScreen({
+  load: loadAdminSettingSectionScreen,
+  render: ({ sectionKey, section, setting, redirectPath, codeKeys }) => (
     <AdminPage title={section.label}>
       <Section>
         <Suspense fallback={<FormSkeleton />}>
@@ -33,5 +24,6 @@ export async function AdminSettingSectionScreen(props: ScreenProps<AdminSettingS
         </Suspense>
       </Section>
     </AdminPage>
-  );
-}
+  ),
+  metadata: ({ section }) => ({ title: section.label }),
+});

@@ -8,19 +8,16 @@
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Registration } from "@/domains/core/auth/components/Registration";
-import type { ScreenProps } from "@/lib/screens";
+import { createScreen } from "@/wiring/screen";
 
-import { loadSignupRegisterScreen, type SignupRegisterScreenSearchParams } from "./loader";
+import { loadSignupRegisterScreen } from "./loader";
 
-export async function SignupRegisterScreen(
-  props: ScreenProps<Record<string, never>, SignupRegisterScreenSearchParams>,
-) {
-  const { method } = await loadSignupRegisterScreen(props);
-
-  return (
+export const { Screen: SignupRegisterScreen, generateMetadata } = createScreen({
+  load: loadSignupRegisterScreen,
+  render: ({ method }) => (
     <UserPage containerType="narrowStack">
       <UserPageTitle srOnly>本登録</UserPageTitle>
       <Registration method={method} />
     </UserPage>
-  );
-}
+  ),
+});

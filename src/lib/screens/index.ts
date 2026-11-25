@@ -3,7 +3,7 @@
 // 構造の検査の部品(字面の検査関数・src/app のページの発見(node:fs)・ルート地図)は入口 "./node"(./node.mjs、道具だけが読む)
 
 export { createScreenMaker } from "./createScreen";
-export type { CreateScreen, CreatedScreen, ScreenConfig, ScreenMakerConfig, ScreenMetadata } from "./createScreen";
+export type { CreateScreen, CreatedScreen, ScreenConfig, ScreenLoad, ScreenMakerConfig, ScreenMetadata } from "./createScreen";
 export type { ScreenProps, ScreenSearchParams } from "./types";
 export type { ScreensConfig, ScreensOverride } from "./config";
 export { screensConfig } from "./config";

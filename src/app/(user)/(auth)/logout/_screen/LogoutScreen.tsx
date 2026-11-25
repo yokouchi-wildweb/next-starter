@@ -7,19 +7,18 @@
 
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Flex } from "@/components/Layout/Flex";
-import type { ScreenProps } from "@/lib/screens";
+import { createScreen } from "@/wiring/screen";
 
-import { loadLogoutScreen, type LogoutScreenSearchParams } from "./loader";
+import { loadLogoutScreen } from "./loader";
 import { LogoutSection } from "./LogoutSection";
 
-export async function LogoutScreen(props: ScreenProps<Record<string, never>, LogoutScreenSearchParams>) {
-  const { redirectTo } = await loadLogoutScreen(props);
-
-  return (
+export const { Screen: LogoutScreen, generateMetadata } = createScreen({
+  load: loadLogoutScreen,
+  render: ({ redirectTo }) => (
     <UserPage containerType="narrowStack">
       <Flex direction="column" justify="center" align="center" gap="lg">
         <LogoutSection redirectTo={redirectTo} />
       </Flex>
     </UserPage>
-  );
-}
+  ),
+});

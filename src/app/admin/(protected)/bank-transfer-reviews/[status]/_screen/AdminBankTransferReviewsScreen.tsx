@@ -7,24 +7,22 @@
 
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Section } from "@/components/Layout/Section";
-import type { ScreenProps } from "@/lib/screens";
+import { createScreen } from "@/wiring/screen";
 
 import { BankTransferReviewListPanel } from "./BankTransferReviewListPanel";
 import { BankTransferStatusTabs } from "./StatusTabs";
-import { loadAdminBankTransferReviewsScreen, type AdminBankTransferReviewsScreenParams } from "./loader";
+import { loadAdminBankTransferReviewsScreen } from "./loader";
 
-export const metadata = {
-  title: "銀行振込レビュー",
-};
-
-export async function AdminBankTransferReviewsScreen(props: ScreenProps<AdminBankTransferReviewsScreenParams>) {
-  const { status } = await loadAdminBankTransferReviewsScreen(props);
-
-  return (
+export const { Screen: AdminBankTransferReviewsScreen, generateMetadata } = createScreen({
+  load: loadAdminBankTransferReviewsScreen,
+  render: ({ status }) => (
     <AdminPage title="銀行振込レビュー" center={<BankTransferStatusTabs />}>
       <Section>
         <BankTransferReviewListPanel status={status} />
       </Section>
     </AdminPage>
-  );
-}
+  ),
+  metadata: {
+    title: "銀行振込レビュー",
+  },
+});

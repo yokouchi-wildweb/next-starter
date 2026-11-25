@@ -5,24 +5,21 @@
 // pnpm generate domain の管理画面と同じ形(_screen/loader.ts が管理画面の共通部品の組を使う)。core ドメインは pnpm generate domain の対象外なので手で保守する。
 // レコードが無ければ 404、保存後の戻り先は ?returnTo=(無ければ一覧)。どちらも loader が判定する。
 
-import type { ScreenProps } from "@/lib/screens";
-import type { AdminEditScreenParams, AdminEditScreenSearchParams } from "@/domains/core/admin/services/server/screenData/adminEdit";
 import { loadAdminChatRoomEditScreen } from "./loader";
 import AdminChatRoomEdit from "@/domains/core/chatRoom/components/AdminChatRoomEdit";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { AdminEditItemNavigator } from "@/app/admin/_layout/AdminEditItemNavigator";
 import { domainDisplay as chatRoomDisplay } from "@/domains/core/chatRoom/entities/display";
+import { createScreen } from "@/wiring/screen";
 
-export const metadata = {
-  title: "チャットルーム編集",
-};
-
-export async function AdminChatRoomEditScreen(props: ScreenProps<AdminEditScreenParams, AdminEditScreenSearchParams>) {
-  const { record: chatRoom, redirectPath } = await loadAdminChatRoomEditScreen(props);
-
-  return (
+export const { Screen: AdminChatRoomEditScreen, generateMetadata } = createScreen({
+  load: loadAdminChatRoomEditScreen,
+  render: ({ record: chatRoom, redirectPath }) => (
     <AdminPage title="チャットルーム編集" actions={<AdminEditItemNavigator domain={chatRoomDisplay} current={chatRoom} />}>
       <AdminChatRoomEdit chatRoom={chatRoom} redirectPath={redirectPath} />
     </AdminPage>
-  );
-}
+  ),
+  metadata: {
+    title: "チャットルーム編集",
+  },
+});

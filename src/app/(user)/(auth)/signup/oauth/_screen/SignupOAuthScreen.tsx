@@ -8,19 +8,16 @@
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { OAuth } from "@/domains/core/auth/components/OAuth";
-import type { ScreenProps } from "@/lib/screens";
+import { createScreen } from "@/wiring/screen";
 
-import { loadSignupOAuthScreen, type SignupOAuthScreenSearchParams } from "./loader";
+import { loadSignupOAuthScreen } from "./loader";
 
-export async function SignupOAuthScreen(
-  props: ScreenProps<Record<string, never>, SignupOAuthScreenSearchParams>,
-) {
-  const { provider, redirectTo } = await loadSignupOAuthScreen(props);
-
-  return (
+export const { Screen: SignupOAuthScreen, generateMetadata } = createScreen({
+  load: loadSignupOAuthScreen,
+  render: ({ provider, redirectTo }) => (
     <UserPage containerType="narrowStack" className="text-center items-center">
       <UserPageTitle srOnly>OAuth認証</UserPageTitle>
       <OAuth provider={provider} redirectTo={redirectTo} />
     </UserPage>
-  );
-}
+  ),
+});

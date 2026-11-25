@@ -5,35 +5,37 @@
 //
 // ログイン・status による redirect は loader。suspended は不正確定前のグレー状態のため専用の柔らかい文言を出す。
 
-import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Para } from "@/components/TextBlocks/Para";
+import { createScreen } from "@/wiring/screen";
 
 import { loadRestrictedScreen } from "./loader";
 
-export async function RestrictedScreen(props: ScreenProps) {
-  const { status } = await loadRestrictedScreen(props);
-  const isSuspended = status === "suspended";
+export const { Screen: RestrictedScreen, generateMetadata } = createScreen({
+  load: loadRestrictedScreen,
+  render: ({ status }) => {
+    const isSuspended = status === "suspended";
 
-  return (
-    <UserPage containerType="narrowStack" className="text-center items-center">
-      {isSuspended ? (
-        <>
-          <UserPageTitle>アカウントを確認中です</UserPageTitle>
-          <Para align="center">
-            ご利用状況の確認のため、現在アカウントのご利用を一時的に停止しております。
-          </Para>
-          <Para align="center">
-            確認が完了次第、改めてご案内いたします。お急ぎの場合や心当たりがない場合は、お手数ですがサポートまでお問い合わせください。
-          </Para>
-        </>
-      ) : (
-        <>
-          <UserPageTitle>アカウント制限中</UserPageTitle>
-          <Para align="center">現在このアカウントはご利用になれません。</Para>
-        </>
-      )}
-    </UserPage>
-  );
-}
+    return (
+      <UserPage containerType="narrowStack" className="text-center items-center">
+        {isSuspended ? (
+          <>
+            <UserPageTitle>アカウントを確認中です</UserPageTitle>
+            <Para align="center">
+              ご利用状況の確認のため、現在アカウントのご利用を一時的に停止しております。
+            </Para>
+            <Para align="center">
+              確認が完了次第、改めてご案内いたします。お急ぎの場合や心当たりがない場合は、お手数ですがサポートまでお問い合わせください。
+            </Para>
+          </>
+        ) : (
+          <>
+            <UserPageTitle>アカウント制限中</UserPageTitle>
+            <Para align="center">現在このアカウントはご利用になれません。</Para>
+          </>
+        )}
+      </UserPage>
+    );
+  },
+});

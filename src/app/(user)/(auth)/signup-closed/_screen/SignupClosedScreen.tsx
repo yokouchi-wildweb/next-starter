@@ -4,19 +4,18 @@
 //
 // loader は access の評価だけ(public。静的な案内のみ。ここへの誘導は登録フロー側が行う)。
 
-import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { LinkButton } from "@/components/Button/LinkButton";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
+import { createScreen } from "@/wiring/screen";
 
 import { loadSignupClosedScreen } from "./loader";
 
-export async function SignupClosedScreen(props: ScreenProps) {
-  await loadSignupClosedScreen(props);
-
-  return (
+export const { Screen: SignupClosedScreen, generateMetadata } = createScreen({
+  load: loadSignupClosedScreen,
+  render: () => (
     <UserPage containerType="narrowStack" className="text-center items-center">
       <UserPageTitle>会員登録 受付停止中</UserPageTitle>
       <Para align="center">新規会員登録の受付を停止しております。</Para>
@@ -29,5 +28,5 @@ export async function SignupClosedScreen(props: ScreenProps) {
         </LinkButton>
       </Stack>
     </UserPage>
-  );
-}
+  ),
+});

@@ -7,18 +7,17 @@
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Stack } from "@/components/Layout/Stack";
 import { AdminDashboard } from "@/domains/admin/dashboard";
-import type { ScreenProps } from "@/lib/screens";
+import { createScreen } from "@/wiring/screen";
 
 import { loadAdminHomeScreen } from "./loader";
 
-export async function AdminHomeScreen(props: ScreenProps) {
-  const { sections } = await loadAdminHomeScreen(props);
-
-  return (
+export const { Screen: AdminHomeScreen, generateMetadata } = createScreen({
+  load: loadAdminHomeScreen,
+  render: ({ sections }) => (
     <AdminPage title="管理ダッシュボード">
       <Stack gap="xl">
         <AdminDashboard data={sections} />
       </Stack>
     </AdminPage>
-  );
-}
+  ),
+});

@@ -3,23 +3,17 @@
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける(loader の import は ../_screen/loader に直す)。
 // 手順: src/lib/screens/README.md
 
-import type { ListPageSearchParams } from "@/lib/crud";
-import type { ScreenProps } from "@/lib/screens";
 import AdminInviteList from "@/domains/core/referral/components/AdminInviteList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Para } from "@/components/TextBlocks/Para";
 
 import { AdminCouponSectionTabs } from "@/domains/core/coupon/components/AdminCouponSectionTabs";
+import { createScreen } from "@/wiring/screen";
 import { loadAdminCouponInviteListScreen } from "./loader";
 
-export const metadata = {
-  title: "クーポン一覧（ユーザー招待）",
-};
-
-export async function AdminCouponInviteListScreen(props: ScreenProps<Record<string, never>, ListPageSearchParams>) {
-  const data = await loadAdminCouponInviteListScreen(props);
-
-  return (
+export const { Screen: AdminCouponInviteListScreen, generateMetadata } = createScreen({
+  load: loadAdminCouponInviteListScreen,
+  render: (data) => (
     <AdminPage title="クーポン管理" center={<AdminCouponSectionTabs variant="header" />}>
       {data.enabled ? (
         <AdminInviteList items={data.items} page={data.page} perPage={data.perPage} total={data.total} />
@@ -27,5 +21,8 @@ export async function AdminCouponInviteListScreen(props: ScreenProps<Record<stri
         <Para>ユーザーの紹介機能が無効です</Para>
       )}
     </AdminPage>
-  );
-}
+  ),
+  metadata: {
+    title: "クーポン一覧（ユーザー招待）",
+  },
+});

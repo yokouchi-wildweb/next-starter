@@ -5,24 +5,22 @@
 
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Section } from "@/components/Layout/Section";
-import type { ScreenProps } from "@/lib/screens";
 import { AdminMessagingSectionTabs } from "@/domains/core/messaging/components/AdminMessagingSectionTabs";
 import { AdminMessageTemplateList } from "@/domains/core/messaging/components/AdminMessageTemplateList";
+import { createScreen } from "@/wiring/screen";
 
 import { loadAdminMessagingTemplateListScreen } from "./loader";
 
-export const metadata = {
-  title: "テンプレート",
-};
-
-export async function AdminMessagingTemplateListScreen(props: ScreenProps) {
-  await loadAdminMessagingTemplateListScreen(props);
-
-  return (
+export const { Screen: AdminMessagingTemplateListScreen, generateMetadata } = createScreen({
+  load: loadAdminMessagingTemplateListScreen,
+  render: () => (
     <AdminPage title="テンプレート" center={<AdminMessagingSectionTabs variant="header" />}>
       <Section>
         <AdminMessageTemplateList />
       </Section>
     </AdminPage>
-  );
-}
+  ),
+  metadata: {
+    title: "テンプレート",
+  },
+});

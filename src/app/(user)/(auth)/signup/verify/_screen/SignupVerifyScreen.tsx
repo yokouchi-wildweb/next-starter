@@ -4,20 +4,19 @@
 //
 // loader は access の評価だけ(public。メールリンクの検証と遷移はセクションコンテナ Verification が client 側で行う)。
 
-import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Verification } from "@/domains/core/auth/components/Verification";
+import { createScreen } from "@/wiring/screen";
 
 import { loadSignupVerifyScreen } from "./loader";
 
-export async function SignupVerifyScreen(props: ScreenProps) {
-  await loadSignupVerifyScreen(props);
-
-  return (
+export const { Screen: SignupVerifyScreen, generateMetadata } = createScreen({
+  load: loadSignupVerifyScreen,
+  render: () => (
     <UserPage containerType="narrowStack" className="text-center items-center">
       <UserPageTitle>メール認証</UserPageTitle>
       <Verification />
     </UserPage>
-  );
-}
+  ),
+});

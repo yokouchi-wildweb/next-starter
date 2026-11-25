@@ -3,19 +3,18 @@
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける(loader の import は ../_screen/loader に直す)。
 // 手順: src/lib/screens/README.md。mypage 配下は layout が UserPage を巻くので fragment を返す
 
-import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { EditPassword } from "@/domains/core/user/components/EditPassword";
+import { createScreen } from "@/wiring/screen";
 
 import { loadMyPageAccountPasswordScreen } from "./loader";
 
-export async function MyPageAccountPasswordScreen(props: ScreenProps) {
-  const { email } = await loadMyPageAccountPasswordScreen(props);
-
-  return (
+export const { Screen: MyPageAccountPasswordScreen, generateMetadata } = createScreen({
+  load: loadMyPageAccountPasswordScreen,
+  render: ({ email }) => (
     <>
       <UserPageTitle srOnly>パスワードを変更</UserPageTitle>
       <EditPassword email={email} />
     </>
-  );
-}
+  ),
+});

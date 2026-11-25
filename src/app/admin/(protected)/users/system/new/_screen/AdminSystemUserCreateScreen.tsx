@@ -4,22 +4,20 @@
 //
 // loader は access の評価だけ(サーバー側の取得も遷移制御も無い)。
 
-import type { ScreenProps } from "@/lib/screens";
 import { ManagerialUserCreate } from "@/domains/core/user/components/admin";
 import AdminPage from "@/app/admin/_layout/AdminPage";
+import { createScreen } from "@/wiring/screen";
 
 import { loadAdminSystemUserCreateScreen } from "./loader";
 
-export const metadata = {
-  title: "システム管理者追加",
-};
-
-export async function AdminSystemUserCreateScreen(props: ScreenProps) {
-  await loadAdminSystemUserCreateScreen(props);
-
-  return (
+export const { Screen: AdminSystemUserCreateScreen, generateMetadata } = createScreen({
+  load: loadAdminSystemUserCreateScreen,
+  render: () => (
     <AdminPage title="システム管理者追加">
       <ManagerialUserCreate redirectPath="/admin/users/system" />
     </AdminPage>
-  );
-}
+  ),
+  metadata: {
+    title: "システム管理者追加",
+  },
+});

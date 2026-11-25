@@ -317,10 +317,10 @@ export const { Screen: WalletBalanceScreen, generateMetadata } = createScreen({
 export { WalletBalanceScreen as default, generateMetadata } from "./_screen/WalletBalanceScreen";
 ```
 
-- `load`: 同じルートの loader をそのまま渡す（包む関数・式は不可）。データの無い画面も access だけの loader を渡す。差し替え Screen（`_components/`）は `../_screen/loader` か自分の `./loader`（`_components/loader.ts`）
+- `load`: 同じルートの loader をそのまま、設定の最初の項目に渡す（包む関数・式は不可。検査は呼び出しの頭の字面だけを読み、render の JSX を読まない）。データの無い画面も access だけの loader を渡す。差し替え Screen（`_components/`）は `../_screen/loader` か自分の `./loader`（`_components/loader.ts`）
 - `Screen(props)`: 境界（Suspense）の内側の部品が `await load(props)` の後にだけ `render(data, props)` を返す。見出しを含む本文は範囲とページの確かめが解けてからだけ描かれ、作り手の外には何も描かない。`render` は async でもよい
 - `fallback`: load を待つ間の表示。省略 = `ScreenWait`（fork は `ScreenWait.replace` で丸ごと替える）、画面ごとはここで渡す
-- `metadata` → `generateMetadata(props)`: 値なら load を通してから返す、関数 `(data, props)` なら load の結果で作る、省略なら load を呼ばずに `{}`（範囲の layout の `guardMetadata` が先に守る）。loader は鍵のプリミティブで React の cache に入るので、本文と題名の 2 つの呼びは 1 回の読みになる
+- `metadata` → `generateMetadata(props)`: 値なら load を通してから返す(公開の鎖 = 範囲の全段とページの access が public の loader(`publicChain`)では load を待たずに返し、殻と `<head>` に入る、D119)、関数 `(data, props)` なら load の結果で作る、省略なら load を呼ばずに `{}`（範囲の layout の `guardMetadata` が先に守る）。loader は鍵のプリミティブで React の cache に入るので、本文と題名の 2 つの呼びは 1 回の読みになる
 - load の redirect / notFound はそのまま投げる（本文も題名も返さない）
 - page.tsx は `export { XScreen as default, generateMetadata } from "./_screen/XScreen"` の 1 形（`generateMetadata` は必ず。静的な `metadata` は page.tsx にも Screen にも書かない = 題名は createScreen の `metadata`）。`viewport` / `generateViewport` の再 export と、Next が静的解析する設定(`preferredRegion` / `maxDuration`)は page.tsx に書ける(`dynamic` 等 5 つは書かない: 上の表)
 - Next は default export に page props をそのまま渡すので、re-export で `params` / `searchParams` が Screen に届き、`render` の第 2 引数に来る
@@ -359,7 +359,7 @@ export { WalletBalanceScreen as default, generateMetadata } from "./_screen/Wall
 - Screen の欠落・形 — 検査: `checkScreenFile`: 参照先（`<X>.tsx` → `<X>/index.tsx`）が存在し、`createScreen` を `@/wiring/screen` から import して `export const { Screen: <X>, generateMetadata } = createScreen({ … })` を 1 つ持つ。関数の Screen・静的な `metadata`・自前の `generateMetadata`・default export・`"use client"` を持たない（ルート地図も同じ関数で行の問題にする）; 結果: 失敗
 - Screen が部品を直接読まない — 検査: `checkScreenImports`: `@/domains/**/components/` の import 先の途中に `index.tsx` を持つディレクトリ（= コンテナ）があれば違反（API の「セクションコンテナの条件（契約 D）」）。ファイルの有無は test 側の `isContainerDir` が見て、checker には述語で渡す; 結果: 失敗
 - loader の規律 — 検査: `checkLoaderFile`: `import "server-only"`、`createLoader(`（か `cache(`）、`load<Xxx>` の export、`_components/` / Screen からの import 無し（型含む）。最寄りの guard.ts の createLoader かは地図（「ルート地図（`src/app/route-map.jsonl`）」）が見る。補助関数は `utils/` へ; 結果: 失敗
-- Screen → loader — 検査: `checkScreenLoaderCall`: 同じルートの loader を import し、createScreen の設定の最上位の `load: <loader>` がそれ（地図は loader の名前をこの字面から取る）; 結果: 失敗
+- Screen → loader — 検査: `checkScreenLoaderCall`: 同じルートの loader を import し、createScreen の設定の最初の項目 `load: <loader>,` がそれ（地図は loader の名前をこの字面から取る）; 結果: 失敗
 - 管理のページは AdminPage を描く — 検査: `checkAdminPageScreen`: `src/app/admin` の下の全ページの Screen が `AdminPage`(`@/app/admin/_layout/AdminPage` か相対の `…/_layout/AdminPage`)を import して `<AdminPage …>` を描く。管理のヘッダーの行は AdminPage が描くので、描かないページにはヘッダーが出ない。字面で Screen のファイル自身を読む: 子の部品の中で AdminPage を描く形は読まずに止める(Screen が AdminPage を描き、子はその中に置く)
   - ヘッダーを出さないページも AdminPage で包み、隣の `frame.ts` の宣言でヘッダーを隠す。全 Tier・例外なし。ルート地図(`pnpm generate routes`)も同じ関数で行の問題にする; 結果: 失敗
 - 枠の layout.tsx を太らせない — 検査: `parseSwitchLayout`（`parseSwitchPage` と同じ本体。参照先は `./_layout/<X>` か `./_layout/<X>.replace`）: `FRAME_LAYOUTS`（screens.test.mjs、upstream の枠を描く layout.tsx）と、`./_layout/` を指す re-export を持つ全ての layout.tsx。参照先は `checkLayoutTarget`（named export あり・default export なし。`"use client"` は可）。全 Tier で検査（fork も採用者所有のスイッチを持つ。fork がルートを消してファイルが無ければ対象外）; 結果: 失敗

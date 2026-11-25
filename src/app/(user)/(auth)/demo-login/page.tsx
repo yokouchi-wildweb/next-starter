@@ -1,4 +1,4 @@
 // src/app/(user)/(auth)/demo-login/page.tsx
 // 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 
-export { DemoLoginScreen as default } from "./_screen/DemoLoginScreen";
+export { DemoLoginScreen as default, generateMetadata } from "./_screen/DemoLoginScreen";

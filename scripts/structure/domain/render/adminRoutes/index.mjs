@@ -61,8 +61,8 @@ export function renderAdminRoutes(ctx, workspace) {
       .replace(/__LOADER_RELATION_IMPORT__[ \t]*\n/g, relTokens.loaderImport)
       .replace(/__CREATE_RELATIONS_ARG__/g, relTokens.createRelationsArg)
       .replace(/__EDIT_RELATIONS_ARG__/g, relTokens.editRelationsArg)
-      .replace(/__RELATION_FETCH__[ \t]*\n/g, relTokens.relationFetchNew)
-      .replace(/__EDIT_FETCH__[ \t]*\n/g, relTokens.editFetch)
+      .replace(/__CREATE_RENDER_PARAMS__/g, relTokens.createRenderParams)
+      .replace(/__EDIT_RENDER_PARAMS__/g, relTokens.editRenderParams)
       .replace(/__SWR_START__[ \t]*\n/g, relTokens.swrStart)
       .replace(/__SWR_END__[ \t]*\n/g, relTokens.swrEnd)
       .replace(/__SORT_ORDER_FIELD__/g, config?.sortOrderField ?? "sort_order");

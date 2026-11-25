@@ -3,24 +3,22 @@
 // このファイルは pnpm generate domain が生成する(再生成で上書きされるため手で編集しない)。
 // 画面を変えるときは _components/ にコピーして page.tsx の import 先を向ける。
 
-import type { AdminEditScreenParams, AdminEditScreenSearchParams } from "@/domains/core/admin/services/server/screenData/adminEdit";
-import type { ScreenProps } from "@/lib/screens";
 import AdminSampleTagEdit from "@/domains/sampleTag/components/AdminSampleTagEdit";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { AdminEditItemNavigator } from "@/app/admin/_layout/AdminEditItemNavigator";
 import { domainDisplay as sampleTagDisplay } from "@/domains/sampleTag/entities/display";
+import { createScreen } from "@/wiring/screen";
 
 import { loadAdminSampleTagEditScreen } from "./loader";
 
-export const metadata = {
-  title: "サンプルタグ編集",
-};
-
-export async function AdminSampleTagEditScreen(props: ScreenProps<AdminEditScreenParams, AdminEditScreenSearchParams>) {
-  const { record: sampleTag, redirectPath } = await loadAdminSampleTagEditScreen(props);
-  return (
+export const { Screen: AdminSampleTagEditScreen, generateMetadata } = createScreen({
+  load: loadAdminSampleTagEditScreen,
+  render: ({ record: sampleTag, redirectPath }) => (
     <AdminPage title="サンプルタグ編集" actions={<AdminEditItemNavigator domain={sampleTagDisplay} current={sampleTag} />}>
       <AdminSampleTagEdit sampleTag={sampleTag} redirectPath={redirectPath} />
     </AdminPage>
-  );
-}
+  ),
+  metadata: {
+    title: "サンプルタグ編集",
+  },
+});

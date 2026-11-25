@@ -2,27 +2,25 @@
 // このファイルは pnpm generate domain が生成する(再生成で上書きされるため手で編集しない)。
 // 画面を変えるときは _components/ にコピーして page.tsx の import 先を向ける。
 
-import type { AdminEditScreenParams, AdminEditScreenSearchParams } from "@/domains/core/admin/services/server/screenData/adminEdit";
-import type { ScreenProps } from "@/lib/screens";
 __RELATION_IMPORTS__
 import Admin__Domain__Edit from "@/domains/__domain__/components/Admin__Domain__Edit";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { AdminEditItemNavigator } from "@/app/admin/_layout/AdminEditItemNavigator";
 import { domainDisplay as __domain__Display } from "@/domains/__domain__/entities/display";
+import { createScreen } from "@/wiring/screen";
 
 import { loadAdmin__Domain__EditScreen } from "./loader";
 
-export const metadata = {
-  title: "__DomainLabel__編集",
-};
-
-export async function Admin__Domain__EditScreen(props: ScreenProps<AdminEditScreenParams, AdminEditScreenSearchParams>) {
-__EDIT_FETCH__
-  return (
+export const { Screen: Admin__Domain__EditScreen, generateMetadata } = createScreen({
+  load: loadAdmin__Domain__EditScreen,
+  render: (__EDIT_RENDER_PARAMS__) => (
 __SWR_START__
     <AdminPage title="__DomainLabel__編集" actions={<AdminEditItemNavigator domain={__domain__Display} current={__domain__} />}>
       <Admin__Domain__Edit __domain__={__domain__} redirectPath={redirectPath} />
     </AdminPage>
 __SWR_END__
-  );
-}
+  ),
+  metadata: {
+    title: "__DomainLabel__編集",
+  },
+});

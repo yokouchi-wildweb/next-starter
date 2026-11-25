@@ -1,7 +1,6 @@
 // src/app/(user)/demo/block-appearance/_screen/DemoBlockAppearanceScreen.tsx
 // /demo/block-appearance(デモ)の既定画面。
 
-import type { ScreenProps } from "@/lib/screens";
 import { Grid } from "@/components/Layout/Grid";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
@@ -12,6 +11,7 @@ import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Span } from "@/components/TextBlocks/Span";
 import { appearance } from "@/components/Layout/appearance";
 import { tone } from "@/components/TextBlocks/textVariants";
+import { createScreen } from "@/wiring/screen";
 
 import styles from "../page.module.css";
 
@@ -20,10 +20,9 @@ import { loadDemoBlockAppearanceScreen } from "./loader";
 const blockAppearances = Object.keys(appearance) as Array<keyof typeof appearance>;
 const paraTones = Object.keys(tone) as Array<keyof typeof tone>;
 
-export async function DemoBlockAppearanceScreen(props: ScreenProps) {
-  await loadDemoBlockAppearanceScreen(props);
-
-  return (
+export const { Screen: DemoBlockAppearanceScreen, generateMetadata } = createScreen({
+  load: loadDemoBlockAppearanceScreen,
+  render: () => (
     <Main padding={{ base: "lg", sm: "2xl" }} className={styles.pageBackground}>
       <Stack gap="2xl">
         <PageTitle>Block と Para のスタイルデモ</PageTitle>
@@ -97,5 +96,5 @@ export async function DemoBlockAppearanceScreen(props: ScreenProps) {
         </Section>
       </Stack>
     </Main>
-  );
-}
+  ),
+});

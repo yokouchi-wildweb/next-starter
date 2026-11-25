@@ -1,21 +1,20 @@
 // src/app/(user)/demo/fingerprint/_screen/DemoFingerprintScreen.tsx
 // /demo/fingerprint(デモ)の既定画面。
 
-import type { ScreenProps } from "@/lib/screens";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Main } from "@/components/Layout/Main";
 import { PageTitle } from "@/components/TextBlocks/PageTitle";
 import { Para } from "@/components/TextBlocks/Para";
+import { createScreen } from "@/wiring/screen";
 
 import { FingerprintDemo } from "./FingerprintDemo";
 
 import { loadDemoFingerprintScreen } from "./loader";
 
-export async function DemoFingerprintScreen(props: ScreenProps) {
-  await loadDemoFingerprintScreen(props);
-
-  return (
+export const { Screen: DemoFingerprintScreen, generateMetadata } = createScreen({
+  load: loadDemoFingerprintScreen,
+  render: () => (
     <Main containerType="contentShell">
       <Section>
         <Stack gap="md">
@@ -33,5 +32,5 @@ export async function DemoFingerprintScreen(props: ScreenProps) {
 
       <FingerprintDemo />
     </Main>
-  );
-}
+  ),
+});

@@ -509,14 +509,14 @@ export function checkSwitchPage(source, screen) {
 export const SCREEN_MAKER_IMPORT = "@/wiring/screen";
 
 /** Screen の形の直し方(止まる文に添える 1 行) */
-const SCREEN_FORM_HINT = `\`export const { Screen: XScreen, generateMetadata } = createScreen({ load: loadXScreen, render: (data, props) => …, metadata? })\`(createScreen は ${SCREEN_MAKER_IMPORT} から)`;
+const SCREEN_FORM_HINT = `\`export const { Screen: XScreen, generateMetadata } = createScreen({ load: loadXScreen, render: (data, props) => …, metadata? })\`(load は最初の項目、createScreen は ${SCREEN_MAKER_IMPORT} から)`;
 
 /**
- * Screen のファイルの作り手の呼び出しを読む: `export const { Screen: <name>, generateMetadata } = createScreen({ … })` の
- * 設定のオブジェクトの最上位の字面(入れ子の括弧の中身と文字列を空けた物)。読めなければ problems に理由
+ * Screen のファイルの作り手の呼び出しを読む: `export const { Screen: <name>, generateMetadata } = createScreen({ load: <名前>, … })`。
+ * load は設定の最初の項目に書く(字面で読むのは呼び出しの頭だけ: render の JSX のテキストの引用符・`/*` で読みがずれないため)
  * @param {string} src コメントを除いた Screen のファイル
  * @param {string} name Screen の名前(named export)
- * @returns {{ problems: string[], top: string | null }}
+ * @returns {{ problems: string[], called: boolean, load: string | null }} load = 最初の項目の `load: <識別子>` の名前
  */
 function readScreenMaker(src, name) {
   const problems = [];
@@ -528,46 +528,14 @@ function readScreenMaker(src, name) {
   const calls = [...src.matchAll(/export\s+const\s*\{([^}]*)\}\s*=\s*createScreen\s*\(\s*\{/g)];
   if (calls.length !== 1) {
     problems.push(`${name} が createScreen の呼び出しの export でない(${SCREEN_FORM_HINT})`);
-    return { problems, top: null };
+    return { problems, called: false, load: null };
   }
   const specs = calls[0][1].split(",").map((s) => s.replace(/\s+/g, " ").trim()).filter(Boolean);
   if (specs.length !== 2 || specs[0] !== `Screen: ${name}` || specs[1] !== "generateMetadata") {
     problems.push(`createScreen の戻り値の受け方は \`{ Screen: ${name}, generateMetadata }\` だけ(${specs.join(", ")})`);
   }
-  const open = calls[0].index + calls[0][0].length - 1;
-  const close = findBalancedEnd(src, open, "{", "}");
-  if (close < 0) {
-    problems.push(`${name} の createScreen の設定のオブジェクトが読めない`);
-    return { problems, top: null };
-  }
-  let depth = 0;
-  let top = "";
-  /** @type {string | null} */
-  let quote = null;
-  for (let i = open + 1; i < close; i += 1) {
-    const ch = src[i];
-    if (quote) {
-      if (ch === "\\") i += 1;
-      else if (ch === quote) quote = null;
-      continue;
-    }
-    if (ch === '"' || ch === "'" || ch === "`") {
-      quote = ch;
-      if (depth === 0) top += " ";
-      continue;
-    }
-    if ("({[".includes(ch)) {
-      if (depth === 0) top += " ";
-      depth += 1;
-      continue;
-    }
-    if (")}]".includes(ch)) {
-      depth -= 1;
-      continue;
-    }
-    if (depth === 0) top += ch;
-  }
-  return { problems, top };
+  const head = /^\s*load\s*:\s*([A-Za-z_$][\w$]*)\s*,/.exec(src.slice(calls[0].index + calls[0][0].length));
+  return { problems, called: true, load: head ? head[1] : null };
 }
 
 /**
@@ -944,7 +912,7 @@ export const ADMIN_PARTS_OPERATIONS = {
 };
 
 /**
- * D21・D110: Screen の createScreen の load が同じルートの loader か。loader の名前は設定の最上位の `load: <名前>` の字面から取る
+ * D21・D110: Screen の createScreen の load が同じルートの loader か。loader の名前は設定の最初の項目 `load: <名前>,` の字面から取る
  * (Screen は load の後にだけ本文を描く。作り手の形の他の問題は checkScreenFile が見る)
  * @param {string} source Screen ファイル
  * @param {string} name Screen の名前(named export)
@@ -958,16 +926,15 @@ export function checkScreenLoaderCall(source, name) {
     ? imp[1].split(",").map((s) => s.trim()).filter((s) => /^load[A-Z]\w*$/.test(s))
     : [];
   if (!imp || loaderNames.length === 0) return { problems: ["同じルートの loader(./loader の load<Name>)を import していない"], loaderName: null, loaderImport: null };
-  const { top } = readScreenMaker(src, name);
-  if (top === null) return { problems: [`${name} の createScreen の呼び出しが読めない(${SCREEN_FORM_HINT})`], loaderName: null, loaderImport: imp[2] };
-  const load = /(?:^|,)\s*load\s*:\s*([A-Za-z_$][\w$]*)\s*(?=,|$)/.exec(top.trim());
+  const { called, load } = readScreenMaker(src, name);
+  if (!called) return { problems: [`${name} の createScreen の呼び出しが読めない(${SCREEN_FORM_HINT})`], loaderName: null, loaderImport: imp[2] };
   if (!load) {
-    return { problems: [`${name} の createScreen に \`load: ${loaderNames[0]}\` が無い(同じルートの loader をそのまま渡す。包む関数・式は不可)`], loaderName: null, loaderImport: imp[2] };
+    return { problems: [`${name} の createScreen の最初の項目が \`load: ${loaderNames[0]},\` でない(同じルートの loader をそのまま、設定の最初に渡す。包む関数・式は不可)`], loaderName: null, loaderImport: imp[2] };
   }
-  if (!loaderNames.includes(load[1])) {
-    return { problems: [`${name} の createScreen の load(${load[1]})が同じルートの loader(${loaderNames.join(" / ")})でない`], loaderName: null, loaderImport: imp[2] };
+  if (!loaderNames.includes(load)) {
+    return { problems: [`${name} の createScreen の load(${load})が同じルートの loader(${loaderNames.join(" / ")})でない`], loaderName: null, loaderImport: imp[2] };
   }
-  return { problems: [], loaderName: load[1], loaderImport: imp[2] };
+  return { problems: [], loaderName: load, loaderImport: imp[2] };
 }
 
 const PARTS_CALL_HEAD = /^(admin(?:List|Edit|Create|Sort)Parts)\s*(?:<[^()]*>)?\(\s*["']([\w]+)["']/;

@@ -6,25 +6,19 @@
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
-import type { ScreenProps } from "@/lib/screens";
 import { PurchaseAwaitingReview } from "@/domains/core/purchaseRequest/components/PurchaseAwaitingReview";
+import { createScreen } from "@/wiring/screen";
 
-import {
-  loadWalletPurchaseAwaitingReviewScreen,
-  type WalletPurchaseAwaitingReviewScreenParams,
-} from "./loader";
+import { loadWalletPurchaseAwaitingReviewScreen } from "./loader";
 
-export async function WalletPurchaseAwaitingReviewScreen(
-  props: ScreenProps<WalletPurchaseAwaitingReviewScreenParams>,
-) {
-  const data = await loadWalletPurchaseAwaitingReviewScreen(props);
-
-  return (
+export const { Screen: WalletPurchaseAwaitingReviewScreen, generateMetadata } = createScreen({
+  load: loadWalletPurchaseAwaitingReviewScreen,
+  render: (data) => (
     <UserPage containerType="narrowStack">
       <Stack gap="lg">
         <UserPageTitle>お振込みの確認待ち</UserPageTitle>
         <PurchaseAwaitingReview slug={data.slug} />
       </Stack>
     </UserPage>
-  );
-}
+  ),
+});

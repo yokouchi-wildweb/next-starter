@@ -1,25 +1,20 @@
 // src/app/(user)/demo/seamless-av/_screen/DemoSeamlessAvScreen.tsx
 // /demo/seamless-av(デモ)の既定画面。
 
-import type { ScreenProps } from "@/lib/screens";
 import { Main } from "@/components/Layout/Main";
 import { PageTitle } from "@/components/TextBlocks/PageTitle";
 import { Para } from "@/components/TextBlocks/Para";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
+import { createScreen } from "@/wiring/screen";
 
 import { SeamlessAvDemo } from "./SeamlessAvDemo";
 
 import { loadDemoSeamlessAvScreen } from "./loader";
 
-export const metadata = {
-  title: "Seamless A/V デモ",
-};
-
-export async function DemoSeamlessAvScreen(props: ScreenProps) {
-  await loadDemoSeamlessAvScreen(props);
-
-  return (
+export const { Screen: DemoSeamlessAvScreen, generateMetadata } = createScreen({
+  load: loadDemoSeamlessAvScreen,
+  render: () => (
     <Main padding={{ base: "lg", sm: "2xl" }}>
       <Stack gap="lg">
         <Stack gap="xs">
@@ -35,5 +30,8 @@ export async function DemoSeamlessAvScreen(props: ScreenProps) {
         </Section>
       </Stack>
     </Main>
-  );
-}
+  ),
+  metadata: {
+    title: "Seamless A/V デモ",
+  },
+});

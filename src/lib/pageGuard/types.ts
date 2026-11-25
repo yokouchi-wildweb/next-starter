@@ -96,6 +96,13 @@ export type PageLoaderConfig<TProps, TKey extends readonly LoaderKeyValue[], TDa
   shell?: true;
 };
 
+/**
+ * createLoader が返す loader。`publicChain` = 範囲の全段とページの access が public で前提の判定(setup 誘導)が無い鎖
+ * (D60 の遅らせる鎖: 範囲もページも評価を先に回さない)。画面の作り手(lib/screens の createScreen)が読み、
+ * この鎖で題名が値なら load を待たずに返す(殻と <head> に入る、D119)。守りの鎖は false
+ */
+export type PageLoader<TProps, TData> = ((props: TProps) => Promise<TData>) & { readonly publicChain: boolean };
+
 /** 範囲の guard.ts が export する 4 つ(Guard・createLoader・guardMetadata・extend) */
 export type PageGuard<TUser extends PageGuardUser = PageGuardUser> = {
   /**
@@ -106,7 +113,7 @@ export type PageGuard<TUser extends PageGuardUser = PageGuardUser> = {
   /** この範囲の設定済み loader の作り手 */
   createLoader: <TProps, TKey extends readonly LoaderKeyValue[] = [], TData = void>(
     config: PageLoaderConfig<TProps, TKey, TData, TUser>,
-  ) => (props: TProps) => Promise<TData>;
+  ) => PageLoader<TProps, TData>;
   /**
    * 範囲の layout の generateMetadata を作る(layout が `export const generateMetadata = guardMetadata({...})` の 1 行)。
    * 先に Guard と同じ判定を通し、断られた訪問者には redirect / notFound で止める(base を返さない)。

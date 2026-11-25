@@ -5,23 +5,22 @@
 //
 // loader は access の評価だけ(public)。CampaignSection は fork がキャンペーン情報に置き換える前提のプレースホルダー。
 
-import type { ScreenProps } from "@/lib/screens";
 import { Main } from "@/components/Layout/Main";
 import { PageTitle } from "@/components/TextBlocks/PageTitle";
+import { createScreen } from "@/wiring/screen";
 
 import { CampaignSection } from "./CampaignSection";
 import { EntrySignupSection } from "./EntrySignupSection";
 
 import { loadEntryScreen } from "./loader";
 
-export async function EntryScreen(props: ScreenProps) {
-  await loadEntryScreen(props);
-
-  return (
+export const { Screen: EntryScreen, generateMetadata } = createScreen({
+  load: loadEntryScreen,
+  render: () => (
     <Main containerType="contentShell" padding={{ base: "sm", sm: "md" }}>
       <PageTitle srOnly>事前登録</PageTitle>
       <CampaignSection />
       <EntrySignupSection />
     </Main>
-  );
-}
+  ),
+});

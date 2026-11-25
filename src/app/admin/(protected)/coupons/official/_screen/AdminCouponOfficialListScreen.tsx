@@ -5,24 +5,21 @@
 //
 // 種別 official で絞った一覧(絞り込みは loader.ts の固定の検索条件)。
 
-import type { ListPageSearchParams } from "@/lib/crud";
-import type { ScreenProps } from "@/lib/screens";
 import { loadAdminCouponOfficialListScreen } from "./loader";
 import AdminCouponList from "@/domains/core/coupon/components/AdminCouponList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 
 import { AdminCouponSectionTabs } from "@/domains/core/coupon/components/AdminCouponSectionTabs";
+import { createScreen } from "@/wiring/screen";
 
-export const metadata = {
-  title: "クーポン一覧",
-};
-
-export async function AdminCouponOfficialListScreen(props: ScreenProps<Record<string, never>, ListPageSearchParams>) {
-  const { results: coupons, page, limit, total } = await loadAdminCouponOfficialListScreen(props);
-
-  return (
+export const { Screen: AdminCouponOfficialListScreen, generateMetadata } = createScreen({
+  load: loadAdminCouponOfficialListScreen,
+  render: ({ results: coupons, page, limit, total }) => (
     <AdminPage title="クーポン管理" center={<AdminCouponSectionTabs variant="header" />}>
       <AdminCouponList coupons={coupons} page={page} perPage={limit} total={total} />
     </AdminPage>
-  );
-}
+  ),
+  metadata: {
+    title: "クーポン一覧",
+  },
+});

@@ -5,4 +5,4 @@
 // 画面を差し替えるときは _components/<Name>Screen.tsx を作り、下の import 先を向ける。
 // 手順: src/lib/screens/README.md
 
-export { AdminSampleCategoryCreateScreen as default, metadata } from "./_screen/AdminSampleCategoryCreateScreen";
+export { AdminSampleCategoryCreateScreen as default, generateMetadata } from "./_screen/AdminSampleCategoryCreateScreen";

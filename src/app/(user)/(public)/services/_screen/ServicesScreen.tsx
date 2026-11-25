@@ -4,20 +4,19 @@
 //
 // loader は access の評価だけ(public。静的な文言だけ)。ログイン状態に関わらず表示される公開ページ。
 
-import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Para } from "@/components/TextBlocks/Para";
+import { createScreen } from "@/wiring/screen";
 
 import { loadServicesScreen } from "./loader";
 
-export async function ServicesScreen(props: ScreenProps) {
-  await loadServicesScreen(props);
-
-  return (
+export const { Screen: ServicesScreen, generateMetadata } = createScreen({
+  load: loadServicesScreen,
+  render: () => (
     <UserPage>
       <UserPageTitle>サービス概要</UserPageTitle>
       <Para>このページはログイン状態に関わらずアクセス可能なサービス概要ページのサンプルです。</Para>
     </UserPage>
-  );
-}
+  ),
+});

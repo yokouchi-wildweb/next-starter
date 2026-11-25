@@ -5,24 +5,22 @@
 
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Section } from "@/components/Layout/Section";
-import type { ScreenProps } from "@/lib/screens";
 import { AdminMessagingSectionTabs } from "@/domains/core/messaging/components/AdminMessagingSectionTabs";
 import { AdminMessageOverrideList } from "@/domains/core/messaging/components/AdminMessageOverrideList";
+import { createScreen } from "@/wiring/screen";
 
 import { loadAdminMessagingOverrideListScreen } from "./loader";
 
-export const metadata = {
-  title: "システム通知",
-};
-
-export async function AdminMessagingOverrideListScreen(props: ScreenProps) {
-  await loadAdminMessagingOverrideListScreen(props);
-
-  return (
+export const { Screen: AdminMessagingOverrideListScreen, generateMetadata } = createScreen({
+  load: loadAdminMessagingOverrideListScreen,
+  render: () => (
     <AdminPage title="システム通知" center={<AdminMessagingSectionTabs variant="header" />}>
       <Section>
         <AdminMessageOverrideList />
       </Section>
     </AdminPage>
-  );
-}
+  ),
+  metadata: {
+    title: "システム通知",
+  },
+});

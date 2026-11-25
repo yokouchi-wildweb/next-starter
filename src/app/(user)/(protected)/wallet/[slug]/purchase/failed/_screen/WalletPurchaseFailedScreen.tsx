@@ -6,20 +6,19 @@
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
-import type { ScreenProps } from "@/lib/screens";
 import { PurchaseFailed } from "@/domains/core/purchaseRequest/components/PurchaseFailed";
+import { createScreen } from "@/wiring/screen";
 
-import { loadWalletPurchaseFailedScreen, type WalletPurchaseFailedScreenParams } from "./loader";
+import { loadWalletPurchaseFailedScreen } from "./loader";
 
-export async function WalletPurchaseFailedScreen(props: ScreenProps<WalletPurchaseFailedScreenParams>) {
-  const data = await loadWalletPurchaseFailedScreen(props);
-
-  return (
+export const { Screen: WalletPurchaseFailedScreen, generateMetadata } = createScreen({
+  load: loadWalletPurchaseFailedScreen,
+  render: (data) => (
     <UserPage containerType="narrowStack">
       <Stack gap="lg">
         <UserPageTitle>購入エラー</UserPageTitle>
         <PurchaseFailed slug={data.slug} />
       </Stack>
     </UserPage>
-  );
-}
+  ),
+});

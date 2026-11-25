@@ -9,21 +9,18 @@ import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Flex } from "@/components/Layout/Flex";
 import { ResetPassword } from "@/domains/core/auth/components/ResetPassword";
-import type { ScreenProps } from "@/lib/screens";
+import { createScreen } from "@/wiring/screen";
 
-import { loadPasswordResetScreen, type PasswordResetScreenSearchParams } from "./loader";
+import { loadPasswordResetScreen } from "./loader";
 
-export async function PasswordResetScreen(
-  props: ScreenProps<Record<string, never>, PasswordResetScreenSearchParams>,
-) {
-  const { oobCode } = await loadPasswordResetScreen(props);
-
-  return (
+export const { Screen: PasswordResetScreen, generateMetadata } = createScreen({
+  load: loadPasswordResetScreen,
+  render: ({ oobCode }) => (
     <UserPage containerType="narrowStack">
       <Flex direction="column" justify="center" align="center" gap="lg">
         <UserPageTitle>パスワードを再設定</UserPageTitle>
         <ResetPassword oobCode={oobCode} />
       </Flex>
     </UserPage>
-  );
-}
+  ),
+});

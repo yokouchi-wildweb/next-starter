@@ -5,19 +5,18 @@
 
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
-import type { ScreenProps } from "@/lib/screens";
 import { PurchaseCallback } from "@/domains/core/purchaseRequest/components/PurchaseCallback";
+import { createScreen } from "@/wiring/screen";
 
-import { loadWalletPurchaseCallbackScreen, type WalletPurchaseCallbackScreenParams } from "./loader";
+import { loadWalletPurchaseCallbackScreen } from "./loader";
 
-export async function WalletPurchaseCallbackScreen(props: ScreenProps<WalletPurchaseCallbackScreenParams>) {
-  const data = await loadWalletPurchaseCallbackScreen(props);
-
-  return (
+export const { Screen: WalletPurchaseCallbackScreen, generateMetadata } = createScreen({
+  load: loadWalletPurchaseCallbackScreen,
+  render: (data) => (
     <UserPage containerType="narrowStack">
       <Stack gap="lg">
         <PurchaseCallback slug={data.slug} />
       </Stack>
     </UserPage>
-  );
-}
+  ),
+});

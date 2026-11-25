@@ -3,23 +3,22 @@
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける(loader の import は ../_screen/loader に直す)。
 // 手順: src/lib/screens/README.md
 
-import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
 import { Unsubscribe } from "@/domains/core/messaging/components/Unsubscribe";
+import { createScreen } from "@/wiring/screen";
 
-import { loadUnsubscribeScreen, type UnsubscribeScreenSearchParams } from "./loader";
+import { loadUnsubscribeScreen } from "./loader";
 
-export async function UnsubscribeScreen(props: ScreenProps<Record<string, never>, UnsubscribeScreenSearchParams>) {
-  const data = await loadUnsubscribeScreen(props);
-
-  return (
+export const { Screen: UnsubscribeScreen, generateMetadata } = createScreen({
+  load: loadUnsubscribeScreen,
+  render: (data) => (
     <UserPage containerType="narrowStack">
       <Stack gap="lg">
         <UserPageTitle>配信停止</UserPageTitle>
         <Unsubscribe {...data} />
       </Stack>
     </UserPage>
-  );
-}
+  ),
+});

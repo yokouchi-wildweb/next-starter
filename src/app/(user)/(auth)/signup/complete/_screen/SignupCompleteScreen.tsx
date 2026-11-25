@@ -6,19 +6,18 @@
 // loader は access の評価だけ(public)。/signup/register からの正当な遷移かどうかは公開 hook useSignupComplete の
 // client 側ガード(useTransitionGuard)で判定するため、サーバー側の遷移制御は持たない。
 
-import type { ScreenProps } from "@/lib/screens";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
+import { createScreen } from "@/wiring/screen";
 
 import { SignupCompleteSection } from "./SignupCompleteSection";
 
 import { loadSignupCompleteScreen } from "./loader";
 
-export async function SignupCompleteScreen(props: ScreenProps) {
-  await loadSignupCompleteScreen(props);
-
-  return (
+export const { Screen: SignupCompleteScreen, generateMetadata } = createScreen({
+  load: loadSignupCompleteScreen,
+  render: () => (
     <UserPage containerType="narrowStack" className="text-center items-center">
       <SignupCompleteSection />
     </UserPage>
-  );
-}
+  ),
+});

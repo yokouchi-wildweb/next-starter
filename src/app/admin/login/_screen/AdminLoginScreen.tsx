@@ -12,16 +12,13 @@ import { Flex } from "@/components/Layout/Flex";
 import { Main } from "@/components/Layout/Main";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { AdminLogin } from "@/domains/core/auth/components/AdminLogin";
-import type { ScreenProps } from "@/lib/screens";
+import { createScreen } from "@/wiring/screen";
 
-import { loadAdminLoginScreen, type AdminLoginScreenSearchParams } from "./loader";
+import { loadAdminLoginScreen } from "./loader";
 
-export async function AdminLoginScreen(props: ScreenProps<Record<string, never>, AdminLoginScreenSearchParams>) {
-  const { redirectTo } = await loadAdminLoginScreen(props);
-
-  // ヘッダーの行と題は AdminPage が描く(未ログインでもロゴと明暗の切り替えだけの同じ行。題は PC でヘッダー、SP で本文の上)。
-  // この画面は自分のスクロール領域と Main を持つので main={false}
-  return (
+export const { Screen: AdminLoginScreen, generateMetadata } = createScreen({
+  load: loadAdminLoginScreen,
+  render: ({ redirectTo }) => (
     <AdminPage main={false} title="管理者ログイン">
       <Block className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
         {/* 管理の枠は固定高さ(AdminLayout の overflow-clip)で body が伸びないため、この画面は自分でスクロールする。
@@ -34,5 +31,5 @@ export async function AdminLoginScreen(props: ScreenProps<Record<string, never>,
         </Main>
       </Block>
     </AdminPage>
-  );
-}
+  ),
+});

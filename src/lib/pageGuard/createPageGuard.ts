@@ -18,6 +18,7 @@ import type {
   PageGuardDeps,
   PageGuardPolicy,
   PageGuardUser,
+  PageLoader,
   PageLoaderConfig,
 } from "./types";
 
@@ -132,10 +133,12 @@ function buildGuard<TUser extends PageGuardUser>(
         deps.evaluateAccess(rule, await resolveOnce(), { allowStatuses: statuses }) === "granted";
       return load({ getUser, allows }, ...key);
     });
-    return async (props: TProps): Promise<TData> => {
+    const loader = async (props: TProps): Promise<TData> => {
       const key = config.key ? await config.key(props) : ([] as unknown as TKey);
       return run(...key);
     };
+    // 公開の鎖か(画面の作り手が題名の値を load を待たずに返す判定、D119)
+    return Object.assign(loader, { publicChain: lazy }) satisfies PageLoader<TProps, TData>;
   };
 
   // 範囲の layout の generateMetadata: Guard と同じ判定を先に通す(断られた訪問者に題名を返さない)

@@ -6,19 +6,18 @@
 // ヘッダーのナビ・フッター・ボトムナビを隠した 1 画面の案内(隠すのは ../frame.ts)。終了時刻は loader が設定から読み、
 // MaintenanceAutoRedirect(client 部品)が公開 hook useMaintenanceAutoRedirect で時刻到来に遷移する。
 
-import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
+import { createScreen } from "@/wiring/screen";
 
 import { loadMaintenanceScreen } from "./loader";
 import { MaintenanceAutoRedirect } from "./MaintenanceAutoRedirect";
 
-export async function MaintenanceScreen(props: ScreenProps) {
-  const { endTime, redirectTo } = await loadMaintenanceScreen(props);
-
-  return (
+export const { Screen: MaintenanceScreen, generateMetadata } = createScreen({
+  load: loadMaintenanceScreen,
+  render: ({ endTime, redirectTo }) => (
     <>
       <MaintenanceAutoRedirect endTime={endTime} redirectTo={redirectTo} />
       <UserPage>
@@ -29,5 +28,5 @@ export async function MaintenanceScreen(props: ScreenProps) {
         </Stack>
       </UserPage>
     </>
-  );
-}
+  ),
+});

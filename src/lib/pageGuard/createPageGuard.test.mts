@@ -169,6 +169,12 @@ test("createLoader: 範囲かページの access が拒否なら load を呼ば�
   assert.equal(calls, 1);
 });
 
+test("createLoader: 返る loader の publicChain = 範囲の全段とページが public の遅らせる鎖だけ true(D119)", () => {
+  assert.equal(root.createLoader({ access: "public" }).publicChain, true);
+  assert.equal(root.createLoader({ access: { roles: ["admin"] } }).publicChain, false);
+  assert.equal(userRange.createLoader({ access: "public" }).publicChain, false, "守りの範囲の public のページは公開の鎖でない");
+});
+
 test("createLoader: access none は notFound", async () => {
   const load = root.createLoader({ access: "none", load: async () => "x" });
   assert.equal(await as(admin, () => load({})), "notFound");

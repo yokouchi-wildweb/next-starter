@@ -5,30 +5,32 @@
 // loader は access の評価だけ(public)。文書は legal の口 getLegalDocument("tradelaw") の差し込み済みの文書を読むだけ。文面を変えるのは legal の上書き
 // (src/config/domains/legal.config.ts、形: src/domains/core/legal/README.md)、構成を変えるのは差し替え Screen で行う。
 
-import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
 import { getLegalDocument, getLegalEnactedAtFormat } from "@/domains/legal/documents";
 import { LegalDocumentRenderer } from "@/lib/structuredDocument";
+import { createScreen } from "@/wiring/screen";
 
 import { loadTradelawScreen } from "./loader";
 
-export async function TradelawScreen(props: ScreenProps) {
-  await loadTradelawScreen(props);
-  const document = getLegalDocument("tradelaw");
+export const { Screen: TradelawScreen, generateMetadata } = createScreen({
+  load: loadTradelawScreen,
+  render: () => {
+    const document = getLegalDocument("tradelaw");
 
-  return (
-    <UserPage containerType="narrowStack">
-      <Stack gap="lg">
-        <UserPageTitle>{document.title}</UserPageTitle>
-        <LegalDocumentRenderer
-          document={document}
-          enactedAtFormat={getLegalEnactedAtFormat()}
-          showTitle={false}
-          showEnactedAt={false}
-        />
-      </Stack>
-    </UserPage>
-  );
-}
+    return (
+      <UserPage containerType="narrowStack">
+        <Stack gap="lg">
+          <UserPageTitle>{document.title}</UserPageTitle>
+          <LegalDocumentRenderer
+            document={document}
+            enactedAtFormat={getLegalEnactedAtFormat()}
+            showTitle={false}
+            showEnactedAt={false}
+          />
+        </Stack>
+      </UserPage>
+    );
+  },
+});

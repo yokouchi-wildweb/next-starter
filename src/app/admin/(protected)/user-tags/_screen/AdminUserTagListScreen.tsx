@@ -4,22 +4,19 @@
 //
 // pnpm generate domain の管理画面と同じ形(_screen/loader.ts が管理画面の共通部品の組を使う)。core ドメインは pnpm generate domain の対象外なので手で保守する。
 
-import type { ListPageSearchParams } from "@/lib/crud";
-import type { ScreenProps } from "@/lib/screens";
 import { loadAdminUserTagListScreen } from "./loader";
 import AdminUserTagList from "@/domains/core/userTag/components/AdminUserTagList";
 import AdminPage from "@/app/admin/_layout/AdminPage";
+import { createScreen } from "@/wiring/screen";
 
-export const metadata = {
-  title: "ユーザータグ一覧",
-};
-
-export async function AdminUserTagListScreen(props: ScreenProps<Record<string, never>, ListPageSearchParams>) {
-  const { results: userTags, page, limit, total } = await loadAdminUserTagListScreen(props);
-
-  return (
+export const { Screen: AdminUserTagListScreen, generateMetadata } = createScreen({
+  load: loadAdminUserTagListScreen,
+  render: ({ results: userTags, page, limit, total }) => (
     <AdminPage title="ユーザータグ管理">
       <AdminUserTagList userTags={userTags} page={page} perPage={limit} total={total} />
     </AdminPage>
-  );
-}
+  ),
+  metadata: {
+    title: "ユーザータグ一覧",
+  },
+});

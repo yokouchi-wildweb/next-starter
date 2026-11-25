@@ -5,23 +5,21 @@
 
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Section } from "@/components/Layout/Section";
-import type { ScreenProps } from "@/lib/screens";
 import { AdminUserGroupList } from "@/domains/core/userGroup/components/AdminUserGroupList";
+import { createScreen } from "@/wiring/screen";
 
 import { loadAdminUserGroupListScreen } from "./loader";
 
-export const metadata = {
-  title: "ユーザーグループ",
-};
-
-export async function AdminUserGroupListScreen(props: ScreenProps) {
-  await loadAdminUserGroupListScreen(props);
-
-  return (
+export const { Screen: AdminUserGroupListScreen, generateMetadata } = createScreen({
+  load: loadAdminUserGroupListScreen,
+  render: () => (
     <AdminPage title="ユーザーグループ">
       <Section>
         <AdminUserGroupList />
       </Section>
     </AdminPage>
-  );
-}
+  ),
+  metadata: {
+    title: "ユーザーグループ",
+  },
+});

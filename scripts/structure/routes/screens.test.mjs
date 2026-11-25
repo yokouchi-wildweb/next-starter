@@ -755,6 +755,10 @@ test("checkScreenLoaderCall(D21・D110): createScreen の load が同じルー�
   assert.ok(checkScreenLoaderCall(make("./loader", "loadYScreen"), "XScreen").problems[0].includes("同じルートの loader"), "取り違え");
   const nested = `import { createScreen } from "@/wiring/screen";\nimport { loadXScreen } from "./loader";\nexport const { Screen: XScreen, generateMetadata } = createScreen({\n  load: async () => ({}),\n  render: () => <W x={{ load: loadXScreen }} />,\n});\n`;
   assert.ok(checkScreenLoaderCall(nested, "XScreen").problems[0].includes("同じルートの loader"), "入れ子の load: は数えない");
+  const notFirst = `import { createScreen } from "@/wiring/screen";\nimport { loadXScreen } from "./loader";\nexport const { Screen: XScreen, generateMetadata } = createScreen({\n  render: () => null,\n  load: loadXScreen,\n});\n`;
+  assert.ok(checkScreenLoaderCall(notFirst, "XScreen").problems[0].includes("最初の項目"), "load は設定の最初");
+  const jsxText = make("./loader", "loadXScreen").replace(`<p title={"it's"}>{data.a}</p>`, "<p>it's /debug/** {data.a}</p>");
+  assert.deepEqual(checkScreenLoaderCall(jsxText, "XScreen").problems, [], "render の JSX のテキストの引用符・/** で読みがずれない");
   const old = `import { loadXScreen } from "./loader";\nexport async function XScreen(props) {\n  const data = await loadXScreen(props);\n  return null;\n}`;
   assert.ok(checkScreenLoaderCall(old, "XScreen").problems[0].includes("createScreen の呼び出しが読めない"), "古い形は受けない");
   assert.ok(checkScreenLoaderCall(make("@/app/y/_screen/loader", "loadXScreen"), "XScreen").problems.length > 0, "別ルートの loader は不可");

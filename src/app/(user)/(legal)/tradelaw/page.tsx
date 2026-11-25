@@ -1,4 +1,4 @@
 // src/app/(user)/(legal)/tradelaw/page.tsx
 // 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 
-export { TradelawScreen as default } from "./_screen/TradelawScreen";
+export { TradelawScreen as default, generateMetadata } from "./_screen/TradelawScreen";

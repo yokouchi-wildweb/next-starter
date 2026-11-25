@@ -5,25 +5,23 @@
 
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Section } from "@/components/Layout/Section";
-import type { ScreenProps } from "@/lib/screens";
 import { AdminMessagingSectionTabs } from "@/domains/core/messaging/components/AdminMessagingSectionTabs";
 import { AdminDispatchList } from "@/domains/core/messaging/components/AdminDispatchList";
+import { createScreen } from "@/wiring/screen";
 
 import { loadAdminMessagingDispatchListScreen } from "./loader";
 
-export const metadata = {
-  title: "メッセージ管理",
-};
-
-export async function AdminMessagingDispatchListScreen(props: ScreenProps) {
-  await loadAdminMessagingDispatchListScreen(props);
-
-  return (
+export const { Screen: AdminMessagingDispatchListScreen, generateMetadata } = createScreen({
+  load: loadAdminMessagingDispatchListScreen,
+  render: () => (
     // 手動送信 / 自動送信の切り替えと「新規送信」(上の行の右端)は AdminDispatchList が出す
     <AdminPage title="メッセージ管理" center={<AdminMessagingSectionTabs variant="header" />}>
       <Section>
         <AdminDispatchList />
       </Section>
     </AdminPage>
-  );
-}
+  ),
+  metadata: {
+    title: "メッセージ管理",
+  },
+});

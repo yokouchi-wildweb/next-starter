@@ -3,21 +3,20 @@
 // このファイルは pnpm generate domain が生成する(再生成で上書きされるため手で編集しない)。
 // 画面を変えるときは _components/ にコピーして page.tsx の import 先を向ける。
 
-import type { ScreenProps } from "@/lib/screens";
 import AdminSampleTagCreate from "@/domains/sampleTag/components/AdminSampleTagCreate";
 import AdminPage from "@/app/admin/_layout/AdminPage";
+import { createScreen } from "@/wiring/screen";
 
 import { loadAdminSampleTagCreateScreen } from "./loader";
 
-export const metadata = {
-  title: "サンプルタグ追加",
-};
-
-export async function AdminSampleTagCreateScreen(props: ScreenProps) {
-  await loadAdminSampleTagCreateScreen(props);
-  return (
+export const { Screen: AdminSampleTagCreateScreen, generateMetadata } = createScreen({
+  load: loadAdminSampleTagCreateScreen,
+  render: () => (
     <AdminPage title="サンプルタグ追加">
       <AdminSampleTagCreate redirectPath="/admin/sample-tags" />
     </AdminPage>
-  );
-}
+  ),
+  metadata: {
+    title: "サンプルタグ追加",
+  },
+});

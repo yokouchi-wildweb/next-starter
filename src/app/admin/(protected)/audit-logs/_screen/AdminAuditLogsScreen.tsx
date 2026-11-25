@@ -5,26 +5,24 @@
 //
 // loader は access の評価だけ(検索はこのルートの部品 AuditLogSearchPanel が hook で行う)。
 
-import type { ScreenProps } from "@/lib/screens";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Section } from "@/components/Layout/Section";
+import { createScreen } from "@/wiring/screen";
 
 import { AuditLogSearchPanel } from "./AuditLogSearchPanel";
 
 import { loadAdminAuditLogsScreen } from "./loader";
 
-export const metadata = {
-  title: "監査ログ",
-};
-
-export async function AdminAuditLogsScreen(props: ScreenProps) {
-  await loadAdminAuditLogsScreen(props);
-
-  return (
+export const { Screen: AdminAuditLogsScreen, generateMetadata } = createScreen({
+  load: loadAdminAuditLogsScreen,
+  render: () => (
     <AdminPage title="監査ログ">
       <Section>
         <AuditLogSearchPanel />
       </Section>
     </AdminPage>
-  );
-}
+  ),
+  metadata: {
+    title: "監査ログ",
+  },
+});

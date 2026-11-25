@@ -1,25 +1,20 @@
 // src/app/(user)/demo/seamless-video/_screen/DemoSeamlessVideoScreen.tsx
 // /demo/seamless-video(デモ)の既定画面。
 
-import type { ScreenProps } from "@/lib/screens";
 import { Main } from "@/components/Layout/Main";
 import { PageTitle } from "@/components/TextBlocks/PageTitle";
 import { Para } from "@/components/TextBlocks/Para";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
+import { createScreen } from "@/wiring/screen";
 
 import { SeamlessVideoDemo } from "./SeamlessVideoDemo";
 
 import { loadDemoSeamlessVideoScreen } from "./loader";
 
-export const metadata = {
-  title: "Seamless Video デモ",
-};
-
-export async function DemoSeamlessVideoScreen(props: ScreenProps) {
-  await loadDemoSeamlessVideoScreen(props);
-
-  return (
+export const { Screen: DemoSeamlessVideoScreen, generateMetadata } = createScreen({
+  load: loadDemoSeamlessVideoScreen,
+  render: () => (
     <Main padding={{ base: "lg", sm: "2xl" }}>
       <Stack gap="lg">
         <Stack gap="xs">
@@ -36,5 +31,8 @@ export async function DemoSeamlessVideoScreen(props: ScreenProps) {
         </Section>
       </Stack>
     </Main>
-  );
-}
+  ),
+  metadata: {
+    title: "Seamless Video デモ",
+  },
+});

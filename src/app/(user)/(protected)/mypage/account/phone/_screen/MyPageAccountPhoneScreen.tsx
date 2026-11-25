@@ -3,19 +3,18 @@
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける(loader の import は ../_screen/loader に直す)。
 // 手順: src/lib/screens/README.md。mypage 配下は layout が UserPage を巻くので fragment を返す
 
-import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { EditPhone } from "@/domains/core/user/components/EditPhone";
+import { createScreen } from "@/wiring/screen";
 
 import { loadMyPageAccountPhoneScreen } from "./loader";
 
-export async function MyPageAccountPhoneScreen(props: ScreenProps) {
-  const { phoneNumber, phoneVerifiedAt } = await loadMyPageAccountPhoneScreen(props);
-
-  return (
+export const { Screen: MyPageAccountPhoneScreen, generateMetadata } = createScreen({
+  load: loadMyPageAccountPhoneScreen,
+  render: ({ phoneNumber, phoneVerifiedAt }) => (
     <>
       <UserPageTitle srOnly>電話番号</UserPageTitle>
       <EditPhone phoneNumber={phoneNumber} phoneVerifiedAt={phoneVerifiedAt} />
     </>
-  );
-}
+  ),
+});

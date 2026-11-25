@@ -1,13 +1,12 @@
 // src/app/(user)/demo/dummy-payment/_screen/DemoDummyPaymentScreen.tsx
 // /demo/dummy-payment(デモ)の既定画面。
 
-import type { ScreenProps } from "@/lib/screens";
 import { DummyPaymentForm } from "@/domains/core/purchaseRequest/components/DummyPaymentForm";
+import { createScreen } from "@/wiring/screen";
 
 import { loadDemoDummyPaymentScreen } from "./loader";
 
-export async function DemoDummyPaymentScreen(props: ScreenProps) {
-  await loadDemoDummyPaymentScreen(props);
-
-  return <DummyPaymentForm />;
-}
+export const { Screen: DemoDummyPaymentScreen, generateMetadata } = createScreen({
+  load: loadDemoDummyPaymentScreen,
+  render: () => <DummyPaymentForm />,
+});

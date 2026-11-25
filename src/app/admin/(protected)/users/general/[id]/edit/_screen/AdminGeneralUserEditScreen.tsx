@@ -3,22 +3,20 @@
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける(loader の import は ../_screen/loader に直す)。
 // 手順: src/lib/screens/README.md
 
-import type { ScreenProps } from "@/lib/screens";
 import { GeneralUserEdit } from "@/domains/core/user/components/admin";
 import AdminPage from "@/app/admin/_layout/AdminPage";
+import { createScreen } from "@/wiring/screen";
 
-import { loadAdminGeneralUserEditScreen, type AdminGeneralUserEditScreenParams } from "./loader";
+import { loadAdminGeneralUserEditScreen } from "./loader";
 
-export const metadata = {
-  title: "一般ユーザー編集",
-};
-
-export async function AdminGeneralUserEditScreen(props: ScreenProps<AdminGeneralUserEditScreenParams>) {
-  const { user, profileData } = await loadAdminGeneralUserEditScreen(props);
-
-  return (
+export const { Screen: AdminGeneralUserEditScreen, generateMetadata } = createScreen({
+  load: loadAdminGeneralUserEditScreen,
+  render: ({ user, profileData }) => (
     <AdminPage title="一般ユーザー編集">
       <GeneralUserEdit user={user} profileData={profileData} redirectPath="/admin/users/general" />
     </AdminPage>
-  );
-}
+  ),
+  metadata: {
+    title: "一般ユーザー編集",
+  },
+});

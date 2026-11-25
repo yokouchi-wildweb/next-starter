@@ -5,23 +5,22 @@
 // loader は access の評価だけ(public)。事前登録モード時の /signup → /entry は Proxy 層(redirectProxy)が担う。
 // メール送信後の遷移先はこの Screen の定数(差し替え Screen で変えられる)。
 
-import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Signup } from "@/domains/core/auth/components/Signup";
+import { createScreen } from "@/wiring/screen";
 
 import { loadSignupScreen } from "./loader";
 
 /** 認証メール送信後の遷移先 */
 const URL_AFTER_EMAIL_SENT = "/signup/email-sent";
 
-export async function SignupScreen(props: ScreenProps) {
-  await loadSignupScreen(props);
-
-  return (
+export const { Screen: SignupScreen, generateMetadata } = createScreen({
+  load: loadSignupScreen,
+  render: () => (
     <UserPage containerType="narrowStack">
       <UserPageTitle>ユーザー登録</UserPageTitle>
       <Signup urlAfterEmailSent={URL_AFTER_EMAIL_SENT} />
     </UserPage>
-  );
-}
+  ),
+});

@@ -1,21 +1,20 @@
 // src/app/(user)/demo/bank-transfer-vision/_screen/DemoBankTransferVisionScreen.tsx
 // /demo/bank-transfer-vision(デモ)の既定画面。
 
-import type { ScreenProps } from "@/lib/screens";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Main } from "@/components/Layout/Main";
 import { PageTitle } from "@/components/TextBlocks/PageTitle";
 import { Para } from "@/components/TextBlocks/Para";
+import { createScreen } from "@/wiring/screen";
 
 import { BankTransferVisionDemo } from "../BankTransferVisionDemo";
 
 import { loadDemoBankTransferVisionScreen } from "./loader";
 
-export async function DemoBankTransferVisionScreen(props: ScreenProps) {
-  await loadDemoBankTransferVisionScreen(props);
-
-  return (
+export const { Screen: DemoBankTransferVisionScreen, generateMetadata } = createScreen({
+  load: loadDemoBankTransferVisionScreen,
+  render: () => (
     <Main containerType="contentShell">
       <Section>
         <Stack gap="md">
@@ -33,5 +32,5 @@ export async function DemoBankTransferVisionScreen(props: ScreenProps) {
         <BankTransferVisionDemo />
       </Section>
     </Main>
-  );
-}
+  ),
+});

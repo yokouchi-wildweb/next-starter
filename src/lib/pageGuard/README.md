@@ -46,6 +46,7 @@ src/app/<範囲>/layout.tsx = export const generateMetadata = guardMetadata(...)
   - 断る時に metadata を返す形(投げない)は使わない: Next が配下のページの metadata を浅く重ね、題名が戻る
   - 断られた応答には robots も出ない。管理・デバッグの索引避けは proxy の飾り `domains/core/admin/plugs/proxyDecorators/noindex.ts` の `X-Robots-Tag`(/admin・/debug の全部の応答)
 - `createLoader({ access, allowStatuses?, key?, load?, shell? })`: 範囲の全段 → ページの `access` を単独で評価し、拒否なら `load` を呼ばない(layout と並列に描かれても取得は守られる)
+  - 返る loader は `publicChain`(範囲の全段とページの `access` が public で前提の判定の無い遅らせる鎖か)を持つ(型 `PageLoader`)。画面の作り手 `createScreen`(`src/lib/screens/README.md`)が読み、この鎖で題名が値なら load を待たずに返す(殻と `<head>` に入る、D119)
   - `load` はデータの無いページでは省く(access だけを評価して undefined。公開の鎖では殻に入る)
   - `shell: true`: load が DB・保管庫・request(`key`・`getUser`・`allows`)を読まない宣言。公開の鎖で connection() を待たずに load を呼び、ページが殻に入る。宣言の可否は `src/lib/screens` の `checkLoaderFile` と build:post の殻の検査が名指す
   - ページの `access` の拒否: `none` → notFound、未認証 → 最寄りの段の `redirectTo`(無ければ notFound)、権限不足 → 最寄りの段の `forbiddenRedirectTo`(無ければ notFound)

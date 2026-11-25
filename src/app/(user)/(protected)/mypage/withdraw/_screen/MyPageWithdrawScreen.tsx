@@ -5,19 +5,18 @@
 // loader は access の評価だけ(サーバー側の取得も遷移制御も無い。未ログインは範囲 (user)/(protected)/guard.ts が弾く)。
 // mypage 配下は layout が UserPage を巻くので fragment を返す
 
-import type { ScreenProps } from "@/lib/screens";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { Withdraw } from "@/domains/core/accountLifecycle/components/Withdraw";
+import { createScreen } from "@/wiring/screen";
 
 import { loadMyPageWithdrawScreen } from "./loader";
 
-export async function MyPageWithdrawScreen(props: ScreenProps) {
-  await loadMyPageWithdrawScreen(props);
-
-  return (
+export const { Screen: MyPageWithdrawScreen, generateMetadata } = createScreen({
+  load: loadMyPageWithdrawScreen,
+  render: () => (
     <>
       <UserPageTitle srOnly>退会</UserPageTitle>
       <Withdraw />
     </>
-  );
-}
+  ),
+});

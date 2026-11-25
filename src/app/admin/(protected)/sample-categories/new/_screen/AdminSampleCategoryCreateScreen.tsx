@@ -3,21 +3,20 @@
 // このファイルは pnpm generate domain が生成する(再生成で上書きされるため手で編集しない)。
 // 画面を変えるときは _components/ にコピーして page.tsx の import 先を向ける。
 
-import type { ScreenProps } from "@/lib/screens";
 import AdminSampleCategoryCreate from "@/domains/sampleCategory/components/AdminSampleCategoryCreate";
 import AdminPage from "@/app/admin/_layout/AdminPage";
+import { createScreen } from "@/wiring/screen";
 
 import { loadAdminSampleCategoryCreateScreen } from "./loader";
 
-export const metadata = {
-  title: "サンプルカテゴリ追加",
-};
-
-export async function AdminSampleCategoryCreateScreen(props: ScreenProps) {
-  await loadAdminSampleCategoryCreateScreen(props);
-  return (
+export const { Screen: AdminSampleCategoryCreateScreen, generateMetadata } = createScreen({
+  load: loadAdminSampleCategoryCreateScreen,
+  render: () => (
     <AdminPage title="サンプルカテゴリ追加">
       <AdminSampleCategoryCreate redirectPath="/admin/sample-categories" />
     </AdminPage>
-  );
-}
+  ),
+  metadata: {
+    title: "サンプルカテゴリ追加",
+  },
+});

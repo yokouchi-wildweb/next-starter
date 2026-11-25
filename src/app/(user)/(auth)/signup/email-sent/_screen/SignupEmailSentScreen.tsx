@@ -4,20 +4,19 @@
 //
 // loader は access の評価だけ(public。送信先の表示と再送はセクションコンテナ VerificationEmailSent が client 側で扱う)。
 
-import type { ScreenProps } from "@/lib/screens";
 import { Link } from "@/components/Navigation/Link";
 
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Para } from "@/components/TextBlocks/Para";
 import { VerificationEmailSent } from "@/domains/core/auth/components/VerificationEmailSent";
+import { createScreen } from "@/wiring/screen";
 
 import { loadSignupEmailSentScreen } from "./loader";
 
-export async function SignupEmailSentScreen(props: ScreenProps) {
-  await loadSignupEmailSentScreen(props);
-
-  return (
+export const { Screen: SignupEmailSentScreen, generateMetadata } = createScreen({
+  load: loadSignupEmailSentScreen,
+  render: () => (
     <UserPage containerType="narrowStack" className="text-center items-center">
       <UserPageTitle>メール送信完了</UserPageTitle>
       <VerificationEmailSent />
@@ -25,5 +24,5 @@ export async function SignupEmailSentScreen(props: ScreenProps) {
         <Link href="/signup">新規登録ページへ戻る »</Link>
       </Para>
     </UserPage>
-  );
-}
+  ),
+});

@@ -122,6 +122,36 @@ test("metadata の値は load を通してから返す", async () => {
   assert.deepEqual(await result, { title: "fixed" });
 });
 
+test("公開の鎖(load.publicChain)の値の題名は load を呼ばずに返す(殻と <head> に入る、D119)", async () => {
+  let loaded = 0;
+  const load = Object.assign(
+    async () => {
+      loaded += 1;
+    },
+    { publicChain: true },
+  );
+  const { generateMetadata } = createScreen<Props, void>({ load, render: () => null, metadata: { title: "public" } });
+  assert.deepEqual(await generateMetadata(props), { title: "public" });
+  assert.equal(loaded, 0);
+});
+
+test("守りの鎖(publicChain false)の値と、公開の鎖でも関数の題名は load の後", async () => {
+  let loaded = 0;
+  const guarded = Object.assign(
+    async () => {
+      loaded += 1;
+      return { name: "g" };
+    },
+    { publicChain: false },
+  );
+  const fixed = createScreen<Props, { name: string }>({ load: guarded, render: () => null, metadata: { title: "fixed" } });
+  assert.deepEqual(await fixed.generateMetadata(props), { title: "fixed" });
+  assert.equal(loaded, 1, "守りの鎖の値は load を通す");
+  const lazyFn = Object.assign(async () => ({ name: "p" }), { publicChain: true });
+  const fn = createScreen<Props, { name: string }>({ load: lazyFn, render: () => null, metadata: (d) => ({ title: d.name }) });
+  assert.deepEqual(await fn.generateMetadata(props), { title: "p" }, "関数は load の結果を受ける");
+});
+
 test("metadata の関数は load の結果と props で作る", async () => {
   const seen: unknown[][] = [];
   const { generateMetadata } = createScreen<Props, { name: string }>({
