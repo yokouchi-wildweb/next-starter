@@ -6,6 +6,7 @@ import { getServerAuth } from "@/lib/firebase/server";
 import { message as passwordResetMessage } from "@/domains/core/auth/plugs/messages/passwordReset";
 import { sendMailMessage } from "@/domains/core/auth/services/server/sendMailMessage";
 import { DomainError } from "@/lib/errors";
+import { recordSignupFailure } from "./signupAudit";
 
 export type SendPasswordResetLinkParams = {
   /** パスワードリセット対象のメールアドレス */
@@ -51,7 +52,8 @@ export async function sendPasswordResetLink({
   } catch (error) {
     // ユーザーが見つからない場合でも、セキュリティのためエラーを表示しない
     // （メールアドレスの存在確認攻撃を防ぐ）
-    // ただし、実際にはメールは送信しない
+    // ただし、実際にはメールは送信しない(記録だけ残す。signupAudit)
+    await recordSignupFailure({ flow: "password_reset", reason: "user_not_found", email });
     return;
   }
 
@@ -63,6 +65,7 @@ export async function sendPasswordResetLink({
     );
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
+    await recordSignupFailure({ flow: "password_reset", reason: "link_generation_failed", email });
     throw new DomainError(
       `パスワードリセットリンクの生成に失敗しました: ${reason}`,
       { status: 500 },
@@ -77,6 +80,7 @@ export async function sendPasswordResetLink({
     await sendMailMessage(passwordResetMessage, email, { resetUrl });
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
+    await recordSignupFailure({ flow: "password_reset", reason: "mail_send_failed", email });
     throw new DomainError(
       `パスワードリセットメールの送信に失敗しました: ${reason}`,
       { status: 500 },

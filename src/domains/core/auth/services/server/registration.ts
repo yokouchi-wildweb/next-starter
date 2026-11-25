@@ -3,6 +3,7 @@
 import type { z } from "zod";
 
 import { REGISTRATION_DEFAULT_ROLE } from "@/domains/core/auth/constants/registration";
+import type { SignupFailureReason } from "@/domains/core/auth/constants/signupFailure";
 import {
   USER_REGISTERED_STATUSES,
   hasRoleProfile,
@@ -26,6 +27,7 @@ import { recordSignupAcquisition } from "@/domains/core/userAcquisition/services
 import { messagingService } from "@/domains/core/messaging/services/server";
 import { recordSignupMarketingConsent } from "./marketingConsent";
 import { runPostRegistrationMilestones } from "./postRegistrationMilestones";
+import { recordSignupFailure } from "./signupAudit";
 import type {
   AcquisitionExtras,
   AcquisitionTouch,
@@ -64,10 +66,20 @@ export async function register(
   /** 招待リンク由来の保留コード（referral 専用 cookie から API ルートが復元して渡す） */
   pendingInviteCode?: string | null,
 ): Promise<RegistrationResult> {
+  // 失敗はどれも理由つきで audit_logs に残してから投げる(signupAudit、記録の失敗で止めない)
+  const inputEmail =
+    typeof input === "object" && input !== null && typeof (input as { email?: unknown }).email === "string"
+      ? (input as { email: string }).email
+      : null;
+  const fail = async (reason: SignupFailureReason, error: unknown, user: User | null = null) => {
+    await recordSignupFailure({ flow: "register", reason, email: inputEmail, user });
+    return error;
+  };
+
   const parsedResult = RegistrationSchema.safeParse(input);
 
   if (!parsedResult.success) {
-    throw new DomainError("本登録の入力内容が不正です。", { status: 400 });
+    throw await fail("invalid_input", new DomainError("本登録の入力内容が不正です。", { status: 400 }));
   }
 
   const {
@@ -87,7 +99,11 @@ export async function register(
   const role = requestedRole ?? REGISTRATION_DEFAULT_ROLE;
 
   // ロールの有効性チェック
-  assertRoleEnabled(role);
+  try {
+    assertRoleEnabled(role);
+  } catch (error) {
+    throw await fail("role_disabled", error);
+  }
 
   const auth = getServerAuth();
 
@@ -97,15 +113,15 @@ export async function register(
     decodedToken = await auth.verifyIdToken(idToken, true);
   } catch (error) {
     console.error("Failed to verify ID token in register", error);
-    throw new DomainError("認証情報の検証に失敗しました", { status: 401 });
+    throw await fail("token_invalid", new DomainError("認証情報の検証に失敗しました", { status: 401 }));
   }
 
   if (!decodedToken?.uid) {
-    throw new DomainError("プロバイダー UID を特定できませんでした", { status: 400 });
+    throw await fail("provider_uid_missing", new DomainError("プロバイダー UID を特定できませんでした", { status: 400 }));
   }
 
   if (decodedToken.uid !== providerUid) {
-    throw new DomainError("認証情報が一致しません", { status: 400 });
+    throw await fail("credential_mismatch", new DomainError("認証情報が一致しません", { status: 400 }));
   }
 
   // email プロバイダーはトークンの email とフォームの email が一致しなければならない。
@@ -119,34 +135,38 @@ export async function register(
     const emailFromRequest = email.trim().toLowerCase();
 
     if (!emailFromToken || emailFromToken !== emailFromRequest) {
-      throw new DomainError("メールアドレスが一致しません", { status: 400 });
+      throw await fail("email_mismatch", new DomainError("メールアドレスが一致しません", { status: 400 }));
     }
   }
 
   const existingUser = await userService.findByProvider(providerType, providerUid);
 
   if (!existingUser) {
-    throw new DomainError("仮登録が完了していません。先に仮登録を行ってください", { status: 400 });
+    throw await fail("not_pre_registered", new DomainError("仮登録が完了していません。先に仮登録を行ってください", { status: 400 }));
   }
 
   // 全セッション失効の境目より前に認証した Firebase のセッションからは登録もセッションも進めない
   // (パスワードの書き換えより前。Firebase の取り消しが失敗していても止める。./session/invalidationBoundary.ts)
-  assertAuthenticatedAfterInvalidation(decodedToken, existingUser);
+  try {
+    assertAuthenticatedAfterInvalidation(decodedToken, existingUser);
+  } catch (error) {
+    throw await fail("session_invalidated", error, existingUser);
+  }
 
   if (USER_REGISTERED_STATUSES.includes(existingUser.status)) {
-    throw new DomainError("このアカウントはすでに本登録が完了しています", { status: 409 });
+    throw await fail("already_registered", new DomainError("このアカウントはすでに本登録が完了しています", { status: 409 }), existingUser);
   }
 
   if (providerType === "email") {
     if (!password) {
-      throw new DomainError("パスワード情報が不足しています", { status: 400 });
+      throw await fail("password_missing", new DomainError("パスワード情報が不足しています", { status: 400 }), existingUser);
     }
 
     try {
       await auth.updateUser(providerUid, { password });
     } catch (error) {
       console.error("Failed to update Firebase password in register", error);
-      throw new DomainError("パスワードの設定に失敗しました", { status: 500 });
+      throw await fail("password_set_failed", new DomainError("パスワードの設定に失敗しました", { status: 500 }), existingUser);
     }
   }
 

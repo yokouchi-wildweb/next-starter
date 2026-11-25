@@ -2,6 +2,7 @@
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { sendPasswordResetLink } from "@/domains/core/auth/services/server/sendPasswordResetLink";
+import { recordSignupFailure } from "@/domains/core/auth/services/server/signupAudit";
 
 export const POST = createApiRoute(
   {
@@ -15,7 +16,8 @@ export const POST = createApiRoute(
     const { email } = body;
 
     if (!email || typeof email !== "string") {
-      // セキュリティのため、メールアドレスが無効でも成功を返す
+      // セキュリティのため、メールアドレスが無効でも成功を返す(記録だけ残す)
+      await recordSignupFailure({ flow: "password_reset", reason: "invalid_email", email: null });
       return { success: true };
     }
 
