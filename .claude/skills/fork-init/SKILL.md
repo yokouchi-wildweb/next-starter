@@ -9,7 +9,7 @@ role: the conversation and the entry of the fork setup | the processing is the c
 rules: one approval only, at the plan (it includes the commit and push instruction) | never fill an answer by guessing: ask all of them in one question | keep upstream's history (shallow → run `git fetch --unshallow` first) | rerunning is safe: the command skips the steps already done
 
 ## 1. PRE-CHECK
-1. `git remote -v`: origin = the fork source and no `upstream` remote yet → a fresh clone | an `upstream` remote exists → a rerun: go on, the plan will show which steps are done | no origin → ask for the fork source URL; STOP: wait
+1. `git remote -v` — cues: origin = the fork source and no `upstream` remote yet = a fresh clone | an `upstream` remote = a rerun (go on, the plan shows the steps already done) | no origin → ask for the fork source URL; STOP: wait
 2. `git rev-parse --is-shallow-repository` true → run `git fetch --unshallow` and go on (it only adds history)
 3. `<name>` and `[github-owner]` from `$ARGUMENTS` | owner omitted → `gh api user --jq .login`
 4. `gh auth status` | not logged in → ask for `! gh auth login`; STOP: wait
@@ -43,7 +43,7 @@ STOP: one approval
 
 ## 5. REPORT (Japanese)
 - the repo URL, the remotes, the commit sha the command made
-- never show the values in `.env.development` (say only that they are in the file)
+- the values in `.env.development` are secrets: say only that they are in the file
 - next moves for the user:
   - open a new terminal and type `claude` again in the new repo (it opens inside tmux; the agent starts the dev server itself)
   - register `CRON_SECRET` before deploying to Vercel (unset → every scheduled task stops with 401): a required next task

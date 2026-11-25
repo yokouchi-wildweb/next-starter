@@ -13,10 +13,10 @@ topic: $ARGUMENTS
 ## SCOPE
 - topic empty: pick one event to record from this conversation's history | several candidates → list them; STOP: ask which one to write (one record per file)
 - topic given: pick up only the history tied to that topic
-- material: the conversation, this session's commits (`git log`), checked results (command output, counts, screen checks) | never add facts that are not in the conversation | unknown points → write `未確認` (unverified) or ask the user
+- material: the conversation, this session's commits (`git log`), checked results (command output, counts, screen checks) | write the facts the conversation holds | unknown points → write `未確認` (unverified) or ask the user
 
 ## SORT (before writing)
-sort the content against the README section `ほかの文書との分担` (split with other docs):
+sort the content against the README section `ほかの文書との分担` (split with other docs); cues for where each part goes:
 - history (what happened, what was checked, why it was decided so) → journal body
 - standing rules / decision criteria → add a proposal to distill them into one line in `.claude/rules/project.md` (the body stays in the journal, with `ref: docs/journal/<file>`)
 - feature spec / usage → add an update proposal for the README beside the code
@@ -28,7 +28,7 @@ sort the content against the README section `ほかの文書との分担` (split
 - file name: `<today YYYY-MM-DD>--<owner>--<slug>.md`
   - owner = last part of `git remote get-url origin` (without `.git`), lowercased
   - slug = short kebab-case English naming the content
-  - same name exists → change the slug (never append to an existing file)
+  - same name exists → change the slug (one record per file, docs/journal/README.md)
 - body shape:
   - line 1 `# <date> <what this records>`
   - after a blank line `> owner: <owner>`

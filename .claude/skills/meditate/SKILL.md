@@ -6,25 +6,24 @@ argument-hint: "[補足(任意): 一度に扱う件数など]"
 
 role: a procedure for tidying memory, not a mode switch | keep the conversation's context, policy, tone and constraints
 extra: $ARGUMENTS
-judging: the table below decides mechanically | never change a decision by "looks useful" or "seems important" | a recommendation only where the facts give one
+judging: the table below is the default (first match) and the cue | a row you judge another way → say why in one line | a recommendation only where the facts give one
 
 ## PREMISES
 - definition: CLAUDE.md DOCS `memory` (handoff of in-progress work only), `personal` (the two personal places), `durable_info` | canon of the head block: .claude/skills/meditate/header.md
-- facts: only from `pnpm workflow memory facts` (one row per memo) | never count or list memos by hand | read a memo's body only to summarize it, check its end condition or draft the text to write
-- target: the memory of this repo's main checkout, found by the command (shared with every worktree) | never touch another project's memory
-- session: run from the main checkout's session only | `git rev-parse --git-dir` differs from `git rev-parse --git-common-dir` (a worktree) → STOP: tell the user to run it from the main checkout's session
-- personal places: free form, never checked (CLAUDE.md DOCS personal) | write them as the user wants, no imposed format | never offer to reformat a personal file
-- personal lines: CLAUDE.local.md (this repo) and ~/.claude/CLAUDE.md (every repo), facts only from `pnpm workflow context facts --personal` (one row per line) | the wider rules of a personal line = CLAUDE.md, core, ancestors' lineage sections and this repo's own context
+- facts: `pnpm workflow memory facts` (one row per memo; the default, it counts exactly) | read a memo's body only to summarize it, check its end condition or draft the text to write
+- target: the memory of this repo's main checkout, found by the command (shared with every worktree)
+- personal places: free form, never checked (CLAUDE.md DOCS personal) | write them as the user wants: their form stays (no reformat)
+- personal lines: CLAUDE.local.md (this repo) and ~/.claude/CLAUDE.md (every repo), facts from `pnpm workflow context facts --personal` (one row per line; the default) | the wider rules of a personal line = CLAUDE.md, core, ancestors' lineage sections and this repo's own context
 - marks: core/design.md priority (marked over unmarked, the nearer mark, unmarked → the wider side: core and CLAUDE.md → ancestors → this repo → personal) | a mark changes only how a line is read
 
 ## STEPS
-1. HEADER: `pnpm workflow memory header` | not ok → `pnpm workflow memory header --apply` (writes inside the block only, adds it at the head when missing) | `broken` → STOP: show the user the marker lines to fix
+1. HEADER: `pnpm workflow memory header` | not ok → `pnpm workflow memory header --apply` (writes inside the block only, adds it at the head when missing) | `broken` (one marker or several) → show the user the marker lines, fix them by hand as the command says, run it again
 2. FACTS: `pnpm workflow memory facts` | `none` → report "no memory" and stop | keep the rows as the source for every step below
 3. CLASSIFY each memo by the TABLE (first match wins) → a batch per destination (A rows) or the one-by-one list (J rows)
 4. BATCHES: one message per batch, rows numbered, the facts behind each row, the text to write for A5 / A6 (template below) | STOP: one approval per batch; the user may move rows out by number (a moved-out row joins the one-by-one list)
 5. ONE BY ONE: one memo per message, (k/N) (template below) | STOP: the user's choice before the next
 6. WRITE (only what was approved):
-   - write the destination first, read it back, then `mv` the memo to `memory-archive/<YYYY-MM-DD>/` beside the memory directory | never `rm`
+   - write the destination first, read it back, then `mv` the memo to `memory-archive/<YYYY-MM-DD>/` beside the memory directory (the archive keeps a copy; the default over `rm`)
    - ~/.claude/CLAUDE.md: copy its current version into that archive folder before writing | it and CLAUDE.local.md take effect at once
    - shared files (behavior.md, README, card, docs/journal, service): write in the working tree only, never commit (commit only when told, naming the paths)
    - a parent-owned place in a fork (CLAUDE.md, a core file, a Tier1 card, an upstream README) → show the `/order <direct parent>` draft, file it after approval; the memo stays until it ships
@@ -82,4 +81,4 @@ one by one, a personal line:
 
 ## RULES
 - never rewrite memory or any file before its approval (step 1's block restore is the one mechanical write)
-- never delete: archive by `mv`
+- archive by `mv` (a copy stays in memory-archive/)

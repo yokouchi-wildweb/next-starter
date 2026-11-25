@@ -6,14 +6,14 @@ argument-hint: "[補足(任意): 見るファイル・一度に扱う件数な�
 
 role: a procedure for tidying this repo's own context, not a code review and not a mode switch | keep the conversation's context, policy, tone and constraints
 extra: $ARGUMENTS
-judging: the table below decides mechanically | never change a decision by "looks useful" or "seems important" | a recommendation only where the facts give one
+judging: the table below is the default (first match) and the cue | a row you judge another way → say why in one line | a recommendation only where the facts give one
 
 ## PREMISES
 - definitions: core/design.md priority (the mark, which side wins: marked over unmarked, the nearer mark, unmarked → the wider side) and places (what goes where) | CLAUDE.md DOCS durable_info
-- facts: only from `pnpm workflow context facts` (one row per line) | never list files or lines by hand | read a line's neighbors only to summarize it or draft the text to write
+- facts: `pnpm workflow context facts` (one row per line; the default, it lists exactly) | read a line's neighbors only to summarize it or draft the text to write
 - target: the files the command prints (this repo's own and self files under .claude/rules, its own lineage section, the lines below the fork marker; Tier1: its rules outside core and items) | personal files belong to /meditate
 - marks: a mark changes only how a line is read, never checks, ownership, settings or permissions | a marked line against CLAUDE.md, core or an ancestor's section is an open contract gap: offer /order <its owner> and `(order: <id>)`
-- writes: the working tree only, never committed (commit only when told, naming the paths) | a parent-owned or contract place → /order draft, never edited here
+- writes: the working tree only, never committed (commit only when told, naming the paths) | a parent-owned or contract place is the parent's (CLAUDE.md fork_ownership) → an /order draft
 
 ## STEPS
 1. FACTS: `pnpm workflow context facts` | exit 2 → STOP: show its one line (the owner cannot be decided) | no `file:` row → report "nothing to review" and stop | keep the rows as the source for every step below
@@ -57,5 +57,5 @@ one by one:
 
 ## RULES
 - never change a file before its approval
-- never edit a parent-owned or contract place here: /order it
+- a parent-owned or contract place is the parent's (CLAUDE.md fork_ownership): /order it
 - never commit unless told

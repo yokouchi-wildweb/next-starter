@@ -7,11 +7,12 @@ argument-hint: "[full-permission | no-mark]"
 role: rewrite `.claude/settings.local.json` of this checkout (and, only on the user's choice, two keys of `~/.claude/settings.json`) through `pnpm workflow local-settings plan|apply|show`, after one yes
 source_of_truth: what is written, backups, exit codes = scripts/workflow/local-settings/README.md | the permission layer = scripts/workflow/devcheck/README.md (section `許可の層`) | the processing stays in the command
 args: $ARGUMENTS
-never: write either file yourself (Edit / Write / node) | touch managed settings or the team tools' per-launch settings | print env values | run apply before the yes
+tool: the command writes both files (with a backup in .agent/; the default) | a hand fix keeps the same form
+never: run apply before the yes (the user's decision) | touch managed settings or the team tools' per-launch settings (not this checkout's) | print env values (secrets)
 
 ## STEPS
 1. **now**: `pnpm workflow local-settings show` → keep its lines for step 6's comparison
-2. **plan**: `pnpm workflow local-settings plan` (args `no-mark` or the user's `印なし` → add `--no-grant`; `full-permission` or `全部許可` → add `--bypass`) | exit 2 → tell its one line; STOP
+2. **plan**: `pnpm workflow local-settings plan` (args `no-mark` or the user's `印なし` → add `--no-grant`; `full-permission` or `全部許可` → add `--bypass`) | exit 2 → tell its one line and the cause; fix it and run plan again
 3. **ask once** with the plan's output, short:
    ```
    手元の設定(<file>)を全部書き換えます（控えは .agent/ に残します）
@@ -25,7 +26,7 @@ never: write either file yourself (Edit / Write / node) | touch managed settings
    ```
    - the 3 dangerous kinds (schema push, the production confirm, writes to the production env) are always stopped by the hook, whatever is chosen: say so in one line when the user asks about safety
    STOP: wait | a changed choice → run plan again with the matching flags (`--drop-deny=<row>` per row, `--bypass`, `--no-grant`) and ask again
-4. **apply**: `pnpm workflow local-settings apply` with exactly the flags of the plan the user said yes to (quote each `--drop-deny='<row>'`) | exit 2 → its one line; STOP
+4. **apply**: `pnpm workflow local-settings apply` with exactly the flags of the plan the user said yes to (quote each `--drop-deny='<row>'`) | exit 2 → its one line and the cause; fix it and run apply again
 5. **personal settings**: only with `--bypass` — tell that it takes effect from the next launch, for every project
 6. **show**: `pnpm workflow local-settings show` and report once:
    ```
