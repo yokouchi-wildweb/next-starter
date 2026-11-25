@@ -8,6 +8,8 @@
 //      "libs" に書いた lib の入口・"peers" に書いた棚・"@lib-config/<自分>"(描画専用は "@lib-config/<自分>.ui"、口の決まりは scripts/structure/lib-package/configSlots.mjs)と外部パッケージだけを読む(宣言の読み手 src/lib/libPackage)
 // - 同じ単位・同じ部品・同じ lib の中からの読みは見ない(中の組み立ては自由)
 // - 生成された一覧(…/extensions/<file>)は受け口の項目を読むのが仕事なので見ない
+// - 生成の印のあるファイル(src/wiring/*.ts などの結び目)が lib の項目 src/lib/<lib>/plugs/** を読むのは通す(項目は exports に出さない)。
+//   印のあるファイルでも plugs の外の lib の中身は見る
 // - テストのデータ __fixtures__ は、テスト(*.test.*)から読むときだけ単位として数えない
 // - 全 Tier で error。行の例外は置かない: 足りない入口は持ち主が足す
 
@@ -20,6 +22,8 @@ const SHELF_UNIT = /^src\/components\/([^/]+)\/([^/]+)\/(.+)$/;
 const CORE_UI_PART = /^(src\/domains\/core\/[^/]+\/components\/(?:common\/)?[^/]+)\/(.+)$/;
 const ENTRY = /^index(\.(ts|tsx|mts|mjs|js|cjs))?$/;
 const GENERATED_LIST = /\/extensions\/[^/]+$/;
+const GENERATED_MARK = "// 生成物・編集不可: ";
+const LIB_PLUG = /^src\/lib\/[^/]+\/plugs\//;
 const TEST_FILE = /\.test\.[cm]?[jt]sx?$/;
 const FIXTURES = "__fixtures__";
 
@@ -84,6 +88,7 @@ const rule = {
     const importer = repoRelative(context.filename, root);
     if (GENERATED_LIST.test(importer)) return {};
     const isTest = TEST_FILE.test(importer);
+    const isGenerated = (context.sourceCode ?? context.getSourceCode()).text.startsWith(GENERATED_MARK);
     const ownLib = libOfPath(importer);
     const ownPkg = ownLib ? readLibPackage(root, ownLib) : null;
 
@@ -112,6 +117,7 @@ const rule = {
       // 3. lib
       const targetLib = libOfPath(resolved);
       if (targetLib && targetLib === ownLib) return;
+      if (targetLib && isGenerated && LIB_PLUG.test(resolved)) return;
       if (targetLib) {
         if (ownPkg && !ownPkg.libs.includes(targetLib)) {
           context.report({ node, messageId: "undeclaredLib", data: { source, own: ownLib, lib: targetLib } });

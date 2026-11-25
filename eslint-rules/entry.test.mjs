@@ -30,7 +30,7 @@ write("src/lib/toastlike/package.json", {
   libs: ["cn", "plain"],
   peers: ["components"],
 });
-for (const file of ["index.ts", "client.ts", "inner/store.ts"]) write(`src/lib/toastlike/${file}`, "export {};\n");
+for (const file of ["index.ts", "client.ts", "inner/store.ts", "plugs/startupTasks/warm.ts"]) write(`src/lib/toastlike/${file}`, "export {};\n");
 // cn: 宣言済み(入口 . だけ)
 write("src/lib/cn/package.json", { exports: { ".": "./index.ts" } });
 for (const file of ["index.ts", "groups.ts"]) write(`src/lib/cn/${file}`, "export {};\n");
@@ -84,6 +84,25 @@ test("entry/only-entries(lib): 外から宣言済みの lib は exports の入�
         options,
         errors: [{ messageId: "libInner" }],
         name: "宣言の無い lib から読むときも相手の入口は守る",
+      },
+    ],
+  });
+});
+
+test("entry/only-entries(lib): 生成の印のある結び目は lib の項目 plugs/** を読める(plugs の外と印の無いファイルは入口だけ)", () => {
+  const wiring = at("src/wiring/startup.ts");
+  const mark = "// 生成物・編集不可: pnpm generate extensions が src/lib/startup/extensionPoints.ts から生成する\n";
+  const plug = `const m = await import("@/lib/toastlike/plugs/startupTasks/warm");`;
+  ruleTester.run("entry/only-entries", entryPlugin.rules["only-entries"], {
+    valid: [{ code: mark + plug, filename: wiring, options }],
+    invalid: [
+      { code: plug, filename: wiring, options, errors: [{ messageId: "libInner" }], name: "印の無いファイルからは入口だけ" },
+      {
+        code: mark + `import { store } from "@/lib/toastlike/inner/store";`,
+        filename: wiring,
+        options,
+        errors: [{ messageId: "libInner" }],
+        name: "印があっても plugs の外の lib の中身は入口だけ",
       },
     ],
   });
