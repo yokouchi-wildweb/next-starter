@@ -33,6 +33,7 @@ map (every core file, loaded by its paths):
 - .claude/rules/core/skills.md: the skill format
 - .claude/rules/core/style.md: the style rules (COMPONENTS style)
 - .claude/rules/core/terms.md: the term table (generated from scripts/workflow/terms/terms.json; loaded when writing context)
+- .claude/rules/core/tools.md: how tools are built (scripts, skills, hooks, settings, ~/.team/_bin)
 
 ## places (what goes where)
 - roles: core file = the architecture canon (layers, placement, ownership, each district's role, cross-cutting rules, duties of the calling layer) | card = rules only for that item + pointers to its README | README = API, mechanism, usage, options, examples, never the source of a rule

@@ -39,6 +39,7 @@ use: a step a rule assigns to a tool (a push → /sluice, a generated file → i
 - workflow: pnpm workflow \<area\> (ownership, rules, notices, worktree, devcheck, repo-json …) | ops: pnpm ops \<area\> (setup env, features, db inspect, firestore inspect) | task: pnpm task \<name\> (every ops task, no ad-hoc)
 - running_app: a check that needs the running app → /devcheck (an order's check sheet → /patrol) | what the agent may run = repo.json agent.* policy, never stated here, changed only by /repo-config
 - skills: /sluice (checks, notice, commit, push) | /flux (take a parent's changes) | /order /inbox /wen (orders) | /devcheck /patrol (the running app) | /allow /repo-config (what the agent may run, the repo.json settings) | the rest → .claude/skills/
+- making: before building or fixing a tool (scripts, skills, hooks, ~/.team/_bin) → read core/tools.md
 
 ## REPO_LINK (one loop links the repos: ship → take in → order → answer → resolves; detail → core/notices.md)
 loop: /sluice (a notice when downstream must follow) → downstream takes it with /flux, segment by segment → what is missing → /order \<to\> → the receiver answers with /inbox (/wen checks yours) → the notice shipping it says resolves: and the permit and provisional rule end

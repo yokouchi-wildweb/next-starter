@@ -28,7 +28,7 @@ records: every named pnpm task run and every pnpm ops data write is a task_runs 
 - incomplete = run stopped on its time budget (taskIncomplete, not key-holding) → run the same command again | TaskRerunnableError = failed after writes, result kept, rerunnable | ref: src/lib/task/README.md
 lint (all tiers error): src-no-scripts | scripts-no-static-wiring (scripts/**, domains/**/scripts/**, codemods: @/wiring by import() only) | tools-no-db-write (domain tasks, scripts/operations except operations/db, seed.ts, workflow/dev-admin: no @/lib/drizzle, entities/drizzle, raw sql, drivers; migrations exempt) | seed-reader
 - a reasoned eslint-disable for a real exception (e.g. a db test closing the pool)
-tool_design: a tool does the work, then checks and records the result | it never restricts what the agent may do | it may stop only before production, a push or a human's decision | an ordinary step is never made "only the tool writes it" or "go through the tool"
+tool_design: → core/tools.md tool_design (and the rest of how tools are built)
 tests: pnpm test [path|--changed|--db] = the test entry /sluice runs (checks_in_ship: never as a step of the work) | groups by name: \*.db.test.\* = db, tests/ outside tests/e2e/ = fork (tests a fork adds), else unit | the entry always adds the server-only preload and module mocks (never write them)
 - phase_tests: a test a phase runs (phase.json `check` is a test file, or its `tests` list) runs once, in that phase: pnpm test skips it unless named (D389)
 - feature_gate_env: tests never get FEATURE_GATE_OPEN from the shell; a switch test sets its own env
