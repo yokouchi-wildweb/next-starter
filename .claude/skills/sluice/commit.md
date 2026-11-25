@@ -10,7 +10,7 @@ read by: /sluice (SKILL.md STEPS points here for steps 0, 1 and 3-6) | a caller 
 1. **fix the range**:
    - `git status --short` and `git diff --cached --name-only` | other sessions may have staged in the same work tree | ship only the files you changed in this conversation (match them against the files touched in the conversation) | any file you cannot tell → STOP
    - range empty → HEAD has commits the push target lacks (SKILL.md COMMITTED RANGE) → ship those | none → plain or `--safe`: SKILL.md SHIPPED TIP | `--quick`: report only `出荷するものなし` (nothing to ship) and end (no commit, no push)
-   - **never put migrations kept out of git `src/domains/**/scripts/migrations/*.local.ts` in the range** (emergency data fixes not sent downstream; one `.gitignore` line) | staged or tracked → STOP (gate ship's `pnpm check local-migrations` fails too; remove with `git rm --cached <path>`; needed downstream too → drop `.local` and make it a normal migration with `notice:`)
+   - **migrations kept out of git `src/domains/**/scripts/migrations/*.local.ts` stay out of the range** (emergency data fixes not sent downstream; one `.gitignore` line) | one staged or tracked → `git rm --cached <path>` (ship's `pnpm check local-migrations` fails it too) | needed downstream too → drop `.local` and make it a normal migration with `notice:`
    - list deletions and renames: the `D` / `R` lines of `git status --short` and files deleted in the work tree | used by the judgment of step 3 and by `moved:`
    - **check for overlap with other sessions' commits**:
      - base = the HEAD at the start of the conversation (latest commit of the environment's gitStatus; none → the HEAD you saw when starting the work)
@@ -33,7 +33,7 @@ read by: /sluice (SKILL.md STEPS points here for steps 0, 1 and 3-6) | a caller 
      - deleting / renaming a key, or a contract change that needs downstream work → in `required_actions`, write how downstream repos that wrote the same key marked `(priority)` in their own context fix it (rewrite to the key's new name, drop the mark, etc.: `git grep -n '<key>' -- .claude/rules ':!.claude/rules/core' ':!.claude/rules/items'`)
    - resolving an order from a downstream fork: the argument `order:<id>` is given and the order's sender is a repo other than this one (judged by `requester` of `node .claude/skills/order/mailbox.mjs`; the head of the order's `from:` is a repo origin URL different from this repo)
      - write `resolves: <id>` in the notice | even when no other notice is needed, ship a notice with `severity: info` + `required_actions: none` + `checkpoint:` (used to expire downstream temporary permits; `.notices/README.md` section `解決(resolves)`) | also for orders closed by rejecting or withdrawing
-     - never tell forks to keep a temporary permit that cites the resolved id (it expires as expired-resolved when the fork takes the notice)
+     - a temporary permit that cites the resolved id expires as expired-resolved when the fork takes the notice: required_actions need not mention keeping or dropping it
      - fork-side work remains (e.g. moving its own data) → required_actions: re-cite that permit's `upreq:` with an order id the fork files to itself (before taking it or in the same segment) | verify: `pnpm workflow ownership check` shows the row valid | such a notice is not `required_actions: none` (`.notices/README.md` section `解決(resolves)`)
 4. **check whether it is a fix**: first judge by the conversation's context (a bug report, the order's need, `直して`)
    - the context says it is a fix, or you changed / deleted existing lines of code → identify the origin by the blame below
@@ -45,11 +45,11 @@ read by: /sluice (SKILL.md STEPS points here for steps 0, 1 and 3-6) | a caller 
      - together with the context (bug report, the order's need), a fix of a bug of an earlier shipment → a `fixes:` candidate | the origin has a notice → its id; none → `commit:<短 sha>`
      - even when this fix needs no fork follow-up, ship a notice to carry `fixes:` (`severity: info`, `required_actions: none`)
 5. **write the notice** (only when needed; write it out without asking first; NOTICE COMPOSITION, notice.md)
-   - `notice:defer` → write nothing here: list the material for the report instead (one line per item: what changed for forks, required_actions / `[user-run]` steps, `moved:` / deleted paths, `fixes:` origin, `resolves: <id>` when step 3 found an order to resolve — never dropped; `none` when step 3 found no need) and go to step 6
+   - `notice:defer` → write nothing here: list the material for the report instead (one line per item: what changed for forks, required_actions / `[user-run]` steps, `moved:` / deleted paths, `fixes:` origin, `resolves: <id>` when step 3 found an order to resolve — always listed: it ends the fork's temporary permits; `none` when step 3 found no need) and go to step 6
    - `notices:` → one notice per draft: every `- ` item goes in (into change / required_actions / manual_steps / moved: as it reads; `resolves: <id>` items → `resolves:`, `fixes: <id>` items → `fixes:`), plus what steps 3-4 found in this ship's own range; `checkpoint:` = the draft's segment | an item left out → say it in the report (the caller records it)
    - no index: the list of shipped notices is the history of `.notices/` (D350) | line 2 `from:` = this repo's origin URL (the owner forks read) | then pass step 2's `pnpm check notices`
 6. **commit**:
-   - put in only your own files (never sweep in other sessions' staging) | the notice goes in the same commit as the change itself:
+   - put in only your own files (another session's staging in the same index is theirs: commit with `git commit -- <paths>`) | the notice goes in the same commit as the change itself:
      - pass to `git add` only paths that exist in the work tree (passing deleted / move-source paths stops with a pathspec error; stage deletions with `git rm` or include them in the commit pathspec next)
      - include deleted paths and directories in `git commit -- <paths>` (the commit pathspec picks up deletions)
      - before committing, confirm with `git diff --cached --name-only` that only the range's files are in
@@ -65,7 +65,7 @@ read by: /sluice (SKILL.md STEPS points here for steps 0, 1 and 3-6) | a caller 
        - one commit, no lock / route-map, steps naming no later notice, no cherry-pick conflict, `pnpm typecheck`, `pnpm test scripts/structure/config/moduleLoad.test.mjs`, `pnpm check registry`, the prerequisite check
        - changes to `.notices/shipped/` (older commits that still carry the removed index) are dropped when putting them on
          - sunset: 20261120-122554-notice-history (remove once every fork has taken that notice)
-     - it writes `pick: clean` or `pick: -` in **that notice's body** (the line right after `fixes:`; humans never write or rewrite it; the body missing from the work tree → it writes nothing and exits 2)
+     - it writes `pick: clean` or `pick: -` in **that notice's body** (the line right after `fixes:`; pickCheck is its writer: after a change to the fix, run it again | `pnpm check notices` reads only the value, so a hand-written one passes unjudged | the body missing from the work tree → it writes nothing and exits 2)
      - exit 0 / 1 (clean / -): put the written body in the same commit: `git commit --amend --no-edit -- .notices/<id>.md` (only your own commit before push; `pick:` does not affect the judgment) → `pnpm check notices` | with `-` too, ship without stopping (the fork receives it by the current fixes behavior) | write the failed conditions in the report
      - exit 2 (cannot judge: origin not in history, dependencies cannot be installed): ship without the field (no field = same as `-`), report `pick 未確認: <理由>`
      - `未実行: <検査>` (the base tree has no script for it) → write in the report

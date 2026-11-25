@@ -12,18 +12,18 @@ role: **sluice** (commit and push this repo's changes; when downstream forks nee
 - from a tool or skill that ships for its caller (commit only with `--quick no-push`; a later plain ship of the commits already made: COMMITTED RANGE below)
 - also in repos without downstream (leaf forks) | whether downstream exists = `tier` of `repo.json` (root / middle = yes, leaf = none; only reader: `src/lib/forkOwnership/forkIds.mjs`): `node --input-type=module -e "import { readForkIdentity } from './src/lib/forkOwnership/node.mjs'; const i = readForkIdentity('.'); console.log(i.downstream ?? i.downstreamError)"`
   - `none` → skip steps 3-5 (notice)
-  - other than `yes` / `none` (declaration missing or wrong) → never guess from the text; STOP: have `tier` declared in `repo.json` (`pnpm workflow repo-json set tier <root|middle|leaf>`; `pnpm workflow ownership check` is unverified too)
+  - other than `yes` / `none` (declaration missing or wrong) → declare it first: `pnpm workflow repo-json set tier <root|middle|leaf>` (steps 3-5 read only this value, not the text; `pnpm workflow ownership check` is unverified until then too)
 
 args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` = commit only, no push | `hotfix` = ship as an emergency fix (only when the human tells you; never add it on your own judgment, since it cuts into every fork's work) | the rest = extra notes
 - `notice:defer` = someone writes the notice later (a caller that collects the material of several commits into one notice): steps 3-4 judge as usual, step 5 writes no notice, the report gives the material instead
 - `notices:<path>,…` = notice drafts (one draft = one notice; a caller closing a segment it has drafted; the checkpoints are the draft's, never coarsened): step 5 writes one notice per draft from its `- ` items, `checkpoint:` = the draft's `segment:` header | with `no-push` | step 1 range empty → the commit holds the notices alone (step 2: `pnpm check notices` only)
 - which kind (pick it yourself when the caller gave none):
   - more work follows in this session → `--quick`
-  - the last ship of the session → plain (no flag; the human's words, else your own reading of whether work goes on) | its area checks also cover the quick ships not yet checked (step 2) | its report may propose a safe point (step 8)
-- `--safe` = a safe ship: the full checks on the tip, and a safe point tag when they pass (the mark of where the full checks passed; a deploy only reports it)
+  - the last ship of the session → plain (no flag; the human's words, else your own reading of whether work goes on) | its area checks also cover the quick ships not yet checked (step 2) | its report says where the last safe point is (step 8)
+- `--safe` = a safe ship: the full checks on the tip, and a safe point tag when they pass (the mark of where the full checks passed; a deploy only reports it) | only when the human asks for it in their own words, never on your judgment or a tool's proposal
 - `--quick` = a quick ship: skips even the light checks, makes no safe point, marks the commit `Ship: quick` (QUICK SHIP, commit.md)
 
-## ATTACHED FILES (must read when the condition hits; never go on without reading)
+## ATTACHED FILES (the steps they hold are there only: read each when its condition hits)
 - **`commit.md`**: steps 0, 1, 3-6 and QUICK SHIP — every ship reads it (the STEPS below point to it)
 - **`notice.md`**: NOTICE COMPOSITION — read when step 5 writes a notice
 
@@ -34,14 +34,14 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
      - line 1 `<N> quick commits unchecked`, then the files the run of `Ship: quick` commits behind HEAD changed (the walk stops at an unmarked commit or this repo's own safe tag; it walks on through a merge with neither `Ship:` nor `downstream-notice:`, e.g. a work merge on the line such as a guild ticket's merge, so the side it joined counts too)
      - add those files to the range the checks below look at (the commit range stays yours) | another session's quick change fails a check and the fix is not obvious → STOP | exit 2 → report `quick 分の検査: 未確認(<理由>)` and go on
    - always: `pnpm check --phase=ship` | failed → fix and rerun (generator drift → `pnpm generate <target>`)
-     - it runs every check of the generators / checkers on phase ship, in order: role, domain, registry, routes, cron, cycles, config, eslint, and the watched rules (pnpm check rules when `CLAUDE.md` / `.claude/rules/` changed), notices (pnpm check notices when `.notices/` or the ship / flux skills changed)
-     - targets the watch does not hit are skipped with one line; `--all` runs all | `scripts/runner/phases/README.md`
+     - it runs every check that declares phase ship in its `phase.json` (each check's folder under `scripts/structure/` and `scripts/workflow/`), in the declared order; a check's `watch` there decides whether the range hits it (e.g. notices: `.notices/`, the sluice / flux skills, the notices tools)
+     - a check the watch does not hit is skipped with one line naming it; `--all` runs all | `scripts/runner/phases/README.md`
    - code changed (`.ts` / `.tsx` / `.js` / `.mjs`): `pnpm typecheck` and `pnpm exec eslint --no-warn-ignored <changed code files>` (an ignored file, e.g. a _template placeholder file, is skipped without a warning)
-   - by where you changed (run every one that applies; checks on the phase = pnpm check registry, pnpm check routes, pnpm check cron, pnpm test scripts/structure/config/moduleLoad.test.mjs, pnpm check eslint, pnpm test scripts/structure/cycles/cycles.test.mjs, pnpm check rules, pnpm check notices are run by `pnpm check --phase=ship` above, never repeat them):
+   - by where you changed (run every one that applies; a check `pnpm check --phase=ship` above already ran, as its output lists, is not run again):
      - `pnpm test` skips the tests a phase runs unless named (D389)
      - adding / deleting under `src/lib/`, `src/lib/CATALOG.md` → `pnpm test src/lib/folderCatalog/catalog.test.mjs`
      - `domainEntry.ts`, `domain.json` → registry drift → `pnpm generate registry`
-     - `entities/drizzle.ts`, `src/registry/schemaRegistry.ts` → `pnpm test scripts/structure/registry/` | an index changed → write the explanation of the diff `pnpm db:push:check` prints in the report (never run db:push itself)
+     - `entities/drizzle.ts`, `src/registry/schemaRegistry.ts` → `pnpm test scripts/structure/registry/` | an index changed → write the explanation of the diff `pnpm db:push:check` prints in the report (db:push itself is the dev DB's: repo.json `agent.db_push` decides who runs it, not this step)
      - `src/featureGate/rules/`, items of `src/proxies/*.ts`, cron `task.ts` → `pnpm check extensions` (drift → `pnpm generate extensions`) and `FEATURE_GATE_CHECK=all pnpm test src/featureGate scripts/structure/proxies`
      - adding / deleting / moving pages or routes, changing loaders or guard.ts → rebuild the map (`src/app/route-map.jsonl`) with `pnpm generate routes` and include it in the range, `pnpm test 'src/lib/screens/routeMap*.test.mjs'` (check --phase=ship also checks the map matches)
      - `domain.json`, role definitions (`*.role.json`), `*.profile.json` → `pnpm forge` (generation and post-checks in one go; include the generated files, the district map `src/registry/district-map.jsonl` and route-map changes in the range; write table-change guidance in the report)
@@ -68,9 +68,8 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - a `fixes:` notice shipped → give the `pick:` judgment (clean / `-` with the failed conditions / unverified)
    - `hotfix` → say it was shipped as an emergency fix, the result of the pick check, and that each fork needs `/flux` (forks do not notice until they run it)
    - the safe point: the tag name, or `セーフポイントなし: <理由>` (plain ship, `--quick`, `no-push`, a full check failed / could not run, the tag step failed)
-   - plain ship (pushed): `pnpm workflow notices safePoint status` → write `セーフポイント: <line 1>` | line 2 `propose` → end the report with one line `セーフポイントを作りますか(/sluice --safe、<line 1 の数>)` and wait for the human | exit 2 → `セーフポイント: 未確認(<理由>)` | not with `--quick` / `--safe`
-     - score = commits since the last own safe tag ÷ 80 + days ÷ 3 (`--first-parent`); ≥ 1 → propose | no safe tag yet → propose
-     - no human in this session (a team tool's executor that reports to its lead) → put that one proposal line in the result it hands back (RESOLUTION, status note, report) and end without waiting: the lead asks the human
+   - plain ship (pushed): `pnpm workflow notices safePoint status` → write `セーフポイント: <line 1>` | exit 2 → `セーフポイント: 未確認(<理由>)` | not with `--quick` / `--safe`
+     - line 2 `propose` (its count: `safePoint.mjs` proposeScore) is information only: write `(提案あり)` after line 1 and end the report; never ask about it and never wait | a safe point is made only when the human asks for one (`/sluice --safe`)
    - came from `/inbox` → do not stop here, return to the rest of `/inbox` step 4 (RESOLUTION) | use the commit sha and push result there
 
 ## STOP CASES
@@ -82,14 +81,14 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 
 ## WORKTREE ROUTE
 - applies: in a linked worktree (`git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`) whose branch has no upstream of its own (`git rev-parse --abbrev-ref @{u}` fails, or prints `origin/main`) | a branch tracking its own remote branch → a plain `git push` of that branch
-- never touch the main checkout and never move its local `main` ref (no exception)
+- never touch the main checkout and never move its local `main` ref (no exception: it belongs to whoever works there, and the tools read what is shipped from `origin/main`)
 - `git fetch origin main` → `pnpm workflow notices catchUp` every time (CATCH UP below: lays the line again when origin/main is not an ancestor of HEAD — then rerun `pnpm check notices` when it applies —, rebuilds a tip that took origin/main into the line, else nothing; the full checks of `--safe` run after the push, step 7) → `git merge-base --is-ancestor origin/main HEAD` must succeed
 - push with `git push origin HEAD:main` | the push target of this route = `origin/main` (COMMITTED RANGE, the safe point tag)
 - any condition fails → STOP
 
 ## CATCH UP (laying your branch again on a moved push target — D395 (2))
-- `pnpm workflow notices catchUp [--onto=<ref>]` (default origin/main): the same commits in the same order on the target; a work merge on the line (e.g. a guild ticket's merge) stays a merge, a merge that took main into the line is dropped (main's first-parent is one line), the line's root moves onto the target | never a plain `git rebase` (it flattens the work merges)
-- only for a line with one owner (the branch you /sluice); a line several build on (a guild's junction) catches up by the tool's merge, never this | it never reorders (not a reorder of a run with merges, D383)
+- `pnpm workflow notices catchUp [--onto=<ref>]` (default origin/main): the same commits in the same order on the target; a work merge on the line (e.g. a guild ticket's merge) stays a merge, a merge that took main into the line is dropped (main's first-parent is one line), the line's root moves onto the target | this is the tool for it: a plain `git rebase` would flatten the work merges
+- only for a line with one owner (the branch you /sluice); a line several build on (a guild's junction) catches up by its tool's merge instead (laying a shared line again would move others' commits) | it never reorders (not a reorder of a run with merges, D383)
 - tip rebuild (D402): origin/main is an ancestor of HEAD but the tip is a merge that took the target itself into the line (first parent = the line, second = the target)
   - → the same tree as a merge whose first parent is the target and second the line, the same author, subject `merge: <branch> を main へ`; one line `catchUp: 組み直した …`, never a stop
   - why: pushed as is, the previous main would leave main's first-parent line | such a merge further down the line is not rebuilt
@@ -101,7 +100,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 - plain:
   - `pnpm workflow notices safePoint quickFiles` | `0 quick commits unchecked` → report `出荷するものなし(検査していない quick の分もなし)` and end
   - else step 2's checks on those files (`pnpm check --phase=ship`, the code checks and the area checks they hit) | failed → fix in a new commit and ship it as a plain ship (step 1 onward) | the fix is not obvious → STOP
-  - all pass → step 8's report with `safePoint status` (may propose a safe point) | nothing records the pass: the next `quickFiles` counts the same quick commits again until a plain commit or a safe tag lies above them
+  - all pass → step 8's report with `safePoint status` (where the last safe point is) | nothing records the pass: the next `quickFiles` counts the same quick commits again until a plain commit or a safe tag lies above them
 - `--safe`:
   - HEAD already carries an own safe tag (`pnpm workflow notices safePoint status` prints `at <tag>`) → report `セーフポイント: 既にある <tag>` and end
   - step 7's full checks (`pnpm workflow notices safePoint check`) → step 7's tag (`pnpm workflow notices safePoint tag`) | exit codes as there
@@ -109,7 +108,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 
 ## COMMITTED RANGE (step 1's range is empty, HEAD ahead of the push target)
 - the commits on HEAD the push target lacks (`git log --format='%h %s' <target>..HEAD`; target = `origin/main` on the WORKTREE ROUTE, else `origin/<branch>`) = commits made earlier by /sluice (e.g. `--quick no-push` ships made on this branch): their notices are in them
-- skip: step 0 (the caller answers the orders), steps 2-5, step 6's commit | never with `hotfix`
+- skip: step 0 (the caller answers the orders), steps 2-5, step 6's commit | `hotfix` ships from step 1 instead (its change and notice in one commit, and its pick check)
 - keep:
   - step 6's `pnpm workflow notices reorder` first (the range is unpushed; with `no-push` it waits for the push)
   - each commit in the range that adds a `fixes:` notice → step 6's pickCheck on it (`pnpm workflow notices pickCheck <that commit>`; it writes `pick:` in the notice's body) → commit the bodies alone: `git commit -m "notices: pick marks" -- .notices/<id>.md`
@@ -118,7 +117,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
   - steps 7 and 8 (the report lists the commits shipped)
 
 ## CLEANING UP BODIES
-- bodies of notices whose segment closed may be deleted on the upstream side (no deadline; never moved to `done/`; the history keeps the last version)
+- bodies of notices whose segment closed may be deleted on the upstream side (no deadline; the history keeps the last version)
 - notices using migrations / codemods: ship → run on your own DB → delete the attachments and body in the next commit
 - a deletion that only cleans up needs no notice (`.notices/README.md` section `本文と添付物の片付け`)
 - ledgers do not flow upstream, so upstream does not track application status
