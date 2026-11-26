@@ -2,8 +2,9 @@
 // 設定の保存値の古い 3 キー(maintenanceEnabled・maintenanceStartAt・maintenanceEndAt)を 1 つのキー maintenance
 // ({ enabled, startAt, endAt })へまとめ、古いキーを消す。新しい版を取り込んだら先に 1 回走らせる(手順: notice)。
 // 冪等: 古いキーが無ければ何もしない。maintenance が既にある行(新しい版で保存済み)は古いキーを消すだけ。終わりに古いキーが残っていないか確かめる。
+// 残っていれば打ち直せる失敗(TaskRerunnableError: 記録 failed・鍵を取らない、src/lib/task/README.md)。
 
-import type { OneShotTask } from "@/lib/task";
+import { TaskRerunnableError, type OneShotTask } from "@/lib/task";
 
 const OLD_KEYS = "ARRAY['maintenanceEnabled', 'maintenanceStartAt', 'maintenanceEndAt']";
 const DROP_OLD = "- 'maintenanceEnabled' - 'maintenanceStartAt' - 'maintenanceEndAt'";
@@ -15,6 +16,12 @@ export const DROP_SQL = `UPDATE settings SET extended = extended ${DROP_OLD} WHE
 /** 古いキーが残っている行 */
 export const VERIFY_SQL = `SELECT id FROM settings WHERE COALESCE(extended, '{}'::jsonb) ?| ${OLD_KEYS}`;
 
+/** まとめた後の判定: 古いキーが残る行があれば打ち直せる失敗で止める(成功で終わると鍵を取り、二度と走らない) */
+export function verdictOf(counts: { merged: number; dropped: number; remaining: number }): { merged: number; dropped: number; remaining: number } {
+  if (counts.remaining > 0) throw new TaskRerunnableError(`古いキーが ${counts.remaining} 行に残っています(直して打ち直す)`, counts);
+  return counts;
+}
+
 export const task: OneShotTask = {
   name: "setting:merge-maintenance-keys",
   notice: "20261119-195101-setting-code-values",
@@ -24,6 +31,6 @@ export const task: OneShotTask = {
     const merged = await db.execute(sql.raw(MERGE_SQL));
     const dropped = await db.execute(sql.raw(DROP_SQL));
     const remaining = await db.execute(sql.raw(VERIFY_SQL));
-    return { merged: merged.count, dropped: dropped.count, remaining: remaining.length };
+    return verdictOf({ merged: merged.count, dropped: dropped.count, remaining: remaining.length });
   },
 };

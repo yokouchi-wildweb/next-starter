@@ -222,7 +222,7 @@ export default {
 
 ### 実列 admin_list_per_page から jsonb への移行
 
-旧版の書き込みを止める → `pnpm task setting:copy-list-per-page`(`mismatched: 0` を確かめる)→ `pnpm db:push` → `pnpm db:push:check`(差分 0)。task より先に push すると列の値が失われる。task は冪等で、列が無ければ何もしない。
+旧版の書き込みを止める → `pnpm task setting:copy-list-per-page`(写せなかった行 `missing` が残れば打ち直せる失敗 = exit 1 で止まる。`kept` = 保存済みの値を残した行)→ `pnpm db:push` → `pnpm db:push:check`(差分 0)。task より先に push すると列の値が失われる。task は冪等で、列が無ければ何もしない。
 
 ## Verification
 

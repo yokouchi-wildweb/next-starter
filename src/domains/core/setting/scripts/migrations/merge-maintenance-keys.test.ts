@@ -4,7 +4,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { DROP_SQL, MERGE_SQL, VERIFY_SQL, task } from "./merge-maintenance-keys";
+import { TaskRerunnableError } from "@/lib/task";
+
+import { DROP_SQL, MERGE_SQL, VERIFY_SQL, task, verdictOf } from "./merge-maintenance-keys";
 
 test("まとめる task: 古い 3 キーを maintenance へ、既にある行は古いキーを消すだけ、残りを確かめる", () => {
   assert.equal(task.name, "setting:merge-maintenance-keys");
@@ -16,4 +18,9 @@ test("まとめる task: 古い 3 キーを maintenance へ、既にある行は
   assert.match(DROP_SQL, /AND extended \? 'maintenance'$/);
   for (const sql of [MERGE_SQL, DROP_SQL]) assert.match(sql, /- 'maintenanceEnabled' - 'maintenanceStartAt' - 'maintenanceEndAt'/);
   assert.match(VERIFY_SQL, /\?\| ARRAY\['maintenanceEnabled', 'maintenanceStartAt', 'maintenanceEndAt'\]/);
+});
+
+test("まとめた後の判定: 古いキーが残る行があれば打ち直せる失敗、0 なら成功", () => {
+  assert.deepEqual(verdictOf({ merged: 1, dropped: 2, remaining: 0 }), { merged: 1, dropped: 2, remaining: 0 });
+  assert.throws(() => verdictOf({ merged: 1, dropped: 0, remaining: 2 }), (error) => error instanceof TaskRerunnableError && error.result?.remaining === 2);
 });
