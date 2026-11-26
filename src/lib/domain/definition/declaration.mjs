@@ -65,8 +65,11 @@ export const ENTITY_REGISTRATION_KEYS = new Set(["generate", "registered", "reas
 /** entity.json の鍵の全部 */
 export const ENTITY_KEYS = new Set([...ENTITY_TABLE_KEYS, ...ENTITY_REGISTRATION_KEYS, DECLARATION_COMMENT_KEY]);
 
-/** 関連(relations[])の鍵。unique = belongsTo の外部キーの列のユニーク(1 対 1、entity.json だけ) */
-export const RELATION_KEYS = new Set(["domain", "label", "fieldName", "fieldType", "relationType", "required", "onDelete", "includeRelationTable", "labelField", "formInput", "unique", DECLARATION_COMMENT_KEY]);
+/**
+ * 関連(relations[])の鍵。entity.json だけの鍵: unique = belongsTo の外部キーの列のユニーク(1 対 1)、
+ * foreignKey = false で外部キーの制約を作らない(列だけ。表に制約の無い関連)
+ */
+export const RELATION_KEYS = new Set(["domain", "label", "fieldName", "fieldType", "relationType", "required", "onDelete", "includeRelationTable", "labelField", "formInput", "unique", "foreignKey", DECLARATION_COMMENT_KEY]);
 export const RELATION_TYPES = new Set(["belongsTo", "hasMany", "hasOne", "belongsToMany"]);
 export const ON_DELETE_VALUES = new Set(["RESTRICT", "CASCADE", "SET_NULL"]);
 

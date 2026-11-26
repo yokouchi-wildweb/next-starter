@@ -18,7 +18,7 @@ import { pathToFileURL } from "node:url";
 import { getTableColumns, is, SQL } from "drizzle-orm";
 import { getTableConfig, PgDialect, PgTable } from "drizzle-orm/pg-core";
 
-import { DOMAIN_DECLARATION_VERSION } from "../src/lib/domain/node.mjs";
+import { DOMAIN_DECLARATION_VERSION, FIELD_TYPES } from "../src/lib/domain/node.mjs";
 import { readDistrictMapAt } from "../src/lib/districtMap/node.mjs";
 import { toCamelCase, toSnakeCase } from "../src/lib/stringCase/index.mjs";
 import { domainTableName } from "../scripts/structure/domain/domain/names.mjs";
@@ -123,6 +123,15 @@ export async function declareTable(input) {
   const tableName = now.config.name;
   const note = (text) => (input.fromOld ? discrepancies.push(`${tableName}: ${text}`) : undefined);
   entity.fields ??= [];
+  // 型の表に無い fieldType の項目(fork の "uuid[]" など)は、生成器が列関数を決められないので、今の列の型を column.type に書く
+  for (const field of entity.fields) {
+    if (field.fieldType === undefined || Object.hasOwn(FIELD_TYPES, field.fieldType) || field.column?.type) continue;
+    const columnName = field.column?.name ?? toSnakeCase(field.name);
+    const running = now.columns[columnName];
+    if (!running) continue;
+    field.column = { ...(field.column ?? {}), type: running.getSQLType() };
+    note(`項目 ${field.name} の fieldType "${field.fieldType}" は型の表に無いので、列の型を今の ${running.getSQLType()} で書いた`);
+  }
 
   for (let pass = 0; pass < 4; pass++) {
     // hiddenColumns は表の形を変えない(実行時の宣言)ので、項目が揃う前でも組めるよう外して組む
@@ -169,9 +178,17 @@ export async function declareTable(input) {
         changed = true;
       }
       if (!field) {
-        // 生成器が別の鍵(関連・システム列・id)から作る列。関連の列のユニークは関連の unique(1 対 1)
+        // 生成器が別の鍵(関連・システム列・id)から作る列。関連の列のユニークは関連の unique(1 対 1)、
+        // 今は NOT NULL で宣言が任意の関連は required:true(動いている値)
+        const relationOf = () => (entity.relations ?? []).find((rel) => rel.relationType === "belongsTo" && toSnakeCase(rel.fieldName) === name);
+        if (column.notNull && !target.notNull && relationOf() && !relationOf().required) {
+          relationOf().required = true;
+          note(`関連 ${relationOf().fieldName} の NOT NULL を今の値で書いた(required: true、制約)`);
+          changed = true;
+          continue;
+        }
         if (column.isUnique && !target.isUnique) {
-          const relation = (entity.relations ?? []).find((rel) => rel.relationType === "belongsTo" && toSnakeCase(rel.fieldName) === name);
+          const relation = relationOf();
           if (relation) {
             relation.unique = true;
             note(`関連 ${relation.fieldName} の列のユニークを今の値で書いた(1 対 1、制約)`);
@@ -195,8 +212,11 @@ export async function declareTable(input) {
         if (!entity.enums.some((entry) => entry.name === column.enum.enumName)) {
           entity.enums.push(values ? { name: column.enum.enumName, valuesFrom: values } : { name: column.enum.enumName, values: [...column.enum.enumValues] });
         }
-        if (field.column.enum !== column.enum.enumName && target?.enum?.enumName !== column.enum.enumName) {
+        const sameEnum = target?.enum?.enumName === column.enum.enumName && isDeepStrictEqual([...target.enum.enumValues], [...column.enum.enumValues]);
+        if (field.column.enum !== column.enum.enumName && !sameEnum) {
+          // 名前か値が違う(fork で値の増えた enum など): 項目の options からでなく enums の宣言(今の値か valuesFrom)で作る
           field.column.enum = column.enum.enumName;
+          if (target?.enum?.enumName === column.enum.enumName) note(`項目 ${prop} の enum ${column.enum.enumName} の値を今の値で書いた(宣言 [${target.enum.enumValues.join(", ")}]、制約)`);
           changed = true;
         }
       } else if (wantFacts.type !== facts.type) {
@@ -243,6 +263,35 @@ export async function declareTable(input) {
       if (wantPk.includes(pk.getName())) continue;
       entity.primaryKey = { columns: propsOf(pk.columns), name: pk.getName() };
       delete entity.idType;
+      changed = true;
+    }
+    // 関連から作る FK が今の表に無い、または同じ列に別の名前で在る: 関連に foreignKey:false(列だけ)。
+    // 別の名前の物は下の「今だけの FK」が名前つきの foreignKeys で書く(動いている値)
+    const nowFkNames = new Set(now.config.foreignKeys.map((fk) => fk.getName()));
+    const nowFkByColumns = new Map(now.config.foreignKeys.map((fk) => [fk.reference().columns.map((column) => column.name).join(","), fk.getName()]));
+    const nowFkByName = new Map(now.config.foreignKeys.map((fk) => [fk.getName(), fk]));
+    const ON_DELETE_OF = { restrict: "RESTRICT", cascade: "CASCADE", "set null": "SET_NULL" };
+    for (const fk of want.config.foreignKeys) {
+      const columns = fk.reference().columns.map((column) => column.name);
+      if (columns.length !== 1) continue;
+      const running = nowFkByName.get(fk.getName());
+      if (running && (running.onDelete ?? "no action") !== (fk.onDelete ?? "no action")) {
+        // 同じ名前で onDelete だけ違う: 関連の onDelete で書けるならそれで、no action は関連の鍵に無いので名前つきの foreignKeys で
+        const relation = (entity.relations ?? []).find((rel) => rel.relationType === "belongsTo" && toSnakeCase(rel.fieldName) === columns[0]);
+        if (!relation) continue;
+        const onDelete = ON_DELETE_OF[running.onDelete ?? "no action"];
+        if (onDelete) relation.onDelete = onDelete;
+        else relation.foreignKey = false;
+        note(`関連 ${relation.fieldName} の外部キーの onDelete を今の ${running.onDelete ?? "no action"} で書いた(制約)`);
+        changed = true;
+        continue;
+      }
+      if (nowFkNames.has(fk.getName())) continue;
+      const relation = (entity.relations ?? []).find((rel) => rel.relationType === "belongsTo" && toSnakeCase(rel.fieldName) === columns[0] && rel.foreignKey !== false);
+      if (!relation) continue;
+      relation.foreignKey = false;
+      const other = nowFkByColumns.get(columns.join(","));
+      note(other ? `関連 ${relation.fieldName} の外部キーは今は名前 ${other} なので、関連は foreignKey: false、FK は名前つきで書いた(制約)` : `関連 ${relation.fieldName} の外部キーは今の表に無いので foreignKey: false で書いた(制約)`);
       changed = true;
     }
     const wantFks = new Set(want.config.foreignKeys.map((fk) => fk.getName()));

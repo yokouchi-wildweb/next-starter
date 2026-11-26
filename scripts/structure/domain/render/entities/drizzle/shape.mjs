@@ -10,7 +10,7 @@ import { TABLE_SHAPE_KEYS } from "../../../../../../src/lib/domain/node.mjs";
 import { readDistrictMapAt } from "../../../../../../src/lib/districtMap/node.mjs";
 import { toCamelCase, toSnakeCase } from "../../../../../../src/lib/stringCase/index.mjs";
 import { enumNames } from "../../../domain/names.mjs";
-import { columnFunction, isArrayFieldType, isEnumFieldType } from "../../../spec/fieldTypes.mjs";
+import { FIELD_TYPES, columnFunction, isArrayFieldType, isEnumFieldType } from "../../../spec/fieldTypes.mjs";
 import { buildColumn, formatValue } from "./columns.mjs";
 
 /** fields[].column.type(SQL の型の書き方)→ drizzle の列関数と第 2 引数。( ) の引数は precision・scale・length */
@@ -102,6 +102,9 @@ export function shapedFieldColumn(ctx, field, imports, enumDefs, needs) {
     imports.add("text");
     base = `text("${columnName}").array()`;
   } else {
+    if (!Object.hasOwn(FIELD_TYPES, field.fieldType)) {
+      throw new Error(`エラー: fields "${field.name}" の fieldType "${field.fieldType}" は型の表に無い。column.type で列の型を書く`);
+    }
     const typeFn = columnFunction(field.fieldType);
     imports.add(typeFn);
     base = buildColumn(typeFn, columnName, field.fieldType);

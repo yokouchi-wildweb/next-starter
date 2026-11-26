@@ -25,8 +25,8 @@ export const COMMENT_KEY = DECLARATION_COMMENT_KEY;
 
 export { COLLECTION_KEYS, DB_ENGINES, FIELD_GROUP_KEYS, ID_TYPES, ON_DELETE_VALUES, RELATION_TYPES };
 
-/** 関連のキー。1 対 1 の unique は新しい形の entity.json だけ */
-export const RELATION_KEYS = new Set([...ENTITY_RELATION_KEYS].filter((key) => key !== "unique"));
+/** 関連のキー。1 対 1 の unique と外部キーを作らない foreignKey は新しい形の entity.json だけ */
+export const RELATION_KEYS = new Set([...ENTITY_RELATION_KEYS].filter((key) => key !== "unique" && key !== "foreignKey"));
 
 /** 今の 1 ファイルの形のトップレベルの鍵 = 表の鍵 + 版・生成の旗・複合ユニーク(新しい形では indexes の unique)・メモ */
 export const TOP_LEVEL_KEYS = new Set([...TABLE_KEYS, "domainConfigVersion", "compositeUniques", "generate", COMMENT_KEY]);

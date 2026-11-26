@@ -36,7 +36,6 @@ export function belongsToColumns(ctx, workspace, tableName, imports, relationImp
 
     const relationDomainCamel = toCamelCase(rel.domain);
     const relationDomainPascal = toPascalCase(rel.domain);
-    relationImports.set(relationDomainCamel, relationDomainPascal);
     const colType = columnFunction(rel.fieldType || config.idType);
     imports.add(colType);
     const columnName = toSnakeCase(rel.fieldName);
@@ -48,7 +47,10 @@ export function belongsToColumns(ctx, workspace, tableName, imports, relationImp
 
     const foreignTable = foreignTableName(workspace, rel.domain);
 
-    if (isFkNameTooLong(tableName, columnName, foreignTable)) {
+    if (rel.foreignKey === false) {
+      // 外部キーの制約を作らない関連(entity.json の relations[].foreignKey: false): 列だけ(相手の表も import しない)
+    } else if (isFkNameTooLong(tableName, columnName, foreignTable)) {
+      relationImports.set(relationDomainCamel, relationDomainPascal);
       // FK 名が長すぎるのでテーブルコールバックで定義する
       imports.add("foreignKey");
       deferredForeignKeys.push({
@@ -58,6 +60,7 @@ export function belongsToColumns(ctx, workspace, tableName, imports, relationImp
         onDelete: ON_DELETE_LITERAL[onDeleteBehavior] || "",
       });
     } else {
+      relationImports.set(relationDomainCamel, relationDomainPascal);
       line += `\n    .references(() => ${relationDomainPascal}Table.id${buildOnDeleteOption(onDeleteBehavior)})`;
     }
     line += ",";

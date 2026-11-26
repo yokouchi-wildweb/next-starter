@@ -10,6 +10,7 @@ import { sql } from "drizzle-orm";
 import { bigint, check, index, inet, jsonb, pgEnum, pgTable, smallint, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { makeTempDir } from "../scripts/structure/domain-tables/tables.mjs";
+import { UserTable } from "../src/domains/core/user/entities/drizzle.ts";
 import { accessOfDeclaration, declareTable } from "./20261126-014453-domain-decl.declare.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -56,7 +57,7 @@ test("手で持つ表(宣言なし)は今の表から起こし、照らしの差
   assert.deepEqual(column("ip"), { type: "inet" });
   assert.deepEqual(column("meta"), { type: "jsonb", notNull: true, default: { sql: "'{}'::jsonb" } });
   assert.deepEqual(column("kind"), { enum: "dt_widget_kind", notNull: true });
-  assert.deepEqual(column("seq"), { type: "bigint", identity: "always" }, "identity の列は関数の既定と取り違えない");
+  assert.deepEqual(column("seq"), { type: "bigint", notNull: true, identity: "always" }, "identity の列は関数の既定と取り違えない(identity の列は NOT NULL)");
   assert.deepEqual(column("code"), { type: "text", unique: true });
   assert.deepEqual(entity.enums, [{ name: "dt_widget_kind", values: ["a", "b"] }]);
   assert.deepEqual(entity.indexes.find((i) => i.name === "dt_widgets_seen_idx"), { name: "dt_widgets_seen_idx", fields: ["seenAt"], desc: ["seenAt"] });
@@ -101,4 +102,41 @@ test("登録の access: 手で持つ登録は apiAccess をそのまま、生成
   assert.deepEqual(accessOfDeclaration({}).operations, { truncateAll: { roleCategories: ["admin"] }, export: "none", import: "none" });
   assert.deepEqual(accessOfDeclaration({ apiAccess: { ...internal, operations: { truncateAll: "none" } } }).operations.truncateAll, "none");
   assert.equal(accessOfDeclaration({ useImportExport: true }).operations.export.roleCategories[0], "admin");
+});
+
+test("fork でだけ出た形: 外部キーの無い関連・NOT NULL の関連・値の増えた enum・型の表に無い fieldType", async () => {
+  const userRelation = { domain: "user", label: "ユーザー", fieldName: "user_id", fieldType: "uuid", relationType: "belongsTo" };
+  const ownerRelation = { domain: "user", label: "持ち主", fieldName: "owner_id", fieldType: "uuid", relationType: "belongsTo" };
+  const statusEnum = pgEnum("dtLink_status_enum", ["a", "b", "c"]);
+  const actual = pgTable("dt_links", {
+    id: uuid("id").defaultRandom().primaryKey(),
+    user_id: uuid("user_id"),
+    owner_id: uuid("owner_id").notNull().references(() => UserTable.id),
+    status: statusEnum("status"),
+    ids: uuid("ids").array(),
+  });
+  const base = {
+    plural: "dt_links", dbEngine: "Neon", idType: "uuid", generate: false,
+    relations: [userRelation, ownerRelation],
+    fields: [
+      { name: "status", label: "状態", fieldType: "enum", options: [{ value: "a", label: "A" }, { value: "b", label: "B" }] },
+      { name: "ids", label: "ID", fieldType: "uuid[]" },
+    ],
+  };
+  const result = await declareTable({ ...input(actual, base, true), registration: "dtLink", domain: "dtLink", domainDir: "src/domains/dtLink" });
+  assert.deepEqual(result.stops, []);
+  const relation = (name) => result.entity.relations.find((rel) => rel.fieldName === name);
+  assert.equal(relation("user_id").foreignKey, false, "外部キーの無い関連");
+  assert.equal(relation("owner_id").required, true, "今は NOT NULL の関連");
+  assert.equal(relation("owner_id").foreignKey, false, "onDelete が no action の外部キーは関連の鍵で書けないので名前つきの foreignKeys");
+  assert.deepEqual(result.entity.foreignKeys, [{ columns: ["owner_id"], references: { table: "users", columns: ["id"] }, name: "dt_links_owner_id_users_id_fk" }]);
+  const field = (name) => result.entity.fields.find((f) => f.name === name);
+  assert.equal(field("status").column.enum, "dtLink_status_enum");
+  assert.deepEqual(result.entity.enums, [{ name: "dtLink_status_enum", values: ["a", "b", "c"] }]);
+  assert.deepEqual(field("status").options, base.fields[0].options, "宣言の options はそのまま");
+  assert.deepEqual(field("ids").column, { type: "uuid[]" });
+  assert.ok(result.discrepancies.some((line) => /user_id の外部キーは今の表に無い/.test(line)));
+  assert.ok(result.discrepancies.some((line) => /owner_id の NOT NULL/.test(line)));
+  assert.ok(result.discrepancies.some((line) => /enum dtLink_status_enum の値を今の値で書いた/.test(line)));
+  assert.ok(result.discrepancies.some((line) => /fieldType "uuid\[\]" は型の表に無い/.test(line)));
 });

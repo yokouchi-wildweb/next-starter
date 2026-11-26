@@ -150,6 +150,16 @@ test("表だけの列 columns・列のユニーク column.unique・関連の 1 �
   assert.match(missing.error.message, /column\.type か column\.enum を書く/);
 });
 
+test("関連の foreignKey:false は列だけ書き、型の表に無い fieldType は分かる文で止める", () => {
+  const files = { "src/domains/core/user/entities/drizzle.ts": 'export const UserTable = pgTable("users", {\n  id: uuid("id"),\n});\n' };
+  const noFk = generate({ relations: [{ domain: "user", label: "ユーザー", fieldName: "user_id", fieldType: "uuid", relationType: "belongsTo", foreignKey: false }] }, { files });
+  assert.equal(noFk.error, null);
+  assert.match(noFk.output, /\n  user_id: uuid\("user_id"\),/);
+  assert.doesNotMatch(noFk.output, /references|UserTable/);
+  const unknown = generate({ fields: [{ name: "ids", label: "ID", fieldType: "uuid[]" }] });
+  assert.match(unknown.error.message, /fieldType "uuid\[\]" は型の表.*に無い/);
+});
+
 test("書けない形はエラーにする", () => {
   const cases = [
     [{ fields: [{ name: "x", fieldType: "string", column: { type: "money" } }] }, /column\.type "money" は書けない型/],

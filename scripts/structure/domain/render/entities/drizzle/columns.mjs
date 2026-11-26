@@ -3,7 +3,7 @@
 
 import { toSnakeCase } from "../../../../../../src/lib/stringCase/index.mjs";
 import { enumNames } from "../../../domain/names.mjs";
-import { columnFunction, columnOptionsLiteral, isArrayFieldType, isCollectionFieldType, isEnumFieldType } from "../../../spec/fieldTypes.mjs";
+import { FIELD_TYPES, columnFunction, columnOptionsLiteral, isArrayFieldType, isCollectionFieldType, isEnumFieldType } from "../../../spec/fieldTypes.mjs";
 
 /** 列関数の呼び出し。第 2 引数は型の表の columnOptions（mode・precision / scale・withTimezone） */
 export function buildColumn(typeFn, columnName, fieldType) {
@@ -78,6 +78,10 @@ export function fieldColumns(ctx, imports, shapedColumn) {
       imports.add("text");
       lines.push(arrayColumn(f.name, f.required));
     } else {
+      // 型の表に無い fieldType は列関数を決められない(型名をそのまま import に書くと壊れた TS になる)
+      if (!Object.hasOwn(FIELD_TYPES, f.fieldType)) {
+        throw new Error(`エラー: fields "${f.name}" の fieldType "${f.fieldType}" は型の表(src/lib/domain/fields/fieldTypes.mjs)に無い。表の型にするか、entity.json の column.type で列の型を書く`);
+      }
       const typeFn = columnFunction(f.fieldType);
       imports.add(typeFn);
       const columnName = toSnakeCase(f.name);
