@@ -317,7 +317,7 @@ pnpm workflow ownership selfKeep --pre=<区間の前> --target=<区間の merge 
 `pnpm workflow ownership who` の答えに `type`・`keys`・`write`・`source`・`generated`(と `how`、none のとき `order`)を加える。判定に使う木は持ち主と同じ(Tier1 は HEAD、fork は直接の親との基準)で、読むのは宣言(`extensionPoints.ts`)・地区の見つけ方・ルート・名前の決まり(`src/lib/districtMap/extensionNames.mjs`)・受け口の一覧の kind・生成器の `phase.json`・`pnpm generate domain` の出力の種類(`scripts/structure/domain/phase.json` の `outputs`)。受け口の一覧の行の注記の文言は読まない。ownership check の合否は変えない(答えは案内)。
 
 - 判定の順: generated → own → 1 → 2 / 3 → 4 → none(足してよい新しいパスは own)
-  - `generated`: 受け口の一覧の generated / region の行(`source` = `pnpm generate <名前>`)、または `pnpm generate domain` が毎回書くファイル(`generate: false` のドメインを除く。`write` = 直す元: `domain.json`・`wrappers/`・受け口。最後の手段は `"generate": false`)。own より先に見る
+  - `generated`: 受け口の一覧の generated / region の行(`source` = `pnpm generate <名前>`)、または `pnpm generate domain` が毎回書くファイル(`generate: false` のドメインを除く。`write` = 直す元: 主の登録の `entities/<登録名>/entity.json`・`wrappers/`・受け口。最後の手段は `"generate": false`)。own より先に見る
   - `own`: この fork が足した物・中間 Tier の物(`write` = そのパス)。`pnpm generate domain` が無いときだけ書くファイル(`<domain>Service.ts`・`seed.ts`・管理画面の `page.tsx` など)と `generate: false` のドメインは、ほかの型に当たらなければ持ち主で own か none
   - `1` 丸ごと置き換え: `<名前>.default.ts(x)` とその隣の素の名前 → `write` = `<名前>.replace.<拡張子>`、`source` = スイッチ
     - 画面の `page.tsx` とその `_screen/**` の部品 → `write` = `<ルート>/_components/`、`source` = `page.tsx`

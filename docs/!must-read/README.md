@@ -99,7 +99,7 @@
 
 | 仕組み | 何のためにあるか | 詳細 |
 |---|---|---|
-| コード生成（`pnpm generate domain`） | business ドメインのエンティティ・サービス・フック・管理画面を `domain.json` から生成する。生成物は手で編集せず、`wrappers/` などの差し替え口で拡張する | `scripts/structure/domain/README.md`、`src/domains/README.md` |
+| コード生成（`pnpm generate domain`） | business ドメインのエンティティ・サービス・フック・管理画面を宣言（`domain.json` + 登録の `entities/<登録名>/entity.json`）から生成する。生成物は手で編集せず、`wrappers/` などの差し替え口で拡張する | `scripts/structure/domain/README.md`、`src/domains/README.md` |
 | 汎用 CRUD（`createCrudService`） | 一覧・検索・作成・更新・削除・並び替えなどを全ドメイン共通の実装で提供する。ドメインごとの差分だけを書けば済む | `src/lib/crud/README.md` |
 | API ルートのファクトリー（routeFactory） | すべての API ルートを 4 つのファクトリー（createDomainRoute / createApiRoute / createMeRoute / createDeviceRoute）のどれかで作り、認可・エラー変換・監査のコンテキストを強制する。認可の指定漏れは許可ではなく拒否に倒れる | `src/lib/routeFactory/README.md` |
 | エラーの流れ | サーバーは `DomainError`、クライアントは `HttpError` の 2 種類だけ。ユーザー向けの文言はサーバーサービスが決め、UI はそれを表示するだけ | [エラーハンドリング方針](エラーハンドリング方針.md) |
@@ -119,7 +119,7 @@
 | 画面 | 既定の画面（`_screen/`）、loader | `page.tsx` の向き先、差し替えた画面と専用部品（`_components/`） |
 | スタイル | トークンの構造（`theme.css`）と既定値（`core/` の `palette.css` / `typography.css` / `gradient.css`） | 変えたい値だけ（`src/styles/` 直下の `palette.css` / `typography.css` / `overrides.css`。グラデーションは `pnpm generate styles` が直下の `gradient.css` に。upstream の CSS は `src/styles/core/`） |
 | UI の設定 | 部品の既定値とその型 | 上書きする値（`src/config/lib/<名前>.config.ts`・`<名前>.ui.config.ts`） |
-| 拡張 | 生成器（`scripts/structure/registry`・`scripts/structure/extensions`）、受け口の宣言、core の `domainEntry.ts` | 業務ドメインの `domain.json`（→ 生成）、core の access を変える `domainEntry.override.ts`、受け口に置く印のない `<名前>.ts`、上流の既定を丸ごと置き換える `<名前>.replace.ts` |
+| 拡張 | 生成器（`scripts/structure/registry`・`scripts/structure/extensions`）、受け口の宣言、core の `domainEntry.ts` | 業務ドメインの宣言 `domain.json` + `entities/<登録名>/entity.json`（→ 生成）、core の access を変える `domainEntry.override.ts`、受け口に置く印のない `<名前>.ts`、上流の既定を丸ごと置き換える `<名前>.replace.ts` |
 | ルール | `CLAUDE.md`（全 fork 共通） | `.claude/rules/project.md`（fork ごとの差分） |
 
 core ドメイン（`src/domains/core/`）の UI は細かい部品と既定のコンテナで、部品は全部公開。fork は core の下を書き換えず、route の Screen で部品から組む（理由は [設計思想とアーキテクチャ](設計思想とアーキテクチャ.md) §3.1）。

@@ -39,7 +39,7 @@ const domains = existsSync(join(root, DISTRICT_MAP))
 
 const fails = [];
 // ドメインの生成器がこの木で実際に毎回書き直すファイル = 一括生成と同じ計画(書かない)。条件つきの出力(useDetailModal など)を
-// 宣言の glob だけで数えると、生成器が書かない同じ名の手書きの部品が「印が無い」で止まる。計画を組めない(domain.json の誤りなど)= 判定できないので止める
+// 宣言の glob だけで数えると、生成器が書かない同じ名の手書きの部品が「印が無い」で止まる。計画を組めない(entity.json の誤りなど)= 判定できないので止める
 let planned = null;
 try {
   const workspace = createWorkspace(root);

@@ -1,5 +1,5 @@
 // src/lib/domain/fields/presenterFor.mjs
-// domain.json の項目を「何で表示するか」（一覧・詳細のフォーマッタの種類）を決める。答えは型の表（fieldTypes.mjs）と項目の formInput から導く。
+// entity.json の項目を「何で表示するか」（一覧・詳細のフォーマッタの種類）を決める。答えは型の表（fieldTypes.mjs）と項目の formInput から導く。
 // 読み手: 生成器（scripts/structure/domain/render/presenters。答えを presenters.ts の式に写す）と、
 // 一覧の buildDomainColumns（src/lib/crud/presenters/domainColumns.ts。presenters を渡していない列を同じ答えで描く）。
 // 手書きの presenters.ts の項目は、この答えより優先される（生成後に手で書き換えた項目はそのまま）。

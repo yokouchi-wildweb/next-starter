@@ -5,7 +5,7 @@
 - ドメインデータを時系列で集計・分析するためのフレームワーク。他ドメインのテーブルを読み取り専用で参照し、共通の集計パターン（日別・期間サマリー・ランキング・残高推移）を提供する
 - 上流はデータの取り出しだけを出荷する（集計のサービス・管理 API `/api/admin/analytics/**`・rollup）。管理画面のページも管理メニューの項目も持たない。画面は fork が自分の業務に合わせて作り（`src/app/admin/(protected)/` の自分のルート + 管理メニューの受け口 `src/domains/core/admin/menu/` に項目）、この API を呼ぶ
 - 使う時・直す時の決まりは札 .claude/rules/items/domains/analytics.md にある
-- core ドメイン（domain.json なし、手動管理）
+- core ドメイン（手動管理。宣言 domain.json と登録 2 件 `entities/userDailyActivity/`・`entities/analyticsDailyRollup/` の entity.json を持ち、どちらも `generate: false`）
 - 閉じられる機能(門番の規則 `src/featureGate/rules/analytics.ts`、既定は閉 `defaultEnabled: false`。開くのは fork の `src/config/featureGate/switches.config.ts` か `pnpm ops features set analytics on`)
 - 閉じると `/api/admin/analytics`・`/api/activity/dau`・rollup の cron が 404 で、表も push から外れる
 - ログイン中の DAU の記録は `useGate().enabled("analytics")` が閉なら送らない

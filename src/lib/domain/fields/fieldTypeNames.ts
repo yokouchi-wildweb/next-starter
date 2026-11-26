@@ -15,5 +15,5 @@ export type NeonFieldType = keyof (typeof FORM_INPUTS)["Neon"];
 /** Firestore のドメインで使える fieldType(fieldFormInputs.mjs の Firestore の表のキー) */
 export type FirestoreFieldType = keyof (typeof FORM_INPUTS)["Firestore"];
 
-/** 組み込みの入力種別(domain.json formInput。formInputs.mjs) */
+/** 組み込みの入力種別(entity.json formInput。formInputs.mjs) */
 export type BuiltinFormInput = (typeof BUILTIN_FORM_INPUTS)[number];

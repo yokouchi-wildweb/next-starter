@@ -1,5 +1,5 @@
 // src/wiring/domainRegistry.ts
-// 登録表（src/registry/serviceRegistry.ts）と domain.json の一覧（domainConfigRegistry）を lib/domain の汎用関数に結んだ、
+// 登録表（src/registry/serviceRegistry.ts）と登録の entity.json の一覧（domainConfigRegistry）を lib/domain の汎用関数に結んだ、
 // サーバー用の getService 系（印なし = server 用。lib は登録表を import しないので、結ぶのはここ）。
 //
 // import してよい場所: src/app/**（API ルート・Screen・loader。cron のフォルダでは task.ts だけ）・src/proxies/**・src/proxy.ts。

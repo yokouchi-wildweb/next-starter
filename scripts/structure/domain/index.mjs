@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * ドメイン設定（手で書いた domain.json）からファイルを生成・削除する CLI の入口（本体は cli/main.mjs）。
+ * ドメインの宣言（手で書いた domain.json と entities/<登録名>/entity.json）からファイルを生成・削除する CLI の入口（本体は cli/main.mjs）。
  *
  * 使用方法:
- *   --generate <Domain> 設定ファイルを基にファイルを生成します（既定は対話なし。domain.json の generate どおり、false は何も書かない）。
- *   --generate --all    domain.json を持つ全ドメインを一括で生成します（既定は対話なし）。
+ *   --generate <Domain> 設定ファイルを基にファイルを生成します（既定は対話なし。登録の entity.json の generate どおり、false は何も書かない）。
+ *   --generate --all    主の登録の entity.json を持つ全ドメインを一括で生成します（既定は対話なし）。
  *   --delete <Domain>   指定したドメインに関連する生成物を削除します。
  *   -i, --interactive   --generate と併用。生成方法・カテゴリ・ドメインを対話で選び、上書きを確認します（選択は保存しない）。
- *   --only <categories> --generate と併用。今回はこのカテゴリだけ生成します（generate: false のドメインでも書く。例: --only registry）。
+ *   --only <categories> --generate と併用。今回はこのカテゴリだけ生成します（generate: false の登録は --only でも書かない。例: --only registry）。
  *   --dry-run           --generate と併用。何も書かず、書くはずのファイルと動作（作成 / 上書き / 変更なし / 保持）を一覧します。
  *   --yes               受け付けて無視します（以前は対話なしにする旗。今は既定が対話なし）。
  *   書き込みの最後に地区の地図 src/registry/district-map.jsonl（ドメインの一覧を含む）を書き直します。

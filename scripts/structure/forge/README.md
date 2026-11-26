@@ -2,7 +2,7 @@
 
 ## Overview
 
-- `pnpm forge` は、domain.json・`*.role.json`・`*.profile.json` を書いた（直した）後に打つコマンド。何を変えたかでコマンドを選ばず、これ 1 つで、作り直せるものを全部作り直し、生成の後の検査を全部回す。
+- `pnpm forge` は、宣言(domain.json と entities/<登録名>/entity.json)・`*.role.json`・`*.profile.json` を書いた（直した）後に打つコマンド。何を変えたかでコマンドを選ばず、これ 1 つで、作り直せるものを全部作り直し、生成の後の検査を全部回す。
 
 ## Usage
 
@@ -21,7 +21,7 @@ pnpm forge --lint   # 事後検査の最後に lint（eslint . 全体、30 秒�
 
 生成器・検査器は段階で回す(`pnpm check` / `pnpm generate --phase=…`、`scripts/runner/phases/README.md`)。どの道具がどの段に乗るか・順序は各道具の `phase.json`(phases・after)が持つ。
 
-1. 事前検査（何も書かない）: `pnpm check --phase=forge:pre` = ロール・プロフィールの検査(role)→ domain.json の検査(domain、`pnpm generate domain -- --dry-run`)→ 受け口の検査(extensions、`--no-stale`: 一覧のずれは次の生成で直るので見ない)。ここで落ちたら何も書いていない
+1. 事前検査（何も書かない）: `pnpm check --phase=forge:pre` = ロール・プロフィールの検査(role)→ 宣言の検査(domain、`pnpm generate domain -- --dry-run`)→ 受け口の検査(extensions、`--no-stale`: 一覧のずれは次の生成で直るので見ない)。ここで落ちたら何も書いていない
 2. 生成: `pnpm generate --phase=forge:pre,forge:post` = after の順に role(`pnpm generate role -- --all`)→ domain(`pnpm generate domain`。`generate: true` のドメインは丸ごと作り直し、`generate: false` は何もしない。地区の地図 `src/registry/district-map.jsonl` も書き直す)→ registry(src/registry の一覧を走査で丸ごと)→ district-map(地区の地図)→ extensions → routes(ルート地図)
 3. 事後検査: `pnpm check --phase=forge:post`(registry・地区の地図 district-map・config-overrides・extensions・routes の地図)→ 段階に乗らないテスト → `typecheck`（→ `lint`）。段階に乗らないテストは次の順:
    - `pnpm test scripts/structure/registry/tableScan.test.mjs scripts/structure/registry/alpha/alpha.test.mjs`

@@ -157,7 +157,7 @@ searchRank?: boolean | { fields?: Array<string | { field: string; weight?: numbe
 
 // サービス側（createCrudService オプション）— 「どう並べるか」の既定のみ。ON/OFF は呼び出し側が決める
 defaultSearchRank?: { fields: [{ field: "name", weight: 3 }, "email"] }
-// ビジネスドメインは domain.json の `searchRank` キーに同じ形で宣言 → pnpm generate domain が drizzleBase に展開
+// ビジネスドメインは登録の entity.json の `searchRank` キーに同じ形で宣言 → pnpm generate domain が drizzleBase に展開
 ```
 
 採点式（フィールドごとに算出し合算。複数フィールド一致は合算で自然に加点）:

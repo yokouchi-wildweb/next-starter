@@ -1,4 +1,4 @@
-// entities/drizzle.ts のインデックス（pgTable の第 3 引数）: ソフトデリート時の単一ユニーク（部分インデックス）、複合ユニーク、domain.json の indexes
+// entities/drizzle.ts のインデックス（pgTable の第 3 引数）: ソフトデリート時の単一ユニーク（部分インデックス）、複合ユニーク、登録の entity.json の indexes
 
 import { toSnakeCase } from "../../../../../../src/lib/stringCase/index.mjs";
 import { PG_MAX_IDENTIFIER_LENGTH } from "../../../domain/names.mjs";
@@ -38,7 +38,7 @@ function validateExtraIndex(idx, label) {
 /**
  * インデックス（entity.json の indexes 配列）。検索・集計頻度の高いカラム向け。unique:true は名前つき・部分・複数の列のユニーク（ユニークはこの形だけ）。
  * 形式: { fields: string[], where?: string, name?: string, using?: string, opclass?: Record<string, string> }
- *   - fields: 生成後の entities/drizzle.ts に現れるプロパティ名（業務フィールドは domain.json の name そのまま、システム列は createdAt / updatedAt / deletedAt）
+ *   - fields: 生成後の entities/drizzle.ts に現れるプロパティ名（業務フィールドは entity.json の name そのまま、システム列は createdAt / updatedAt / deletedAt）
  *   - where: 省略可。指定時は partial index（例: "deleted_at IS NULL"）
  *   - name: 省略可。省略時は <table>_<col1>_<col2>_..._idx（btree 以外は <table>_<cols>_<using>_idx）
  *   - using: 省略可。インデックス方式（gin / gist / brin など）。省略・"btree" は .on(...)、それ以外は .using("<method>", ...)
@@ -69,7 +69,7 @@ export function extraIndexes(config, tableName) {
     if (indexName.length > PG_MAX_IDENTIFIER_LENGTH) {
       throw new Error(
         `エラー: インデックス名 "${indexName}" が ${PG_MAX_IDENTIFIER_LENGTH} 文字を超えています\n` +
-          '  domain.json の indexes 要素に "name" を指定して短くしてください',
+          '  entity.json の indexes 要素に "name" を指定して短くしてください',
       );
     }
     const fieldsOnClause = idx.fields
@@ -114,7 +114,7 @@ export function extraIndexesHaveExpression(config) {
   return Array.isArray(config.indexes) && config.indexes.some((i) => i.expression !== undefined);
 }
 
-/** domain.json の indexes に where 句を持つものがあるか（sql の import 判定） */
+/** entity.json の indexes に where 句を持つものがあるか（sql の import 判定） */
 export function extraIndexesHaveWhere(config) {
   const indexes = Array.isArray(config.indexes) ? config.indexes : [];
   return indexes.some((i) => typeof i.where === "string" && i.where.length > 0);

@@ -1,4 +1,4 @@
-// 生成カテゴリと、ドメインごとに生成するカテゴリの決め方（domain.json の generate）、`--only` による絞り込み。
+// 生成カテゴリと、ドメインごとに生成するカテゴリの決め方（登録の entity.json の generate）、`--only` による絞り込み。
 //
 // generate（省略 = true）: true = 全カテゴリ（集まりの従属は従属のカテゴリだけ）、false = 手で管理。
 // 手で管理のドメインはどんな実行でも生成器を通さない（--all・forge・1 ドメインの名指し・--only・-i のどれでも何も書かず、生成前の検査もしない。人の決定）。
@@ -24,12 +24,12 @@ export const ALL_GENERATE_OPTIONS = Object.fromEntries(GENERATE_CATEGORIES.map((
 /** 集まりの従属（主の mediaCollection が持つ子）が生成するカテゴリ。管理画面・hooks・client は作らない（主の画面から扱う） */
 export const COLLECTION_CHILD_CATEGORIES = ["entities", "serverServices", "fieldConstants", "registry", "presenters"];
 
-/** 手で管理（domain.json の generate: false）。生成器を一切通さない @param {object | null | undefined} config */
+/** 手で管理（登録の entity.json の generate: false）。生成器を一切通さない @param {object | null | undefined} config */
 export const isHandManaged = (config) => config?.generate === false;
 
 /**
- * domain.json の generate から、そのドメインで生成するカテゴリを決める
- * @param {object} config domain.json
+ * 登録の entity.json の generate から、そのドメインで生成するカテゴリを決める
+ * @param {object} config 登録の entity.json
  * @param {{ child?: boolean }} [options] child = 集まりの従属か
  * @returns {Record<string, boolean>}
  */

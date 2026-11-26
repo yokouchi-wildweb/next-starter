@@ -5,11 +5,11 @@
 export type DomainInfo = {
   /** ドメインキー（serviceRegistryのキー） */
   key: string;
-  /** 表示用ラベル（domain.jsonのlabelまたはキー） */
+  /** 表示用ラベル（登録の entity.json の label またはキー） */
   label: string;
   /** テーブル名 */
   tableName: string;
-  /** コアドメインかどうか（domain.jsonが存在しないドメイン） */
+  /** コアドメインかどうか（主の登録の entity.json が無いドメイン） */
   isCore: boolean;
 };
 

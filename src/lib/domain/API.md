@@ -38,25 +38,25 @@
 
 - `resolveDataCommand(access, command, service)` が、そのドメインでコマンドが許されるか・どのサービスの関数を呼ぶかを決める
 - 対応: `export` → 操作 `export` / 関数 `search`、`import` → `import` / `bulkUpsert`、`update` → `bulkUpdate` / `bulkUpdate`、`delete` → `bulkDeleteByIds` / `bulkDeleteByIds`（`DATA_COMMAND_OPERATIONS`）
-- 上書きの欄 `access.commands`（`{ export?, import?, update?, delete? }` = `"allow"` | `"deny"`）: API とコマンドで範囲を変えたいドメインだけ書く。core は `domainEntry.ts`（fork が core を変えるなら `domainEntry.override.ts`）、業務ドメインは domain.json の `apiAccess.commands`（`pnpm generate domain` が `domainEntry.ts` に写す）
+- 上書きの欄 `access.commands`（`{ export?, import?, update?, delete? }` = `"allow"` | `"deny"`）: API とコマンドで範囲を変えたいドメインだけ書く。core は `domainEntry.ts`（fork が core を変えるなら `domainEntry.override.ts`）、業務ドメインは登録の entity.json の `apiAccess.commands`（`pnpm generate domain` が `domainEntry.ts` に写す）
 
 ### 表示用の写しの項目(`entities/display.ts` の `domainDisplay`、型 `DomainDisplay` は `types/display.ts`)
 
 - top: singular・plural・label・fields・relations・searchFields・useCreatedAt・useUpdatedAt・useSoftDelete・useImportExport・sortOrderField・fieldGroups（key・label・fields・collapsible・defaultCollapsed・bgColor）・tableFields
 - field: name・label・fieldType・formInput・options・required・readonly・defaultValue・displayType・placeholder・accept・validationRule・reorderable・helperText
 - relation: domain・label・fieldName・fieldType・relationType・required・formInput・labelField・includeRelationTable。非同期検索の関連には関連先の searchFields
-- 写さない: defaultOrderBy・metadataBinding・uploadPath・field の description・apiAccess・dbEngine・generateFiles・storage ほか一覧の外。domain.json にキーを足しても client には出ない（fork だけのキーも同じ）
+- 写さない: defaultOrderBy・metadataBinding・uploadPath・field の description・apiAccess・dbEngine・generateFiles・storage ほか一覧の外。entity.json にキーを足しても client には出ない（fork だけのキーも同じ）
 - 列名を持つ項目（fields・searchFields・tableFields・sortOrderField・fieldGroups[].fields・relations.fieldName）は、Firestore なら camelCase にし、hiddenColumns の列を除く。隠し列を指す関連は写さない
 
 宣言は `export const domainDisplay: DomainDisplay`（リテラル型は持たない）。
 
 ### 項目の型(`types/domainField.ts`)
 
-- `DomainField` = domain.json の項目 1 つ。キーの正は `scripts/structure/domain/spec/domainJson.mjs` の `FIELD_KEYS`(`$comment` を除く)で、型はここ 1 か所。値は domain.json に書ける素の値だけ(関数・実行時だけの値・登録した入力部品の名前への広げは formSuite の `FieldConfig`)
+- `DomainField` = 登録の entity.json の項目 1 つ。キーの正は `definition/declaration.mjs` の `FIELD_KEYS`(`$comment` を除く。`scripts/structure/domain/spec/domainJson.mjs` は再 export)で、型はここ 1 か所。値は entity.json に書ける素の値だけ(関数・実行時だけの値・登録した入力部品の名前への広げは formSuite の `FieldConfig`)
 - `fieldType` は表の名前(`FieldTypeName`)を案内しつつ表に無い名前も受ける(未知型)。`formInput` は組み込みの名前(`BuiltinFormInput`)と登録した名前
 - 項目のキーを持つ型はここから作る: `DomainConfig` の `fields` = `DomainField` そのもの(別名の型は作らない)、`DomainDisplayField` = client に出すキーの `Pick`(`fieldType` は省ける)、`DomainFieldInfo` = name・label・fieldType・formInput の `Pick`。新しい型でキーを写し直さない
-- 関連の型: `DomainConfigRelation`(`types/domainConfig.ts`) = domain.json の関連 1 つ(キーの正は `RELATION_KEYS`、onDelete を含む)。client の写しの `DomainDisplayRelation` = それから onDelete を除き searchFields を足したもの。関連のキーを持つ型(プロフィールの関連・一覧の列)もここから作る
-- `DomainFieldOption` = 選択肢 1 つ(value・label・disabled)。`getFieldOptions` が返す形。domain.json に書いた選択肢は `DomainFieldOptionValue`(値の型を決め打ちしない)
+- 関連の型: `DomainConfigRelation`(`types/domainConfig.ts`) = entity.json の関連 1 つ(キーの正は `definition/declaration.mjs` の `RELATION_KEYS`、onDelete を含む)。client の写しの `DomainDisplayRelation` = それから onDelete を除き searchFields を足したもの。関連のキーを持つ型(プロフィールの関連・一覧の列)もここから作る
+- `DomainFieldOption` = 選択肢 1 つ(value・label・disabled)。`getFieldOptions` が返す形。entity.json に書いた選択肢は `DomainFieldOptionValue`(値の型を決め打ちしない)
 - 型名の union(`fields/fieldTypeNames.ts`、型だけ): `FieldTypeName`(表のキー)・`NeonFieldType` / `FirestoreFieldType`(`fieldFormInputs.mjs` の DB ごとの表のキー)・`BuiltinFormInput`(`formInputs.mjs`)。表から導くので名前を手で並べない(CLAUDE.md field_types)
 
 ### 入口と関数のありか
@@ -72,7 +72,7 @@
 
 ### 型(fieldType)の表: `fields/fieldTypes.mjs`
 
-- domain.json の項目の型の意味(列関数・Zod・TS 型・フォームの初期値・checkbox の単複・日時か・廃止か)を決める表 1 つ。生成器(`scripts/structure/domain/spec/fieldTypes.mjs` は再 export)も実行時(`buildFormDefaultValues`・`isCheckGroupFieldType`)も `fieldTypeSpec(type)` と導出関数(`isArrayFieldType`・`isMediaFieldType` 等)でここを引く。属性の意味は表の頭のコメント
+- entity.json の項目の型の意味(列関数・Zod・TS 型・フォームの初期値・checkbox の単複・日時か・廃止か)を決める表 1 つ。生成器(`scripts/structure/domain/spec/fieldTypes.mjs` は再 export)も実行時(`buildFormDefaultValues`・`isCheckGroupFieldType`)も `fieldTypeSpec(type)` と導出関数(`isArrayFieldType`・`isMediaFieldType` 等)でここを引く。属性の意味は表の頭のコメント
 - 表に無い型は未知型(生成器は型名をそのまま列関数に出して警告、フォームの初期値は `""`、日時変換も複数選択もしない)
 - `.mjs` なのは node の生成器と TypeScript の両方から import するため(`relationOptions.mjs` と同じ)
 

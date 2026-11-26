@@ -19,7 +19,7 @@ import type { DataMigrationJunctionResolver, DataMigrationServiceResolver } from
 import { MediaValueError, resolveMediaRow } from "./mediaValues";
 import { assertNoCollectionFields } from "../collectionFields";
 
-/** 型変換に使う項目の情報 = domain.json の項目(DomainField)の name と fieldType */
+/** 型変換に使う項目の情報 = entity.json の項目(DomainField)の name と fieldType */
 export type FieldTypeInfo = Pick<DomainField, "name"> & Partial<Pick<DomainField, "fieldType">>;
 
 export type ImportChunkOptions = {

@@ -8,17 +8,17 @@
 
 ### 生成の流れ（`pipeline/generate.mjs`）
 
-- 読む → 検査（`checks/`、全件を並べて止める）→ 全カテゴリの生成物を組み立てる → 書いた後の状態で `serviceRegistry.ts` が作れるか確かめる → 書く → `serviceRegistry.ts` を作り直す → 地区の地図 `district-map.jsonl` を書き直す
-- 組み立てでは、主の集まりの項目 `mediaCollection` があれば、従属の domain.json を無いときだけ書き出す Output も足す（`render/collections/`。雛形の形と権限の写し: [src/domains/README.md](../../../src/domains/README.md)「主の集まりの項目（mediaCollection）」）
+- 読む（宣言の読み込みの部品 `readDomain` で domain.json と entities/ の下の登録を読み、主の登録の entity.json を 1 ドメインの config にする。生成する登録を持つのに登録が 2 つ以上なら止める: `domain/workspace.mjs` の `readConfig`）→ 検査（`checks/`、全件を並べて止める）→ 全カテゴリの生成物を組み立てる → 書いた後の状態で `serviceRegistry.ts` が作れるか確かめる → 書く → `serviceRegistry.ts` を作り直す → 地区の地図 `district-map.jsonl` を書き直す
+- 組み立てでは、主の集まりの項目 `mediaCollection` があれば、従属の宣言（domain.json と entities/<従属>/entity.json）を無いときだけ書き出す Output も足す（`render/collections/`。雛形の形と権限の写し: [src/domains/README.md](../../../src/domains/README.md)「主の集まりの項目（mediaCollection）」）
 - 登録表が作れない状態（手書きの行が残っている、他のドメインに `domainEntry.ts` が無い）なら何も書かずに止まる
 
 `pnpm generate domain` は全ドメインの生成物を先に組み立て、登録表が作れることを確かめてから書き始めるので、途中のドメインで止まって半端に残ることはない。テンプレートを変えたあとの一括反映に使う。
 
 #### 主と従属の組（`pipeline/pairs.mjs`）
 
-生成の前に全 domain.json から「集まりの項目 → 従属、従属 → 所有する主」を一度だけ解く。主・従属のどちらを指定しても組の全員を「従属 → 主」の順に生成する（この実行で書き出す従属は、書き出す中身でそのまま生成する）。組の他の員のカテゴリは自分の `generate`（`--only` で絞る）。`:all` では選んだドメインの組の全員を加え、従属を所有する主の直前に並べる。
+生成の前に全ドメインの主の登録の entity.json から「集まりの項目 → 従属、従属 → 所有する主」を一度だけ解く。主・従属のどちらを指定しても組の全員を「従属 → 主」の順に生成する（この実行で書き出す従属は、書き出す中身でそのまま生成する）。組の他の員のカテゴリは自分の `generate`（`--only` で絞る）。`:all` では選んだドメインの組の全員を加え、従属を所有する主の直前に並べる。
 
-組の誤りは何も書く前に全件を並べて止まる。1 ドメインの生成では、指定したドメインの組に関わる誤りだけを見る。道具は domain.json を書き換えず、直す場所を出す。組を解く段が見るもの: 集まりの項目に `collection.domain` が無い・1 つの従属を 2 つ以上の主が宣言。組ごとの検査（`checks/pairs.mjs`）:
+組の誤りは何も書く前に全件を並べて止まる。1 ドメインの生成では、指定したドメインの組に関わる誤りだけを見る。道具は宣言を書き換えず、直す場所を出す。組を解く段が見るもの: 集まりの項目に `collection.domain` が無い・1 つの従属を 2 つ以上の主が宣言。組ごとの検査（`checks/pairs.mjs`）:
 
 - 主の集まりの項目にファイルの条件（slug・accept・mediaTypePreset・validationRule・storage）がある（従属の `file` に書く）
 - 従属の主への belongsTo が 1 本でない・required でない・onDelete が CASCADE でない / 従属が `useSoftDelete: true`
@@ -30,11 +30,11 @@
 - required の集まりに `collection.duplicate: false`
 - 知らせるだけ（止めない）: 従属の upload が主より広い、従属の汎用 API（apiAccess）が開いている
 
-組が関わる生成は最後に 3 行の一覧を出す: 書き出した domain.json / `db:push` が要る表（この実行で新しく書き出した従属の表だけ）/ コミットに含めるもの。`--dry-run` では「書き出す予定」として同じ一覧。
+組が関わる生成は最後に 3 行の一覧を出す: 書き出した登録の entity.json / `db:push` が要る表（この実行で新しく書き出した従属の表だけ）/ コミットに含めるもの。`--dry-run` では「書き出す予定」として同じ一覧。
 
 従属のドメイン名の既定（`spec/collectionField.mjs` の `defaultChildName`）: 項目名が s で終われば `<主の singular>_<項目名から末尾の s を 1 つ外したもの>`（plural = `<主の singular>_<項目名>`）、それ以外は `<主の singular>_<項目名>`（plural は推定）。例: sample + images → sample_image / sample_images。
 
-複数形の推定（plural の無い domain.json・関係先の項目名・従属の plural）: `domain/plural.mjs` の `toPlural` 1 か所だけ。語の規則は devDependency の `pluralize` の表に任せ、名前の最後の語だけを複数形にする（例: card_set → card_sets、user_media → user_media、userPerson → userPeople）。domain.json の `plural` が常に優先。推定が誤る語は手の規則を書かず、`plural.mjs` で `pluralize.addIrregularRule` / `addUncountableRule` を足す。
+複数形の推定（plural の無い entity.json・関係先の項目名・従属の plural）: `domain/plural.mjs` の `toPlural` 1 か所だけ。語の規則は devDependency の `pluralize` の表に任せ、名前の最後の語だけを複数形にする（例: card_set → card_sets、user_media → user_media、userPerson → userPeople）。entity.json の `plural` が常に優先。推定が誤る語は手の規則を書かず、`plural.mjs` で `pluralize.addIrregularRule` / `addUncountableRule` を足す。
 
 ### 生成器の構造（直す人向け）
 
@@ -49,10 +49,10 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 | `index.mjs` `generate-client.mjs` | `pnpm generate domain` の振り分け先（入口は phase.json → `generateAll.mjs`） | |
 | `cli/` | 引数の解釈（`args.mjs`: `--only`・値を取るオプション）、`main.mjs`（振り分け）、`generate` / `generateAll` / `delete`、`-i` の対話（`prompts.mjs`・`pickCategories.mjs`）、`process.exit` | inquirer、process.exit |
 | `pipeline/` | `generate.mjs`（1 ドメイン: 読む → 検査 → plan → 登録表の事前検査 → apply → serviceRegistry → 地区の地図。組なら `generateWithPairs`。カテゴリの決め方 `configTargets`）、`pairs.mjs`、`serviceRegistry.mjs`、`generateAll.mjs`、`plan.mjs`（カテゴリ順に render を呼ぶ）、`apply.mjs`（**唯一の書き込み点**）、`dryRun.mjs`（apply と同じ判定を読むだけで行い一覧する）、`remove/`（pnpm generate domain -- --delete の本体） | fs（apply / remove が書く、dryRun は読むだけ） |
-| `render/<カテゴリ>/` | 生成物の文字列を組む純関数（`render/collections/` は主の集まりの項目から従属の domain.json を組む）。`(ctx, workspace) → Output[]`（`output.mjs`: `file` / `writeOnce` / `dir` / `patch` / `log`） | 読み取りは workspace 経由のみ |
-| `checks/` | 生成前の検査（フォルダ名、廃止した型、Firestore のメディア列・集まり、domain.json の決まり = `required`・`names`・`relations`・`fields`・`media`・`viewConfig`）。`index.mjs` が全件を並べて止める。止めない食い違いは `*Warnings` と `vocabulary.mjs`。`pairs.mjs` = 組の検査、`accessRules.mjs` = アクセスルールの広さ。ロール・プロフィールの検査も `checks/fields.mjs` を共用する（`scripts/structure/role/checks/`） | |
-| `domain/` | `workspace.mjs`（rootDir からのパスと読み取り。**fs を読むのはここだけ**）、`context.mjs`（名前の全形 + domain.json）、`names.mjs`（表名・FK 名・63 字）、`relations.mjs`、`fieldName.mjs`、`roles.mjs` | |
-| `spec/` | 語彙: `categories.mjs`（カテゴリと `generateTargets` = generate の旗から作るカテゴリ）、`fieldTypes.mjs`（型の表 `src/lib/domain/fields/fieldTypes.mjs` の再 export）、`domainJson.mjs`（キーの集合）、`collectionField.mjs`（従属の既定の名前・snake_case）(型と入力欄の組の表は `src/lib/domain/fields/fieldFormInputs.mjs`、アプリのテストも読むので lib)、`format.mjs`（整形）、`version.mjs` | 定数と純関数のみ |
+| `render/<カテゴリ>/` | 生成物の文字列を組む純関数（`render/collections/` は主の集まりの項目から従属の domain.json と登録の entity.json を組む）。`(ctx, workspace) → Output[]`（`output.mjs`: `file` / `writeOnce` / `dir` / `patch` / `log`） | 読み取りは workspace 経由のみ |
+| `checks/` | 生成前の検査（フォルダ名、廃止した型、Firestore のメディア列・集まり、登録の entity.json の決まり = `required`・`names`・`relations`・`fields`・`media`・`viewConfig`）。`index.mjs` が全件を並べて止める。止めない食い違いは `*Warnings` と `vocabulary.mjs`。`pairs.mjs` = 組の検査、`accessRules.mjs` = アクセスルールの広さ。ロール・プロフィールの検査も `checks/fields.mjs` を共用する（`scripts/structure/role/checks/`） | |
+| `domain/` | `workspace.mjs`（rootDir からのパスと読み取り。宣言は `readDomain` に node の source を渡して読む。**fs を読むのはここだけ**）、`context.mjs`（名前の全形 + 主の登録の entity.json）、`names.mjs`（表名・FK 名・63 字）、`relations.mjs`、`fieldName.mjs`、`roles.mjs` | |
+| `spec/` | 語彙: `categories.mjs`（カテゴリと `generateTargets` = generate の旗から作るカテゴリ）、`fieldTypes.mjs`（型の表 `src/lib/domain/fields/fieldTypes.mjs` の再 export）、`domainJson.mjs`（entity.json の語彙 = キーと値の集合。鍵の集合の正は `src/lib/domain/definition/declaration.mjs`）、`collectionField.mjs`（従属の既定の名前・snake_case）(型と入力欄の組の表は `src/lib/domain/fields/fieldFormInputs.mjs`、アプリのテストも読むので lib)、`format.mjs`（整形）、`version.mjs` | 定数と純関数のみ |
 | `text/` | TS ソースの部分編集（`objectEntry.mjs`。scripts/structure/registry も使う） | |
 | `tests/` | 全テスト（`structure.test.mjs` が下の規則を機械で検査する） | |
 
@@ -66,7 +66,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 - **drizzleBase に配線を足す** → `render/serverServices/`（テンプレートのトークンに差し込む）か、別ファイルとして `Output` を 1 つ足す
 - **複数ドメインの生成順** → `pipeline/generateAll.mjs` と `domain/`（`workspace.listDomains` + `readConfig`）
 
-テスト(`tests/`。生成器は関数なので一時ディレクトリに domain.json を置いて直接呼ぶ):
+テスト(`tests/`。生成器は関数なので一時ディレクトリに宣言（domain.json と entities/<登録名>/entity.json）を置いて直接呼ぶ):
 
 - `pnpm test scripts/structure/domain/tests/structure.test.mjs`
 - `pnpm test scripts/structure/domain/tests/registry.test.mjs`
@@ -99,8 +99,8 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 - 旧側の src 部品: テンプレート（`src/domains/_template`・`src/app/admin/_template`）は ref のものを使う。生成器は src の `.mjs`（型の表 `src/lib/domain/fields`、`src/lib/domain/relations`、`src/utils`）も import するので、旧側は ref の生成器の import を辿ってそのフォルダも ref から取り出して重ねる（表・`presenterFor` の変更も差分に出る）。ref に無いフォルダは作業ツリーのまま使い、起動時に重ねたフォルダとともに表示する。重ねたフォルダ（新側が import するフォルダも）は生成物ではないので比べない
 - 対話（`-i`）の経路は対象外
 - 旧側は ref の生成器で動くので、ref より後に入った宣言の形（`generate` の旗、短い domain.json + entities/<登録名>/entity.json の形 = 区切り domain-decl など）は旧側で読めない。そうした変更の前後は `--dry-run` の比較で確かめる
-- 新しい形の domain.json を生成器が受けるようになったら、`tests/fixtures/parity/synthetic/` にその例を 1 つ足す
+- 新しい形の宣言（domain.json・entity.json）を生成器が受けるようになったら、`tests/fixtures/parity/synthetic/` にその例を 1 つ足す
 
 サンプルの陳腐化検査: `pnpm test scripts/structure/domain/tests/sampleDrift.test.mjs` は `sample` / `sampleCategory` / `sampleTag` / `sampleImage` を一時ディレクトリへ複製したうえで再生成し、コミット済みの生成物と 1 バイトでも違えば落ちる（作業ツリーは書き換えない）。`sample.images` = 主の集まりの項目（mediaCollection）の例で、従属 `sampleImage` を持つ。存在しないサンプルドメインは対象から外し、全部無ければスキップする。
 
-- domain.json の `closable`(閉じられる形の印)は受けない(`checks/closable.mjs`): 書けば true でも false でも生成の前に止めて、機能の規則の書き方を案内する(テスト `pnpm test scripts/structure/domain/tests/closableRetired.test.mjs`)。機能として閉じるには `src/featureGate/rules/<名前>.ts` に規則を書く(`src/featureGate/API.md`「規則の書き方」)
+- 登録の entity.json の `closable`(閉じられる形の印)は受けない(`checks/closable.mjs`): 書けば true でも false でも生成の前に止めて、機能の規則の書き方を案内する(テスト `pnpm test scripts/structure/domain/tests/closableRetired.test.mjs`)。機能として閉じるには `src/featureGate/rules/<名前>.ts` に規則を書く(`src/featureGate/API.md`「規則の書き方」)

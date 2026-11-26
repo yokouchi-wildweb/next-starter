@@ -2,10 +2,10 @@
 
 ## Overview
 
-フィールド定義(`FieldConfig`)の配列からフォームの欄を描くレンダラー(`@/lib/formSuite`)。react-hook-form と連携し、`AppForm` の中で使う。domain.json を元にした管理画面フォームの中核。
+フィールド定義(`FieldConfig`)の配列からフォームの欄を描くレンダラー(`@/lib/formSuite`)。react-hook-form と連携し、`AppForm` の中で使う。登録の entity.json(client へはその写し `entities/display.ts`)を元にした管理画面フォームの中核。
 
 - 生成のコンポーネント経由(推奨): `pnpm generate domain` が生成する `XxxFields` / `XxxForm` は本コンポーネントの props をそのまま渡す。ドメインのフォームを変えるときはこちらに props を渡す
-- 直接使う: `import { FieldRenderer } from "@/lib/formSuite"`。domain.json に依らないフォーム(プロフィール等)
+- 直接使う: `import { FieldRenderer } from "@/lib/formSuite"`。登録の宣言に依らないフォーム(プロフィール等)
 - 変える手段は 2 系統。スキーマに効くのはフィールド定義系だけ
   - フィールド定義系(`FieldConfig` を増減・変更): `fieldPatches`, `insertBefore`, `insertAfter`
   - UI 差し込み系(任意の `ReactNode` を挟む。スキーマ・値には効かない): `beforeAll` / `afterAll`, `beforeField` / `afterField`, `beforeGroup` / `afterGroup`
@@ -20,7 +20,7 @@
 <SampleFields
   methods={methods}
   beforeGroup={{
-    // キーは FieldGroup.key（domain.json の fieldGroups の key）
+    // キーは FieldGroup.key（登録の entity.json の fieldGroups の key）
     play_limit_settings: (
       <Para tone="warning">親側の設定が有効なため、このセクションの設定は無視されます</Para>
     ),
@@ -45,7 +45,7 @@
 
 ### メディアの欄
 
-- 保存先は `FieldConfig.purpose`(ファイルの用途 ID `<domain>.<field>`、`src/registry/storagePurposeRegistry.ts` の登録名)で決まる。生成の `<Domain>Fields` が domain.json のメディア項目に付ける
+- 保存先は `FieldConfig.purpose`(ファイルの用途 ID `<domain>.<field>`、`src/registry/storagePurposeRegistry.ts` の登録名)で決まる。生成の `<Domain>Fields` が登録の entity.json のメディア項目に付ける
 - フォームの値は storage ref(`storage://…`)。保存時の採用・差し替え・削除はサーバーの CRUD 連動が行う(`src/lib/mediaInputSuite/README.md`)
 
 ## API
@@ -77,7 +77,7 @@
 
 ### fieldGroups(セクション分け)
 
-`FieldGroup[]` を渡すと、欄が `<fieldset>` のセクション(`FieldGroupSection`)に分かれて描かれる。domain.json のトップレベル `fieldGroups` でも宣言でき、生成の `XxxFields` が自動で読む(スキーマ定義: `src/domains/README.md`「FieldGroup（フィールドグループ）」)。
+`FieldGroup[]` を渡すと、欄が `<fieldset>` のセクション(`FieldGroupSection`)に分かれて描かれる。登録の entity.json のトップレベル `fieldGroups` でも宣言でき、生成の `XxxFields` が写し `entities/display.ts` から自動で読む(スキーマ定義: `src/domains/README.md`「FieldGroup（フィールドグループ）」)。
 
 | プロパティ | 型 | 説明 |
 |---|---|---|
@@ -108,7 +108,7 @@
 
 ### フォームの既定値(buildFormDefaultValues)
 
-`buildFormDefaultValues(domainConfig, entity?)` が domain.json から `useForm` の `defaultValues` を作る。生成の Create / Edit フォームが使う(実行時に domain.json を読むので、既定値の変更に再生成は要らない)。
+`buildFormDefaultValues(domainConfig, entity?)` が欄の宣言から `useForm` の `defaultValues` を作る。生成の Create / Edit フォームは登録の entity.json の写し `entities/display.ts` の `domainDisplay` を渡す(フォームは実行時に写しを読むのでフォームの再生成は要らないが、写しは `pnpm generate registry` が書くので、entity.json の既定値を変えたら `pnpm forge` か `pnpm generate registry` を回す)。
 
 - 優先の順: 編集時は `entity` の値(null / undefined なら下の既定値)→ 欄の `defaultValue`(object / array も可)→ fieldType ごとの既定値
 - fieldType ごとの既定値(型の表 `src/lib/domain/fields/fieldTypes.mjs` の `formDefault`、表に無い型は `""`): `array` / `stringArray` / `mediaUploaderMulti` / `mediaCollection` = `[]` | `jsonb` / `map` = `undefined`(値なし。schema の `.default()` や DB の既定値に任せる)| `boolean` = `false`(radio または options ありは `undefined`)| 数値・`enum`・timestamp = `undefined` | それ以外(文字列系・`mediaUploader`)= `""`
@@ -129,6 +129,6 @@
 ## Related
 
 - フォームの部品一式: `../README.md`
-- domain.json の欄・fieldGroups・custom: `src/domains/README.md`
+- 登録の entity.json の欄・fieldGroups・custom: `src/domains/README.md`
 - 登録する入力部品: `../README.md` Extension「独自の入力部品の登録」
 - メディアの入力: `src/lib/mediaInputSuite/README.md`

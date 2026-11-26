@@ -151,7 +151,7 @@ ref・表示の関数・配信規則・StoragePort・保存先と env・旧 URL�
 - 画像以外の型（動画・音声・一般ファイル）には効かない。strip の用途でも受け取ったまま保存する
   - 画像と動画が混ざった用途（`image/*,video/*` など）は、宣言なし（strip）のまま同じ欄で、画像だけを描き直す
 - **`user.avatar` は常に strip**。登録表の fork の区画で keep にしても、実行時に strip へ固定される（`storageObject` の `purposeSource.ts` の `FIXED_STRIP_PURPOSES`）。`pnpm test scripts/structure/registry/check-storage-purposes.test.mjs` も keep を問題にする
-- domain.json のメディア項目では `"storage": { "metadata": "strip" | "keep" }`（[src/domains/README.md](../../domains/README.md)「ファイルの保存（storage）」）。pnpm generate domain が登録表の AUTO に明示値で書き出す
+- 登録の entity.json のメディア項目では `"storage": { "metadata": "strip" | "keep" }`（[src/domains/README.md](../../domains/README.md)「ファイルの保存（storage）」）。pnpm generate domain が登録表の AUTO に明示値で書き出す
 - core 用途の値（`<ドメイン>/plugs/storageObjectPurposes/`）
 
 | 用途 | metadata |
@@ -195,9 +195,9 @@ ref・表示の関数・配信規則・StoragePort・保存先と env・旧 URL�
 
 ### 画像の縮小の指定
 
-- 縮小は用途ごとに 1 か所で宣言する（手書きの用途は `purposes/` の項目、生成の用途は domain.json の field.storage）
+- 縮小は用途ごとに 1 か所で宣言する（手書きの用途は `purposes/` の項目、生成の用途は登録の entity.json の field.storage）
 - `maxDimension` = 長い辺の上限（px、1 以上の整数）。超える画像だけを縦横比を保って縮める（小さい画像は描き直さない）。`quality` = 縮めて書き出すときの画質（1〜100 の整数）。省略 = `storage.config` の `imageStrip.quality`
-- 省略 = 縮めない（今までどおり）。上流の core の用途（`user.avatar` ほか）には指定を置かない: 値は fork の画面の都合で決まるので、fork は自分の用途（purposes/ の項目・domain.json）で宣言する。core の用途の値は fork から変えられない（用途の受け口に上書きの口は無く、同じ ID は例外）→ core の用途へ送る前に縮めたい fork は `shrinkImageFile(file, spec)` を直に呼ぶ（例: アバターの切り抜きの後）
+- 省略 = 縮めない（今までどおり）。上流の core の用途（`user.avatar` ほか）には指定を置かない: 値は fork の画面の都合で決まるので、fork は自分の用途（purposes/ の項目・登録の entity.json）で宣言する。core の用途の値は fork から変えられない（用途の受け口に上書きの口は無く、同じ ID は例外）→ core の用途へ送る前に縮めたい fork は `shrinkImageFile(file, spec)` を直に呼ぶ（例: アバターの切り抜きの後）
 - strip（省略を含む）の画像の用途にだけ書ける。`metadata: "keep"` の用途・画像の型が無い用途に書くと `listStoragePurposeProblems` のエラー（keep はサーバーが描き直さないので、縮小を守らせられない）
 - 守り方: ブラウザが送る前にこの指定で縮め（「送る前の縮小」）、サーバーは描き直しで同じ指定を守らせる（「描き直し」の縮め直し。最後の守り）。どちらも用途の方針（`GET /api/storage/purposes/[purpose]` の `image`）と用途表の同じ値を読む
 

@@ -204,7 +204,7 @@ const config = [
       "import-boundaries/radix-unified": libOwnership.isRoot ? "error" : "warn",
     },
   },
-  // - client-no-domain-json: client のコードは domain.json を import しない(写しを読む。判定はプラグインの中)
+  // - client-no-domain-json: client のコードはドメインの宣言(domain.json・entity.json)を import しない(写しを読む。判定はプラグインの中)
   {
     files: ["src/**/*.{ts,tsx,mts,mjs}"],
     plugins: { "import-boundaries": importBoundariesPlugin },

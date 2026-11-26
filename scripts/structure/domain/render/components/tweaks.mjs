@@ -1,4 +1,4 @@
-// components/ テンプレートのうち、domain.json の設定で本文が変わるもの: 編集フォームのオートセーブ、一覧テーブルの複製ボタン
+// components/ テンプレートのうち、登録の entity.json の設定で本文が変わるもの: 編集フォームのオートセーブ、一覧テーブルの複製ボタン
 
 import { tsType } from "../../spec/fieldTypes.mjs";
 

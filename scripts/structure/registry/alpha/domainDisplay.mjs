@@ -1,6 +1,6 @@
 // scripts/structure/registry/alpha/domainDisplay.mjs
-// domain.json から client に出す写し(<domain>/entities/display.ts)を作る(D21・L1.44)。
-// 写すのは許可の一覧の項目だけ。domain.json に項目が増えても勝手に client へ出ない。hiddenColumns の列は写さない。
+// 主の登録の entity.json から client に出す写し(<domain>/entities/display.ts)を作る(D21・L1.44)。
+// 写すのは許可の一覧の項目だけ。entity.json に項目が増えても勝手に client へ出ない。hiddenColumns の列は写さない。
 // Firestore の domain は名前を camelCase にする(normalizeEntityDeclaration の正規化と同じ)。
 // 列名を持つ項目(fields・searchFields・tableFields・sortOrderField・fieldGroups[].fields・relations.fieldName)は
 // どれも同じ名前の変換と hiddenColumns の除外を通す。列名の項目を足すときはここに並べる。
@@ -26,9 +26,9 @@ function toDisplayRelation(relation, allConfigs, resolve) {
 }
 
 /**
- * domain.json → 写しの値
+ * 主の登録の entity.json → 写しの値
  * @param {object} config
- * @param {object[]} allConfigs 全ドメインの domain.json(関連先の引き当て)
+ * @param {object[]} allConfigs 全ドメインの主の登録の entity.json(関連先の引き当て)
  */
 export function toDomainDisplay(config, allConfigs = []) {
   const resolve = nameResolver(config);

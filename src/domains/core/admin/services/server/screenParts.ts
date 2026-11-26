@@ -64,7 +64,7 @@ async function serviceWith<TService>(domainKey: string, method: string): Promise
   return service as TService;
 }
 
-/** 関連先（domain.json の表記）の list の access と取得。引けなければ throw */
+/** 関連先（entity.json の relations の表記）の list の access と取得。引けなければ throw */
 function relationTarget(domain: string): AdminRelationTarget {
   const key = toCamelCase(domain);
   if (!hasServiceFrom(serviceRegistry, key)) {
@@ -107,7 +107,7 @@ export type AdminEditScreenProps = {
 };
 export type AdminEditScreenLoaded<T> = AdminEditScreenData<T> & { relationFallback: AdminRelationOptionsFallback };
 
-/** 編集（access = get）。レコードが無ければ 404、保存後の戻り先は ?returnTo=（無ければ fallbackPath）。relations = domain.json（関連選択肢の先読み） */
+/** 編集（access = get）。レコードが無ければ 404、保存後の戻り先は ?returnTo=（無ければ fallbackPath）。relations = 登録の entity.json（関連選択肢の先読み） */
 export function adminEditParts<T>(
   domainKey: string,
   config: { fallbackPath: string; relations?: AdminRelationOptionsConfig },

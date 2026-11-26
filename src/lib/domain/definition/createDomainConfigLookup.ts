@@ -6,7 +6,7 @@ import { toCamelCase, toSnakeCase } from "@/lib/stringCase/index.mjs";
 
 /**
  * Firestore ドメインの場合、フィールド名を camelCase に変換して返す。
- * domain.json は常に snake_case だが、Firestore の慣例は camelCase のため
+ * entity.json は常に snake_case だが、Firestore の慣例は camelCase のため
  * ランタイムで変換する。
  */
 function normalizeFieldNames<TConfig>(config: TConfig): TConfig {

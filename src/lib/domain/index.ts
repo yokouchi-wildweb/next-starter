@@ -4,7 +4,7 @@
 // Next の外のプログラム(scripts・eslint-rules)→ "./node"(node.mjs)。権限の型と定型は別の lib @/lib/domainAccess。
 // 名前は 1 つずつ書く(export * にしない: tsx でテストが入口を読むとき名前が見えなくなる。入口の契約をここで読める)
 
-// types: domain.json の形・写し・関連・登録表の型
+// types: 宣言(登録の entity.json)の形・写し・関連・登録表の型
 export type { DomainDisplay, DomainDisplayField, DomainDisplayFieldGroup, DomainDisplayRelation } from "./types/display";
 export type { DomainInfo, DomainInfoWithCount } from "./types/domain";
 export type { DomainConfig, DomainConfigRelation } from "./types/domainConfig";
@@ -22,7 +22,7 @@ export type {
 } from "./types/registry";
 export type { HasManyRelationInfo, RelationInfo, RelationType } from "./types/relation";
 
-// definition: domain.json の読み方・権限の解決・データ操作のコマンド
+// definition: 宣言(domain.json と entity.json)の読み方・権限の解決・データ操作のコマンド
 export { isDomainDataOperation, isGenericApiClosed, resolveAccessRule } from "./definition/apiAccess";
 export { DATA_COMMAND_OPERATIONS, isDataCommand, resolveDataCommand, type DataCommandResolution } from "./definition/dataCommand";
 export { normalizeEntityDeclaration } from "./definition/normalizeEntityDeclaration";

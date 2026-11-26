@@ -11,7 +11,7 @@ const PRESETS = new Set(["images", "videos", "imagesAndVideos", "all"]);
 const METADATA_KEYS = new Set(["sizeBytes", "width", "height", "aspectRatio", "orientation", "mimeType", "src", "durationSec", "durationFormatted"]);
 
 /**
- * @param {object} config domain.json
+ * @param {object} config 登録の entity.json
  * @returns {string[]} 問題（空なら無し）
  */
 export function mediaIssues(config) {

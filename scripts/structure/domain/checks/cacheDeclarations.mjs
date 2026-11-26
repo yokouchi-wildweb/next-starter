@@ -1,4 +1,4 @@
-// 検査: 全ドメインの cache の宣言(domain.json の "cache" か <domain>/cache.json)。pnpm check domain(check.mjs)が回す。
+// 検査: 全ドメインの cache の宣言(主の登録の entity.json の "cache" か <domain>/cache.json)。pnpm check domain(check.mjs)が回す。
 // generate: false と domain.json の無いドメインにも掛ける(生成の前の検査 --dry-run はそれらを通らないが、
 // 包んだ読みの生成器 pnpm generate cache は generate に関わらず宣言を読む)。
 // ファイルは読まない(純粋な層): 宣言の読みは domain/workspace.mjs の readCacheDeclarations・readDomainRows。

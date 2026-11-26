@@ -12,9 +12,9 @@
 - `pnpm generate registry` / `pnpm check registry`: `src/registry` の α 6 本(α = `alpha/` などの生成器が手書きの区画なしで丸ごと書く一覧)を丸ごと生成・検査する(build の冒頭)。DB 不要。手書きの区画は無い。生成の部品は `alpha/`
   - `serviceRegistry`: 各ドメインの `domainEntry.ts` から(`serviceRegistry/`、仕組みは `src/lib/domain/README.md`)。`domainEntry.ts` の静的 import は型はどこからでも・値は値だけのファイルからだけ(中身で推移的に判定、`serviceRegistry/discover.mjs` の `checkEntryStaticImports`)
   - `schemaRegistry`: `src/domains/**` の pgTable を持つ全ファイル(プロフィールの `entities/profiles/<名前>/drizzle.ts` も)
-  - `domainConfigRegistry`: 全 `domain.json`(キーはフォルダ名の snake_case)
+  - `domainConfigRegistry`: 全ドメインの主の登録の `entities/<登録名>/entity.json`(キーはフォルダ名の snake_case)
   - `storagePurposeRegistry`: 全 `services/server/storagePurposes.ts`
-  - `adminDomains`: 管理一覧の画面 `src/app/admin/(protected)/<kebab 複数形>/page.tsx` を持つ全ドメイン(`generate: false` も)。キー = フォルダ名 → 題名・住所・`addToAdminDataMenu`。管理メニューの項目 `domain:` と出どころ `dataMenu` が読む(`src/domains/core/admin/menu/`)。管理メニューの行は受け口 `src/domains/core/admin/menu/`、ドメインを「データ管理」から外す = `domain.json` の `addToAdminDataMenu: false`
+  - `adminDomains`: 管理一覧の画面 `src/app/admin/(protected)/<kebab 複数形>/page.tsx` を持つ全ドメイン(`generate: false` も。登録の entity.json が `adminList: false` の物は出さない)。キー = フォルダ名 → 題名・住所・`addToAdminDataMenu`。管理メニューの項目 `domain:` と出どころ `dataMenu` が読む(`src/domains/core/admin/menu/`)。管理メニューの行は受け口 `src/domains/core/admin/menu/`、ドメインを「データ管理」から外す = 登録の entity.json の `addToAdminDataMenu: false`
   - `messageRegistry`: 全ドメインの `plugs/messages/<名前>.ts` の連絡の定義(鍵 = `<フォルダ名>.<ファイル名>` → 定義・隣の `.override.ts`・`views/<名前>.tsx` の遅延 import。key のずれ・重なり・定義の無い描き方は止める。`alpha/messageRegistry.mjs`、決まりは `src/lib/messaging/README.md`)
   - `recordTargetRegistry`: 全ドメインの `plugs/recordTargets/<名前>.ts` の記録の宛先(鍵 = `<フォルダ名>.<ファイル名>` → ドメイン・項目の遅延 import。絞らない = 閉じたドメインは使う時に門番 `recordTargetOpen` が落とす。key のずれ・重なりは止める。`alpha/recordTargetRegistry.mjs`、決まりは `src/lib/messaging/README.md`「記録の宛先」)
 
@@ -31,7 +31,7 @@
 - データ消失を伴う文（DROP / truncate / 型変更）を含むときは y/N で確認する。`--force` で省略。TTY のない実行では問わずに中止し、SQL を読んでよければ `--force` を付けて打ち直す形を出す(exit 1、DB は変えない)。
 - `drizzle-kit push` を直接叩くとスキーマゲートを通らない（無効な機能のテーブルも作られる）。使わない。
 
-1. `entities/drizzle.ts` を変更する（business ドメインは `domain.json` → `pnpm generate domain`）
+1. `entities/drizzle.ts` を変更する（business ドメインは登録の `entities/<登録名>/entity.json` → `pnpm generate domain`）
 2. 新しい表・新しいドメインを足したら `pnpm forge`（単独なら `pnpm generate registry`）を走らせてコミットする（core も同じ。`pnpm generate domain` は一覧を書かないので、この実行まで `pnpm check registry` が止める）
 3. `pnpm db:push` で開発 DB に反映する（`.env.development` 固定。DB に書き込む操作なので実行者が手で行う）
 4. index を追加・変更した場合は `pnpm db:push:check` が差分ゼロになることを確認する（下記）

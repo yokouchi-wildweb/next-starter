@@ -1,8 +1,8 @@
 // src/lib/domain/types/domainField.ts
-// domain.json の項目(Field)1 つの型。キーの正は生成器の語彙 scripts/structure/domain/spec/domainJson.mjs の FIELD_KEYS
+// entity.json の項目(Field)1 つの型。キーの正は生成器の語彙 scripts/structure/domain/spec/domainJson.mjs の FIELD_KEYS
 // (開発者のメモ $comment を除く)で、ここはその型の 1 か所。項目のキーを持つ型(DomainConfig の fields・DomainDisplayField・
 // DomainFieldInfo、formSuite の FieldConfig、crud の表示の列の設定など)はここから Pick / 広げで作り、キーを写し直さない。
-// 値は domain.json に書ける素の値だけ(関数・実行時だけの値・登録した入力部品の名前への広げは formSuite の FieldConfig が足す)。
+// 値は entity.json に書ける素の値だけ(関数・実行時だけの値・登録した入力部品の名前への広げは formSuite の FieldConfig が足す)。
 
 import type { BuiltinFormInput, FieldTypeName } from "../fields/fieldTypeNames";
 
@@ -14,7 +14,7 @@ export type DomainFieldOption = {
   disabled?: boolean;
 };
 
-/** domain.json に書いた選択肢(JSON のままなので値の型は決め打ちしない) */
+/** entity.json に書いた選択肢(JSON のままなので値の型は決め打ちしない) */
 export type DomainFieldOptionValue = {
   readonly value: unknown;
   readonly label?: string;
@@ -30,7 +30,7 @@ export type DomainFieldCollection = {
   readonly duplicate?: boolean;
 };
 
-/** domain.json の項目 1 つ */
+/** entity.json の項目 1 つ */
 export type DomainField = {
   /** 列名(snake_case) */
   name: string;
@@ -61,7 +61,7 @@ export type DomainField = {
   helperText?: string;
   /**
    * メタデータを別の項目に保存する対応(メタデータのキー → 項目名)。キーはメディアの種類ごとに違い、どれも省ける。
-   * Partial なのは、項目ごとに鍵の違う domain.json を JSON の import で読むと、TypeScript が他の項目の鍵を `?: undefined` で足すため
+   * Partial なのは、項目ごとに鍵の違う entity.json を JSON の import で読むと、TypeScript が他の項目の鍵を `?: undefined` で足すため
    */
   metadataBinding?: Readonly<Partial<Record<string, string>>>;
   /** 並び替え可否 */

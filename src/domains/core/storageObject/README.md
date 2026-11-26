@@ -91,7 +91,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 
 ## Extension
 
-- 用途: 項目は `<ドメイン>/plugs/storageObjectPurposes/<名前>.ts`（拡張点 `storageObjectPurposes`）。業務ドメインの用途は domain.json のメディア項目から `pnpm generate domain` が `services/server/storagePurposes.ts` に書く
+- 用途: 項目は `<ドメイン>/plugs/storageObjectPurposes/<名前>.ts`（拡張点 `storageObjectPurposes`）。業務ドメインの用途は登録の entity.json のメディア項目から `pnpm generate domain` が `services/server/storagePurposes.ts` に書く
 - 設定: 持ち主 `config.ts`、上書き `src/config/domains/storageObject.config.ts`（掃除の `sweep`・照合の `sweep.reconcile`）
 - サービスの差し替え: `createStorageObjectService(deps)` で台帳・ポート・用途表・時刻・ID・画像の描き直し（`stripImage`。省略 = `stripImageMetadata`）を差し替えられる
 
@@ -193,7 +193,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 
 ### 値の照合（`storageObjectConfig.sweep.reconcile.valueCheck`）
 
-行がある紐付けは、その列（`record_field`）の値にまだ ref が入っているかも見る（照合で読んだ行の値を、ref の中の台帳 ID で比べる。クエリは増えない）。列の削除（domain.json からメディア項目を消して db:push）・生 SQL や一度きりの移行での書き換えなど、アプリを通らずに値から外れた ref を拾う。
+行がある紐付けは、その列（`record_field`）の値にまだ ref が入っているかも見る（照合で読んだ行の値を、ref の中の台帳 ID で比べる。クエリは増えない）。列の削除（entity.json からメディア項目を消して db:push）・生 SQL や一度きりの移行での書き換えなど、アプリを通らずに値から外れた ref を拾う。
 
 | 行の状態 | unreferenced の reason |
 |---|---|

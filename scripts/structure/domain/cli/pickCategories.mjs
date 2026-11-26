@@ -1,4 +1,4 @@
-// -i（対話）の「生成カテゴリを手動で選ぶ」チェックボックス。選んだ結果は domain.json に保存しない
+// -i（対話）の「生成カテゴリを手動で選ぶ」チェックボックス。選んだ結果は entity.json に保存しない
 import { GENERATE_CATEGORIES } from "../spec/categories.mjs";
 import { prompt } from "./prompts.mjs";
 

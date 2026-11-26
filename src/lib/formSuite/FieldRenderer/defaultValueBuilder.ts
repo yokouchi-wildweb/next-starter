@@ -3,7 +3,7 @@
 import type { DomainDisplayRelation, DomainField } from "@/lib/domain";
 import { formDefaultFor, isTimestampFieldType } from "@/lib/domain";
 
-// 受け取るのは写し(entities/display.ts)の形か domain.json。読むキーだけを DomainField から取る。fieldType は無いこともある
+// 受け取るのは写し(entities/display.ts)の形か entity.json。読むキーだけを DomainField から取る。fieldType は無いこともある
 type DefaultValueField = Readonly<Pick<DomainField, "name" | "formInput" | "defaultValue" | "options">> & {
   readonly fieldType?: DomainField["fieldType"];
 };

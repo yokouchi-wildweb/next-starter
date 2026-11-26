@@ -93,7 +93,7 @@ export const UserTable = pgTable("users", {
 
 ガードを通らず行を作る一括書き込み・複製系（`upsert` / `bulkUpsert` / `replaceByQuery` / `duplicate`）は
 `userService` から公開しない。汎用 `/api/user/**` の該当ルートは 404、CSV インポートも拒否される
-（`domain.json` も `useImportExport: false`）。サービス内部では `base` を直接使える（表示名・
+（登録の `entities/user/entity.json` も `useImportExport: false`）。サービス内部では `base` を直接使える（表示名・
 ステータス履歴の整合は呼び手が持つ）。
 
 一括削除（`bulkDeleteByIds` / `bulkDeleteByQuery`）も `softDelete` のステータス変更・クリーンアップ・監査ログを

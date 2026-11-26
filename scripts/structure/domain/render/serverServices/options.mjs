@@ -12,7 +12,7 @@ import {
   buildHasManyRelationsSnippets,
 } from "./relations/withRelations.mjs";
 
-/** domain.json の基本設定 → createCrudService のオプション（JSON で書ける部分） */
+/** 登録の entity.json の基本設定 → createCrudService のオプション（JSON で書ける部分） */
 export function collectBaseServiceOptions(config) {
   if (!config) return {};
   const dbEngine = config.dbEngine || "";

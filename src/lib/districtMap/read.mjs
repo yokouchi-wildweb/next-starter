@@ -1,7 +1,7 @@
 // src/lib/districtMap/read.mjs
 // 地区の地図の読み手(目録 D1・D2・D12)。木を歩いて種類の表(kinds.mjs KINDS、7 種類)の地区を見つけ、各地区の欄を字面で読む。
 // ファイルの読み方は注入する(source.listDir・source.readText)。node:fs で今の木を読む入口は ./node.mjs。
-// 宣言は今の置き場が正本(domain.json・domainEntry・extensionPoints・門の規則・frame:・CATALOG.md)。この読み手は写しを持たない。
+// 宣言は今の置き場が正本(domain.json・entities/<登録名>/entity.json・domainEntry・extensionPoints・門の規則・frame:・CATALOG.md)。この読み手は写しを持たない。
 // 載せない物(目録 D8・D12): 値・access・関数・門の pathPatterns と enabled・受け口の項目の一覧・所有(どのリポの物か)。
 
 import { isGeneratedRegistration, readDomain } from "../domain/declarations.mjs";

@@ -407,7 +407,7 @@ src/app/admin/(protected)/samples/
 
 - `_screen/loader.ts` は最寄りの guard.ts（`admin/(protected)/guard.ts`）の `createLoader` に `src/domains/core/admin/services/server/screenParts.ts` の共通部品の組（`adminListParts` / `adminEditParts` / `adminCreateParts` / `adminSortParts`）を渡す 1 行。access は serviceRegistry の entry から汎用 API と同じ解き方で操作ごとに解き、範囲の方針と合わせて取得前に評価する。取得本体と規則は `src/domains/core/admin/services/server/screenData/README.md`
 - 生成された管理画面を変えたい fork: `_screen/` を `_components/` にコピーして page.tsx を向ける。以後の `pnpm generate domain` は `_screen/` を更新し続け、page.tsx と `_components/` は保持される。ドメイン固有のサーバー側判定が要るなら `_components/loader.ts` に書く（同じ guard.ts の `createLoader` で作る）
-- 生成ルートも `pnpm test scripts/structure/routes/screens.test.mjs` が自動検出して検査する（domain.json から導出）
+- 生成ルートも `pnpm test scripts/structure/routes/screens.test.mjs` が自動検出して検査する（`src/app` の page.tsx を走査して見つける。宣言は読まない）
 
 ### ルート地図（`src/app/route-map.jsonl`）
 

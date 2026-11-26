@@ -1,6 +1,6 @@
-// components/common/__Domain__Fields.tsx（フォームの項目描画）。テンプレートではなく domain.json から組み立てる。
+// components/common/__Domain__Fields.tsx（フォームの項目描画）。テンプレートではなく登録の entity.json から組み立てる。
 // リレーションがあれば useRelationOptions で選択肢を取得し、メディア列には用途 ID（`<domain>.<field>`）を付ける。
-// 主の集まりの項目（mediaCollection）には、従属の file の用途・ファイルの条件と集まりの件数を付ける（従属の domain.json から。一方向）
+// 主の集まりの項目（mediaCollection）には、従属の file の用途・ファイルの条件と集まりの件数を付ける（従属の登録の entity.json から。一方向）
 
 import { getFormRelations } from "../../../../../src/lib/domain/node.mjs";
 import { collectMediaFields, isCollectionFieldType, isMediaFieldType } from "../../spec/fieldTypes.mjs";
@@ -26,7 +26,7 @@ const RELATION_BLOCK = `
 
 /**
  * 主の集まりの項目の FieldConfig への上書き（従属の file の用途・accept・上限サイズと、集まりの件数）
- * @param {object} config 主の domain.json
+ * @param {object} config 主の登録の entity.json
  * @param {Map<string, { camel: string, config: object | null }>} collectionChildren 項目名 → 従属
  * @returns {{ name: string, patch: object }[]}
  */
@@ -70,7 +70,7 @@ ${mediaFields.map((f) => `  ${f.name}: "__domain__.${f.name}",`).join("\n")}
   }
   if (collectionPatches.length) {
     blocks.push(`
-// 主の集まりの項目: 従属の file の用途・ファイルの条件と集まりの件数（従属の domain.json から生成）
+// 主の集まりの項目: 従属の file の用途・ファイルの条件と集まりの件数（従属の登録の entity.json から生成）
 const COLLECTION_FIELD_PATCHES: Record<string, Partial<FieldConfig>> = {
 ${collectionPatches.map(({ name, patch }) => `  ${name}: ${JSON.stringify(patch)},`).join("\n")}
 };
@@ -94,7 +94,7 @@ const baseFields = domainDisplay.fields.map((field) =>${callback}) as FieldConfi
 }
 
 /**
- * domain.json からフィールドコンポーネントの本文（__domain__ / __Domain__ トークン付き）を作る
+ * 登録の entity.json からフィールドコンポーネントの本文（__domain__ / __Domain__ トークン付き）を作る
  * @param {object | null} config
  * @returns {string | null} config が無ければ null
  */

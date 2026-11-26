@@ -5,7 +5,7 @@ import { isCollectionFieldType } from "@/lib/domain";
 import type { DomainField } from "@/lib/domain";
 import type { ExportField } from "../../types";
 
-/** チャンクと一緒に送る項目の情報 = domain.json の項目(DomainField)の name と fieldType */
+/** チャンクと一緒に送る項目の情報 = entity.json の項目(DomainField)の name と fieldType */
 export type ImportFieldTypeInfo = Pick<DomainField, "name"> & { fieldType: DomainField["fieldType"] | undefined };
 
 /**

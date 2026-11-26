@@ -8,10 +8,10 @@ import { getStaticRelations } from "../../../../../src/lib/domain/node.mjs";
  *  - createRenderParams: 追加画面の createScreen の render の引数(関連があれば loader の relationFallback を受ける)
  *  - editRenderParams: 編集画面の render の引数(対象レコード + 関連があれば relationFallback)
  *  - swrStart / swrEnd: SWRConfig の fallback で画面を包む
- *  - loaderImport: loader.ts の domain.json の import
- *  - createRelationsArg / editRelationsArg: loader.ts の共通部品の組に domain.json を渡す引数
+ *  - loaderImport: loader.ts の登録の entity.json の import
+ *  - createRelationsArg / editRelationsArg: loader.ts の共通部品の組に登録の entity.json を渡す引数
  * 先読みするのは「選択肢を全件取得する関連」(getStaticRelations: async / custom / 逆側を除く)が 1 つ以上あるときだけ。
- * どの関連を読むかは取得本体が domain.json から同じ helper で判定し、関連先の access と service は wiring が serviceRegistry から
+ * どの関連を読むかは取得本体が登録の entity.json から同じ helper で判定し、関連先の access と service は wiring が serviceRegistry から
  * 解決するので、生成物は関連先の service を import しない。行単位のトークンは末尾に改行を含める
  */
 export function buildRelationTokens(relations, { camel }) {

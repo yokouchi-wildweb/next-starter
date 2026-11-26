@@ -44,7 +44,7 @@ test("突き合わせ: 項目が足りない・余分・登録が無い主を出
   });
   assert.equal(problems.length, 3);
   assert.match(problems[0], /album: 集まりの項目 tags がサービスに配線されていない.*import \{ collections \} from "\.\/collections"/);
-  assert.match(problems[1], /album: サービスの collections に domain\.json に無い項目 legacy がある/);
+  assert.match(problems[1], /album: サービスの collections に登録の entity\.json に無い項目 legacy がある/);
   assert.match(problems[2], /shop: serviceRegistry に登録が無い/);
   assert.deepEqual(compareCollectionWiring({ declared, wired: new Map([["album", ["tags", "photos"]], ["shop", ["images"]]]) }), []);
   assert.deepEqual(compareCollectionWiring({ declared: new Map(), wired: new Map([["plain", []]]) }), []);

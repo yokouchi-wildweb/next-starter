@@ -73,7 +73,7 @@ function fieldIssues(config, field) {
 }
 
 /**
- * @param {object} config domain.json
+ * @param {object} config 登録の entity.json
  * @returns {string[]} 問題（空なら無し）
  */
 export function fieldsIssues(config) {
@@ -82,7 +82,7 @@ export function fieldsIssues(config) {
 
 /**
  * 止めない警告: 型と入力欄の組が dc の表（src/lib/domain/fields/fieldFormInputs.mjs）に無い、選択肢が要る入力欄に options が無い
- * @param {object} config domain.json
+ * @param {object} config 登録の entity.json
  * @returns {string[]}
  */
 export function fieldsWarnings(config, registeredInputs = new Set()) {

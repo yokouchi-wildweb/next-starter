@@ -111,7 +111,7 @@ const result = await userService.searchWithProfile("contributor", {
 ```
 
 **動作:**
-- `searchQuery`: ユーザーテーブルの `searchFields`（`domain.json`）+ プロフィールの `searchFields`（`profile.json`）で ILIKE 横断検索（OR 結合）
+- `searchQuery`: ユーザーテーブルの `searchFields`（登録の `entities/user/entity.json`）+ プロフィールの `searchFields`（`profile.json`）で ILIKE 横断検索（OR 結合）
 - `profileWhere`: プロフィールフィールドの構造化フィルタ（`WhereExpr` DSL）。EXISTS サブクエリとして AND 結合
 - `searchQuery` と `profileWhere` は独立して機能し、両方指定すれば AND 結合
 - いずれも未指定の場合は通常の `userService.search()` にフォールバック
@@ -365,7 +365,7 @@ roles/
 #### リレーション設定
 
 `profile.json` に `relations` を追加することで、プロフィールテーブルにリレーションを設定できる。
-フォーマットは `domain.json` の `relations` と同じ。
+フォーマットは登録の entity.json の `relations` と同じ。
 
 ```json
 {

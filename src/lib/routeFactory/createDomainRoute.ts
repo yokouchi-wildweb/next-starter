@@ -21,7 +21,7 @@ export type DomainRouteConfig<TService, TStatus extends string = string> = {
   operationType: OperationType;
   /**
    * CRUD 操作名（アクセス制御用）
-   * domain.json の apiAccess.operations のキーと対応する（管理データ操作 truncateAll / export / import は汎用ルートに無い）
+   * entity.json の apiAccess.operations のキーと対応する（管理データ操作 truncateAll / export / import は汎用ルートに無い）
    */
   crudOp: DomainCrudOperation;
   /** サービスが特定のメソッドをサポートしているか確認 */

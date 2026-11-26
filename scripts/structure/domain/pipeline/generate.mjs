@@ -29,7 +29,7 @@ function coreAliasIssue(workspace, ctx) {
 }
 
 /**
- * domain.json を読み、生成前の検査を通す。フォルダ名のずれ・廃止した型・Firestore のメディア列などは何も書く前に止める。
+ * 主の登録の entity.json を読み、生成前の検査を通す。フォルダ名のずれ・廃止した型・Firestore のメディア列などは何も書く前に止める。
  * 語彙のずれ（綴り違い・古いキー・その DB に無い型）は警告して続ける。
  * 手で管理（generate: false）のドメインは検査もしない（生成器を一切通さない。configTargets が何も書かないことを 1 行出す）
  * @returns {import("../domain/context.mjs").DomainContext}
@@ -39,7 +39,7 @@ export function loadDomainForGenerate(workspace, domainInput, io = console, over
   if (!input) {
     throw new Error("ドメイン名を指定してください。");
   }
-  // overrides.config = この実行で書き出す従属の domain.json の中身（まだディスクに無い）
+  // overrides.config = この実行で書き出す従属の登録の entity.json の中身（まだディスクに無い）
   const ctx = createDomainContext(workspace, input, overrides);
   if (!ctx.config) {
     throw new Error(`設定ファイルが見つかりません: ${ctx.configPath}`);
@@ -70,7 +70,7 @@ export function narrowTargets(ctx, gen, only, io = console) {
 }
 
 /**
- * domain.json の generate（と集まりの従属か）で決まるカテゴリを `--only` で絞る。generate: false は --only でも何も生成しない
+ * 登録の entity.json の generate（と集まりの従属か）で決まるカテゴリを `--only` で絞る。generate: false は --only でも何も生成しない
  * @param {import("./pairs.mjs").PairIndex} pairs
  */
 export function configTargets(ctx, pairs, only, io = console) {

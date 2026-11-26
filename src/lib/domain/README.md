@@ -1,11 +1,11 @@
-# src/lib/domain — ドメインの定義と欄(domain.json の読み方・欄の型とその schema と表示・関連・ドメインの道)と、ドメイン名からサービス・表・主キーを引く仕組み
+# src/lib/domain — ドメインの定義と欄(宣言 domain.json + entity.json の読み方・欄の型とその schema と表示・関連・ドメインの道)と、ドメイン名からサービス・表・主キーを引く仕組み
 
 ## Overview
 
-- 役目 = ドメインの定義と欄: `domain.json` の写しと設定(フィールド・リレーション・中間表)の読み方、欄の型の表とその schema(日時の `nullableDatetime` / `requiredDatetime`)・表示(`format*`・`FieldPresenter`)・主キーの論理名 `CRUD_ID_FIELD`、関連、ドメインの道(管理画面のパス `getAdminPaths`)。加えて、登録表(serviceRegistry)からドメイン名でサービス・表・主キーを引く正式な仕組みの汎用部分を持つ
+- 役目 = ドメインの定義と欄: 宣言(`domain.json` + 登録ごとの `entities/<登録名>/entity.json`)の形と読み込みの部品 `readDomain`、entity.json の正規化 `normalizeEntityDeclaration`、写し `entities/display.ts` と設定(フィールド・リレーション・中間表)の読み方、欄の型の表とその schema(日時の `nullableDatetime` / `requiredDatetime`)・表示(`format*`・`FieldPresenter`)・主キーの論理名 `CRUD_ID_FIELD`、関連、ドメインの道(管理画面のパス `getAdminPaths`)。加えて、登録表(serviceRegistry)からドメイン名でサービス・表・主キーを引く正式な仕組みの汎用部分を持つ
 - React の値のコード・hooks・HTTP の client は持たない(入口 "." は server でも値で読める)。データの読み書き(サービス・hooks・client。管理画面の全件削除の `useFetchDomains` / `useTruncateDomains` / `domainClient` も)は `@/lib/crud`(crud → domain の向きだけ。domain は crud を読まない)
 - ここの関数は登録表を import せず引数で受ける(既存の例外と規則は `src/wiring/README.md`)。登録表を結んだそのまま使える関数は `src/domains/core/admin/services/server/screenParts.ts`
-- 閉じた lib: 外からは入口だけを読む。`@/lib/domain`(client でも server でも)・`@/lib/domain/server`(登録表から引く関数)・`./node` = `src/lib/domain/node.mjs`(scripts・eslint-rules が読む `.mjs`)。何がどこから出るか: `API.md`「入口と関数のありか」。access の型と定型は別の閉じた lib `@/lib/domainAccess`(domainEntry.ts が値で読むので値だけで作る)
+- 閉じた lib: 外からは入口だけを読む。`@/lib/domain`(client でも server でも)・`@/lib/domain/server`(登録表から引く関数)・`./node` = `src/lib/domain/node.mjs`(scripts・eslint-rules が読む `.mjs`)・`./declarations` = `src/lib/domain/declarations.mjs`(宣言の形と `readDomain`。node の API を使わないので地区の地図などの lib も読める)。何がどこから出るか: `API.md`「入口と関数のありか」。access の型と定型は別の閉じた lib `@/lib/domainAccess`(domainEntry.ts が値で読むので値だけで作る)
 - 登録表 `src/registry/serviceRegistry.ts` = ドメイン名(camelCase のキー)→ `{ service, access, table, idColumn }` の表。ドメインを 1 つ作ると 1 行増える一覧で、下流が中身を足す「登録口」ではない。Drizzle はモデルの登録簿を持たないので、アプリ側でここに 1 か所用意する
 
 | 入口 | 何が決まるか |
@@ -54,15 +54,15 @@ export const domainEntries = {
   - 型だけの import（`import type`・名前がすべて `type`）はどこからでも可
   - 値の import は**値だけのファイル**からだけ。置き場や名前でなく中身で見る: 文が 型だけの import・値だけのファイルからの値の import と再 export・型の宣言（`type` / `interface`）・`const <名> = <値の式>`・`export default <値の式>` だけのファイル。値の式 = リテラル・そのファイルの定数か import した名前の参照（`.プロパティ` も）・それらの object / 配列 / spread（`as` / `satisfies` は外して見る）。関数・呼び出し・`new`・副作用の import・`let` / `var`・`enum`・`class` は不可。値の import の先も同じ決まりで推移的に確かめ、解けない指定子（パッケージ・無いファイル）は不可
   - 上流の権限の型と定型 `@/lib/domainAccess`(値だけのファイルだけで作った閉じた lib)はこの決まりで通る。`@/lib/domain` の入口は関数・hooks を含むので、値は読まない(型だけなら可)。fork が自分の権限の定型（例: 店舗の関係者だけ）を持つなら、自分のドメインの `constants/` などに値だけのファイルとして置き、`domainEntry.ts` から import する
-- 業務ドメイン: `pnpm generate domain`（forge）が domain.json から生成する（registry カテゴリ。手で直すならそのドメインを `"generate": false`）。access = `apiAccess`（無ければ ADMIN_ONLY）+ `truncateAll` は管理者 + `export` / `import` は `useImportExport: true` のときだけ管理者、それ以外（省略を含む）は `"none"`。
-  - `table` = 表の定義の生成器と同じ決め方（`scripts/structure/domain/domain/names.mjs` の `domainTableName` = domain.json の `plural`、無ければドメイン名の snake_case）、`idColumn` = `"id"`、dbEngine が Firestore なら両方 `null`
+- 業務ドメイン: `pnpm generate domain`（forge）が主の登録の `entities/<登録名>/entity.json` から生成する（registry カテゴリ。手で直すならその登録を `"generate": false`）。access = `apiAccess`（無ければ ADMIN_ONLY）+ `truncateAll` は管理者 + `export` / `import` は `useImportExport: true` のときだけ管理者、それ以外（省略を含む）は `"none"`。
+  - `table` = 表の定義の生成器と同じ決め方（`scripts/structure/domain/domain/names.mjs` の `domainTableName` = entity.json の `plural`、無ければドメイン名の snake_case）、`idColumn` = `"id"`、dbEngine が Firestore なら両方 `null`
 - core ドメイン・fork が手書きする domainEntry.ts（core パスのドメイン、`generate: false` のドメイン）: `table` / `idColumn` も自分で書く。値の正しさは `pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs` が実物と比べる。core のファイルは fork が編集しない。業務ドメインの写せる形は下の「generate: false の業務ドメイン」
 
 ### generate: false の業務ドメイン
 
 `"generate": false` の業務ドメインは生成器が何も書かない（`pnpm generate domain -- <Domain> --only registry` も含む）。`domainEntry.ts` を持たないまま false にしたドメイン（旧 `generateFiles.registry: false` から移ったものなど）は、`pnpm check registry` が「drizzleBase.ts … があるのに domainEntry.ts が無い」で止まるので、`services/server/domainEntry.ts` を手で書く。
 
-形は生成器が書くものと同じ（下は domain.json が `"plural": "visits"`、`apiAccess` 無し、`useImportExport` 無しの `visit` の例。`pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs` がこの例をそのまま置いて検査が通ることを確かめている）:
+形は生成器が書くものと同じ（下は登録の entity.json が `"plural": "visits"`、`apiAccess` 無し、`useImportExport` 無しの `visit` の例。`pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs` がこの例をそのまま置いて検査が通ることを確かめている）:
 
 ```ts
 import type { DomainEntries } from "@/lib/domain";
@@ -86,16 +86,16 @@ export const domainEntries = {
 ```
 
 - キー = フォルダ名（singular の camelCase）。`service` = 同じフォルダの `<camel>Service.ts` の `<camel>Service`
-- `table` = domain.json の `plural` の snake_case（無ければドメイン名の snake_case）、`idColumn` = `"id"`。Firestore 版は両方 `null`
-- `access` = domain.json の `apiAccess` の read / write（無ければ `...ADMIN_ONLY`。`PUBLIC_READ` などのプリセットに当たるならそれを広げる）+ `apiAccess.operations` + `truncateAll: ADMIN_RULE` + `export` / `import` = `useImportExport: true` なら `ADMIN_RULE`、それ以外は `"none"`
+- `table` = 登録の entity.json の `plural` の snake_case（無ければドメイン名の snake_case）、`idColumn` = `"id"`。Firestore 版は両方 `null`
+- `access` = 登録の entity.json の `apiAccess` の read / write（無ければ `...ADMIN_ONLY`。`PUBLIC_READ` などのプリセットに当たるならそれを広げる）+ `apiAccess.operations` + `truncateAll: ADMIN_RULE` + `export` / `import` = `useImportExport: true` なら `ADMIN_RULE`、それ以外は `"none"`
 - 書いたら `pnpm generate registry`。`pnpm check registry` と `scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs`（`table` / `idColumn` を実物と比べる）が守る(/sluice の検査が回す)。以後 `apiAccess` / `useImportExport` / `plural` を変えたらこのファイルも手で直す（生成器は追わない）
 
 ### ドメイン設定の読み方
 
-- client: 写し（上の節）を読む。domain.json は import しない（lint `import-boundaries/client-no-domain-json`、全 Tier error。import()・export from・型も）。client = `"use client"` のファイルか `components/`・`hooks/`・`_components/` の下のファイル。`_components/` の下で `"use client"` の無い `*Screen.tsx` と `loader.ts` は server の差し替えなので対象外。写しに無いキーが本当に要るときは理由を書いて eslint-disable。
+- client: 写し（上の節）を読む。宣言（domain.json と entities/<登録名>/entity.json）は import しない（lint `import-boundaries/client-no-domain-json`、全 Tier error。import()・export from・型も）。client = `"use client"` のファイルか `components/`・`hooks/`・`_components/` の下のファイル。`_components/` の下で `"use client"` の無い `*Screen.tsx` と `loader.ts` は server の差し替えなので対象外。写しに無いキーが本当に要るときは理由を書いて eslint-disable。
   - 手持ちの部品の移行は `node .notices/20261101-121000-domain-display-client.domain-json-client-display.mjs`（確かめられないファイルは書き換えず一覧に出す）。`getRelationsOf` / `getBelongsToRelationsOf` / `getBelongsToManyRelationsOf` / `getHasManyRelationsOf` / `hasRelationsOf` は写しを受ける。文字列のドメイン名を受ける関数は無い
-- server、自分のドメインだけ: 自分の domain.json を読み `normalizeEntityDeclaration` を通す（drizzleBase の形。client は写しが変換済みなので呼ばない）
-- server、全ドメイン: `src/wiring/domainConfig.ts` の `getDomainConfig` / `hasDomainConfig`。`domainConfigRegistry` は server-only で、client から届くと build が止まる。lib は `createDomainConfigLookup(表)` の汎用版だけを持ち、登録表を import しない
+- server、自分のドメインだけ: 自分の登録の `entities/<登録名>/entity.json` を import し `normalizeEntityDeclaration` を通す（drizzleBase の形。client は写しが変換済みなので呼ばない）
+- server、全ドメイン: `src/wiring/domainConfig.ts` の `getDomainConfig` / `hasDomainConfig`(全ドメインの主の登録の entity.json)。`domainConfigRegistry` は server-only で、client から届くと build が止まる。lib は `createDomainConfigLookup(表)` の汎用版だけを持ち、登録表を import しない
 
 ### 型(fieldType)を足す・廃止する
 
@@ -113,10 +113,11 @@ export const domainEntries = {
 - 鍵の集合の正は `definition/declaration.mjs`、読むのは読み込みの部品 `definition/readDomain.mjs` だけ(入口 "./declarations"・"./node")。無い・壊れた・知らない鍵は `problems` に入り、推測で埋めない
 - entities/ の下のフォルダのうち entity.json か表のファイル(`ENTITY_FILE_KINDS`)を持つ物だけが登録(役割の表 profiles/ などは登録でない)
 - 入れ子(fields・relations・fieldGroups・indexes と下の表の鍵)の知らない鍵も `problems`(表 `ENTITY_NESTED_KEYS`)。値の形は見ない
-- 上流の全ドメインはこの形(79)。scripts 側の読み手(生成器・登録表の生成・地区の地図・検査)はこの部品だけで読む(80)。実行時に宣言を import する手書きの所は続く指令で移す
+- 上流の全ドメインはこの形。scripts 側の読み手(生成器・登録表の生成・地区の地図・検査)はこの部品だけで読む。実行時(server)に宣言を読む所は登録の entity.json を import して `normalizeEntityDeclaration` を通す(上の「ドメイン設定の読み方」)
+- 比べる道具(`pnpm check domain -- --compare`・`--parity <ref>`)は ref の生成器で旧側を動かすので、宣言が 1 ファイルの domain.json だった頃の ref とは比べられない
 - 生成器の 1 ドメインの config = 主の登録の entity.json。生成する登録を持つのに登録が 2 つ以上のドメインは止める(登録ごとの一式は区切り domain-kit)
 
-手で持つ表の形の鍵(entity.json だけ、Neon のみ。今の 1 ファイルの形では書けなかった物):
+手で持つ表の形の鍵(entity.json だけ、Neon のみ。宣言が 1 ファイルの domain.json だった頃には書けなかった物):
 
 - 宣言から表を組む手段は生成器の 1 つ(`scripts/structure/domain/render/entities/drizzle/shape.mjs`・`indexes.mjs` が下の鍵を entities/drizzle.ts に書く、dbObjects は書かず名指すだけ、Firestore に書けば止める)
 
@@ -142,7 +143,7 @@ export const domainEntries = {
 ## Extension
 
 - fork が core の access を変える: 隣に `domainEntry.override.ts`(fork 所有)。`export const domainEntryOverrides = { <key>: <access> } satisfies DomainEntryOverrides` で access を丸ごと置き換える。生成器が読む(拡張点の宣言 `extensionPoints.ts` の `domainEntries`、差し替えられる鍵は `access` だけ)
-- 業務ドメインの access は domain.json の `apiAccess`(`apiAccess.commands` も)
+- 業務ドメインの access は登録の entity.json の `apiAccess`(`apiAccess.commands` も)
 
 ## Internals
 
@@ -156,7 +157,7 @@ export const domainEntries = {
 
 `pnpm check registry` が失敗する条件と直し方（メッセージにも出る）:
 
-- 移行前の手書き行（生成ヘッダの無い旧 serviceRegistry.ts に、どの domainEntry.ts からも作られないキー）→ domain.json の `apiAccess` に移して `pnpm generate domain -- <Domain> --only registry`、または domainEntry.ts（core）/ domainEntry.override.ts（fork が core の access を変える）へ移す。生成ヘッダ付きのファイルから消えるキー（pnpm generate domain -- --delete 後）は正当な除去として通る
+- 移行前の手書き行（生成ヘッダの無い旧 serviceRegistry.ts に、どの domainEntry.ts からも作られないキー）→ 登録の entity.json の `apiAccess` に移して `pnpm generate domain -- <Domain> --only registry`、または domainEntry.ts（core）/ domainEntry.override.ts（fork が core の access を変える）へ移す。生成ヘッダ付きのファイルから消えるキー（pnpm generate domain -- --delete 後）は正当な除去として通る
 - キーの重複 / `drizzleBase.ts`・`firestoreBase.ts` があるのに domainEntry.ts が無い（登録表に載せないドメインは `scripts/structure/registry/serviceRegistry/discover.mjs` の `ENTRY_EXCEPTIONS` に理由付きで。縮むだけの表）/ `storageBindingFor` の第 1 引数（record_type）がキーに無い / 読めない行・許可外の静的 import / override のキーが隣の domainEntry.ts に無い
 - `table` / `idColumn`: 無い（生成ドメインは `pnpm generate domain -- <Domain> --only registry`、手書きは service の直後に書く）/ 文字列リテラルと `null` 以外 / 形が物理名でない（空・63 文字超・引用符や空白入り。大文字は通す）/ 片方だけ `null` / **同じ表が 2 つのキーにある**（両方のファイルとキーを出す）。値が実物と同じかは `pnpm check registry` では見ない（`pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs`）
 
@@ -179,9 +180,9 @@ export const domainEntries = {
 
 ### 表示用の写し(entities/display.ts)
 
-- client に出すドメイン設定は `<domain>/entities/display.ts` の `domainDisplay`。`pnpm generate registry` が domain.json の許可した項目(`API.md`「表示用の写しの項目」)だけを写す。`pnpm generate domain` の後は `pnpm generate registry`(ずれは `pnpm check registry` が止める)
+- client に出すドメイン設定は `<domain>/entities/display.ts` の `domainDisplay`。`pnpm generate registry` が主の登録の entity.json の許可した項目(`API.md`「表示用の写しの項目」)だけを写す。`pnpm generate domain` の後は `pnpm generate registry`(ずれは `pnpm check registry` が止める)
 - 宣言は `export const domainDisplay: DomainDisplay`(リテラル型は持たない)
-- domain.json の無い手書きの domain は、同じ置き場に同じ形を手で書く。`hiddenColumns` は `defineHiddenColumns` と同じ列を宣言する
+- 主の登録の無いドメイン(表の無いドメイン、ドメイン名でない登録が複数のドメイン)は写しを持たない(pnpm generate registry は作らない)。client の部品が写しを要るなら、主の登録(登録名 = ドメイン名)を宣言する。`hiddenColumns` は `defineHiddenColumns` と同じ列を宣言する
 
 ### 表示の種類の決め方(`presenterFor`)
 

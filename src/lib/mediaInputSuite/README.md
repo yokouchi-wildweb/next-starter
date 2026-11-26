@@ -19,7 +19,7 @@
    - RHF なら `ControlledMediaUploader` or `useMediaUploaderField`
 
 3. **FieldRenderer で自動生成フォーム**
-   - `FieldRenderer` + `baseFields`（domain.json から読み込み）。メディア項目には `purpose` が要る（生成の `<Domain>Fields` が付ける）
+   - `FieldRenderer` + `baseFields`（登録の entity.json の写し `entities/display.ts` から読み込み）。メディア項目には `purpose` が要る（生成の `<Domain>Fields` が付ける）
 
 ### フォーム連携(formAdapters/、入口から読む)
 

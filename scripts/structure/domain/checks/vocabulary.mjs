@@ -1,4 +1,4 @@
-// 検査: domain.json の語彙（spec/domainJson.mjs との照合）。綴り違い・古いキー・その DB に無い型を見つける（知らない入力種別は checks/formInputNames.mjs が止める）。
+// 検査: 登録の entity.json の語彙（spec/domainJson.mjs との照合）。綴り違い・古いキー・その DB に無い型を見つける（知らない入力種別は checks/formInputNames.mjs が止める）。
 // 生成器は未知の値を黙って通す（未知の fieldType は列名としてそのまま出る、未知の formInput は UI に出ない）ので、
 // ここで警告する。生成は止めない（警告だけ）。
 
@@ -127,7 +127,7 @@ function relationWarnings(acc, config, registeredInputs) {
 
 /**
  * 語彙の照合の結果を 2 つに分けて返す（preflightWarnings が知らないキーを他の検査の警告より後ろに並べるため）
- * @param {object | null} config domain.json
+ * @param {object | null} config 登録の entity.json
  * @returns {{ warnings: string[], unknownKeys: string[] }} warnings = 値の誤り・古いキー・$comment の形、unknownKeys = 知らないキー（キーごとに 1 行）
  */
 export function vocabularyReport(config, registeredInputs = new Set()) {
@@ -141,7 +141,7 @@ export function vocabularyReport(config, registeredInputs = new Set()) {
 }
 
 /**
- * @param {object | null} config domain.json
+ * @param {object | null} config 登録の entity.json
  * @returns {string[]} 警告文（空なら問題なし）。値の誤り・古いキーが先、知らないキーはキーごとに 1 行で最後
  */
 export function vocabularyWarnings(config, registeredInputs = new Set()) {

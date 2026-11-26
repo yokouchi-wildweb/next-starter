@@ -28,7 +28,7 @@
 |---|---|---|---|---|
 | **Manual** | 低レベル / 自由レイアウト | `ManualField` / `ManualFieldGroup` / `ManualFieldController` | useState 前提、または RHF で自由配置したい場合 | ManualFieldController は RHF 専用 |
 | **Controlled** | RHF 連携の標準形 | `ControlledField` / `ControlledFieldGroup` | 一般的なフォーム | エラー自動取得 |
-| **Configured** | 設定駆動で描画 | `ConfiguredField` / `ConfiguredFieldGroup` / `ConfiguredFields` | domain.json を使う運用 | `FieldConfig` を渡す |
+| **Configured** | 設定駆動で描画 | `ConfiguredField` / `ConfiguredFieldGroup` / `ConfiguredFields` | 登録の entity.json を使う運用 | `FieldConfig` を渡す |
 | **Media** | メディアアップロード | `ControlledMediaField` / `ConfiguredMediaField` | 画像/動画のアップロード | `useMediaUploaderField` を利用 |
 | **Renderer** | まとめて自動生成 | `FieldRenderer` | 管理画面CRUD | `mediaUploader` も扱える |
 
@@ -173,7 +173,7 @@ const [dayError, setDayError] = useState<string>();
 
 ### 3. Renderer を使う(管理画面向け)
 
-domain.json からフォームを自動生成する。Controlled のみ。カスタマイズ(パッチ・挿入、`fieldGroups`、差し込み `beforeAll` / `beforeField` / `beforeGroup` 等)は [FieldRenderer/README.md](./FieldRenderer/README.md)。
+登録の entity.json(client へは写し `entities/display.ts`)からフォームを自動生成する。Controlled のみ。カスタマイズ(パッチ・挿入、`fieldGroups`、差し込み `beforeAll` / `beforeField` / `beforeGroup` 等)は [FieldRenderer/README.md](./FieldRenderer/README.md)。
 
 ```tsx
 import { AppForm, FieldRenderer } from "@/lib/formSuite";
@@ -248,17 +248,17 @@ ControlledField / ManualField / ControlledFieldGroup / ManualFieldGroup / Config
 | 横並びグループ | `ConfiguredFieldGroup` | `fieldConfigs[]` | 生年月日/住所など | ラベルは先頭の `label` を利用可 |
 | 縦並び一括 | `ConfiguredFields` | `fieldConfigs[]` / `names[]` | まとめて描画したいとき | `Stack` で縦間隔制御 |
 
-- 欄の説明文は `FieldConfig.helperText` の 1 つだけ(domain.json の欄・設定の欄 `ui.field` も同じ名前)
+- 欄の説明文は `FieldConfig.helperText` の 1 つだけ(entity.json の欄・設定の欄 `ui.field` も同じ名前)
 - props の `description`(色・位置も指定できる)を渡すとそちらが優先
 - 枠を持たない入力(`switchInput`・`stepperInput`・登録部品の `frame: false`)は helperText を描かない
 
 ### FieldConfig のキー
 
-- domain.json に書けるキーは `DomainField`(`@/lib/domain`)のまま。`FieldConfig` はそれを広げた物で、キーを写し直さない
-- `fieldType` は省ける(画面で手で組む設定は型を書かないことがある。domain.json では必須)。型の名前は `@/lib/domain` の表から導く union(`FieldTypeName` など)で、この lib に一覧は無い
+- 登録の entity.json の欄に書けるキーは `DomainField`(`@/lib/domain`)のまま。`FieldConfig` はそれを広げた物で、キーを写し直さない
+- `fieldType` は省ける(画面で手で組む設定は型を書かないことがある。entity.json では必須)。型の名前は `@/lib/domain` の表から導く union(`FieldTypeName` など)で、この lib に一覧は無い
 - この lib が狭める物: `formInput`(組み込みの名前 `BuiltinFormInput` + 登録した入力部品の名前)・`options`(`DomainFieldOption`)・`mediaTypePreset`・`validationRule`(メディアの形 `MediaValidationRule`)
 - この lib が足す物(画面でだけ使う値): `purpose`(生成の Fields が付ける)・`onMetadataChange`・`asyncApiPath` / `asyncLabelField` / `asyncSearchFields`
-- 新しい domain.json のキーは `DomainField` に足す(ここには足さない)
+- entity.json の欄の新しいキーは `DomainField` に足す(ここには足さない)
 
 ### 関連の選択肢(useRelationOptions)
 
@@ -281,7 +281,7 @@ ControlledField / ManualField / ControlledFieldGroup / ManualFieldGroup / Config
 
 ### 独自の入力部品の登録(点 formInputs)
 
-- 1 部品 1 ファイル。欄の定義に `formInput: "<name>"` と書ける(domain.json・profile.json・setting の欄・手書きの FieldConfig)
+- 1 部品 1 ファイル。欄の定義に `formInput: "<name>"` と書ける(entity.json・profile.json・setting の欄・手書きの FieldConfig)
 - `pnpm generate extensions`(forge が回す)が一覧と結び目を生成物 `src/wiring/formSuite.ts` に書く。結び目 `FormInputsRoot`(client)が門番で閉じたドメインの項目を外して(`useGate().plugs`)`FormInputsProvider` に渡し、`src/wiring/AppProviders.tsx` が包む
 - 登録は描画だけ。初期値・Zod・列は `fieldType` が決め、一覧の表示(presenter)は含めない
 - 部品は `{ field, fieldConfig, inputClassName, id, "aria-describedby", "aria-invalid" }` を受ける(`FormInputProps`)。`id`・`aria-*` を入力要素に渡すとラベルと結び付く。Form/Input の部品(`SelectInput`・`AsyncComboboxInput`・`UserAsyncCombobox` など)を包むときは 3 つをそのまま部品へ渡す

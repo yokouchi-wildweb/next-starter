@@ -11,7 +11,7 @@ import "server-only";
 import type { DomainApiAccessRule } from "@/lib/domainAccess";
 import { domainsFromRelationOptionsKey, getStaticRelations, relationOptionsKey } from "@/lib/domain";
 
-/** domain.json のうち読む部分 */
+/** 登録の entity.json のうち読む部分 */
 export type AdminRelationOptionsConfig = {
   relations?: Array<{
     domain: string;
@@ -34,7 +34,7 @@ export type AdminRelationTarget = {
 };
 
 export type AdminRelationOptionsDeps = {
-  /** 関連先ドメイン名(domain.json の表記)から access と取得を引く。引けなければ throw(設定ミスを黙って通さない) */
+  /** 関連先ドメイン名(entity.json の relations の表記)から access と取得を引く。引けなければ throw(設定ミスを黙って通さない) */
   resolveTarget: (domain: string) => AdminRelationTarget;
   /** access をこのリクエストの利用者で評価する(loader の文脈の allows、非同期) */
   allows: (rule: DomainApiAccessRule) => Promise<boolean>;

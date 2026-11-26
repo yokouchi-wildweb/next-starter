@@ -1,4 +1,4 @@
-// domain.json / profile.json の audit（createCrudService の audit のうち JSON で書ける部分。recorder は生成器が auditLogger を渡す）
+// 登録の entity.json / profile.json の audit（createCrudService の audit のうち JSON で書ける部分。recorder は生成器が auditLogger を渡す）
 
 export const AUDIT_KEYS = new Set(["enabled", "targetType", "actionPrefix", "trackedFields", "bulkMode", "retentionDays", "strict"]);
 export const AUDIT_BULK_MODES = new Set(["aggregate", "detail", "off"]);

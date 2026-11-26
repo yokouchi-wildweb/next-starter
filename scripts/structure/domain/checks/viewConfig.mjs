@@ -14,7 +14,7 @@ const isSearchable = (field) => fieldTypeSpec(field.fieldType).column === "text"
 
 /**
  * 止めない警告: Firestore の searchFields の文字列でない列(Neon は buildSearchWhere が `::text` に cast するので対象外)
- * @param {object} config domain.json
+ * @param {object} config 登録の entity.json
  * @returns {string[]}
  */
 export function viewConfigWarnings(config) {
@@ -26,7 +26,7 @@ export function viewConfigWarnings(config) {
 }
 
 /**
- * @param {object} config domain.json
+ * @param {object} config 登録の entity.json
  * @returns {string[]} 問題（空なら無し）
  */
 export function viewConfigIssues(config) {

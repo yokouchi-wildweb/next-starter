@@ -85,7 +85,7 @@ const css = resolveColorValue(value, { resolveDefault: () => "var(--color-primar
 - `layout`: `"stack"`(既定・縦積みブロック)/ `"inline"`(1 行セグメンテッド + インライン chip + gradient ドロップダウン。密なテーブル行向け)
 - `gradientPickerVariant`: `"grid"` / `"dropdown"`(既定は layout から導出。stack→grid, inline→dropdown)
 - `value`: `ColorValue | string | null`。生 CSS 文字列(旧データ)を渡しても内部正規化されモードが確定する
-- 組み込みの formInput `"colorValueInput"`(`BuiltinFormInput`)として `inputResolver` にも登録済み(domain.json 経由では default の意味注入ができないため既定挙動。意味を注入したい場合は Controlled / Manual を直接使う)
+- 組み込みの formInput `"colorValueInput"`(`BuiltinFormInput`)として `inputResolver` にも登録済み(entity.json の宣言経由では default の意味注入ができないため既定挙動。意味を注入したい場合は Controlled / Manual を直接使う)
 
 ## Internals
 

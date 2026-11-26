@@ -1,6 +1,6 @@
 // 生成前の検査（何も書く前に止めるもの）。各検査はエラー文（文字列・配列）か null を返す。ここで集めて、全件を並べて例外にする。
-// domain.json の決まり（名前の形・必須キー・リレーション・型と入力欄・選択肢・既定値・メディア・一覧の設定）はここで止める。
-// 対話で作っていた頃に質問の中にあった決まりもここに移した（domain.json は手で書き、pnpm forge か pnpm generate domain で生成する）
+// 登録の entity.json の決まり（名前の形・必須キー・リレーション・型と入力欄・選択肢・既定値・メディア・一覧の設定）はここで止める。
+// 対話で作っていた頃に質問の中にあった決まりもここに移した（宣言 domain.json と entities/<登録名>/entity.json は手で書き、pnpm forge か pnpm generate domain で生成する）
 //
 // 生成の最中に見つかる検査（SET_NULL + required、hiddenColumns、index 名の長さ、ファイル用途の規則）は
 // render/ の各生成器が例外を投げる。pipeline は全カテゴリの Output を集めてから書くので、どちらも書きかけを残さない。
@@ -20,7 +20,7 @@ import { checkRetiredFieldTypes } from "./retiredFieldTypes.mjs";
 import { viewConfigIssues, viewConfigWarnings } from "./viewConfig.mjs";
 import { vocabularyReport } from "./vocabulary.mjs";
 
-/** domain.json の中身の決まり（[camel] を前に付けて返す） */
+/** 登録の entity.json の中身の決まり（[camel] を前に付けて返す） */
 export function configIssues(camel, config) {
   if (!config || typeof config !== "object") return [];
   return [
@@ -57,7 +57,7 @@ export function assertPreflight(ctx, registeredInputs = new Set()) {
 }
 
 /**
- * 止めない警告（domain.json の語彙）。`[domain.json] <camel>: ...` の形で返す。
+ * 止めない警告（entity.json の語彙）。`[entity.json] <camel>: ...` の形で返す。
  * 知らないキー（キーごとにまとめた行）は最後に並べる（値の誤り・DB の型・古いキーを先に読ませる）
  * @returns {string[]}
  */
@@ -70,5 +70,5 @@ export function preflightWarnings(ctx, registeredInputs = new Set()) {
     ...fieldsWarnings(ctx.config, registeredInputs),
     ...viewConfigWarnings(ctx.config),
     ...vocabulary.unknownKeys,
-  ].map((w) => `[domain.json] ${ctx.camel}: ${w}`);
+  ].map((w) => `[entity.json] ${ctx.camel}: ${w}`);
 }

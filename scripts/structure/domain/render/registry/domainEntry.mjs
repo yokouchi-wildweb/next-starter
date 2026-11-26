@@ -1,4 +1,4 @@
-// services/server/domainEntry.ts（毎回上書き）: domain.json の apiAccess / useImportExport から access を、表名と id 列を書く。
+// services/server/domainEntry.ts（毎回上書き）: 登録の entity.json の apiAccess / useImportExport から access を、表名と id 列を書く。
 // src/registry/serviceRegistry.ts はこのファイルから pnpm generate registry が作る（pnpm generate domain の最後に自動で走る）
 
 import path from "node:path";
@@ -13,7 +13,7 @@ export const TYPES_MODULE = "@/lib/domain";
 const FAIL_CLOSED_ACCESS = ACCESS_PRESETS.ADMIN_ONLY;
 
 /**
- * domain.json から domainEntry.ts の access を組む。
+ * 登録の entity.json から domainEntry.ts の access を組む。
  * - read / write = apiAccess（無ければ ADMIN_ONLY）
  * - commands = apiAccess.commands(データ操作のコマンドの上書き、書いた時だけ)
  * - operations = apiAccess.operations + 管理データ操作: truncateAll は管理者、export / import は useImportExport が true のときだけ管理者（書かなければ "none" = 閉じる）
@@ -46,14 +46,14 @@ export function renderTableLines(camel, config) {
 
 /**
  * domainEntry.ts の本文
- * @param {{ camel: string, config: object | null, isCore?: boolean }} options camel = ドメイン名（camelCase）、config = domain.json（無ければ null）
+ * @param {{ camel: string, config: object | null, isCore?: boolean }} options camel = ドメイン名（camelCase）、config = 主の登録の entity.json（無ければ null）
  */
 export function renderDomainEntry({ camel, config, isCore = false }) {
   const { lines, names } = serializeAccess(buildDomainEntryAccess(config));
   const dir = `src/domains/${isCore ? "core/" : ""}${camel}`;
   const out = [
     `// ${dir}/services/server/domainEntry.ts`,
-    "// pnpm generate domain が domain.json から生成する。手で直すときは domain.json の generate を false にする（そのドメインは生成しなくなる）。",
+    "// pnpm generate domain が登録の entity.json から生成する。手で直すときは entity.json の generate を false にする（そのドメインは生成しなくなる）。",
     "// 登録表 src/registry/serviceRegistry.ts はこのファイルから pnpm generate registry が作る（pnpm generate domain の最後に自動で走る）。",
     "// access = 汎用 API（/api/<domain>/**）と管理データ操作（truncateAll / export / import）の認可。詳細: src/lib/domain/README.md",
     "",
@@ -75,8 +75,8 @@ export function renderDomainEntryOutput(ctx, warn = console.warn) {
   const { camel, config } = ctx;
   if (!config?.apiAccess) {
     warn(
-      `[domainEntry] ${camel}: domain.json に apiAccess が無いため fail-closed（ADMIN_ONLY）で登録します。` +
-        `公開範囲を変えるには domain.json の apiAccess を宣言して再生成してください。`,
+      `[domainEntry] ${camel}: 登録の entity.json に apiAccess が無いため fail-closed（ADMIN_ONLY）で登録します。` +
+        `公開範囲を変えるには entity.json の apiAccess を宣言して再生成してください。`,
     );
   }
   return file(path.join(ctx.dir, "services", "server", "domainEntry.ts"), renderDomainEntry({ camel, config, isCore: ctx.kind === "core" }), {

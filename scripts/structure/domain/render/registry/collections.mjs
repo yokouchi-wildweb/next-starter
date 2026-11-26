@@ -11,7 +11,7 @@ import { resolveCollectionChildren } from "../collections/children.mjs";
 import { file } from "../output.mjs";
 import { domainRel } from "../../domain/context.mjs";
 
-/** 従属の列（主への参照・値・並び）のプロパティ名。従属の domain.json が無ければ雛形の名前 */
+/** 従属の列（主への参照・値・並び）のプロパティ名。従属の登録の entity.json が無ければ雛形の名前 */
 function childColumns(ownerConfig, child) {
   const ownerSnake = toSnakeCase(ownerConfig.singular);
   const config = child?.config;
@@ -47,7 +47,7 @@ function entryLines(ownerConfig, field, child) {
 /**
  * @param {import("../../domain/context.mjs").DomainContext & { collectionChildren?: Map<string, { camel: string, config: object | null }> }} ctx
  *   collectionChildren = 主の集まりの項目名 → 従属（pipeline が組の解決から載せる）
- * @param {import("../../domain/workspace.mjs").Workspace} [workspace] collectionChildren が無いとき従属の domain.json を読む
+ * @param {import("../../domain/workspace.mjs").Workspace} [workspace] collectionChildren が無いとき従属の登録の entity.json を読む
  * @returns {import("../output.mjs").Output[]}
  */
 export function renderCollectionsOutput(ctx, workspace) {
@@ -58,7 +58,7 @@ export function renderCollectionsOutput(ctx, workspace) {
   const tables = [...new Set(fields.map((f) => children.get(f.name)?.camel ?? toCamelCase(f.collection.domain)))];
   const content = [
     `// ${domainRel(ctx)}/services/server/collections.ts`,
-    "// pnpm generate domain が domain.json の集まりの項目（mediaCollection）から生成する。手で直さない。",
+    "// pnpm generate domain が登録の entity.json の集まりの項目（mediaCollection）から生成する。手で直さない。",
     "// createCrudService の collections オプション（ドメイン集約）。生成の drizzleBase.ts が import して渡す。",
     "// 詳細: src/lib/crud/collections/README.md",
     "",

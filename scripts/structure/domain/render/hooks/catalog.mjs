@@ -1,11 +1,11 @@
 // hooks/ のテンプレート一覧。どのフックをいつ生成するかの表（生成順 = この配列の順）。
-// 条件付きフックの `when` は domain.json のキー（真なら生成）。特別な置換が要るものは `render` を持つ
+// 条件付きフックの `when` は登録の entity.json のキー（真なら生成）。特別な置換が要るものは `render` を持つ
 
 /**
  * @typedef {object} HookSpec
  * @property {string} key       フックの識別子（render の分岐で使う）
  * @property {string} template  src/domains/_template/hooks/ のファイル名
- * @property {string} [when]    生成条件になる domain.json のキー
+ * @property {string} [when]    生成条件になる entity.json のキー
  * @property {boolean} [drizzleOnly] Firestore では生成しない
  */
 
@@ -33,7 +33,7 @@ export const HOOK_SPECS = [
   { key: "searchForSorting", template: "useSearchForSorting__Domain__.ts", when: "sortOrderField" },
 ];
 
-/** domain.json の設定で生成対象になるフック */
+/** 登録の entity.json の設定で生成対象になるフック */
 export function hookSpecsFor(config) {
   return HOOK_SPECS.filter((spec) => {
     if (spec.drizzleOnly && config?.dbEngine === "Firestore") return false;

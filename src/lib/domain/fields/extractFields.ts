@@ -74,7 +74,7 @@ export function extractFields(config: DomainConfig): DomainFieldInfo[] {
   }
 
   // リレーションフィールド（belongsTo の外部キー）
-  // `!== undefined` は domain.json の relations[] に fieldType 有り (belongsTo 等) と無し (hasMany) が
+  // `!== undefined` は entity.json の relations[] に fieldType 有り (belongsTo 等) と無し (hasMany) が
   // 混在するとき、JSON import の型推論が `fieldType?: undefined` を持つメンバーを残すため必要
   for (const relation of config.relations || []) {
     if (

@@ -145,7 +145,7 @@ const remoteOnlyGenerated = {
     docs: { description: "\"use cache: remote\" は pnpm generate cache の生成物と src/lib/cacheTags だけ" },
     messages: {
       remote:
-        "\"use cache: remote\" を手で書かない。共有の読みはドメインの宣言 cache(domain.json の \"cache\" / cache.json)に書き、pnpm generate cache の cachedReads.ts を読む。ドメインの宣言でない仕組みの読みは @/lib/cacheTags/server の defineSharedRead(手で包んだ読みは書き込みで消えない。詳細: scripts/structure/cache/README.md、src/lib/cacheTags/README.md)",
+        "\"use cache: remote\" を手で書かない。共有の読みはドメインの宣言 cache(登録の entity.json の \"cache\" / cache.json)に書き、pnpm generate cache の cachedReads.ts を読む。ドメインの宣言でない仕組みの読みは @/lib/cacheTags/server の defineSharedRead(手で包んだ読みは書き込みで消えない。詳細: scripts/structure/cache/README.md、src/lib/cacheTags/README.md)",
     },
     schema: [],
   },

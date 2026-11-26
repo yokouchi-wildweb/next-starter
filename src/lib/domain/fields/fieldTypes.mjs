@@ -1,5 +1,5 @@
 // src/lib/domain/fields/fieldTypes.mjs
-// domain.json の項目の型（fieldType）の意味を決める表。型の意味の持ち主はここ 1 か所で、
+// entity.json の項目の型（fieldType）の意味を決める表。型の意味の持ち主はここ 1 か所で、
 // 生成器（scripts/structure/domain。spec/fieldTypes.mjs は再 export）も実行時（フォームの初期値・checkbox の単複・編集時の日時変換）も
 // fieldTypeSpec(type) とここの導出関数でこの表を引く。ここ以外に型名の集合や型名の比較を書かない。
 // .mjs なのは、tsx を通さない生成器（node）からも TypeScript からも import できるようにするため（relationOptions.mjs と同じ）。
@@ -24,12 +24,12 @@
 //   media     メディア列（storage binding の対象。1 列 = 1 ファイル。複数は mediaCollection）
 //   array     配列列（text[]、必須は空配列既定）。フォームの checkbox はこの型だけ複数選択にする
 //   presenter 表示フォーマッタの種類（無ければ formInput で決める）
-//   noDefault domain.json の defaultValue を持てない（生成前の検査 checks/fields.mjs が止める）
+//   noDefault entity.json の defaultValue を持てない（生成前の検査 checks/fields.mjs が止める）
 //   collection 主の集まり（列を持たない。従属ドメインの行の並びを lib の collections で読み書きする。項目の collection キーで宣言）
 //   retired   廃止した型: 生成前の検査（checks/retiredFieldTypes.mjs）が移り先の案内文で止める。実行時は見ない
 // 意味の属性（生成器と実行時の両方が読む）:
 //   datetime  日時の型: Zod は required で requiredDatetime / nullableDatetime、編集フォームでは値を Date にする
-//   formDefault  フォームの初期値（domain.json の defaultValue が無いとき）。全行に書く（undefined も値）。配列は呼ぶたびに複製して返す
+//   formDefault  フォームの初期値（entity.json の defaultValue が無いとき）。全行に書く（undefined も値）。配列は呼ぶたびに複製して返す
 //   formDefaultWithChoices  選択肢のある項目（formInput "radio" か options あり）での初期値。無ければ formDefault
 // 実行時だけが読む属性:
 //   importValue  CSV 取り込み（src/lib/dataMigration/import）で文字列をどう読むか: "date" = 日付・日時（読めない値は null）、
@@ -196,7 +196,7 @@ export function retiredFieldTypeMessage(fieldType) {
 }
 
 /**
- * フォームの初期値（domain.json の defaultValue が無いときの値）。未知の型は ""
+ * フォームの初期値（entity.json の defaultValue が無いときの値）。未知の型は ""
  * @param {{ fieldType?: string, formInput?: string, options?: unknown }} field
  * @returns {unknown}
  */

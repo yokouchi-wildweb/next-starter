@@ -29,7 +29,7 @@ test("getFormRelations: belongsTo と表側の belongsToMany だけ(hasMany / ha
   );
 });
 
-test("getStaticRelations: フォームに出る関連のうち async と custom を除く(順序は domain.json のまま)", () => {
+test("getStaticRelations: フォームに出る関連のうち async と custom を除く(順序は entity.json のまま)", () => {
   assert.deepEqual(getStaticRelations(config).map((r) => r.domain), ["sample_category", "owner"]);
   assert.deepEqual(getStaticRelations({}), []);
   assert.deepEqual(getStaticRelations({ relations: [] }), []);

@@ -1,6 +1,6 @@
 // pnpm check domain -- --compare: fork がドメインごとに generate を true / false に決めるための 3 通りの比較（読み取りだけ）。
 // 今のファイル ／ base（fork の merge-base）の生成器の出力 ／ 今の生成器の出力 を並べ、ファイルごとに分類する（classify.mjs）。
-// 古い generateFiles のままの domain.json も読む（写しの中で「全部生成する」形に書き換える）。fork のリポには何も書かない
+// 古い generateFiles のままの登録の entity.json も読む（写しの中で「全部生成する」形に書き換える）。fork のリポには何も書かない
 
 import fs from "node:fs";
 import path from "node:path";

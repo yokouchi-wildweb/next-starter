@@ -2,7 +2,7 @@
 
 ## Overview
 
-アプリを「地区(district)」に分けて見つけ、各地区が何を持つかを 1 つの読み手で返す lib。今の宣言(domain.json・domainEntry・extensionPoints・門の規則・`frame:`・CATALOG.md)が正本のままで、この読み手はそれを字面で読むだけ(ファイルは実行しない)。
+アプリを「地区(district)」に分けて見つけ、各地区が何を持つかを 1 つの読み手で返す lib。今の宣言(ドメインの宣言 domain.json + entity.json(読み込みの部品 `readDomain` で読む)・domainEntry・extensionPoints・門の規則・`frame:`・CATALOG.md)が正本のままで、この読み手はそれを字面で読むだけ(ファイルは実行しない)。
 
 地区 = 一つの性質を持つまとまり(名前空間・増設点・持ち主の単位)。種類は 7 つに閉じていて(中間の Tier が種類を足す口は無い)、決まりは種類の表 1 か所(`kinds.mjs` の `KINDS`)の属性で持ちます。
 
@@ -47,7 +47,7 @@ const { districts, problems } = readDistrictMap({ listDir, readText });
 
 - 閉じた lib: 外からは 2 つの入口だけを読む(scripts からは相対で `src/lib/districtMap/index.mjs` / `node.mjs`)。`.` = ファイルを読まない物(地図の読み手・字面の読み手・`kinds`・宣言の読み方・名前の決まり)、`./node` = node:fs・node:path を使う物(`readDistrictMapAt`・`nodeDistrictSource`・宣言を木から探す `collectPoints`・`findDeclarationFiles`・`overrideKeysOf`・`domainOutputs.mjs` の全部)。同じ名前を 2 つの入口に置かない
 - `listDir(rel)` = フォルダの直下の `{ name, isDir }[]`(無ければ `[]`)、`readText(rel)` = 本文(無ければ `null`)。パスはリポジトリ直下からの相対
-- 使い手: 登録表の生成(ドメインの一覧・表・domain.json・storagePurposes.ts、`scripts/structure/registry`)・門の生成の featureTables(`scripts/structure/extensions/derive/featureTables.mjs`)・上書きと持ち主の 1 対 1 の検査(`scripts/structure/config-overrides`)
+- 使い手: 登録表の生成(ドメインの一覧・表・宣言 domain.json + entity.json・storagePurposes.ts、`scripts/structure/registry`)・門の生成の featureTables(`scripts/structure/extensions/derive/featureTables.mjs`)・上書きと持ち主の 1 対 1 の検査(`scripts/structure/config-overrides`)
 
 ## API
 

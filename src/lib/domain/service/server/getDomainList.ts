@@ -1,5 +1,5 @@
 // src/lib/domain/service/server/getDomainList.ts
-// 登録表から「全件削除できるドメイン」の一覧を作る汎用関数（登録表・domain.json の一覧は引数で受ける）。
+// 登録表から「全件削除できるドメイン」の一覧を作る汎用関数（登録表・登録の entity.json の一覧は引数で受ける）。
 // 全件削除の一覧 API（GET /api/admin/domains）が使う(上流は画面を持たない)。access の評価は呼び手（API ルート）が行う。
 // 一覧はサービスを読み込まずに登録表の table で作る（table を持つ = Drizzle 版 = truncateAll を持つ。pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs が守る）。
 // 実行の直前の確認（isValidDomainKey / getInvalidDomainKeys）はサービスを読み込んで truncateAll を確かめる。
@@ -10,7 +10,7 @@ import type { DomainInfo, DomainInfoWithCount, DomainRegistry, DomainService } f
 
 export type { DomainInfo, DomainInfoWithCount };
 
-/** domain.json の一覧のうち、この関数が読む部分（キーは snake_case） */
+/** 登録の entity.json の一覧のうち、この関数が読む部分（キーは snake_case） */
 export type DomainLabelMap = Readonly<Record<string, { label?: string }>>;
 
 /**

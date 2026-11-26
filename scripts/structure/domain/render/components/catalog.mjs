@@ -4,10 +4,10 @@
 /**
  * @typedef {object} ComponentSpec
  * @property {string} key      部品の識別子（render の分岐で使う）
- * @property {string} template テンプレートの相対パス（domain.json で変わるものは templateFor）
+ * @property {string} template テンプレートの相対パス（entity.json で変わるものは templateFor）
  * @property {(config: object | null) => string} [templateFor] 設定でテンプレートを切り替える
  * @property {string} [output] 出力の相対パス（templateFor のときに固定名で出す）
- * @property {string} [when]   生成条件になる domain.json のキー
+ * @property {string} [when]   生成条件になる entity.json のキー
  * @property {"fields" | "autoSave" | "duplicateButton"} [tweak] 本文の特別な処理
  */
 
@@ -32,7 +32,7 @@ export const COMPONENT_SPECS = [
   { key: "adminSort", template: "Admin__Domain__Sort/index.tsx", when: "sortOrderField" },
 ];
 
-/** domain.json の設定で生成対象になるコンポーネント */
+/** 登録の entity.json の設定で生成対象になるコンポーネント */
 export function componentSpecsFor(config) {
   return COMPONENT_SPECS.filter((spec) => !spec.when || Boolean(config?.[spec.when]));
 }

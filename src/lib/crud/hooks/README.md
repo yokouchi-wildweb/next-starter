@@ -265,7 +265,7 @@ removeItems((s) => s.id === id);
 
 ### 条件付きで生成
 
-| 条件（domain.json） | フック |
+| 条件（登録の entity.json） | フック |
 |---|---|
 | `dbEngine` が `Firestore` 以外 | `useReplaceByQuery<Domain>()` … `trigger(where, records, options?)` |
 | `useDetailModal` | `use<Domain>ViewModal(id)` … `{ viewModel, <domain>, isLoading }`（詳細モーダルの表示データ。中身はドメインごとに実装する生成雛形） |

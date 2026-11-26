@@ -1,5 +1,5 @@
 // src/lib/crud/presenters/domainColumns.test.ts
-// 一覧の列の並べ替えの対象と、presenters を渡していない列の表示を確かめる(実際のドメインの写しと domain.json が同じ列になることは
+// 一覧の列の並べ替えの対象と、presenters を渡していない列の表示を確かめる(実際のドメインの写しと entity.json が同じ列になることは
 // scripts/structure/registry/alpha/domainDisplayColumns.test.ts)。
 // 値が配列の型(型の表の array 属性 = array・stringArray)の列は、sortableFields が true でも列名の指定でもソートしない。
 // 実行: pnpm test src/lib/crud/presenters/domainColumns.test.ts

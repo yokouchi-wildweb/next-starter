@@ -14,14 +14,14 @@
 
 - 基盤に移行の仕組み（移行ヘルパー・移行専用の書き込み口・台帳の付け替え関数）は無い。移行はそのドメインを持つリポが行う
 - 一度きりのデータ移行では DB を直接クエリで操作してよい（領域ごとの規則より上位の原則）。サービスを通すと binding がファイルを消す経路に当たるので、値の移し替えは直接 SQL で行う（下の「やってはいけないこと」）
-- 生成器の fieldType `mediaUploaderMulti` は廃止した。domain.json に残っていると pnpm generate domain が止まるので、生成し直す前にこの手順で集まりへ移す（lib の `multi: true` の binding は残っているので、生成済みのサービスと列は移行するまで動く）。新しく足す項目は集まりにする（[src/domains/README.md](../../../domains/README.md)「主の集まりの項目（mediaCollection）」）
+- 生成器の fieldType `mediaUploaderMulti` は廃止した。登録の entity.json に残っていると pnpm generate domain が止まるので、生成し直す前にこの手順で集まりへ移す（lib の `multi: true` の binding は残っているので、生成済みのサービスと列は移行するまで動く）。新しく足す項目は集まりにする（[src/domains/README.md](../../../domains/README.md)「主の集まりの項目（mediaCollection）」）
 
 使う名前（プレースホルダ）:
 
 | 名前 | 意味 | 例（廃止前の sample） |
 |---|---|---|
 | `<parent_table>` / `<ParentKey>` | 主の表 / 主の登録表キー（camelCase。台帳の record_type） | `samples` / `sample` |
-| `<field>` | 元の multi 列（domain.json の項目名 = 列名） | `gallery_images` |
+| `<field>` | 元の multi 列（entity.json の項目名 = 列名） | `gallery_images` |
 | `<child_table>` / `<ChildKey>` | 従属の表 / 従属の登録表キー | `sample_images` / `sampleImage` |
 | `<parent>_id` | 従属の主への参照列（生成の雛形の名前） | `sample_id` |
 | `<old_purpose>` | 元の列の用途 ID（`<ParentKey>.<field>`、ref の中に入っている） | `sample.gallery_images` |
@@ -29,8 +29,8 @@
 
 ### 中間の形（元の列を残して並べる）
 
-- 主の domain.json に、元の multi の項目を残したまま集まりの項目を足し、`pnpm generate domain -- <Parent>` で従属を作る（従属の domain.json の書き出し・生成・配線まで。従属の表は `[user-run] pnpm db:push`）
-- 前例: `src/domains/sample/domain.json` の `gallery_images`（multi）と `images`（集まり、従属 `sampleImage`）
+- 主の登録の entity.json に、元の multi の項目を残したまま集まりの項目を足し、`pnpm generate domain -- <Parent>` で従属を作る（従属の宣言 domain.json + entity.json の書き出し・生成・配線まで。従属の表は `[user-run] pnpm db:push`）
+- 前例: `src/domains/sample/entities/sample/entity.json` の `images`（集まり、従属 `sampleImage`）。並べていた multi の項目 `gallery_images` は廃止前の sample の物で、今の宣言には無い
 - 移行が終わるまで元の列と集まりは並んで在る。画面の切り替え（どちらを表示・入力するか）はドメインの事情で決める
 
 ### 手順
@@ -55,8 +55,8 @@
    - 書き込みを止めるまでの間にアップロードや保存があれば件数は動く。手順 3 で止めた直後に同じ SQL を流し直し、手順 6 の比較はその値を基準にする。新しい重複が見つかれば、止めるのを解いて解消してからやり直す
 
 1. 旧用途を受け口 storageObject/purposes/ の項目へ写し、アップロードを閉じる
-   - ドメインの `services/server/storagePurposes.ts` にある `"<old_purpose>": { … }` を、`<ドメイン>/plugs/storageObjectPurposes/<名前>.ts` の `export const purposes` に移す（元の項目を domain.json から外すと生成物からは消える）
-   - 理由: 移した後も従属の行の ref は `<old_purpose>` のまま（ref の purposeId は改名できない）。ファイルの読み取り・削除は台帳の行の purpose で登録表を引くので、元の項目を domain.json から外して AUTO から消えても fork の区画の登録が要る。新しいアップロードは従属の用途（`<ChildKey>.file`）で受けるので、旧用途は閉じる
+   - ドメインの `services/server/storagePurposes.ts` にある `"<old_purpose>": { … }` を、`<ドメイン>/plugs/storageObjectPurposes/<名前>.ts` の `export const purposes` に移す（元の項目を entity.json から外すと生成物からは消える）
+   - 理由: 移した後も従属の行の ref は `<old_purpose>` のまま（ref の purposeId は改名できない）。ファイルの読み取り・削除は台帳の行の purpose で登録表を引くので、元の項目を entity.json から外して AUTO から消えても fork の区画の登録が要る。新しいアップロードは従属の用途（`<ChildKey>.file`）で受けるので、旧用途は閉じる
 2. 従属を作る（上の「中間の形」）。元の列は残す
 3. 書き込みを止め、主 1 行ずつ同じ TX で従属の行を作り、台帳を付け替え、作った行を記録する
    - 止め方は運用で決める（メンテナンス表示など）。主と従属への保存・削除・replaceByQuery が走らない状態にする
@@ -115,7 +115,7 @@
      3. `db:push` を流す。列と index は在るものとして飛ばされるが、FK の追加は表を走査するので、この push も書き込み停止の間か低トラフィック時に流す
 5. 元の列を直接 SQL で空にするか、列ごと落とす（その前に記録の表を消す: `DROP TABLE <migration_log>;`。ここで戻せなくなるので、手順 6 を確かめてから）
    - 空にする: `UPDATE <parent_table> SET <field> = '{}';`（サービスの保存では空にしない）
-   - 落とす: 主の domain.json から元の項目を外して `pnpm generate domain -- <Parent>`、`[user-run] pnpm db:push`（AUTO から旧用途の行が消えるが、手順 1 の fork の区画の登録が残る）
+   - 落とす: 主の登録の entity.json から元の項目を外して `pnpm generate domain -- <Parent>`、`[user-run] pnpm db:push`（AUTO から旧用途の行が消えるが、手順 1 の fork の区画の登録が残る）
    - ここから先は戻せない。手順 6 の数え上げを、空にする・落とす前にも一度流す
 6. 確かめる（読み取りの SQL の数え上げ）
 

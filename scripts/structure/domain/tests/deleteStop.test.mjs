@@ -56,7 +56,7 @@ test("主: 従属の宣言が残っていれば一覧と直す順を出して止
   const { stderr, exitCode } = await deleteCapturing(workspace, "album");
   assert.equal(exitCode, 1);
   assert.match(stderr, /album は集まりの従属（albumPhoto）を持っているため削除できません/);
-  assert.match(stderr, /album\/domain\.json の集まりの項目 "photos" を外し、従属を pnpm generate domain -- --delete --remove-config してから album を消してください/);
+  assert.match(stderr, /album\/entities\/album\/entity\.json の集まりの項目 "photos" を外し、従属を pnpm generate domain -- --delete --remove-config してから album を消してください/);
   assert.deepEqual(snapshot(root), before);
 });
 
@@ -66,7 +66,7 @@ test("従属: 主が集まりの項目を宣言している間は止まり、何
   const before = snapshot(root);
   const { stderr, exitCode } = await deleteCapturing(workspace, "album_photo");
   assert.equal(exitCode, 1);
-  assert.match(stderr, /albumPhoto は album の集まりの従属です。先に album\/domain\.json の集まりの項目 "photos" を外してください/);
+  assert.match(stderr, /albumPhoto は album の集まりの従属です。先に album\/entities\/album\/entity\.json の集まりの項目 "photos" を外してください/);
   assert.deepEqual(snapshot(root), before);
 });
 

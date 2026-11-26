@@ -1,4 +1,4 @@
-// 検査: ドメインの宣言 cache の形(domain.json の "cache" と、domain.json の無いドメインの cache.json で共用)。
+// 検査: ドメインの宣言 cache の形(登録の entity.json の "cache" と、domain.json の無いドメインの cache.json で共用)。
 // 書き間違いは「消えないキャッシュ」「寿命の無いキャッシュ」として黙って出るので、生成の前に止める。
 // 規則の正: src/domains/README.md「cache(共有の読みのキャッシュの宣言)」、語彙: spec/cache.mjs
 
@@ -99,11 +99,11 @@ function orderByIssues(where, orderBy, columns) {
 }
 
 /**
- * @param {object} cache 宣言(domain.json の cache か cache.json の中身)
+ * @param {object} cache 宣言(登録の entity.json の cache か cache.json の中身)
  * @param {object} options
  * @param {string} options.domain 地区の地図のドメイン名(camelCase。readsDomains の自分を見分ける)
  * @param {Set<string>} [options.domains] 地区の地図のドメイン名の全部(無ければ readsDomains の在りかは見ない)
- * @param {object} [options.config] domain.json(列と dbEngine を見る。cache.json のドメインは無し = 列は形だけ)
+ * @param {object} [options.config] 登録の entity.json(列と dbEngine を見る。cache.json のドメインは無し = 列は形だけ)
  * @returns {string[]} 問題(空なら無し)
  */
 export function cacheIssues(cache, { domain, domains, config } = {}) {

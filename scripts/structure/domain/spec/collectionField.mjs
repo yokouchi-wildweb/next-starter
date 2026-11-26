@@ -1,5 +1,5 @@
 // 主の集まりの項目（fieldType mediaCollection）の純関数: 従属ドメインの既定の名前と snake_case の判定。
-// 従属の domain.json を書き出す生成（render/collections）と名前の検査（checks/names.mjs）が使う。
+// 従属の宣言(domain.json と登録の entity.json)を書き出す生成（render/collections）と名前の検査（checks/names.mjs）が使う。
 
 import { toSnakeCase } from "../../../../src/lib/stringCase/index.mjs";
 

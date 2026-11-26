@@ -1,6 +1,6 @@
 // eslint-rules/field-type-guard.mjs
 //
-// 型の表（src/lib/domain/fields/fieldTypes.mjs）の外で、domain.json の fieldType の名前を決め打ちするコードを検出する（番人）。
+// 型の表（src/lib/domain/fields/fieldTypes.mjs）の外で、登録の entity.json の fieldType の名前を決め打ちするコードを検出する（番人）。
 // 規約（CLAUDE.md DOMAINS field_types）: 型の意味は表だけが決める。初期値・列・Zod・表示などの答えは
 // fieldTypeSpec と表の導出関数で引き、表の外に型名の比較や型名の集合を書かない（ずれのバグはそこからしか生まれない）。
 //

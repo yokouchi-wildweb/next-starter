@@ -35,7 +35,7 @@ pnpm generate [<対象>] [--phase=<段階>] [--range=<前>...<先>] [-- <入口�
 対象 = `scripts/structure/<名前>/` と `scripts/workflow/<名前>/`。
 
 ```json
-{ "check": "check.mjs", "generate": "generate.mjs", "phases": ["ship", "forge:post"], "after": ["domain"], "watch": ["src/domains/**/domain.json"], "features": ["coupon"] }
+{ "check": "check.mjs", "generate": "generate.mjs", "phases": ["ship", "forge:post"], "after": ["domain"], "watch": ["src/domains/**/entities/*/entity.json"], "features": ["coupon"] }
 ```
 
 - `check` / `generate`: このフォルダの中の入口のファイル名(どちらか必須)。`.mjs` / `.js` は node、`.ts` は tsx(+ `scripts/runner/preload/serverOnly.mjs` の preload)で起動する。env `GATE=<段階 | ->` が付く

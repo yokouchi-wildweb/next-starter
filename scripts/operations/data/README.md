@@ -40,8 +40,8 @@ pnpm ops data delete <domain> (--ids <id>[,<id>...] | --file <file>) [--dry-run]
 `resolveDataCommand`(src/lib/domain/README.md「データ操作のコマンド(pnpm ops data)の許可」)が決める。
 
 - export → 操作 `export` の規則 / サービスの `search`(`--with-deleted` は `searchWithDeleted`)、import → `import` / `bulkUpsert`、update → `bulkUpdate` / `bulkUpdate`、delete → `bulkDeleteByIds` / `bulkDeleteByIds`
-- 管理 API で何かしらのロールに許した操作は許す。export / import はドメインの管理データ操作(domain.json の `useImportExport`)が開いている時だけ
-- ドメインごとの上書き: `access.commands`(`"allow"` / `"deny"`)。業務ドメインは domain.json の `apiAccess.commands`
+- 管理 API で何かしらのロールに許した操作は許す。export / import はドメインの管理データ操作(登録の entity.json の `useImportExport`)が開いている時だけ
+- ドメインごとの上書き: `access.commands`(`"allow"` / `"deny"`)。業務ドメインは登録の entity.json の `apiAccess.commands`
 - サービスに無い関数は止める(例: user は `import` 閉じ・`delete` はサービスが `bulkDeleteByIds` を公開しないので閉じ、`update` は列を限った `userService.bulkUpdate`)
 - 許さない・知らないドメインは理由を出して exit 1(何もしない、記録も書かない)
 

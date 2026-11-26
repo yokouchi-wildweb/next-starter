@@ -63,7 +63,7 @@ export type BulkEnumFieldButtonProps = ButtonStyleProps & {
  * 複数レコードのenumフィールドを一括変更するボタンコンポーネント
  * ステータス一括変更、優先度一括変更などに使用
  *
- * optionsを省略するとドメイン設定（domain.json）から自動取得します。
+ * optionsを省略するとドメイン設定（entity.json）から自動取得します。
  *
  * @example
  * // bulkActionsで使用

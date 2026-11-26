@@ -46,7 +46,7 @@ const defaults: StorageObjectConfig = {
   sessionThresholdBytes: 16 * MiB,
 
   /**
-   * domain.json のメディア項目に validationRule.maxSizeBytes が無いときに使う上限（バイト）。
+   * 登録の entity.json のメディア項目に validationRule.maxSizeBytes が無いときに使う上限（バイト）。
    * キーは mediaTypePreset。pnpm generate domain がこの値を用途に入れ、警告を出す。
    */
   defaultMaxBytesByPreset: {

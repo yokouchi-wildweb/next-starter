@@ -4,7 +4,7 @@
 
 export const extensionPoints = {
   // 独自の入力部品: 差す側の <ドメイン>/plugs/formInputs/<名前>.ts(lib は <lib>/plugs/…)の export const formInput(登録名 name と読み込み関数だけ。部品の本体は普通の置き場)。
-  // 登録名 name は全体で一意(domain.json の formInput が引く)
+  // 登録名 name は全体で一意(entity.json の formInput が引く)
   formInputs: {
     change: "add",
     plugs: true,

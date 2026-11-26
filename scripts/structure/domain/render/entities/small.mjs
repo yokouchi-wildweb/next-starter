@@ -15,7 +15,7 @@ export function renderFormEntity(ctx) {
   return content;
 }
 
-/** entities/firestore.ts: コレクションパス（domain.json の plural、無ければ <snake>s） */
+/** entities/firestore.ts: コレクションパス（entity.json の plural、無ければ <snake>s） */
 export function renderFirestoreEntity(ctx) {
   const { camel, pluralRaw } = ctx;
   return `// ${domainRel(ctx)}/entities/firestore.ts\n\nexport const collectionPath = "${pluralRaw}";\n`;

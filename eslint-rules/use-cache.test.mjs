@@ -61,7 +61,7 @@ test("eslint.config.mjs: src のコードに当たり、テストには当たら
   assert.equal(await count("src/domains/sample/services/server/cached.test.ts"), 0);
 });
 
-const MARK = "// 生成物・編集不可: pnpm generate cache が src/domains/sample/domain.json の cache から生成する\n";
+const MARK = "// 生成物・編集不可: pnpm generate cache が src/domains/sample/entities/sample/entity.json の cache から生成する\n";
 const BASE = `import { base } from "./drizzleBase";\n`;
 
 test("rule remote-only-generated: 手書きの remote を止め、生成物・lib/cacheTags・普通の use cache・private は通す", () => {

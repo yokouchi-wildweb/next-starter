@@ -7,7 +7,7 @@ export const prompt = inquirer.createPromptModule();
 /** 1 ドメインを選ぶ。候補が無ければ例外 */
 export async function selectDomain(domains, message = "生成するドメインを選択してください:") {
   if (domains.length === 0) {
-    throw new Error("domain.json を含むドメインが存在しません。");
+    throw new Error("主の登録の entity.json を持つドメインが存在しません。");
   }
   const { selectedDomain } = await prompt({
     type: "list",

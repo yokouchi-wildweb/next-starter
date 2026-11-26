@@ -29,7 +29,7 @@
 - src/lib/date — dayjs ラッパと柔軟な日付パース、日付らしい値(string / number / Date / dayjs)を dayjs にする toDayjs と書式の formatDateLike(棚・tableSuite・utils/date が読む)。閉じた lib(入口 ".")
 - src/lib/defineConfig — lib の設定の共通の合成器(既定 + 規則 → 上書きを深く合成、配列の扱い replace / append / id で合わせる、null で削除、Standard Schema の検査、fork 独自キーの型引数)
 - src/lib/dbAgent — 自然言語で PostgreSQL を調べる管理者向け DB 調査エージェントのデータレイヤ
-- src/lib/domain — ドメインの定義と欄: domain.json 設定の読み取り、フィールド・リレーション抽出、欄の schema(日時)と表示(format*・FieldPresenter)・主キーの論理名・管理画面のパス(getAdminPaths)、登録表（serviceRegistry）からドメイン名でサービス・表・主キーを引く汎用関数（結ぶのは src/wiring/domainRegistry.ts）。閉じた lib: 入口 "."(client でも server でも)・"./server"(登録表から引く)・"./node"(scripts・eslint-rules が読む .mjs)
+- src/lib/domain — ドメインの定義と欄: 宣言(domain.json + entities/<登録名>/entity.json)の読み込み(readDomain)と正規化(normalizeEntityDeclaration)、フィールド・リレーション抽出、欄の schema(日時)と表示(format*・FieldPresenter)・主キーの論理名・管理画面のパス(getAdminPaths)、登録表（serviceRegistry）からドメイン名でサービス・表・主キーを引く汎用関数（結ぶのは src/wiring/domainRegistry.ts）。閉じた lib: 入口 "."(client でも server でも)・"./server"(登録表から引く)・"./node"(scripts・eslint-rules が読む .mjs)・"./declarations"(宣言の読み込みの部品、node を使わない .mjs)
 - src/lib/domainAccess — 汎用ドメイン API と管理データ操作の権限の型・操作名・定型(ADMIN_ONLY など)。domainEntry.ts が値で読むので値だけのファイルで作る閉じた lib(入口 ".")
 - src/lib/drizzle — PostgreSQL(Neon)クライアントとトランザクションヘルパ、未設定判定
 - src/lib/errors — DomainError / HttpError の定義と正規化

@@ -40,14 +40,14 @@ export function buildAuditImport(audit) {
   return isAuditActive(audit) ? AUDIT_LOGGER_IMPORT : "";
 }
 
-/** createCrudService に渡す audit（domain.json の audit）。audit の無いドメインは空 */
+/** createCrudService に渡す audit（entity.json の audit）。audit の無いドメインは空 */
 export function buildAuditOption(audit) {
-  return isAuditActive(audit) ? `  // 監査ログ（domain.json の audit）\n  audit: ${auditLiteral(audit)},\n` : "";
+  return isAuditActive(audit) ? `  // 監査ログ（entity.json の audit）\n  audit: ${auditLiteral(audit)},\n` : "";
 }
 
-/** 共有の読みのキャッシュタグ(domain.json の cache の宣言があるドメインだけ、src/lib/crud の option cacheTags) */
+/** 共有の読みのキャッシュタグ(entity.json の cache の宣言があるドメインだけ、src/lib/crud の option cacheTags) */
 export function buildCacheTagsOption(camel, cache) {
-  return cache !== undefined ? `  // 書き込みが共有の読みのキャッシュタグを積む（domain.json の cache、包んだ読みは pnpm generate cache の cachedReads.ts）\n  cacheTags: { domain: "${camel}" },\n` : "";
+  return cache !== undefined ? `  // 書き込みが共有の読みのキャッシュタグを積む（entity.json の cache、包んだ読みは pnpm generate cache の cachedReads.ts）\n  cacheTags: { domain: "${camel}" },\n` : "";
 }
 
 /** CreateSchema が空になるか（全フィールドが formInput: "none" かつ belongsTo / belongsToMany が無い） */

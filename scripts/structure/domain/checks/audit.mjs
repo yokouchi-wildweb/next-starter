@@ -1,4 +1,4 @@
-// 検査: audit の形（domain.json と profile.json・profile override で共用）。
+// 検査: audit の形（登録の entity.json と profile.json・profile override で共用）。
 // 書き間違いは監査ログが黙って残らない・実行時に落ちる形で出るので、生成の前に止める。
 // 規則の正: src/domains/core/auditLog/README.md
 
@@ -14,7 +14,7 @@ function columnNames(config) {
 }
 
 /**
- * @param {object} config domain.json かプロフィール設定（fields・relations・audit を見る）
+ * @param {object} config 登録の entity.json かプロフィール設定（fields・relations・audit を見る）
  * @param {string} [dbEngine] 既定は config.dbEngine
  * @returns {string[]} 問題（空なら無し）
  */

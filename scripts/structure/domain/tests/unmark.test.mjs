@@ -45,6 +45,6 @@ test("planUnmark: 外した後はもう一度でも書く物 0", () => {
 
 test("planUnmark: generate が false でないドメインを名指しすると断る、無いドメインも断る", () => {
   assert.throws(() => planUnmark(input("sample")), /generate が false でない/);
-  assert.throws(() => planUnmark(input("nothere")), /domain\.json を持つドメイン nothere が無い/);
+  assert.throws(() => planUnmark(input("nothere")), /宣言\(domain\.json\)を持つドメイン nothere が無い/);
   assert.deepEqual(planUnmark(input("Booking")).domains, ["booking"]);
 });

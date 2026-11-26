@@ -8,7 +8,7 @@ import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
 
 /**
  * @param {string} folder src/domains/ 直下のフォルダ名
- * @param {{ singular?: string }} config domain.json の内容
+ * @param {{ singular?: string }} config 登録の entity.json の内容
  * @returns {string | null} 不一致ならエラーメッセージ、一致（または singular 未宣言）なら null
  */
 export function checkDomainFolderName(folder, config) {
@@ -17,7 +17,7 @@ export function checkDomainFolderName(folder, config) {
   const expected = toCamelCase(singular) || singular;
   if (folder === expected) return null;
   return (
-    `ドメインフォルダ "${folder}" が domain.json の singular "${singular}" と一致しません` +
+    `ドメインフォルダ "${folder}" が entity.json の singular "${singular}" と一致しません` +
     `（期待するフォルダ名: "${expected}"）。` +
     `フォルダ名を "${expected}" に改名してください（singular を変えるとテーブル名・FK 名が変わります）。`
   );

@@ -1,4 +1,4 @@
-// pnpm generate domain -- <Domain>: 生成方法の選択（domain.json どおり / 手動選択 / 全部）と上書き確認をしてから pipeline に渡す
+// pnpm generate domain -- <Domain>: 生成方法の選択（entity.json の generate どおり / 手動選択 / 全部）と上書き確認をしてから pipeline に渡す
 
 import { pickCategories } from "./pickCategories.mjs";
 import { ALL_GENERATE_OPTIONS, isHandManaged } from "../spec/categories.mjs";
@@ -7,7 +7,7 @@ import { assertPairs, groupOf, resolvePairs } from "../pipeline/pairs.mjs";
 import { confirm, prompt } from "./prompts.mjs";
 
 /**
- * 生成するカテゴリを決める（--only で絞った後）。手動選択は domain.json に保存しない（区分は domain.json に持たない）
+ * 生成するカテゴリを決める（--only で絞った後）。手動選択は entity.json に保存しない（区分は entity.json に持たない）
  * @param {import("../pipeline/pairs.mjs").PairIndex} pairs
  * @param {{ mode?: "config" | "manual" | "all", interactive?: boolean, manualGenerate?: Record<string, boolean>, only?: string[] | null }} options
  */
@@ -26,7 +26,7 @@ async function resolveGenerateTargets(ctx, pairs, options) {
     name: "mode",
     message: "生成方法を選択:",
     choices: [
-      { name: "domain.json の generate に基づいて生成", value: "config" },
+      { name: "entity.json の generate に基づいて生成", value: "config" },
       { name: "生成カテゴリを手動で選択（保存しない）", value: "manual" },
       { name: "すべてのファイルを生成", value: "all" },
     ],

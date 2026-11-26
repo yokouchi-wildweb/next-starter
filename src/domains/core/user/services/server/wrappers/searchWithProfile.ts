@@ -28,7 +28,7 @@ export type SearchWithProfileParams = BoundedSearchParams & WithOptions & ExtraW
  * ユーザー + プロフィールの横断検索。
  *
  * searchQuery が指定された場合:
- * - ユーザーテーブルの searchFields（domain.json）で ILIKE 検索
+ * - ユーザーテーブルの searchFields（登録の entity.json）で ILIKE 検索
  * - 指定ロールのプロフィールテーブルの searchFields（profile.json）で EXISTS + ILIKE 検索
  * - これらを OR で結合
  *
@@ -91,7 +91,7 @@ export async function searchWithProfile(
 
     const pattern = `%${searchQuery}%`;
 
-    // ユーザー側の検索条件（domain.json の searchFields）
+    // ユーザー側の検索条件（entity.json の searchFields）
     const userSearchFields: string[] = normalizeEntityDeclaration(rawUserConf).searchFields ?? [];
     const userConds = userSearchFields
       .map((field) => {

@@ -9,7 +9,7 @@ import type { DomainConfigRelation } from "@/lib/domain";
 import type { ProfileFieldConfig } from "../types";
 
 /**
- * プロフィールリレーション設定 = domain.json の関連(DomainConfigRelation)。
+ * プロフィールリレーション設定 = entity.json の関連(DomainConfigRelation)。
  * プロフィールが持てる関連は belongsTo と belongsToMany だけ
  */
 export type ProfileRelationConfig = Omit<DomainConfigRelation, "relationType"> & {
@@ -25,7 +25,7 @@ export type ProfileConfig = {
   tags?: Record<string, string[]>;
   /** keyword検索対象のカラム名（camelCase） */
   searchFields?: string[];
-  /** リレーション設定（domain.json と同じフォーマット） */
+  /** リレーション設定（entity.json の relations と同じフォーマット） */
   relations?: ProfileRelationConfig[];
   /** 監査ログの設定（createCrudService の audit のうち JSON で書ける部分。recorder は pnpm generate role が渡す） */
   audit?: Partial<Omit<AuditConfig, "recorder">>;

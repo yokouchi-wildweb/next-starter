@@ -71,7 +71,7 @@ export type DomainApiAccessRule =
   | DomainApiRoleRule;
 
 /**
- * domain.json の apiAccess 設定（= serviceRegistry エントリの access）。
+ * entity.json の apiAccess 設定（= serviceRegistry エントリの access）。
  * CRUD 操作で未宣言の項目はグローバル既定値（fail-closed: admin カテゴリのみ）にフォールバックする。
  * 管理データ操作（DOMAIN_DATA_OPERATIONS）は operations に明示したときだけ開く（未指定 = "none"）。
  */

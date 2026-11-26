@@ -24,7 +24,7 @@ _screen/<Name>Screen.tsx ──▶ _screen/loader.ts = createLoader(adminXParts(
 import "server-only";
 
 import type { Sample } from "@/domains/sample/entities/model";
-import domainConfig from "@/domains/sample/domain.json"; // 全件取得する関連があるときだけ
+import domainConfig from "@/domains/sample/entities/sample/entity.json"; // 全件取得する関連があるときだけ
 import { createLoader } from "@/app/admin/(protected)/guard";
 import { adminEditParts } from "@/domains/core/admin/services/server/screenParts";
 

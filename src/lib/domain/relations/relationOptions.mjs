@@ -1,5 +1,5 @@
 // src/lib/domain/relations/relationOptions.mjs
-// domain.json の relations から「フォームに出る関連」「選択肢を全件取得する関連」を判定し、
+// entity.json の relations から「フォームに出る関連」「選択肢を全件取得する関連」を判定し、
 // その選択肢の SWR キーを組み立てる純粋関数。
 //
 // 使う側(3 者が同じ判定を共有する。ここ以外に同じ判定を書かない):
@@ -16,7 +16,7 @@ export const RELATION_OPTIONS_KEY_PREFIX = "relationOptions";
 
 /**
  * @typedef {object} RelationOptionsRelation
- * @property {string} domain 関連先ドメイン名(domain.json の表記、通常 snake_case)
+ * @property {string} domain 関連先ドメイン名(entity.json の表記、通常 snake_case)
  * @property {string} relationType "belongsTo" | "belongsToMany" | "hasMany" | "hasOne"
  * @property {string} [formInput] フォーム入力種別(省略時 belongsTo→select, belongsToMany→checkbox)
  * @property {boolean} [includeRelationTable] belongsToMany で中間テーブルを持つ側か(false = 逆側、フォームに出ない)

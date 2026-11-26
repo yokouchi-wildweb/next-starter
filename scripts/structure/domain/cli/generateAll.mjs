@@ -1,4 +1,4 @@
-// pnpm generate domain: ドメインを選び（既定は全件）、各 domain.json の generate か手動選択（保存しない）で一括生成する
+// pnpm generate domain: ドメインを選び（既定は全件）、各ドメインの登録の entity.json の generate か手動選択（保存しない）で一括生成する
 
 import { pickCategories } from "./pickCategories.mjs";
 import { runGenerateAll } from "../pipeline/generateAll.mjs";
@@ -6,13 +6,13 @@ import { confirm, selectDomains } from "./prompts.mjs";
 
 /**
  * @param {import("../domain/workspace.mjs").Workspace} workspace
- * @param {{ yes?: boolean, only?: string[] | null, dryRun?: boolean }} [options] yes = プロンプトを出さず、全ドメインを各 domain.json の generate どおりに生成する（false のドメインは何も書かない）
+ * @param {{ yes?: boolean, only?: string[] | null, dryRun?: boolean }} [options] yes = プロンプトを出さず、全ドメインを各ドメインの登録の entity.json の generate どおりに生成する（false のドメインは何も書かない）
  *   dryRun = 書かずに一覧（実行の確認も出さない）
  */
 export async function runGenerateAllInteractive(workspace, options = {}) {
   const domains = workspace.listDomains();
   if (domains.length === 0) {
-    console.log("domain.json を含むドメインが存在しません。");
+    console.log("主の登録の entity.json を持つドメインが存在しません。");
     return;
   }
 
@@ -32,7 +32,7 @@ export async function runGenerateAllInteractive(workspace, options = {}) {
   console.log("生成対象ドメイン:");
   selectedDomains.forEach((domain) => console.log(`  - ${domain}`));
 
-  const manualSelection = await confirm("生成するファイル種別を手動で選択しますか？（いいえの場合は各 domain.json の設定を使用）", false);
+  const manualSelection = await confirm("生成するファイル種別を手動で選択しますか？（いいえの場合は各登録の entity.json の設定を使用）", false);
   let manualGenerate = null;
   if (manualSelection) {
     manualGenerate = await pickCategories();

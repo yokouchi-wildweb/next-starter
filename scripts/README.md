@@ -17,7 +17,7 @@ pnpm generate [<対象>]                           # 生成器
 pnpm task <ドメイン>:<名前> | <定期タスク> | --list | --due | --resolve <runId> succeeded|failed
 pnpm ops <対象> <動作> [<引数>...]               # 手で行う操作と閲覧
 pnpm workflow <対象> <動作> [<引数>...]          # 開発の進め方の道具
-pnpm forge                                       # domain.json / role.json / profile.json から生成 + 検査を一度に
+pnpm forge                                       # 宣言(domain.json + entity.json)/ role.json / profile.json から生成 + 検査を一度に
 pnpm e2e                                         # 動いているアプリを外から見るテスト(tests/e2e、playwright)
 pnpm db:push | db:push:check                     # スキーマを DB に反映 / 読むだけの差分(push は人が打つ)
 pnpm live | live:app | live:room | live:all      # デプロイ(本番は確認が要り、セーフポイントの上かを 1 行出す。アプリは HEAD の中身だけを上げる)

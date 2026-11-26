@@ -1,5 +1,5 @@
 // 主と従属の組（主の集まりの項目 mediaCollection → 従属ドメイン）を、1 回の生成につき一度だけ解く。
-// 全 domain.json と、この実行で書き出す従属の中身（ディスクにまだ無い）から、従属 → 主・主 → 従属の対応を作る。
+// 全ドメインの主の登録の entity.json と、この実行で書き出す従属の中身（ディスクにまだ無い）から、従属 → 主・主 → 従属の対応を作る。
 // 組の前提の誤り（従属の名前が無い・従属を所有する主が 2 つ以上）と、組ごとの書く前の検査（checks/pairs.mjs）の誤りを
 // 全件集め、何も書く前に止める（assertPairs）。知らせるだけのものは notices（printPairNotices）。
 // 組を解いた後の生成順は「従属 → 主」。集まりの無いドメインの順と出力は変えない
@@ -17,7 +17,7 @@ import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
  * @property {Map<string, string>} ownerOf 従属のフォルダ名 → 主のフォルダ名
  * @property {Map<string, string[]>} childrenOf 主のフォルダ名 → 従属のフォルダ名（項目の順）
  * @property {Map<string, string>} fieldOf 従属のフォルダ名 → それを宣言した主の集まりの項目名
- * @property {Map<string, object>} pending この実行で書き出す従属（domain.json がまだ無い）→ その中身
+ * @property {Map<string, object>} pending この実行で書き出す従属（登録の entity.json がまだ無い）→ その中身
  * @property {{ domains: string[], message: string }[]} errors 組の誤り（関わるドメインと文）
  * @property {{ domains: string[], message: string }[]} notices 知らせるだけ（止めない）
  */
@@ -55,7 +55,7 @@ export function resolvePairs(workspace) {
         ownerOf.set(child, owner);
         fieldOf.set(child, field.name);
         childrenOf.set(owner, [...(childrenOf.get(owner) ?? []), child]);
-        // 手で管理の主は従属の domain.json を書き出さない（生成器を通さない）
+        // 手で管理の主は従属の宣言を書き出さない（生成器を通さない）
         if (!isHandManaged(config) && !workspace.exists(workspace.configPath(child))) pending.set(child, buildChildDomainConfig(config, field).config);
       }
     }
@@ -89,7 +89,7 @@ export function printPairNotices(pairs, domains, io) {
 }
 
 /**
- * 主の集まりの項目名 → 従属（フォルダ名と domain.json。この実行で書き出す従属は書き出す中身）。主の生成物が従属の file を読む（一方向）
+ * 主の集まりの項目名 → 従属（フォルダ名と登録の entity.json。この実行で書き出す従属は書き出す中身）。主の生成物が従属の file を読む（一方向）
  * @returns {Map<string, { camel: string, config: object | null }>}
  */
 export function collectionChildrenOf(workspace, pairs, owner) {
@@ -143,7 +143,7 @@ export function involvesPairs(pairs, domains) {
 }
 
 /**
- * 生成の最後の一覧: 書き出した domain.json / db:push が要る表（この実行で新しく書き出した従属の表だけ）/ コミットに含めるもの
+ * 生成の最後の一覧: 書き出した登録の entity.json / db:push が要る表（この実行で新しく書き出した従属の表だけ）/ コミットに含めるもの
  * @param {import("../domain/workspace.mjs").Workspace} workspace
  * @param {PairIndex} pairs
  * @param {string[]} domains この実行で生成したドメイン
@@ -158,7 +158,7 @@ export function pairSummary(workspace, pairs, domains, { registry, dryRun }) {
   const tables = written.map((domain) => domainTableName(domain, pairs.pending.get(domain)));
   const commit = [...written.map((domain) => `${workspace.locateDomain(domain).dir}/`), ...(registry ? ["src/registry/ の登録表"] : [])];
   return [
-    `${prefix}${dryRun ? "書き出す予定の" : "書き出した"} domain.json: ${paths.join(", ") || none}`,
+    `${prefix}${dryRun ? "書き出す予定の" : "書き出した"} 登録の entity.json: ${paths.join(", ") || none}`,
     `${prefix}db:push が要る表: ${tables.length ? `${tables.join(", ")}（pnpm db:push を実行してください）` : none}`,
     `${prefix}コミットに含めるもの: ${commit.join(", ") || none}`,
   ];

@@ -1,4 +1,4 @@
-// pnpm check domain -- --compare の作業ツリー: fork の src の写しに片方の生成器を載せ、domain.json を「全部生成する」形に書き換えて、
+// pnpm check domain -- --compare の作業ツリー: fork の src の写しに片方の生成器を載せ、登録の entity.json を「全部生成する」形に書き換えて、
 // ドメインを 1 つずつ --dry-run（生成器が扱うパスと動作）→ 生成（中身）の順に回す。書くのは一時ディレクトリだけ（fork のリポには書かない）
 
 import fs from "node:fs";
@@ -18,8 +18,8 @@ const retiredGenerateFiles = (scriptsDir) => {
 };
 
 /**
- * 「この生成器でこのドメインを全部生成したら」の domain.json（写しの中だけで使う）
- * @param {object} config fork の今の domain.json
+ * 「この生成器でこのドメインを全部生成したら」の登録の entity.json（写しの中だけで使う）
+ * @param {object} config fork の今の登録の entity.json
  * @param {{ legacy: boolean, categories: string[] }} side legacy = generateFiles で読む生成器
  */
 export function generateAllConfig(config, { legacy, categories }) {
@@ -71,10 +71,10 @@ function run(root, args) {
   return { status: r.status, output: `${r.stdout ?? ""}${r.stderr ?? ""}` };
 }
 
-/** 止まったときの文（生成器の出力の要点だけ。止めない警告 [domain.json] … は外す） */
+/** 止まったときの文（生成器の出力の要点だけ。止めない警告 [entity.json] …(base の生成器は前の [domain.json] …)は外す） */
 function errorText(output, root) {
   const lines = output.split(root).join("<ROOT>").split("\n").filter((line) => line.trim() && !line.includes("[dry-run]"));
-  const stops = lines.filter((line) => !line.startsWith("[domain.json]"));
+  const stops = lines.filter((line) => !/^\[(entity|domain)\.json\]/.test(line));
   return (stops.length ? stops : lines).slice(-4).join(" / ");
 }
 

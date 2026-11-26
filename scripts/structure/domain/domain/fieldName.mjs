@@ -3,7 +3,7 @@
 import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
 
 /**
- * @param {string} name domain.json のフィールド名（snake_case）
+ * @param {string} name entity.json のフィールド名（snake_case）
  * @param {string} dbEngine "Firestore" | "Neon" | ""
  */
 export function resolveFieldName(name, dbEngine) {

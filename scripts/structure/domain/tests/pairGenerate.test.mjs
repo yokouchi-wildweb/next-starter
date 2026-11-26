@@ -56,7 +56,7 @@ test("主を生成すると、従属の宣言を書き出してその中身で�
   assert.ok(fs.existsSync(drizzle(root, "album")));
   assert.deepEqual(order(out.lines).filter((d, i, a) => a.indexOf(d) === i), ["albumPhoto", "album"]);
   const text = out.text();
-  assert.match(text, /\[組\] 書き出した domain\.json: .*albumPhoto\/entities\/albumPhoto\/entity\.json/);
+  assert.match(text, /\[組\] 書き出した登録の entity\.json: .*albumPhoto\/entities\/albumPhoto\/entity\.json/);
   assert.match(text, /\[組\] db:push が要る表: album_photos（pnpm db:push を実行してください）/);
   assert.match(text, /\[組\] コミットに含めるもの: .*domains\/albumPhoto\//);
   assert.match(fs.readFileSync(drizzle(root, "albumPhoto"), "utf8"), /album_id/);
@@ -68,7 +68,7 @@ test("従属を生成すると所有する主も続けて生成する。既に�
   fs.rmSync(drizzle(root, "album"));
   const out = generateOne(root, "albumPhoto");
   assert.ok(fs.existsSync(drizzle(root, "album")));
-  assert.match(out.text(), /\[組\] 書き出した domain\.json: なし/);
+  assert.match(out.text(), /\[組\] 書き出した登録の entity\.json: なし/);
   assert.match(out.text(), /\[組\] db:push が要る表: なし/);
 });
 
@@ -82,7 +82,7 @@ test("一括生成: 従属は主の直前、組に関わらないドメインの
   const started = out.lines.filter((l) => l.includes("の生成を開始します")).map((l) => l.match(/\[(\w+)\]/)[1]);
   assert.deepEqual(started, ["albumPhoto", "album", "apple", "zoo"]);
   assert.ok(fs.existsSync(drizzle(root, "albumPhoto")));
-  assert.match(out.text(), /\[組\] 書き出した domain\.json: .*albumPhoto/);
+  assert.match(out.text(), /\[組\] 書き出した登録の entity\.json: .*albumPhoto/);
   assert.deepEqual(orderWithPairs(resolvePairs(createWorkspace(root)), ["apple", "zoo", "album", "albumPhoto"]), ["apple", "zoo", "albumPhoto", "album"]);
 });
 
@@ -118,7 +118,7 @@ test("dry-run は何も書かず、一覧を「書き出す予定」として出
   const before = listFiles(root);
   const out = generateOne(root, "album", { dryRun: true });
   assert.deepEqual(listFiles(root), before);
-  assert.match(out.text(), /\[dry-run\]\[組\] 書き出す予定の domain\.json: .*albumPhoto\/entities\/albumPhoto\/entity\.json/);
+  assert.match(out.text(), /\[dry-run\]\[組\] 書き出す予定の登録の entity\.json: .*albumPhoto\/entities\/albumPhoto\/entity\.json/);
   assert.match(out.text(), /\[dry-run\] albumPhoto: 作成/);
 });
 

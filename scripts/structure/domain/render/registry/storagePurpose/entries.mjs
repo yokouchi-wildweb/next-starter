@@ -1,4 +1,4 @@
-// domain.json のメディア項目 → ファイル用途のエントリ（`<domain>.<field>`: { visibility, maxBytes, contentTypes, metadata, image, upload, read }）。
+// 登録の entity.json のメディア項目 → ファイル用途のエントリ（`<domain>.<field>`: { visibility, maxBytes, contentTypes, metadata, image, upload, read }）。
 // 導出の規則: src/domains/README.md「ファイルの保存（storage）」。ファイルには触れない
 
 import { MEDIA_FIELD_TYPES } from "../../../spec/fieldTypes.mjs";
@@ -129,7 +129,7 @@ export function buildStoragePurposeEntries({ camel, config, roleCategories = new
     let visibility = storage.visibility;
     if (!visibility) {
       if (allowsGeneralUser(uploadAllow, roleCategories)) {
-        errors.push(`${id}: 一般利用者がアップロードできる項目です。domain.json の storage.visibility（"public" / "private"）を明示してください`);
+        errors.push(`${id}: 一般利用者がアップロードできる項目です。entity.json の storage.visibility（"public" / "private"）を明示してください`);
         continue;
       }
       visibility = readRule === "public" ? "public" : "private";

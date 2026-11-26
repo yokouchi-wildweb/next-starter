@@ -1,4 +1,4 @@
-// 検査: formInput の名前（domain.json と profile.json の fields・relations で共用）。
+// 検査: formInput の名前（登録の entity.json と profile.json の fields・relations で共用）。
 // 組み込み（src/lib/domain/fields/formInputs.mjs）か登録（差す側の <ドメイン か lib>/plugs/formInputs/）のどちらかだけ。
 // 知らない名前は画面に何も出ないので生成の前に止める。どの fieldType に合うかは見ない（登録は描画だけの約束）
 

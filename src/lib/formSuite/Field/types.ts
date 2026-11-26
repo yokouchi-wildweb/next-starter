@@ -1,5 +1,5 @@
 // src/lib/formSuite/Field/types.ts
-// フィールド設定の型定義。domain.json の項目のキーは @/lib/domain の DomainField が持ち、ここは画面でだけ使う分を広げる
+// フィールド設定の型定義。entity.json の項目のキーは @/lib/domain の DomainField が持ち、ここは画面でだけ使う分を広げる
 
 import type { ComponentType, ReactNode } from "react";
 import type { ControllerRenderProps } from "react-hook-form";
@@ -41,9 +41,9 @@ export type MediaValidationRule = FileValidationRule & {
 };
 
 /**
- * 欄の設定 = domain.json の項目(DomainField、@/lib/domain)を画面用に広げた物。
- * - domain.json に書けるキーは DomainField のまま(キーを写し直さない)
- * - fieldType は省ける(画面で手で組む設定は型を書かないことがある。domain.json では必須)
+ * 欄の設定 = entity.json の項目(DomainField、@/lib/domain)を画面用に広げた物。
+ * - entity.json に書けるキーは DomainField のまま(キーを写し直さない)
+ * - fieldType は省ける(画面で手で組む設定は型を書かないことがある。entity.json では必須)
  * - 狭める物: formInput(組み込み + 登録した入力部品の名前)・options(値の型が決まった選択肢)・mediaTypePreset・validationRule(メディアの形)
  * - 足す物(画面でだけ使う値): purpose・onMetadataChange・async*
  * @see src/domains/README.md - Field（フィールド定義）

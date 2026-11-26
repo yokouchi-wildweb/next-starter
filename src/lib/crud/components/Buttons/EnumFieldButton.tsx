@@ -56,7 +56,7 @@ export type EnumFieldButtonProps = ButtonStyleProps & {
  * enumフィールドを変更するボタンコンポーネント
  * ステータス変更、優先度変更などに使用
  *
- * optionsを省略するとドメイン設定（domain.json）から自動取得します。
+ * optionsを省略するとドメイン設定（entity.json）から自動取得します。
  *
  * @example
  * // 基本使用（optionsを自動取得）

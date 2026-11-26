@@ -5,7 +5,7 @@ import { toPlural } from "../../domain/plural.mjs";
 
 /**
  * @param {string} content トークン置換済みのテンプレート
- * @param {object | null} config domain.json
+ * @param {object | null} config 登録の entity.json
  */
 export function injectViewModalRelations(content, config) {
   const relations = Array.isArray(config?.relations) ? config.relations : [];

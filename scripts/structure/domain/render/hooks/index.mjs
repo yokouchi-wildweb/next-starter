@@ -17,7 +17,7 @@ export function renderHook(ctx, workspace, spec) {
 /**
  * @param {import("../../domain/context.mjs").DomainContext} ctx
  * @param {import("../../domain/workspace.mjs").Workspace} workspace
- * @returns {import("../output.mjs").Output[]} domain.json の設定どおりのフック
+ * @returns {import("../output.mjs").Output[]} 登録の entity.json の設定どおりのフック
  */
 export function renderHooks(ctx, workspace) {
   return hookSpecsFor(ctx.config).map((spec) => renderHook(ctx, workspace, spec));

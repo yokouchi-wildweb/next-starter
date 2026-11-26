@@ -8,7 +8,7 @@ import { DB_ENGINES, ID_TYPES } from "../spec/domainJson.mjs";
 const isNonEmptyString = (value) => typeof value === "string" && value.length > 0;
 
 /**
- * @param {object} config domain.json
+ * @param {object} config 登録の entity.json
  * @returns {string[]} 問題（空なら無し）
  */
 export function requiredIssues(config) {

@@ -94,5 +94,5 @@
       "name": "milestones_composite_unique_0"
     }
   ],
-  "reason": "import は閉じる（domain.json の useImportExport: false。今までの挙動と同じ）。export / 全件削除は管理者"
+  "reason": "import は閉じる（entity.json の useImportExport: false。今までの挙動と同じ）。export / 全件削除は管理者"
 }

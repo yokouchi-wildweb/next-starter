@@ -1,7 +1,7 @@
 // src/domains/chatRoom/entities/message.ts
 //
 // chatMessage（サブコレクション）の型定義。
-// domain.json では対応できないため手動で管理する。
+// entity.json では対応できないため手動で管理する。
 
 /** メッセージ種別 */
 export type MessageType = "text" | "image" | "video" | "file" | "system";

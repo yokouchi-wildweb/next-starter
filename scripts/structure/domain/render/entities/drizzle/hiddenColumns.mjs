@@ -21,7 +21,7 @@ export function validateHiddenColumns(config) {
     if (!knownProps.has(col)) {
       throw new Error(
         `エラー: hiddenColumns に未知のフィールド "${col}" が指定されています\n` +
-          "  domain.json の fields / relations に存在するプロパティ名（camelCase）で指定してください",
+          "  entity.json の fields / relations に存在するプロパティ名（camelCase）で指定してください",
       );
     }
   }

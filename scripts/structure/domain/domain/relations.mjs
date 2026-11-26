@@ -1,4 +1,4 @@
-// domain.json の relations の分類と、リレーション先ドメインの参照。
+// 登録の entity.json の relations の分類と、リレーション先ドメインの参照。
 
 import { toCamelCase, toSnakeCase } from "../../../../src/lib/stringCase/index.mjs";
 

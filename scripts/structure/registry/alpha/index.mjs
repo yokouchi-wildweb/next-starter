@@ -104,13 +104,13 @@ const adminListHref = (d) => `/admin/${toKebabCase(toCamelCase(d.config.plural ?
 
 /**
  * 管理一覧の画面を持つ全ドメイン(generate: false も含む)のキー付き一覧。キー = ドメインのフォルダ名(camelCase)。
- * 画面を持つ = ADMIN_LIST_ROUTE_DIR/<kebab 複数形>/page.tsx がある(domain.json に印は無い)。管理メニューの項目 domain:"<名前>" と出どころ dataMenu が読む
+ * 画面を持つ = ADMIN_LIST_ROUTE_DIR/<kebab 複数形>/page.tsx がある(宣言に印は無い)。管理メニューの項目 domain:"<名前>" と出どころ dataMenu が読む
  */
 function renderAdminDomains(repoRoot, domains) {
   // 一覧の画面がある登録だけ。宣言の adminList: false は画面があっても出さない(D335 の登録の鍵)
   const listed = domains.filter((d) => d.config.adminList !== false && existsSync(join(repoRoot, ADMIN_LIST_ROUTE_DIR, adminListHref(d).slice("/admin/".length), "page.tsx")));
   return [
-    headerOf(`${FEATURES_DIR}/**/domain.json と ${ADMIN_LIST_ROUTE_DIR}/<kebab 複数形>/page.tsx`),
+    headerOf(`${FEATURES_DIR}/**/domain.json・entities/*/entity.json と ${ADMIN_LIST_ROUTE_DIR}/<kebab 複数形>/page.tsx`),
     `// ${ADMIN_DOMAINS_FILE}`,
     "//",
     "// 管理一覧の画面を持つドメインの一覧(キー = フォルダ名)。管理メニューの項目 domain:\"<名前>\" が題名と住所を引き、",

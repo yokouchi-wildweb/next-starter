@@ -1,5 +1,5 @@
 // src/domains/core/admin/menu/items/dataMenu.ts
-// 生成の管理一覧(@/registry/adminDomains)のうち domain.json の addToAdminDataMenu: true のドメインをこの位置に並べる。行のアイコンはこの項目のもの
+// 生成の管理一覧(@/registry/adminDomains)のうち登録の entity.json の addToAdminDataMenu: true のドメインをこの位置に並べる。行のアイコンはこの項目のもの
 
 import { Table2 } from "lucide-react";
 

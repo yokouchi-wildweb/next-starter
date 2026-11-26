@@ -9,7 +9,7 @@ import { isSnakeCaseName } from "../spec/collectionField.mjs";
 const snakeIssue = (where, value) => `${where} "${value}" は snake_case にしてください（例: sample_tag）`;
 
 /**
- * @param {object} config domain.json
+ * @param {object} config 登録の entity.json
  * @returns {string[]} 問題（空なら無し）
  */
 export function nameIssues(config) {
@@ -35,7 +35,7 @@ export function nameIssues(config) {
 
 /**
  * 止めない警告: singular・plural・リレーション先の名前が snake_case でない
- * @param {object} config domain.json
+ * @param {object} config 登録の entity.json
  * @returns {string[]}
  */
 export function nameWarnings(config) {

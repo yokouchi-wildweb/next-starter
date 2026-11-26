@@ -1,7 +1,7 @@
-// 1 ドメイン分の「名前の全形 + domain.json」。生成器が使う名前はすべてここで一度だけ導出する。
+// 1 ドメイン分の「名前の全形 + 主の登録の entity.json」。生成器が使う名前はすべてここで一度だけ導出する。
 //
 // 入力のドメイン名は snake_case / camelCase / PascalCase のどれでもよい（フォルダ名 = camelCase(singular) が前提）。
-// plural は domain.json の plural（無ければ src/lib/districtMap/domainNames.mjs の toPlural で推定）、dbEngine は domain.json の dbEngine（引数で上書き可）。
+// plural は entity.json の plural（無ければ src/lib/districtMap/domainNames.mjs の toPlural で推定）、dbEngine は entity.json の dbEngine（引数で上書き可）。
 
 import { toCamelCase, toKebabCase, toPascalCase, toSnakeCase } from "../../../../src/lib/stringCase/index.mjs";
 import { camelPluralOf } from "../../../../src/lib/districtMap/index.mjs";
@@ -17,20 +17,20 @@ import { toPlural } from "./plural.mjs";
  * @property {string} pascalPlural 複数形 PascalCase
  * @property {string} kebab      kebab-case
  * @property {string} kebabPlural  複数形 kebab-case（管理画面ルートのフォルダ名）
- * @property {string} label      表示名（domain.json の label、無ければ pascal）
- * @property {string} pluralRaw  domain.json の plural そのまま（Firestore のコレクション名）
+ * @property {string} label      表示名（entity.json の label、無ければ pascal）
+ * @property {string} pluralRaw  entity.json の plural そのまま（Firestore のコレクション名）
  * @property {string} dbEngine   "Neon" | "Firestore" | ""
- * @property {object | null} config domain.json（無ければ null）
+ * @property {object | null} config 主の登録の entity.json（無ければ null）
  * @property {"business" | "core"} kind business = src/domains/<camel>、core = src/domains/core/<camel>（違いはフォルダだけ）
  * @property {string} dir        ドメインのフォルダの絶対パス
  * @property {string} rel        ドメインのフォルダのリポジトリ相対（生成物の頭のコメントのパス。例: src/domains/core/user）
- * @property {string} configPath domain.json の絶対パス
+ * @property {string} configPath 主の登録の entities/<camel>/entity.json の絶対パス
  */
 
 /**
  * @param {import("./workspace.mjs").Workspace} workspace
  * @param {string} domainInput
- * @param {{ plural?: string, dbEngine?: string, config?: object | null }} [overrides] plural / dbEngine は domain.json より優先。config を渡すと読み直さない
+ * @param {{ plural?: string, dbEngine?: string, config?: object | null }} [overrides] plural / dbEngine は entity.json より優先。config を渡すと読み直さない
  * @returns {DomainContext}
  */
 export function createDomainContext(workspace, domainInput, overrides = {}) {
@@ -65,7 +65,7 @@ export function createDomainContext(workspace, domainInput, overrides = {}) {
   };
 }
 
-/** domain.json が無いときに例外。生成器の入口で使う */
+/** 主の登録の entity.json が無いときに例外。生成器の入口で使う */
 export function requireConfig(ctx) {
   if (!ctx.config) {
     throw new Error(`設定ファイルが見つかりません: ${ctx.configPath}`);

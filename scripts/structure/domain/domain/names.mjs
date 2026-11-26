@@ -7,9 +7,9 @@ import { toPascalCase, toSnakeCase } from "../../../../src/lib/stringCase/index.
 export const PG_MAX_IDENTIFIER_LENGTH = 63;
 
 /**
- * 表の物理名 = domain.json の plural（無ければドメイン名）の snake_case
+ * 表の物理名 = entity.json の plural（無ければドメイン名）の snake_case
  * @param {string} domain ドメイン名（camelCase / snake_case のどちらでも）
- * @param {{ plural?: string } | null | undefined} config domain.json
+ * @param {{ plural?: string } | null | undefined} config 登録の entity.json
  */
 export function domainTableName(domain, config) {
   const normalized = toSnakeCase(domain) || domain;

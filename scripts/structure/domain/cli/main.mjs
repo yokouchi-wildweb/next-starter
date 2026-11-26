@@ -1,4 +1,4 @@
-// pnpm generate domain [-- <Domain>] / pnpm generate domain -- --delete の振り分け（index.mjs の本体）。domain.json は手で書く（対話で組み立てる入口は無い）
+// pnpm generate domain [-- <Domain>] / pnpm generate domain -- --delete の振り分け（index.mjs の本体）。宣言(domain.json と entities/<登録名>/entity.json)は手で書く（対話で組み立てる入口は無い）
 
 import { createWorkspace } from "../domain/workspace.mjs";
 import { getCliArgs, parseOnlyOption, takeValueOption } from "./args.mjs";
@@ -28,7 +28,7 @@ export async function main() {
   const hasGenerate = args.includes("--generate");
   const hasAll = args.includes("--all");
   const hasDelete = args.includes("--delete");
-  // --generate の既定は対話なし（domain.json の generate どおり）。-i / --interactive のときだけ対話。--yes は受け付けて無視（以前の既定を変える旗）
+  // --generate の既定は対話なし（登録の entity.json の generate どおり）。-i / --interactive のときだけ対話。--yes は受け付けて無視（以前の既定を変える旗）
   const interactive = args.includes("-i") || args.includes("--interactive");
   const dryRun = args.includes("--dry-run");
   // フラグ以外の最初の引数をドメイン名とする（`--generate --yes User` の順でも受け付ける）
@@ -67,7 +67,7 @@ export async function main() {
       if (!domain) {
         const domains = workspace.listDomains();
         if (domains.length === 0) {
-          console.error("domain.json を含むドメインが存在しません。");
+          console.error("主の登録の entity.json を持つドメインが存在しません。");
           process.exit(1);
         }
         domain = await selectDomain(domains);

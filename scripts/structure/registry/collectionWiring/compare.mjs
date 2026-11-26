@@ -43,7 +43,7 @@ export function compareCollectionWiring({ declared, wired }) {
           `import { collections } from "./collections"）`,
       );
     }
-    if (extra.length) problems.push(`${domain}: サービスの collections に domain.json に無い項目 ${extra.join(", ")} がある`);
+    if (extra.length) problems.push(`${domain}: サービスの collections に登録の entity.json に無い項目 ${extra.join(", ")} がある`);
   }
   return problems;
 }

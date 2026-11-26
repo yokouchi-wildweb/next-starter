@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// pnpm forge: 設定（domain.json・*.role.json・*.profile.json）を書いた後の生成と検査を 1 回で回す。
+// pnpm forge: 設定（宣言 domain.json・entities/<登録名>/entity.json・*.role.json・*.profile.json）を書いた後の生成と検査を 1 回で回す。
 // 段の並びは steps.mjs、DB の案内は tables.mjs。詳細: scripts/structure/forge/README.md
 //
 // 使い方:

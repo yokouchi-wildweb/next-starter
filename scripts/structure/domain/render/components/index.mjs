@@ -12,7 +12,7 @@ import { renderBulkActionFiles } from "./bulkActions.mjs";
 function renderBody(ctx, workspace, spec) {
   const { config, camel, pascal } = ctx;
   if (spec.tweak === "fields" && config) {
-    // 主の集まりの項目名 → 従属（pipeline が載せた組の解決、無ければ workspace の従属の domain.json）
+    // 主の集まりの項目名 → 従属（pipeline が載せた組の解決、無ければ workspace の従属の登録の entity.json）
     return generateFieldsFromConfig(config, resolveCollectionChildren(ctx, workspace)).replace(/__domain__/g, camel).replace(/__Domain__/g, pascal);
   }
   const templateRel = spec.templateFor ? spec.templateFor(config) : spec.template;
@@ -36,7 +36,7 @@ export function renderComponent(ctx, workspace, spec, warn = console.warn) {
 /**
  * @param {import("../../domain/context.mjs").DomainContext} ctx
  * @param {import("../../domain/workspace.mjs").Workspace} workspace
- * @returns {import("../output.mjs").Output[]} domain.json の設定どおりの部品
+ * @returns {import("../output.mjs").Output[]} 登録の entity.json の設定どおりの部品
  */
 export function renderComponents(ctx, workspace) {
   const components = componentSpecsFor(ctx.config).map((spec) => renderComponent(ctx, workspace, spec)).filter(Boolean);

@@ -105,11 +105,11 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
 
 ### 生成器からの配線
 
-- domain.json の主の集まりの項目（`fieldType: "mediaCollection"`、[src/domains/README.md](../../../domains/README.md)「主の集まりの項目（mediaCollection）」）から、`pnpm generate domain` が従属の domain.json（無いときだけ）・主の `services/server/collections.ts`（`collections: CrudCollectionConfig[]`、毎回上書き）・主のスキーマ / モデル / フォームを生成する
-  - `fieldName` = 項目名（domain.json に書いたまま）、`service` = 従属の `<child>Service` の遅延 import、`parentColumn` / `valueColumn` / `sortColumn` = 従属の主への参照列 / `file` 列 / `sortOrderField`、`maxItems` = `collection.maxItems`、`minItems` = required なら 1、`duplicate` = `collection.duplicate`
+- 主の登録の entity.json の集まりの項目（`fieldType: "mediaCollection"`、[src/domains/README.md](../../../domains/README.md)「主の集まりの項目（mediaCollection）」）から、`pnpm generate domain` が従属の宣言（`domain.json` と `entities/<従属>/entity.json`、無いときだけ）・主の `services/server/collections.ts`（`collections: CrudCollectionConfig[]`、毎回上書き）・主のスキーマ / モデル / フォームを生成する
+  - `fieldName` = 項目名（entity.json に書いたまま）、`service` = 従属の `<child>Service` の遅延 import、`parentColumn` / `valueColumn` / `sortColumn` = 従属の主への参照列 / `file` 列 / `sortOrderField`、`maxItems` = `collection.maxItems`、`minItems` = required なら 1、`duplicate` = `collection.duplicate`
 - 生成の drizzleBase.ts は `import { collections } from "./collections"` して `createCrudService` の options に `collections` を渡す
 - drizzleBase.ts を手書きする主（`generate: false` のドメイン）は、この 2 行を自分で足す（渡し忘れは `pnpm test scripts/structure/registry/collectionWiring/collectionWiring.test.mjs` が見つける）
-- 突き合わせ: `pnpm test scripts/structure/registry/collectionWiring/collectionWiring.test.mjs` が、全 domain.json の集まりの項目と、serviceRegistry から読み込んだ主のサービスの `collectionFields` を比べる（渡し忘れ・余分を主と項目で出す。DB 未設定でも走る）
+- 突き合わせ: `pnpm test scripts/structure/registry/collectionWiring/collectionWiring.test.mjs` が、全登録の entity.json の集まりの項目と、serviceRegistry から読み込んだ主のサービスの `collectionFields` を比べる（渡し忘れ・余分を主と項目で出す。DB 未設定でも走る）
 - 生成器を使わないドメインは、手書きのサービスで `createCrudService` に `collections` を渡す（宣言の形は同じ `CrudCollectionConfig`）
 
 ### 既存の mediaUploaderMulti 列からの移行

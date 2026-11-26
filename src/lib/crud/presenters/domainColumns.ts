@@ -6,7 +6,7 @@ import type { FieldPresenter } from "@/lib/domain";
 import { formatCollectionThumbnails, formatMediaThumbnail, formatMediaThumbnails } from "./media";
 
 /**
- * 列を作るのに読む項目のキー。domain.json の項目の型(lib/domain の DomainField)から取る。
+ * 列を作るのに読む項目のキー。entity.json の項目の型(lib/domain の DomainField)から取る。
  * name 以外は省ける(手書きの写し domainDisplay は fieldType を省け、label の無い項目は名前で出す)
  */
 type DomainColumnField = Pick<DomainField, "name"> &
@@ -15,7 +15,7 @@ type DomainColumnField = Pick<DomainField, "name"> &
 /** 列の見出しに読む関連のキー(写しの関連 DomainDisplayRelation から。label の無い関連は fieldName で出す) */
 type DomainColumnRelation = Pick<DomainDisplayRelation, "fieldName"> & Partial<Pick<DomainDisplayRelation, "label">>;
 
-/** 列を作るのに読む設定(写し DomainDisplay か domain.json の、tableFields・fields・relations) */
+/** 列を作るのに読む設定(写し DomainDisplay か entity.json の、tableFields・fields・relations) */
 type DomainJsonConfig = Partial<Pick<DomainDisplay, "tableFields">> & {
   fields?: readonly DomainColumnField[];
   relations?: readonly DomainColumnRelation[];
@@ -75,7 +75,7 @@ function buildLabelMap(config: DomainJsonConfig): {
 }
 
 /**
- * presenters を渡していない列の表示。domain.json の項目は生成の presenters.ts と同じ答え（presenterFor）で描く。
+ * presenters を渡していない列の表示。entity.json の項目は生成の presenters.ts と同じ答え（presenterFor）で描く。
  * 一覧特有の扱い: 空・null は空欄（presenters の "―" ではなく ""）、textarea の文字列は切り詰める、値が Date なら日付。
  * 項目でない列（リレーション・id）と createdAt / updatedAt は presenterFor の外
  */

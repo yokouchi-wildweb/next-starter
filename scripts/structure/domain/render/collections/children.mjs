@@ -1,6 +1,6 @@
-// 主の集まりの項目名 → 従属（フォルダ名と domain.json）。主の生成物（Fields・collections.ts）が従属を読む（一方向）。
+// 主の集まりの項目名 → 従属（フォルダ名と主の登録の entity.json）。主の生成物（Fields・collections.ts）が従属を読む（一方向）。
 // pipeline が組の解決から ctx.collectionChildren を載せていればそれ（この実行で書き出す従属は書き出す中身）、
-// 無ければ（render を直接呼ぶ経路）workspace から従属の domain.json を読む
+// 無ければ（render を直接呼ぶ経路）workspace から従属の登録の entity.json を読む
 
 import { toCamelCase } from "../../../../../src/lib/stringCase/index.mjs";
 import { isCollectionFieldType } from "../../spec/fieldTypes.mjs";

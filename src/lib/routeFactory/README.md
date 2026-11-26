@@ -67,7 +67,7 @@ export const POST = createApiRoute(
   async (req, { user }) => exampleService.submit(user, await req.json()),
 );
 
-// services/server/domainEntry.ts（業務ドメインは domain.json の apiAccess に同じ値を書く）
+// services/server/domainEntry.ts（業務ドメインは登録の entities/<登録名>/entity.json の apiAccess に同じ値を書く）
 access: { read: "public", write: "none" },
 ```
 
@@ -204,7 +204,7 @@ export const GET = createDomainRoute<any, { domain: string }>(
 アクセスポリシーは各ドメインの `domainEntry.ts` の `{ service, access }` で宣言する（型必須）:
 
 ```ts
-// src/domains/sample/services/server/domainEntry.ts（業務ドメインは pnpm generate domain が domain.json から生成）
+// src/domains/sample/services/server/domainEntry.ts（業務ドメインは pnpm generate domain が登録の entity.json から生成）
 export const domainEntries = {
   sample: {
     service: () => import("./sampleService").then((m) => m.sampleService),
@@ -216,7 +216,7 @@ export const domainEntries = {
 } satisfies DomainEntries;
 ```
 
-- 編集元: 自動生成ドメインは domain.json の `apiAccess` / `useImportExport`（domain.json に手で書き、`pnpm generate domain` / forge が domainEntry.ts に展開）。
+- 編集元: 自動生成ドメインは登録の `entities/<登録名>/entity.json` の `apiAccess` / `useImportExport`（entity.json に手で書き、`pnpm generate domain` / forge が domainEntry.ts に展開）。
   コアドメインは domainEntry.ts を手書き、fork が core の access を変えるときは隣に `domainEntry.override.ts`。ルール値・スキーマは `src/domains/README.md`「ApiAccess（汎用 API アクセス制御）」、仕組みは `src/lib/domain/README.md`
 - 管理データ操作 `truncateAll` / `export` / `import` は `operations` に明示したときだけ開く（未指定 = `"none"`）。
   全件削除・データ移行のルートは自分の門（`{ roleCategories: ["admin"] }`）に加えて、ドメインごとの access を `enforceAccessRule(rule, ctx.user)` で評価する（AND）
@@ -226,7 +226,7 @@ export const domainEntries = {
 - プリセット（`src/lib/domainAccess/accessPresets.ts`）: `ADMIN_ONLY` / `PUBLIC_READ`（公開読み取り + 管理者書き込み）/ `ADMIN_OR_DEBUGGER` / `INTERNAL_ONLY`（汎用 API・管理データ操作とも閉じる。登録表には載せる）。
   単一ルール版 `ADMIN_RULE` / `ADMIN_OR_DEBUGGER_RULE` は `operations` の上書きや `createApiRoute` の `access` にも使える。`ADMIN_DATA_OPERATIONS` = 管理データ操作 3 つを管理者に開く断片
 - `authenticated` は where の `user_id` がクライアント任せなので他人のレコードも読める。本人向けは下の createMeRoute
-- **sample ドメインの例外**: `/demo` ページ（`sortable-list` の reorder、`tables` のインライン update）が使うため、`src/domains/sample/domain.json` の `apiAccess.operations` で `update` / `reorder` のみ `authenticated` に緩和している。フォーク先で demo ページを削除する場合はこの緩和も削除する
+- **sample ドメインの例外**: `/demo` ページ（`sortable-list` の reorder、`tables` のインライン update）が使うため、`src/domains/sample/entities/sample/entity.json` の `apiAccess.operations` で `update` / `reorder` のみ `authenticated` に緩和している。フォーク先で demo ページを削除する場合はこの緩和も削除する
 
 > **注意（よくある誤解）**: `/api/<domain>/` に独自の静的サブルート（例 `/api/coupon/redeem`）があっても、汎用 `/api/[domain]/**` は**そのまま動く**（Next.js はフルパスでマッチし、静的は完全一致パスだけを占有する）。
 > client で setting 等が読めない場合はルーティングではなく**アクセス制御**（例: setting は `ADMIN_ONLY`）を疑う。確認は dev サーバーへ未認証で `curl -i` を投げ、ステータスと content-type で判定する:
@@ -369,6 +369,6 @@ export const POST = createApiRoute(
 ## Related
 
 - `src/wiring/README.md` - 設定済み版の置き場・fork の wiring
-- `src/domains/README.md`「ApiAccess（汎用 API アクセス制御）」 - domain.json の `apiAccess` スキーマ（generator が registry へ展開）
+- `src/domains/README.md`「ApiAccess（汎用 API アクセス制御）」 - 登録の entity.json の `apiAccess` スキーマ（generator が registry へ展開）
 - `src/lib/errors/README.md` - `DomainError` の `code` / `details`
 - `docs/!must-read/アプリ構築における構成層.md` - 全体アーキテクチャ

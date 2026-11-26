@@ -88,7 +88,7 @@ export function parseDomainOutputs(text) {
 
 /**
  * 1 ドメインの置き換えの値
- * @param {{ dir: string, plural?: string }} domain dir = リポジトリ直下からのドメインのフォルダ、plural = domain.json の plural
+ * @param {{ dir: string, plural?: string }} domain dir = リポジトリ直下からのドメインのフォルダ、plural = entity.json の plural
  */
 export function domainNamesOf({ dir, plural }) {
   const camel = dir.slice(dir.lastIndexOf("/") + 1);

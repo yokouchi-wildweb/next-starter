@@ -21,7 +21,7 @@
 
 - link: `label` + `href`（1 行）
 - domain: `domain: "<ドメインのフォルダ名>"`（`label` で題名だけ差し替え可。1 行）。題名と住所は生成の一覧 `@/registry/adminDomains`（管理一覧の画面を持つドメイン、`pnpm generate registry`）
-- source: `source: "dataMenu"` / `"settingSections"`。その位置に複数行を展開する。行の中身は出どころで編集する: `dataMenu` = `domain.json` の `addToAdminDataMenu: true` のドメイン、`settingSections` = 設定の節（点 `settingSections`、`<ドメイン>/plugs/settingSections/`）
+- source: `source: "dataMenu"` / `"settingSections"`。その位置に複数行を展開する。行の中身は出どころで編集する: `dataMenu` = 登録の `entities/<登録名>/entity.json` が `addToAdminDataMenu: true` のドメイン、`settingSections` = 設定の節（点 `settingSections`、`<ドメイン>/plugs/settingSections/`）
 
 - どの形も `category`（カテゴリーの名前）・`order`・`icon`・`allowRoles` を持つ
 - 生成の出力（dataMenu・settingSections・domain）はどれも 1 項目なので、どのカテゴリーのどの位置にも置ける
@@ -31,7 +31,7 @@
 
 - 足す: 自分のカテゴリー・項目のファイルを受け口に置いて `pnpm generate extensions`（受け口の外の `src/domains/core/` に足すと `pnpm workflow ownership check` が落ちる）
 - 上流の物を変える・隠す: その隣に `<名前>.override.ts`（`export const override = { … }`）。カテゴリー = `hidden`・`label`・`icon`・`allowRoles`・`order`、項目 = それに `category` を足したもの。相手の無い上書き・挙げていない属性は `pnpm check extensions` が落とす
-- ドメインをデータ管理に出さない: その `domain.json` の `addToAdminDataMenu: false`
+- ドメインをデータ管理に出さない: その登録の `entities/<登録名>/entity.json` の `addToAdminDataMenu: false`
 - 上流は override を出荷しない（`scripts/structure/extensions/README.md`）
 
 ## Internals

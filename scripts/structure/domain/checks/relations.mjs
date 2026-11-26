@@ -14,7 +14,7 @@ const KEY_TYPES = {
 };
 
 /**
- * @param {object} config domain.json
+ * @param {object} config 登録の entity.json
  * @returns {string[]} 問題（空なら無し）
  */
 export function relationIssues(config) {

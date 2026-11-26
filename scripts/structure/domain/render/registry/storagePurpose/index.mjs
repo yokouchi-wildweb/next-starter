@@ -1,4 +1,4 @@
-// services/server/storagePurposes.ts（毎回上書き）: domain.json のメディア項目のファイル用途。
+// services/server/storagePurposes.ts（毎回上書き）: 登録の entity.json のメディア項目のファイル用途。
 // src/registry/storagePurposeRegistry.ts はこのファイルの一覧（pnpm generate registry が走査で作る）。
 // 検査（規則違反）は Output を作る時点で済ませ、例外で止める（書き込みの前）
 
@@ -18,7 +18,7 @@ export function renderStoragePurposesContent(rel, entries) {
   const lines = entries.map(({ id, value }) => `  "${id}": ${value},`);
   return [
     `// ${rel}/services/server/storagePurposes.ts`,
-    "// pnpm generate domain が domain.json のメディア項目から生成する。手で直さない（手で持つなら domain.json の generate を false）。",
+    "// pnpm generate domain が登録の entity.json のメディア項目から生成する。手で直さない（手で持つなら entity.json の generate を false）。",
     "// 型と規則: src/lib/storage/README.md",
     "",
     'import "server-only";',
@@ -36,7 +36,7 @@ export function renderStoragePurposesContent(rel, entries) {
 /**
  * @param {import("../../../domain/context.mjs").DomainContext} ctx
  * @param {import("../../../domain/workspace.mjs").Workspace} workspace
- * @returns {import("../../output.mjs").Output[]} メディア項目か domain.json が無ければ空
+ * @returns {import("../../output.mjs").Output[]} メディア項目か登録の entity.json が無ければ空
  */
 export function renderStoragePurposesOutput(ctx, workspace, warn = console.warn) {
   if (!ctx.config) return [];

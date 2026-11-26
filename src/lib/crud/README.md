@@ -109,7 +109,7 @@ createCrudService<TTable, TCreate>(table, {
 
 `cacheTags: { domain }` にすると、書き込みのメソッド（requestMemo と同じ一覧）が終わり（成功でも throw でも）に、そのドメインのキャッシュタグを積む（`src/lib/cacheTags`）。積んだキャッシュタグは入口（routeFactory・cron）が要求の終わりにまとめて消す。
 
-- domain = 地区の地図のドメイン名。cache の宣言（domain.json の `"cache"` / `cache.json`）を持つドメインに付ける
+- domain = 地区の地図のドメイン名。cache の宣言（主の登録の entity.json の `"cache"` / `cache.json`）を持つドメインに付ける
 - id の分かる書き込み（create・upsert・duplicate は戻り値、update・systemUpdate・delete・restore・hardDelete は引数、`bulk*ByIds`・bulkUpdate・bulkUpsert は一括の id）= ドメインのキャッシュタグ `<domain>` + 行のキャッシュタグ `<domain>:<id>`
 - id の分からない書き込み（`*ByQuery`・replaceByQuery・reorder・initializeSortOrder・searchForSorting・関係の一括・truncateAll）と、戻り値から id を取る書き込みの throw = ドメインのキャッシュタグ + 行の全部のキャッシュタグ `<domain>:*`（get の覚えが全部消える）
 - `createCrudService` を経由しない生 SQL の書き込みの後は `service.markCacheTags(ids?)`（ids 無し = 行の全部のキャッシュタグ）。option の無いサービスでは何もしない
@@ -122,7 +122,7 @@ Create/Update Zod スキーマから意図的に除外したシステム管理�
 strip される。`systemColumns` は、これらの列を audit 自動記録・requestMemo 自動 invalidate などの横断フックを通る正規経路で書くための宣言（Drizzle のみ）。
 
 ```typescript
-// 宣言（drizzleBase / domain.json）
+// 宣言（drizzleBase / 登録の entity.json）
 createCrudService(GachaMachineTable, {
   ...,
   systemColumns: ["ended_at", "archived_at", "played_count", "sold_out_at"],
@@ -154,7 +154,7 @@ await base.systemBulkUpdateByQuery({ status: "active" }, { archived_at: new Date
   `update()` / `bulkUpdateByIds()` と同一挙動。追加クエリなし（ホットパス安全）
 - belongsToMany リレーション同期は対象外
 - サービス層限定の特権。汎用 HTTP ルート（`/api/[domain]/**`）には配線していない（core/services.md system_write）。HTTP 入力の安全網は従来どおり Zod strip
-- business ドメインは domain.json の `systemColumns` に宣言して `pnpm generate domain` で反映、
+- business ドメインは登録の entity.json の `systemColumns` に宣言して `pnpm generate domain` で反映、
   core ドメインは drizzleBase の `createCrudService` オプションに直接宣言する
 
 ### hiddenColumns（秘匿カラム — サービス境界の外に出さない）
@@ -222,7 +222,7 @@ defineHiddenColumns(UserTable, ["localPassword"]);
 
 ### 一覧の列(presenters の buildDomainColumns)
 
-- `buildDomainColumns({ config, formatDate, truncate, presenters?, actionColumn?, sortableFields?, truncateLength? })`: `config` = domain の `domainDisplay`(または domain.json の設定)。`tableFields` の順に列を作り、`presenters` の無い列は `presenterFor`(`src/lib/domain/fields/presenterFor.mjs`)と同じ答えで描く
+- `buildDomainColumns({ config, formatDate, truncate, presenters?, actionColumn?, sortableFields?, truncateLength? })`: `config` = domain の `domainDisplay`(または登録の entity.json の設定)。`tableFields` の順に列を作り、`presenters` の無い列は `presenterFor`(`src/lib/domain/fields/presenterFor.mjs`)と同じ答えで描く
 - `formatDate`・`truncate` は必須: 日付の書き方と切り詰めはアプリのもので、lib は持たない。呼び手が `@/utils/date` の `formatDateJa` と `@/utils/string` の `truncateJapanese` を渡す(`buildDomainColumns<Sample>({ config: domainDisplay, formatDate: formatDateJa, truncate: truncateJapanese })`)。lib は日時・createdAt / updatedAt に `"YYYY/MM/DD HH:mm"`、日付に `"YYYY/MM/DD"` を、`fallback: null` と一緒に渡す
 - 読む項目のキーは `name`・`label`・`formInput`・`fieldType`・`options` だけ。型は lib/domain の `DomainField` から取る(crud に項目の型は持たない)。`name` 以外は省ける
 - 関連は `fieldName`・`label`(`DomainDisplayRelation` から、label は省ける)、`tableFields` は `DomainDisplay` の型

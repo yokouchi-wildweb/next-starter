@@ -202,7 +202,7 @@ export function renderInputByFormType<
       return <ControlledColorInput field={field} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
 
     case "colorValueInput":
-      // domain.json 経由では default の意味（resolveDefault/プレビュー）を注入できないため
+      // entity.json 経由では default の意味（resolveDefault/プレビュー）を注入できないため
       // 既定挙動でレンダリングする。意味を注入したい場合は Controlled/Manual を直接利用すること。
       return <ControlledColorValueInput field={field} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
 

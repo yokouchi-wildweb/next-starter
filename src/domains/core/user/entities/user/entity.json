@@ -315,7 +315,7 @@
       "expression": "lower(btrim(\"users\".\"name\"))"
     }
   ],
-  "reason": "ユーザー所有データ（wallet / walletHistory / purchaseRequest）と同じく、汎用 API は admin 限定（本人用は /api/me/**）。 import は閉じる（domain.json の useImportExport: false。今までの挙動と同じ）。export / 全件削除は管理者",
+  "reason": "ユーザー所有データ（wallet / walletHistory / purchaseRequest）と同じく、汎用 API は admin 限定（本人用は /api/me/**）。 import は閉じる（entity.json の useImportExport: false。今までの挙動と同じ）。export / 全件削除は管理者",
   "enums": [
     {
       "name": "user_provider_type",

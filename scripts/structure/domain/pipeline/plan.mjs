@@ -24,7 +24,7 @@ import { renderServerServices } from "../render/serverServices/index.mjs";
 export function planDomain(ctx, workspace, gen) {
   // 手で管理（generate: false）は gen に関わらず何も出さない（生成器を一切通さない）
   if (isHandManaged(ctx.config)) return [];
-  // 主の集まりの項目の従属の domain.json（無いときだけ書く）。生成カテゴリではないので gen に関わらず出す
+  // 主の集まりの項目の従属の宣言(domain.json と登録の entity.json。無いときだけ書く)。生成カテゴリではないので gen に関わらず出す
   const outputs = [...renderChildDomainConfigs(ctx, workspace)];
   if (gen.components) outputs.push(...renderComponents(ctx, workspace));
   if (gen.hooks) outputs.push(...renderHooks(ctx, workspace));

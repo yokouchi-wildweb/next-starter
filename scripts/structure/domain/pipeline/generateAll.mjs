@@ -24,7 +24,7 @@ function bufferedIo(io) {
  * 生成物の印の検査(scripts/workflow/rules/generated.mjs)も同じ計画を読む(生成器が実際に書くファイルだけを生成物と数える)
  * @param {import("../domain/workspace.mjs").Workspace} workspace
  * @param {string[]} selectedDomains フォルダ名
- * @param {Record<string, boolean> | null} manualGenerate 手動選択（null = 各 domain.json の generate で決まるカテゴリ）
+ * @param {Record<string, boolean> | null} manualGenerate 手動選択（null = 各登録の entity.json の generate で決まるカテゴリ）
  * @param {string[] | null} only --only
  * @param {{ log: Function, warn: Function }} [io]
  */
@@ -62,7 +62,7 @@ export function everyRunPathsOf(plans, rootDir) {
 /**
  * @param {import("../domain/workspace.mjs").Workspace} workspace
  * @param {string[]} selectedDomains フォルダ名
- * @param {Record<string, boolean> | null} manualGenerate 手動選択（null = 各 domain.json の generate で決まるカテゴリ）
+ * @param {Record<string, boolean> | null} manualGenerate 手動選択（null = 各登録の entity.json の generate で決まるカテゴリ）
  * @param {string[] | null} only --only
  * @param {{ dryRun?: boolean, io?: { log: Function, warn: Function } }} [options]
  */

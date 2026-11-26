@@ -1,12 +1,12 @@
 // src/lib/domain/types/domainConfigOptionals.ts
-// 生成物 src/registry/domainConfigRegistry.ts の DomainConfig に重ねる、domain.json の省略できるフィールドの型(手書き)
+// 生成物 src/registry/domainConfigRegistry.ts の DomainConfig に重ねる、登録の entity.json の省略できるフィールドの型(手書き)
 
 /**
- * domain.json でオプショナル（⚪ No）なフィールド。
+ * entity.json でオプショナル（⚪ No）なフィールド。
  * union 型では省略されたメンバーのプロパティにアクセスできないため、
  * intersection で付与して型安全にアクセス可能にする。
  *
- * ⚠️ domain.json スキーマにオプショナルフィールドを追加した場合、ここにも追加すること。
+ * ⚠️ entity.json スキーマにオプショナルフィールドを追加した場合、ここにも追加すること。
  *    追加漏れ → searchFields がないドメインが存在するだけでビルドエラーになる。
  *    スキーマ定義: src/domains/README.md「トップレベルプロパティ」
  */

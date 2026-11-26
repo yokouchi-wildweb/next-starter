@@ -1,5 +1,5 @@
 // src/domains/core/user/services/server/domainEntry.ts
-// core ドメインの登録（手書き。core の domain.json は pnpm generate domain の対象外）。登録表 src/registry/serviceRegistry.ts は
+// core ドメインの登録（手書き。core の登録の entity.json は pnpm generate domain の対象外）。登録表 src/registry/serviceRegistry.ts は
 // このファイルから pnpm generate registry が作る。fork が access を変えるときは隣に domainEntry.override.ts を置く（このファイルは編集しない）。
 // access = 汎用 API（/api/<domain>/**）と管理データ操作（truncateAll / export / import）の認可。詳細: src/lib/domain/README.md
 
@@ -8,7 +8,7 @@ import { ADMIN_DATA_OPERATIONS, ADMIN_ONLY } from "@/lib/domainAccess";
 
 export const domainEntries = {
   // ユーザー所有データ（wallet / walletHistory / purchaseRequest）と同じく、汎用 API は admin 限定（本人用は /api/me/**）。
-  // import は閉じる（domain.json の useImportExport: false。今までの挙動と同じ）。export / 全件削除は管理者
+  // import は閉じる（entity.json の useImportExport: false。今までの挙動と同じ）。export / 全件削除は管理者
   user: {
     service: () => import("./userService").then((m) => m.userService),
     table: "users",

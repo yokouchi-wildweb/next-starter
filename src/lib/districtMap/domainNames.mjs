@@ -1,7 +1,7 @@
 // ドメインの名前の決まりの元(単数 → 複数の推定と、管理画面のルートのフォルダ名)。純関数の .mjs。
 // 読み手: pnpm generate domain(scripts/structure/domain/domain/context.mjs・plural.mjs が再 export)と
 // pnpm workflow ownership who(src/app/admin/(protected)/<フォルダ>/ がどのドメインの生成物かを引く)。
-// 語の規則は pluralize(devDependency)の表に任せ、手書きの規則は持たない。domain.json の plural があればそちらが常に優先。
+// 語の規則は pluralize(devDependency)の表に任せ、手書きの規則は持たない。entity.json の plural があればそちらが常に優先。
 // pluralize の不規則・不可算の表は語全体にしか効かない(user_media → user_medias)ので、最後の語だけを取り出して複数形にする。
 // 新しい語の誤りは手の規則を足さず、この下で pluralize.addIrregularRule / addUncountableRule / addPluralRule を呼んで直す。
 
@@ -39,15 +39,15 @@ export function toPlural(name) {
 }
 
 /**
- * 複数形の camelCase(domain.json の plural があればそれ、無ければ toPlural で推定)
+ * 複数形の camelCase(entity.json の plural があればそれ、無ければ toPlural で推定)
  * @param {string} camel ドメインの camelCase(フォルダ名)
- * @param {string} [plural] domain.json の plural
+ * @param {string} [plural] entity.json の plural
  */
 export const camelPluralOf = (camel, plural) => (plural ? toCamelCase(plural) : toPlural(camel));
 
 /**
  * 管理画面のルートのフォルダ名(src/app/admin/(protected)/<これ>/、複数形の kebab-case)
  * @param {string} camel ドメインの camelCase(フォルダ名)
- * @param {string} [plural] domain.json の plural
+ * @param {string} [plural] entity.json の plural
  */
 export const adminRouteFolderOf = (camel, plural) => toKebabCase(camelPluralOf(camel, plural));

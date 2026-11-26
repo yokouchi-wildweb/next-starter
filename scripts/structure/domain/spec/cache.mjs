@@ -1,4 +1,4 @@
-// ドメインの宣言 cache(domain.json の "cache"、domain.json の無い手書きのドメインは同じ形の <domain>/cache.json)の語彙と正規化。
+// ドメインの宣言 cache(登録の entity.json の "cache"、domain.json の無い手書きのドメインは同じ形の <domain>/cache.json)の語彙と正規化。
 // 規則の正: src/domains/README.md「cache(共有の読みのキャッシュの宣言)」。検査は checks/cache.mjs、型は src/lib/domain/types/cache.ts。
 // 生成器(包んだ関数を出す)はこの normalizeCacheDeclaration の形を読む。
 
