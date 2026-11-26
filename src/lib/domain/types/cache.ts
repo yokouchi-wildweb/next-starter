@@ -14,7 +14,7 @@ export type DomainCacheWhere =
   | { or: DomainCacheWhere[] };
 export type DomainCacheOrderBy = Array<[string, "ASC" | "DESC", ("FIRST" | "LAST")?]>;
 
-/** tagged = 書き込みで札を消す / ttl = 書き込みで消さず短い寿命で切れる */
+/** tagged = 書き込みでキャッシュタグを消す / ttl = 書き込みで消さず短い寿命で切れる */
 export type DomainCacheMode = "tagged" | "ttl";
 
 /** cacheLife の preset("default" は寿命が無限、"seconds" は覚えないので書けない)か、秒の寿命(expire 必須) */
@@ -45,7 +45,7 @@ export type DomainCacheDeclaration = {
   /** 上限つきの list を包む */
   list?: { limit: number };
   reads?: DomainCacheRead[];
-  /** この読みが読む他のドメイン(地区の地図の名前)。その札の書き込みでも消える */
+  /** この読みが読む他のドメイン(地区の地図の名前)。そのキャッシュタグの書き込みでも消える */
   readsDomains?: string[];
 };
 

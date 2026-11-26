@@ -1,5 +1,5 @@
 // 入口(createApiRoute・createDeviceRoute は同じ範囲)が handler を cacheTags の範囲で包み、
-// handler の中で積んだ札を終わりに 1 回 revalidateTag(tag, { expire: 0 })へ渡すこと(cron の入口は src/lib/cron/cacheTags.test.mts)。
+// handler の中で積んだキャッシュタグを終わりに 1 回 revalidateTag(tag, { expire: 0 })へ渡すこと(cron の入口は src/lib/cron/cacheTags.test.mts)。
 // 実行: pnpm test src/lib/routeFactory/cacheTags.test.mts
 import assert from "node:assert/strict";
 import { mock, test } from "node:test";

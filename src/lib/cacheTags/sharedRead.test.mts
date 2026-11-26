@@ -1,5 +1,5 @@
 // src/lib/cacheTags/sharedRead.ts のテスト(next/cache は差し替える。node では指令 "use cache: remote" は効かず体がそのまま走る)
-// - 体が cacheLife・cacheTag に寿命と札を渡し、名前で引いた読みを呼ぶ
+// - 体が cacheLife・cacheTag に寿命とキャッシュタグを渡し、名前で引いた読みを呼ぶ
 // - 置き場が投げたら(ここでは cacheLife が投げる)読みを直に呼んで返し、記録の 1 行
 // - 同じ名前の別の読みは投げる、同じ定義の読み直しは通す
 // 実行: pnpm test src/lib/cacheTags
@@ -33,7 +33,7 @@ afterEach(() => mock.restoreAll());
 
 const life = { revalidate: 60, expire: 60 };
 
-test("defineSharedRead: 寿命と札を置き場に渡し、名前で引いた読みに引数を渡す", async () => {
+test("defineSharedRead: 寿命とキャッシュタグを置き場に渡し、名前で引いた読みに引数を渡す", async () => {
   const calls: unknown[][] = [];
   const read = defineSharedRead("t.sum", async (a: number, b: { x: number }) => {
     calls.push([a, b]);
@@ -46,7 +46,7 @@ test("defineSharedRead: 寿命と札を置き場に渡し、名前で引いた�
   assert.deepEqual(errors, []);
 });
 
-test("defineSharedRead: 札が空なら cacheTag を呼ばない", async () => {
+test("defineSharedRead: キャッシュタグが空なら cacheTag を呼ばない", async () => {
   const read = defineSharedRead("t.noTags", async () => "v");
   assert.equal(await read({ life, tags: [] }), "v");
   assert.deepEqual(seen.tags, []);

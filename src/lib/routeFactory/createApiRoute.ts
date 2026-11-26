@@ -441,7 +441,7 @@ export function makeRouteCore<TCategory extends string = string>(
         // flush する。flush の中身（再計算等）は下流が registerUserDirtyFlushHandler で差し込む。
 
         //
-        // 共有の読みのキャッシュの札の範囲(cacheTags)も同じ所に敷く。handler の中の書き込みが積んだ札を、
+        // 共有の読みのキャッシュタグの範囲(cacheTags)も同じ所に敷く。handler の中の書き込みが積んだキャッシュタグを、
         // handler の後(成功でも throw でも)にまとめて revalidateTag(expire 0)する(src/lib/cacheTags)。
         const result = await runWithAuditContext(auditContext, () =>
           runWithCacheTags(() => runWithUserDirtyTracking(() => handler(req, { params }, grant))),

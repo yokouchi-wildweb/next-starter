@@ -115,15 +115,15 @@ business ドメインの `entities/` は `pnpm generate domain` が生成する�
 
 - 何を書くか: このドメインのどの読みを要求をまたぐ共有のキャッシュにするか・書き込みで消すか時間で切れるか・寿命・他のどのドメインの書き込みでも消すか。包んだ読みの関数は生成器が出す（手で `"use cache: remote"` を書かない）
 - 置き場: domain.json の `"cache"`、domain.json の無いドメインは同じ形の `<domain>/cache.json`（両方は不可、domain.json のあるドメインの cache.json も不可）。`generate` の値に関わらず効く
-- `mode`（必須）: `"tagged"` = 書き込みで札（`cacheTagOf(domain)`・`cacheTagOf(domain, id)`、`src/lib/cacheTags`）を消す / `"ttl"` = 書き込みで消さず短い寿命で切れる
+- `mode`（必須）: `"tagged"` = 書き込みでキャッシュタグ（`cacheTagOf(domain)`・`cacheTagOf(domain, id)`、`src/lib/cacheTags`）を消す / `"ttl"` = 書き込みで消さず短い寿命で切れる
 - `life`（必須、寿命は必ず有限）: cacheLife の preset 名（`minutes` / `hours` / `days` / `weeks` / `max`、`default` は寿命が無限・`seconds` は覚えないので不可）か `{ stale?, revalidate?, expire }`（秒、`expire` 必須、stale ≤ revalidate ≤ expire）
   - 上限: `tagged` は 30 日（`weeks` まで、書き忘れた読むドメインの分の古さを受ける上限）、`ttl` は 1 時間（`minutes` まで）
-- `get`（既定 true）: `base.get(id)` を包む（行の札 `<domain>:<id>`）
+- `get`（既定 true）: `base.get(id)` を包む（行のキャッシュタグ `<domain>:<id>`）
 - `list`: `{ limit }` = 上限つきの list を包む（`limit` は 1〜1000）
 - `reads`: 条件を宣言で固めた名前付きの読み `[{ name, where?, orderBy?, limit, mode?, life? }]`（`base.search` の固定の引数、引数を取らない）
   - `name` = 小文字で始まる英数字、重複なし、`get` / `list` は不可 | `where` = crud の WhereExpr（`{ field, op, value }`・`{ and: [...] }`・`{ or: [...] }`、`field` は camelCase の列名）| `orderBy` = `[[列, "ASC"|"DESC", ("FIRST"|"LAST")?], ...]` | `limit` 必須（1〜1000）| `mode` / `life` は頭の値を継ぎ、上書きもできる
   - 利用者の打った語など鍵の数に上限の無い search と、wrappers/ の手書きの読み（actor で絞る等）は宣言しない（包まない）
-- `readsDomains`: この読みが読む他のドメイン（地区の地図の名前、camelCase）。そのドメインの書き込みの札でも消える。自分は書かない（自分の札は必ず付く）
+- `readsDomains`: この読みが読む他のドメイン（地区の地図の名前、camelCase）。そのドメインの書き込みのキャッシュタグでも消える。自分は書かない（自分のキャッシュタグは必ず付く）
 - 例:
 
 ```json
@@ -139,7 +139,7 @@ business ドメインの `entities/` は `pnpm generate domain` が生成する�
 ```
 
 - 置き場が止まった時: 生成した読みは `readThrough`(`@/lib/cacheTags/server`)で包まれ、置き場(cacheHandlers の remote)が投げたら DB を直に読んで返す(記録の 1 行 `cache read fell back to the database`)。Next は handler の `get` の失敗を包まず描画の失敗にする(確かめ: 投げる handler で包まない読みは 500、包んだ読みは 200)。fork が自分の handler を書く時も、中の失敗は拾って `undefined`(取りこぼし)を返す
-- 覚える値の大きさ(Vercel の Runtime Cache、地域ごと): 1 項目 2 MB まで・8 KB 単位で読み書きの課金・1 項目の札は 128 まで(readsDomains は 100 個まで)・Hobby は月に読み 1M / 書き 200K で止まる(チーム 1 つで共有)
+- 覚える値の大きさ(Vercel の Runtime Cache、地域ごと): 1 項目 2 MB まで・8 KB 単位で読み書きの課金・1 項目のキャッシュタグは 128 まで(readsDomains は 100 個まで)・Hobby は月に読み 1M / 書き 200K で止まる(チーム 1 つで共有)
   - list と名前付きの読みの limit は 1000 まで: 1 行 2 KB なら 1000 行で 2 MB に届く。大きな列(本文・JSON)を持つ表は limit を小さく、一覧に要る列だけの名前付きの読みにはしない(列は選べない: base の行が丸ごと入る)
   - `life` の `seconds`(revalidate 1 秒)は読むたびに作り直すのと同じで覚えない(確かめ、検査が止める)。短い寿命は `{ revalidate, expire }` の秒か `minutes`
   - 他の地域への消しの届き方は未測(地域は入れない)。書き込みの直後の読みは同じ地域では新しい値(確かめ: preview の 3 つのインスタンス)

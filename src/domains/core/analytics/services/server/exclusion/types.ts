@@ -8,7 +8,7 @@
 // - stock: 残高・流通量など人ごとの状態。期間外の残高にも残るので、除外した人を丸ごと落とす
 // 実行時機: 各集計のクエリを組み立てるとき(同期、読みだけ、tx なし)。項目の throw はその集計の 500。
 // 除外の条件(fork の表)を書き換えた直後は invalidateAnalyticsCache()(services/server/analyticsCache.ts)を呼ぶ:
-// 集計のキャッシュが確定済みの範囲を 12 時間覚えているので、呼ばないと古い集計が出続ける(札で全インスタンスから消える)。
+// 集計のキャッシュが確定済みの範囲を 12 時間覚えているので、呼ばないと古い集計が出続ける(キャッシュタグで全インスタンスから消える)。
 // 詳細: src/domains/core/analytics/services/server/exclusion/README.md
 
 import type { Column, SQL } from "drizzle-orm";

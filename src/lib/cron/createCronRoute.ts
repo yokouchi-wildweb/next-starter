@@ -132,7 +132,7 @@ export function createCronRoute<T extends Record<string, unknown> = Record<strin
     // ドメインの関数は runAsSystem を呼ばない(入れ子でも安全だが、包む所を 1 つにする)
     const requestId = crypto.randomUUID();
     try {
-      // 共有の読みのキャッシュの札(cacheTags)の範囲も入口が敷く: タスクの書き込みが積んだ札を終わりにまとめて消す
+      // 共有の読みのキャッシュタグ(cacheTags)の範囲も入口が敷く: タスクの書き込みが積んだキャッシュタグを終わりにまとめて消す
       const result = await runAsSystem(() => runWithCacheTags(() => options.handler()), { requestId });
       const durationMs = Date.now() - startedAt;
       console.log(

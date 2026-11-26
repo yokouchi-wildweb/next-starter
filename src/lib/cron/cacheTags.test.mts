@@ -1,4 +1,4 @@
-// cron の入口(createCronRoute)がタスクを cacheTags の範囲で包み、タスクの中で積んだ札を終わりに 1 回
+// cron の入口(createCronRoute)がタスクを cacheTags の範囲で包み、タスクの中で積んだキャッシュタグを終わりに 1 回
 // revalidateTag(tag, { expire: 0 })へ渡すこと。実行: pnpm test src/lib/cron/cacheTags.test.mts
 import assert from "node:assert/strict";
 import { after, mock, test } from "node:test";

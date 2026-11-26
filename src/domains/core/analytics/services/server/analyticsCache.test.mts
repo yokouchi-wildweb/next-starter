@@ -2,9 +2,9 @@
 //
 // 集計のキャッシュの公開の入口(analyticsCache.ts)が共有のキャッシュの標準に乗ること(DB なし)。
 // next/cache は差し替える(node では指令 "use cache: remote" は効かず体がそのまま走る: 覚えることそのものは Next の中だけ)。
-// - 定義: 確定済みの範囲は 12 時間、当日は 1 分の寿命と札 analytics・analytics:<name> を置き場に渡す、寿命の上限を超えると投げる
+// - 定義: 確定済みの範囲は 12 時間、当日は 1 分の寿命とキャッシュタグ analytics・analytics:<name> を置き場に渡す、寿命の上限を超えると投げる
 // - ANALYTICS_CACHE=disabled は置き場を通らない
-// - invalidateAnalyticsCache(name?) は札を積み、入口(runWithCacheTags)の終わりに消える
+// - invalidateAnalyticsCache(name?) はキャッシュタグを積み、入口(runWithCacheTags)の終わりに消える
 // - 置き場が投げたら集計を直に計算する
 // 実行: pnpm test src/domains/core/analytics/services/server/analyticsCache.test.mts
 import assert from "node:assert/strict";
@@ -47,7 +47,7 @@ beforeEach(() => {
 });
 afterEach(() => mock.restoreAll());
 
-test("withAnalyticsCache: 確定済みは 12 時間・当日は 1 分の寿命と札を置き場に渡し、引数を集計に渡す", async () => {
+test("withAnalyticsCache: 確定済みは 12 時間・当日は 1 分の寿命とキャッシュタグを置き場に渡し、引数を集計に渡す", async () => {
   const calls: unknown[] = [];
   const read = withAnalyticsCache("t.summary", async (_range, walletType: string) => {
     calls.push(walletType);
@@ -90,7 +90,7 @@ test("withAnalyticsCache: 置き場が投げたら集計を直に計算し、記
   assert.equal(JSON.parse(errors[0]).event, "cache read fell back to the database");
 });
 
-test("invalidateAnalyticsCache(name?): 札を積み、入口の終わりに消える(省略 = 全集計、name = その集計)", async () => {
+test("invalidateAnalyticsCache(name?): キャッシュタグを積み、入口の終わりに消える(省略 = 全集計、name = その集計)", async () => {
   const dropped: string[] = [];
   const revalidate = (tag: string) => void dropped.push(tag);
   await runWithCacheTags(async () => invalidateAnalyticsCache(), { revalidate });

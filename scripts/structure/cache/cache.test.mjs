@@ -29,7 +29,7 @@ const postRow = { kind: "domains", name: "post", dir: "src/domains/post", domain
 const tagRow = { kind: "domains", name: "tag", dir: "src/domains/core/tag", domainJson: false };
 const userRow = { kind: "domains", name: "user", dir: "src/domains/core/user", domainJson: false };
 
-test("render: tagged の get は行の札・行の全部の札・読むドメインの札、list と名前付きの読みはドメインの札、ttl は札なし", () => {
+test("render: tagged の get は行のキャッシュタグ・行の全部のキャッシュタグ・読むドメインのキャッシュタグ、list と名前付きの読みはドメインのキャッシュタグ、ttl はキャッシュタグなし", () => {
   const text = renderCachedReads(
     postRow,
     {
@@ -54,7 +54,7 @@ test("render: tagged の get は行の札・行の全部の札・読むドメイ
   assert.match(text, /export const postCachedReads = \{ get, list, published, fresh \};/);
 });
 
-test("render: ttl だけ・get: false は札の import も get も出さない", () => {
+test("render: ttl だけ・get: false はキャッシュタグの import も get も出さない", () => {
   const ttl = renderCachedReads(postRow, { mode: "ttl", life: "minutes" }, "x");
   assert.match(ttl, /import \{ cacheLife \} from "next\/cache";\nimport \{ readThrough \} from "@\/lib\/cacheTags\/server";\n\nimport \{ base \}/);
   assert.doesNotMatch(ttl, /cacheTag\(/);

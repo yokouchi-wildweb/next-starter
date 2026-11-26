@@ -244,7 +244,7 @@ export async function runDailyRollup(
     }
   }
 
-  // 確定済みバケットの値が変わった可能性があるため、集計のキャッシュの札を積む(cron の route が要求の終わりに全インスタンスから消す)
+  // 確定済みバケットの値が変わった可能性があるため、集計のキャッシュタグを積む(cron の route が要求の終わりに全インスタンスから消す)
   invalidateAnalyticsCache();
 
   if (errors.length > 0) {
@@ -335,7 +335,7 @@ export async function backfillRollup(
     days++;
   }
 
-  // 集計のキャッシュの札を積む(入口の中なら全インスタンスから消える。pnpm task の rollup-backfill は入口の外 = 記録の 1 行、寿命で切れる)
+  // 集計のキャッシュタグを積む(入口の中なら全インスタンスから消える。pnpm task の rollup-backfill は入口の外 = 記録の 1 行、寿命で切れる)
   invalidateAnalyticsCache();
 
   return { metricKey: config.key, from, to, days, rows };

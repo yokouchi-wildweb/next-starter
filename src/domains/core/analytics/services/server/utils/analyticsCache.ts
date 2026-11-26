@@ -2,13 +2,13 @@
 // 集計読み取り用のサーバーサイドのレスポンスキャッシュ(公開の入口は ../analyticsCache.ts)。
 //
 // 設計方針:
-//  - 置き場は共有のキャッシュの標準("use cache: remote" + 札、@/lib/cacheTags の defineSharedRead)。
-//    全インスタンスで 1 つの値を共有し、invalidateAnalyticsCache の札で全インスタンスから消える。
+//  - 置き場は共有のキャッシュの標準("use cache: remote" + キャッシュタグ、@/lib/cacheTags の defineSharedRead)。
+//    全インスタンスで 1 つの値を共有し、invalidateAnalyticsCache のキャッシュタグで全インスタンスから消える。
 //    置き場が止まった時は readThrough で集計を直に計算する(生成した読みと同じ落ち方)。
 //  - 「確定済み範囲(過去日のみ)は長い寿命、当日を含む範囲は短い寿命」を ResolvedDateRange から導く。
 //    判定の TZ は dateRange.ts のバケットキー(formatDateKeyTz)をそのまま使い、境界ズレを防ぐ。
 //  - 確定済みでも immutable にはしない。バックフィル・ロールアップの再計算・集計の除外の遡及適用で
-//    過去バケットの値は書き換わるため、「有限の寿命 + 札で消す」で運用する。
+//    過去バケットの値は書き換わるため、「有限の寿命 + キャッシュタグで消す」で運用する。
 //  - Next の "use cache" は関数を引数で受け取れない(pass-through だけ)ので、集計は名前を付けて定義する
 //    (withAnalyticsCache(name, compute) が読みを返す)。鍵 = 名前 + 引数(range を含む)。
 //
@@ -29,7 +29,7 @@ import { formatDateKeyTz } from "./dateRange";
 // 公開 API
 // ============================================================================
 
-/** 札のドメイン名(全集計の札 "analytics"、読みごとの札 "analytics:<name>") */
+/** キャッシュタグのドメイン名(全集計のキャッシュタグ "analytics"、読みごとのキャッシュタグ "analytics:<name>") */
 const ANALYTICS_TAG_DOMAIN = "analytics";
 
 export type AnalyticsCacheOptions = {
@@ -43,7 +43,7 @@ export type AnalyticsCacheOptions = {
  * 集計 compute を名前 name で定義し、共有のキャッシュで覚える読み `(range, ...args) => Promise<T>` を返す。
  * モジュールの頭(関数の外)で 1 回だけ呼ぶ。
  *
- * - name: 集計ごとに 1 つ(安定した文字列。例 "walletHistory.summary")。札 "analytics:<name>" と鍵の一部になる
+ * - name: 集計ごとに 1 つ(安定した文字列。例 "walletHistory.summary")。キャッシュタグ "analytics:<name>" と鍵の一部になる
  * - range と args が鍵: 結果を変える引数を全部 args に入れる(閉じ込めた値は鍵に入らない)。
  *   range と args・戻り値は直列化できる値だけ(素のオブジェクト・配列・Date。クラスのインスタンス・関数は不可)
  * - 戻り値・例外は compute と同じ(例外は覚えない)
@@ -83,9 +83,9 @@ export function isClosedRange(range: ResolvedDateRange): boolean {
 }
 
 /**
- * 覚えた集計を消す札を積む(全インスタンスから消える)。
+ * 覚えた集計を消すキャッシュタグを積む(全インスタンスから消える)。
  *
- * @param name 指定時はその名前の集計だけ(札 "analytics:<name>")。省略時は全集計(札 "analytics")。
+ * @param name 指定時はその名前の集計だけ(キャッシュタグ "analytics:<name>")。省略時は全集計(キャッシュタグ "analytics")。
  *
  * 用途: ロールアップの再計算・バックフィル・集計の除外の遡及適用など、確定済みバケットの値を書き換えた直後に呼ぶ。
  * 消すのは入口(routeFactory・cron の route)が要求の終わりに 1 回(@/lib/cacheTags)。

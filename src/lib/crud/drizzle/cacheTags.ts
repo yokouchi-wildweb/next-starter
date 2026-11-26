@@ -4,13 +4,13 @@ import { cacheRowsTagOf, cacheTagOf, markCacheTags } from "@/lib/cacheTags/serve
 
 import { WRITE_METHOD_NAMES } from "./requestMemo";
 
-/** createCrudService の option cacheTags: このサービスの書き込みが積む札のドメイン(地区の地図の名前) */
+/** createCrudService の option cacheTags: このサービスの書き込みが積むキャッシュタグのドメイン(地区の地図の名前) */
 export type CrudCacheTagsOption = { domain: string };
 
 export type CacheTagsAugmented = {
   /**
-   * このドメインの札を手で積む。createCrudService を経由しない生 SQL でこのテーブルを書いた直後に呼ぶ。
-   * ids を渡せばその行の札、渡さなければ行の全部の札(どの行か分からない書き込み)。
+   * このドメインのキャッシュタグを手で積む。createCrudService を経由しない生 SQL でこのテーブルを書いた直後に呼ぶ。
+   * ids を渡せばその行のキャッシュタグ、渡さなければ行の全部のキャッシュタグ(どの行か分からない書き込み)。
    * option cacheTags の無いサービスでは何もしない。
    */
   markCacheTags: (ids?: readonly (string | number)[]) => void;
@@ -27,8 +27,8 @@ const resultId: IdSource = { from: "result", ids: (_args, result) => [idOf(resul
 
 /**
  * id の分かる書き込みと、その id の取り方。ここに無い書き込みのメソッド(WRITE_METHOD_NAMES の残り:
- * 条件の一括・並べ替え・置き換え・関係の一括・全削除)は行の全部の札を消す。
- * 戻り値から取る物が throw した時は id が無いので、行の全部の札に落とす(安全側)。
+ * 条件の一括・並べ替え・置き換え・関係の一括・全削除)は行の全部のキャッシュタグを消す。
+ * 戻り値から取る物が throw した時は id が無いので、行の全部のキャッシュタグに落とす(安全側)。
  */
 const ID_SOURCES: Record<string, IdSource> = {
   create: resultId,
@@ -49,7 +49,7 @@ const ID_SOURCES: Record<string, IdSource> = {
 
 const isId = (id: unknown): id is string | number => (typeof id === "string" && id.length > 0) || typeof id === "number";
 
-/** ids = null は「どの行か分からない」、空の配列は「行を書いていない」(ドメインの札だけ) */
+/** ids = null は「どの行か分からない」、空の配列は「行を書いていない」(ドメインのキャッシュタグだけ) */
 function markWrite(domain: string, ids: unknown[] | null): void {
   const known = ids?.filter(isId) ?? [];
   if (ids && known.length === ids.length) {
@@ -60,9 +60,9 @@ function markWrite(domain: string, ids: unknown[] | null): void {
 }
 
 /**
- * サービスの書き込みのメソッドを包み、終わり(成功でも throw でも)にこのドメインの札を積む。
- * 積んだ札は入口(routeFactory・cron)の runWithCacheTags が要求の終わりにまとめて消す(src/lib/cacheTags)。
- * - id の分かる書き込み = ドメインの札 + 行の札 / 分からない書き込み = ドメインの札 + 行の全部の札
+ * サービスの書き込みのメソッドを包み、終わり(成功でも throw でも)にこのドメインのキャッシュタグを積む。
+ * 積んだキャッシュタグは入口(routeFactory・cron)の runWithCacheTags が要求の終わりにまとめて消す(src/lib/cacheTags)。
+ * - id の分かる書き込み = ドメインのキャッシュタグ + 行のキャッシュタグ / 分からない書き込み = ドメインのキャッシュタグ + 行の全部のキャッシュタグ
  * - 積むのはメソッドの return の時点(外側のトランザクションのコミットを待たない)。消すのは要求の終わりなので、
  *   ロールバックした分を余分に消すだけ(無害)
  */

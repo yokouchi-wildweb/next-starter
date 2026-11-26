@@ -12,7 +12,7 @@ export const CACHE_LIST_KEYS = new Set(["limit", COMMENT_KEY]);
 export const CACHE_READ_KEYS = new Set(["name", "where", "orderBy", "limit", "mode", "life", COMMENT_KEY]);
 export const CACHE_LIFE_KEYS = new Set(["stale", "revalidate", "expire"]);
 
-/** tagged = 書き込みで札を消す / ttl = 書き込みで消さず短い寿命で切れる */
+/** tagged = 書き込みでキャッシュタグを消す / ttl = 書き込みで消さず短い寿命で切れる */
 export const CACHE_MODES = new Set(["tagged", "ttl"]);
 
 /**
@@ -34,7 +34,7 @@ export const CACHE_LIFE_LIMITS = {
   ttl: 60 * 60,
 };
 
-/** readsDomains の数の上限(Vercel Runtime Cache の 1 項目の札は 128 まで。get は自分の札 2 つ + 読むドメインの札) */
+/** readsDomains の数の上限(Vercel Runtime Cache の 1 項目のキャッシュタグは 128 まで。get は自分のキャッシュタグ 2 つ + 読むドメインのキャッシュタグ) */
 export const CACHE_MAX_READS_DOMAINS = 100;
 
 /** 包む list・名前付きの読みの limit の上限(覚える値の大きさを抑える) */

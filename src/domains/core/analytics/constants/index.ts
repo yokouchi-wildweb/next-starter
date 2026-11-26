@@ -53,13 +53,13 @@ export const DEFAULT_ANALYTICS_CACHE_LIVE_SECONDS = 60;
  * 確定済み範囲（過去日のみ）の寿命（秒）。
  *
  * immutable にはしない: バックフィル・ロールアップ再計算・集計除外の遡及適用で
- * 過去バケットの値も書き換わり得るため、長期だが有限の寿命 + 札で消す（invalidateAnalyticsCache）。
+ * 過去バケットの値も書き換わり得るため、長期だが有限の寿命 + キャッシュタグで消す（invalidateAnalyticsCache）。
  */
 export const DEFAULT_ANALYTICS_CACHE_CLOSED_SECONDS = 12 * 60 * 60;
 
 /**
  * 読みごとに変える寿命の上限（秒）。ドメインの宣言 cache の上限と同じ
- * （確定済み = 札で消す tagged の 30 日、当日 = 書き込みを追わない ttl の 1 時間。scripts/structure/domain/spec/cache.mjs）
+ * （確定済み = キャッシュタグで消す tagged の 30 日、当日 = 書き込みを追わない ttl の 1 時間。scripts/structure/domain/spec/cache.mjs）
  */
 export const MAX_ANALYTICS_CACHE_CLOSED_SECONDS = 30 * 24 * 60 * 60;
 export const MAX_ANALYTICS_CACHE_LIVE_SECONDS = 60 * 60;

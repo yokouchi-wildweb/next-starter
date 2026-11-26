@@ -161,7 +161,7 @@ test("全ドメインの検査: domain.json の cache・cache.json・両方・do
   }
 });
 
-test("readsDomains: 100 個を超えると止める(1 項目の札は 128 まで)", () => {
+test("readsDomains: 100 個を超えると止める(1 項目のキャッシュタグは 128 まで)", () => {
   const many = Array.from({ length: 101 }, (_, i) => `d${i}`);
   assert.match(cacheIssues({ mode: "tagged", life: "days", readsDomains: many }, { domain: "post", config }).join("\n"), /100 個まで/);
   assert.doesNotMatch(cacheIssues({ mode: "tagged", life: "days", readsDomains: many.slice(0, 100) }, { domain: "post", config }).join("\n"), /100 個まで/);

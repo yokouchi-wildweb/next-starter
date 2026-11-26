@@ -17,7 +17,7 @@
 - src/lib/backends — 口(port)の実装の部品: 宣言 declaration と adapter.isConfigured・能力の名前・課金の目盛り・compat・backendRequirements の型、組み込みの none、予約名 none / fake、持ち主の差し替え口の作り手、契約テストの関数(入口 "./node")、増設点 backendCapabilities(一覧は生成物 src/wiring/backends.ts)
 - src/lib/business — 事業の素性(サービス名・会社・ロゴ・メールの差出人)の型・例の値(examples/)・受付係の判定 resolveBusiness・本番の検査(sample のまま本番のビルドを止める)。読み手は @/business(src/wiring/business.ts が src/business/business.ts と結ぶ)
 - src/lib/browserStorage — localStorage / sessionStorage のクライアントと React フック
-- src/lib/cacheTags — 書き込みの要求で捨てるキャッシュの札(ドメイン・ドメイン:行 id)を集め、要求の終わりにまとめて revalidateTag(expire 0)。範囲の外は投げずに記録の 1 行。入口 "."(札の名前 cacheTagOf)・"./server"(markCacheTags・runWithCacheTags)
+- src/lib/cacheTags — 書き込みの要求で捨てるキャッシュタグ(ドメイン・ドメイン:行 id)を集め、要求の終わりにまとめて revalidateTag(expire 0)。範囲の外は投げずに記録の 1 行。入口 "."(キャッシュタグの名前 cacheTagOf)・"./server"(markCacheTags・runWithCacheTags)
 - src/lib/clarity — Microsoft Clarity 解析タグ
 - src/lib/cn — Tailwind className 結合(clsx + tailwind-merge、独自トークンのクラス群登録)
 - src/lib/cron — /api/cron/* 定期タスク基盤(1 タスク 1 フォルダの task.ts から vercel.json を生成・検査)と CLI 実行、時間予算付きの再開可能ループ runBudgetedBatches、期限の削除(増設点 expiryRules の項目を 1 本の定期処理 expiry-prune で順に消す runExpiryRules、一覧は生成物 src/wiring/expiryPrune.ts)。入口 "."(作り手・期限の削除の実行と型)・"./server"(DB の保存 drizzleExpiryStore)・"./node"(task の探索、生成・検査と pnpm task が読む)・"./points"(項目の型)

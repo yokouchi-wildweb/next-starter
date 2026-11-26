@@ -187,7 +187,7 @@ export function makeCreateDeviceRoute<
               operator: null,
             });
           // 監査の主体を端末にする。userDirty の flush も端末の context の中で終わるよう、内側で敷き直す。
-          // 共有の読みのキャッシュの札(cacheTags)も同じ所で敷き、handler の後にまとめて消す
+          // 共有の読みのキャッシュタグ(cacheTags)も同じ所で敷き、handler の後にまとめて消す
           const baseContext = getAuditContext();
           const runAsDevice = () => runWithCacheTags(() => runWithUserDirtyTracking(run));
 

@@ -38,5 +38,5 @@ const response = await runWithUserDirtyTracking(() => handler(request));
 
 ## Related
 
-- `src/lib/cacheTags`: 同じ形(要求の範囲に集めてコミットの後に流す)のキャッシュの札の回収口
+- `src/lib/cacheTags`: 同じ形(要求の範囲に集めてコミットの後に流す)のキャッシュタグの回収口
 - `src/domains/core/incrementalRefresh`: 読みのモデルを新しくする道(event-driven の道がこの lib を使う)

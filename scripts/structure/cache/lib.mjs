@@ -71,7 +71,7 @@ export function renderCachedReads(row, cache, source) {
         name: "get",
         params: "id: string",
         args: "id",
-        doc: `1 行を id で読む(行の札・行の全部の札${relatedTags.length ? "・読むドメインの札" : ""})`,
+        doc: `1 行を id で読む(行のキャッシュタグ・行の全部のキャッシュタグ${relatedTags.length ? "・読むドメインのキャッシュタグ" : ""})`,
         body: readBody({ life: declared.life, mode: declared.mode, tags: [`cacheTagOf(${d}, id)`, `cacheRowsTagOf(${d})`, ...relatedTags], call: "base.get(id)" }),
         call: "base.get(id)",
         domain: row.name,
@@ -119,7 +119,7 @@ export function renderCachedReads(row, cache, source) {
     `// ${row.dir}/services/server/cachedReads.ts`,
     "//",
     "// 共有の読みのキャッシュ(\"use cache: remote\"、行き先は next.config の cacheHandlers、既定は Vercel の Runtime Cache)。",
-    "// 書き込みは base(drizzleBase の option cacheTags)が札を積み、入口が要求の終わりに消す(src/lib/cacheTags)。",
+    "// 書き込みは base(drizzleBase の option cacheTags)がキャッシュタグを積み、入口が要求の終わりに消す(src/lib/cacheTags)。",
     "// 判断の道(引く・買う・残高・在庫の引当など)はこの読みを使わず base を直に読む。server だけが読む",
     "",
     `import { ${nextImports} } from "next/cache";`,
@@ -142,7 +142,7 @@ function baseIssues(rootDir, row) {
   const issues = [];
   if (!/export const base\b/.test(text)) issues.push(`[${row.name}] ${row.dir}/${BASE_FILE} に export const base がありません`);
   if (!new RegExp(`cacheTags:\\s*\\{\\s*domain:\\s*"${row.name}"\\s*,?\\s*\\}`).test(text)) {
-    issues.push(`[${row.name}] ${row.dir}/${BASE_FILE} の createCrudService に cacheTags: { domain: "${row.name}" } を書いてください(書き込みが札を積まないと包んだ読みが古いまま。generate: true のドメインは pnpm generate domain が書く)`);
+    issues.push(`[${row.name}] ${row.dir}/${BASE_FILE} の createCrudService に cacheTags: { domain: "${row.name}" } を書いてください(書き込みがキャッシュタグを積まないと包んだ読みが古いまま。generate: true のドメインは pnpm generate domain が書く)`);
   }
   return issues;
 }

@@ -185,9 +185,9 @@ export type CrudServiceOptions<TData extends Record<string, any>> = CrudServiceB
    */
   requestMemo?: boolean;
   /**
-   * 共有の読みのキャッシュの札(src/lib/cacheTags)を書き込みで積む(既定: 積まない)。
+   * 共有の読みのキャッシュタグ(src/lib/cacheTags)を書き込みで積む(既定: 積まない)。
    * domain = 地区の地図のドメイン名(domain.json の cache / cache.json の宣言を持つドメイン。生成器が書く)。
-   * 書き込みのメソッドが終わりに `<domain>` と行の札 `<domain>:<id>`(id の分からない書き込みは行の全部の札
+   * 書き込みのメソッドが終わりに `<domain>` と行のキャッシュタグ `<domain>:<id>`(id の分からない書き込みは行の全部のキャッシュタグ
    * `<domain>:*`)を積み、入口(routeFactory・cron)が要求の終わりにまとめて消す。
    * createCrudService を経由しない生 SQL の書き込みの後は `service.markCacheTags(ids?)` を呼ぶ。
    */

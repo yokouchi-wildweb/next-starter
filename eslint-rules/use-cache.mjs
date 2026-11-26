@@ -21,7 +21,7 @@
 //   entities/drizzle・@/lib/crud/server)から import した値の直の呼び出し(fn() と obj.method() の頭の名前)を止める。
 //   データの読みの手での包みは宣言の外の消えないキャッシュになる。普通の "use cache" は殻に焼く UI と静的な値だけ。生成物は除く
 // - no-manual-revalidate: next/cache の unstable_cache・revalidateTag・updateTag の import を src/lib/cacheTags の外で止める。
-//   消すのは書き込みが積んだ札を入口が要求の終わりに消す形(src/lib/cacheTags)だけ
+//   消すのは書き込みが積んだキャッシュタグを入口が要求の終わりに消す形(src/lib/cacheTags)だけ
 // 限界は上と同じ(直の呼び出しだけ)。
 
 import { SESSION_API_NAMES } from "./page-authz.mjs";
@@ -258,7 +258,7 @@ const noManualRevalidate = {
     docs: { description: "next/cache の unstable_cache・revalidateTag・updateTag は src/lib/cacheTags だけ" },
     messages: {
       manual:
-        "next/cache の {{name}} を直に使わない。共有の読みはドメインの宣言 cache と pnpm generate cache、消すのは書き込みが積んだ札(createCrudService の option cacheTags・service.markCacheTags・@/lib/cacheTags/server の markCacheTags)を入口が要求の終わりに消す形(詳細: src/lib/cacheTags/README.md)",
+        "next/cache の {{name}} を直に使わない。共有の読みはドメインの宣言 cache と pnpm generate cache、消すのは書き込みが積んだキャッシュタグ(createCrudService の option cacheTags・service.markCacheTags・@/lib/cacheTags/server の markCacheTags)を入口が要求の終わりに消す形(詳細: src/lib/cacheTags/README.md)",
     },
     schema: [],
   },

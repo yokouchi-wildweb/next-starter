@@ -23,7 +23,7 @@ const recorder = () => {
   return { seen, revalidate: (tag: string) => void seen.push(tag) };
 };
 
-test("cacheTagOf・cacheRowsTagOf: ドメインの札・行の札・行の全部の札、空・: 入り・id \"*\"・256 字超は投げる", () => {
+test("cacheTagOf・cacheRowsTagOf: ドメインのキャッシュタグ・行のキャッシュタグ・行の全部のキャッシュタグ、空・: 入り・id \"*\"・256 字超は投げる", () => {
   assert.equal(cacheTagOf("post"), "post");
   assert.equal(cacheTagOf("post", "a1"), "post:a1");
   assert.equal(cacheTagOf("post", 42), "post:42");
@@ -33,11 +33,11 @@ test("cacheTagOf・cacheRowsTagOf: ドメインの札・行の札・行の全部
   assert.equal(cacheTagOf("p", "x".repeat(254)).length, 256);
   assert.throws(() => cacheTagOf("p", "x".repeat(255)), /256 字を超えます/);
   assert.equal(cacheRowsTagOf("post"), "post:*");
-  assert.throws(() => cacheTagOf("post", "*"), /行の全部の札の印/);
+  assert.throws(() => cacheTagOf("post", "*"), /行の全部のキャッシュタグの印/);
   assert.throws(() => cacheRowsTagOf(""), /domain が空/);
 });
 
-test("runWithCacheTags: 積んだ札を終わりにまとめて捨てる(重複は 1 つ、空は無視)、fn の値を返す", async () => {
+test("runWithCacheTags: 積んだキャッシュタグを終わりにまとめて捨てる(重複は 1 つ、空は無視)、fn の値を返す", async () => {
   const r = recorder();
   const value = await runWithCacheTags(async () => {
     markCacheTags("post", "post:1");
@@ -75,13 +75,13 @@ test("runWithCacheTags: 入れ子は外側に積み、外側の終わりに 1 �
   assert.deepEqual(outer.seen, ["a", "b"]);
 });
 
-test("runWithCacheTags: 札が無ければ revalidate を呼ばない", async () => {
+test("runWithCacheTags: キャッシュタグが無ければ revalidate を呼ばない", async () => {
   const r = recorder();
   await runWithCacheTags(() => 1, r);
   assert.deepEqual(r.seen, []);
 });
 
-test("runWithCacheTags: 捨てるのに失敗しても要求は成功、残りの札も捨て、記録の 1 行(console.error の JSON)", async () => {
+test("runWithCacheTags: 捨てるのに失敗しても要求は成功、残りのキャッシュタグも捨て、記録の 1 行(console.error の JSON)", async () => {
   const seen: string[] = [];
   const value = await runWithCacheTags(
     () => {
@@ -106,7 +106,7 @@ test("runWithCacheTags: 捨てるのに失敗しても要求は成功、残り�
   assert.match(line.error, /Invariant/);
 });
 
-test("markCacheTags: 範囲の外は投げずに数えて 1 行(console.warn の JSON)、札は頭の 5 件まで", () => {
+test("markCacheTags: 範囲の外は投げずに数えて 1 行(console.warn の JSON)、キャッシュタグは頭の 5 件まで", () => {
   assert.doesNotThrow(() => markCacheTags("t1"));
   markCacheTags("a", "b", "c", "d", "e", "f");
   markCacheTags("");

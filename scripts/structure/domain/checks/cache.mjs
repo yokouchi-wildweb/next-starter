@@ -150,11 +150,11 @@ export function cacheIssues(cache, { domain, domains, config } = {}) {
   if (cache.readsDomains !== undefined) {
     if (!Array.isArray(cache.readsDomains)) issues.push("cache.readsDomains はドメイン名(地区の地図の名前)の配列で書いてください");
     else {
-      if (cache.readsDomains.length > CACHE_MAX_READS_DOMAINS) issues.push(`cache.readsDomains は ${CACHE_MAX_READS_DOMAINS} 個までにしてください(今: ${cache.readsDomains.length}。1 項目の札は 128 まで)`);
+      if (cache.readsDomains.length > CACHE_MAX_READS_DOMAINS) issues.push(`cache.readsDomains は ${CACHE_MAX_READS_DOMAINS} 個までにしてください(今: ${cache.readsDomains.length}。1 項目のキャッシュタグは 128 まで)`);
       const seen = new Set();
       for (const name of cache.readsDomains) {
         if (typeof name !== "string" || !name) issues.push(`cache.readsDomains の ${JSON.stringify(name)} はドメイン名にしてください`);
-        else if (name === domain) issues.push(`cache.readsDomains に自分(${name})は書けません(自分の札は必ず付く)`);
+        else if (name === domain) issues.push(`cache.readsDomains に自分(${name})は書けません(自分のキャッシュタグは必ず付く)`);
         else if (seen.has(name)) issues.push(`cache.readsDomains の ${name} が重なっています`);
         else if (domains && !domains.has(name)) issues.push(`cache.readsDomains の ${name} は地区の地図のドメインにありません`);
         seen.add(name);

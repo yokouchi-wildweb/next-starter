@@ -1,4 +1,4 @@
-// src/lib/crud/drizzle/cacheTags.ts のテスト(偽のサービス、札を捨てる関数は差し替え)。実行: pnpm test src/lib/crud/drizzle/cacheTags.test.mts
+// src/lib/crud/drizzle/cacheTags.ts のテスト(偽のサービス、キャッシュタグを捨てる関数は差し替え)。実行: pnpm test src/lib/crud/drizzle/cacheTags.test.mts
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
@@ -24,14 +24,14 @@ function fakeService() {
   };
 }
 
-/** 範囲を敷いて fn を走らせ、終わりに捨てた札を返す */
+/** 範囲を敷いて fn を走らせ、終わりに捨てたキャッシュタグを返す */
 async function collect(fn: () => Promise<unknown>): Promise<string[]> {
   const seen: string[] = [];
   await runWithCacheTags(fn, { revalidate: (tag) => void seen.push(tag) }).catch(() => {});
   return seen;
 }
 
-test("id の分かる書き込み: ドメインの札 + 行の札(引数・戻り値・一括の ids・records・results・複製の record)", async () => {
+test("id の分かる書き込み: ドメインのキャッシュタグ + 行のキャッシュタグ(引数・戻り値・一括の ids・records・results・複製の record)", async () => {
   const s = applyCacheTags(fakeService(), { domain: "post" });
   assert.deepEqual(await collect(() => s.create({ name: "a" })), ["post", "post:new-1"]);
   assert.deepEqual(await collect(() => s.update("p1")), ["post", "post:p1"]);
@@ -42,14 +42,14 @@ test("id の分かる書き込み: ドメインの札 + 行の札(引数・戻�
   assert.deepEqual(await collect(() => s.duplicateWithIdMap("f")), ["post", "post:f-copy"]);
 });
 
-test("id の分からない書き込み: ドメインの札 + 行の全部の札、空の ids はドメインの札だけ", async () => {
+test("id の分からない書き込み: ドメインのキャッシュタグ + 行の全部のキャッシュタグ、空の ids はドメインのキャッシュタグだけ", async () => {
   const s = applyCacheTags(fakeService(), { domain: "post" });
   assert.deepEqual(await collect(() => s.bulkUpdateByQuery()), ["post", "post:*"]);
   assert.deepEqual(await collect(() => s.replaceByQuery()), ["post", "post:*"]);
   assert.deepEqual(await collect(() => s.bulkDeleteByIds([])), ["post"]);
 });
 
-test("throw でも積む: 戻り値から id を取る書き込みは行の全部の札に落とし、throw はそのまま", async () => {
+test("throw でも積む: 戻り値から id を取る書き込みは行の全部のキャッシュタグに落とし、throw はそのまま", async () => {
   const s = applyCacheTags(fakeService(), { domain: "post" });
   const seen: string[] = [];
   await assert.rejects(runWithCacheTags(() => s.upsert(), { revalidate: (tag) => void seen.push(tag) }), /conflict/);

@@ -153,7 +153,7 @@ export function createCrudService<
   const withCollectionDuplicate: typeof withStorage = serviceOptions.collections?.length
     ? applyCollectionDuplicate(withStorage, serviceOptions.collections)
     : withStorage;
-  // cacheTags: 書き込みのメソッドが終わりにこのドメインの札を積む(消すのは入口の runWithCacheTags)。memo の外側で包む
+  // cacheTags: 書き込みのメソッドが終わりにこのドメインのキャッシュタグを積む(消すのは入口の runWithCacheTags)。memo の外側で包む
   return applyHiddenColumns(
     applyCacheTags(applyRequestMemo(withCollectionDuplicate, serviceOptions.requestMemo === true), serviceOptions.cacheTags),
     table,
