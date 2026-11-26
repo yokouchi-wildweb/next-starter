@@ -12,7 +12,7 @@ using:
 - hidden_decl_place: defineHiddenColumns right after the table in entities/drizzle.ts
 - coll_no_bulk: collection values never go through bulk* or replaceByQuery (400)
 - coll_fk_ref: pointing at one collection item = an FK to the child row id (SET NULL), never a copied value
-- coll_hand_wiring: a hand-written drizzle.ts / drizzleBase.ts adds defineTableCollections and passes collections itself
+- coll_hand_wiring: a hand-written drizzle.ts / \<registration\>Base.ts adds defineTableCollections and passes collections itself
 - coll_dup_wrapper: a wrapper replacing duplicate calls duplicateWithCollections; duplicateStorageValues only for duplicating
 - coll_migrate: moving a mediaUploaderMulti column = collections/Usage.md, direct SQL (never empty it by a service save)
 - sort_key_sql: own SQL or index on a sort key uses sortKeyExpr / sortKeyIndexColumn (COLLATE "C")

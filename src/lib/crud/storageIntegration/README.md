@@ -8,7 +8,7 @@
 
 ## Usage
 
-- pnpm generate domain はメディア列を持つドメインの drizzleBase にこの binding を出す（purpose = `<domain>.<field>`）
+- pnpm generate domain はメディア列を持つドメインの `<登録名>Base` にこの binding を出す（purpose = `<domain>.<field>`）
 
 ```ts
 import { storageBindingFor } from "@/domains/core/storageObject/services/server";

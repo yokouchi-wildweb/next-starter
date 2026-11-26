@@ -90,7 +90,7 @@ core ドメインは手で保守するため、`entities/drizzle.ts` だけを�
 2. `entities/model.ts`（TypeScript の型）
 3. `entities/schema.ts`（Zod の Create / Update スキーマ）
 4. `entities/form.ts`（あれば。フォームの型）
-5. `presenters.ts`（表示の整形）
+5. `<登録名>Presenters.ts`（表示の整形）
 6. `services/server/wrappers/` と独自サービス（列名を直接書いたクエリ）
 7. `components/common/`（詳細モーダル・タイムライン等で見せるべきか）
 8. 管理画面 `src/app/admin/(protected)/<route>/_screen/`（一覧の列・検索フィルタに入れるべきか）

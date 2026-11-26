@@ -66,7 +66,7 @@
 
 - `definition/`: `createDomainConfigLookup`、`normalizeEntityDeclaration`、`resolveAccessRule`
 - `relations/`: 写しを受ける関数、関連選択肢（`relationOptions.mjs`）
-- `fields/`: `extractFields` / `extractImageFields`、型（fieldType）の表 `fieldTypes.mjs`、主キーの論理名 `idField.ts`、日時の schema `datetimeSchema.ts`、値の表示 `formatters.ts`(生成した presenters.ts が読む。`FieldPresenter` の戻りの型だけ react を型で読む)
+- `fields/`: `extractFields` / `extractImageFields`、型（fieldType）の表 `fieldTypes.mjs`、主キーの論理名 `idField.ts`、日時の schema `datetimeSchema.ts`、値の表示 `formatters.ts`(生成した <登録名>Presenters.ts が読む。`FieldPresenter` の戻りの型だけ react を型で読む)
 - `routes/`: 管理画面のパス `getAdminPaths(slugPlural)` → `AdminPaths`(list / new / detail(id) / edit(id))
 - `junction/`: 中間表の名前解決（utils は client 可、`getJunctionTable(tables, name)` は server-only で表の一覧を引数で受ける。結んだ版は `src/wiring/domainRegistry.ts` の `getJunctionTable(name)`）
 

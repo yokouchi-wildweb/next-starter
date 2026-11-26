@@ -5,9 +5,9 @@
 - 手で書いたドメインの宣言から、ドメイン一式（entities / services / hooks / 管理画面 / レジストリ登録）を生成する CLI のリファレンスです。
 - 宣言は 2 種類のファイル: `src/domains/<domain>/domain.json`（ドメインそのものの短い宣言 = `domainConfigVersion` `"2.0"` と `label` だけ）と、表 1 つ = 登録 1 件ごとの `src/domains/<domain>/entities/<登録名>/entity.json`（表・項目・関連・権限・生成の旗 `generate` などの鍵）。表 1 つのドメインは登録名 = ドメイン名（例: `src/domains/sample/entities/sample/entity.json`）
 - entity.json のスキーマ（キー・型・リレーション・`generate` 等）は [`src/domains/README.md`](../../../src/domains/README.md)、宣言の形と読み込みの部品 `readDomain` は [`src/lib/domain/README.md`](../../../src/lib/domain/README.md)「宣言の形」が正です。生成器も宣言を `readDomain` だけで読む
-- 生成器の 1 ドメインの config = 主の登録（登録名 = ドメイン名の登録、無ければ唯一の登録）の entity.json。生成する登録（`generate` が false でない）を持つのに登録が 2 つ以上のドメインは、何も書かずに止まる（登録ごとの一式はまだ無い。その登録を `"generate": false` にして手で持つ）
+- 生成の単位 = ドメインの中の登録 1 件（D336）。生成する登録（`generate` が false でない）ごとに（主の登録が先）、その登録の entity.json を config にして一式を書く。名前は登録の物（`<登録名>Base.ts`・`<登録名>Presenters.ts`・`use<Registration>List` など）、置き場はドメインのフォルダ（雛形の import の道は印 `__folder__`）。ドメインに 1 つの物（`seed.ts`）は最初の単位だけが書く。Firestore の登録は登録名 = ドメイン名の物だけ（`entities/<種類>.ts` をドメインに直に書くため）
 - 普段はこれを直接打たず、`pnpm forge`（[`scripts/structure/forge/README.md`](../forge/README.md)。検査 → ロールとドメインの生成 → ルートの地図 → 事後検査）で回す。
-- 対象: 宣言（domain.json と主の登録の entity.json）を持つドメインのフォルダ。business = `src/domains/<domain>/`、core = `src/domains/core/<domain>/`。違いはフォルダだけで、生成・検査・`generate` の旗は同じ扱い（同じ名前が両方にあれば止まる）。主の登録の entity.json の無いドメイン（表の無いドメイン・登録名がドメイン名でない登録が複数のドメイン）は対象外
+- 対象: 宣言（domain.json と主の登録の entity.json）を持つドメインのフォルダ。business = `src/domains/<domain>/`、core = `src/domains/core/<domain>/`。違いはフォルダだけで、生成・検査・`generate` の旗は同じ扱い（同じ名前が両方にあれば止まる）。生成する登録の無いドメイン（表の無いドメイン・全部の登録が `generate: false`）は何も書かない
 - core の生成の違い:
   - 生成物は `@/domains/<domain>/...` で import するので、`tsconfig.json` の `paths` に `"@/domains/<domain>/*": ["./src/domains/core/<domain>/*"]` が要る（無ければ何も書かずに止まり、足す 1 行を出す）
   - `src/registry/` の一覧は core も business も `pnpm generate registry` が走査で作る（生成器は serviceRegistry 以外を書かない）
@@ -50,7 +50,7 @@
 
 > **`--` は任意**: `pnpm generate domain -- -- Sample` の単独の `--` はスクリプト側（`cli/args.mjs`）が捨てる。
 > `<Domain>` は snake_case / camelCase / PascalCase のどれでもよい（内部で正規化し、`src/domains/<camelCase>/` を見る）。省くと終了コード 1（選んで生成するなら `-i`）。
-> 失敗（宣言が無い・壊れている、登録が 2 つ以上で生成する登録を持つ、検査で止まる、テンプレートが無い、登録表が作れないなど）は終了コード 1 になり、**何も書かない**（生成物は全部組み立て、書いた後の状態で `serviceRegistry.ts` が作れることまで確かめてから書く）。
+> 失敗（宣言が無い・壊れている、検査で止まる、テンプレートが無い、登録表が作れないなど）は終了コード 1 になり、**何も書かない**（生成物は全部組み立て、書いた後の状態で `serviceRegistry.ts` が作れることまで確かめてから書く）。
 > **フォルダ名 = `singular` の camelCase**（例: `name_pool_entry` → `src/domains/namePoolEntry/`）が全ジェネレーターの前提。ずれているドメインがあると何も書かずに止まる（`checks/domainFolder.mjs`、`:all` は全件を事前検査）。直すときはフォルダを改名する（`singular` を変えるとテーブル名・FK 名が変わる）。
 
 ### カテゴリの名指し（`--only`）
@@ -60,8 +60,8 @@
 - `generate: true` のドメインは全カテゴリのうち名指しのものだけ。`generate: false` のドメインは名指ししても何も書かない（下の Extension「generate の旗」）。集まりの従属は従属のカテゴリの内だけ
 - 作成済みの write-once（`<domain>Service.ts`・管理画面の `page.tsx`）をわざと作り直すときは、そのファイルを消してから生成する
 - 不明なカテゴリ名は終了コード 1
-- `--only registry` が書くのは `services/server/` の `collections.ts`・`storagePurposes.ts`（ドメイン内）。最後に `serviceRegistry.ts` を丸ごと作り直す（`:all` は全ドメインを書いた後に 1 回だけ）。集める入口 `entities/<種類>.ts` も `pnpm generate registry` が書く。他の `src/registry/` の一覧は `pnpm generate registry`（forge の段）
-  - storagePurposes.ts には、画像を含むメディア項目の `metadata`（`storage.metadata`、省略 = `"strip"`）が明示値で入る。`storage.image`（画像の縮小の指定）は書いたときだけ入る（形・keep の項目への指定は生成エラー）。strip の項目の accept にサーバーで描き直せない画像の型（`image/heic` など）があると生成エラー（直し方: [src/domains/README.md](../../../src/domains/README.md)「ファイルの保存（storage）」）
+- `--only registry` が書くのは `services/server/` の `<登録名>Collections.ts`・`<登録名>StoragePurposes.ts`（ドメイン内）。最後に `serviceRegistry.ts` を丸ごと作り直す（`:all` は全ドメインを書いた後に 1 回だけ）。集める入口 `entities/<種類>.ts` も `pnpm generate registry` が書く。他の `src/registry/` の一覧は `pnpm generate registry`（forge の段）
+  - `<登録名>StoragePurposes.ts` には、画像を含むメディア項目の `metadata`（`storage.metadata`、省略 = `"strip"`）が明示値で入る。`storage.image`（画像の縮小の指定）は書いたときだけ入る（形・keep の項目への指定は生成エラー）。strip の項目の accept にサーバーで描き直せない画像の型（`image/heic` など）があると生成エラー（直し方: [src/domains/README.md](../../../src/domains/README.md)「ファイルの保存（storage）」）
   - private の用途の `read.allow` は `storage.read`（`"public"` も可）、無ければ apiAccess の get の規則。visibility を省いた項目の公開・非公開の導出も同じ規則を使う
 - `.notices` で再生成が要るときは、必要なカテゴリだけを `--only` で指定する（例: レジストリの書き換え → `pnpm generate domain -- --only registry`）。`[user-run]` は付けない
 
@@ -116,7 +116,7 @@
 
 ### generate の旗（登録単位）
 
-登録の `entities/<登録名>/entity.json` の `generate`（省略 = true）が、その登録を生成器が持つか手で持つかを決める。今の生成器はドメインの主の登録 1 つだけを生成するので、実際にはドメイン単位で効く（登録が 2 つ以上のドメインは全部の登録を false にする）。区分ごとの `generateFiles` は廃止（残っていると生成前に止まる）。
+登録の `entities/<登録名>/entity.json` の `generate`（省略 = true）が、その登録を生成器が持つか手で持つかを決める。登録ごとに効く（登録の多いドメインは、生成する登録と手で持つ登録を混ぜてよい）。区分ごとの `generateFiles` は廃止（残っていると生成前に止まる）。
 
 - `true`: API.md「生成されるもの」の全カテゴリを毎回作り直す（集まりの従属は entities / serverServices / registry / fieldConstants / presenters だけ。生成器が決める）。手の実装は生成物の外（`wrappers/`、write-once の `<domain>Service.ts`、`formEntities.ts`、`_components/`）に置き、再生成のたびに載せ替わる前提
 - `false`: 手で管理。生成器は何も書かない（従属の宣言の書き出しも無し。`serviceRegistry.ts` の行は entity.json から `pnpm generate registry` が作るので載り続ける）。載せ替えが手間になったドメインをこちらにする

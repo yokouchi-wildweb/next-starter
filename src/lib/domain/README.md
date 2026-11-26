@@ -34,7 +34,7 @@
 
 - `access`: 生成する登録 = `apiAccess` の read / write(無ければ ADMIN_ONLY)+ `truncateAll` は管理者 + `export` / `import` は `useImportExport: true` のときだけ管理者、それ以外は `"none"`、その上に `apiAccess.operations` の書いた鍵(書いた鍵が勝つ)。手で持つ登録(`"generate": false`)= `apiAccess` をそのまま(生成の既定を重ねない。管理データ操作を開くなら `apiAccess.operations` に書く)。組み方は `scripts/structure/registry/serviceRegistry/access.mjs` の `accessOfDeclaration`
 - `service` は CRUD の全メソッドを持つサービスを返す(通常は `<登録名>Service` = base + wrappers)。`pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs` が Drizzle 版の全行に `getTableName` / `getIdColumnName` / `truncateAll` / `searchWithDeleted` を求める
-  - **base の一部だけを見せる入口のサービス(読み取り専用など)は通らないので、`service` は base を指す**(auditLogFailed の `{ "file": "drizzleBase", "export": "auditLogFailedBase" }`)
+  - **base の一部だけを見せる入口のサービス(読み取り専用など)は通らないので、`service` は base を指す**(auditLogFailed の `{ "file": "auditLogFailedBase", "export": "auditLogFailedBase" }`)
   - base を指すと、登録表を通る全経路(汎用 API `/api/<key>/**`・全件削除・データ移行・サーバー内の `getService`)が base 全体を使い、入口の絞り込みは効かない → `access` は `INTERNAL_ONLY` にするか、base 全体に許してよい操作だけを開く。入口のサービスはそのドメイン専用のルートから使い続ける
 - 宣言を変えたら `pnpm generate registry`(forge と `pnpm generate domain` の最後にも走る)。`pnpm check registry` がずれを止める
 
@@ -42,7 +42,7 @@
 
 - client: 写し（上の節）を読む。宣言（domain.json と entities/<登録名>/entity.json）は import しない（lint `import-boundaries/client-no-domain-json`、全 Tier error。import()・export from・型も）。client = `"use client"` のファイルか `components/`・`hooks/`・`_components/` の下のファイル。`_components/` の下で `"use client"` の無い `*Screen.tsx` と `loader.ts` は server の差し替えなので対象外。写しに無いキーが本当に要るときは理由を書いて eslint-disable。
   - 手持ちの部品の移行は `node .notices/20261101-121000-domain-display-client.domain-json-client-display.mjs`（確かめられないファイルは書き換えず一覧に出す）。`getRelationsOf` / `getBelongsToRelationsOf` / `getBelongsToManyRelationsOf` / `getHasManyRelationsOf` / `hasRelationsOf` は写しを受ける。文字列のドメイン名を受ける関数は無い
-- server、自分のドメインだけ: 自分の登録の `entities/<登録名>/entity.json` を import し `normalizeEntityDeclaration` を通す（drizzleBase の形。client は写しが変換済みなので呼ばない）
+- server、自分のドメインだけ: 自分の登録の `entities/<登録名>/entity.json` を import し `normalizeEntityDeclaration` を通す（<登録名>Base の形。client は写しが変換済みなので呼ばない）
 - server、全ドメイン: `src/wiring/domainConfig.ts` の `getDomainConfig` / `hasDomainConfig`(全ドメインの主の登録の entity.json)。`domainConfigRegistry` は server-only で、client から届くと build が止まる。lib は `createDomainConfigLookup(表)` の汎用版だけを持ち、登録表を import しない
 
 ### 型(fieldType)を足す・廃止する
@@ -63,7 +63,7 @@
 - 入れ子(fields・relations・fieldGroups・indexes と下の表の鍵)の知らない鍵も `problems`(表 `ENTITY_NESTED_KEYS`)。値の形は見ない
 - 上流の全ドメインはこの形。scripts 側の読み手(生成器・登録表の生成・地区の地図・検査)はこの部品だけで読む。実行時(server)に宣言を読む所は登録の entity.json を import して `normalizeEntityDeclaration` を通す(上の「ドメイン設定の読み方」)
 - 比べる道具(`pnpm check domain -- --compare`・`--parity <ref>`)は ref の生成器で旧側を動かすので、宣言が 1 ファイルの domain.json だった頃の ref とは比べられない
-- 生成器の 1 ドメインの config = 主の登録の entity.json。生成する登録を持つのに登録が 2 つ以上のドメインは止める(登録ごとの一式は区切り domain-kit)
+- 生成器の単位 = ドメインの中の登録 1 件: 生成する登録ごとにその entity.json を config にして一式を書く(主の登録が先。scripts/structure/domain/README.md)
 
 手で持つ表の形の鍵(entity.json だけ、Neon のみ。宣言が 1 ファイルの domain.json だった頃には書けなかった物):
 
@@ -108,7 +108,7 @@
 `pnpm check registry` が失敗する条件と直し方（メッセージにも出る）:
 
 - 生成物の印の無い(手書きの)serviceRegistry.ts → 行を登録の entity.json(fork が core の access を変えるなら entity.override.ts)へ移し、消してから `pnpm generate registry`
-- 登録名の重なり(全ドメインで一意、`registered: false` の登録も同じ名前の空間。両方の entity.json を出す)/ 同じ表が 2 つの登録にある / サービスのファイルが無い / `drizzleBase.ts`・`firestoreBase.ts` があるのに登録が 1 つも無い / `storageBindingFor` の第 1 引数(record_type)がキーに無い / 上書きが読めない・許可外の静的 import・`registered: false` の登録の上書き
+- 登録名の重なり(全ドメインで一意、`registered: false` の登録も同じ名前の空間。両方の entity.json を出す)/ 同じ表が 2 つの登録にある / サービスのファイルが無い / 登録の無い `services/server/<名前>Base.ts`(`<名前>` の登録が無い) / `storageBindingFor` の第 1 引数(record_type)がキーに無い / 上書きが読めない・許可外の静的 import・`registered: false` の登録の上書き
 - 表・主キーの物理名の形(空・63 文字超・引用符や空白入り)。値が実物と同じかは `pnpm check registry` では見ない(`pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs`)
 
 生成器: `scripts/structure/registry/serviceRegistry/{discover,generate,check}.mjs`（plain node。cron の generate / check と同じ 3 分割）。
@@ -136,9 +136,9 @@
 
 ### 表示の種類の決め方(`presenterFor`)
 
-- 生成器(`scripts/structure/domain/render/presenters`)は `presenterFor` の答えを presenters.ts の式に写すだけ
+- 生成器(`scripts/structure/domain/render/presenters`)は `presenterFor` の答えを <登録名>Presenters.ts の式に写すだけ
 - 順: 表の `presenter`（`enum` は選択肢が無ければ `string` で確定）→ formInput（数値・文字列・日時・日付）→ 主の集まり → メディア → `string`
-- 手書きの presenters.ts の項目は、この答えより優先される（生成後に手で書き換えた項目はそのまま）
+- 手書きの <登録名>Presenters.ts の項目は、この答えより優先される（生成後に手で書き換えた項目はそのまま）
 
 ### 番人(lint `field-type-guard/no-literal-field-type`)
 

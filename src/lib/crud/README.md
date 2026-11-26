@@ -122,7 +122,7 @@ Create/Update Zod スキーマから意図的に除外したシステム管理�
 strip される。`systemColumns` は、これらの列を audit 自動記録・requestMemo 自動 invalidate などの横断フックを通る正規経路で書くための宣言（Drizzle のみ）。
 
 ```typescript
-// 宣言（drizzleBase / 登録の entity.json）
+// 宣言（<登録名>Base / 登録の entity.json）
 createCrudService(GachaMachineTable, {
   ...,
   systemColumns: ["ended_at", "archived_at", "played_count", "sold_out_at"],
@@ -155,7 +155,7 @@ await base.systemBulkUpdateByQuery({ status: "active" }, { archived_at: new Date
 - belongsToMany リレーション同期は対象外
 - サービス層限定の特権。汎用 HTTP ルート（`/api/[domain]/**`）には配線していない（core/services.md system_write）。HTTP 入力の安全網は従来どおり Zod strip
 - business ドメインは登録の entity.json の `systemColumns` に宣言して `pnpm generate domain` で反映、
-  core ドメインは drizzleBase の `createCrudService` オプションに直接宣言する
+  core ドメインは `<登録名>Base` の `createCrudService` オプションに直接宣言する
 
 ### hiddenColumns（秘匿カラム — サービス境界の外に出さない）
 

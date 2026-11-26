@@ -11,7 +11,7 @@
 ### CRUD サービスで使う
 
 ```ts
-// domains/<domain>/services/server/drizzleBase.ts
+// domains/<domain>/services/server/<registration>Base.ts
 export const base = createCrudService(SomeTable, {
   requestMemo: true, // get のメモ化 + 全書き込みメソッドの自動 invalidate
 });
@@ -20,7 +20,7 @@ export const base = createCrudService(SomeTable, {
 - `get(id)`(オプションなし呼び出しのみ)がリクエストスコープでメモ化される
 - `update` / `delete` / `bulkUpdate` など全書き込みメソッドが完了時に自動でメモを破棄する
 - 生 SQL に落ちる前に: システム管理カラムの更新・SQL 式(アトミック加算等)・WHERE 条件の一括更新は `systemUpdate` / `systemBulkUpdateByQuery` / `bulkUpdateByQuery`(`src/lib/crud/README.md`)で正規経路のまま書ける
-- 採用例: user・setting の drizzleBase
+- 採用例: user・setting の土台(userBase・settingBase)
 
 ### 手で配線する
 

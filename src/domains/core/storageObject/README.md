@@ -12,7 +12,7 @@
 
 ファイル本体はブラウザから GCS へ直接送る。誰が何をしてよいかは、アプリのサーバーだけが判定する。部品（ref・ポート・配信規則・保存先）は [`src/lib/storage`](../../../lib/storage/README.md) にあり、このドメインはそれを使って判定と記録を行う。
 
-- 用途 = 拡張点 `storageObjectPurposes`（`<ドメイン>/plugs/storageObjectPurposes/<名前>.ts`）と各業務ドメインの `services/server/storagePurposes.ts`（生成物）の一覧 `src/registry/storagePurposeRegistry.ts` の合成（`getStoragePurposes()` が返す。ID の重複は例外。`user.avatar` は strip に固定して返す（`FIXED_STRIP_PURPOSES`））
+- 用途 = 拡張点 `storageObjectPurposes`（`<ドメイン>/plugs/storageObjectPurposes/<名前>.ts`）と各業務ドメインの `services/server/<登録名>StoragePurposes.ts`（生成物）の一覧 `src/registry/storagePurposeRegistry.ts` の合成（`getStoragePurposes()` が返す。ID の重複は例外。`user.avatar` は strip に固定して返す（`FIXED_STRIP_PURPOSES`））
 - 業務行との連動 = createCrudService の `storage` オプション（`storageBindingFor`、[src/lib/crud/storageIntegration/README.md](../../../lib/crud/storageIntegration/README.md)）、掃除 = cron `storage-sweep`、クライアント = `uploadToStorage`（[src/lib/storage/README.md](../../../lib/storage/README.md)）
 - 閉じられる機能の表を読む用途の例: `purchaseRequest/plugs/storageObjectPurposes/purchaseRequest.ts` の upload は `gate.enabled("payment")` が false なら受け付けない。read は保存済みの原本を見られるようそのまま
 
@@ -91,7 +91,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 
 ## Extension
 
-- 用途: 項目は `<ドメイン>/plugs/storageObjectPurposes/<名前>.ts`（拡張点 `storageObjectPurposes`）。業務ドメインの用途は登録の entity.json のメディア項目から `pnpm generate domain` が `services/server/storagePurposes.ts` に書く
+- 用途: 項目は `<ドメイン>/plugs/storageObjectPurposes/<名前>.ts`（拡張点 `storageObjectPurposes`）。業務ドメインの用途は登録の entity.json のメディア項目から `pnpm generate domain` が `services/server/<登録名>StoragePurposes.ts` に書く
 - 設定: 持ち主 `config.ts`、上書き `src/config/domains/storageObject.config.ts`（掃除の `sweep`・照合の `sweep.reconcile`）
 - サービスの差し替え: `createStorageObjectService(deps)` で台帳・ポート・用途表・時刻・ID・画像の描き直し（`stripImage`。省略 = `stripImageMetadata`）を差し替えられる
 

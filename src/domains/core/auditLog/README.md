@@ -53,9 +53,9 @@ import の使い分け:
 
 ### A: `createCrudService` の `audit:` で CRUD を自動記録
 
-`drizzleBase.ts` の設定だけで CRUD ライフサイクルを拾う。設定型は `AuditConfig`（`src/lib/crud/drizzle/types.ts`）、recorder は DI で渡す。
+`<登録名>Base.ts`（土台）の設定だけで CRUD ライフサイクルを拾う。設定型は `AuditConfig`（`src/lib/crud/drizzle/types.ts`）、recorder は DI で渡す。
 
-生成するドメインは登録の `entities/<登録名>/entity.json` の `audit`、プロフィールは `profile.json` か `<role>.profile.override.ts` の `audit` に下の例から recorder を除いた形で書くと、生成器が recorder まで入れて渡す。`targetType`・`actionPrefix` は `enabled: false` 以外で必須（既定の導出はしない）、`trackedFields` は camelCase の列名で検査される、Neon のみ。`generate: false` のドメインと手書きの core では効かないので `drizzleBase.ts` に手で書く。どこに付けるかは下の操作の軸で決める。この形は `subjectUserId` を設定しない（常に NULL）。
+生成するドメインは登録の `entities/<登録名>/entity.json` の `audit`、プロフィールは `profile.json` か `<role>.profile.override.ts` の `audit` に下の例から recorder を除いた形で書くと、生成器が recorder まで入れて渡す。`targetType`・`actionPrefix` は `enabled: false` 以外で必須（既定の導出はしない）、`trackedFields` は camelCase の列名で検査される、Neon のみ。`generate: false` のドメインと手書きの core では効かないので `<登録名>Base.ts` に手で書く。どこに付けるかは下の操作の軸で決める。この形は `subjectUserId` を設定しない（常に NULL）。
 
 ```ts
 import { auditLogger } from "@/domains/core/auditLog/services/server";
@@ -84,7 +84,7 @@ export const baseOptions = {
 | upsert | `<prefix>.upserted` |
 | bulk 系 | `<prefix>.bulk_deleted` / `bulk_hard_deleted` / `bulk_updated` / `bulk_upserted`（aggregate 時） |
 
-実例: `user/services/server/drizzleBase.ts`（`bulkMode: "detail"`, 730 日。status / role / 削除は wrapper 側の個別 action に任せて重複させない）
+実例: `user/services/server/userBase.ts`（`bulkMode: "detail"`, 730 日。status / role / 削除は wrapper 側の個別 action に任せて重複させない）
 
 ### B: wrapper で `auditLogger.record()` を直接呼ぶ
 
@@ -233,7 +233,7 @@ export default {
 
 ### action ラベル
 
-未登録の action は名前がそのまま表示される。表示名は `actionLabels` に足す（AuditTimeline / 管理画面に反映、`presenters.ts` の `formatActionLabel` が読む）。
+未登録の action は名前がそのまま表示される。表示名は `actionLabels` に足す（AuditTimeline / 管理画面に反映、`auditLogPresenters.ts` の `formatActionLabel` が読む）。
 
 ```ts
 export default {

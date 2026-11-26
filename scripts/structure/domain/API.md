@@ -16,16 +16,16 @@
 | `components` | `components/Admin<Domain>{Create,Edit,List}/`、`components/common/{Create<Domain>Form,Edit<Domain>Form,<Domain>Form,<Domain>Fields}.tsx`。`useDetailModal` で `<Domain>DetailModal.tsx`、`sortOrderField` で `Admin<Domain>Sort/`（一覧は `render/components/catalog.mjs`）。`<Domain>Fields` は主の集まりの項目に、従属の `file` の用途・accept・上限サイズと集まりの件数を載せる |
 | `hooks` | `hooks/use*<Domain>.ts`（どれが生成されるかは `render/hooks/catalog.mjs`、使い方は [`src/lib/crud/hooks/README.md`](../../../src/lib/crud/hooks/README.md)） |
 | `clientServices` | `services/client/<domain>Client.ts` |
-| `serverServices` | `services/server/drizzleBase.ts`（Firestore なら `firestoreBase.ts`）、`services/server/<domain>Service.ts`（無いときだけ）、`wrappers/`（無ければ作成）。メディア列・主の集まりの配線は表の下 |
-| `fieldConstants` | `constants/field.ts` と `types/field.ts`（`options` を持つフィールドがあるときだけ） |
+| `serverServices` | `services/server/<登録名>Base.ts`（Neon・Firestore とも。export `<登録名>Base`）、`services/server/<登録名>Service.ts`（無いときだけ）、`wrappers/`（無ければ作成）。メディア列・主の集まりの配線は表の下 |
+| `fieldConstants` | `constants/<登録名>Field.ts` と `types/<登録名>Field.ts`（`options` を持つフィールドがあるときだけ） |
 | `adminRoutes` | `src/app/admin/(protected)/<domains>/` の一覧・`new/`・`[id]/edit/`（`sortOrderField` で `sort/`） |
-| `registry` | メディア列があれば `services/server/storagePurposes.ts`（毎回上書き）。主の集まりの項目があれば `services/server/collections.ts`（毎回上書き） |
-| `presenters` | `presenters.ts`（一覧・詳細表示のフォーマッタ。答えは `src/lib/domain/fields/presenterFor.mjs`。メディア列は `formatMediaThumbnail(s)`） |
+| `registry` | メディア列があれば `services/server/<登録名>StoragePurposes.ts`（毎回上書き）。主の集まりの項目があれば `services/server/<登録名>Collections.ts`（毎回上書き） |
+| `presenters` | `<登録名>Presenters.ts`（一覧・詳細表示のフォーマッタ。答えは `src/lib/domain/fields/presenterFor.mjs`。メディア列は `formatMediaThumbnail(s)`） |
 
 `serverServices` の配線:
 
-- メディア列（mediaUploader）があれば drizzleBase に `storage: storageBindingFor(...)`（[src/lib/crud/storageIntegration/README.md](../../../src/lib/crud/storageIntegration/README.md)）。Firestore ドメインのメディア列は生成エラー
-- 主の集まりの項目があれば drizzleBase が `collections` を import して options に渡す（`generate: false` の主は自分で足す。渡し忘れは `pnpm test scripts/structure/registry/collectionWiring/collectionWiring.test.mjs` が見つける）
+- メディア列（mediaUploader）があれば `<登録名>Base` に `storage: storageBindingFor(...)`（[src/lib/crud/storageIntegration/README.md](../../../src/lib/crud/storageIntegration/README.md)）。Firestore ドメインのメディア列は生成エラー
+- 主の集まりの項目があれば `<登録名>Base` が `collections` を import して options に渡す（`generate: false` の主は自分で足す。渡し忘れは `pnpm test scripts/structure/registry/collectionWiring/collectionWiring.test.mjs` が見つける）
 
 生成される client の部品（`components` カテゴリ）は宣言（domain.json・entity.json）を import せず、主の登録の entity.json の写し `entities/display.ts` の `domainDisplay` を読む（`pnpm generate registry` が書く。写す項目: [`src/lib/domain/README.md`](../../../src/lib/domain/README.md)）。
 
@@ -33,7 +33,7 @@
 
 | 扱い | 対象 |
 |---|---|
-| 毎回上書き（編集しない） | 上表のファイル全部（write-once を除く）。`drizzleBase.ts`・`presenters.ts`・`constants/field.ts`・`<Domain>Fields.tsx` も含む。`components` は一括操作の項目の型 `types/adminBulkAction.ts` も書く（点 adminBulkActions は core/admin の 1 点なので宣言は書かない。自分の点が要るドメインは自分の `extensionPoints.ts` を手で持つ）。項目の `plugs/adminBulkActions/` は触らない |
+| 毎回上書き（編集しない） | 上表のファイル全部（write-once を除く）。`<登録名>Base.ts`・`<登録名>Presenters.ts`・`constants/<登録名>Field.ts`・`<Domain>Fields.tsx` も含む。`components` は一括操作の項目の型 `types/<登録名>AdminBulkAction.ts` も書く（点 adminBulkActions は core/admin の 1 点なので宣言は書かない。自分の点が要るドメインは自分の `extensionPoints.ts` を手で持つ）。項目の `plugs/adminBulkActions/` は触らない |
 | 初回だけ生成（write-once） | 管理画面ルートの `page.tsx`（1 行スイッチ。旧形式なら一度だけスイッチ形へ移行）、`services/server/<domain>Service.ts`（`base` にラッパー・独自処理を組み込む手書きの場所。既存の旧 `wrappers/duplicate` の組み込みは警告。テスト: `pnpm test scripts/structure/domain/tests/serverServiceWriteOnce.test.mjs`）。作り直すときはファイルを消してから生成する |
 | 毎回再生成 | 管理画面ルートの `_screen/Admin<Domain>{List,Create,Edit,Sort}Screen.tsx` |
 | 触らない（fork 所有） | 管理画面ルートの `_components/`、`wrappers/` に自分で置いたファイル、`hooks/` に自分で置いた生成名と異なるファイル |

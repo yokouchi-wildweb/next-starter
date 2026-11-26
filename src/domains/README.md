@@ -111,11 +111,11 @@
 | indexes | Index[] | ⚪ No | 検索/集計用インデックスとユニーク制約（`unique: true`。複数の列のユニークもこれ。Neon のみ） |
 | systemColumns | string[] | ⚪ No | `systemUpdate` / `systemBulkUpdateByQuery`（特権書き込み）で書き込みを許可するカラムの allowlist（Neon のみ）。Zod スキーマ外のシステム管理カラム（`ended_at` 等）をサービス層から正規経路で書き込むための宣言。**未宣言時は system 系メソッドは常に throw（fail-closed）**。詳細: `src/lib/crud/README.md` |
 | hiddenColumns | string[] | ⚪ No | 秘匿カラム（APIキー・トークン等「DB には保持するがレスポンスに決して含めない」カラム、Neon のみ）。プロパティ名（camelCase）で指定すると `pnpm generate domain` が `entities/drizzle.ts` に `defineHiddenColumns()` を出力し、サービスの**全戻り値**・他ドメインの **withRelations 展開**から該当カラムが null 置換される。秘匿値をサーバー内部で読む場合は `services/server/` に直接 drizzle の専用ファインダーを作ること（例: user の `findByIdWithSecrets`）。詳細: `src/lib/crud/README.md` の hiddenColumns 節 |
-| audit | object | ⚪ No | 監査ログ（`createCrudService` の `audit` のうち JSON で書ける部分。`targetType`・`actionPrefix` は `enabled: false` 以外で必須、`trackedFields` は camelCase の列名、recorder は生成器が渡す、Neon のみ）。`generate: false` のドメインでは効かないので `drizzleBase.ts` に手で書く |
+| audit | object | ⚪ No | 監査ログ（`createCrudService` の `audit` のうち JSON で書ける部分。`targetType`・`actionPrefix` は `enabled: false` 以外で必須、`trackedFields` は camelCase の列名、recorder は生成器が渡す、Neon のみ）。`generate: false` のドメインでは効かないので `<登録名>Base.ts` に手で書く |
 | cache | object | ⚪ No | 共有の読みのキャッシュの宣言（下の「cache（共有の読みのキャッシュの宣言）」）。主の登録の無いドメインは同じ形を `<domain>/cache.json` に書く。`generate: false` のドメインにも効く（検査は `pnpm check domain`）、Neon のみ |
 | closable | — | — | 無い。書くと生成器が止める。機能として閉じるには `src/featureGate/rules/<名前>.ts` に規則を書き `domains` にこのドメインを入れる。どの規則にも載せず常に開くなら、ドメインの `extensionPoints.ts` に常設の宣言 `export const alwaysOpen = true`(どちらも無いと `pnpm generate district-map` が止める、注文 35) |
 | apiAccess | ApiAccess | ⚪ No | 汎用 API（`/api/[domain]/**`）のアクセス制御（Extension の「ApiAccess（汎用 API アクセス制御）」）。**未宣言時は admin カテゴリのみ許可（fail-closed）** |
-| generate | boolean | ⚪ No | 生成するか（登録ごと、既定 true、D337）。true = `pnpm forge` / `pnpm generate domain` がその登録の生成物を全部作り直す（今は登録 1 つのドメインだけ。登録が 2 つ以上で生成する登録があれば止まる）（手の実装は wrappers/ 等に置いて載せ替える）、false = 手で管理し、生成器は何も書かない（README.md の Internals「生成カテゴリ」）。区分ごとの `generateFiles` は廃止（書いてあると生成が止まる）。fork が true / false を決めるときは `pnpm check domain -- --compare`（手の変更・新しい入口・表の書き直しを出す。`scripts/structure/domain/README.md`「generate の旗を決める」） |
+| generate | boolean | ⚪ No | 生成するか（登録ごと、既定 true、D337）。true = `pnpm forge` / `pnpm generate domain` がその登録の生成物を全部作り直す（登録ごと。登録の多いドメインも生成する登録ごとに一式）（手の実装は wrappers/ 等に置いて載せ替える）、false = 手で管理し、生成器は何も書かない（README.md の Internals「生成カテゴリ」）。区分ごとの `generateFiles` は廃止（書いてあると生成が止まる）。fork が true / false を決めるときは `pnpm check domain -- --compare`（手の変更・新しい入口・表の書き直しを出す。`scripts/structure/domain/README.md`「generate の旗を決める」） |
 | $comment | string \| string[] | ⚪ No | 開発者のメモ（JSON にはコメントが無いため）。トップレベル・Relation・Field・collection・FieldGroup のどこにでも書ける（下の「開発者のメモ（$comment）」） |
 
 #### cache（共有の読みのキャッシュの宣言）
@@ -150,7 +150,7 @@
   - list と名前付きの読みの limit は 1000 まで: 1 行 2 KB なら 1000 行で 2 MB に届く。大きな列(本文・JSON)を持つ表は limit を小さく、一覧に要る列だけの名前付きの読みにはしない(列は選べない: base の行が丸ごと入る)
   - `life` の `seconds`(revalidate 1 秒)は読むたびに作り直すのと同じで覚えない(確かめ、検査が止める)。短い寿命は `{ revalidate, expire }` の秒か `minutes`
   - 他の地域への消しの届き方は未測(地域は入れない)。書き込みの直後の読みは同じ地域では新しい値(確かめ: preview の 3 つのインスタンス)
-- 生成: `pnpm generate cache` が `<domain>/services/server/cachedReads.ts`（`<camel>CachedReads` の get・list・名前付きの読み）を書く。宣言のあるドメインの `drizzleBase.ts` の base は `cacheTags: { domain: "<camel>" }` を持つ（`generate: true` は `pnpm generate domain` が書く、手で管理するドメインは手で書く。無いと生成器が止まる）。読み方: `scripts/structure/cache/README.md`
+- 生成: `pnpm generate cache` が `<domain>/services/server/cachedReads.ts`（`<camel>CachedReads` の get・list・名前付きの読み）を書く。宣言のあるドメインの `<登録名>Base.ts` の base は `cacheTags: { domain: "<camel>" }` を持つ（`generate: true` は `pnpm generate domain` が書く、手で管理するドメインは手で書く。無いと生成器が止まる）。読み方: `scripts/structure/cache/README.md`
 - 検査: `pnpm check domain`（全ドメイン、`scripts/structure/domain/checks/cache.mjs`）| 型: `src/lib/domain/types/cache.ts` の `DomainCacheDeclaration` | 既定を埋めた形: `scripts/structure/domain/spec/cache.mjs` の `normalizeCacheDeclaration`
 
 #### 開発者のメモ（$comment）
@@ -213,7 +213,7 @@ belongsTo の外部キーに付く参照先削除時の挙動。`pnpm generate d
 
 #### hasMany と withRelations
 
-hasMany リレーションを定義すると、`pnpm generate domain` 時に drizzleBase.ts へ `hasManyRelations` 設定が自動生成される。これにより `withRelations: 1` で子レコード配列が親に展開される。
+hasMany リレーションを定義すると、`pnpm generate domain` 時に `<登録名>Base.ts` へ `hasManyRelations` 設定が自動生成される。これにより `withRelations: 1` で子レコード配列が親に展開される。
 
 - 親あたりのデフォルト取得上限: 100件
 - 呼び出し側で `hasManyLimit` を指定してオーバーライド可能（例: `search({ withRelations: 1, hasManyLimit: 20 })`）
@@ -564,7 +564,7 @@ mimeType, src, durationSec, durationFormatted
 
 #### ファイルの保存（storage）
 
-pnpm generate domain は、メディア項目ごとにファイル用途（`<domain>.<field>`）を ドメインの `services/server/storagePurposes.ts` に書く（`--only registry` でも書く。`pnpm generate registry` がその一覧 `src/registry/storagePurposeRegistry.ts` を作る）。登録表に無い用途は、アップロードも読み取りも拒否される。用途の型と規則は [src/lib/storage/README.md](../lib/storage/README.md)、台帳は [core/storageObject/README.md](core/storageObject/README.md) を参照。
+pnpm generate domain は、メディア項目ごとにファイル用途（`<domain>.<field>`）を ドメインの `services/server/<登録名>StoragePurposes.ts` に書く（`--only registry` でも書く。`pnpm generate registry` がその一覧 `src/registry/storagePurposeRegistry.ts` を作る）。登録表に無い用途は、アップロードも読み取りも拒否される。用途の型と規則は [src/lib/storage/README.md](../lib/storage/README.md)、台帳は [core/storageObject/README.md](core/storageObject/README.md) を参照。
 
 - 用途 ID は `<domain>.<field>`。ref とオブジェクトのパスに入るため、使い始めた後はドメイン名・項目名を変えない
 - contentTypes は accept から作る
@@ -740,8 +740,8 @@ core ドメイン (`src/domains/core/<domain>/` の宣言) も pnpm generate dom
 | components | - | 管理画面コンポーネント |
 | hooks | - | CRUD フック |
 | clientServices | - | axios クライアント |
-| serverServices | - | サーバーサービス（`drizzleBase.ts` / `firestoreBase.ts` は毎回生成、`<domain>Service.ts` とシードの雛形 `seed.ts`（Drizzle のドメインだけ。書き方 `src/lib/seed/README.md`）は無いときだけ生成） |
+| serverServices | - | サーバーサービス（`<登録名>Base.ts` は毎回生成、`<登録名>Service.ts` とシードの雛形 `seed.ts`（Drizzle のドメインだけ。書き方 `src/lib/seed/README.md`）は無いときだけ生成） |
 | adminRoutes | - | 管理画面ルート（page.tsx 1 行スイッチ + `_screen/`（Screen と loader.ts）の構造で生成。page.tsx は初回のみ生成、`_screen/` は毎回再生成。詳細: `src/lib/screens/README.md` の Internals「生成される管理画面」） |
-| registry | - | services/server の collections.ts・storagePurposes.ts。最後に serviceRegistry.ts を作り直す（登録表の行は entity.json から `pnpm generate registry` が組む） |
+| registry | - | services/server の `<登録名>Collections.ts`・`<登録名>StoragePurposes.ts`。最後に serviceRegistry.ts を作り直す（登録表の行は entity.json から `pnpm generate registry` が組む） |
 | fieldConstants | - | options を持つフィールドの定数/型 |
 | presenters | - | テーブル表示用フォーマッタ |

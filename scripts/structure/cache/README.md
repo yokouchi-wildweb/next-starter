@@ -21,7 +21,7 @@
   - get: 行のキャッシュタグ `cacheTagOf(d, id)` + 行の全部のキャッシュタグ `cacheRowsTagOf(d)` + 読むドメインのキャッシュタグ
   - list・名前付きの読み: ドメインのキャッシュタグ `cacheTagOf(d)` + 読むドメインのキャッシュタグ
   - `ttl` はキャッシュタグを付けない(書き込みで消さず寿命で切れる)
-- 宣言のあるドメインの `services/server/drizzleBase.ts` は `export const base = createCrudService(..., { cacheTags: { domain: "<camel>" } })` を持つ。`generate: true` のドメインは `pnpm generate domain` が書き、手で管理するドメインは無ければこの生成器が名指して止まる
+- 宣言のあるドメインの `services/server/<camel>Base.ts`（主の登録の土台）は `export const <camel>Base = createCrudService(..., { cacheTags: { domain: "<camel>" } })` を持つ。`generate: true` のドメインは `pnpm generate domain` が書き、手で管理するドメインは無ければこの生成器が名指して止まる
 
 ## Internals
 

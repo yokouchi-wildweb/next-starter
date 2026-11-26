@@ -8,7 +8,7 @@
 
 ### 生成の流れ（`pipeline/generate.mjs`）
 
-- 読む（宣言の読み込みの部品 `readDomain` で domain.json と entities/ の下の登録を読み、主の登録の entity.json を 1 ドメインの config にする。生成する登録を持つのに登録が 2 つ以上なら止める: `domain/workspace.mjs` の `readConfig`）→ 検査（`checks/`、全件を並べて止める）→ 全カテゴリの生成物を組み立てる → 書いた後の状態で `serviceRegistry.ts` が作れるか確かめる → 書く → `serviceRegistry.ts` を作り直す → 地区の地図 `district-map.jsonl` を書き直す
+- 読む（宣言の読み込みの部品 `readDomain` で domain.json と entities/ の下の登録を読み、生成する登録ごとに（主が先）その entity.json を config にする: `domain/workspace.mjs` の `generationUnitsOf`・`readRegistrationConfig`、文脈は `domain/context.mjs`（名前は登録、置き場はドメインのフォルダ）→ 検査（`checks/`、全件を並べて止める）→ 全カテゴリの生成物を組み立てる → 書いた後の状態で `serviceRegistry.ts` が作れるか確かめる → 書く → `serviceRegistry.ts` を作り直す → 地区の地図 `district-map.jsonl` を書き直す
 - 組み立てでは、主の集まりの項目 `mediaCollection` があれば、従属の宣言（domain.json と entities/<従属>/entity.json）を無いときだけ書き出す Output も足す（`render/collections/`。雛形の形と権限の写し: [src/domains/README.md](../../../src/domains/README.md)「主の集まりの項目（mediaCollection）」）
 - 登録表が作れない状態（手書きの登録表、登録名・表の重なり、他のドメインのサービスのファイルが無い）なら何も書かずに止まる
 
@@ -63,7 +63,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 - **項目の種類を足す**（例: 新しい fieldType） → 型の表 `src/lib/domain/fields/fieldTypes.mjs` に行（属性と `formDefault`）、`src/lib/domain/fields/fieldFormInputs.mjs` に入力種別、各 `render/` は述語で分岐（型名を比べない: lint `field-type-guard`）。フォーム側の手書きは `src/lib/formSuite/Field/types.ts` の型の名前だけ（ずれは `pnpm test src/lib/formSuite/FieldRenderer/defaultValueBuilder.test.ts` と typecheck が検知する）
 - **生成ファイルを足す** → そのカテゴリの `render/<カテゴリ>/` に `(ctx, workspace) → Output` を足し、カテゴリの `index.mjs` の配列に並べる（hooks / components は `catalog.mjs` に 1 行）
 - **生成前の検査を足す** → `checks/` に「エラー文の配列」を返す関数を足し、`checks/index.mjs` に並べる（止めないものは警告の関数に）。テストは `tests/checks.test.mjs`（`pnpm test scripts/structure/domain/tests/checks.test.mjs`）
-- **drizzleBase に配線を足す** → `render/serverServices/`（テンプレートのトークンに差し込む）か、別ファイルとして `Output` を 1 つ足す
+- **<登録名>Base に配線を足す** → `render/serverServices/`（テンプレートのトークンに差し込む）か、別ファイルとして `Output` を 1 つ足す
 - **複数ドメインの生成順** → `pipeline/generateAll.mjs` と `domain/`（`workspace.listDomains` + `readConfig`）
 
 テスト(`tests/`。生成器は関数なので一時ディレクトリに宣言（domain.json と entities/<登録名>/entity.json）を置いて直接呼ぶ):
