@@ -6,7 +6,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import { DOMAIN_DECLARATION_FILE, DOMAIN_KEYS, ENTITIES_DIR, ENTITY_DECLARATION_FILE, ENTITY_KEYS } from "./declaration.mjs";
+import { DOMAIN_DECLARATION_FILE, DOMAIN_KEYS, ENTITIES_DIR, ENTITY_DECLARATION_FILE, ENTITY_KEYS, ENTITY_NESTED_KEYS } from "./declaration.mjs";
 
 /** ドメインのフォルダの根(リポジトリ直下からの相対) */
 const DOMAINS_ROOT = "src/domains";
@@ -76,15 +76,50 @@ export function listDomains(source) {
   return { domains, problems };
 }
 
+/** @param {unknown} value @returns {value is Record<string, unknown>} */
+const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+
 /**
- * JSON の宣言を読む: 無い・壊れた・オブジェクトでない・知らない鍵は problems へ
+ * 入れ子の鍵を歩く: 表(ENTITY_NESTED_KEYS)にある鍵の中身の知らない鍵を problems へ(値の型の検査はしない)
+ * @param {Record<string, unknown>} object
+ * @param {Record<string, import("./declaration.mjs").NestedKeys>} nested
+ * @param {string} rel
+ * @param {string} path 今の道(例: fields[2].column)
+ * @param {string[]} problems
+ */
+function checkNestedKeys(object, nested, rel, path, problems) {
+  for (const [key, spec] of Object.entries(nested)) {
+    if (!(key in object)) continue;
+    const value = object[key];
+    const keyPath = path ? `${path}.${key}` : key;
+    const items = spec.list ? (Array.isArray(value) ? value.map((item, index) => [`${keyPath}[${index}]`, item]) : null) : [[keyPath, value]];
+    if (items === null) {
+      problems.push(`${rel}: ${keyPath} が配列でない`);
+      continue;
+    }
+    for (const [itemPath, item] of items) {
+      if (!isObject(item)) {
+        // 鍵の検査だけ: オブジェクトでない項目(値の形の誤り)は値の検査(生成器・照らし)に任せる
+        continue;
+      }
+      for (const itemKey of Object.keys(item)) {
+        if (!spec.keys.has(itemKey)) problems.push(`${rel}: ${itemPath} の知らない鍵 "${itemKey}"`);
+      }
+      if (spec.nested) checkNestedKeys(item, spec.nested, rel, itemPath, problems);
+    }
+  }
+}
+
+/**
+ * JSON の宣言を読む: 無い・壊れた・オブジェクトでない・知らない鍵(nested があれば入れ子の中も)は problems へ
  * @param {DomainSource} source
  * @param {string} rel
  * @param {Set<string>} keys
  * @param {string[]} problems
+ * @param {Record<string, import("./declaration.mjs").NestedKeys>} [nested]
  * @returns {Record<string, unknown> | null}
  */
-function readDeclaration(source, rel, keys, problems) {
+function readDeclaration(source, rel, keys, problems, nested) {
   const text = source.readText(rel);
   if (text === null) {
     problems.push(`${rel} が無い`);
@@ -98,15 +133,15 @@ function readDeclaration(source, rel, keys, problems) {
     problems.push(`${rel}: JSON として読めない(${error instanceof Error ? error.message : String(error)})`);
     return null;
   }
-  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+  if (!isObject(parsed)) {
     problems.push(`${rel}: 中身がオブジェクトでない`);
     return null;
   }
-  const declaration = /** @type {Record<string, unknown>} */ (parsed);
-  for (const key of Object.keys(declaration)) {
+  for (const key of Object.keys(parsed)) {
     if (!keys.has(key)) problems.push(`${rel}: 知らない鍵 "${key}"`);
   }
-  return declaration;
+  if (nested) checkNestedKeys(parsed, nested, rel, "", problems);
+  return parsed;
 }
 
 /**
@@ -128,7 +163,7 @@ export function readDomain(source, name) {
   const domain = readDeclaration(source, `${dir}/${DOMAIN_DECLARATION_FILE}`, DOMAIN_KEYS, problems);
   const registrations = dirsOf(source, `${dir}/${ENTITIES_DIR}`).map((registrationName) => {
     const registrationDir = `${dir}/${ENTITIES_DIR}/${registrationName}`;
-    const entity = readDeclaration(source, `${registrationDir}/${ENTITY_DECLARATION_FILE}`, ENTITY_KEYS, problems);
+    const entity = readDeclaration(source, `${registrationDir}/${ENTITY_DECLARATION_FILE}`, ENTITY_KEYS, problems, ENTITY_NESTED_KEYS);
     return { name: registrationName, dir: registrationDir, entity };
   });
   return { name, core, dir, domain, registrations, problems };

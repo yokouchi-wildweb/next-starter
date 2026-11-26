@@ -2,44 +2,43 @@
 // src/lib/domain/types/domainField.ts の DomainField（関連は types/domainConfig.ts の DomainConfigRelation）。checks/vocabulary.mjs がこれと照合して、綴り違い・古いキー・
 // その DB に無い型を警告する（生成は止めない）。
 
-import { BUILTIN_FORM_INPUTS, FORM_INPUTS } from "../../../../src/lib/domain/node.mjs";
+import {
+  BUILTIN_FORM_INPUTS,
+  COLLECTION_KEYS,
+  DB_ENGINES,
+  DECLARATION_COMMENT_KEY,
+  FIELD_GROUP_KEYS,
+  FIELD_KEYS as ENTITY_FIELD_KEYS,
+  FORM_INPUTS,
+  ID_TYPES,
+  ON_DELETE_VALUES,
+  RELATION_KEYS,
+  RELATION_TYPES,
+  TABLE_KEYS,
+} from "../../../../src/lib/domain/node.mjs";
+
+// 鍵と値の集合の正は src/lib/domain/definition/declaration.mjs(新しい形 domain.json + entities/<登録名>/entity.json と共通)。
+// ここは今の 1 ファイルの形の組み合わせだけを持つ(この形は区切り domain-decl の中で退く)
 
 /** 開発者のメモのキー（JSON Schema の注記と同じ名前）。どの階層にも書け、生成器も client の写しも読まない。値は文字列か文字列の配列 */
-export const COMMENT_KEY = "$comment";
+export const COMMENT_KEY = DECLARATION_COMMENT_KEY;
 
-export const DB_ENGINES = new Set(["Neon", "Firestore"]);
-export const ID_TYPES = new Set(["uuid", "string", "number"]);
+export { COLLECTION_KEYS, DB_ENGINES, FIELD_GROUP_KEYS, ID_TYPES, ON_DELETE_VALUES, RELATION_KEYS, RELATION_TYPES };
 
-export const TOP_LEVEL_KEYS = new Set([
-  "domainConfigVersion", "singular", "plural", "label", "dbEngine", "idType", "relations", "useCreatedAt", "useUpdatedAt",
-  "useSoftDelete", "sortOrderField", "fields", "fieldGroups", "searchFields", "searchRank", "defaultOrderBy", "tableFields",
-  "useDetailModal", "addToAdminDataMenu", "useDuplicateButton", "useImportExport", "useAutoSave", "compositeUniques", "indexes",
-  "systemColumns", "hiddenColumns", "apiAccess", "generate", "audit", "cache", COMMENT_KEY,
-]);
+/** 今の 1 ファイルの形のトップレベルの鍵 = 表の鍵 + 版・生成の旗・複合ユニーク(新しい形では indexes の unique)・メモ */
+export const TOP_LEVEL_KEYS = new Set([...TABLE_KEYS, "domainConfigVersion", "compositeUniques", "generate", COMMENT_KEY]);
 
 /** 旧キー → 今のキー（移行の案内に使う） */
 export const LEGACY_TOP_LEVEL_KEYS = { version: '"domainConfigVersion"' };
 
-export const RELATION_KEYS = new Set(["domain", "label", "fieldName", "fieldType", "relationType", "required", "onDelete", "includeRelationTable", "labelField", "formInput", COMMENT_KEY]);
 export const LEGACY_RELATION_KEYS = { onDeleteCascade: 'onDelete: "CASCADE" / "RESTRICT"' };
-export const RELATION_TYPES = new Set(["belongsTo", "hasMany", "hasOne", "belongsToMany"]);
-export const ON_DELETE_VALUES = new Set(["RESTRICT", "CASCADE", "SET_NULL"]);
 export const RELATION_FORM_INPUTS = {
   belongsTo: new Set(["select", "combobox", "asyncCombobox", "custom"]),
   belongsToMany: new Set(["checkbox", "multiSelect", "asyncMultiSelect", "custom"]),
 };
 
-/** Field のキー（lib/domain の DomainField のキーと同じ） */
-export const FIELD_KEYS = new Set([
-  "name", "label", "fieldType", "formInput", "required", "readonly", "disabled", "defaultValue", "options", "displayType", "placeholder",
-  "slug", "mediaTypePreset", "accept", "validationRule", "helperText", "metadataBinding", "reorderable", "unique", "storage", "collection", COMMENT_KEY,
-]);
-
-/** 主の集まりの項目（fieldType mediaCollection）の collection のキー: 従属ドメインの singular・最大件数・複製で写すか */
-export const COLLECTION_KEYS = new Set(["domain", "maxItems", "duplicate", COMMENT_KEY]);
-
-/** fieldGroups の 1 項目のキー（管理画面フォームのセクション） */
-export const FIELD_GROUP_KEYS = new Set(["key", "label", "fields", "collapsible", "defaultCollapsed", "bgColor", COMMENT_KEY]);
+/** Field のキー（lib/domain の DomainField のキーと同じ）。列の形 column は新しい形の entity.json だけ */
+export const FIELD_KEYS = new Set([...ENTITY_FIELD_KEYS].filter((key) => key !== "column"));
 
 /** フォーム入力種別（組み込みの名前の正は src/lib/domain/fields/formInputs.mjs） */
 export const FORM_INPUT_VALUES = new Set(BUILTIN_FORM_INPUTS);

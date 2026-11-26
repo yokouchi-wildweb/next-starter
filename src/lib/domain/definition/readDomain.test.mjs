@@ -133,3 +133,65 @@ test("業務と core の両方にある名前・どこにも無い名前は prob
   assert.deepEqual(readDomain(source, "coupon").problems, listDomains(source).problems);
   assert.deepEqual(readDomain(source, "missing").problems, ['ドメイン "missing" のフォルダが src/domains/ にも src/domains/core/ にも無い']);
 });
+
+test("手で持つ表の形の鍵は entity.json に書ける", () => {
+  const entity = {
+    generate: false,
+    table: "analytics_daily_rollups",
+    primaryKey: { columns: ["metric_key", "bucket_date", "dims_key"], name: "analytics_daily_rollups_pk" },
+    fields: [
+      { name: "dims_key", fieldType: "string", column: { default: "", notNull: true } },
+      { name: "value", fieldType: "number", column: { type: "numeric" } },
+      { name: "computed_at", fieldType: "timestamp", column: { default: { sql: "now()" }, notNull: true } },
+      { name: "status", fieldType: "enum", column: { enum: "purchase_request_status" } },
+      { name: "seq", fieldType: "number", column: { type: "bigint", identity: "always" } },
+    ],
+    foreignKeys: [{ columns: ["owner_group_id"], references: { table: "user_groups", columns: ["id"] }, onDelete: "SET NULL", name: "user_groups_owner_fk" }],
+    indexes: [
+      { fields: ["created_at"], desc: ["created_at"] },
+      { expression: "lower(btrim(name))", name: "users_name_lower_idx" },
+      { fields: ["provider_type", "provider_uid"], unique: true, where: "deleted_at IS NULL", name: "users_provider_uq" },
+    ],
+    checks: [{ name: "amount_positive", sql: "amount > 0" }],
+    enums: [
+      { name: "audit_actor_type", values: ["user", "system"] },
+      { name: "purchase_request_status", valuesFrom: { file: "src/domains/core/purchaseRequest/constants/status.ts", export: "PURCHASE_REQUEST_STATUSES" } },
+    ],
+    dbObjects: [{ kind: "trigger", file: "entities/userMetrics/userMetrics.trigger.sql" }],
+    service: { file: "analyticsService", export: "analyticsService" },
+  };
+  const source = memorySource({
+    "src/domains/core/analytics/domain.json": domainJson("分析"),
+    "src/domains/core/analytics/entities/analyticsDailyRollup/entity.json": JSON.stringify(entity),
+  });
+  const analytics = readDomain(source, "analytics");
+  assert.deepEqual(analytics.registrations[0].entity, entity);
+  assert.deepEqual(analytics.problems, []);
+});
+
+test("入れ子の知らない鍵・配列でない項目は problems。今の形の compositeUniques は entity.json に書けない", () => {
+  const source = memorySource({
+    "src/domains/core/user/domain.json": domainJson("ユーザー"),
+    "src/domains/core/user/entities/user/entity.json": JSON.stringify({
+      compositeUniques: [["provider_type", "provider_uid"]],
+      fields: [{ name: "ip", column: { type: "inet", nullable: true } }],
+      relations: [{ domain: "user_tag", cascade: true }],
+      indexes: [{ fields: ["status"], order: "desc" }],
+      foreignKeys: [{ columns: ["a"], references: { table: "t", column: "id" } }],
+      enums: [{ name: "e", valuesFrom: { file: "f", name: "X" } }],
+      checks: { name: "c", sql: "x" },
+      service: { file: "userService", default: true },
+    }),
+  });
+  const rel = "src/domains/core/user/entities/user/entity.json";
+  assert.deepEqual(readDomain(source, "user").problems, [
+    `${rel}: 知らない鍵 "compositeUniques"`,
+    `${rel}: fields[0].column の知らない鍵 "nullable"`,
+    `${rel}: relations[0] の知らない鍵 "cascade"`,
+    `${rel}: indexes[0] の知らない鍵 "order"`,
+    `${rel}: foreignKeys[0].references の知らない鍵 "column"`,
+    `${rel}: checks が配列でない`,
+    `${rel}: enums[0].valuesFrom の知らない鍵 "name"`,
+    `${rel}: service の知らない鍵 "default"`,
+  ]);
+});

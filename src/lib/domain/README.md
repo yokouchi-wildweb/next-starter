@@ -111,7 +111,21 @@ export const domainEntries = {
 - ドメイン 1 つ = `src/domains/<d>/domain.json`(ドメインそのものの短い宣言: `domainConfigVersion` "2.0"・`label`)+ 表 1 つ = 登録 1 件ごとの `entities/<登録名>/entity.json`(表の鍵と登録の鍵)。表なしのドメインは登録 0、表 1 つのドメインは登録名 = ドメイン名
 - 登録の一覧は `entities/` の下のフォルダの並びで、どこにも手で書かない。生成するかの旗 `generate` は登録ごと(entity.json、D337)
 - 鍵の集合の正は `definition/declaration.mjs`、読むのは読み込みの部品 `definition/readDomain.mjs` だけ(入口 "./node")。無い・壊れた・知らない鍵は `problems` に入り、推測で埋めない
-- 今のドメインと生成器・読み手はまだ今の 1 ファイルの形(この節の部品へは S3 の続く指令で移す)
+- 入れ子(fields・relations・fieldGroups・indexes と下の表の鍵)の知らない鍵も `problems`(表 `ENTITY_NESTED_KEYS`)。値の形は見ない
+- 今のドメインと生成器・読み手はまだ今の 1 ファイルの形(この節の部品へは S3 の続く指令で移す)。今の形の語彙 `scripts/structure/domain/spec/domainJson.mjs` も鍵の集合はここから組む
+
+手で持つ表の形の鍵(entity.json だけ、Neon のみ。今の 1 ファイルの形では書けなかった物):
+
+| 鍵 | 形 | 例 |
+|---|---|---|
+| `table` | string(省略 = snake(plural)) | `"users"` |
+| `primaryKey` | `{ columns, name? }`(省略 = idType の id 列) | 複合の主キー・名前の主キー |
+| `foreignKeys` | `[{ columns, references: { table, columns }, onDelete?, onUpdate?, name? }]` | relations で言えない FK(名前つき・同じ相手への 2 本目・自己参照) |
+| `indexes[]` の `unique`・`desc`・`expression` | `unique: true`・`desc: [列]`(降順)・`expression: "<SQL の式>"`(列の代わり) | 名前つき・部分のユニーク(ユニークはこの形だけ、`compositeUniques` は entity.json に無い)・`lower(btrim(name))` |
+| `checks` | `[{ name, sql }]` | check 制約 |
+| `enums` | `[{ name, values }]` か `[{ name, valuesFrom: { file, export } }]` | pgEnum。設定から値を作る物は値を写さず名指す(照らしは読み込んだ値で比べる) |
+| `dbObjects` | `[{ kind: "trigger" \| "function", file }]` | drizzle で書けない DB の物を SQL のファイルで名指す |
+| `fields[].column` | `{ name?, type?, enum?, default?, notNull?, identity? }` | `type` = SQL の型の書き方(smallint・numeric・inet・uuid[])、`default` = 値か `{ sql: "now()" }`、`identity` = always・byDefault |
 
 ## Extension
 
