@@ -76,3 +76,19 @@ test("生成しない登録(generate: false)には何も書かない", () => {
   const { plans } = planGenerateAll(workspace, ["shop"], GEN, null, SILENT);
   assert.deepEqual(plans.map((plan) => plan.domain), ["shop"]);
 });
+
+test("Firestore の登録も登録のフォルダに書き、ドメインの物でない登録も生成でき、コレクションの道は <登録名>CollectionPath", () => {
+  const room = { singular: "room", plural: "rooms", dbEngine: "Firestore", idType: "uuid", useCreatedAt: true, useUpdatedAt: true, fields: [{ name: "name", label: "名前", fieldType: "string", formInput: "textInput" }] };
+  const root = makeProject({ templates: ["."], configs: { room }, registrations: { "room/roomNote": { ...room, singular: "room_note", plural: "room_notes" } }, cleanup });
+  const workspace = createWorkspace(root);
+  const { plans } = planGenerateAll(workspace, ["room"], { ...GEN, adminRoutes: false }, null, SILENT);
+  assert.deepEqual(plans.map((plan) => plan.domain), ["room", "room/roomNote"]);
+  const rel = (output) => path.relative(root, output.path).split(path.sep).join("/");
+  const files = new Map(plans.flatMap((plan) => plan.outputs.filter((o) => o.kind === "file")).map((o) => [rel(o), o.content]));
+  for (const registration of ["room", "roomNote"]) {
+    for (const kind of ["firestore", "schema", "form", "model"]) assert.ok(files.has(`src/domains/room/entities/${registration}/${kind}.ts`), `${registration}/${kind}.ts`);
+    assert.ok(!files.has(`src/domains/room/entities/${registration}/drizzle.ts`));
+  }
+  assert.match(files.get("src/domains/room/entities/roomNote/firestore.ts"), /^export const roomNoteCollectionPath = "room_notes";$/m);
+  assert.ok(!files.has("src/domains/room/entities/firestore.ts"), "ドメインの直下には書かない(集める入口は pnpm generate registry)");
+});

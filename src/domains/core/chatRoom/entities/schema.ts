@@ -1,15 +1,5 @@
-// src/domains/chatRoom/entities/schemaRegistry.ts
+// 生成物・編集不可: pnpm generate registry が src/domains/core/chatRoom/entities/*/schema.ts の並びから生成する
+// src/domains/core/chatRoom/entities/schema.ts
+// 登録ごとのフォルダ(entities/<登録名>/schema.ts)を集めるだけの入口(import の道を変えないため)。中身は各登録のフォルダに書く
 
-import { emptyToNull } from "@/utils/string";
-import { z } from "zod";
-
-export const ChatRoomBaseSchema = z.object({
-  type: z.string().trim().min(1, { message: "種別は必須です。" }),
-  name: z.string().trim().nullish()
-    .transform((value) => emptyToNull(value)),
-  deletedAt: z.date().nullish(),
-});
-
-export const ChatRoomCreateSchema = ChatRoomBaseSchema.omit({ deletedAt: true });
-
-export const ChatRoomUpdateSchema = ChatRoomBaseSchema.partial().omit({ deletedAt: true });
+export * from "./chatRoom/schema";

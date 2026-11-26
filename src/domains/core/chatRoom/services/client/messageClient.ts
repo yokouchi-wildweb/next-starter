@@ -25,7 +25,7 @@ import type { Unsubscribe } from "@/lib/firestore";
 
 import type { ChatMessage, LastMessageSnapshot, MessageMetadata, MessageType } from "@/domains/chatRoom/entities/message";
 import { messagesSubcollectionPath } from "@/domains/chatRoom/entities/message";
-import { collectionPath } from "@/domains/chatRoom/entities/firestore";
+import { chatRoomCollectionPath } from "@/domains/chatRoom/entities/firestore";
 import { MESSAGES_PER_PAGE } from "@/domains/chatRoom/constants/chat";
 import { updateDoc } from "@/lib/firestore/client";
 
@@ -163,7 +163,7 @@ export async function editMessage(params: EditMessageParams): Promise<void> {
   await ensureChatAuth(senderId);
 
   const messageRef = doc(getChatFirestore(), messagesSubcollectionPath(roomId), messageId);
-  const roomRef = doc(getChatFirestore(), collectionPath, roomId);
+  const roomRef = doc(getChatFirestore(), chatRoomCollectionPath, roomId);
 
   if (isLatestMessage) {
     const operations: BatchOperation[] = [
@@ -307,7 +307,7 @@ async function sendMessage(
 
   const messagesRef = collection(getChatFirestore(), messagesSubcollectionPath(roomId));
   const messageRef = messageId ? doc(messagesRef, messageId) : doc(messagesRef);
-  const roomRef = doc(getChatFirestore(), collectionPath, roomId);
+  const roomRef = doc(getChatFirestore(), chatRoomCollectionPath, roomId);
 
   const snapshotData = {
     type,

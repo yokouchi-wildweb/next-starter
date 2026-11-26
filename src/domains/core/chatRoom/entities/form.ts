@@ -1,14 +1,5 @@
-// src/domains/chatRoom/entities/form.ts
+// 生成物・編集不可: pnpm generate registry が src/domains/core/chatRoom/entities/*/form.ts の並びから生成する
+// src/domains/core/chatRoom/entities/form.ts
+// 登録ごとのフォルダ(entities/<登録名>/form.ts)を集めるだけの入口(import の道を変えないため)。中身は各登録のフォルダに書く
 
-import { z } from "zod";
-import { ChatRoomCreateSchema, ChatRoomUpdateSchema } from "./schema";
-
-export type ChatRoomCreateAdditional = {
-  // foo: string; フォームに追加する項目
-};
-export type ChatRoomCreateFields = z.infer<typeof ChatRoomCreateSchema> & ChatRoomCreateAdditional;
-
-export type ChatRoomUpdateAdditional = {
-  // foo: string; フォームに追加する項目
-};
-export type ChatRoomUpdateFields = z.infer<typeof ChatRoomUpdateSchema> & ChatRoomUpdateAdditional;
+export * from "./chatRoom/form";

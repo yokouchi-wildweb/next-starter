@@ -31,7 +31,7 @@ import { ensureChatAuth, getChatFirestore, subscribeAfterChatAuth } from "./chat
 import type { ChatRoom } from "@/domains/chatRoom/entities";
 import type { ChatRoomType, LastMessageSnapshot } from "@/domains/chatRoom/entities/message";
 import { messagesSubcollectionPath } from "@/domains/chatRoom/entities/message";
-import { collectionPath } from "@/domains/chatRoom/entities/firestore";
+import { chatRoomCollectionPath } from "@/domains/chatRoom/entities/firestore";
 import {
   SYSTEM_MESSAGE_PARTICIPANT_ADDED,
   SYSTEM_MESSAGE_PARTICIPANT_REMOVED,
@@ -101,7 +101,7 @@ export async function createDirectRoom(
   // participants の array-contains は結果を変えない（participantPair は自分を含む）。
   // 参加者だけが読めるルール（chatRoom/firestore.rules.example）では、これが無いと検索ごと拒否される。
   const q = query(
-    collection(getChatFirestore(), collectionPath),
+    collection(getChatFirestore(), chatRoomCollectionPath),
     where("participantPair", "==", participantPair),
     where("participants", "array-contains", myUid),
   );
@@ -112,7 +112,7 @@ export async function createDirectRoom(
   }
 
   // 新規作成
-  const roomId = doc(collection(getChatFirestore(), collectionPath)).id;
+  const roomId = doc(collection(getChatFirestore(), chatRoomCollectionPath)).id;
   return createRoomWithSystemMessage({
     roomId,
     type: "direct",
@@ -133,7 +133,7 @@ export async function createGroupRoom(
 ): Promise<CreateRoomResult> {
   const { myUid, participants, name } = params;
   await ensureChatAuth(myUid);
-  const roomId = doc(collection(getChatFirestore(), collectionPath)).id;
+  const roomId = doc(collection(getChatFirestore(), chatRoomCollectionPath)).id;
 
   return createRoomWithSystemMessage({
     roomId,
@@ -190,7 +190,7 @@ export function subscribeRooms(
     ...(singleType ? [where("type", "==", singleType)] : []),
     orderBy("lastMessageSnapshot.createdAt", "desc"),
   ];
-  const q = query(collection(getChatFirestore(), collectionPath), ...constraints);
+  const q = query(collection(getChatFirestore(), chatRoomCollectionPath), ...constraints);
 
   // クライアントサイドフィルタが必要な場合はコールバックをラップ
   const typeArray = Array.isArray(options?.type) ? options.type : undefined;
@@ -224,7 +224,7 @@ export function subscribeRoom(
   onError?: (error: Error) => void,
 ): Unsubscribe {
   return subscribeAfterChatAuth(() => {
-    const ref = doc(getChatFirestore(), collectionPath, roomId);
+    const ref = doc(getChatFirestore(), chatRoomCollectionPath, roomId);
     return subscribeDoc<ChatRoom>(ref, callback, onError as any);
   }, onError);
 }
@@ -244,7 +244,7 @@ export async function updateReadAt(
   uid: string,
 ): Promise<void> {
   await ensureChatAuth(uid);
-  const ref = doc(getChatFirestore(), collectionPath, roomId);
+  const ref = doc(getChatFirestore(), chatRoomCollectionPath, roomId);
   await updateDoc(ref, {
     [`readAt.${uid}`]: serverTimestamp(),
   });
@@ -289,7 +289,7 @@ export async function addParticipant(params: AddParticipantParams): Promise<void
   const { roomId, uid, operatorUid, displayName } = params;
   await ensureChatAuth(operatorUid);
 
-  const roomRef = doc(getChatFirestore(), collectionPath, roomId);
+  const roomRef = doc(getChatFirestore(), chatRoomCollectionPath, roomId);
   const messageRef = doc(collection(getChatFirestore(), messagesSubcollectionPath(roomId)));
   const content = SYSTEM_MESSAGE_PARTICIPANT_ADDED.replace("{name}", displayName);
 
@@ -340,7 +340,7 @@ export async function removeParticipant(params: RemoveParticipantParams): Promis
   const { roomId, uid, operatorUid, displayName } = params;
   await ensureChatAuth(operatorUid);
 
-  const roomRef = doc(getChatFirestore(), collectionPath, roomId);
+  const roomRef = doc(getChatFirestore(), chatRoomCollectionPath, roomId);
   const messageRef = doc(collection(getChatFirestore(), messagesSubcollectionPath(roomId)));
   const content = SYSTEM_MESSAGE_PARTICIPANT_REMOVED.replace("{name}", displayName);
 
@@ -404,7 +404,7 @@ export async function createRoomWithSystemMessage(
   const { roomId, type, name, participants, participantPair, senderId } = params;
   await ensureChatAuth(senderId);
 
-  const roomRef = doc(getChatFirestore(), collectionPath, roomId);
+  const roomRef = doc(getChatFirestore(), chatRoomCollectionPath, roomId);
   const messageRef = doc(collection(getChatFirestore(), messagesSubcollectionPath(roomId)));
 
   const snapshot: Omit<LastMessageSnapshot, "createdAt"> & { createdAt: ReturnType<typeof serverTimestamp> } = {

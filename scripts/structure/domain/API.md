@@ -12,7 +12,7 @@
 
 | カテゴリ | 出力 |
 |---|---|
-| `entities` | Neon = 登録のフォルダ `entities/<domain>/{model,form,schema,drizzle}.ts`（登録名 = ドメイン名）と `entities/index.ts`（それを集める入口 `entities/{model,form,schema,drizzle}.ts` は `pnpm generate registry` が全ドメインに書く）。Firestore = `entities/{model,form,firestore,schema,index}.ts`（登録のフォルダに分けない）。主の集まりの項目（mediaCollection）は列を出さず、スキーマ = `z.array(storageMediaValueSchema)`（required → `.min(1)`、`collection.maxItems` → `.max`）、モデル = `string[]`（省略可）。主は表の定義の後に `defineTableCollections(<Domain>Table, () => import(…/collections))` を出す |
+| `entities` | 登録のフォルダ `entities/<登録名>/{model,form,schema}.ts` と、Neon は `drizzle.ts`・Firestore は `firestore.ts`（`export const <登録名>CollectionPath`）、ドメインの `entities/index.ts`（集める入口 `entities/{model,form,schema,drizzle,firestore}.ts` は `pnpm generate registry` が全ドメインに書く）。主の集まりの項目（mediaCollection）は列を出さず、スキーマ = `z.array(storageMediaValueSchema)`（required → `.min(1)`、`collection.maxItems` → `.max`）、モデル = `string[]`（省略可）。主は表の定義の後に `defineTableCollections(<Domain>Table, () => import(…/collections))` を出す |
 | `components` | `components/Admin<Domain>{Create,Edit,List}/`、`components/common/{Create<Domain>Form,Edit<Domain>Form,<Domain>Form,<Domain>Fields}.tsx`。`useDetailModal` で `<Domain>DetailModal.tsx`、`sortOrderField` で `Admin<Domain>Sort/`（一覧は `render/components/catalog.mjs`）。`<Domain>Fields` は主の集まりの項目に、従属の `file` の用途・accept・上限サイズと集まりの件数を載せる |
 | `hooks` | `hooks/use*<Domain>.ts`（どれが生成されるかは `render/hooks/catalog.mjs`、使い方は [`src/lib/crud/hooks/README.md`](../../../src/lib/crud/hooks/README.md)） |
 | `clientServices` | `services/client/<domain>Client.ts` |

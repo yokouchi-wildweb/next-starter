@@ -2,7 +2,7 @@
 // entities/<種類>.ts(drizzle・schema・form・model)の集める入口: 登録ごとのフォルダ entities/<登録名>/<種類>.ts を集めるだけ(D335)。
 // fork と他のドメインの import の道(@/domains/<d>/entities/drizzle など)を変えないための入口で、中身を持たない。
 // 宣言のある全ドメイン(generate:false の登録も)に pnpm generate registry が書く: 登録のフォルダの並びのうち、その種類のファイルを持ち export のある登録を並べる
-// (どの登録もその種類を持たない = 入口を書かない。Firestore の登録は entities/<種類>.ts を生成器 pnpm generate domain が直に書く)
+// (どの登録もその種類を持たない = 入口を書かない。Firestore の登録も同じく登録のフォルダに firestore.ts ほかを持つ)
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -14,7 +14,7 @@ function exportsAnything(file) {
   return existsSync(file) && /^\s*export\b/m.test(readFileSync(file, "utf8"));
 }
 
-/** 集める入口を持つ種類(登録のフォルダの 4 ファイル。正は src/lib/domain の ENTITY_FILE_KINDS) */
+/** 集める入口を持つ種類(登録のフォルダの表のファイル。正は src/lib/domain の ENTITY_FILE_KINDS。Firestore の firestore も) */
 export const COLLECTOR_KINDS = [...ENTITY_FILE_KINDS];
 
 /**

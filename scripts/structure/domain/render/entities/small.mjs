@@ -15,10 +15,10 @@ export function renderFormEntity(ctx) {
   return content;
 }
 
-/** entities/firestore.ts: コレクションパス（entity.json の plural、無ければ <snake>s） */
+/** entities/<登録名>/firestore.ts: コレクションパス <登録名>CollectionPath（entity.json の plural、無ければ <snake>s。名前に登録名 = 集める入口で並べても重ならない、D344） */
 export function renderFirestoreEntity(ctx) {
   const { camel, pluralRaw } = ctx;
-  return `// ${domainRel(ctx)}/entities/firestore.ts\n\nexport const collectionPath = "${pluralRaw}";\n`;
+  return `// ${domainRel(ctx)}/entities/firestore.ts\n\nexport const ${camel}CollectionPath = "${pluralRaw}";\n`;
 }
 
 /** entities/index.ts: model / drizzle|firestore / schema / form の再エクスポート */

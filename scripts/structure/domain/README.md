@@ -5,7 +5,7 @@
 - 手で書いたドメインの宣言から、ドメイン一式（entities / services / hooks / 管理画面 / レジストリ登録）を生成する CLI のリファレンスです。
 - 宣言は 2 種類のファイル: `src/domains/<domain>/domain.json`（ドメインそのものの短い宣言 = `domainConfigVersion` `"2.0"` と `label` だけ）と、表 1 つ = 登録 1 件ごとの `src/domains/<domain>/entities/<登録名>/entity.json`（表・項目・関連・権限・生成の旗 `generate` などの鍵）。表 1 つのドメインは登録名 = ドメイン名（例: `src/domains/sample/entities/sample/entity.json`）
 - entity.json のスキーマ（キー・型・リレーション・`generate` 等）は [`src/domains/README.md`](../../../src/domains/README.md)、宣言の形と読み込みの部品 `readDomain` は [`src/lib/domain/README.md`](../../../src/lib/domain/README.md)「宣言の形」が正です。生成器も宣言を `readDomain` だけで読む
-- 生成の単位 = ドメインの中の登録 1 件（D336）。生成する登録（`generate` が false でない）ごとに（主の登録が先）、その登録の entity.json を config にして一式を書く。名前は登録の物（`<登録名>Base.ts`・`<登録名>Presenters.ts`・`use<Registration>List` など）、置き場はドメインのフォルダ（雛形の import の道は印 `__folder__`）。ドメインに 1 つの物（`seed.ts`）は最初の単位だけが書く。Firestore の登録は登録名 = ドメイン名の物だけ（`entities/<種類>.ts` をドメインに直に書くため）
+- 生成の単位 = ドメインの中の登録 1 件（D336）。生成する登録（`generate` が false でない）ごとに（主の登録が先）、その登録の entity.json を config にして一式を書く。名前は登録の物（`<登録名>Base.ts`・`<登録名>Presenters.ts`・`use<Registration>List` など）、置き場はドメインのフォルダ（雛形の import の道は印 `__folder__`）。ドメインに 1 つの物（`seed.ts`）は最初の単位だけが書く。Firestore の登録も Neon と同じく登録のフォルダに書く（登録の多いドメインでも）
 - 普段はこれを直接打たず、`pnpm forge`（[`scripts/structure/forge/README.md`](../forge/README.md)。検査 → ロールとドメインの生成 → ルートの地図 → 事後検査）で回す。
 - 対象: 宣言（domain.json と主の登録の entity.json）を持つドメインのフォルダ。business = `src/domains/<domain>/`、core = `src/domains/core/<domain>/`。違いはフォルダだけで、生成・検査・`generate` の旗は同じ扱い（同じ名前が両方にあれば止まる）。生成する登録の無いドメイン（表の無いドメイン・全部の登録が `generate: false`）は何も書かない
 - core の生成の違い:

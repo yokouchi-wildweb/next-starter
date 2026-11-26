@@ -737,7 +737,7 @@ core ドメイン (`src/domains/core/<domain>/` の宣言) も pnpm generate dom
 
 | カテゴリ | - | 説明 |
 |-----------|-----|------|
-| entities | - | エンティティ（Neon: `entities/<登録名>/{schema,form,model,drizzle}.ts`（集める入口 `entities/<種類>.ts` は `pnpm generate registry`）、Firestore: `entities/{schema,form,model,firestore}.ts`） |
+| entities | - | エンティティ（`entities/<登録名>/{schema,form,model}.ts` と Neon は `drizzle.ts`・Firestore は `firestore.ts`（`<登録名>CollectionPath`）。集める入口 `entities/<種類>.ts` は `pnpm generate registry`） |
 | components | - | 管理画面コンポーネント |
 | hooks | - | CRUD フック |
 | clientServices | - | axios クライアント |

@@ -2,7 +2,7 @@
 // このリポの全ドメイン(generate: false を除く。sample 系が全カテゴリ・関係・並べ替え・画像の集まりを持つ)を、全カテゴリを on にして組み立て(何も書かない)、
 // file の Output は every-run の 1 行に、writeOnce は write-once の 1 行に当たり、データのどの行もどれかの出力に当たることを見る。
 // 実行: pnpm test scripts/structure/domain/tests/outputs.test.mjs
-import { test } from "node:test";
+import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -13,14 +13,14 @@ import { loadDomainForGenerate } from "../pipeline/generate.mjs";
 import { collectionChildrenOf, resolvePairs } from "../pipeline/pairs.mjs";
 import { planDomain } from "../pipeline/plan.mjs";
 import { ALL_GENERATE_OPTIONS, isHandManaged } from "../spec/categories.mjs";
-import { repoRoot } from "./helpers.mjs";
+import { makeProject, removeAll, repoRoot } from "./helpers.mjs";
 
 const SILENT = { log() {}, warn() {} };
 const KIND_OF = { file: "every-run", writeOnce: "write-once" };
 const { outputs, problems } = parseDomainOutputs(fs.readFileSync(path.join(repoRoot, DOMAIN_OUTPUTS_FILE), "utf8"));
 
 /** そのリポの全ドメインの書く物(種類つき、リポジトリ直下からの相対)と、ドメインの { dir, plural } */
-function plannedWrites(root) {
+function plannedWrites(root, options = ALL_GENERATE_OPTIONS) {
   const workspace = createWorkspace(root);
   const pairs = resolvePairs(workspace);
   const writes = [];
@@ -29,7 +29,7 @@ function plannedWrites(root) {
     if (isHandManaged(ctx.config)) continue;
     ctx.collectionChildren = collectionChildrenOf(workspace, pairs, name);
     const domain = { dir: ctx.rel, plural: ctx.config?.plural };
-    for (const out of planDomain(ctx, workspace, ALL_GENERATE_OPTIONS)) {
+    for (const out of planDomain(ctx, workspace, options)) {
       if (!KIND_OF[out.kind]) continue;
       writes.push({ path: path.relative(root, out.path).split(path.sep).join("/"), kind: KIND_OF[out.kind], domain });
     }
@@ -53,8 +53,18 @@ test("生成器の書く物は、どれもデータの同じ種類の行に当�
   assert.deepEqual(wrong, []);
 });
 
+const cleanup = [];
+after(() => removeAll(cleanup));
+
+/** このリポに無い形の書く物: Firestore の登録(上流の Firestore の chatRoom は手で持つ)。parity の fixture memo を一時の木で組み立てる */
+function fixtureWrites() {
+  const memo = JSON.parse(fs.readFileSync(path.join(repoRoot, "scripts/structure/domain/tests/fixtures/parity/synthetic/memo/entities/memo/entity.json"), "utf8"));
+  // 管理画面のルート(src/app/admin/_template)は一時の木に写さないので外す
+  return plannedWrites(makeProject({ templates: ["."], configs: { memo }, cleanup }), { ...ALL_GENERATE_OPTIONS, adminRoutes: false });
+}
+
 test("データのどの行も、生成器の書く物のどれかに当たる(書かなくなった行を残さない)", () => {
-  const writes = plannedWrites(repoRoot);
+  const writes = [...plannedWrites(repoRoot), ...fixtureWrites()];
   const unused = outputs.filter((entry) => !writes.some((write) => matchDomainOutput(write.path, [entry], [write.domain])));
   assert.deepEqual(unused.map((entry) => entry.glob), []);
 });

@@ -47,7 +47,7 @@ export function renderServerServices(ctx, workspace) {
   const hasCollections = (config?.fields ?? []).some((f) => isCollectionFieldType(f.fieldType));
   const isEmptyCreateSchema = hasEmptyCreateSchema(config);
 
-  // Firestore: コレクションパスを firestore.ts の collectionPath と一致させる（__domains__ も同じ値にする）
+  // Firestore: コレクションパスを entities/<登録名>/firestore.ts の <登録名>CollectionPath と一致させる（__domains__ も同じ値にする）
   const tokenCtx = dbEngine === "Firestore" ? { ...ctx, camelPlural: ctx.pluralRaw } : ctx;
 
   // ファイル台帳との連動（storage binding）は Drizzle 専用。Firestore adapter は凍結のため、メディア列は生成エラーで止める

@@ -96,4 +96,4 @@
 | `DOMAIN_KEYS` / `ENTITY_KEYS`(= `ENTITY_TABLE_KEYS` + `ENTITY_REGISTRATION_KEYS` + `$comment`) | 宣言の鍵の集合。表の鍵 `ENTITY_TABLE_KEYS` = 今の形と同じ意味の `TABLE_KEYS` + 手で持つ表の形の `TABLE_SHAPE_KEYS`。登録の鍵 = `generate`・`registered`・`reason`・`requires`・`service` |
 | `ENTITY_NESTED_KEYS` と中の集合(`FIELD_KEYS`・`RELATION_KEYS`・`COLUMN_KEYS`・`INDEX_KEYS`・`PRIMARY_KEY_KEYS`・`FOREIGN_KEY_KEYS`・`CHECK_KEYS`・`ENUM_KEYS`・`DB_OBJECT_KEYS` ほか)・値の集合(`DB_ENGINES`・`ID_TYPES`・`RELATION_TYPES`・`ON_DELETE_VALUES`・`IDENTITY_VALUES`・`DB_OBJECT_KINDS`) | 入れ子の鍵の表(readDomain が歩く)。今の形の語彙 scripts/structure/domain/spec/domainJson.mjs もここから組む |
 | `DOMAIN_DECLARATION_FILE` / `ENTITIES_DIR` / `ENTITY_DECLARATION_FILE` / `DOMAIN_DECLARATION_VERSION` | 置き場の名前("domain.json"・"entities"・"entity.json")と形の版("2.0") |
-| `ENTITY_FILE_KINDS` | 登録のフォルダの表のファイルの種類(drizzle・schema・form・model)。entities/ の下で entity.json かこの種類のファイルを持つフォルダが登録(役割の表 profiles/ などは登録でない) |
+| `ENTITY_FILE_KINDS` | 登録のフォルダの表のファイルの種類(drizzle・firestore・schema・form・model。Neon は drizzle、Firestore は firestore)。entities/ の下で entity.json かこの種類のファイルを持つフォルダが登録(役割の表 profiles/ などは登録でない) |

@@ -6,6 +6,7 @@
   "watch": ["src/domains/**", "src/app/admin/**", "src/registry/**", "src/**/plugs/formInputs/**", "src/lib/domain/**", "src/lib/forkOwnership/**", "src/lib/districtMap/**", "src/lib/libPackage/**", "src/lib/stringCase/**", "src/lib/plainObject/**", "scripts/structure/domain/**", "scripts/structure/registry/**", "tsconfig.json", "eslint-rules/resolve-import.mjs", "package.json", "pnpm-lock.yaml", "scripts/runner/phases/**", "scripts/runner/preload/**"],
   "outputs": [
     {"glob": "{dir}/entities/{camel}/drizzle.ts", "kind": "every-run", "source": "{dir}/entities/{camel}/entity.json"},
+    {"glob": "{dir}/entities/{camel}/firestore.ts", "kind": "every-run", "source": "{dir}/entities/{camel}/entity.json"},
     {"glob": "{dir}/entities/{camel}/form.ts", "kind": "every-run", "source": "{dir}/entities/{camel}/entity.json"},
     {"glob": "{dir}/entities/index.ts", "kind": "every-run", "source": "{dir}/entities/{camel}/entity.json"},
     {"glob": "{dir}/entities/{camel}/model.ts", "kind": "every-run", "source": "{dir}/entities/{camel}/entity.json"},

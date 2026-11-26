@@ -4,8 +4,10 @@
 
 import { ENTITY_FILE_KINDS } from "../../../../../src/lib/domain/node.mjs";
 
-/** 登録のフォルダの表のファイルの種類(4 ファイル。正は src/lib/domain の ENTITY_FILE_KINDS) */
+/** 登録のフォルダの表のファイルの種類(正は src/lib/domain の ENTITY_FILE_KINDS) */
 export const ENTITY_KINDS = [...ENTITY_FILE_KINDS];
+/** その DB の登録が持つ種類(Neon = drizzle、Firestore = firestore と、両方の schema・form・model) */
+export const entityKindsOf = (dbEngine) => ENTITY_KINDS.filter((kind) => kind !== (dbEngine === "Firestore" ? "drizzle" : "firestore"));
 
 /** 相対の import の道を、ファイルが 1 段深く(entities/<登録名>/)へ移った時の道に */
 const deeper = (specifier) => (specifier.startsWith("./") ? `../${specifier.slice(2)}` : specifier.startsWith("../") ? `../${specifier}` : specifier);
