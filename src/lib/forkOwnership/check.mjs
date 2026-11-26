@@ -295,30 +295,26 @@ export function lastUpstreamSha(ledgerText) {
 const blobOf = (repoRoot, rev, path) => tryGit(repoRoot, ["rev-parse", "-q", "--verify", `${rev}:${path}`])?.trim() ?? null;
 
 /**
- * 違反の行の HEAD の中身がどの上流の版と同じか(D479): "base" | "base+pick" | "upstream <短 sha>" | null(どれとも違う)
- * (c) は基準から親の ref までの履歴でそのパスが持った版(各 commit の前と後の blob。基準より古い版は数えない)
+ * 違反の行の HEAD の中身が上流の版と同じか(D479): (a) 基準 (b) 基準 + 台帳の picked: (c) 基準から親の ref までの履歴で
+ * そのパスが持った版(各 commit の前と後の blob。基準より古い版は数えない)
  * @param {string} repoRoot
  * @param {{ base: string, parentRef: string | null, picks: string[], path: string, head: string | null, baseContent: string | null }} input
- * @returns {string | null}
+ * @returns {boolean}
  */
-export function upstreamVersionOf(repoRoot, { base, parentRef, picks, path, head, baseContent }) {
-  if (head === null) return null;
-  if (baseContent !== null && head === baseContent) return "base";
+export function isUpstreamVersion(repoRoot, { base, parentRef, picks, path, head, baseContent }) {
+  if (head === null) return false;
+  if (baseContent !== null && head === baseContent) return true;
   if (picks.length > 0) {
     const after = textAfterPicks(repoRoot, picks, path, baseContent);
-    if (after && after.text === head) return "base+pick";
+    if (after && after.text === head) return true;
   }
   const blob = blobOf(repoRoot, "HEAD", path);
-  if (!blob || !parentRef) return null;
-  const raw = tryGit(repoRoot, ["log", "--format=commit %h", "--raw", "--no-abbrev", "--no-renames", `${base}..${parentRef}`, "--", path]) ?? "";
-  let sha = "";
-  for (const line of raw.split("\n")) {
-    if (line.startsWith("commit ")) sha = line.slice("commit ".length).trim();
+  if (!blob || !parentRef) return false;
+  const raw = tryGit(repoRoot, ["log", "--format=", "--raw", "--no-abbrev", "--no-renames", `${base}..${parentRef}`, "--", path]) ?? "";
+  return raw.split("\n").some((line) => {
     const m = /^:\d+ \d+ ([0-9a-f]{40}) ([0-9a-f]{40}) /.exec(line);
-    if (m && m[2] === blob) return `upstream ${sha}`;
-    if (m && m[1] === blob) return `upstream ${sha}^`;
-  }
-  return null;
+    return m !== null && (m[1] === blob || m[2] === blob);
+  });
 }
 
 /**
@@ -613,18 +609,16 @@ export function judgeFork(repoRoot, context) {
   const middleTier = reassignMiddleTier(judged.entries, tier1Files);
   // 上流の版と同じ中身は上流の物として通す(D479、決まり 1 つ): 違反の行の HEAD の中身が (a) 基準の版 (b) 基準に台帳の
   // picked: を順に当てた版 (c) 基準から親の ref までの履歴でそのパスが持ったどれかの版、のどれかと同じなら upstream-version
-  // (version = どの版か)。基準より古い版は数えない。それ以外は違反のまま(fork 自身の変更 = push の前の止め)。
+  // 基準より古い版は数えない。それ以外は違反のまま(fork 自身の変更 = push の前の止め)。
   // 既に基準に入った pick は差分に出ないので外す
   const picks = pickedShas(headText(`.notices/applied/${ownerId}.md`)).filter(
     (sha) => tryGit(repoRoot, ["cat-file", "-e", `${sha}^^{commit}`]) !== null && tryGit(repoRoot, ["merge-base", "--is-ancestor", sha, base]) === null,
   );
   for (const entry of judged.entries) {
     if (entry.verdict !== "violation") continue;
-    const version = upstreamVersionOf(repoRoot, { base, parentRef, picks, path: entry.path, head: headText(entry.path), baseContent: baseText(entry.path) });
-    if (version === null) continue;
+    if (!isUpstreamVersion(repoRoot, { base, parentRef, picks, path: entry.path, head: headText(entry.path), baseContent: baseText(entry.path) })) continue;
     entry.reason = "upstream-version";
     entry.verdict = "ok";
-    entry.version = version;
   }
   const permitFile = permitsPath(ownerId);
   const permitParse = parsePermits(headText(permitFile) ?? "");

@@ -269,7 +269,7 @@ pnpm workflow ownership selfKeep --pre=<区間の前> --target=<区間の merge 
 親の緊急修正・先に取れる修正(`pick: clean`)を cherry-pick しても基準は動かないので、受け口の外のファイルはそのままだと違反になる。上流の文の混ぜ物を 2 つの照らしで見分けていたのを、決まり 1 つにした(D479)。
 
 - 台帳の行: `upstream:` は今の merge-base のまま(進めると Tier1 の版の判定がずれる)、`picked:` に pick の元の commit を書く(`.notices/README.md`「緊急修正(hotfix)」)
-- 判定: 違反の行の HEAD の中身が、(a) 基準の版 (b) 基準に台帳の `picked:` を順に当てた版 (c) 基準から親の ref までの履歴でそのパスが持ったどれかの版、のどれかと同じなら上流の物として合格(reason `upstream-version`、`version` = `base` / `base+pick` / `upstream <短 sha>`)。それ以外は違反のまま(fork 自身の変更 = push の前の止め)
+- 判定: 違反の行の HEAD の中身が、(a) 基準の版 (b) 基準に台帳の `picked:` を順に当てた版 (c) 基準から親の ref までの履歴でそのパスが持ったどれかの版、のどれかと同じなら上流の物として合格(reason `upstream-version`)。それ以外は違反のまま(fork 自身の変更 = push の前の止め)
 - 基準より古い版は数えない | 先取りが触ったか・名前の変わった両方のパス・段の順は見ない(名前の変わった行は今のパスの中身で照らす)| `picked:` は (b) を作るのにだけ使う
 - 既に基準に入った pick は対象から外れる(merge の後は差分に出ない)
 

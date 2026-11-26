@@ -76,7 +76,6 @@ describe("pnpm workflow ownership check", () => {
       assert.equal(result.base, base);
       const entry = result.entries.find((x) => x.path === CORE);
       assert.equal(entry?.reason, "upstream-version");
-      assert.equal(entry?.version, "base+pick");
     });
 
     test("台帳に picked: が無ければ受け口の外の違反", () => {
@@ -92,7 +91,7 @@ describe("pnpm workflow ownership check", () => {
       commitAll(fork, "replaced by the upstream's version at the pick");
       const result = runCheck(fork);
       assert.equal(result.status, "pass");
-      assert.match(result.entries.find((entry) => entry.path === CORE)?.version ?? "", /^upstream [0-9a-f]+$/);
+      assert.equal(result.entries.find((entry) => entry.path === CORE)?.reason, "upstream-version");
     });
 
     test("pick が変えたファイルが上流のどれかの版(間の版)と同じ中身なら合格(hotfixApply が触っていないファイルを置き換えた形)", () => {

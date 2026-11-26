@@ -25,7 +25,6 @@ const MARKER_LINE = /fork entries below/;
  *   fingerprints?: { base: string, head: string },
  *   permitDraft?: string,
  *   jsonKey?: string,
- *   version?: string,
  * }} OwnershipEntry 1 ファイルの判定(verdict = ok | violation | permitted。permit 以下は checkPermits と judgeFork が足す)
  */
 
