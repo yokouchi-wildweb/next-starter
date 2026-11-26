@@ -63,9 +63,9 @@ test("片方だけの列は「なし」で出す", () => {
   assert.ok(lines.includes("children: 列 note の型: 宣言 なし / 今 text"), lines.join(" | "));
 });
 
-test("sampleTag の domain.json を宣言として生成器で組んだ表と、今の SampleTagTable の違いが 0", async () => {
-  const config = JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "domains", "sampleTag", "domain.json"), "utf8"));
-  const registration = { domain: "sampleTag", registration: "sampleTag", dir: "src/domains/sampleTag", domainDir: "src/domains/sampleTag", config, table: "sample_tags", problems: [] };
+test("sampleTag の entity.json を宣言として生成器で組んだ表と、今の SampleTagTable の違いが 0", async () => {
+  const config = JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "domains", "sampleTag", "entities", "sampleTag", "entity.json"), "utf8"));
+  const registration = { domain: "sampleTag", registration: "sampleTag", dir: "src/domains/sampleTag/entities/sampleTag", domainDir: "src/domains/sampleTag", config, table: "sample_tags", problems: [] };
   const expected = await expectedTable(repoRoot, registration, tempDir);
   const actual = await actualTable(repoRoot, "sample_tags");
   assert.ok(actual);

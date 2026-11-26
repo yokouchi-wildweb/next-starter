@@ -10,6 +10,7 @@ import { matchesGlob } from "node:path";
 import { pointsFromFiles, isListPoint, isPlugsPoint, PLUGS_DIR_NAME, FRAME_FILE, FRAME_OVERRIDE_FILE, FRAME_SEARCH_ROOT, overridePathOfTarget, switchSetOf, configSlotsOf, discoverDistricts } from "../districtMap/index.mjs";
 import { DOMAIN_OUTPUTS_FILE, intakeOutputGlobs, matchDomainOutput, normalizeGateOutputs, parseDomainOutputs } from "../districtMap/node.mjs";
 import { parseSwitchLayout, LAYOUT_FILE_RE, PAGE_FILE_RE, discoverRoutes } from "../screens/node.mjs";
+import { isGeneratedRegistration, primaryRegistrationOf, readDomains } from "../domain/declarations.mjs";
 import { matchIntake } from "./intake.mjs";
 import { isDefaultName } from "./judge.mjs";
 
@@ -27,7 +28,27 @@ import { isDefaultName } from "./judge.mjs";
 export const EXPLAIN_TYPES = ["1", "2", "3", "4", "5", "generated", "own", "none"];
 
 const PHASE_FILE = /^scripts\/structure\/([^/]+)\/phase\.json$/;
-const DOMAIN_JSON = /^src\/domains\/(?:core\/)?[^/_][^/]*\/domain\.json$/;
+/**
+ * ファイルの一覧と読み方から、宣言の読み込みの部品に渡す source を作る(区間の木・git の木も同じに読む)
+ * @param {string[]} list リポジトリ直下からの相対のファイルの一覧
+ * @param {(path: string) => string | null} read
+ */
+function listSource(list, read) {
+  const files = new Set(list);
+  return {
+    listDir(rel) {
+      const prefix = `${rel}/`;
+      const entries = new Map();
+      for (const path of list) {
+        if (!path.startsWith(prefix)) continue;
+        const rest = path.slice(prefix.length).split("/");
+        entries.set(rest[0], rest.length > 1 || entries.get(rest[0]) === true);
+      }
+      return [...entries].map(([name, isDir]) => ({ name, isDir })).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+    },
+    readText: (rel) => (files.has(rel) ? read(rel) : null),
+  };
+}
 const SCREEN_PART_DIRS = ["_screen", "_layout"];
 const FORK_SCREEN_DIR = "_components";
 const FRAME_KEYS = ["layout", "page"];
@@ -109,14 +130,17 @@ export function explainView({ files, read, intake }) {
     domainOutputs: lazy(() => {
         const text = fileSet.has(DOMAIN_OUTPUTS_FILE) ? read(DOMAIN_OUTPUTS_FILE) : null;
         const outputs = text === null ? [] : parseDomainOutputs(text).outputs;
-        const domains = list
-          .filter((path) => DOMAIN_JSON.test(path))
-          .map((path) => ({ dir: dirOf(path), config: parseJson(read(path) ?? "") }))
-          .map(({ dir, config }) => ({
-            dir,
-            plural: isRecord(config) && typeof config.plural === "string" ? config.plural : undefined,
-            generate: !(isRecord(config) && config.generate === false),
-          }));
+        // 宣言は読み込みの部品 readDomains だけで読む(D335): plural = 主の登録の entity.json、generate = 生成する登録が 1 つでもあるか
+        const domains = readDomains(listSource(list, read))
+          .filter((declaration) => declaration.domain !== null)
+          .map((declaration) => {
+            const entity = primaryRegistrationOf(declaration)?.entity;
+            return {
+              dir: declaration.dir,
+              plural: isRecord(entity) && typeof entity.plural === "string" ? entity.plural : undefined,
+              generate: declaration.registrations.some(isGeneratedRegistration),
+            };
+          });
         return { outputs, domains };
       }),
     districts: lazy(() => {
@@ -173,7 +197,7 @@ function generatedOf(path, view) {
       write: hit.source,
       source: "pnpm generate domain",
       generated: { generator: "domain", command: "pnpm generate domain", part: "part" in hit.entry && typeof hit.entry.part === "string" ? hit.entry.part : null, region: false },
-      how: `手で直さない。${hit.source ?? "domain.json"} を直して作り直す(最後の手段: ${"dir" in hit.domain ? hit.domain.dir : ""}/domain.json の "generate": false で手書きに移す)`,
+      how: `手で直さない。${hit.source ?? "entities/<登録名>/entity.json"} を直して作り直す(最後の手段: その登録の entity.json の "generate": false で手書きに移す)`,
     });
   }
   return null;

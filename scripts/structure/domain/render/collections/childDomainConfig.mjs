@@ -1,9 +1,8 @@
-// 主の集まりの項目（fieldType mediaCollection）から、従属ドメインの domain.json の中身を組む純関数。
+// 主の集まりの項目（fieldType mediaCollection）から、従属ドメインの宣言(domain.json と登録の entity.json)の中身を組む純関数。
 // 従属 = 主に belongsTo（必須・CASCADE）するメディア 1 枚ずつの行。汎用 API と管理画面は閉じて生まれ、主の画面から読み書きする。
 // ファイルの権限は主の汎用 API の規則から写す（写せるのは public / authenticated / ロールの規則だけ。それ以外は管理者のみ + 直す場所の案内）
 
 import { defaultChildName } from "../../spec/collectionField.mjs";
-import { DOMAIN_CONFIG_VERSION } from "../../spec/version.mjs";
 import { toCamelCase, toSnakeCase } from "../../../../../src/lib/stringCase/index.mjs";
 import { toPlural } from "../../domain/plural.mjs";
 import { ADMIN_RULE, isValidRule, unionUploadRules } from "../registry/storagePurpose/rules.mjs";
@@ -60,9 +59,10 @@ export function childStorageRules(parentConfig) {
 }
 
 /**
- * @param {{ singular: string, label?: string, idType?: string, apiAccess?: object, generate?: boolean }} parentConfig 主の domain.json
+ * @param {{ singular: string, label?: string, idType?: string, apiAccess?: object, generate?: boolean }} parentConfig 主の登録の entity.json
  * @param {{ name: string, label: string, collection: { domain: string } }} field 主の集まりの項目
- * @returns {{ config: object, uncopied: string[] }} 従属の domain.json と、写せず管理者のみにした storage のキー（upload / read）
+ * @returns {{ config: object, uncopied: string[] }} 従属の登録の entity.json(ドメインの domain.json は表示名だけ: render/collections)と、
+ *   写せず管理者のみにした storage のキー（upload / read）
  */
 export function buildChildDomainConfig(parentConfig, field) {
   const parentSnake = toSnakeCase(parentConfig.singular);
@@ -72,7 +72,6 @@ export function buildChildDomainConfig(parentConfig, field) {
   const plural = singular === suggested.singular && suggested.plural ? suggested.plural : toSnakeCase(toPlural(singular));
   const { storage, uncopied } = childStorageRules(parentConfig);
   const config = {
-    domainConfigVersion: DOMAIN_CONFIG_VERSION,
     singular,
     plural,
     label: field.label,

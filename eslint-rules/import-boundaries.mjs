@@ -41,7 +41,8 @@
 // 迂回できる(barrel のパスに services/server が出ない)。サーバーの値は services/server のパスから直接 import する。
 //
 // ── client-no-domain-json(D39) ──
-// client のコードは domain.json を import しない(値も型も。import() と export … from も)。読むのは写し entities/display.ts。
+// client のコードはドメインの宣言(domain.json と entities/<登録名>/entity.json)を import しない(値も型も。import() と export … from も)。
+// 読むのは写し entities/display.ts。
 // client のコード = "use client" のファイル、または src の components/・hooks/・_components/ の下のファイル。
 // _components/ の下で "use client" の無い *Screen.tsx と loader.ts は server の差し替えなので対象外。テストも対象外。
 // 判定は isClientCodeFile に 1 つ(置き換えスクリプト .notices/20261101-121000-domain-display-client.domain-json-client-display.mjs も同じものを使う)。
@@ -285,7 +286,8 @@ export function isClientCodeFile(importerRel, text) {
   return !/(^|\/)(?:[^/]*Screen\.tsx|loader\.ts)$/.test(importerRel);
 }
 
-export const isDomainJsonPath = (resolved) => Boolean(resolved) && /(^|\/)domain\.json$/.test(resolved);
+/** ドメインの宣言のファイル(domain.json と登録の entities/<登録名>/entity.json、D335)か */
+export const isDomainJsonPath = (resolved) => Boolean(resolved) && /(^|\/)(domain\.json|entities\/[^/]+\/entity\.json)$/.test(resolved);
 
 const repoRootOf = (context) => context.cwd ?? context.getCwd?.() ?? process.cwd();
 
@@ -906,10 +908,10 @@ const mailSendViaMessaging = {
 const clientNoDomainJson = {
   meta: {
     type: "problem",
-    docs: { description: "client のコードは domain.json を import しない(写し entities/display.ts を読む)" },
+    docs: { description: "client のコードはドメインの宣言(domain.json・entity.json)を import しない(写し entities/display.ts を読む)" },
     messages: {
       clientDomainJson:
-        '"{{source}}": client のコードは domain.json を import しません。写し entities/display.ts の domainDisplay を読みます。写しに無いキーが要るときは理由を書いて eslint-disable(詳細: src/lib/domain/README.md。置き換え: .notices/20261101-121000-domain-display-client.domain-json-client-display.mjs)',
+        '"{{source}}": client のコードはドメインの宣言(domain.json・entities/<登録名>/entity.json)を import しません。写し entities/display.ts の domainDisplay を読みます。写しに無いキーが要るときは理由を書いて eslint-disable(詳細: src/lib/domain/README.md。置き換え: .notices/20261101-121000-domain-display-client.domain-json-client-display.mjs)',
     },
     schema: [],
   },

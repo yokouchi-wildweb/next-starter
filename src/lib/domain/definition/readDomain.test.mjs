@@ -70,6 +70,17 @@ test("表 2 以上のドメインは登録がフォルダの名前順に並ぶ(�
   assert.deepEqual(auditLog.problems, []);
 });
 
+test("entities/ の下のサブフォルダだけのフォルダ(役割の表 profiles/ など)は登録でなく、schema.ts だけのフォルダは登録(entity.json が無いのは problems)", () => {
+  const source = memorySource({
+    "src/domains/core/userProfile/domain.json": domainJson("プロフィール"),
+    "src/domains/core/userProfile/entities/profiles/contributor/index.ts": "",
+    "src/domains/core/userProfile/entities/legacy/schema.ts": "",
+  });
+  const userProfile = readDomain(source, "userProfile");
+  assert.deepEqual(userProfile.registrations, [{ name: "legacy", dir: "src/domains/core/userProfile/entities/legacy", entity: null }]);
+  assert.deepEqual(userProfile.problems, ["src/domains/core/userProfile/entities/legacy/entity.json が無い"]);
+});
+
 test("一覧は業務と core の両方を名前順に、_ で始まるフォルダは除く。domain.json の有無で選ばない", () => {
   const source = memorySource({
     "src/domains/_template/hooks/x.ts": "",

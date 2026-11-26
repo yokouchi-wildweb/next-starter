@@ -225,6 +225,15 @@ function makeRoot(files) {
   return root;
 }
 
+/**
+ * 一時の木のドメインの宣言: domain.json と主の登録の entities/<フォルダ名>/entity.json(本文 entityText)。
+ * 登録の無い domain.json だけでは「生成する登録を持たない = 手で管理」になるので、生成する業務ドメインは entity.json も置く
+ */
+function declared(folder, entityText) {
+  const name = folder.split("/").at(-1);
+  return { [`${folder}/domain.json`]: JSON.stringify({ domainConfigVersion: "2.0" }), [`${folder}/entities/${name}/entity.json`]: entityText };
+}
+
 test("生成: core → 業務の順に並び、override は access だけ差し替え、2 回目は変更なし", (t) => {
   t.mock.method(console, "log", () => {});
   const root = makeRoot({
@@ -236,7 +245,7 @@ import { PUBLIC_READ } from "@/lib/domainAccess";
 export const domainEntryOverrides = { userTag: PUBLIC_READ } satisfies DomainEntryOverrides;
 `,
     "src/domains/article/services/server/domainEntry.ts": ENTRY("article"),
-    "src/domains/article/domain.json": "{}",
+    ...declared("src/domains/article", "{}"),
   });
   const first = generateServiceRegistry(root);
   assert.equal(first.written, true);
@@ -255,7 +264,7 @@ test("検査: 生成ヘッダの無い旧ファイルの手書き行は失敗し
   t.mock.method(console, "log", () => {});
   const root = makeRoot({
     "src/domains/core/user/services/server/domainEntry.ts": ENTRY("user"),
-    "src/domains/sample/domain.json": "{}",
+    ...declared("src/domains/sample", "{}"),
     "src/domains/sample/services/server/sampleService.ts": "",
     [REGISTRY_FILE]: `import { userService } from "@/domains/user/services/server/userService";
 import { sampleService } from "@/domains/sample/services/server/sampleService";
@@ -269,7 +278,7 @@ export const serviceRegistry = {
   });
   const { errors } = checkServiceRegistry(root);
   assert.equal(errors.filter((error) => error.includes('手書きの行 "user"')).length, 0, "domainEntry.ts があるキーは手書き扱いしない");
-  assert.match(errors.find((error) => error.includes('手書きの行 "sample"')), /domain.json の apiAccess に移し、pnpm generate domain -- sample --yes --only registry/);
+  assert.match(errors.find((error) => error.includes('手書きの行 "sample"')), /登録の entity\.json の apiAccess に移し、pnpm generate domain -- sample --yes --only registry/);
   assert.match(errors.find((error) => error.includes('手書きの行 "legacy"')), /対応するドメインが見つからない/);
   assert.throws(() => generateServiceRegistry(root), /手書きの行 "sample"/);
 
@@ -302,7 +311,7 @@ test("検査: 重複キー・base があるのに domainEntry.ts が無い・rec
     "src/domains/core/leak/services/server/domainEntry.ts": `import { leakService } from "./leakService";\nexport const domainEntries = { leak: { service: async () => leakService, access: {} } };\n`,
     "src/domains/core/lonely/services/server/domainEntry.override.ts": `export const domainEntryOverrides = { nope: {} };\n`,
     "src/domains/core/broken/services/server/domainEntry.ts": `export const other = {};\n`,
-    "src/domains/business/domain.json": "{}",
+    ...declared("src/domains/business", "{}"),
     "src/domains/business/services/server/drizzleBase.ts": "",
   });
   const { errors } = checkServiceRegistry(root);
@@ -358,10 +367,10 @@ test("generate: false の業務ドメイン: domainEntry.ts が無いと手書�
 
   const domainJson = JSON.stringify({ singular: "visit", plural: "visits", generate: false });
   const root = makeRoot({
-    "src/domains/visit/domain.json": domainJson,
+    ...declared("src/domains/visit", domainJson),
     "src/domains/visit/services/server/drizzleBase.ts": "",
     "src/domains/visit/services/server/visitService.ts": "",
-    "src/domains/order/domain.json": JSON.stringify({ singular: "order", plural: "orders" }),
+    ...declared("src/domains/order", JSON.stringify({ singular: "order", plural: "orders" })),
     "src/domains/order/services/server/drizzleBase.ts": "",
   });
   const missing = checkServiceRegistry(root).errors;
@@ -389,7 +398,7 @@ test("generate: false の業務ドメイン: domainEntry.ts が無いと手書�
   assert.deepEqual(visit.keys, ["visit"]);
   assert.deepEqual(visit.tables.visit, { table: "visits", idColumn: "id" });
 
-  // README の例 = 生成器が同じ domain.json から書く本文（先頭のコメントを除く）。生成器の形が変われば README も直す
+  // README の例 = 生成器が同じ entity.json から書く本文（先頭のコメントを除く）。生成器の形が変われば README も直す
   const rendered = renderDomainEntry({ camel: "visit", config: JSON.parse(domainJson) });
   assert.equal(example, rendered.slice(rendered.indexOf("import type")));
 });

@@ -3,7 +3,7 @@
 
 import { normalizeDomainJsonConfig } from "@/lib/domain";
 import type { DomainConfigOptionals } from "@/lib/domain";
-import rawConf from "@/domains/sample/domain.json";
+import rawConf from "@/domains/sample/entities/sample/entity.json";
 import { SampleTable, SampleToSampleTagTable } from "@/domains/sample/entities/drizzle";
 import { SampleCategoryTable } from "@/domains/sampleCategory/entities/drizzle";
 import { SampleTagTable } from "@/domains/sampleTag/entities/drizzle";

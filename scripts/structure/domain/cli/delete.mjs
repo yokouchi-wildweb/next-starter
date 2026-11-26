@@ -1,7 +1,7 @@
 // pnpm generate domain -- --delete <Domain>: 組を壊す削除・他のドメインから参照されているドメインの削除なら止める → 確認 → 削除とレジストリの掃除。
 // 既定は対話なし: --confirm <snake_name> が一致したときだけ消す（名前の打ち直しの安全装置を引数にしたもの）。
-// 追加で消すディレクトリは --extra <path>（findExtraDirs の候補だけ、何度でも）、domain.json は --remove-config のときだけ消す。
-// -i（--interactive）のときだけ今までの対話（名前の再入力 → 追加ディレクトリの選択 → domain.json を消すか → 確認）
+// 追加で消すディレクトリは --extra <path>（findExtraDirs の候補だけ、何度でも）、宣言(domain.json と entities/<登録名>/entity.json)は --remove-config のときだけ消す。
+// -i（--interactive）のときだけ今までの対話（名前の再入力 → 追加ディレクトリの選択 → 宣言を消すか → 確認）
 
 import fs from "node:fs";
 import path from "node:path";
@@ -31,7 +31,7 @@ async function askInteractive(workspace, target, searchDirs) {
   }
   let removeConfig = true;
   if (fs.existsSync(target.configPath)) {
-    removeConfig = await confirm("domain.json も削除しますか?", false);
+    removeConfig = await confirm("宣言(domain.json と entity.json)も削除しますか?", false);
   }
   return { extras, removeConfig };
 }
@@ -55,7 +55,7 @@ function resolveArguments(workspace, target, domain, searchDirs, listed, options
     console.error("消すもの:");
     listed(extras).forEach((p) => console.error(` - ${p}`));
     if (searchDirs.length > 0) console.error(`追加で消せるディレクトリ（--extra <path>）: ${[...known.keys()].join(", ")}`);
-    console.error(`実行: pnpm generate domain -- --delete ${domain} --confirm ${target.normalizedSnake}${options.removeConfig ? " --remove-config" : ""}（domain.json も消すなら --remove-config）`);
+    console.error(`実行: pnpm generate domain -- --delete ${domain} --confirm ${target.normalizedSnake}${options.removeConfig ? " --remove-config" : ""}（宣言も消すなら --remove-config）`);
     process.exitCode = 1;
     return null;
   }
@@ -104,7 +104,7 @@ export async function runDelete(workspace, domain, options = {}) {
   console.log("以下を削除します:");
   listed(extras).forEach((p) => console.log(` - ${p}`));
   if (!removeConfig && fs.existsSync(target.configPath)) {
-    console.log(`（domain.json は残します: ${path.relative(workspace.rootDir, target.configPath)}）`);
+    console.log(`（宣言は残します: ${path.relative(workspace.rootDir, target.configPath)}）`);
   }
 
   if (options.interactive && !(await confirm("削除を実行しますか?", false))) {

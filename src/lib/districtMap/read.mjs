@@ -4,6 +4,7 @@
 // 宣言は今の置き場が正本(domain.json・domainEntry・extensionPoints・門の規則・frame:・CATALOG.md)。この読み手は写しを持たない。
 // 載せない物(目録 D8・D12): 値・access・関数・門の pathPatterns と enabled・受け口の項目の一覧・所有(どのリポの物か)。
 
+import { isGeneratedRegistration, readDomain } from "../domain/declarations.mjs";
 import { listLibsFrom } from "../libPackage/index.mjs";
 import { readDeclaration } from "./declarations.mjs";
 import { overrideGlobOf } from "./extensionNames.mjs";
@@ -14,7 +15,6 @@ import {
   CORE_DIR_NAME,
   DISTRICT_KINDS,
   DOMAIN_ENTRY_FILE,
-  DOMAIN_JSON_FILE,
   DOMAINS_ROOT,
   GATE_RULES_DIR,
   LAYOUT_DIR_NAME,
@@ -249,17 +249,12 @@ export function readDistrictMap(source) {
       district.featureRequirements = read.requirements;
     }
     if (d.kind === "domains") {
-      // domain.json の有無と generate(省略 = true、domain.json なし = null。生成器 pnpm generate domain が書き直すか、L1.15)
-      const domainJsonPath = join(d.dir, DOMAIN_JSON_FILE);
-      const domainJsonText = source.readText(domainJsonPath);
-      district.domainJson = domainJsonText !== null;
-      if (domainJsonText !== null) {
-        try {
-          district.generate = JSON.parse(domainJsonText).generate !== false;
-        } catch (error) {
-          problems.push(`${domainJsonPath}: JSON として読めない(${error instanceof Error ? error.message : String(error)})`);
-        }
-      }
+      // 宣言(domain.json)の有無と generate(登録の entity.json の generate。生成する登録が 1 つでもあれば true、宣言なし = null。
+      // 生成器 pnpm generate domain が書き直すか、L1.15・D337)。読むのは宣言の読み込みの部品だけ(D335)
+      const declaration = readDomain(source, d.name);
+      district.domainJson = declaration.domain !== null;
+      if (declaration.domain !== null) district.generate = declaration.registrations.some(isGeneratedRegistration);
+      problems.push(...declaration.problems.filter((problem) => problem.includes("JSON として読めない")));
       const entryPath = join(d.dir, DOMAIN_ENTRY_FILE);
       const entryText = source.readText(entryPath);
       if (entryText !== null) {

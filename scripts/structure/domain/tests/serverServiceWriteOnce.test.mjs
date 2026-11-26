@@ -100,7 +100,7 @@ test("Firestore ドメインにメディア列があれば生成エラーで止�
   assert.ok(!fs.existsSync(path.join(serverDir(root, "memo"), "firestoreBase.ts")));
 });
 
-test("domain.json の audit: drizzleBase に audit と recorder が入り再生成でも残る。無し・enabled: false は何も出さない", () => {
+test("entity.json の audit: drizzleBase に audit と recorder が入り再生成でも残る。無し・enabled: false は何も出さない", () => {
   const config = (audit) => ({ singular: "note", plural: "notes", dbEngine: "Neon", idType: "uuid", fields: [{ name: "title", fieldType: "string", formInput: "textInput" }], ...(audit ? { audit } : {}) });
   const basePath = (root) => path.join(serverDir(root, "note"), "drizzleBase.ts");
   const plain = project([], { note: config() });

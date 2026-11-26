@@ -15,6 +15,7 @@ import { withGeneratedMark } from "../render/output.mjs";
 import { createWorkspace } from "../domain/workspace.mjs";
 import { createDomainContext } from "../domain/context.mjs";
 import { applyOutputs } from "../pipeline/apply.mjs";
+import { writeDeclaration } from "./helpers.mjs";
 
 const SERVICE_REGISTRY = `import { userService } from "@/domains/core/user/services/server/userService";
 import { sampleService } from "@/domains/sample/services/server/sampleService";
@@ -217,11 +218,10 @@ test("domainTableName: 表の定義の生成器と同じ式（plural 優先、sn
   assert.equal(domainTableName("sample_tag", null), "sample_tag");
 });
 
-test("domainEntry: domain.json から services/server/domainEntry.ts を書き、再実行で差分なし。apiAccess 未宣言は警告", () => {
-  const root = makeRoot({
-    "src/domains/sample/domain.json": JSON.stringify({ apiAccess: API_ACCESS, useImportExport: true }),
-    "src/domains/save/domain.json": JSON.stringify({}),
-  });
+test("domainEntry: entity.json から services/server/domainEntry.ts を書き、再実行で差分なし。apiAccess 未宣言は警告", () => {
+  const root = makeRoot({});
+  writeDeclaration(root, "sample", { apiAccess: API_ACCESS, useImportExport: true });
+  writeDeclaration(root, "save", {});
   assert.equal(writeDomainEntry(root, "sample"), 0);
   const first = read(root, "src/domains/sample/services/server/domainEntry.ts");
   // 書いた中身 = 雛形の中身 + 生成物の印(render/output.mjs の file())

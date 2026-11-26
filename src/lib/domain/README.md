@@ -110,9 +110,11 @@ export const domainEntries = {
 
 - ドメイン 1 つ = `src/domains/<d>/domain.json`(ドメインそのものの短い宣言: `domainConfigVersion` "2.0"・`label`)+ 表 1 つ = 登録 1 件ごとの `entities/<登録名>/entity.json`(表の鍵と登録の鍵)。表なしのドメインは登録 0、表 1 つのドメインは登録名 = ドメイン名
 - 登録の一覧は `entities/` の下のフォルダの並びで、どこにも手で書かない。生成するかの旗 `generate` は登録ごと(entity.json、D337)
-- 鍵の集合の正は `definition/declaration.mjs`、読むのは読み込みの部品 `definition/readDomain.mjs` だけ(入口 "./node")。無い・壊れた・知らない鍵は `problems` に入り、推測で埋めない
+- 鍵の集合の正は `definition/declaration.mjs`、読むのは読み込みの部品 `definition/readDomain.mjs` だけ(入口 "./declarations"・"./node")。無い・壊れた・知らない鍵は `problems` に入り、推測で埋めない
+- entities/ の下のフォルダのうち entity.json か表のファイル(`ENTITY_FILE_KINDS`)を持つ物だけが登録(役割の表 profiles/ などは登録でない)
 - 入れ子(fields・relations・fieldGroups・indexes と下の表の鍵)の知らない鍵も `problems`(表 `ENTITY_NESTED_KEYS`)。値の形は見ない
-- 今のドメインと生成器・読み手はまだ今の 1 ファイルの形(この節の部品へは S3 の続く指令で移す)。今の形の語彙 `scripts/structure/domain/spec/domainJson.mjs` も鍵の集合はここから組む
+- 上流の全ドメインはこの形(79)。scripts 側の読み手(生成器・登録表の生成・地区の地図・検査)はこの部品だけで読む(80)。実行時に宣言を import する手書きの所は続く指令で移す
+- 生成器の 1 ドメインの config = 主の登録の entity.json。生成する登録を持つのに登録が 2 つ以上のドメインは止める(登録ごとの一式は区切り domain-kit)
 
 手で持つ表の形の鍵(entity.json だけ、Neon のみ。今の 1 ファイルの形では書けなかった物):
 

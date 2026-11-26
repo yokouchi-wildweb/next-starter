@@ -9,7 +9,7 @@ import { generateDomain, generateWithPairs, loadDomainForGenerate } from "../pip
 import { runGenerateAll } from "../pipeline/generateAll.mjs";
 import { assertPairs, orderWithPairs, resolvePairs } from "../pipeline/pairs.mjs";
 import { createWorkspace } from "../domain/workspace.mjs";
-import { makeProject, removeAll } from "./helpers.mjs";
+import { entityDeclarationPath, makeProject, removeAll } from "./helpers.mjs";
 
 const cleanup = [];
 after(() => removeAll(cleanup));
@@ -17,7 +17,6 @@ after(() => removeAll(cleanup));
 const ONLY = ["entities"];
 const GEN = { entities: true };
 const base = (singular, fields = [], extra = {}) => ({
-  domainConfigVersion: "1.3",
   singular,
   plural: `${singular}s`,
   label: singular,
@@ -35,7 +34,8 @@ const capture = () => {
   const lines = [];
   return { io: { log: (m) => lines.push(String(m)), warn: (m) => lines.push(`WARN ${m}`) }, text: () => lines.join("\n"), lines };
 };
-const drizzle = (root, domain) => path.join(root, "src", "domains", domain, "entities", "drizzle.ts");
+/** 表の本体(登録のフォルダ entities/<登録名>/drizzle.ts。entities/drizzle.ts は集める入口) */
+const drizzle = (root, domain) => path.join(root, "src", "domains", domain, "entities", domain, "drizzle.ts");
 const domainJson = (root, domain) => path.join(root, "src", "domains", domain, "domain.json");
 const order = (lines) => lines.filter((l) => /の生成を開始します|Drizzle エンティティを生成しました/.test(l)).map((l) => l.match(/domains\/(\w+)\/|\[(\w+)\]/).slice(1).find(Boolean));
 const generateOne = (root, domain, options = {}) => {
@@ -47,15 +47,16 @@ const generateOne = (root, domain, options = {}) => {
 };
 const listFiles = (root) => fs.readdirSync(path.join(root, "src", "domains"), { recursive: true }).sort();
 
-test("主を生成すると、従属の domain.json を書き出してその中身で従属も生成し、従属 → 主の順。最後に一覧を出す", () => {
+test("主を生成すると、従属の宣言を書き出してその中身で従属も生成し、従属 → 主の順。最後に一覧を出す", () => {
   const root = makeProject({ configs: { album: base("album", [collectionField("photos", "album_photo")]) }, cleanup });
   const out = generateOne(root, "album");
   assert.ok(fs.existsSync(domainJson(root, "albumPhoto")));
+  assert.ok(fs.existsSync(entityDeclarationPath(root, "albumPhoto")));
   assert.ok(fs.existsSync(drizzle(root, "albumPhoto")));
   assert.ok(fs.existsSync(drizzle(root, "album")));
   assert.deepEqual(order(out.lines).filter((d, i, a) => a.indexOf(d) === i), ["albumPhoto", "album"]);
   const text = out.text();
-  assert.match(text, /\[組\] 書き出した domain\.json: .*albumPhoto\/domain\.json/);
+  assert.match(text, /\[組\] 書き出した domain\.json: .*albumPhoto\/entities\/albumPhoto\/entity\.json/);
   assert.match(text, /\[組\] db:push が要る表: album_photos（pnpm db:push を実行してください）/);
   assert.match(text, /\[組\] コミットに含めるもの: .*domains\/albumPhoto\//);
   assert.match(fs.readFileSync(drizzle(root, "albumPhoto"), "utf8"), /album_id/);
@@ -117,7 +118,7 @@ test("dry-run は何も書かず、一覧を「書き出す予定」として出
   const before = listFiles(root);
   const out = generateOne(root, "album", { dryRun: true });
   assert.deepEqual(listFiles(root), before);
-  assert.match(out.text(), /\[dry-run\]\[組\] 書き出す予定の domain\.json: .*albumPhoto\/domain\.json/);
+  assert.match(out.text(), /\[dry-run\]\[組\] 書き出す予定の domain\.json: .*albumPhoto\/entities\/albumPhoto\/entity\.json/);
   assert.match(out.text(), /\[dry-run\] albumPhoto: 作成/);
 });
 

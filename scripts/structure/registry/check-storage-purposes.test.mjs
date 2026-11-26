@@ -1,6 +1,6 @@
 // ファイル用途（合成した全用途）と生成器の検査。
 // - 全用途（core・fork の項目とドメインの storagePurposes.ts）が ID の形式・型・規則に合う
-// - 全 domain.json（business と core の設定源）のメディア項目に、対応する用途が登録されている
+// - 全ドメインの主の登録の entity.json（business と core の設定源）のメディア項目に、対応する用途が登録されている
 // - 生成器の導出（visibility の必須化・上限の既定値・metadata の検査と書き出し）と生成した storagePurposes.ts の本文
 // - 用途の metadata（strip / keep）の規則と、user.avatar が keep でないこと（D29）
 // - storage オプションのメディア列は systemColumns・hiddenColumns にできない（登録済みの全サービスが作れることも確かめる）
@@ -17,6 +17,7 @@ import {
 } from "../domain/render/registry/storagePurpose/index.mjs";
 import { MEDIA_FIELD_TYPES } from "../domain/spec/fieldTypes.mjs";
 import { withGeneratedMark } from "../domain/render/output.mjs";
+import { nodeDomainSource, primaryRegistrationOf, readDomains } from "../../../src/lib/domain/node.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -26,15 +27,13 @@ const { listStoragePurposeProblems } = await import("../../../src/lib/storage/se
 const { isValidStoragePurposeId } = await import("../../../src/lib/storage/index.ts");
 const { FIXED_STRIP_PURPOSES } = await import("../../../src/domains/core/storageObject/services/server/purposeSource.ts");
 
-/** src/domains/<domain>/domain.json と src/domains/core/<domain>/domain.json（ドメイン名 = フォルダ名） */
+/** 宣言(domain.json)のあるドメイン(business と core)の主の登録の entity.json（ドメイン名 = フォルダ名）。読むのは readDomain の部品 */
 function listDomainConfigs() {
   const result = [];
-  for (const base of [path.join(rootDir, "src", "domains"), path.join(rootDir, "src", "domains", "core")]) {
-    for (const dirent of fs.readdirSync(base, { withFileTypes: true })) {
-      if (!dirent.isDirectory()) continue;
-      const file = path.join(base, dirent.name, "domain.json");
-      if (fs.existsSync(file)) result.push({ domain: dirent.name, config: JSON.parse(fs.readFileSync(file, "utf8")) });
-    }
+  for (const declaration of readDomains(nodeDomainSource(rootDir))) {
+    if (declaration.domain === null) continue;
+    const entity = primaryRegistrationOf(declaration)?.entity;
+    if (entity) result.push({ domain: declaration.name, config: entity });
   }
   return result;
 }
@@ -58,7 +57,7 @@ describe("登録表", () => {
     }
   });
 
-  test("全 domain.json のメディア項目に用途が登録されている", () => {
+  test("全ドメインの主の登録の entity.json のメディア項目に用途が登録されている", () => {
     const missing = [];
     for (const { domain, config } of listDomainConfigs()) {
       for (const field of config.fields ?? []) {
@@ -272,10 +271,10 @@ describe("ドメインの storagePurposes.ts", () => {
     assert.doesNotMatch(renderStoragePurposesContent("src/domains/item", ENTRIES.slice(1)), /storageObjectConfig/);
   });
 
-  test("上流の生成物は domain.json から作り直しても変わらず、値は移す前の 3 用途のまま", () => {
+  test("上流の生成物は entity.json から作り直しても変わらず、値は移す前の 3 用途のまま", () => {
     for (const domain of ["sample", "sampleImage"]) {
       const rel = `src/domains/${domain}`;
-      const config = JSON.parse(fs.readFileSync(path.join(rootDir, rel, "domain.json"), "utf8"));
+      const config = JSON.parse(fs.readFileSync(path.join(rootDir, rel, "entities", domain, "entity.json"), "utf8"));
       const { entries, errors } = buildStoragePurposeEntries({ camel: domain, config, roleCategories: ROLE_CATEGORIES });
       assert.deepEqual(errors, []);
       // 書いた中身 = 雛形の中身 + 生成物の印(scripts/structure/domain/render/output.mjs の file())

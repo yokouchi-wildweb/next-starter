@@ -25,6 +25,11 @@ function withTree(files, rows, fn) {
     fs.rmSync(root, { recursive: true, force: true });
   }
 }
+/** 仮の木のドメインの宣言: domain.json と主の登録の entities/<フォルダ名>/entity.json(本文 entity) */
+const declared = (folder, entity) => {
+  const name = folder.split("/").at(-1);
+  return { [`${folder}/domain.json`]: { domainConfigVersion: "2.0" }, [`${folder}/entities/${name}/entity.json`]: entity };
+};
 const postRow = { kind: "domains", name: "post", dir: "src/domains/post", domainJson: true };
 const tagRow = { kind: "domains", name: "tag", dir: "src/domains/core/tag", domainJson: false };
 const userRow = { kind: "domains", name: "user", dir: "src/domains/core/user", domainJson: false };
@@ -42,9 +47,9 @@ test("render: tagged の get は行のキャッシュタグ・行の全部のキ
       ],
       readsDomains: ["user"],
     },
-    "src/domains/post/domain.json",
+    "src/domains/post/entities/post/entity.json",
   );
-  assert.match(text, /^\/\/ 生成物・編集不可: pnpm generate cache が src\/domains\/post\/domain\.json の cache から生成する/);
+  assert.match(text, /^\/\/ 生成物・編集不可: pnpm generate cache が src\/domains\/post\/entities\/post\/entity\.json の cache から生成する/);
   assert.match(text, /async function cachedGet\(id: string\) \{\n {2}"use cache: remote";\n {2}cacheLife\("days"\);\n {2}cacheTag\(cacheTagOf\("post", id\), cacheRowsTagOf\("post"\), cacheTagOf\("user"\)\);\n {2}return base\.get\(id\);/);
   assert.match(text, /const get = \(id: string\) => readThrough\("post\.get", \(\) => cachedGet\(id\), \(\) => base\.get\(id\)\);/);
   assert.match(text, /async function cachedList\(\) \{[\s\S]*?cacheTag\(cacheTagOf\("post"\), cacheTagOf\("user"\)\);\n {2}return base\.search\(\{ limit: 100 \}\);/);
@@ -65,9 +70,9 @@ test("render: ttl だけ・get: false はキャッシュタグの import も get
   assert.match(noGet, /export const postCachedReads = \{ list \};/);
 });
 
-test("generate: domain.json と cache.json(手書きのドメイン)の両方に書き、2 回目は何もしない、check は宣言どおり", () => {
+test("generate: entity.json と cache.json(手書きのドメイン)の両方に書き、2 回目は何もしない、check は宣言どおり", () => {
   const files = {
-    "src/domains/post/domain.json": { ...neon, generate: false, cache: { mode: "tagged", life: "days" } },
+    ...declared("src/domains/post", { ...neon, generate: false, cache: { mode: "tagged", life: "days" } }),
     "src/domains/post/services/server/drizzleBase.ts": BASE_OK,
     "src/domains/core/tag/cache.json": { mode: "ttl", life: "minutes", get: false, list: { limit: 50 } },
     "src/domains/core/tag/services/server/drizzleBase.ts": BASE_OK.replace('"post"', '"tag"'),
@@ -89,7 +94,7 @@ test("generate: domain.json と cache.json(手書きのドメイン)の両方に
 test("消去: 宣言が消えたドメインの印のある cachedReads.ts だけを消す、check は食い違いを名指す", () => {
   const generated = "// 生成物・編集不可: pnpm generate cache が x の cache から生成する\n";
   const files = {
-    "src/domains/post/domain.json": neon,
+    ...declared("src/domains/post", neon),
     [path.join("src/domains/post", CACHED_READS_FILE)]: generated,
     [path.join("src/domains/core/user", CACHED_READS_FILE)]: "// 手書き\n",
   };
@@ -101,14 +106,14 @@ test("消去: 宣言が消えたドメインの印のある cachedReads.ts だ�
 });
 
 test("問題: 宣言の誤り・手書きの base に cacheTags が無い・drizzleBase が無い は何も書かない", () => {
-  const bad = { "src/domains/post/domain.json": { ...neon, cache: { mode: "tagged", life: "default" } } };
+  const bad = declared("src/domains/post", { ...neon, cache: { mode: "tagged", life: "default" } });
   withTree(bad, [postRow], (root, rows) => {
     const plan = planCachedReads(root, rows);
     assert.match(plan.problems.join("\n"), /\[post\] cache\.life に "default" は書けません/);
     assert.deepEqual(plan.writes, []);
   });
   const noOption = {
-    "src/domains/post/domain.json": { ...neon, cache: { mode: "tagged", life: "days" } },
+    ...declared("src/domains/post", { ...neon, cache: { mode: "tagged", life: "days" } }),
     "src/domains/post/services/server/drizzleBase.ts": "export const base = createCrudService(PostTable, { ...baseOptions });\n",
     "src/domains/core/tag/cache.json": { mode: "tagged", life: "days" },
   };

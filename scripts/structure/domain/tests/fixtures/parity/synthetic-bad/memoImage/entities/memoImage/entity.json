@@ -1,0 +1,4 @@
+{"singular":"memo_image","plural":"memo_images","label":"メモ画像","dbEngine":"Firestore","idType":"string","relations":[],
+ "useCreatedAt":true,"useUpdatedAt":true,
+ "fields":[{"name":"image","label":"画像","fieldType":"mediaUploader","formInput":"mediaUploader","required":false,"accept":"image/*","mediaTypePreset":"images"}],
+ "searchFields":[],"defaultOrderBy":[],"tableFields":["image"],"apiAccess":{"read":"public","write":{"roleCategories":["admin"]}}}

@@ -2,6 +2,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { DOMAIN_DECLARATION_FILE, ENTITIES_DIR, ENTITY_DECLARATION_FILE } from "../../../../../src/lib/domain/node.mjs";
 import { toCamelCase, toKebabCase } from "../../../../../src/lib/stringCase/index.mjs";
 import { cleanupRegistries } from "./registries.mjs";
 import { findDomainDirs, resolveDeleteTarget, resolveDir } from "./names.mjs";
@@ -81,6 +82,18 @@ export function listDeletePaths(workspace, { domainDir, adminDir, extras }) {
   return paths;
 }
 
+/** entities/ の中を消し、登録のフォルダの entity.json だけを残す */
+function removeExceptEntityDeclarations(entitiesDir) {
+  for (const entry of fs.readdirSync(entitiesDir, { withFileTypes: true })) {
+    const full = path.join(entitiesDir, entry.name);
+    if (!entry.isDirectory()) {
+      fs.rmSync(full, { force: true });
+      continue;
+    }
+    for (const inner of fs.readdirSync(full)) if (inner !== ENTITY_DECLARATION_FILE) fs.rmSync(path.join(full, inner), { recursive: true, force: true });
+  }
+}
+
 /** ディレクトリを消し、レジストリを掃除する。@returns 手で直すレジストリの一覧 */
 export function removeDomainFiles(workspace, { target, adminDir, pluralKebab, extras, removeConfig }, io = console) {
   const { domainDir } = target;
@@ -90,10 +103,14 @@ export function removeDomainFiles(workspace, { target, adminDir, pluralKebab, ex
     if (removeConfig) {
       fs.rmSync(domainDir, { recursive: true, force: true });
     } else {
+      // 宣言(domain.json と entities/<登録名>/entity.json)だけを残す
       for (const entry of fs.readdirSync(domainDir)) {
-        if (entry !== "domain.json") {
-          fs.rmSync(path.join(domainDir, entry), { recursive: true, force: true });
+        if (entry === DOMAIN_DECLARATION_FILE) continue;
+        if (entry === ENTITIES_DIR) {
+          removeExceptEntityDeclarations(path.join(domainDir, entry));
+          continue;
         }
+        fs.rmSync(path.join(domainDir, entry), { recursive: true, force: true });
       }
     }
   }

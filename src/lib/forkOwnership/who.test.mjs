@@ -344,12 +344,14 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     "src/lib/districtMap/extensionPoints.ts": real("src/lib/districtMap/extensionPoints.ts"),
     "src/config/app/site.config.ts": "export const site = {};\n",
     // pnpm generate domain の物(generate: true / false)
-    "src/domains/sample/domain.json": JSON.stringify({ plural: "samples" }),
+    "src/domains/sample/domain.json": JSON.stringify({ domainConfigVersion: "2.0" }),
+    "src/domains/sample/entities/sample/entity.json": JSON.stringify({ plural: "samples" }),
     "src/domains/sample/entities/drizzle.ts": "export const t = 1;\n",
     "src/domains/sample/services/server/drizzleBase.ts": "export const b = 1;\n",
     "src/domains/sample/seed.ts": "export default 1;\n",
     "src/app/admin/(protected)/samples/_screen/loader.ts": "export const loader = 1;\n",
-    "src/domains/hand/domain.json": JSON.stringify({ generate: false }),
+    "src/domains/hand/domain.json": JSON.stringify({ domainConfigVersion: "2.0" }),
+    "src/domains/hand/entities/hand/entity.json": JSON.stringify({ generate: false }),
     "src/domains/hand/entities/drizzle.ts": "export const t = 1;\n",
   };
   const view = explainView({ files: Object.keys(tree), read: (path) => tree[path] ?? null, intake: parseIntake(tree["src/lib/forkOwnership/intake.txt"]).rules });
@@ -384,9 +386,9 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     ["src/config のファイル", "src/config/app/site.config.ts", { type: "4", write: "src/config/app/site.config.ts", keys: null, source: "src/lib/districtMap/extensionPoints.ts configValues" }],
     // 生成物
     ["生成器の出力(phase.json)", "src/registry/district-map.jsonl", { type: "generated", write: null, keys: null, source: "pnpm generate district-map" }],
-    ["pnpm generate domain が毎回書く(直す元 = domain.json)", "src/domains/sample/entities/drizzle.ts", { type: "generated", write: "src/domains/sample/domain.json", keys: null, source: "pnpm generate domain" }],
+    ["pnpm generate domain が毎回書く(直す元 = 主の登録の entity.json)", "src/domains/sample/entities/drizzle.ts", { type: "generated", write: "src/domains/sample/entities/sample/entity.json", keys: null, source: "pnpm generate domain" }],
     ["pnpm generate domain が毎回書く(直す元 = wrappers/)", "src/domains/sample/services/server/drizzleBase.ts", { type: "generated", write: "src/domains/sample/services/server/wrappers/", keys: null, source: "pnpm generate domain" }],
-    ["管理画面の生成物(ルートのフォルダ → ドメイン)", "src/app/admin/(protected)/samples/_screen/loader.ts", { type: "generated", write: "src/domains/sample/domain.json", keys: null, source: "pnpm generate domain" }],
+    ["管理画面の生成物(ルートのフォルダ → ドメイン)", "src/app/admin/(protected)/samples/_screen/loader.ts", { type: "generated", write: "src/domains/sample/entities/sample/entity.json", keys: null, source: "pnpm generate domain" }],
     // 型 5
     ["自分の版(self の行)", "repo.json", { type: "5", write: "repo.json", keys: null }],
     ["自分の版で、生成器がファイルの中の持ち分を書く(vercel.json の crons)", "vercel.json", { type: "5", write: "vercel.json", keys: null }],
@@ -471,7 +473,7 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     assert.deepEqual(typeOf("src/domains/core/user/coreRoles/admin.role.json"), ["2", "src/domains/core/user/coreRoles/admin.role.override.ts"]);
     assert.deepEqual(typeOf("src/app/(user)/frame.ts"), ["2", "src/app/(user)/frame.override.ts"]);
     assert.deepEqual(typeOf("src/app/(user)/(protected)/mypage/_screen/MyPageScreen.tsx"), ["1", "src/app/(user)/(protected)/mypage/_components/"]);
-    assert.deepEqual(typeOf("src/domains/sample/entities/drizzle.ts"), ["generated", "src/domains/sample/domain.json"]);
+    assert.deepEqual(typeOf("src/domains/sample/entities/drizzle.ts"), ["generated", "src/domains/sample/entities/sample/entity.json"]);
     assert.deepEqual(typeOf("src/domains/core/user/services/server/userService.ts"), ["none", null]);
   });
 });

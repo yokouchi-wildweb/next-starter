@@ -5,7 +5,10 @@
 // 出どころ dataMenu が addToAdminDataMenu: true の行を展開する(src/domains/core/admin/menu/)。
 
 export const adminDomains = {
+  auditLog: { label: "監査ログ", href: "/admin/audit-logs", addToAdminDataMenu: false },
   chatRoom: { label: "チャットルーム", href: "/admin/chat-rooms", addToAdminDataMenu: false },
+  setting: { label: "設定", href: "/admin/settings", addToAdminDataMenu: false },
+  userGroup: { label: "ユーザーグループ", href: "/admin/user-groups", addToAdminDataMenu: false },
   userTag: { label: "ユーザータグ", href: "/admin/user-tags", addToAdminDataMenu: false },
   sample: { label: "サンプル", href: "/admin/samples", addToAdminDataMenu: true },
   sampleCategory: { label: "サンプルカテゴリ", href: "/admin/sample-categories", addToAdminDataMenu: true },

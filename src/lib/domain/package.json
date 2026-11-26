@@ -2,7 +2,12 @@
   "exports": {
     ".": "./index.ts",
     "./server": "./server.ts",
-    "./node": "./node.mjs"
+    "./node": "./node.mjs",
+    "./declarations": "./declarations.mjs"
   },
-  "libs": ["domainAccess", "errors", "stringCase"]
+  "libs": [
+    "domainAccess",
+    "errors",
+    "stringCase"
+  ]
 }

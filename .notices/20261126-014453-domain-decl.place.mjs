@@ -24,7 +24,7 @@ import ts from "typescript";
 
 import { nodeDomainSource, readDomains } from "../src/lib/domain/node.mjs";
 import { toPascalCase, toSnakeCase } from "../src/lib/stringCase/index.mjs";
-import { ENTITY_KINDS, renderEntityCollector } from "../scripts/structure/domain/render/entities/collector.mjs";
+import { ENTITY_KINDS, moveIntoRegistration, renderEntityCollector } from "../scripts/structure/domain/render/entities/collector.mjs";
 import { diffTableFacts, tableFactsOf } from "../scripts/structure/domain-tables/facts.mjs";
 import { makeTempDir, resolveRepoImport } from "../scripts/structure/domain-tables/tables.mjs";
 
@@ -71,14 +71,6 @@ export function exportedNamesOf(text, name = "x.ts") {
     }
   }
   return { names, starFrom };
-}
-
-/** 相対の import の道を、ファイルが 1 段深く(entities/<登録名>/)へ移った時の道に */
-const deeper = (specifier) => (specifier.startsWith("./") ? `../${specifier.slice(2)}` : specifier.startsWith("../") ? `../${specifier}` : specifier);
-
-/** import の文の道を直す */
-function rewriteImports(text, rewrite) {
-  return text.replace(/(from\s+|import\s*\(\s*|import\s+)(["'])(\.{1,2}\/[^"']+)\2/g, (whole, head, quote, specifier) => `${head}${quote}${rewrite(specifier)}${quote}`);
 }
 
 /** どの表にも属さないドメイン全体の文の置き場(D341): 型 → types/、定数と入力の形(zod の値)・関数 → constants/(ドメインのフォルダからの相対) */
@@ -284,10 +276,7 @@ export function planPlacement(input) {
       const wideHere = items.filter((item) => item.wide && item.file === file);
       let text = files[file];
       if (wideHere.length > 0) text = withoutStatements(sources.get(file), wideHere.map((item) => item.statement), items.filter((item) => !item.wide && item.file === file));
-      result.writes[`${entities}/${registration.name}/${kind}.ts`] = rewriteImports(text, (specifier) => {
-        const target = specifier.replace(/^\.\//, "").replace(/\.ts$/, "");
-        return specifier.startsWith("./") && kindFiles.includes(target) ? specifier : deeper(specifier);
-      }).replace(/^\/\/ src\/domains\/[^\n]*\/entities\/[^\n]*\n/, `// ${entities}/${registration.name}/${kind}.ts\n`);
+      result.writes[`${entities}/${registration.name}/${kind}.ts`] = moveIntoRegistration(text, { domainRel, registration: registration.name, kind, siblings: kindFiles });
       result.writes[`${entities}/${kind}.ts`] = renderEntityCollector(domainRel, kind, [registration.name]);
     }
   } else {

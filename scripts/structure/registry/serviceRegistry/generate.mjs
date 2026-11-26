@@ -25,10 +25,9 @@ import {
   REGISTRY_FILE,
   discoverDomainEntries,
   overrideAttribute,
-  diskView,
   listStorageBindingRecordTypes,
   readExistingRegistry,
-  readHandManaged,
+  readDeclarationFacts,
 } from "./discover.mjs";
 
 /** 移行前の手書き行の移し先を案内する */
@@ -42,12 +41,12 @@ function legacyKeyHint(repoRoot, key, serviceImports) {
   if (!fs.existsSync(path.join(features, dir))) {
     return `対応するドメインが見つからない。fork が core パスに作ったドメインなら src/domains/core/<domain>/services/server/${ENTRY_FILE} を手書きする（access を変えるだけなら ${OVERRIDE_FILE}）`;
   }
-  const domainJson = path.join(features, dir, "domain.json");
-  if (!dir.startsWith("core/") && fs.existsSync(domainJson) && readHandManaged(diskView, domainJson)) {
-    return `domain.json が "generate": false なので pnpm generate domain は書かない → src/domains/${dir}/services/server/${ENTRY_FILE} を手書きし、access をそこへ移す（形: src/lib/domain/README.md「generate: false の業務ドメイン」）`;
+  const facts = readDeclarationFacts(repoRoot, path.basename(dir));
+  if (!dir.startsWith("core/") && facts.handManaged) {
+    return `登録の entity.json が "generate": false なので pnpm generate domain は書かない → src/domains/${dir}/services/server/${ENTRY_FILE} を手書きし、access をそこへ移す（形: src/lib/domain/README.md「generate: false の業務ドメイン」）`;
   }
-  if (!dir.startsWith("core/") && fs.existsSync(domainJson)) {
-    return `access は domain.json の apiAccess に移し、pnpm generate domain -- ${key} --yes --only registry で src/domains/${dir}/services/server/${ENTRY_FILE} を生成する`;
+  if (!dir.startsWith("core/") && facts.hasDomainJson) {
+    return `access は登録の entity.json の apiAccess に移し、pnpm generate domain -- ${key} --yes --only registry で src/domains/${dir}/services/server/${ENTRY_FILE} を生成する`;
   }
   return `src/domains/${dir}/services/server/${ENTRY_FILE} を手書きする（core の access を fork で変えるなら隣に ${OVERRIDE_FILE}）`;
 }

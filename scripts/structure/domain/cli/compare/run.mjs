@@ -7,6 +7,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { createDomainContext } from "../../domain/context.mjs";
+import { DOMAIN_DECLARATION_FILE, ENTITY_DECLARATION_FILE } from "../../../../../src/lib/domain/node.mjs";
 import { createWorkspace } from "../../domain/workspace.mjs";
 import { classifyFile, summarizeDomain } from "./classify.mjs";
 import { domainDirIn, extractGeneratorAt } from "./refGenerator.mjs";
@@ -58,6 +59,9 @@ const listFiles = (dir, base = dir, out = []) => {
   return out;
 };
 
+/** 宣言のファイル(domain.json・entities/<登録名>/entity.json)。生成物でも fork の手のファイルでもない */
+const isDeclarationFile = (file) => file.endsWith(`/${DOMAIN_DECLARATION_FILE}`) || file.endsWith(`/${ENTITY_DECLARATION_FILE}`);
+
 /** @param {string[]} argv getCliArgs の結果 */
 export async function runCompare(argv, { repoRoot = process.cwd(), io = console } = {}) {
   const value = (name) => {
@@ -70,7 +74,7 @@ export async function runCompare(argv, { repoRoot = process.cwd(), io = console 
   const workspace = createWorkspace(repoRoot);
   const all = workspace.listDomains().filter((name) => workspace.locateDomain(name).kind === "business");
   const domains = named.length ? all.filter((name) => named.includes(name)) : all;
-  if (named.length && domains.length !== named.length) throw new Error(`domain.json の無いドメイン: ${named.filter((n) => !all.includes(n)).join(", ")}`);
+  if (named.length && domains.length !== named.length) throw new Error(`宣言(domain.json と主の登録)の無いドメイン: ${named.filter((n) => !all.includes(n)).join(", ")}`);
   const configs = all.map((name) => ({ name, configPath: workspace.configPath(name) }));
 
   const ref = await extractGeneratorAt(repoRoot, base, "dc-compare-ref-");
@@ -105,7 +109,7 @@ export async function runCompare(argv, { repoRoot = process.cwd(), io = console 
     const results = domains.map((name) => {
       const listed = new Set([...baseRun.actions.keys(), ...nowRun.actions.keys()]);
       const dir = workspace.locateDomain(name).rel;
-      const own = listFiles(path.join(repoRoot, dir)).map((f) => `${dir}/${f}`).filter((f) => !listed.has(f) && !f.endsWith("/domain.json"));
+      const own = listFiles(path.join(repoRoot, dir)).map((f) => `${dir}/${f}`).filter((f) => !listed.has(f) && !isDeclarationFile(f));
       const files = byDomain.get(name).sort((a, b) => a.path.localeCompare(b.path));
       return {
         name,

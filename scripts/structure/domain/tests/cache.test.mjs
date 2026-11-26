@@ -11,6 +11,7 @@ import { cacheIssues } from "../checks/cache.mjs";
 import { cacheDeclarationIssues } from "../checks/cacheDeclarations.mjs";
 import { readCacheDeclarations } from "../domain/workspace.mjs";
 import { normalizeCacheDeclaration } from "../spec/cache.mjs";
+import { writeDeclaration } from "./helpers.mjs";
 
 const config = {
   singular: "post",
@@ -123,22 +124,22 @@ test("正規化: get の既定 true、list・reads・readsDomains の既定、re
   assert.deepEqual(normalizeCacheDeclaration({ mode: "tagged", life: "days", get: false, reads: [{ name: "a", limit: 3, mode: "ttl", life: "seconds" }] }).reads[0], { name: "a", where: null, orderBy: null, limit: 3, mode: "ttl", life: "seconds" });
 });
 
-test("全ドメインの検査: domain.json の cache・cache.json・両方・domain.json があるのに cache.json・読めない JSON・宣言なし", () => {
+test("全ドメインの検査: entity.json の cache・cache.json・両方・宣言があるのに cache.json・読めない JSON・宣言なし", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cache-decl-"));
   try {
     const write = (rel, value) => {
       fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
       fs.writeFileSync(path.join(root, rel), typeof value === "string" ? value : JSON.stringify(value));
     };
-    write("src/domains/post/domain.json", { ...config, generate: false, cache: { mode: "tagged", life: "days", readsDomains: ["user"] } });
+    writeDeclaration(root, "post", { ...config, generate: false, cache: { mode: "tagged", life: "days", readsDomains: ["user"] } });
     write("src/domains/core/user/cache.json", { mode: "ttl", life: "minutes" });
-    write("src/domains/both/domain.json", { ...config, cache: { mode: "tagged", life: "days" } });
+    writeDeclaration(root, "both", { ...config, cache: { mode: "tagged", life: "days" } });
     write("src/domains/both/cache.json", { mode: "tagged", life: "days" });
-    write("src/domains/misplaced/domain.json", config);
+    writeDeclaration(root, "misplaced", config);
     write("src/domains/misplaced/cache.json", { mode: "tagged", life: "days" });
     write("src/domains/broken/cache.json", "{ nope");
     write("src/domains/bad/cache.json", { mode: "tagged", life: "default" });
-    write("src/domains/plain/domain.json", config);
+    writeDeclaration(root, "plain", config);
     const rows = [
       { kind: "domains", name: "post", dir: "src/domains/post", domainJson: true },
       { kind: "domains", name: "user", dir: "src/domains/core/user", domainJson: false },
@@ -152,7 +153,7 @@ test("全ドメインの検査: domain.json の cache・cache.json・両方・do
     assert.deepEqual(declared, ["post", "user", "bad"]);
     const text = issues.join("\n");
     assert.match(text, /\[both\] .*どちらか 1 つ/);
-    assert.match(text, /\[misplaced\] domain\.json のあるドメインは cache\.json でなく/);
+    assert.match(text, /\[misplaced\] 宣言のある登録は cache\.json でなく src\/domains\/misplaced\/entities\/misplaced\/entity\.json/);
     assert.match(text, /\[broken\] cache\.json が JSON として読めません/);
     assert.match(text, /\[bad\] cache\.life に "default" は書けません/);
     assert.equal(issues.length, 4);

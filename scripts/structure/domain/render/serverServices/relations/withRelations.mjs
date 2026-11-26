@@ -59,7 +59,7 @@ function nestedFor(workspace, relation, targetConfig, visitedDomains, depth) {
  * @param {object} extra  import の収集（relations/imports.mjs）が読む追加情報
  */
 function relationEntry(workspace, relation, visitedDomains, depth, { head, tableImport, extra }) {
-  const targetConfig = workspace.readConfig(toCamelCase(relation.domain));
+  const targetConfig = workspace.readRegistration(toCamelCase(relation.domain));
   const nested = nestedFor(workspace, relation, targetConfig, visitedDomains, depth);
   const softDelete = targetConfig?.useSoftDelete ? [`      useSoftDelete: true,`, `      deletedAtColumn: ${tableImport}.deletedAt,`] : [];
   const lines = ["    {", ...head, ...softDelete, ...nested.lines, "    }"];

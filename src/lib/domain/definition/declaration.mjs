@@ -10,6 +10,11 @@ export const DOMAIN_DECLARATION_FILE = "domain.json";
 export const ENTITIES_DIR = "entities";
 /** 登録の宣言のファイル名(entities/<登録名>/ の直下) */
 export const ENTITY_DECLARATION_FILE = "entity.json";
+/**
+ * 登録のフォルダの表のファイルの種類(entities/<登録名>/<種類>.ts。entities/<種類>.ts はそれを集める入口)。
+ * entities/ の下のフォルダのうち entity.json かこの種類のファイルを持つ物が登録(ほかのフォルダ = 役割の表 profiles/ など、登録でない)
+ */
+export const ENTITY_FILE_KINDS = Object.freeze(["drizzle", "schema", "form", "model"]);
 
 /** この形の版(domain.json の domainConfigVersion)。今の 1 ファイルの形は "1.x" */
 export const DOMAIN_DECLARATION_VERSION = "2.0";

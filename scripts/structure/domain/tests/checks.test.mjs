@@ -14,7 +14,7 @@ import { requiredIssues } from "../checks/required.mjs";
 import { viewConfigIssues, viewConfigWarnings } from "../checks/viewConfig.mjs";
 
 
-/** 全部の検査を通る domain.json */
+/** 全部の検査を通る宣言(entity.json) */
 const good = (extra = {}) => ({
   singular: "sample_tag",
   plural: "sample_tags",

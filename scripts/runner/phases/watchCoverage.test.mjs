@@ -32,11 +32,11 @@ const READS = {
   // 値の輪の走査は src 全体のソースを読む
   cycles: { entries: ["scripts/structure/cycles/cycles.test.mjs"], data: ["src/**/*.{ts,tsx,mts,mjs,js}"] },
   // 照らしの検査: 宣言(entity.json)から生成器で組んだ表と今の表(src のドメインの表の定義と、それが import する物)を読み込む
-  "domain-tables": { entries: ["scripts/structure/domain-tables/tables.test.mjs"], data: ["src/domains/**/entities/*.ts"] },
+  "domain-tables": { entries: ["scripts/structure/domain-tables/tables.test.mjs"], data: ["src/domains/**/entities/*.ts", "src/domains/**/entities/*/*.ts", "src/domains/**/entities/*/entity.json"] },
   // 生成の --dry-run(書く先の有無を見る)
   domain: {
     entries: ["scripts/structure/domain/check.mjs", "scripts/structure/domain/index.mjs"],
-    data: ["src/domains/**/domain.json", "src/app/admin/_template/**", "src/app/admin/(protected)/**/page.tsx", "src/registry/*.ts", "src/**/plugs/formInputs/*.ts", "src/domains/core/user/roles/*.json"],
+    data: ["src/domains/**/domain.json", "src/domains/**/entities/*/entity.json", "src/app/admin/_template/**", "src/app/admin/(protected)/**/page.tsx", "src/registry/*.ts", "src/**/plugs/formInputs/*.ts", "src/domains/core/user/roles/*.json"],
   },
   // 規則の強さは設定とパスで決まる(代表のファイルは有無だけが効く)
   eslint: {

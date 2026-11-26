@@ -183,6 +183,7 @@ test("rule client-no-domain-json: import・型・import()・export from を止�
       { code: `import type c from "${json}";`, filename: part, errors: [{ messageId: "clientDomainJson" }] },
       { code: `import c from "../domain.json";`, filename: part, errors: [{ messageId: "clientDomainJson" }] },
       { code: `import c from "@/domains/user/domain.json";`, filename: at("src/domains/x/hooks/useA.ts"), errors: [{ messageId: "clientDomainJson" }] },
+      { code: `import c from "@/domains/user/entities/user/entity.json";`, filename: at("src/domains/x/hooks/useA.ts"), errors: [{ messageId: "clientDomainJson" }] },
       { code: `const c = await import("${json}");`, filename: part, errors: [{ messageId: "clientDomainJson" }] },
       { code: `export { default } from "${json}";`, filename: part, errors: [{ messageId: "clientDomainJson" }] },
       { code: `"use client";\nimport c from "${json}";`, filename: at("src/app/a/_screen/Part.tsx"), errors: [{ messageId: "clientDomainJson" }] },

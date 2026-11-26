@@ -1,4 +1,4 @@
-// core のドメイン（src/domains/core/<domain>/domain.json）を business と同じに扱う契約テスト（D41）と、
+// core のドメイン（src/domains/core/<domain>/ の domain.json と entities/<domain>/entity.json）を business と同じに扱う契約テスト（D41）と、
 // 手で管理（generate: false）のドメインはどんな実行でも生成器を通さない契約（人の決定。検査もしない・何も書かない）。
 // 実行: pnpm test scripts/structure/domain/tests/coreDomain.test.mjs
 import { after, test } from "node:test";
@@ -10,7 +10,7 @@ import { createWorkspace } from "../domain/workspace.mjs";
 import { configTargets, loadDomainForGenerate, narrowTargets } from "../pipeline/generate.mjs";
 import { ALL_GENERATE_OPTIONS } from "../spec/categories.mjs";
 import { planDomain } from "../pipeline/plan.mjs";
-import { makeProject, removeAll } from "./helpers.mjs";
+import { entityDeclarationPath, makeProject, removeAll, writeDeclaration } from "./helpers.mjs";
 
 const cleanup = [];
 after(() => removeAll(cleanup));
@@ -27,18 +27,17 @@ function project(configs, { alias = true } = {}) {
   return root;
 }
 
-test("所在: core の domain.json は core のフォルダ、一覧は business と core の両方、両方にあれば止める", () => {
+test("所在: core の宣言は core のフォルダ、一覧は business と core の両方、両方にあれば止める", () => {
   const root = project({ alpha: { singular: "alpha" }, "core/memo": MEMO });
   const workspace = createWorkspace(root);
   assert.deepEqual(workspace.listDomains(), ["alpha", "memo"]);
   const ctx = createDomainContext(workspace, "memo");
   assert.equal(ctx.kind, "core");
   assert.equal(ctx.rel, "src/domains/core/memo");
-  assert.equal(ctx.configPath, path.join(root, "src/domains/core/memo/domain.json"));
+  assert.equal(ctx.configPath, path.join(root, "src/domains/core/memo/entities/memo/entity.json"));
   assert.equal(createDomainContext(workspace, "alpha").kind, "business");
 
-  fs.mkdirSync(path.join(root, "src/domains/memo"));
-  fs.writeFileSync(path.join(root, "src/domains/memo/domain.json"), JSON.stringify(MEMO));
+  writeDeclaration(root, "memo", MEMO);
   assert.throws(() => workspace.listDomains(), /両方にあります/);
 });
 
@@ -53,8 +52,9 @@ test("生成物: core のフォルダに書き、頭のコメントは src/domai
   assert.ok(paths.length > 0);
   assert.ok(paths.every((p) => p.startsWith("src/domains/core/memo/")), paths.join(", "));
   assert.ok(paths.includes("src/domains/core/memo/services/server/domainEntry.ts"));
-  const drizzle = outputs.find((o) => o.path.endsWith("entities/drizzle.ts"));
-  assert.match(drizzle.content, /^\/\/ src\/domains\/core\/memo\/entities\/drizzle\.ts/);
+  const drizzle = outputs.find((o) => o.path.endsWith("entities/memo/drizzle.ts"));
+  assert.match(drizzle.content, /^\/\/ src\/domains\/core\/memo\/entities\/memo\/drizzle\.ts/);
+  assert.match(outputs.find((o) => o.path.endsWith("entities/drizzle.ts")).content, /^\/\/ src\/domains\/core\/memo\/entities\/drizzle\.ts/);
   assert.match(outputs.find((o) => o.path.endsWith("domainEntry.ts")).content, /^\/\/ src\/domains\/core\/memo\/services\/server\/domainEntry\.ts/);
 });
 
@@ -62,7 +62,7 @@ test("core: tsconfig.json に @/domains/<d>/* の別名が無ければ生成前�
   const root = project({ "core/memo": MEMO }, { alias: false });
   const workspace = createWorkspace(root);
   assert.throws(() => loadDomainForGenerate(workspace, "memo", capture().io), /tsconfig\.json の compilerOptions\.paths/);
-  fs.writeFileSync(path.join(root, "src/domains/core/memo/domain.json"), JSON.stringify({ ...MEMO, generate: false }));
+  fs.writeFileSync(entityDeclarationPath(root, "core/memo"), JSON.stringify({ ...MEMO, generate: false }));
   const { lines, io } = capture();
   assert.doesNotThrow(() => loadDomainForGenerate(workspace, "memo", io));
   assert.deepEqual(lines.warn, []);

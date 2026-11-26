@@ -2,7 +2,7 @@
 
 import { normalizeDomainJsonConfig } from "@/lib/domain";
 import type { DomainConfigOptionals } from "@/lib/domain";
-import rawConf from "@/domains/__domain__/domain.json";
+import rawConf from "@/domains/__domain__/entities/__domain__/entity.json";
 import { __DrizzleEntityImports__ } from "@/domains/__domain__/entities/drizzle";
 __RelationTableImports__import { __Domain__CreateSchema, __Domain__UpdateSchema } from "@/domains/__domain__/entities/schema";
 __StorageBindingImport__import { createCrudService } from "@/lib/crud/server";

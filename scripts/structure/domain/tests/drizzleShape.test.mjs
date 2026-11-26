@@ -6,10 +6,11 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { renderDrizzleEntity } from "../render/entities/drizzle/index.mjs";
+import { ENTITY_KINDS, moveIntoRegistration } from "../render/entities/collector.mjs";
 import { renderEntities } from "../render/entities/index.mjs";
 import { contextFor, makeProject, removeAll, repoRoot } from "./helpers.mjs";
 
-const baseConfig = JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "domains", "sampleTag", "domain.json"), "utf8"));
+const baseConfig = JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "domains", "sampleTag", "entities", "sampleTag", "entity.json"), "utf8"));
 const cleanup = [];
 after(() => removeAll(cleanup));
 
@@ -32,9 +33,11 @@ function generate(extra, { files = {} } = {}) {
 test("鍵の無い config は sampleTag の今の生成物と同じ", () => {
   const { output, error } = generate({});
   assert.equal(error, null);
-  // 生成の印の行(2 行目)は書き出しの時に足される(render の外)ので除いて比べる
-  const generated = fs.readFileSync(path.join(repoRoot, "src", "domains", "sampleTag", "entities", "drizzle.ts"), "utf8");
-  assert.equal(output, generated.replace(/^(.*\n)\/\/ AUTO-GENERATED[^\n]*\n/, "$1"));
+  // 生成の印の行(2 行目)は書き出しの時に足される(render の外)ので除いて比べる。本体は登録のフォルダ entities/sampleTag/drizzle.ts
+  // (renderEntities が moveIntoRegistration で移す)
+  const generated = fs.readFileSync(path.join(repoRoot, "src", "domains", "sampleTag", "entities", "sampleTag", "drizzle.ts"), "utf8");
+  const moved = moveIntoRegistration(output, { domainRel: "src/domains/sampleTag", registration: "sampleTag", kind: "drizzle", siblings: ENTITY_KINDS });
+  assert.equal(moved, generated.replace(/^(.*\n)\/\/ AUTO-GENERATED[^\n]*\n/, "$1"));
 });
 
 test("table は表の物理名、primaryKey は id 列を作らず第 3 引数に書く", () => {

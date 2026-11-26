@@ -9,13 +9,12 @@ import { runDelete } from "../cli/delete.mjs";
 import { createWorkspace } from "../domain/workspace.mjs";
 import { codeReferences, deleteStopMessage, inboundReferences } from "../pipeline/remove/index.mjs";
 import { buildChildDomainConfig } from "../render/collections/childDomainConfig.mjs";
-import { makeProject, removeAll } from "./helpers.mjs";
+import { entityDeclarationPath, makeProject, removeAll } from "./helpers.mjs";
 
 const cleanup = [];
 after(() => removeAll(cleanup));
 
 const base = (singular, fields = [], extra = {}) => ({
-  domainConfigVersion: "1.3",
   singular,
   plural: `${singular}s`,
   label: singular,
@@ -50,7 +49,7 @@ async function deleteCapturing(workspace, domain, options = {}) {
 }
 const snapshot = (root) => fs.readdirSync(path.join(root, "src"), { recursive: true }).sort();
 
-test("主: 従属の domain.json が残っていれば一覧と直す順を出して止まり、何も消さない", async () => {
+test("主: 従属の宣言が残っていれば一覧と直す順を出して止まり、何も消さない", async () => {
   const root = makeProject({ configs: { album, albumPhoto }, cleanup });
   const workspace = createWorkspace(root);
   const before = snapshot(root);
@@ -143,15 +142,17 @@ test("主の停止は、従属以外の参照元も同じ文面で一度に出�
   assert.doesNotMatch(message, /albumPhoto: /);
 });
 
-test("消す順: 主の項目を外す → 従属を --remove-config で消す → 主を消す。従属の domain.json を残すと主は止まったまま", async () => {
+test("消す順: 主の項目を外す → 従属を --remove-config で消す → 主を消す。従属の宣言を残すと主は止まったまま", async () => {
   const root = makeProject({ configs: { album: base("album"), albumPhoto }, cleanup });
   const workspace = createWorkspace(root);
-  const owner = path.join(root, "src/domains/album/entities");
-  fs.mkdirSync(owner, { recursive: true });
+  // 主の生成物(宣言 entities/album/entity.json の横に置く表のファイル)。--remove-config なしの削除で消え、宣言は残る
+  const owner = path.join(root, "src/domains/album/entities/model.ts");
+  fs.writeFileSync(owner, "export type Album = { id: string };\n");
   assert.match(deleteStopMessage(workspace, "album"), /albumPhoto: album_id（belongsTo）/);
 
   await deleteCapturing(workspace, "album_photo", { confirm: "album_photo" });
   assert.equal(fs.existsSync(path.join(root, "src/domains/albumPhoto/domain.json")), true);
+  assert.equal(fs.existsSync(entityDeclarationPath(root, "albumPhoto")), true);
   assert.match(deleteStopMessage(workspace, "album"), /albumPhoto: album_id（belongsTo）/);
 
   await deleteCapturing(workspace, "album_photo", { confirm: "album_photo", removeConfig: true });
@@ -159,9 +160,10 @@ test("消す順: 主の項目を外す → 従属を --remove-config で消す �
   assert.equal(deleteStopMessage(workspace, "album"), null);
   await deleteCapturing(workspace, "album", { confirm: "album" });
   assert.equal(fs.existsSync(owner), false);
+  assert.equal(fs.existsSync(entityDeclarationPath(root, "album")), true);
 });
 
-test("--confirm: 無い・違うなら消すものの一覧と打てるコマンドを出して止まり、何も消さない。一致なら消し、domain.json は --remove-config のときだけ消す", async () => {
+test("--confirm: 無い・違うなら消すものの一覧と打てるコマンドを出して止まり、何も消さない。一致なら消し、宣言(domain.json と entities/<d>/entity.json)は --remove-config のときだけ消す", async () => {
   const note = base("note");
   const root = makeProject({ configs: { note }, cleanup });
   const workspace = createWorkspace(root);
@@ -178,12 +180,14 @@ test("--confirm: 無い・違うなら消すものの一覧と打てるコマン
   assert.match(badExtra.stderr, /--extra に候補に無いディレクトリ/);
   assert.deepEqual(snapshot(root), before);
 
-  fs.mkdirSync(path.join(root, "src/domains/note/entities"), { recursive: true });
+  fs.writeFileSync(path.join(root, "src/domains/note/entities/model.ts"), "export type Note = { id: string };\n");
   await deleteCapturing(workspace, "note", { confirm: "note" });
-  assert.equal(fs.existsSync(path.join(root, "src/domains/note/entities")), false);
+  assert.equal(fs.existsSync(path.join(root, "src/domains/note/entities/model.ts")), false);
   assert.equal(fs.existsSync(path.join(root, "src/domains/note/domain.json")), true);
+  assert.equal(fs.existsSync(entityDeclarationPath(root, "note")), true);
   await deleteCapturing(workspace, "note", { confirm: "note", removeConfig: true });
   assert.equal(fs.existsSync(path.join(root, "src/domains/note/domain.json")), false);
+  assert.equal(fs.existsSync(entityDeclarationPath(root, "note")), false);
 });
 
 test("codeReferences: @/domains/<d>・@/domains/core/<d>（core/ を省いた書き方も）・相対パスの import を拾い、消すフォルダ・一緒に消すディレクトリ・src/registry は数えない", () => {
@@ -212,7 +216,6 @@ test("残るコードから import されているドメイン: 参照元のフ�
   const memo = base("memo");
   const root = makeProject({ configs: { note, memo }, cleanup });
   const workspace = createWorkspace(root);
-  fs.mkdirSync(path.join(root, "src/domains/note/entities"), { recursive: true });
   fs.writeFileSync(path.join(root, "src/domains/note/entities/model.ts"), "export type Note = { id: string };\n");
   const importer = path.join(root, "src/domains/memo/services/server/memoService.ts");
   fs.mkdirSync(path.dirname(importer), { recursive: true });
@@ -226,14 +229,14 @@ test("残るコードから import されているドメイン: 参照元のフ�
 
   fs.writeFileSync(importer, "export const memoService = {};\n");
   await deleteCapturing(workspace, "note", { confirm: "note" });
-  assert.equal(fs.existsSync(path.join(root, "src/domains/note/entities")), false);
+  assert.equal(fs.existsSync(path.join(root, "src/domains/note/entities/model.ts")), false);
 });
 
 test("追加ディレクトリの候補の中の import: --extra で選べば一緒に消え、選ばなければ確認の後に止まる", async () => {
   const note = base("note");
   const root = makeProject({ configs: { note }, cleanup });
   const workspace = createWorkspace(root);
-  fs.mkdirSync(path.join(root, "src/domains/note/entities"), { recursive: true });
+  fs.writeFileSync(path.join(root, "src/domains/note/entities/model.ts"), "export type Note = { id: string };\n");
   const extraDir = path.join(root, "src/app/(user)/notes");
   fs.mkdirSync(extraDir, { recursive: true });
   fs.writeFileSync(path.join(extraDir, "page.tsx"), 'import { x } from "@/domains/note/entities/model";\n');
@@ -245,7 +248,7 @@ test("追加ディレクトリの候補の中の import: --extra で選べば一
 
   await deleteCapturing(workspace, "note", { confirm: "note", extras: ["src/app/(user)/notes"] });
   assert.equal(fs.existsSync(extraDir), false);
-  assert.equal(fs.existsSync(path.join(root, "src/domains/note/entities")), false);
+  assert.equal(fs.existsSync(path.join(root, "src/domains/note/entities/model.ts")), false);
 });
 
 /** 門番の規則がドメインのフォルダを domains に持つ fork の状態 */

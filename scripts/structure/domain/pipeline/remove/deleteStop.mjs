@@ -148,7 +148,7 @@ function pairStop(workspace, folder, pairs) {
  */
 export function deleteStopMessage(workspace, folder, pairs = resolvePairs(workspace)) {
   const { remaining, message } = pairStop(workspace, folder, pairs);
-  const configs = new Map(workspace.listDomains().map((domain) => [domain, workspace.readConfigLenient(workspace.configPath(domain))]));
+  const configs = new Map(workspace.listDomains().map((domain) => [domain, workspace.readConfigLenient(domain)]));
   // 組の文面に出した従属は重ねて出さない（直すものは 1 回の実行で全部見せる）
   const references = inboundReferences(configs, folder).filter((reference) => !remaining.includes(reference.domain));
   const lines = message ? [message] : [];

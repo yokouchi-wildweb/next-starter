@@ -3,6 +3,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { ENTITIES_DIR, ENTITY_DECLARATION_FILE } from "../../../../../src/lib/domain/node.mjs";
 import { toCamelCase, toKebabCase, toPascalCase, toSnakeCase } from "../../../../../src/lib/stringCase/index.mjs";
 
 export function normalizeName(name) {
@@ -99,19 +100,17 @@ export function resolveDeleteTarget(workspace, domain) {
     domainCandidateSet.add(toPascalCase(singularCandidate));
     domainCandidateSet.add(toKebabCase(singularCandidate));
   }
-  // business（src/domains/<d>）を先に、無ければ domain.json を持つ core（src/domains/core/<d>）
+  // business（src/domains/<d>）を先に、無ければ宣言(主の登録)を持つ core（src/domains/core/<d>）
   const coreDomainDir = resolveDir(path.join(workspace.domainsDir, "core"), ...domainCandidateSet);
   const resolvedDomainDir =
     resolveDir(workspace.domainsDir, ...[...domainCandidateSet].filter((name) => name !== "core")) ??
-    (coreDomainDir && fs.existsSync(path.join(coreDomainDir, "domain.json")) ? coreDomainDir : null);
+    (coreDomainDir && workspace.readConfigLenient(path.basename(coreDomainDir)) ? coreDomainDir : null);
   const canonicalSingular = (resolvedDomainDir && path.basename(resolvedDomainDir)) || singularCandidates[0] || camel;
   const domainDir = resolvedDomainDir ?? path.join(workspace.domainsDir, canonicalSingular);
-  const configPath = path.join(domainDir, "domain.json");
+  const configPath = path.join(domainDir, ENTITIES_DIR, canonicalSingular, ENTITY_DECLARATION_FILE);
   let plural = canonicalSingular === camel ? camel + "s" : camel;
-  if (fs.existsSync(configPath)) {
-    const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    plural = cfg.plural || plural;
-  }
+  // 主の登録の entity.json の plural(宣言の読み込みの部品で読む)
+  plural = workspace.readConfigLenient(canonicalSingular)?.plural || plural;
 
   const pluralCandidateSet = removeEmpty(new Set([plural, toCamelCase(plural), toPascalCase(plural), toKebabCase(plural)]));
   for (const candidate of createPluralCandidates(canonicalSingular)) {

@@ -21,7 +21,7 @@ const cleanup = [];
 after(() => removeAll(cleanup));
 
 const SILENT = { log() {}, warn() {} };
-const showcase = JSON.parse(fs.readFileSync(path.join(repoRoot, "scripts/structure/domain/tests/fixtures/parity/synthetic/showcase/domain.json"), "utf8"));
+const showcase = JSON.parse(fs.readFileSync(path.join(repoRoot, "scripts/structure/domain/tests/fixtures/parity/synthetic/showcase/entities/showcase/entity.json"), "utf8"));
 
 function generateShowcase(config = showcase) {
   const root = makeProject({ templates: ["components"], configs: { showcase: config }, cleanup });
@@ -34,7 +34,7 @@ function generateShowcase(config = showcase) {
 
 test("drizzle: 集まりの項目は列を出さない（型名の列関数も import しない）。表に集まりを遅延で登録する", () => {
   const { root, read } = generateShowcase();
-  const drizzle = read("entities/drizzle.ts");
+  const drizzle = read("entities/showcase/drizzle.ts");
   assert.doesNotMatch(drizzle, /photos/);
   assert.doesNotMatch(drizzle, /mediaCollection/);
   assert.match(drizzle, /brochure: text\("brochure"\)/);
@@ -44,12 +44,12 @@ test("drizzle: 集まりの項目は列を出さない（型名の列関数も i
     /^defineTableCollections\(ShowcaseTable, \(\) => import\("@\/domains\/showcase\/services\/server\/collections"\)\.then\(\(m\) => m\.collections\)\);$/m,
   );
   // 従属（集まりを持たない）には出さない
-  const child = fs.readFileSync(path.join(root, "src", "domains", "showcasePhoto", "entities", "drizzle.ts"), "utf8");
+  const child = fs.readFileSync(path.join(root, "src", "domains", "showcasePhoto", "entities", "showcasePhoto", "drizzle.ts"), "utf8");
   assert.doesNotMatch(child, /defineTableCollections/);
 });
 
 test("スキーマ: 値は複数枚の行と同じ z.array(storageMediaValueSchema)、required → min(1)、collection.maxItems → max", () => {
-  const schema = generateShowcase().read("entities/schema.ts");
+  const schema = generateShowcase().read("entities/showcase/schema.ts");
   assert.match(
     schema,
     /photos: z\.array\(storageMediaValueSchema\)\.min\(1, \{ message: "写真は1件以上必要です。" \}\)\.max\(8, \{ message: "写真は8件以下にしてください。" \}\)\.default\(\[\]\),/,
@@ -59,12 +59,12 @@ test("スキーマ: 値は複数枚の行と同じ z.array(storageMediaValueSche
 
 test("スキーマ: 必須でなく最大件数も無い集まりは min / max を付けない", () => {
   const fields = showcase.fields.map((f) => (f.name === "photos" ? { ...f, required: false, collection: { domain: "showcase_photo" } } : f));
-  const schema = generateShowcase({ ...showcase, fields }).read("entities/schema.ts");
+  const schema = generateShowcase({ ...showcase, fields }).read("entities/showcase/schema.ts");
   assert.match(schema, /photos: z\.array\(storageMediaValueSchema\)\.default\(\[\]\),/);
 });
 
 test("モデル: 省略可の string[]（表の列ではないので belongsToMany と同じく省略可）", () => {
-  assert.match(generateShowcase().read("entities/model.ts"), /^ {2}photos\?: string\[\];$/m);
+  assert.match(generateShowcase().read("entities/showcase/model.ts"), /^ {2}photos\?: string\[\];$/m);
 });
 
 test("Fields: 従属の file の用途・accept・上限サイズと、集まりの件数を載せる（この実行で書き出す従属の中身から）", () => {
@@ -74,7 +74,7 @@ test("Fields: 従属の file の用途・accept・上限サイズと、集まり
   assert.match(fieldsTsx, /return field\.name in COLLECTION_FIELD_PATCHES \? \{ \.\.\.withPurpose, \.\.\.COLLECTION_FIELD_PATCHES\[field\.name\] \} : withPurpose;/);
 });
 
-test("Fields: 既にある従属の domain.json の file の条件を読み、用途は collection.domain に従う", () => {
+test("Fields: 既にある従属の entity.json の file の条件を読み、用途は collection.domain に従う", () => {
   const fields = showcase.fields.map((f) => (f.name === "photos" ? { ...f, required: false, collection: { domain: "gallery_shot" } } : f));
   const owner = { ...showcase, fields };
   const { workspace } = generateShowcase(owner);

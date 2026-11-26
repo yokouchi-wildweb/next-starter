@@ -3,7 +3,7 @@
 
 import { normalizeDomainJsonConfig } from "@/lib/domain";
 import type { DomainConfigOptionals } from "@/lib/domain";
-import rawConf from "@/domains/sampleTag/domain.json";
+import rawConf from "@/domains/sampleTag/entities/sampleTag/entity.json";
 import { SampleTagTable } from "@/domains/sampleTag/entities/drizzle";
 import { SampleTagCreateSchema, SampleTagUpdateSchema } from "@/domains/sampleTag/entities/schema";
 import { createCrudService } from "@/lib/crud/server";

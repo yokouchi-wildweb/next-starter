@@ -48,20 +48,13 @@ export function buildOnDeleteOption(behavior) {
 }
 
 /**
- * リレーション先ドメインの表名。domain.json があれば plural、無ければ snake_case 化。
- * domains/ と domains/core/ の両方を探し、最初に見つかった domain.json だけを見る（壊れていれば snake_case）
+ * リレーション先の表名。関連の先(relations[].domain = 登録名)の entity.json の table、無ければ plural の snake_case、
+ * 宣言が無ければ名前の snake_case(読み込みは workspace.readRegistration = 宣言の読み込みの部品)
  */
 export function foreignTableName(workspace, domainName) {
   const domainCamel = toCamelCase(domainName) || domainName;
-  const candidates = [workspace.domainPath(domainCamel, "domain.json"), workspace.domainPath("core", domainCamel, "domain.json")];
-  for (const configPath of candidates) {
-    if (workspace.exists(configPath)) {
-      const foreignConfig = workspace.readConfigLenient(configPath);
-      if (foreignConfig?.plural) {
-        return toSnakeCase(foreignConfig.plural);
-      }
-      break;
-    }
-  }
+  const foreign = workspace.readRegistration?.(domainCamel) ?? null;
+  if (typeof foreign?.table === "string") return foreign.table;
+  if (foreign?.plural) return toSnakeCase(foreign.plural);
   return toSnakeCase(domainName);
 }

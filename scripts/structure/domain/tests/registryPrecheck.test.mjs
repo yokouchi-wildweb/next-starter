@@ -17,7 +17,7 @@ after(() => removeAll(cleanup));
 
 const API_ACCESS = { read: "public", write: { roleCategories: ["admin"] } };
 
-/** 登録表が空の最小リポ + foo（domain.json だけ） */
+/** 登録表が空の最小リポ + foo（宣言だけ） */
 async function project() {
   const root = await copyRegistryBase(makeProject({ configs: { foo: { singular: "foo", plural: "foos", dbEngine: "Neon", apiAccess: API_ACCESS } }, cleanup }));
   fs.mkdirSync(path.join(root, "src", "registry"), { recursive: true });

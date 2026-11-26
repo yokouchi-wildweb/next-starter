@@ -43,8 +43,8 @@ function childEffectiveRules(childConfig, mediaField) {
 export function pairIssues({ owner, ownerConfig, field, child, childConfig, domains, roleCategories }) {
   const errors = [];
   const notices = [];
-  const ownerAt = `${owner}/domain.json の集まりの項目 "${field.name}"`;
-  const childAt = `${child}/domain.json`;
+  const ownerAt = `${owner}/entities/${owner}/entity.json の集まりの項目 "${field.name}"`;
+  const childAt = `${child}/entities/${child}/entity.json`;
   const fields = childConfig.fields ?? [];
 
   // a. ファイルの条件は従属に書く

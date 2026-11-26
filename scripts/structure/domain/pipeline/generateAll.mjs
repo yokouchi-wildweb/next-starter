@@ -31,7 +31,7 @@ function bufferedIo(io) {
 export function planGenerateAll(workspace, selectedDomains, manualGenerate, only, io = console) {
   // 途中のドメインで止まって生成が半端に残らないよう、ループの前に全件を検査する
   // 手で管理（generate: false）のドメインは検査もしない（生成器を一切通さない）
-  assertDomainFolderNames(workspace, selectedDomains.filter((domain) => !isHandManaged(workspace.readConfigLenient(workspace.configPath(domain)))));
+  assertDomainFolderNames(workspace, selectedDomains.filter((domain) => !isHandManaged(workspace.readConfigLenient(domain))));
   const pairs = resolvePairs(workspace);
   assertPairs(pairs);
   // 選んだドメインの組の全員（この実行で書き出す従属・選んだ従属の主）を加え、従属 → 主の順に並べる

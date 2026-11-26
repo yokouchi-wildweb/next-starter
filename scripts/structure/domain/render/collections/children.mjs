@@ -16,7 +16,7 @@ export function resolveCollectionChildren(ctx, workspace) {
   for (const field of ctx.config?.fields ?? []) {
     if (!isCollectionFieldType(field.fieldType) || typeof field.collection?.domain !== "string") continue;
     const camel = toCamelCase(field.collection.domain);
-    children.set(field.name, { camel, config: workspace ? workspace.readConfigLenient(workspace.configPath(camel)) : null });
+    children.set(field.name, { camel, config: workspace ? workspace.readConfigLenient(camel) : null });
   }
   return children;
 }

@@ -1,27 +1,21 @@
-// 集まりの配線の突き合わせ: domain.json の集まりの項目（mediaCollection）と、登録表から読み込んだ主のサービスの
+// 集まりの配線の突き合わせ: 登録の宣言 entity.json の集まりの項目（mediaCollection）と、登録表から読み込んだ主のサービスの
 // collectionFields（createCrudService の collections オプション）が一致するかを比べる。
 // 手書きの drizzleBase.ts（generate: false のドメイン）に collections を渡し忘れた主を、生成の後で見つける
 
-import fs from "node:fs";
-import path from "node:path";
-
-const NOT_DOMAIN_DIRS = new Set(["_template", "core"]);
+import { nodeDomainSource, readDomains } from "../../../../src/lib/domain/node.mjs";
 
 /**
- * src/domains/<domain>/domain.json の集まりの項目名（Neon の項目名は domain.json に書いたまま = レコードのキー）
+ * 登録の宣言 entity.json の集まりの項目名（Neon の項目名は宣言に書いたまま = レコードのキー）。読むのは宣言の読み込みの部品 readDomain だけ
  * @param {string} repoRoot
- * @returns {Map<string, string[]>} フォルダ名（= serviceRegistry のキー）→ 項目名。集まりを持つ主だけ
+ * @returns {Map<string, string[]>} 登録名（= serviceRegistry のキー）→ 項目名。集まりを持つ主だけ
  */
 export function declaredCollections(repoRoot) {
-  const domainsDir = path.join(repoRoot, "src", "domains");
   const declared = new Map();
-  for (const dirent of fs.readdirSync(domainsDir, { withFileTypes: true })) {
-    if (!dirent.isDirectory() || NOT_DOMAIN_DIRS.has(dirent.name)) continue;
-    const configPath = path.join(domainsDir, dirent.name, "domain.json");
-    if (!fs.existsSync(configPath)) continue;
-    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    const names = (config.fields ?? []).filter((field) => field.fieldType === "mediaCollection").map((field) => field.name);
-    if (names.length) declared.set(dirent.name, names);
+  for (const declaration of readDomains(nodeDomainSource(repoRoot))) {
+    for (const registration of declaration.registrations) {
+      const names = (registration.entity?.fields ?? []).filter((field) => field.fieldType === "mediaCollection").map((field) => field.name);
+      if (names.length) declared.set(registration.name, names);
+    }
   }
   return declared;
 }

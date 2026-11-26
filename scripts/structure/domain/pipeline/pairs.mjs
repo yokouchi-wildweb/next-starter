@@ -35,7 +35,7 @@ export function resolvePairs(workspace) {
   const notices = [];
   const claims = new Map(); // 従属 → それを宣言した主の一覧
   const checks = []; // 書く前の検査をする組（主・項目・従属）
-  const domains = new Map(workspace.listDomains().map((domain) => [domain, workspace.readConfigLenient(workspace.configPath(domain))]));
+  const domains = new Map(workspace.listDomains().map((domain) => [domain, workspace.readConfigLenient(domain)]));
 
   for (const [owner, config] of domains) {
     for (const field of config?.fields ?? []) {
@@ -95,7 +95,7 @@ export function printPairNotices(pairs, domains, io) {
 export function collectionChildrenOf(workspace, pairs, owner) {
   const children = new Map();
   for (const child of pairs.childrenOf.get(owner) ?? []) {
-    const config = pairs.pending.get(child) ?? workspace.readConfigLenient(workspace.configPath(child));
+    const config = pairs.pending.get(child) ?? workspace.readConfigLenient(child);
     children.set(pairs.fieldOf.get(child), { camel: child, config });
   }
   return children;

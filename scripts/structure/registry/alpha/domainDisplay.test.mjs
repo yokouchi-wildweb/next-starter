@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
 
 import { renderDomainDisplay, toDomainDisplay } from "./domainDisplay.mjs";
@@ -24,6 +24,10 @@ function forbiddenKeys(value, found = []) {
   }
   return found;
 }
+
+/** 写しの元の宣言(主の登録の entity.json): 写しの頭の行「… が <entity.json> から生成する」から読む */
+const entityFileOf = (displayText) => /pnpm generate registry が (\S+) から生成する/.exec(displayText)[1];
+const readEntityOf = (displayText) => JSON.parse(readFileSync(entityFileOf(displayText), "utf8"));
 
 test("全ドメインの写しに内部の項目が無く、ファイルが生成結果と一致する", () => {
   const { outputs, problems } = buildAlphaRegistries(process.cwd());
@@ -63,7 +67,7 @@ test("関連先の searchFields は非同期の関連にだけ、関連先の名
 test("実物: 写しの searchFields は getDomainConfig が返していた関連先の値と同じ", () => {
   const { outputs } = buildAlphaRegistries(process.cwd());
   const display = JSON.parse(/: DomainDisplay = (\{[\s\S]*\});/.exec(outputs["src/domains/sample/entities/display.ts"])[1]);
-  const tag = JSON.parse(readFileSync("src/domains/sampleTag/domain.json", "utf8"));
+  const tag = JSON.parse(readFileSync("src/domains/sampleTag/entities/sampleTag/entity.json", "utf8"));
   const relation = display.relations.find((r) => r.domain === "sample_tag");
   assert.deepEqual(relation.searchFields, tag.searchFields);
   assert.equal(display.relations.find((r) => r.domain === "sample_category").searchFields, undefined);
@@ -79,12 +83,13 @@ test("実物: user の写しに local_password が無い", () => {
   assert.doesNotMatch(readFileSync("src/domains/core/user/entities/display.ts", "utf8"), /local_password|localPassword/);
 });
 
-test("全ドメイン: domain.json の hiddenColumns と entities の defineHiddenColumns の列が一致する", () => {
+test("全ドメイン: entity.json の hiddenColumns と登録のフォルダの defineHiddenColumns の列が一致する", () => {
   const { outputs } = buildAlphaRegistries(process.cwd());
   const checked = [];
   for (const path of Object.keys(outputs).filter((p) => p.endsWith("/entities/display.ts"))) {
-    const config = JSON.parse(readFileSync(path.replace("entities/display.ts", "domain.json"), "utf8"));
-    const drizzlePath = path.replace("display.ts", "drizzle.ts");
+    const config = readEntityOf(outputs[path]);
+    // 表の本体は登録のフォルダ entities/<登録名>/drizzle.ts(entities/drizzle.ts は集める入口)
+    const drizzlePath = join(dirname(entityFileOf(outputs[path])), "drizzle.ts");
     const declared = existsSync(drizzlePath)
       ? [...readFileSync(drizzlePath, "utf8").matchAll(/defineHiddenColumns\(\w+,\s*\[([^\]]*)\]/g)].flatMap((m) => [...m[1].matchAll(/["']([^"']+)["']/g)].map((c) => c[1]))
       : [];
@@ -121,7 +126,7 @@ test("許可の一覧: 足した項目は写し、F4 の項目は写さない", 
   assert.equal("defaultOrderBy" in display, false);
 });
 
-test("足した項目が domain.json に無ければ写しにも無い", () => {
+test("足した項目が entity.json に無ければ写しにも無い", () => {
   const display = toDomainDisplay({ singular: "a", plural: "as", label: "A", fields: [] });
   for (const key of ["useImportExport", "sortOrderField", "fieldGroups", "tableFields"]) assert.equal(key in display, false, key);
 });
@@ -165,7 +170,7 @@ test("hiddenColumns の列は列名のキーのどれにも出ない", () => {
 test("実物 chatRoom: 写しの列名は normalizeDomainJsonConfig の結果と同じ", () => {
   const { outputs } = buildAlphaRegistries(process.cwd());
   const display = JSON.parse(/: DomainDisplay = (\{[\s\S]*\});/.exec(outputs["src/domains/core/chatRoom/entities/display.ts"])[1]);
-  const config = JSON.parse(readFileSync("src/domains/core/chatRoom/domain.json", "utf8"));
+  const config = JSON.parse(readFileSync("src/domains/core/chatRoom/entities/chatRoom/entity.json", "utf8"));
   const camel = (name) => toCamelCase(name) || name;
   assert.deepEqual(display.fields.map((f) => f.name), config.fields.map((f) => camel(f.name)));
   assert.deepEqual(display.tableFields, config.tableFields.map(camel));
@@ -173,12 +178,12 @@ test("実物 chatRoom: 写しの列名は normalizeDomainJsonConfig の結果と
   assert.ok(display.tableFields.includes("updatedAt"));
 });
 
-test("全ドメイン: 部品が読む項目の値は domain.json(Firestore は名前の変換後)と同じ", () => {
+test("全ドメイン: 部品が読む項目の値は entity.json(Firestore は名前の変換後)と同じ", () => {
   const { outputs } = buildAlphaRegistries(process.cwd());
   const FIELD_VALUE_KEYS = ["label", "fieldType", "formInput", "options", "required", "readonly", "defaultValue", "displayType", "placeholder", "accept", "validationRule", "reorderable", "helperText"];
   for (const path of Object.keys(outputs).filter((p) => p.endsWith("/entities/display.ts"))) {
     const display = JSON.parse(/: DomainDisplay = (\{[\s\S]*\});/.exec(outputs[path])[1]);
-    const config = JSON.parse(readFileSync(path.replace("entities/display.ts", "domain.json"), "utf8"));
+    const config = readEntityOf(outputs[path]);
     const name = (value) => (config.dbEngine === "Firestore" ? toCamelCase(value) || value : value);
     const hidden = new Set(config.hiddenColumns ?? []);
     const isPublic = (value) => !hidden.has(toCamelCase(value) || value);
@@ -198,7 +203,7 @@ test("全ドメイン: 部品が読む項目の値は domain.json(Firestore は�
 test("registry の検査: 写しがずれると stale", () => {
   const dir = mkdtempSync(join(tmpdir(), "display-"));
   try {
-    const file = "src/domains/foo/domain.json";
+    const file = "src/domains/foo/entities/foo/entity.json";
     const config = { singular: "foo", plural: "foos", label: "F", dbEngine: "Neon", fields: [] };
     mkdirSync(join(dir, "src/domains/foo/entities"), { recursive: true });
     const path = "src/domains/foo/entities/display.ts";
@@ -212,11 +217,11 @@ test("registry の検査: 写しがずれると stale", () => {
   }
 });
 
-test("全ドメイン: ボタンが読む singular・plural・label は domain.json と同じ", () => {
+test("全ドメイン: ボタンが読む singular・plural・label は entity.json と同じ", () => {
   const { outputs } = buildAlphaRegistries(process.cwd());
   for (const path of Object.keys(outputs).filter((p) => p.endsWith("/entities/display.ts"))) {
     const display = JSON.parse(/: DomainDisplay = (\{[\s\S]*\});/.exec(outputs[path])[1]);
-    const config = JSON.parse(readFileSync(path.replace("entities/display.ts", "domain.json"), "utf8"));
+    const config = readEntityOf(outputs[path]);
     assert.deepEqual([display.singular, display.plural, display.label], [config.singular, config.plural, config.label], path);
   }
 });

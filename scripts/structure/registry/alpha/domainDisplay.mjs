@@ -56,13 +56,13 @@ export function toDomainDisplay(config, allConfigs = []) {
   };
 }
 
-/** 写しのファイルの置き場(domain.json の隣の entities/) */
-export const domainDisplayPath = (domainJsonFile) => domainJsonFile.replace(/domain\.json$/, "entities/display.ts");
+/** 写しのファイルの置き場(主の登録の宣言 entities/<登録名>/entity.json と同じ entities/ の直下) */
+export const domainDisplayPath = (entityFile) => entityFile.replace(/entities\/[^/]+\/entity\.json$/, "entities/display.ts");
 
 /** 写しのファイルの中身 */
-export function renderDomainDisplay(domainJsonFile, config, allConfigs = []) {
+export function renderDomainDisplay(entityFile, config, allConfigs = []) {
   return [
-    `// 生成物・編集不可: pnpm generate registry が ${domainJsonFile} から生成する`,
+    `// 生成物・編集不可: pnpm generate registry が ${entityFile} から生成する`,
     `// client に出す表示用の写し(秘密・内部の項目は持たない)。詳細: src/lib/domain/README.md`,
     "",
     `import type { DomainDisplay } from "@/lib/domain";`,

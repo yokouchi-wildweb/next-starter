@@ -80,14 +80,20 @@
 
 - `presenterFor(field)` が項目の表示の種類 `{ kind, options? }` を返す(kind = `boolean`・`number`・`stringArray`・`enum`(選択肢つき)・`string`・`datetime`・`date`・`collectionThumbnails`・`mediaThumbnail`)
 
-### 宣言を読む(入口 `./node`、`definition/readDomain.mjs`・`definition/declaration.mjs`)
+### 宣言を読む(入口 `./declarations`・`./node`、`definition/readDomain.mjs`・`definition/declaration.mjs`・`definition/nodeDomainSource.mjs`)
+
+`./declarations` はファイルを開かない素の JS(source を渡して読む。地区の地図 src/lib/districtMap からも使う)。`./node` は同じ物 + `nodeDomainSource`
 
 | 関数・定数 | 用途 |
 |---|---|
-| `nodeDomainSource(repoRoot)` | 今の木を読む source(`{ listDir, readText }`、地区の地図の source と同じ形。git の木を読む source も渡せる) |
+| `nodeDomainSource(repoRoot)`(`./node` だけ) | 今の木を node:fs で読む source(`{ listDir, readText }`、地区の地図の source と同じ形。git の木を読む source も渡せる) |
 | `listDomains(source)` | `{ domains: { name, core, dir }[], problems }`。src/domains 直下(業務)と src/domains/core 直下(core)のフォルダ、`_` で始まる物は除く。domain.json の有無で選ばない。業務と core の重なりは problems |
 | `readDomain(source, name)` | `{ name, core, dir, domain, registrations: { name, dir, entity }[], problems }`。domain.json と entities/<登録名>/entity.json だけを読む。読めない宣言は `null` と problems |
 | `readDomains(source)` | 全部のドメインの `readDomain`(listDomains の順) |
+| `primaryRegistrationOf(declaration)` | 主の登録: 登録名 = ドメイン名の物、無ければ登録がちょうど 1 つの時のそれ、ほかは `null`(生成器の config・表示の写し・登録表の 1 ドメイン 1 行が読む) |
+| `findRegistration(declarations, name)` | 名前の登録をどのドメインからでも(関連の先 `relations[].domain` は登録名)。`{ declaration, registration }` か `null` |
+| `isGeneratedRegistration(registration)` | 生成器が書く登録か(entity.json の `generate`、省略 = true、D337) |
 | `DOMAIN_KEYS` / `ENTITY_KEYS`(= `ENTITY_TABLE_KEYS` + `ENTITY_REGISTRATION_KEYS` + `$comment`) | 宣言の鍵の集合。表の鍵 `ENTITY_TABLE_KEYS` = 今の形と同じ意味の `TABLE_KEYS` + 手で持つ表の形の `TABLE_SHAPE_KEYS`。登録の鍵 = `generate`・`registered`・`reason`・`requires`・`service` |
 | `ENTITY_NESTED_KEYS` と中の集合(`FIELD_KEYS`・`RELATION_KEYS`・`COLUMN_KEYS`・`INDEX_KEYS`・`PRIMARY_KEY_KEYS`・`FOREIGN_KEY_KEYS`・`CHECK_KEYS`・`ENUM_KEYS`・`DB_OBJECT_KEYS` ほか)・値の集合(`DB_ENGINES`・`ID_TYPES`・`RELATION_TYPES`・`ON_DELETE_VALUES`・`IDENTITY_VALUES`・`DB_OBJECT_KINDS`) | 入れ子の鍵の表(readDomain が歩く)。今の形の語彙 scripts/structure/domain/spec/domainJson.mjs もここから組む |
 | `DOMAIN_DECLARATION_FILE` / `ENTITIES_DIR` / `ENTITY_DECLARATION_FILE` / `DOMAIN_DECLARATION_VERSION` | 置き場の名前("domain.json"・"entities"・"entity.json")と形の版("2.0") |
+| `ENTITY_FILE_KINDS` | 登録のフォルダの表のファイルの種類(drizzle・schema・form・model)。entities/ の下で entity.json かこの種類のファイルを持つフォルダが登録(役割の表 profiles/ などは登録でない) |

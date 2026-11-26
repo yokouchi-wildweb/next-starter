@@ -1,4 +1,4 @@
-// domain.json の closable(閉じられる形の印)は受けない(D26): 書けば true でも false でも生成の前に止め、規則の書き方を案内する。
+// 宣言(entity.json)の closable(閉じられる形の印)は受けない(D26): 書けば true でも false でも生成の前に止め、規則の書き方を案内する。
 // 生成カテゴリに featureGate は無い(1 対 1 のひな形の規則・入切の値を書かない)。実行: pnpm test scripts/structure/domain/tests/closableRetired.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -8,9 +8,9 @@ import { configIssues } from "../checks/index.mjs";
 import { GENERATE_CATEGORIES } from "../spec/categories.mjs";
 import { TOP_LEVEL_KEYS } from "../spec/domainJson.mjs";
 
-const base = { domainConfigVersion: "1.3", singular: "shop_item", plural: "shop_items", label: "商品", dbEngine: "Neon", idType: "uuid", fields: [] };
+const base = { singular: "shop_item", plural: "shop_items", label: "商品", dbEngine: "Neon", idType: "uuid", fields: [] };
 
-test("closable を書いた domain.json は true でも false でも止まり、規則の書き方を案内する。書かなければ止まらない", () => {
+test("closable を書いた宣言(entity.json)は true でも false でも止まり、規則の書き方を案内する。書かなければ止まらない", () => {
   for (const closable of [true, false, "yes"]) {
     const issues = closableIssues({ ...base, closable });
     assert.equal(issues.length, 1);

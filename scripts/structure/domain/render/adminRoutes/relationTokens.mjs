@@ -35,7 +35,7 @@ export function buildRelationTokens(relations, { camel }) {
     editRenderParams: `{ record: ${camel}, redirectPath, relationFallback }`,
     swrStart: "  <SWRConfig value={{ fallback: relationFallback }}>\n",
     swrEnd: "  </SWRConfig>\n",
-    loaderImport: `import domainConfig from "@/domains/${camel}/domain.json";\n`,
+    loaderImport: `import domainConfig from "@/domains/${camel}/entities/${camel}/entity.json";\n`,
     createRelationsArg: ", { relations: domainConfig }",
     editRelationsArg: ", relations: domainConfig",
   };

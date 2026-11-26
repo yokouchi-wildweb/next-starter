@@ -177,15 +177,22 @@ test("tableFiles: domains の地区の表と定義ファイル(パス順 → 出
   assert.ok(broken.problems.length > broken.tableProblems.length);
 });
 
-test("domainJson・generate: domains は domain.json の有無と generate(省略 = true、無し = null)、ほかの種類は null、壊れた JSON は問題", () => {
-  const files = { ...BASE, "src/domains/sample/domain.json": '{ "name": "sample" }', "src/domains/core/wallet/domain.json": '{ "generate": false }' };
+test("domainJson・generate: domains は domain.json の有無と登録の entity.json の generate(省略 = true、無し = null)、ほかの種類は null、壊れた JSON は問題", () => {
+  const DOMAIN_JSON = '{ "domainConfigVersion": "2.0" }';
+  const files = {
+    ...BASE,
+    "src/domains/sample/domain.json": DOMAIN_JSON,
+    "src/domains/sample/entities/sample/entity.json": '{ "singular": "sample" }',
+    "src/domains/core/wallet/domain.json": DOMAIN_JSON,
+    "src/domains/core/wallet/entities/wallet/entity.json": '{ "generate": false }',
+  };
   const by = Object.fromEntries(readDistrictMap(memorySource(files)).districts.map((d) => [`${d.kind}:${d.name}`, d]));
   assert.deepEqual([by["domains:sample"].domainJson, by["domains:sample"].generate], [true, true]);
   assert.deepEqual([by["domains:wallet"].domainJson, by["domains:wallet"].generate], [true, false]);
   assert.deepEqual([by["domains:purchaseRequest"].domainJson, by["domains:purchaseRequest"].generate], [false, null]);
   assert.deepEqual([by["lib:cron"].domainJson, by["lib:cron"].generate], [null, null]);
-  const broken = readDistrictMap(memorySource({ ...BASE, "src/domains/sample/domain.json": "{ nope" }));
-  assert.ok(broken.problems.some((p) => /src\/domains\/sample\/domain\.json: JSON として読めない/.test(p)), broken.problems.join("\n"));
+  const broken = readDistrictMap(memorySource({ ...BASE, "src/domains/sample/domain.json": DOMAIN_JSON, "src/domains/sample/entities/sample/entity.json": "{ nope" }));
+  assert.ok(broken.problems.some((p) => /src\/domains\/sample\/entities\/sample\/entity\.json: JSON として読めない/.test(p)), broken.problems.join("\n"));
 });
 
 test("readFeatureRequirements: export const featureRequirements のリテラルを読む・誤りは問題に(設定 D110)", () => {

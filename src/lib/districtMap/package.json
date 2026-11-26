@@ -3,5 +3,9 @@
     ".": "./index.mjs",
     "./node": "./node.mjs"
   },
-  "libs": ["libPackage", "stringCase"]
+  "libs": [
+    "domain",
+    "libPackage",
+    "stringCase"
+  ]
 }

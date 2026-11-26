@@ -95,16 +95,17 @@ test("receptacles = 地区の中の extensionPoints.ts の点(地区の外の宣
   }
 });
 
-test("domainJson・generate = 各ドメインの domain.json の有無と generate(省略 = true)。生成器が書き直さないドメインが地図で分かる(L1.15)", () => {
+test("domainJson・generate = 各ドメインの domain.json の有無と、登録の entity.json の generate(省略 = true、生成する登録が 1 つでもあれば true)。生成器が書き直さないドメインが地図で分かる(L1.15)", () => {
   for (const d of features) {
-    let config = null;
-    try {
-      config = JSON.parse(readFileSync(join(repoRoot, d.dir, "domain.json"), "utf8"));
-    } catch {
-      config = null;
-    }
-    assert.equal(d.domainJson, config !== null, d.dir);
-    assert.equal(d.generate, config === null ? null : config.generate !== false, d.dir);
+    const hasDomainJson = existsSync(join(repoRoot, d.dir, "domain.json"));
+    const entitiesDir = join(repoRoot, d.dir, "entities");
+    const entities = existsSync(entitiesDir)
+      ? readdirSync(entitiesDir, { withFileTypes: true })
+          .filter((entry) => entry.isDirectory() && existsSync(join(entitiesDir, entry.name, "entity.json")))
+          .map((entry) => JSON.parse(readFileSync(join(entitiesDir, entry.name, "entity.json"), "utf8")))
+      : [];
+    assert.equal(d.domainJson, hasDomainJson, d.dir);
+    assert.equal(d.generate, hasDomainJson ? entities.some((entity) => entity.generate !== false) : null, d.dir);
   }
   assert.ok(features.some((d) => d.generate === false) && features.some((d) => d.generate === true) && features.some((d) => d.generate === null));
 });

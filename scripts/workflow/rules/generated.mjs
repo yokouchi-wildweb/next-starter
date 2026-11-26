@@ -7,6 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { loadPhases, scanTargets } from "../../runner/phases/scan.mjs";
 import { hasGeneratedMark, MARKABLE, outputFiles, outputsOutsidePaths } from "./lib.ruleGenerated.mjs";
+import { nodeDomainSource, primaryRegistrationOf, readDomain } from "../../../src/lib/domain/node.mjs";
 import { planUnmark } from "../../structure/domain/cli/unmark.mjs";
 import { createWorkspace } from "../../structure/domain/domain/workspace.mjs";
 import { everyRunPathsOf, planGenerateAll } from "../../structure/domain/pipeline/generateAll.mjs";
@@ -20,17 +21,20 @@ const DISTRICT_MAP = "src/registry/district-map.jsonl";
 const scriptsDir = join(root, "scripts");
 const gates = scanTargets(scriptsDir, loadPhases(scriptsDir)).map((t) => ({ gate: `${t.kind}/${t.name}`, outputs: t.decl.outputs, upstream: t.upstream }));
 const files = execFileSync("git", ["ls-files", "-z"], { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 }).split("\0").filter(Boolean);
-// 作り直しの対象のドメイン = domain.json を持ち generate が false でない物(false = 生成器が触らない)
+// 作り直しの対象のドメイン = 宣言を持ち生成する登録のある物(地区の地図の domainJson・generate。false = 生成器が触らない)。
+// plural は主の登録の entity.json(宣言の読み込みの部品 readDomain だけで読む)
+const domainSource = nodeDomainSource(root);
+const primaryPluralOf = (name) => {
+  const declaration = readDomain(domainSource, name);
+  return declaration.domain === null ? undefined : primaryRegistrationOf(declaration)?.entity?.plural;
+};
 const domains = existsSync(join(root, DISTRICT_MAP))
   ? read(DISTRICT_MAP)
       .split("\n")
       .filter(Boolean)
       .map((l) => JSON.parse(l))
       .filter((d) => d.kind === "domains" && d.domainJson === true && d.generate !== false)
-      .map((d) => {
-        const json = join(root, d.dir, "domain.json");
-        return { dir: d.dir, plural: existsSync(json) ? JSON.parse(readFileSync(json, "utf8")).plural : undefined };
-      })
+      .map((d) => ({ dir: d.dir, plural: primaryPluralOf(d.name) }))
   : [];
 
 const fails = [];
@@ -64,9 +68,7 @@ for (const e of entries.filter((x) => x.kind === "every-run")) {
 // 見るのは印の文字列そのもの(広い語の MARK_PATTERN でなく、ドメインの生成器が入れる GENERATED_MARK)。外すのは pnpm generate domain -- --unmark
 if (existsSync(join(root, DISTRICT_MAP))) {
   const rows = read(DISTRICT_MAP).split("\n").filter(Boolean).map((l) => JSON.parse(l));
-  const plurals = Object.fromEntries(
-    rows.filter((r) => r.domainJson && existsSync(join(root, r.dir, "domain.json"))).map((r) => [r.dir, JSON.parse(readFileSync(join(root, r.dir, "domain.json"), "utf8")).plural]),
-  );
+  const plurals = Object.fromEntries(rows.filter((r) => r.kind === "domains" && r.domainJson).map((r) => [r.dir, primaryPluralOf(r.name)]));
   const left = planUnmark({ rows, plurals, files, readText: read }).writes;
   for (const w of left) fails.push(`${w.path}: generate: false のドメインに生成物の印が残っている(手で管理するファイル。pnpm generate domain -- --unmark で外す)`);
 }

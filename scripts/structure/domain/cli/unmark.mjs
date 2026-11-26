@@ -3,10 +3,11 @@
 // 対象 = district-map で domain.json を持ち generate が false のドメイン(名を省くと全部)の、ドメインのフォルダと管理画面のルートの下のファイル。
 // 印の行だけを消す(他の行は変えない)。2 回目は書く物 0。残っていたら pnpm check rules(scripts/workflow/rules/generated.mjs)が止める
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { domainNamesOf } from "../../../../src/lib/districtMap/node.mjs";
+import { nodeDomainSource, primaryRegistrationOf, readDomain } from "../../../../src/lib/domain/node.mjs";
 import { GENERATED_MARK, withoutGeneratedMark } from "../render/output.mjs";
 
 export const DISTRICT_MAP = "src/registry/district-map.jsonl";
@@ -43,9 +44,12 @@ export function planUnmark({ rows, plurals, files, readText, name = null }) {
 export function runUnmark(root, name = null) {
   const rows = readFileSync(join(root, DISTRICT_MAP), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
   const plurals = {};
+  const source = nodeDomainSource(root);
   for (const r of rows) {
-    const json = join(root, r.dir ?? "", "domain.json");
-    if (r.domainJson && existsSync(json)) plurals[r.dir] = JSON.parse(readFileSync(json, "utf8")).plural;
+    if (r.kind !== "domains" || !r.domainJson) continue;
+    // plural は主の登録の entity.json(宣言の読み込みの部品 readDomain だけで読む)
+    const declaration = readDomain(source, r.name);
+    plurals[r.dir] = declaration.domain === null ? undefined : primaryRegistrationOf(declaration)?.entity?.plural;
   }
   const files = execFileSync("git", ["ls-files", "-z"], { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 }).split("\0").filter(Boolean);
   const { domains, writes } = planUnmark({ rows, plurals, files, readText: (p) => readFileSync(join(root, p), "utf8"), name });

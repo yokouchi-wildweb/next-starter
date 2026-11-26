@@ -1,6 +1,6 @@
 // --only の名指し(generate: false は名指ししても書かない)・CLI の既定と、生成と削除の最後に地区の地図を書き直す契約テスト。
 // 実行: pnpm test scripts/structure/domain/tests/generateTargets.test.mjs
-// ドメインの一覧(domain.json の有無・generate)は地区の地図 src/registry/district-map.jsonl の domainJson・generate(L1.15)
+// ドメインの一覧(domain.json の有無・登録の entity.json の generate)は地区の地図 src/registry/district-map.jsonl の domainJson・generate(L1.15)
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -10,7 +10,7 @@ import { DISTRICT_MAP_FILE } from "../../../../src/lib/districtMap/index.mjs";
 import { createWorkspace } from "../domain/workspace.mjs";
 import { configTargets, refreshDistrictMap } from "../pipeline/generate.mjs";
 import { GENERATE_CATEGORIES } from "../spec/categories.mjs";
-import { makeProject, removeAll, repoRoot } from "./helpers.mjs";
+import { entityDeclarationPath, makeProject, removeAll, repoRoot } from "./helpers.mjs";
 
 const cleanup = [];
 after(() => removeAll(cleanup));
@@ -27,9 +27,9 @@ test("生成と削除の最後: 地区の地図を今のフォルダ・generate 
   assert.equal(refreshDistrictMap(workspace, SILENT), false);
   const rows = fs.readFileSync(path.join(root, DISTRICT_MAP_FILE), "utf8").trim().split("\n").map((line) => JSON.parse(line)).filter((d) => d.kind === "domains");
   assert.deepEqual(rows.map((d) => `${d.name}:${d.domainJson}:${d.generate}`).sort(), ["alpha:true:true", "beta:true:false"]);
-  fs.writeFileSync(path.join(root, "src/domains/beta/domain.json"), JSON.stringify({ singular: "beta" }));
+  fs.writeFileSync(entityDeclarationPath(root, "beta"), JSON.stringify({ singular: "beta" }));
   assert.equal(refreshDistrictMap(workspace, SILENT), true);
-  fs.writeFileSync(path.join(root, "src/domains/beta/domain.json"), "{ broken");
+  fs.writeFileSync(entityDeclarationPath(root, "beta"), "{ broken");
   const warned = [];
   assert.equal(refreshDistrictMap(workspace, { log: () => {}, warn: (line) => warned.push(line) }), false);
   assert.match(warned.join("\n"), /pnpm check district-map/);

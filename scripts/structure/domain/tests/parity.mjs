@@ -4,12 +4,12 @@
 //
 // 使い方（リポジトリのルートで）:
 //   pnpm check domain -- --parity <git-ref>                              サンプル + 合成 fixture（成功系・失敗系）
-//   pnpm check domain -- --parity <git-ref> --repo ../oripa-do            fork の domain.json 一式も fixture にする（複数可）
+//   pnpm check domain -- --parity <git-ref> --repo ../oripa-do            fork の宣言一式も fixture にする（複数可）
 //   pnpm check domain -- --parity <git-ref> --fixtures samples,synthetic --modes each,all --variants fresh --keep
 //
-// fixture: samples = このリポの src/ をそのまま | synthetic / synthetic-bad = tests/fixtures/parity/<name>/<domain>/domain.json を
-//   src/domains に重ねる | --repo = そのリポの src/domains/*/domain.json を重ねる（fresh = domain.json だけ、existing = ドメインフォルダ・
-//   管理画面ルート・registry も写す = write-once や「既に登録済み」の経路を通す）
+// fixture: samples = このリポの src/ をそのまま | synthetic / synthetic-bad = tests/fixtures/parity/<name>/<domain>/ の宣言(domain.json と
+//   entities/<登録名>/entity.json)を src/domains に重ねる | --repo = そのリポの src/domains/*/ の宣言を重ねる（fresh = 宣言だけ、
+//   existing = ドメインフォルダ・管理画面ルート・registry も写す = write-once や「既に登録済み」の経路を通す）
 // mode: each = 1 ドメインずつ --yes | all = --all --yes | all2 = all を 2 回（冪等性）| only-registry | only-entities-hooks
 // 失敗系 fixture では両版が同じ exit code・同じエラー文で止まることを見る。意図して変えた挙動は差分として出るので目で確かめる。
 // 旧側の src 部品: 生成器は src の .mjs（型の表 src/lib/domain/fields、src/utils など）も import するので、旧側はそれらのフォルダも
@@ -62,7 +62,7 @@ function listDomains(domainsDir) {
     .sort();
 }
 
-/** fixture の「元」: features ディレクトリ（domain.json の置き場）と、existing で写すリポのルート */
+/** fixture の「元」: features ディレクトリ（宣言の置き場）と、existing で写すリポのルート */
 function resolveFixture(name) {
   if (name === "samples") return { label: "samples", domainsDir: null, repo: null };
   const synthetic = path.join(fixtureRoot, name);
@@ -70,6 +70,19 @@ function resolveFixture(name) {
   const repo = path.resolve(name);
   if (fs.existsSync(path.join(repo, "src", "domains"))) return { label: path.basename(repo), domainsDir: path.join(repo, "src", "domains"), repo };
   throw new Error(`fixture が見つかりません: ${name}`);
+}
+
+/** 宣言だけを写す: domain.json と entities/<登録名>/entity.json(entity.json の無いフォルダは登録でないか表のファイルだけの登録なので写さない) */
+function copyDeclaration(from, to) {
+  fs.mkdirSync(to, { recursive: true });
+  fs.copyFileSync(path.join(from, "domain.json"), path.join(to, "domain.json"));
+  const entities = path.join(from, "entities");
+  for (const e of fs.existsSync(entities) ? fs.readdirSync(entities, { withFileTypes: true }) : []) {
+    const entity = path.join(entities, e.name, "entity.json");
+    if (!e.isDirectory() || !fs.existsSync(entity)) continue;
+    fs.mkdirSync(path.join(to, "entities", e.name), { recursive: true });
+    fs.copyFileSync(entity, path.join(to, "entities", e.name, "entity.json"));
+  }
 }
 
 /** このリポの src/ を複製し、fixture のドメインを重ねた基準ツリーを作る */
@@ -83,8 +96,7 @@ function buildBase({ domainsDir, repo }, variant) {
     if (variant === "existing" && repo) {
       cp(path.join(domainsDir, d), dest);
     } else {
-      fs.mkdirSync(dest, { recursive: true });
-      fs.copyFileSync(path.join(domainsDir, d, "domain.json"), path.join(dest, "domain.json"));
+      copyDeclaration(path.join(domainsDir, d), dest);
     }
   }
   if (variant === "existing" && repo) {

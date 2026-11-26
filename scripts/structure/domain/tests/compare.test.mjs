@@ -10,7 +10,7 @@ import { execFileSync } from "node:child_process";
 import { classifyFile, diffStats, summarizeDomain } from "../cli/compare/classify.mjs";
 import { generateAllConfig } from "../cli/compare/trees.mjs";
 import { runCompare } from "../cli/compare/run.mjs";
-import { repoRoot } from "./helpers.mjs";
+import { entityDeclarationPath, repoRoot, writeDeclaration } from "./helpers.mjs";
 import { copyByImports } from "../../../runner/test/lib.copyByImports.mjs";
 
 const cleanup = [];
@@ -49,7 +49,7 @@ test("summarizeDomain: 見込み（止まる > 手の変更 > 入口・表・古
   assert.equal(verdict([file("untouched")], { nowError: "止まる" }), "直してから");
 });
 
-test("generateAllConfig: 写しの domain.json を「全部生成する」形に（generateFiles の生成器 / generate の旗の生成器、集まりの従属）", () => {
+test("generateAllConfig: 写しの entity.json を「全部生成する」形に（generateFiles の生成器 / generate の旗の生成器、集まりの従属）", () => {
   const legacy = { legacy: true, categories: ["entities", "components"] };
   assert.deepEqual(generateAllConfig({ singular: "x", generateFiles: { entities: false } }, legacy).generateFiles, { entities: true, components: true });
   const child = { singular: "c", generateFiles: { components: false, hooks: false } };
@@ -59,7 +59,6 @@ test("generateAllConfig: 写しの domain.json を「全部生成する」形に
 
 const sh = (cwd, cmd, args) => execFileSync(cmd, args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 const MEMO = {
-  domainConfigVersion: "1.3",
   singular: "memo",
   plural: "memos",
   label: "メモ",
@@ -71,15 +70,14 @@ const MEMO = {
   tableFields: ["title"],
 };
 
-test("実地: base で生成 → fork が手を入れる → 分類。generateFiles の残る domain.json を読み、fork のリポには書かない", { timeout: 240_000 }, async () => {
+test("実地: base で生成 → fork が手を入れる → 分類。generateFiles の残る entity.json を読み、fork のリポには書かない", { timeout: 240_000 }, async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "dc-compare-test-"));
   cleanup.push(root);
   // 生成器のコードは入口から import で求める。src(生成の入力と出力の木)と tsconfig(@/ の paths)はデータ
   await copyByImports({ from: repoRoot, to: root, entries: ["scripts/structure/domain/index.mjs"], data: ["src", "tsconfig.json"], nodeModules: true });
   fs.writeFileSync(path.join(root, ".gitignore"), "node_modules\n");
   const memoDir = path.join(root, "src/domains/memo");
-  fs.mkdirSync(memoDir, { recursive: true });
-  fs.writeFileSync(path.join(memoDir, "domain.json"), JSON.stringify(MEMO, null, 2));
+  writeDeclaration(root, "memo", MEMO);
   sh(root, "node", ["scripts/structure/domain/index.mjs", "--generate", "memo"]);
   sh(root, "git", ["init", "-q"]);
   sh(root, "git", ["add", "-A"]);
@@ -87,7 +85,7 @@ test("実地: base で生成 → fork が手を入れる → 分類。generateFi
   const base = sh(root, "git", ["rev-parse", "HEAD"]).trim();
 
   // fork の変更: 古い区分のキー、手の変更（挿した行）、古い生成物（消した行）、fork のファイル、消した hook と管理画面の Screen
-  fs.writeFileSync(path.join(memoDir, "domain.json"), JSON.stringify({ ...MEMO, generateFiles: { components: false } }, null, 2));
+  fs.writeFileSync(entityDeclarationPath(root, "memo"), JSON.stringify({ ...MEMO, generateFiles: { components: false } }, null, 2));
   const form = path.join(memoDir, "components/common/MemoForm.tsx");
   fs.writeFileSync(form, fs.readFileSync(form, "utf8").replace("\n", "\n// fork の手の変更\n"));
   const header = path.join(memoDir, "components/AdminMemoList/Header.tsx");

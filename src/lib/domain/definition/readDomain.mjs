@@ -1,12 +1,10 @@
 // src/lib/domain/definition/readDomain.mjs
 // ドメインと登録をまとめて返す読み込みの部品(D335。読み手は全員これだけを通す)。宣言の形は ./declaration.mjs。
 // 読むのは domain.json と entities/<登録名>/entity.json だけで、無い・壊れた・知らない鍵は problems に入れる(推測で埋めない、
-// 無い側の別の読み方を持たない)。木は source(地区の地図と同じ { listDir, readText })で渡す = 今の木も git の木も同じに読む
+// 無い側の別の読み方を持たない)。木は source(地区の地図と同じ { listDir, readText })で渡す = 今の木も git の木も同じに読む。
+// ファイルを開かない(素の JS。地区の地図からも読める)。今の木を node:fs で読む source は ./nodeDomainSource.mjs
 
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
-
-import { DOMAIN_DECLARATION_FILE, DOMAIN_KEYS, ENTITIES_DIR, ENTITY_DECLARATION_FILE, ENTITY_KEYS, ENTITY_NESTED_KEYS } from "./declaration.mjs";
+import { DOMAIN_DECLARATION_FILE, DOMAIN_KEYS, ENTITIES_DIR, ENTITY_DECLARATION_FILE, ENTITY_FILE_KINDS, ENTITY_KEYS, ENTITY_NESTED_KEYS } from "./declaration.mjs";
 
 /** ドメインのフォルダの根(リポジトリ直下からの相対) */
 const DOMAINS_ROOT = "src/domains";
@@ -25,28 +23,7 @@ const CORE_DIR = "core";
  */
 
 /** @param {string} a @param {string} b */
-const byName = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
-
-/**
- * リポジトリの木を読む source
- * @param {string} repoRoot
- * @returns {DomainSource}
- */
-export function nodeDomainSource(repoRoot) {
-  return {
-    listDir(rel) {
-      const abs = join(repoRoot, rel);
-      if (!existsSync(abs) || !statSync(abs).isDirectory()) return [];
-      return readdirSync(abs, { withFileTypes: true })
-        .map((entry) => ({ name: entry.name, isDir: entry.isDirectory() }))
-        .sort((a, b) => byName(a.name, b.name));
-    },
-    readText(rel) {
-      const abs = join(repoRoot, rel);
-      return existsSync(abs) && statSync(abs).isFile() ? readFileSync(abs, "utf8") : null;
-    },
-  };
-}
+export const byName = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
 /** @param {DomainSource} source @param {string} rel */
 const dirsOf = (source, rel) =>
@@ -144,6 +121,10 @@ function readDeclaration(source, rel, keys, problems, nested) {
   return parsed;
 }
 
+/** entities/ の下のフォルダが登録か: entity.json か表のファイル(ENTITY_FILE_KINDS)を持つ */
+const isRegistrationDir = (source, rel) =>
+  source.listDir(rel).some((entry) => !entry.isDir && (entry.name === ENTITY_DECLARATION_FILE || ENTITY_FILE_KINDS.some((kind) => entry.name === `${kind}.ts`)));
+
 /**
  * 1 つのドメインの宣言(ドメインと登録)。name はフォルダ名(業務か core かは木から決める)
  * @param {DomainSource} source
@@ -161,7 +142,7 @@ export function readDomain(source, name) {
   }
   const { core, dir } = found[0];
   const domain = readDeclaration(source, `${dir}/${DOMAIN_DECLARATION_FILE}`, DOMAIN_KEYS, problems);
-  const registrations = dirsOf(source, `${dir}/${ENTITIES_DIR}`).map((registrationName) => {
+  const registrations = dirsOf(source, `${dir}/${ENTITIES_DIR}`).filter((registrationName) => isRegistrationDir(source, `${dir}/${ENTITIES_DIR}/${registrationName}`)).map((registrationName) => {
     const registrationDir = `${dir}/${ENTITIES_DIR}/${registrationName}`;
     const entity = readDeclaration(source, `${registrationDir}/${ENTITY_DECLARATION_FILE}`, ENTITY_KEYS, problems, ENTITY_NESTED_KEYS);
     return { name: registrationName, dir: registrationDir, entity };
@@ -177,4 +158,39 @@ export function readDomain(source, name) {
 export function readDomains(source) {
   const names = [...new Set(listDomains(source).domains.map((domain) => domain.name))];
   return names.map((name) => readDomain(source, name));
+}
+
+/**
+ * ドメインの主の登録: 登録名 = ドメイン名の物(表 1 つのドメインは登録名 = ドメイン名、D335)、無ければ登録がちょうど 1 つの時のそれ。
+ * どちらでもなければ null(登録が 0 か、ドメイン名でない登録が複数)
+ * @param {DomainDeclaration} declaration
+ * @returns {DomainRegistration | null}
+ */
+export function primaryRegistrationOf(declaration) {
+  const named = declaration.registrations.find((registration) => registration.name === declaration.name);
+  if (named) return named;
+  return declaration.registrations.length === 1 ? declaration.registrations[0] : null;
+}
+
+/**
+ * 生成器が書く登録か(entity.json の generate。省略 = true、D337)
+ * @param {DomainRegistration} registration
+ */
+export const isGeneratedRegistration = (registration) => Boolean(registration.entity) && registration.entity.generate !== false;
+
+/**
+ * 名前の登録をどのドメインからでも探す(関連の先 relations[].domain は登録名)。ドメイン名と同じ登録を先に、無ければ最初に見つかった物
+ * @param {DomainDeclaration[]} declarations
+ * @param {string} name
+ * @returns {{ declaration: DomainDeclaration, registration: DomainRegistration } | null}
+ */
+export function findRegistration(declarations, name) {
+  const own = declarations.find((declaration) => declaration.name === name);
+  const named = own?.registrations.find((registration) => registration.name === name);
+  if (own && named) return { declaration: own, registration: named };
+  for (const declaration of declarations) {
+    const registration = declaration.registrations.find((candidate) => candidate.name === name);
+    if (registration) return { declaration, registration };
+  }
+  return null;
 }

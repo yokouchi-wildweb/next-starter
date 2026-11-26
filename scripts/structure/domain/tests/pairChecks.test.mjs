@@ -27,7 +27,6 @@ const field = (overrides = {}) => ({
   ...overrides,
 });
 const owner = (fieldOverrides = {}, extra = {}) => ({
-  domainConfigVersion: "1.3",
   singular: "album",
   plural: "albums",
   label: "アルバム",
@@ -75,14 +74,14 @@ test("雛形どおりの組（showcase の fixture を含む）はすべての�
   assert.deepEqual(errorsOf(), []);
   assert.deepEqual(noticesOf(), []);
   assert.deepEqual(errorsOf({ child: childOf(owner()) }), []);
-  const showcase = JSON.parse(fs.readFileSync(path.join(repoRoot, "scripts/structure/domain/tests/fixtures/parity/synthetic/showcase/domain.json"), "utf8"));
+  const showcase = JSON.parse(fs.readFileSync(path.join(repoRoot, "scripts/structure/domain/tests/fixtures/parity/synthetic/showcase/entities/showcase/entity.json"), "utf8"));
   const root = makeProject({ configs: { showcase }, cleanup });
   const pairs = resolvePairs(createWorkspace(root));
   assert.deepEqual([...pairs.errors, ...pairs.notices], []);
 });
 
 test("a. 主の集まりの項目にファイルの条件があれば誤り", () => {
-  expectError({ ownerConfig: owner({ accept: "image/*", storage: { visibility: "public" } }) }, /集まりの項目 "photos": ファイルの条件（accept, storage）は主に書けません。albumPhoto\/domain\.json の file/);
+  expectError({ ownerConfig: owner({ accept: "image/*", storage: { visibility: "public" } }) }, /集まりの項目 "photos": ファイルの条件（accept, storage）は主に書けません。albumPhoto\/entities\/albumPhoto\/entity\.json の file/);
 });
 
 test("b. 主への belongsTo は 1 本・必須・CASCADE", () => {

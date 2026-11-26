@@ -6,7 +6,7 @@
 
 import "server-only";
 
-import domainConfig from "@/domains/sample/domain.json";
+import domainConfig from "@/domains/sample/entities/sample/entity.json";
 import { createLoader } from "@/app/admin/(protected)/guard";
 import { adminCreateParts } from "@/domains/core/admin/services/server/screenParts";
 

@@ -17,7 +17,7 @@ export function buildCountableRelationsSnippets(workspace, config, pascal, camel
     const relationCamel = toCamelCase(relation.domain);
     const throughTableVar = `${pascal}To${relationPascal}Table`;
     const targetTableImport = `${relationPascal}Table`;
-    const targetConfig = workspace.readConfig(relationCamel);
+    const targetConfig = workspace.readRegistration(relationCamel);
     const targetUseSoftDelete = Boolean(targetConfig && targetConfig.useSoftDelete);
 
     const lines = [

@@ -14,6 +14,7 @@ import ts from "typescript";
 
 import { resolveImport } from "../../../../eslint-rules/resolve-import.mjs";
 import { overrideKeysOf, readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
+import { isGeneratedRegistration, nodeDomainSource, readDomain } from "../../../../src/lib/domain/node.mjs";
 import { scanObjectEntries } from "../../domain/text/objectEntry.mjs";
 import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
 
@@ -375,13 +376,16 @@ export function createOverlayView(overlay) {
   };
 }
 
-/** domain.json が `"generate": false`（手で管理 = 生成器が domainEntry.ts を書かない）か。読めない JSON は false（生成側の検査が止める） */
-export function readHandManaged(view, file) {
-  try {
-    return JSON.parse(view.read(file))?.generate === false;
-  } catch {
-    return false;
-  }
+/**
+ * ドメインの宣言の事実(宣言の読み込みの部品 readDomain だけで読む、D335): 宣言(domain.json)があるか、生成する登録(generate、D337)を 1 つも持たないか
+ * @param {string} repoRoot
+ * @param {string} name ドメインのフォルダ名
+ * @returns {{ hasDomainJson: boolean, handManaged: boolean }}
+ */
+export function readDeclarationFacts(repoRoot, name) {
+  const declaration = readDomain(nodeDomainSource(repoRoot), name);
+  if (declaration.domain === null) return { hasDomainJson: false, handManaged: false };
+  return { hasDomainJson: true, handManaged: !declaration.registrations.some(isGeneratedRegistration) };
 }
 
 /**
@@ -399,8 +403,7 @@ export function discoverDomainEntries(repoRoot, view = diskView) {
     const entryFile = path.join(serverDir, ENTRY_FILE);
     const overrideFile = path.join(serverDir, OVERRIDE_FILE);
     const hasBase = view.exists(path.join(serverDir, "drizzleBase.ts")) || view.exists(path.join(serverDir, "firestoreBase.ts"));
-    const domainJsonFile = path.join(repoRoot, "src", "domains", dir, "domain.json");
-    const hasDomainJson = view.exists(domainJsonFile);
+    const { hasDomainJson, handManaged } = readDeclarationFacts(repoRoot, path.basename(dir));
     const camel = toCamelCase(path.basename(dir)) || path.basename(dir);
     const info = {
       dir,
@@ -417,7 +420,7 @@ export function discoverDomainEntries(repoRoot, view = diskView) {
       overrideErrors: [],
       hasBase,
       hasDomainJson,
-      handManaged: hasDomainJson && readHandManaged(view, domainJsonFile),
+      handManaged,
     };
     const rel = `src/domains/${dir}/services/server`;
     if (view.exists(entryFile)) {

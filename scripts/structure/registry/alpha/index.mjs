@@ -7,6 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
+import { ENTITIES_DIR, ENTITY_DECLARATION_FILE, listDomains as listDeclaredDomains, nodeDomainSource, primaryRegistrationOf, readDomains as readDeclaredDomains } from "../../../../src/lib/domain/node.mjs";
 import { toCamelCase, toKebabCase, toSnakeCase } from "../../../../src/lib/stringCase/index.mjs";
 import { FEATURES_DIR, scanFeatureTables } from "../tableScan.mjs";
 import { domainDisplayPath, renderDomainDisplay } from "./domainDisplay.mjs";
@@ -26,22 +27,27 @@ export const ADMIN_LIST_ROUTE_DIR = "src/app/admin/(protected)";
 const headerOf = (source) => `// 生成物・編集不可: pnpm generate registry が ${source} から生成する`;
 const byString = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
-/** domains の地区の直下の domain.json(path 順)。地区の見つけ方は src/lib/districtMap(地区の外の domain.json は読まない、目録 D1・D3) */
+/**
+ * 宣言のあるドメインの主の登録(登録名 = ドメイン名か、登録 1 つ)の entity.json(path 順)。読むのは宣言の読み込みの部品 readDomain だけ(D335)。
+ * 主の登録の無いドメイン(表なし・ドメイン名でない登録が複数)は並べない
+ */
 function readDomains(repoRoot) {
-  const found = readDistrictMapAt(repoRoot)
-    .districts.filter((district) => district.kind === "domains")
-    .map((district) => `${district.dir}/domain.json`)
-    .filter((file) => existsSync(join(repoRoot, file)));
-  const problems = [];
+  const source = nodeDomainSource(repoRoot);
+  // 業務と core の同じフォルダ名は登録のキーが同じになる(readDomains は名前で 1 つにまとめるので、一覧から見る)
+  const listed = listDeclaredDomains(source).domains;
+  const problems = listed
+    .filter((domain) => !domain.core && listed.some((other) => other.core && other.name === domain.name))
+    .map((domain) => `${domain.dir}/${ENTITIES_DIR}/${domain.name}/${ENTITY_DECLARATION_FILE}: フォルダ名 ${domain.name} が src/domains/core/${domain.name} と重なる(登録のキーが同じになる)`);
   const domains = [];
-  for (const file of found.sort(byString)) {
-    const camel = file.split("/").at(-2);
-    try {
-      domains.push({ file, camel, config: JSON.parse(readFileSync(join(repoRoot, file), "utf8")) });
-    } catch (error) {
-      problems.push(`${file}: JSON として読めない(${error.message})`);
-    }
+  for (const declaration of readDeclaredDomains(source)) {
+    if (declaration.domain === null) continue;
+    problems.push(...declaration.problems.filter((problem) => problem.includes("JSON として読めない")));
+    const registration = primaryRegistrationOf(declaration);
+    if (!registration?.entity) continue;
+    // 表示名はドメインの宣言 domain.json の label(管理の一覧・データ操作の一覧の名前、D335)
+    domains.push({ file: `${registration.dir}/${ENTITY_DECLARATION_FILE}`, camel: declaration.name, label: declaration.domain.label ?? registration.entity.label ?? declaration.name, config: registration.entity });
   }
+  domains.sort((a, b) => byString(a.file, b.file));
   const seen = new Map();
   for (const domain of domains) {
     if (seen.has(domain.camel)) problems.push(`${domain.file}: フォルダ名 ${domain.camel} が ${seen.get(domain.camel)} と重なる(登録のキーが同じになる)`);
@@ -70,10 +76,10 @@ function renderSchemaRegistry(repoRoot) {
 
 function renderDomainConfigRegistry(domains) {
   const lines = [
-    headerOf(`${FEATURES_DIR}/**/domain.json`),
+    headerOf(`${FEATURES_DIR}/**/entities/*/entity.json`),
     `// ${DOMAIN_CONFIG_REGISTRY_FILE}`,
     "//",
-    "// 全ドメインの domain.json の一覧(キー = フォルダ名の snake_case)。読み手: src/wiring/domainConfig.ts",
+    "// 全ドメインの主の登録の宣言 entity.json の一覧(キー = フォルダ名の snake_case)。読み手: src/wiring/domainConfig.ts",
     "",
     'import "server-only";',
     "",
@@ -110,7 +116,7 @@ function renderAdminDomains(repoRoot, domains) {
     "// 出どころ dataMenu が addToAdminDataMenu: true の行を展開する(src/domains/core/admin/menu/)。",
     "",
     "export const adminDomains = {",
-    ...listed.map((d) => `  ${d.camel}: { label: ${JSON.stringify(d.config.label ?? d.camel)}, href: ${JSON.stringify(adminListHref(d))}, addToAdminDataMenu: ${d.config.addToAdminDataMenu === true} },`),
+    ...listed.map((d) => `  ${d.camel}: { label: ${JSON.stringify(d.label)}, href: ${JSON.stringify(adminListHref(d))}, addToAdminDataMenu: ${d.config.addToAdminDataMenu === true} },`),
     "} as const satisfies Record<string, { label: string; href: string; addToAdminDataMenu: boolean }>;",
     "",
     "export type AdminDomainName = keyof typeof adminDomains;",

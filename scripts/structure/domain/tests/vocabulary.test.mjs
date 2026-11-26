@@ -1,4 +1,4 @@
-// domain.json の語彙検査（綴り違い・古いキー・その DB に無い型・知らない入力種別を警告する）の回帰テスト。
+// 登録の宣言 entity.json の語彙検査（綴り違い・古いキー・その DB に無い型・知らない入力種別を警告する）の回帰テスト。
 // 実行: pnpm test scripts/structure/domain/tests/vocabulary.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -16,7 +16,6 @@ import { FORM_INPUTS } from "../../../../src/lib/domain/node.mjs";
 import { repoRoot } from "./helpers.mjs";
 
 const BASE = {
-  domainConfigVersion: "1.3",
   singular: "memo",
   plural: "memos",
   label: "メモ",
@@ -28,10 +27,10 @@ const BASE = {
   fields: [{ name: "title", label: "題名", fieldType: "string", formInput: "textInput", required: true }],
 };
 
-test("正しい domain.json には警告が無い（このリポのサンプル 3 件を含む）", () => {
+test("正しい entity.json には警告が無い（このリポのサンプル 3 件を含む）", () => {
   assert.deepEqual(vocabularyWarnings(BASE), []);
   for (const domain of ["sample", "sampleCategory", "sampleTag"]) {
-    const config = JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "domains", domain, "domain.json"), "utf8"));
+    const config = JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "domains", domain, "entities", domain, "entity.json"), "utf8"));
     assert.deepEqual(vocabularyWarnings(config), [], domain);
   }
 });
@@ -155,7 +154,7 @@ test("登録名の読み手: 項目の name を字面で読み、ファイル形
 
 // ---- 開発者のメモ "$comment" と、知らないキーのまとめ ----
 
-/** sample の domain.json の全階層（トップ・fields・collection・relations・fieldGroups）に $comment を足した写し */
+/** sample の entity.json の全階層（トップ・fields・collection・relations・fieldGroups）に $comment を足した写し */
 function withCommentsEverywhere(config) {
   const note = (value) => ({ $comment: "開発者のメモ", ...value });
   return {
@@ -167,7 +166,7 @@ function withCommentsEverywhere(config) {
   };
 }
 
-const readSample = () => JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "domains", "sample", "domain.json"), "utf8"));
+const readSample = () => JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "domains", "sample", "entities", "sample", "entity.json"), "utf8"));
 
 test("$comment はどの階層でも警告なく通り、値が文字列・文字列の配列でなければ警告する", () => {
   const sample = readSample();
