@@ -264,12 +264,13 @@ pnpm workflow ownership selfKeep --pre=<区間の前> --target=<区間の merge 
 - 依頼の解決: 基準(取り込み済み)の履歴で `.notices/` に足された notice の本文の最後の版(木に有ればその版、消えていれば消す前の版)の `resolves:` を集め(親が本文を片付けても失効は変わらない)、すべての番号が解決した許可を expired-resolved にする
 - 検査が見るのは依頼の番号の形だけ(`UPREQ_ID`)で、どの受信箱の指令かは見ない。自分宛ての指令は親の notice の `resolves:` に載らないので、fork が自分で行を消すまで残る(親がファイルに触れば expired-base)
 
-### 緊急修正の pick
+### 上流の版と同じ中身(緊急修正の pick も)
 
-親の緊急修正・先に取れる修正(`pick: clean`)を cherry-pick しても基準は動かないので、受け口の外のファイルはそのままだと違反になる。台帳の `picked:<sha>` がこれを通す。
+親の緊急修正・先に取れる修正(`pick: clean`)を cherry-pick しても基準は動かないので、受け口の外のファイルはそのままだと違反になる。上流の文の混ぜ物を 2 つの照らしで見分けていたのを、決まり 1 つにした(D479)。
 
 - 台帳の行: `upstream:` は今の merge-base のまま(進めると Tier1 の版の判定がずれる)、`picked:` に pick の元の commit を書く(`.notices/README.md`「緊急修正(hotfix)」)
-- 判定: 基準に pick を順に当てた中身と HEAD の中身が同じファイル、または pick がそのファイルを変えていて HEAD の中身が上流(親の ref と pick の元の commit)の履歴のそのパスのどれかの版とファイルごと同じファイル(fork が触っていない上流のファイルを緊急修正の版に置き換えた形: `hotfixApply`)を `picked`(合格)にする。fork が更に変えた・fork の編集が元からある・元の commit が取得できないときは違反のまま
+- 判定: 違反の行の HEAD の中身が、(a) 基準の版 (b) 基準に台帳の `picked:` を順に当てた版 (c) 基準から親の ref までの履歴でそのパスが持ったどれかの版、のどれかと同じなら上流の物として合格(reason `upstream-version`、`version` = `base` / `base+pick` / `upstream <短 sha>`)。それ以外は違反のまま(fork 自身の変更 = push の前の止め)
+- 基準より古い版は数えない | 先取りが触ったか・名前の変わった両方のパス・段の順は見ない(名前の変わった行は今のパスの中身で照らす)| `picked:` は (b) を作るのにだけ使う
 - 既に基準に入った pick は対象から外れる(merge の後は差分に出ない)
 
 ### 検査の手順(`check.mjs` の `runCheck`)

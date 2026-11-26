@@ -25,6 +25,7 @@ const MARKER_LINE = /fork entries below/;
  *   fingerprints?: { base: string, head: string },
  *   permitDraft?: string,
  *   jsonKey?: string,
+ *   version?: string,
  * }} OwnershipEntry 1 ファイルの判定(verdict = ok | violation | permitted。permit 以下は checkPermits と judgeFork が足す)
  */
 
@@ -61,7 +62,7 @@ export const REASONS = {
   "json-upstream-key": "violation", // append の *.json で上流の鍵を消したか、上流の値を変えた(鍵を足すだけ。例外は JSON_FREE_KEYS)
   debt: "violation", // upstream の負債の箇所(一時許可で通す)
   "middle-tier": "ok", // 中間 Tier 以下の物(Tier1 の版に無いファイル)の書き換え・削除・rename(D29。check.mjs が付け替える、参考の一覧)
-  picked: "ok", // 親の緊急修正を pick しただけの差(台帳の picked:。check.mjs が付け替える)
+  "upstream-version": "ok", // 上流の版と同じ中身(基準・基準 + 台帳の picked:・基準から親の ref までのそのパスの版。check.mjs が付け替える、D479)
 };
 
 const libNameOf = (/** @type {string} */ path) => {

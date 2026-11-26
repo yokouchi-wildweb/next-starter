@@ -41,7 +41,7 @@ describe("pnpm workflow ownership check", () => {
     closeTmp();
   });
 
-  describe("緊急修正の pick(台帳の picked:)", () => {
+  describe("上流の版と同じ中身(D479: 基準・基準 + 台帳の picked:・基準から親の先端までの版)", () => {
     const CORE = "src/domains/core/user/multi.ts";
     const LINES = ["one", "two", "three", "four", "five", "six", "seven", "eight"];
     const render = (/** @type {string[]} */ lines) => `${lines.join("\n")}\n`;
@@ -74,7 +74,9 @@ describe("pnpm workflow ownership check", () => {
       const result = runCheck(fork);
       assert.equal(result.status, "pass");
       assert.equal(result.base, base);
-      assert.equal(result.entries.find((entry) => entry.path === CORE)?.reason, "picked");
+      const entry = result.entries.find((x) => x.path === CORE);
+      assert.equal(entry?.reason, "upstream-version");
+      assert.equal(entry?.version, "base+pick");
     });
 
     test("台帳に picked: が無ければ受け口の外の違反", () => {
@@ -90,7 +92,7 @@ describe("pnpm workflow ownership check", () => {
       commitAll(fork, "replaced by the upstream's version at the pick");
       const result = runCheck(fork);
       assert.equal(result.status, "pass");
-      assert.equal(result.entries.find((entry) => entry.path === CORE)?.reason, "picked");
+      assert.match(result.entries.find((entry) => entry.path === CORE)?.version ?? "", /^upstream [0-9a-f]+$/);
     });
 
     test("pick が変えたファイルが上流のどれかの版(間の版)と同じ中身なら合格(hotfixApply が触っていないファイルを置き換えた形)", () => {
@@ -99,7 +101,7 @@ describe("pnpm workflow ownership check", () => {
       commitAll(fork, "the upstream's between version");
       const result = runCheck(fork);
       assert.equal(result.status, "pass");
-      assert.equal(result.entries.find((entry) => entry.path === CORE)?.reason, "picked");
+      assert.equal(result.entries.find((entry) => entry.path === CORE)?.reason, "upstream-version");
     });
 
     test("pick の後に fork が更に変えたら違反", () => {
@@ -109,6 +111,25 @@ describe("pnpm workflow ownership check", () => {
       const result = runCheck(fork);
       assert.equal(result.status, "fail");
       assert.equal(result.entries.find((entry) => entry.path === CORE)?.reason, "outside-intake");
+    });
+
+    test("pick が無くても、基準から親の先端までの版と同じ中身は合格 / 基準より古い版と同じ中身は違反", () => {
+      const parent = makeParent();
+      write(parent, CORE, render(["old", ...LINES.slice(1)]));
+      commitAll(parent, "older");
+      write(parent, CORE, render(LINES));
+      commitAll(parent, "base version");
+      const fork = makeFork(parent);
+      write(parent, CORE, render(["LATER", ...LINES.slice(1)]));
+      commitAll(parent, "later");
+      git(fork, "fetch", "-q", "upstream");
+      write(fork, CORE, render(["LATER", ...LINES.slice(1)]));
+      commitAll(fork, "took the later upstream version by hand");
+      const later = runCheck(fork);
+      assert.equal(later.entries.find((entry) => entry.path === CORE)?.reason, "upstream-version", "親の先端までの版");
+      write(fork, CORE, render(["old", ...LINES.slice(1)]));
+      commitAll(fork, "the version older than the base");
+      assert.equal(runCheck(fork).entries.find((entry) => entry.path === CORE)?.reason, "outside-intake", "基準より古い版は数えない");
     });
   });
 

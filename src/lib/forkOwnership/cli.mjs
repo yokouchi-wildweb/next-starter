@@ -42,7 +42,7 @@ const LABELS = {
   "json-upstream-key": "上流の鍵を消したか上流の値を変えた(JSON は鍵を足すだけ)",
   debt: "upstream の負債の箇所(一時許可が要る)",
   "middle-tier": "中間 Tier 以下の物の書き換え・削除・rename(参考)",
-  picked: "親の緊急修正の pick(台帳の picked:)",
+  "upstream-version": "上流の版と同じ中身(基準・基準 + 先取り・基準から親の先端までの版)",
   "permit-same-as-base": "一時許可の残骸: 基準と同じに戻った",
   "permit-unused": "一時許可の残骸: 違反の無いファイル",
   lineage: ".claude/rules/lineage.md の並び・鍵の誤り",

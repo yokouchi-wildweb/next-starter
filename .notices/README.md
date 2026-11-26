@@ -224,7 +224,7 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
   - 足すファイルは足す(added)/ 直す相手が fork の木に無い → 飛ばす(left-out。後の区間で届く)。上流でそのパスの名前が変わった行(git diff -M の R の行の全部)を候補として出す(rename-candidate)。道具は選ばず書かない: 前の場所に手で当てるか区間を待つかは /flux のエージェントが決め、理由を台帳の notes に 1 行(D476)
   - 当てた後に fork の木で 3 つの確かめ(足した・変えたルールの `paths:` の当たり・notice の手順の `pnpm <script>`・名指すパス)を回し、足りない物を gap で報告する(止めない)
   - 決めた事は台帳の行の `notes:` に `replaced:` / `merged:` / `moved-merged:`(D476 から出ない)/ `added:` / `left-out:` / `gap:` / `rename-candidate:` で残す
-- 所有の検査: `picked:` の分は基準 + pick と同じ中身、または pick がそのファイルを変えていて上流の履歴のそのパスのどれかの版と同じ中身(置き換えた形)なら合格(`src/lib/forkOwnership/README.md`「緊急修正の pick」)。手で解いたファイルや違反になったファイルは 1 ファイル 1 行の一時許可で通し、後の区間がそのファイルに触れたら許可を取り直す
+- 所有の検査: 中身が基準・基準 + `picked:`・基準から親の先端までのそのパスのどれかの版と同じなら合格(`src/lib/forkOwnership/README.md`「上流の版と同じ中身(緊急修正の pick も)」、D479)。手で解いたファイルや違反になったファイルは 1 ファイル 1 行の一時許可で通し、後の区間がそのファイルに触れたら許可を取り直す
 - 先取りした notice の検査: 台帳に `picked:` のある notice は「本体と同じ 1 commit」の照合(`pnpm check notices`)から外す。fork の木に無い本体は飛ばす(left-out)ので、取った側の commit は notice だけになりうる(`hotfixApply.mjs` ledgerPickedIds)
 - 後の区間の merge: 置き換えたファイルがぶつかったら上流の側(上流の中身しか持たない)
 - 多段: 取れるのは直接の親の commit だけ。上の段から順に進む(`.claude/skills/flux/relay.md`)
