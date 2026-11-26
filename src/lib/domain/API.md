@@ -79,3 +79,14 @@
 ### 表示の種類: `fields/presenterFor.mjs`
 
 - `presenterFor(field)` が項目の表示の種類 `{ kind, options? }` を返す(kind = `boolean`・`number`・`stringArray`・`enum`(選択肢つき)・`string`・`datetime`・`date`・`collectionThumbnails`・`mediaThumbnail`)
+
+### 宣言を読む(入口 `./node`、`definition/readDomain.mjs`・`definition/declaration.mjs`)
+
+| 関数・定数 | 用途 |
+|---|---|
+| `nodeDomainSource(repoRoot)` | 今の木を読む source(`{ listDir, readText }`、地区の地図の source と同じ形。git の木を読む source も渡せる) |
+| `listDomains(source)` | `{ domains: { name, core, dir }[], problems }`。src/domains 直下(業務)と src/domains/core 直下(core)のフォルダ、`_` で始まる物は除く。domain.json の有無で選ばない。業務と core の重なりは problems |
+| `readDomain(source, name)` | `{ name, core, dir, domain, registrations: { name, dir, entity }[], problems }`。domain.json と entities/<登録名>/entity.json だけを読む。読めない宣言は `null` と problems |
+| `readDomains(source)` | 全部のドメインの `readDomain`(listDomains の順) |
+| `DOMAIN_KEYS` / `ENTITY_KEYS`(= `ENTITY_TABLE_KEYS` + `ENTITY_REGISTRATION_KEYS` + `$comment`) | 宣言の鍵の集合。登録の鍵 = `generate`・`registered`・`reason`・`requires`・`service` |
+| `DOMAIN_DECLARATION_FILE` / `ENTITIES_DIR` / `ENTITY_DECLARATION_FILE` / `DOMAIN_DECLARATION_VERSION` | 置き場の名前("domain.json"・"entities"・"entity.json")と形の版("2.0") |

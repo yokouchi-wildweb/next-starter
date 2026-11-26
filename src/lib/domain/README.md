@@ -104,7 +104,14 @@ export const domainEntries = {
 
 ## API
 
-- 引く関数・access のプリセット・コマンドの対応・写しの項目・型の表: `API.md`
+- 引く関数・access のプリセット・コマンドの対応・写しの項目・型の表・宣言の読み込み: `API.md`
+
+### 宣言の形(D335、作り直しの途中)
+
+- ドメイン 1 つ = `src/domains/<d>/domain.json`(ドメインそのものの短い宣言: `domainConfigVersion` "2.0"・`label`)+ 表 1 つ = 登録 1 件ごとの `entities/<登録名>/entity.json`(表の鍵と登録の鍵)。表なしのドメインは登録 0、表 1 つのドメインは登録名 = ドメイン名
+- 登録の一覧は `entities/` の下のフォルダの並びで、どこにも手で書かない。生成するかの旗 `generate` は登録ごと(entity.json、D337)
+- 鍵の集合の正は `definition/declaration.mjs`、読むのは読み込みの部品 `definition/readDomain.mjs` だけ(入口 "./node")。無い・壊れた・知らない鍵は `problems` に入り、推測で埋めない
+- 今のドメインと生成器・読み手はまだ今の 1 ファイルの形(この節の部品へは S3 の続く指令で移す)
 
 ## Extension
 
