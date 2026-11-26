@@ -100,7 +100,8 @@ test("実地: base で生成 → fork が手を入れる → 分類。generateFi
   assert.equal(kindOf("src/domains/memo/components/common/MemoForm.tsx"), "hand");
   assert.equal(kindOf("src/domains/memo/components/AdminMemoList/Header.tsx"), "stale");
   assert.equal(kindOf("src/domains/memo/hooks/useMemo.ts"), "new");
-  assert.equal(kindOf("src/domains/memo/entities/schema.ts"), "untouched");
+  // 表のファイルは登録のフォルダ(entities/schema.ts は pnpm generate registry の集める入口で、ドメインの生成器の比べに出ない)
+  assert.equal(kindOf("src/domains/memo/entities/memo/schema.ts"), "untouched");
   assert.deepEqual(memo.forkFiles, ["src/domains/memo/components/MemoExtra.tsx"]);
   assert.ok(memo.summary.newEntries.some((p) => p.includes("/memos/_screen/")));
   assert.equal(memo.summary.verdict, "wrappers へ移すか false");

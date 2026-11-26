@@ -4,7 +4,9 @@
 import type { DomainDisplay } from "@/lib/domain";
 
 export const domainDisplay: DomainDisplay = {
+  "singular": "paired_device",
   "plural": "paired_devices",
+  "label": "登録端末",
   "fields": [],
   "relations": [],
   "searchFields": [],

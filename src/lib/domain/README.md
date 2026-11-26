@@ -5,7 +5,7 @@
 - 役目 = ドメインの定義と欄: 宣言(`domain.json` + 登録ごとの `entities/<登録名>/entity.json`)の形と読み込みの部品 `readDomain`、entity.json の正規化 `normalizeEntityDeclaration`、写し `entities/display.ts` と設定(フィールド・リレーション・中間表)の読み方、欄の型の表とその schema(日時の `nullableDatetime` / `requiredDatetime`)・表示(`format*`・`FieldPresenter`)・主キーの論理名 `CRUD_ID_FIELD`、関連、ドメインの道(管理画面のパス `getAdminPaths`)。加えて、登録表(serviceRegistry)からドメイン名でサービス・表・主キーを引く正式な仕組みの汎用部分を持つ
 - React の値のコード・hooks・HTTP の client は持たない(入口 "." は server でも値で読める)。データの読み書き(サービス・hooks・client。管理画面の全件削除の `useFetchDomains` / `useTruncateDomains` / `domainClient` も)は `@/lib/crud`(crud → domain の向きだけ。domain は crud を読まない)
 - ここの関数は登録表を import せず引数で受ける(既存の例外と規則は `src/wiring/README.md`)。登録表を結んだそのまま使える関数は `src/domains/core/admin/services/server/screenParts.ts`
-- 閉じた lib: 外からは入口だけを読む。`@/lib/domain`(client でも server でも)・`@/lib/domain/server`(登録表から引く関数)・`./node` = `src/lib/domain/node.mjs`(scripts・eslint-rules が読む `.mjs`)・`./declarations` = `src/lib/domain/declarations.mjs`(宣言の形と `readDomain`。node の API を使わないので地区の地図などの lib も読める)。何がどこから出るか: `API.md`「入口と関数のありか」。access の型と定型は別の閉じた lib `@/lib/domainAccess`(登録表と fork の entity.override.ts が値で読むので値だけで作る)
+- 閉じた lib: 外からは入口だけを読む。`@/lib/domain`(client でも server でも)・`@/lib/domain/server`(登録表から引く関数)・`./node` = `src/lib/domain/node.mjs`(scripts・eslint-rules が読む `.mjs`)(宣言の形と `readDomain`・`nodeDomainSource`。node の API を引けない lib の入口(地区の地図の `.`)は、自分の `./node` から `readDomain` を渡されて使う)。何がどこから出るか: `API.md`「入口と関数のありか」。access の型と定型は別の閉じた lib `@/lib/domainAccess`(登録表と fork の entity.override.ts が値で読むので値だけで作る)
 - 登録表 `src/registry/serviceRegistry.ts` = ドメイン名(camelCase のキー)→ `{ service, access, table, idColumn }` の表。ドメインを 1 つ作ると 1 行増える一覧で、下流が中身を足す「登録口」ではない。Drizzle はモデルの登録簿を持たないので、アプリ側でここに 1 か所用意する
 
 | 入口 | 何が決まるか |
@@ -58,7 +58,7 @@
 
 - ドメイン 1 つ = `src/domains/<d>/domain.json`(ドメインそのものの短い宣言: `domainConfigVersion` "2.0"・`label`)+ 表 1 つ = 登録 1 件ごとの `entities/<登録名>/entity.json`(表の鍵と登録の鍵)。表なしのドメインは登録 0、表 1 つのドメインは登録名 = ドメイン名
 - 登録の一覧は `entities/` の下のフォルダの並びで、どこにも手で書かない。生成するかの旗 `generate` は登録ごと(entity.json、D337)
-- 鍵の集合の正は `definition/declaration.mjs`、読むのは読み込みの部品 `definition/readDomain.mjs` だけ(入口 "./declarations"・"./node")。無い・壊れた・知らない鍵は `problems` に入り、推測で埋めない
+- 鍵の集合の正は `definition/declaration.mjs`、読むのは読み込みの部品 `definition/readDomain.mjs` だけ(入口 "./node")。無い・壊れた・知らない鍵は `problems` に入り、推測で埋めない
 - entities/ の下のフォルダのうち entity.json か表のファイル(`ENTITY_FILE_KINDS`)を持つ物だけが登録(役割の表 profiles/ などは登録でない)
 - 入れ子(fields・relations・fieldGroups・indexes と下の表の鍵)の知らない鍵も `problems`(表 `ENTITY_NESTED_KEYS`)。値の形は見ない
 - 上流の全ドメインはこの形。scripts 側の読み手(生成器・登録表の生成・地区の地図・検査)はこの部品だけで読む。実行時(server)に宣言を読む所は登録の entity.json を import して `normalizeEntityDeclaration` を通す(上の「ドメイン設定の読み方」)

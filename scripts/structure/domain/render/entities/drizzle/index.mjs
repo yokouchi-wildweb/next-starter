@@ -8,7 +8,8 @@ import { belongsToColumns, renderDeferredForeignKeys } from "./foreignKeys.mjs";
 import { collectJunctionTables, renderJunctionTables } from "./junction.mjs";
 import { extraIndexes, extraIndexesHaveExpression, extraIndexesHaveUnique, extraIndexesHaveWhere, uniqueActiveIndexes } from "./indexes.mjs";
 import { hiddenColumnsOf, renderHiddenColumnsDeclaration, validateHiddenColumns } from "./hiddenColumns.mjs";
-import { declaredEnums, markColumnPrimaryKey, shapedFieldColumn, tableOnlyColumns, tableShapeEntries } from "./shape.mjs";
+import { declaredEnums, shapedFieldColumn, tableOnlyColumns } from "./shape.mjs";
+import { markColumnPrimaryKey, tableShapeEntries } from "./tableShape.mjs";
 import { domainRel } from "../../../domain/context.mjs";
 
 /**
@@ -30,8 +31,9 @@ export function renderDrizzleEntity(ctx, workspace) {
   fields.push(...fkLines);
   const { lines: fieldLines, enumDefs, uniqueFields } = fieldColumns(ctx, imports, (field, defs) => shapedFieldColumn(ctx, field, imports, defs, needs));
   const shapeEnums = declaredEnums(config, imports);
-  const selfFile = `${domainRel(ctx)}/entities/drizzle.ts`;
-  const shape = tableShapeEntries(config, tableName, workspace.rootDir, selfFile, imports, needs);
+  // この表の定義ファイル = 登録のフォルダの drizzle.ts(entities/drizzle.ts は集める入口)
+  const selfFile = `${domainRel(ctx)}/entities/${camel}/drizzle.ts`;
+  const shape = tableShapeEntries(config, tableName, workspace.tableFileOf, selfFile, imports, needs);
   const columnLines = tableOnlyColumns(ctx, imports, enumDefs, needs);
   fields.push(...markColumnPrimaryKey(config, [...fieldLines, ...columnLines]), ...systemColumns(config, imports));
 

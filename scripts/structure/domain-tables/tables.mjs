@@ -44,9 +44,18 @@ export function registrationsToMatch(repoRoot) {
   return found;
 }
 
+/**
+ * 読み込んだモジュールの export の値。tsx が CJS として読んだ .ts(package.json に "type": "module" が無い)は名前の export が default の下に入ることがあるので、そこも見る
+ * @param {Record<string, unknown>} moduleExports
+ */
+function exportedValues(moduleExports) {
+  const fallback = moduleExports.default;
+  return [...Object.values(moduleExports), ...(fallback && typeof fallback === "object" ? Object.values(fallback) : [])];
+}
+
 /** export の中から物理名 name の pgTable */
 function tableIn(moduleExports, name) {
-  return Object.values(moduleExports).find((value) => is(value, PgTable) && getTableConfig(value).name === name) ?? null;
+  return exportedValues(moduleExports).find((value) => is(value, PgTable) && getTableConfig(value).name === name) ?? null;
 }
 
 /**
@@ -89,7 +98,9 @@ let renderCount = 0;
  */
 export async function renderExpected(repoRoot, registration, tempDir) {
   const workspace = createWorkspace(repoRoot);
-  const ctx = createDomainContext(workspace, registration.registration, { config: registration.config });
+  // hiddenColumns は表の事実でない(サービスの戻り値で null に置く TS のプロパティ名の一覧)。手で持つ登録はプロパティ名が宣言の項目名と違ってよいので、照らしの表には渡さない
+  const { hiddenColumns: _hidden, ...config } = registration.config;
+  const ctx = createDomainContext(workspace, registration.registration, { config });
   const text = renderDrizzleEntity(ctx, workspace).replace(/from "([^"]+)"/g, (_, specifier) => `from "${resolveSpecifier(repoRoot, specifier)}"`);
   // 1 回ごとに別の名前(import は同じ URL を読み直さない。同じ登録を組み直す起こす道具が続けて呼ぶ)
   const file = path.join(tempDir, `${registration.domain}.${registration.registration}.${++renderCount}.ts`);
@@ -97,7 +108,7 @@ export async function renderExpected(repoRoot, registration, tempDir) {
   const moduleExports = await import(pathToFileURL(file).href);
   const table = tableIn(moduleExports, registration.table);
   if (!table) throw new Error(`${registration.dir}: 宣言から組んだ表に "${registration.table}" が無い`);
-  return { table, tables: Object.values(moduleExports).filter((value) => is(value, PgTable)) };
+  return { table, tables: [...new Set(exportedValues(moduleExports).filter((value) => is(value, PgTable)))] };
 }
 
 /**

@@ -47,7 +47,16 @@ function readDomains(repoRoot) {
     const registration = primaryRegistrationOf(declaration);
     if (!registration?.entity) continue;
     // 表示名はドメインの宣言 domain.json の label(管理の一覧・データ操作の一覧の名前、D335)
-    domains.push({ file: `${registration.dir}/${ENTITY_DECLARATION_FILE}`, camel: declaration.name, label: declaration.domain.label ?? registration.entity.label ?? declaration.name, config: registration.entity });
+    const label = declaration.domain.label ?? registration.entity.label ?? declaration.name;
+    // 写し・設定の一覧に出す主の登録の既定(書いていない鍵だけ): singular = 登録名の snake_case、label = ドメインの label、fields = [](画面の項目なし)。
+    // 手で持つ登録の entity.json は表の事実だけを持ち、名前と項目の鍵を書かないことがある(型 DomainConfig / DomainDisplay はどれも要る)
+    const entity = registration.entity;
+    const defaults = {
+      ...(entity.singular === undefined ? { singular: toSnakeCase(registration.name) } : {}),
+      ...(entity.label === undefined ? { label } : {}),
+      ...(entity.fields === undefined ? { fields: [] } : {}),
+    };
+    domains.push({ file: `${registration.dir}/${ENTITY_DECLARATION_FILE}`, camel: declaration.name, label, defaults, config: { ...registration.entity, ...defaults } });
   }
   domains.sort((a, b) => byString(a.file, b.file));
   const seen = new Map();
@@ -90,7 +99,7 @@ function renderDomainConfigRegistry(domains) {
     ...domains.map((d) => `import ${d.camel}Config from "@/${d.file.slice("src/".length)}";`),
     "",
     "export const domainConfigMap = {",
-    ...domains.map((d) => `  ${toSnakeCase(d.camel)}: ${d.camel}Config,`),
+    ...domains.map((d) => `  ${toSnakeCase(d.camel)}: ${Object.keys(d.defaults).length > 0 ? `{ ...${d.camel}Config, ${Object.entries(d.defaults).map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join(", ")} }` : `${d.camel}Config`},`),
     "} as const;",
     "",
     "export type DomainKey = keyof typeof domainConfigMap;",

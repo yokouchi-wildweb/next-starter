@@ -266,5 +266,8 @@
         "createdAt"
       ]
     }
+  ],
+  "hiddenColumns": [
+    "tokenHash"
   ]
 }

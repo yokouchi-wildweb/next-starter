@@ -4,7 +4,9 @@
 import type { DomainDisplay } from "@/lib/domain";
 
 export const domainDisplay: DomainDisplay = {
+  "singular": "device_fingerprint",
   "plural": "device_fingerprints",
+  "label": "端末の指紋",
   "fields": [],
   "relations": [],
   "searchFields": [],

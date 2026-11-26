@@ -4,7 +4,11 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { CONTENTS_OVERRIDE_FOLDERS, DISTRICT_KINDS, KINDS, OVERRIDE_FOLDERS, kindOf, overridePathOf, readOverrideLoaders } from "./index.mjs";
+import { isGeneratedRegistration, isRegisteredRegistration, readDomain } from "../domain/node.mjs";
 import { pointsFromFiles, readDeclaration, readDistrictMap, readFeatureRequirements, readFrameName, readOverrideImports, readRuleDomains, readTableNames, toJsonl } from "./index.mjs";
+
+/** ドメインの宣言の読み手(入口 "./node" の readDistrictMapAt が渡すのと同じ物) */
+const DECLARATIONS = { readDomain, isGeneratedRegistration, isRegisteredRegistration };
 
 /**
  * パス → 本文 の表から source を作る(フォルダはパスから導く)
@@ -62,7 +66,7 @@ const BASE = {
 };
 
 test("種類の表の 7 種類を見つけ、種類 → 名前で並べる。_ 始まり・core の置き場・宣言の無い _layout は地区にならない", () => {
-  const { districts, problems } = readDistrictMap(memorySource(BASE));
+  const { districts, problems } = readDistrictMap(memorySource(BASE), DECLARATIONS);
   assert.deepEqual(problems, []);
   assert.deepEqual(
     districts.map((d) => `${d.kind}:${d.name}`),
@@ -78,7 +82,7 @@ test("種類の表の 7 種類を見つけ、種類 → 名前で並べる。_ �
 });
 
 test("欄: config・上書きのパスと有無、apiKeys・requires・tables・gates・receptacles", () => {
-  const by = Object.fromEntries(readDistrictMap(memorySource(BASE)).districts.map((d) => [`${d.kind}:${d.name}`, d]));
+  const by = Object.fromEntries(readDistrictMap(memorySource(BASE), DECLARATIONS).districts.map((d) => [`${d.kind}:${d.name}`, d]));
   const wallet = by["domains:wallet"];
   assert.deepEqual(wallet.config, { path: "src/domains/core/wallet/config.ts", exists: true });
   assert.deepEqual(wallet.override, { path: "src/config/domains/wallet.config.ts", exists: false });
@@ -103,7 +107,7 @@ test("欄: 描画専用の config.ui.ts と <名前>.ui.config.ts のパスと�
     "src/config/domains/wallet.ui.config.ts": "export default {};",
     "src/config/layout/admin.ui.config.ts": "export default {};",
   };
-  const by = Object.fromEntries(readDistrictMap(memorySource(files)).districts.map((d) => [`${d.kind}:${d.name}`, d]));
+  const by = Object.fromEntries(readDistrictMap(memorySource(files), DECLARATIONS).districts.map((d) => [`${d.kind}:${d.name}`, d]));
   assert.deepEqual(by["domains:wallet"].uiConfig, { path: "src/domains/core/wallet/config.ui.ts", exists: true });
   assert.deepEqual(by["domains:wallet"].uiOverride, { path: "src/config/domains/wallet.ui.config.ts", exists: true });
   assert.deepEqual(by["frame:admin"].uiConfig, { path: "src/app/admin/_layout/config.ui.ts", exists: false });
@@ -114,14 +118,14 @@ test("欄: 描画専用の config.ui.ts と <名前>.ui.config.ts のパスと�
 test("lib の見つけ方は libPackage の listLibsFrom と同じ(src/lib 直下のフォルダ、ファイルは数えない)", async () => {
   const { listLibsFrom } = await import("../libPackage/index.mjs");
   const source = memorySource({ ...BASE, "src/lib/README.md": "", "src/lib/CATALOG.md": "" });
-  const libs = readDistrictMap(source).districts.filter((d) => d.kind === "lib").map((d) => d.name);
+  const libs = readDistrictMap(source, DECLARATIONS).districts.filter((d) => d.kind === "lib").map((d) => d.name);
   assert.deepEqual(libs, listLibsFrom(source.listDir));
   assert.deepEqual(libs, ["cron", "crud"]);
 });
 
 test("名前の一意: core と業務の同名は業務の側を直す文、枠の frame: の重複は両方のパス", () => {
   const files = { ...BASE, "src/domains/wallet/index.ts": "", "src/domains/wallet/extensionPoints.ts": "export const alwaysOpen = true;", "src/app/(marketing)/_layout/config.ts": `export const c = { frame: "user" };` };
-  const { problems } = readDistrictMap(memorySource(files));
+  const { problems } = readDistrictMap(memorySource(files), DECLARATIONS);
   assert.equal(problems.length, 2, problems.join("\n"));
   assert.match(problems[0], /domains の地区の名前 wallet が重なる: core の src\/domains\/core\/wallet と業務の src\/domains\/wallet.*業務のドメイン/);
   assert.match(problems[1], /枠の名前 user が重なる: .*\(marketing\)\/_layout\/config\.ts.*\(user\)\/_layout\/config\.ts/);
@@ -135,7 +139,7 @@ test("問題: frame: の無い枠の config・規則の features の行き先な
     "src/domains/sample/entities/wallet/entity.json": entity({ table: "sample_wallets" }),
     "src/domains/sample/entities/more.ts": `const n = "x"; export const t = pgTable(n, {});`,
   };
-  const { problems } = readDistrictMap(memorySource(files));
+  const { problems } = readDistrictMap(memorySource(files), DECLARATIONS);
   assert.ok(problems.some((p) => /\(marketing\)\/_layout\/config\.ts: 枠の config\.ts に frame: "<枠の名前>" が無い/.test(p)), problems.join("\n"));
   assert.ok(problems.some((p) => /ghost\.ts: domains の core\/ghost に当たる domains の地区が無い/.test(p)));
   assert.ok(problems.some((p) => /登録名 wallet が src\/domains\/core\/wallet・src\/domains\/sample で重なる/.test(p)));
@@ -158,7 +162,7 @@ test("readOverrideImports: export const overrideImports の文字列の配列を
 });
 
 test("toJsonl: 1 行 1 地区で末尾に改行、空なら空", () => {
-  const { districts } = readDistrictMap(memorySource(BASE));
+  const { districts } = readDistrictMap(memorySource(BASE), DECLARATIONS);
   const text = toJsonl(districts);
   assert.equal(text.split("\n").length, districts.length + 1);
   assert.deepEqual(JSON.parse(text.split("\n")[0]), districts[0]);
@@ -167,14 +171,14 @@ test("toJsonl: 1 行 1 地区で末尾に改行、空なら空", () => {
 });
 
 test("tableFiles: domains の地区の表と定義ファイル(パス順 → 出現順、雛形とテストは除く)、tableProblems は表の問題だけ", () => {
-  const { tableFiles, tableProblems } = readDistrictMap(memorySource(BASE));
+  const { tableFiles, tableProblems } = readDistrictMap(memorySource(BASE), DECLARATIONS);
   assert.deepEqual(tableFiles, [
     { name: "samples", file: "src/domains/sample/entities/drizzle.ts", dir: "src/domains/sample" },
     { name: "wallets", file: "src/domains/core/wallet/entities/drizzle.ts", dir: "src/domains/core/wallet" },
     { name: "wallet_lots", file: "src/domains/core/wallet/entities/drizzle.ts", dir: "src/domains/core/wallet" },
   ].sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0)));
   assert.deepEqual(tableProblems, []);
-  const broken = readDistrictMap(memorySource({ ...BASE, "src/domains/sample/entities/more.ts": `const n = "x"; pgTable(n, {});`, "src/featureGate/rules/ghost.ts": `export const rule = { domains: ["core/ghost"] };` }));
+  const broken = readDistrictMap(memorySource({ ...BASE, "src/domains/sample/entities/more.ts": `const n = "x"; pgTable(n, {});`, "src/featureGate/rules/ghost.ts": `export const rule = { domains: ["core/ghost"] };` }), DECLARATIONS);
   assert.deepEqual(broken.tableProblems, ["src/domains/sample/entities/more.ts: pgTable の表名が文字列リテラルでない(字面で読めない)"]);
   assert.ok(broken.problems.length > broken.tableProblems.length);
 });
@@ -188,12 +192,12 @@ test("domainJson・generate: domains は domain.json の有無と登録の entit
     "src/domains/core/wallet/domain.json": DOMAIN_JSON,
     "src/domains/core/wallet/entities/wallet/entity.json": '{ "generate": false }',
   };
-  const by = Object.fromEntries(readDistrictMap(memorySource(files)).districts.map((d) => [`${d.kind}:${d.name}`, d]));
+  const by = Object.fromEntries(readDistrictMap(memorySource(files), DECLARATIONS).districts.map((d) => [`${d.kind}:${d.name}`, d]));
   assert.deepEqual([by["domains:sample"].domainJson, by["domains:sample"].generate], [true, true]);
   assert.deepEqual([by["domains:wallet"].domainJson, by["domains:wallet"].generate], [true, false]);
   assert.deepEqual([by["domains:purchaseRequest"].domainJson, by["domains:purchaseRequest"].generate], [false, null]);
   assert.deepEqual([by["lib:cron"].domainJson, by["lib:cron"].generate], [null, null]);
-  const broken = readDistrictMap(memorySource({ ...BASE, "src/domains/sample/domain.json": DOMAIN_JSON, "src/domains/sample/entities/sample/entity.json": "{ nope" }));
+  const broken = readDistrictMap(memorySource({ ...BASE, "src/domains/sample/domain.json": DOMAIN_JSON, "src/domains/sample/entities/sample/entity.json": "{ nope" }), DECLARATIONS);
   assert.ok(broken.problems.some((p) => /src\/domains\/sample\/entities\/sample\/entity\.json: JSON として読めない/.test(p)), broken.problems.join("\n"));
 });
 
@@ -236,7 +240,7 @@ test("種類の表: 7 種類と属性。ゲートはドメインだけ、src 直
 });
 
 test("src 直下の 1 地区の種類: フォルダがあれば 1 地区(名前 = フォルダ名)、上書きの無い種類は override の path が null", () => {
-  const { districts, problems } = readDistrictMap(memorySource({ ...BASE, "src/registry/a.ts": "", "src/wiring/b.ts": "", "src/wiring/x/extensionPoints.ts": `export const extensionPoints = { inputs: { change: "add", dir: "inputs", export: "i", type: { from: "@/x", name: "I" }, side: "client" } };` }));
+  const { districts, problems } = readDistrictMap(memorySource({ ...BASE, "src/registry/a.ts": "", "src/wiring/b.ts": "", "src/wiring/x/extensionPoints.ts": `export const extensionPoints = { inputs: { change: "add", dir: "inputs", export: "i", type: { from: "@/x", name: "I" }, side: "client" } };` }), DECLARATIONS);
   assert.deepEqual(problems, []);
   const by = Object.fromEntries(districts.map((d) => [`${d.kind}:${d.name}`, d]));
   assert.deepEqual(districts.filter((d) => ["featureGate", "registry", "wiring"].includes(d.kind)).map((d) => `${d.kind}:${d.name}:${d.dir}`), [
@@ -260,7 +264,7 @@ test("forkCan: 種類の点(config.ts がある地区の config の対置点)→
   icon: { change: "counterpart", placement: "src/app/icon.png", kind: "edit" },
   sender: { change: "replace", default: "src/domains/core/wallet/sender.default.ts", type: { from: "@/x", name: "S" }, side: "server" },
 };`,
-  }));
+  }), DECLARATIONS);
   const wallet = districts.find((d) => d.name === "wallet");
   assert.deepEqual(wallet?.forkCan, [
     { point: "config", change: "counterpart", where: "src/config/domains/wallet.config.ts" },
@@ -281,7 +285,7 @@ test("forkCan: plugs の点の where は自分のドメインか lib の plugs/<
     "src/domains/core/wallet/extensionPoints.ts": `export const extensionPoints = {
   walletPlugs: { change: "add", plugs: true, export: "plug", type: { from: "@/x", name: "P" }, side: "server", shape: "object" },
 };`,
-  }));
+  }), DECLARATIONS);
   assert.deepEqual(districts.find((d) => d.name === "wallet")?.forkCan.find((f) => f.point === "walletPlugs"), { point: "walletPlugs", change: "add", where: "<自分のドメインか lib>/plugs/walletPlugs/*" });
 });
 
@@ -293,7 +297,7 @@ test("forkCan: 枠の種類の点 layout(差替点)は _layout の隣の layout.
     "src/app/(user)/_layout/extensionPoints.ts": `export const extensionPoints = {
   providers: { change: "replace", default: "src/app/_providers/P.default.tsx", type: { from: "@/x", name: "P" }, side: "shared" },
 };`,
-  }));
+  }), DECLARATIONS);
   const forkCanOf = (/** @type {string} */ name) => districts.find((d) => d.kind === "frame" && d.name === name)?.forkCan.filter((f) => f.change === "replace");
   assert.deepEqual(forkCanOf("user"), [
     { point: "layout", change: "replace", where: "src/app/(user)/layout.tsx" },
@@ -303,10 +307,10 @@ test("forkCan: 枠の種類の点 layout(差替点)は _layout の隣の layout.
 });
 
 test("常設の明示の宣言(D22・D53、注文 35): 規則に載るドメインの宣言と、規則にも載らず宣言も無いドメインは止める。宣言はドメインだけ・字面の true だけ", () => {
-  const both = readDistrictMap(memorySource({ ...BASE, "src/domains/core/wallet/extensionPoints.ts": "export const alwaysOpen = true;" }));
+  const both = readDistrictMap(memorySource({ ...BASE, "src/domains/core/wallet/extensionPoints.ts": "export const alwaysOpen = true;" }), DECLARATIONS);
   assert.deepEqual(both.problems.length, 1, both.problems.join("\n"));
   assert.match(both.problems[0], /src\/domains\/core\/wallet\/extensionPoints\.ts: wallet は常設の宣言\(alwaysOpen\)があるのに規則 wallet が domains に載せている/);
-  const neither = readDistrictMap(memorySource({ ...BASE, "src/domains/core/purchaseRequest/extensionPoints.ts": "export const extensionPoints = {};" }));
+  const neither = readDistrictMap(memorySource({ ...BASE, "src/domains/core/purchaseRequest/extensionPoints.ts": "export const extensionPoints = {};" }), DECLARATIONS);
   assert.deepEqual(neither.problems.length, 1, neither.problems.join("\n"));
   assert.match(neither.problems[0], /src\/domains\/core\/purchaseRequest: purchaseRequest はどの規則の domains にも載らず常設の宣言も無い/);
   assert.match(readDeclaration("src/domains/x/extensionPoints.ts", "export const alwaysOpen = 1;").problems[0], /alwaysOpen は字面の true だけ/);

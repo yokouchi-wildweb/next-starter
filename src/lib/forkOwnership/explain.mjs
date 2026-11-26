@@ -10,7 +10,7 @@ import { matchesGlob } from "node:path";
 import { pointsFromFiles, isListPoint, isPlugsPoint, PLUGS_DIR_NAME, FRAME_FILE, FRAME_OVERRIDE_FILE, FRAME_SEARCH_ROOT, overridePathOfTarget, switchSetOf, configSlotsOf, discoverDistricts } from "../districtMap/index.mjs";
 import { DOMAIN_OUTPUTS_FILE, intakeOutputGlobs, matchDomainOutput, normalizeGateOutputs, parseDomainOutputs } from "../districtMap/node.mjs";
 import { parseSwitchLayout, LAYOUT_FILE_RE, PAGE_FILE_RE, discoverRoutes } from "../screens/node.mjs";
-import { isGeneratedRegistration, primaryRegistrationOf, readDomains } from "../domain/declarations.mjs";
+import { isGeneratedRegistration, primaryRegistrationOf, readDomains } from "../domain/node.mjs";
 import { matchIntake } from "./intake.mjs";
 import { isDefaultName } from "./judge.mjs";
 
@@ -36,7 +36,7 @@ const PHASE_FILE = /^scripts\/structure\/([^/]+)\/phase\.json$/;
 function listSource(list, read) {
   const files = new Set(list);
   return {
-    listDir(rel) {
+    listDir(/** @type {string} */ rel) {
       const prefix = `${rel}/`;
       const entries = new Map();
       for (const path of list) {
@@ -46,7 +46,7 @@ function listSource(list, read) {
       }
       return [...entries].map(([name, isDir]) => ({ name, isDir })).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
     },
-    readText: (rel) => (files.has(rel) ? read(rel) : null),
+    readText: (/** @type {string} */ rel) => (files.has(rel) ? read(rel) : null),
   };
 }
 const SCREEN_PART_DIRS = ["_screen", "_layout"];

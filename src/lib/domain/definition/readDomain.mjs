@@ -121,9 +121,13 @@ function readDeclaration(source, rel, keys, problems, nested) {
   return parsed;
 }
 
-/** entities/ の下のフォルダが登録か: entity.json か表のファイル(ENTITY_FILE_KINDS)を持つ */
+/**
+ * entities/ の下のフォルダが登録か: entity.json か表のファイル(ENTITY_FILE_KINDS)を持つ
+ * @param {DomainSource} source
+ * @param {string} rel
+ */
 const isRegistrationDir = (source, rel) =>
-  source.listDir(rel).some((entry) => !entry.isDir && (entry.name === ENTITY_DECLARATION_FILE || ENTITY_FILE_KINDS.some((kind) => entry.name === `${kind}.ts`)));
+  source.listDir(rel).some((/** @type {{ name: string, isDir: boolean }} */ entry) => !entry.isDir && (entry.name === ENTITY_DECLARATION_FILE || ENTITY_FILE_KINDS.some((kind) => entry.name === `${kind}.ts`)));
 
 /**
  * 1 つのドメインの宣言(ドメインと登録)。name はフォルダ名(業務か core かは木から決める)
@@ -176,13 +180,13 @@ export function primaryRegistrationOf(declaration) {
  * 生成器が書く登録か(entity.json の generate。省略 = true、D337)
  * @param {DomainRegistration} registration
  */
-export const isGeneratedRegistration = (registration) => Boolean(registration.entity) && registration.entity.generate !== false;
+export const isGeneratedRegistration = (registration) => registration.entity !== null && registration.entity.generate !== false;
 
 /**
  * 汎用の登録表(src/registry/serviceRegistry.ts、キー = 登録名)に出す登録か(entity.json の registered、省略 = true、D336)
  * @param {DomainRegistration} registration
  */
-export const isRegisteredRegistration = (registration) => Boolean(registration.entity) && registration.entity.registered !== false;
+export const isRegisteredRegistration = (registration) => registration.entity !== null && registration.entity.registered !== false;
 
 /**
  * 名前の登録をどのドメインからでも探す(関連の先 relations[].domain は登録名)。ドメイン名と同じ登録を先に、無ければ最初に見つかった物

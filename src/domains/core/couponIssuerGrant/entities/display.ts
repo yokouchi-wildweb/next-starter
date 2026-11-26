@@ -4,7 +4,9 @@
 import type { DomainDisplay } from "@/lib/domain";
 
 export const domainDisplay: DomainDisplay = {
+  "singular": "coupon_issuer_grant",
   "plural": "coupon_issuer_grants",
+  "label": "クーポン発行者プログラム",
   "fields": [],
   "relations": [],
   "searchFields": [],

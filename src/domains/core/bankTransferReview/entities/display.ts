@@ -4,7 +4,9 @@
 import type { DomainDisplay } from "@/lib/domain";
 
 export const domainDisplay: DomainDisplay = {
+  "singular": "bank_transfer_review",
   "plural": "bank_transfer_reviews",
+  "label": "振込の確認",
   "fields": [],
   "relations": [],
   "searchFields": [],

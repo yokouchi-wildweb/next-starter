@@ -42,10 +42,13 @@
 import { readDistrictMap, toJsonl } from "@/lib/districtMap";          // 入口 ".": 読み方を注入する(node の API を使わない)
 import { readDistrictMapAt } from "@/lib/districtMap/node.mjs";        // 入口 "./node": 今の木を node:fs で読む(道具・検査・テスト)
 
-const { districts, problems } = readDistrictMap({ listDir, readText });
+import { isGeneratedRegistration, isRegisteredRegistration, readDomain } from "@/lib/domain/node"; // ドメインの宣言の読み手(渡す)
+
+const { districts, problems } = readDistrictMap({ listDir, readText }, { readDomain, isGeneratedRegistration, isRegisteredRegistration });
 ```
 
 - 閉じた lib: 外からは 2 つの入口だけを読む(scripts からは相対で `src/lib/districtMap/index.mjs` / `node.mjs`)。`.` = ファイルを読まない物(地図の読み手・字面の読み手・`kinds`・宣言の読み方・名前の決まり)、`./node` = node:fs・node:path を使う物(`readDistrictMapAt`・`nodeDistrictSource`・宣言を木から探す `collectPoints`・`findDeclarationFiles`・`overrideKeysOf`・`domainOutputs.mjs` の全部)。同じ名前を 2 つの入口に置かない
+- ドメインの宣言(domain.json・entities/<登録名>/entity.json)は lib/domain の読み込みの部品で読み、`.` はそれを 2 つ目の引数で受ける(lib/domain の入口 `./node` は node:fs を引くので `.` からは読まない)。`readDistrictMapAt` は自分で渡す
 - `listDir(rel)` = フォルダの直下の `{ name, isDir }[]`(無ければ `[]`)、`readText(rel)` = 本文(無ければ `null`)。パスはリポジトリ直下からの相対
 - 使い手: 登録表の生成(ドメインの一覧・表・宣言 domain.json + entity.json・storagePurposes.ts、`scripts/structure/registry`)・門の生成の featureTables(`scripts/structure/extensions/derive/featureTables.mjs`)・上書きと持ち主の 1 対 1 の検査(`scripts/structure/config-overrides`)
 

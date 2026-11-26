@@ -4,7 +4,9 @@
 import type { DomainDisplay } from "@/lib/domain";
 
 export const domainDisplay: DomainDisplay = {
+  "singular": "user_group",
   "plural": "user_groups",
+  "label": "ユーザーグループ",
   "fields": [],
   "relations": [],
   "searchFields": [],

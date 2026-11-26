@@ -23,6 +23,7 @@ import { readDistrictMapAt } from "../src/lib/districtMap/node.mjs";
 import { toCamelCase, toKebabCase, toSnakeCase } from "../src/lib/stringCase/index.mjs";
 import { domainTableName } from "../scripts/structure/domain/domain/names.mjs";
 import { accessOfDeclaration } from "../scripts/structure/registry/serviceRegistry/access.mjs";
+import { getHiddenColumnProps } from "../src/lib/crud/server.ts";
 import { toDomainDisplay } from "../scripts/structure/registry/alpha/domainDisplay.mjs";
 import { diffTableFacts, tableFactsOf } from "../scripts/structure/domain-tables/facts.mjs";
 import { makeTempDir, renderExpected, resolveRepoImport } from "../scripts/structure/domain-tables/tables.mjs";
@@ -108,6 +109,14 @@ export async function declareTable(input) {
   const tableName = now.config.name;
   const note = (text) => (input.fromOld ? discrepancies.push(`${tableName}: ${text}`) : undefined);
   entity.fields ??= [];
+  // 秘匿カラム(defineHiddenColumns、サービスの戻り値で null に置く TS のプロパティ名)は表の形でないので照らしに出ない。今の表に宣言されている物を書く
+  const runningHidden = [...(getHiddenColumnProps(actual) ?? [])].sort();
+  const declaredHidden = [...(entity.hiddenColumns ?? [])].sort();
+  if (!isDeepStrictEqual(runningHidden, declaredHidden)) {
+    if (runningHidden.length > 0) entity.hiddenColumns = runningHidden;
+    else delete entity.hiddenColumns;
+    discrepancies.push(`${tableName}: 秘匿カラム hiddenColumns を今の表の宣言 ${JSON.stringify(runningHidden)} で書いた(宣言 ${JSON.stringify(declaredHidden)})`);
+  }
   // 型の表に無い fieldType の項目(fork の "uuid[]" など)は、生成器が列関数を決められないので、今の列の型を column.type に書く
   for (const field of entity.fields) {
     if (field.fieldType === undefined || Object.hasOwn(FIELD_TYPES, field.fieldType) || field.column?.type) continue;

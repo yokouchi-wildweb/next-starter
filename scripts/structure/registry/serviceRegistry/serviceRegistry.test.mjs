@@ -297,7 +297,8 @@ test("override: 空(空白とコメントだけ)の entity.override.ts は不在
   });
   generateServiceRegistry(root);
   const text = fs.readFileSync(path.join(root, REGISTRY_FILE), "utf8");
-  assert.doesNotMatch(text, /entity\.override/);
+  assert.doesNotMatch(text, /import \{ entityOverride/);
+  assert.doesNotMatch(text, /Override\.apiAccess/);
   assert.deepEqual(checkServiceRegistry(root).errors, []);
 });
 

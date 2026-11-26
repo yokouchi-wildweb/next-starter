@@ -4,7 +4,7 @@
 // ドメインの所在: business = src/domains/<camel>、core = src/domains/core/<camel>（違いはフォルダだけで、生成・検査・generate の旗は同じ扱い）。
 // 宣言は読み込みの部品 readDomain(src/lib/domain、D335)だけで読む。生成器の 1 ドメインの config = その主の登録
 // (登録名 = ドメイン名、表 1 つのドメイン)の entity.json。生成する登録(generate、D337)を持つのに登録が 2 つ以上のドメインは止める
-// (登録ごとの一式は区切り domain-kit)
+// (登録ごとの一式は区切り registration-kit。config の決まりは ./declarationOf.mjs)
 
 import fs from "node:fs";
 import path from "node:path";
@@ -15,7 +15,6 @@ import {
   ENTITIES_DIR,
   ENTITY_DECLARATION_FILE,
   findRegistration,
-  isGeneratedRegistration,
   listDomains as listDeclaredDomains,
   nodeDomainSource,
   primaryRegistrationOf,
@@ -23,6 +22,7 @@ import {
   readDomains,
 } from "../../../../src/lib/domain/node.mjs";
 import { CACHE_FILE } from "../spec/cache.mjs";
+import { cacheDeclarationOf, configOfDeclaration } from "./declarationOf.mjs";
 
 const NOT_DOMAIN_DIRS = new Set(["_template", "core"]);
 
@@ -63,25 +63,11 @@ export function createWorkspace(rootDir = process.cwd()) {
   /** ドメインの宣言 domain.json の場所(従属ドメインを書き出す時) */
   const domainDeclarationPath = (camel) => path.join(locateDomain(camel).dir, DOMAIN_DECLARATION_FILE);
 
-  /**
-   * 生成器の config(主の登録の entity.json)。宣言・主の登録が無ければ null(壊れた宣言・登録が 2 つ以上で生成する登録を持つ = 例外)
-   * @param {string} camel
-   */
-  function readConfig(camel) {
+  /** 生成器の config(主の登録の entity.json。決まりは ./declarationOf.mjs)。宣言が無ければ null */
+  const readConfig = (camel) => {
     const declaration = declarationOf(camel);
-    if (!declaration) return null;
-    const broken = declaration.problems.filter((problem) => problem.includes("JSON として読めない") || problem.includes("オブジェクトでない"));
-    if (broken.length > 0) throw new Error(broken.join("\n"));
-    if (declaration.registrations.length > 1 && declaration.registrations.some(isGeneratedRegistration)) {
-      const generated = declaration.registrations.filter(isGeneratedRegistration).map((registration) => registration.name);
-      throw new Error(
-        `ドメイン "${camel}" は登録が ${declaration.registrations.length} つあり、生成する登録(${generated.join(", ")})を持ちます。` +
-          "登録が 2 つ以上のドメインの生成(登録ごとの一式)はまだ無いので、その登録の entity.json に \"generate\": false を書いて手で持ってください",
-      );
-    }
-    const registration = primaryRegistrationOf(declaration);
-    return registration?.entity ? { ...registration.entity } : null;
-  }
+    return declaration ? configOfDeclaration(declaration, camel) : null;
+  };
 
   /** readConfig の失敗を null にする(関連の先の表名の解決など、失敗しても続ける場面用) */
   function readConfigLenient(camel) {
@@ -129,6 +115,12 @@ export function createWorkspace(rootDir = process.cwd()) {
     return [...subdirs(domainsDir), ...subdirs(coreDir), ...subdirs(path.join(rootDir, "src", "lib"))].map((dir) => path.join(dir, "plugs", "formInputs"));
   }
 
+  /** 物理名の表の定義ファイル(地区の地図の tableFiles、リポジトリ相対)と本文。無ければ null(生成器の外部キーの相手を引く) */
+  function tableFileOf(physicalName) {
+    const found = readDistrictMapAt(rootDir).tableFiles.find((table) => table.name === physicalName);
+    return found ? { file: found.file, text: fs.readFileSync(path.join(rootDir, found.file), "utf8") } : null;
+  }
+
   /** テンプレート（src/domains/_template/...）を読む。無ければ例外 */
   function readTemplate(...segments) {
     const file = path.join(templateDir, ...segments);
@@ -154,6 +146,7 @@ export function createWorkspace(rootDir = process.cwd()) {
     configPath,
     domainDeclarationPath,
     readRegistration,
+    tableFileOf,
     templatePath: (...segments) => path.join(templateDir, ...segments),
     exists: (file) => fs.existsSync(file),
     readText: (file) => fs.readFileSync(file, "utf8"),
@@ -176,8 +169,6 @@ export function readDomainRows(rootDir) {
   return readDistrictMapAt(rootDir).districts.filter((row) => row.kind === "domains");
 }
 
-const readJson = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
-
 /**
  * 宣言を 1 ドメインずつ読む(主の登録の entity.json の "cache" か cache.json。両方・置き場の誤り・読めない JSON は problem)
  * @returns {Array<{ row: object, config: object | null, cache: object | null, source: string | null, problem: string | null }>}
@@ -185,23 +176,8 @@ const readJson = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
 export function readCacheDeclarations(rootDir, rows = readDomainRows(rootDir)) {
   const source = nodeDomainSource(rootDir);
   return rows.map((row) => {
-    const dir = path.join(rootDir, row.dir);
-    const cacheFile = path.join(dir, CACHE_FILE);
-    const hasCacheFile = fs.existsSync(cacheFile);
+    const cacheFile = path.join(rootDir, row.dir, CACHE_FILE);
     const declaration = row.domainJson ? readDomain(source, row.name) : null;
-    const registration = declaration ? primaryRegistrationOf(declaration) : null;
-    const config = registration?.entity ?? null;
-    const at = registration ? `${registration.dir}/${ENTITY_DECLARATION_FILE}` : null;
-    const inJson = Boolean(config) && config.cache !== undefined;
-    const none = { row, config, cache: null, source: null };
-    if (inJson && hasCacheFile) return { ...none, problem: `cache は ${at} の "cache" か ${CACHE_FILE} のどちらか 1 つに書いてください(両方ある)` };
-    if (config && hasCacheFile) return { ...none, problem: `宣言のある登録は ${CACHE_FILE} でなく ${at} の "cache" に書いてください` };
-    if (!inJson && !hasCacheFile) return { ...none, problem: null };
-    if (inJson) return { row, config, cache: config.cache, source: at, problem: null };
-    try {
-      return { row, config, cache: readJson(cacheFile), source: `${row.dir}/${CACHE_FILE}`, problem: null };
-    } catch (error) {
-      return { ...none, problem: `${CACHE_FILE} が JSON として読めません: ${error.message}` };
-    }
+    return cacheDeclarationOf({ row, declaration, hasCacheFile: fs.existsSync(cacheFile), readCacheFile: () => JSON.parse(fs.readFileSync(cacheFile, "utf8")) });
   });
 }

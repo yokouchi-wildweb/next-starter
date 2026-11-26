@@ -22,9 +22,10 @@ test("parseHiddenColumnDeclarations: defineHiddenColumns の宣言を読み取�
   });
 });
 
-test("collectHiddenColumns: domains の地区の entities/drizzle.ts から宣言を集める（users.localPassword を含む）", () => {
+test("collectHiddenColumns: domains の地区の entities/<登録名>/drizzle.ts から宣言を集める（users.localPassword・devicePairing を含む）", () => {
   const collected = collectHiddenColumns(path.join(import.meta.dirname, ".."));
   assert.ok(collected.UserTable?.includes("localPassword"));
+  assert.ok(collected.DevicePairingTable?.includes("codeHash"));
 });
 
 const ruleTester = new RuleTester({

@@ -155,7 +155,7 @@ test("i. 63 字: 従属の表名、短い FK 名も超えるとき", () => {
 
 test("j. 名前の衝突: 従属の表名が他のドメインと重なる、主の項目名が他の項目・関係と重なる", () => {
   const other = { ...owner(), singular: "photo_box", plural: "album_photos", fields: [], label: "x" };
-  expectError({ others: { photoBox: other } }, /表名 "album_photos" が photoBox\/domain\.json の表と重なります/);
+  expectError({ others: { photoBox: other } }, /表名 "album_photos" が photoBox\/entities\/photoBox\/entity\.json の表と重なります/);
   const clash = owner({}, { relations: [{ domain: "user", label: "u", fieldName: "photos", fieldType: "uuid", relationType: "belongsTo" }] });
   expectError({ ownerConfig: clash }, /集まりの項目 "photos": 項目名が主の他の項目・関係の fieldName と重なります/);
 });

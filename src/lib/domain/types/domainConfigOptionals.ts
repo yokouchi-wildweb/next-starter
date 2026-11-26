@@ -33,14 +33,21 @@ export type DomainConfigOptionals = {
     defaultCollapsed?: boolean;
     bgColor?: string;
   }>;
+  // 鍵の集合の正は src/lib/domain/definition/declaration.mjs の INDEX_KEYS(列 fields か式 expression のどちらか)
   indexes?: Array<{
-    fields: string[];
+    fields?: string[];
     where?: string;
     name?: string;
     // インデックス方式（gin / gist など）。省略 = btree
     using?: string;
     // 列ごとの演算子クラス（例: { title: "gin_trgm_ops" }）
     opclass?: Record<string, string>;
+    // ユニークの索引（ユニークは索引だけで書く）
+    unique?: boolean;
+    // 降順の列（fields のうち）
+    desc?: string[];
+    // 列の代わりの SQL の式
+    expression?: string;
   }>;
   sortOrderField?: string | null;
   // systemUpdate / systemBulkUpdateByQuery（特権書き込み）の allowlist（Neon のみ）。

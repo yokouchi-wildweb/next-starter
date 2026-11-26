@@ -4,7 +4,9 @@
 import type { DomainDisplay } from "@/lib/domain";
 
 export const domainDisplay: DomainDisplay = {
+  "singular": "storage_object",
   "plural": "storage_objects",
+  "label": "ファイル台帳",
   "fields": [],
   "relations": [],
   "searchFields": [],

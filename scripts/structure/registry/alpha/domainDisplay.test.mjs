@@ -4,12 +4,12 @@
 import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { test } from "node:test";
 
 import { renderDomainDisplay, toDomainDisplay } from "./domainDisplay.mjs";
 import { buildAlphaRegistries, staleAlphaRegistries } from "./index.mjs";
-import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
+import { toCamelCase, toSnakeCase } from "../../../../src/lib/stringCase/index.mjs";
 
 const FORBIDDEN = ["apiAccess", "dbEngine", "idType", "generateFiles", "storage", "indexes", "hiddenColumns", "onDelete", "slug", "collection", "defaultOrderBy", "metadataBinding", "uploadPath", "description"];
 
@@ -217,11 +217,15 @@ test("registry の検査: 写しがずれると stale", () => {
   }
 });
 
-test("全ドメイン: ボタンが読む singular・plural・label は entity.json と同じ", () => {
+test("全ドメイン: ボタンが読む singular・plural・label は entity.json と同じ(書いていなければ既定: singular = 登録名の snake_case、label = ドメインの domain.json の label)", () => {
   const { outputs } = buildAlphaRegistries(process.cwd());
   for (const path of Object.keys(outputs).filter((p) => p.endsWith("/entities/display.ts"))) {
     const display = JSON.parse(/: DomainDisplay = (\{[\s\S]*\});/.exec(outputs[path])[1]);
+    const entityFile = entityFileOf(outputs[path]);
     const config = readEntityOf(outputs[path]);
-    assert.deepEqual([display.singular, display.plural, display.label], [config.singular, config.plural, config.label], path);
+    const registration = basename(dirname(entityFile));
+    const domainLabel = JSON.parse(readFileSync(join(dirname(dirname(dirname(entityFile))), "domain.json"), "utf8")).label;
+    const expected = [config.singular ?? toSnakeCase(registration), config.plural, config.label ?? domainLabel];
+    assert.deepEqual([display.singular, display.plural, display.label], expected, path);
   }
 });

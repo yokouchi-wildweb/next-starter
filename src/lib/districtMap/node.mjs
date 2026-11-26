@@ -5,6 +5,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
+import { isGeneratedRegistration, isRegisteredRegistration, readDomain } from "../domain/node.mjs";
 import { readDistrictMap } from "./read.mjs";
 
 export { collectPoints, findDeclarationFiles, overrideKeysOf } from "./declarationFiles.mjs";
@@ -35,4 +36,4 @@ export function nodeDistrictSource(repoRoot) {
  * リポジトリの地区の地図
  * @param {string} repoRoot
  */
-export const readDistrictMapAt = (repoRoot) => readDistrictMap(nodeDistrictSource(repoRoot));
+export const readDistrictMapAt = (repoRoot) => readDistrictMap(nodeDistrictSource(repoRoot), { readDomain, isGeneratedRegistration, isRegisteredRegistration });

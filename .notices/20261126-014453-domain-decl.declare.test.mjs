@@ -10,7 +10,7 @@ import { sql } from "drizzle-orm";
 import { bigint, check, index, inet, jsonb, pgEnum, pgTable, smallint, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { makeTempDir } from "../scripts/structure/domain-tables/tables.mjs";
-import { UserTable } from "../src/domains/core/user/entities/drizzle.ts";
+import { UserTable } from "../src/domains/core/user/entities/user/drizzle.ts";
 import { accessOfDeclaration } from "../scripts/structure/registry/serviceRegistry/access.mjs";
 import { declareTable } from "./20261126-014453-domain-decl.declare.mjs";
 
@@ -69,8 +69,9 @@ test("手で持つ表(宣言なし)は今の表から起こし、照らしの差
 });
 
 test("1 ファイルの宣言から起こすと、足した列・索引を「動いている値で書いた」行に出す", async () => {
-  const old = JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "domains", "sampleTag", "domain.json"), "utf8"));
-  const { domainConfigVersion: _v, ...base } = old;
+  // 起こす元 = 1 ファイルの宣言の形(上流はもう短い形なので、登録の entity.json にドメインの label を足して組む)
+  const label = JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "domains", "sampleTag", "domain.json"), "utf8")).label;
+  const base = { ...JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "domains", "sampleTag", "entities", "sampleTag", "entity.json"), "utf8")), label };
   const actual = pgTable(
     "sample_tags",
     {

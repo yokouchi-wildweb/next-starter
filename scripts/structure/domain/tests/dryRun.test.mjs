@@ -52,9 +52,12 @@ test("CLI: --dry-run は --generate と併用、対話なしで一覧を出す�
   const bad = spawnSync("node", [index, "--delete", "sampleTag", "--dry-run"], { cwd: repoRoot, encoding: "utf8" });
   assert.equal(bad.status, 1);
   assert.match(bad.stderr, /--dry-run は --generate と併用/);
-  const ok = spawnSync("node", [index, "--generate", "sampleTag", "--yes", "--dry-run", "--only", "registry"], { cwd: repoRoot, encoding: "utf8" });
+  // registry カテゴリが書く物(collections.ts・storagePurposes.ts)を持つ sample で見る(登録表の行は登録の entity.json から pnpm generate registry が作る)
+  const ok = spawnSync("node", [index, "--generate", "sample", "--yes", "--dry-run", "--only", "registry"], { cwd: repoRoot, encoding: "utf8" });
   assert.equal(ok.status, 0, ok.stderr);
-  assert.match(ok.stdout, /\[dry-run\] sampleTag: 変更なし \d+（serviceRegistry\.ts は実行時に作り直す）/);
+  // 集まりの組(sample → sampleImage)なので組の一覧も出る: 主は従属の宣言を「保持」(既にある)と書く物の「変更なし」
+  assert.match(ok.stdout, /\[dry-run\] sample: 保持 \d+ \/ 変更なし \d+\n/);
+  assert.match(ok.stdout, /\[dry-run\]\[組\] コミットに含めるもの: src\/registry\/ の登録表/);
   assert.doesNotMatch(ok.stdout, /更新しました|生成しました/);
 });
 

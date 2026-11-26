@@ -158,7 +158,7 @@ export function pairSummary(workspace, pairs, domains, { registry, dryRun }) {
   const tables = written.map((domain) => domainTableName(domain, pairs.pending.get(domain)));
   const commit = [...written.map((domain) => `${workspace.locateDomain(domain).dir}/`), ...(registry ? ["src/registry/ の登録表"] : [])];
   return [
-    `${prefix}${dryRun ? "書き出す予定の" : "書き出した"} 登録の entity.json: ${paths.join(", ") || none}`,
+    `${prefix}${dryRun ? "書き出す予定の" : "書き出した"}登録の entity.json: ${paths.join(", ") || none}`,
     `${prefix}db:push が要る表: ${tables.length ? `${tables.join(", ")}（pnpm db:push を実行してください）` : none}`,
     `${prefix}コミットに含めるもの: ${commit.join(", ") || none}`,
   ];

@@ -28,7 +28,7 @@ function memorySource(files) {
   };
 }
 
-const domainJson = (label) => JSON.stringify({ domainConfigVersion: "2.0", label });
+const domainJson = (/** @type {string} */ label) => JSON.stringify({ domainConfigVersion: "2.0", label });
 
 test("表 0 のドメインは登録 0", () => {
   const source = memorySource({ "src/domains/core/legal/domain.json": domainJson("規約"), "src/domains/core/legal/config.ts": "" });

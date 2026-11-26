@@ -4,7 +4,9 @@
 import type { DomainDisplay } from "@/lib/domain";
 
 export const domainDisplay: DomainDisplay = {
+  "singular": "wallet_history",
   "plural": "wallet_histories",
+  "label": "財布の履歴",
   "fields": [],
   "relations": [],
   "searchFields": [],

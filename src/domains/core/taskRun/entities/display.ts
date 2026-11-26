@@ -4,7 +4,9 @@
 import type { DomainDisplay } from "@/lib/domain";
 
 export const domainDisplay: DomainDisplay = {
+  "singular": "task_run",
   "plural": "task_runs",
+  "label": "タスクの実行",
   "fields": [],
   "relations": [],
   "searchFields": [],

@@ -14,7 +14,7 @@ test("closable を書いた宣言(entity.json)は true でも false でも止ま
   for (const closable of [true, false, "yes"]) {
     const issues = closableIssues({ ...base, closable });
     assert.equal(issues.length, 1);
-    assert.match(issues[0], /closable\(閉じられる形の印\)はなくなった\(D26\)。domain\.json から消す。.*src\/featureGate\/rules\/<機能の名前>\.ts に規則を書き、features にこのドメインのフォルダを入れる/);
+    assert.match(issues[0], /closable\(閉じられる形の印\)はなくなった\(D26\)。entity\.json から消す。.*src\/featureGate\/rules\/<機能の名前>\.ts に規則を書き、features にこのドメインのフォルダを入れる/);
   }
   assert.deepEqual(closableIssues(base), []);
   assert.ok(configIssues("shopItem", { ...base, closable: true }).some((issue) => issue.startsWith("[shopItem] closable")));

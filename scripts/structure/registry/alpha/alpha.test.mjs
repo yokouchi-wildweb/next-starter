@@ -78,7 +78,8 @@ test("生成: 表の入口・ドメイン設定", () => {
   const config = outputs[DOMAIN_CONFIG_REGISTRY_FILE];
   assert.match(config, /import chatRoomConfig from "@\/domains\/core\/chatRoom\/entities\/chatRoom\/entity\.json";/);
   assert.match(config, /import sampleConfig from "@\/domains\/sample\/entities\/sample\/entity\.json";/);
-  assert.match(config, /\n  chat_room: chatRoomConfig,\n  sample: sampleConfig,\n  sample_category: sampleCategoryConfig,\n  sample_image: sampleImageConfig,\n\} as const;/);
+  // 主の登録が書いていない名前と項目の鍵だけを既定で埋める(singular = 登録名の snake_case、label = ドメインの label、fields = [])
+  assert.match(config, /\n  chat_room: \{ \.\.\.chatRoomConfig, singular: "chat_room", fields: \[\] \},\n  sample: \{ \.\.\.sampleConfig, singular: "sample", fields: \[\] \},\n  sample_category: \{ \.\.\.sampleCategoryConfig, singular: "sample_category", fields: \[\] \},\n  sample_image: \{ \.\.\.sampleImageConfig, singular: "sample_image", fields: \[\] \},\n\} as const;/);
 });
 
 test("生成: 集める入口 entities/<種類>.ts は宣言のある全ドメインに、その種類を持つ登録を登録のフォルダの並びで書く(generate: false も)", () => {

@@ -80,9 +80,9 @@
 
 - `presenterFor(field)` が項目の表示の種類 `{ kind, options? }` を返す(kind = `boolean`・`number`・`stringArray`・`enum`(選択肢つき)・`string`・`datetime`・`date`・`collectionThumbnails`・`mediaThumbnail`)
 
-### 宣言を読む(入口 `./declarations`・`./node`、`definition/readDomain.mjs`・`definition/declaration.mjs`・`definition/nodeDomainSource.mjs`)
+### 宣言を読む(入口 `./node`、`definition/readDomain.mjs`・`definition/declaration.mjs`・`definition/nodeDomainSource.mjs`)
 
-`./declarations` はファイルを開かない素の JS(source を渡して読む。地区の地図 src/lib/districtMap からも使う)。`./node` は同じ物 + `nodeDomainSource`
+`readDomain` などはファイルを開かない素の JS(source を渡して読む。中は `declarations.mjs`、入口は `./node` だけ。地区の地図 src/lib/districtMap の `.` は自分の `./node` から渡されて使う)。`./node` はそれ + `nodeDomainSource`
 
 | 関数・定数 | 用途 |
 |---|---|

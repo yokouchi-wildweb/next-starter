@@ -2,8 +2,7 @@
   "exports": {
     ".": "./index.ts",
     "./server": "./server.ts",
-    "./node": "./node.mjs",
-    "./declarations": "./declarations.mjs"
+    "./node": "./node.mjs"
   },
   "libs": [
     "domainAccess",

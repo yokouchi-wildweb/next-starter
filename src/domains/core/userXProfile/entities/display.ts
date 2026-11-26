@@ -4,7 +4,9 @@
 import type { DomainDisplay } from "@/lib/domain";
 
 export const domainDisplay: DomainDisplay = {
+  "singular": "user_x_profile",
   "plural": "user_x_profiles",
+  "label": "X のプロフィール",
   "fields": [],
   "relations": [],
   "searchFields": [],

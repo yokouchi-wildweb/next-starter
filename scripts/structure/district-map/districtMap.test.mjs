@@ -103,7 +103,8 @@ test("domainJson・generate = 各ドメインの domain.json の有無と、登�
     assert.equal(d.domainJson, hasDomainJson, d.dir);
     assert.equal(d.generate, hasDomainJson ? entities.some((entity) => entity.generate !== false) : null, d.dir);
   }
-  assert.ok(features.some((d) => d.generate === false) && features.some((d) => d.generate === true) && features.some((d) => d.generate === null));
+  // どのドメインも宣言を持つ(D331)ので null(宣言なし)は上流の木に無い
+  assert.ok(features.some((d) => d.generate === false) && features.some((d) => d.generate === true));
 });
 
 test("config・上書き: 欄の有無は木のファイルの有無と同じ(対の揃い方は pnpm check config-overrides)", () => {

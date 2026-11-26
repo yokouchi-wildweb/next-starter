@@ -5,7 +5,7 @@ paths:
 # lib/domain
 what: a domain's definition and fields: the declaration (domain.json + entities/<reg>/entity.json, readDomain), field types with their schema and display helpers (CRUD_ID_FIELD, nullableDatetime / requiredDatetime, format* / FieldPresenter), relations, the domain's routes (getAdminPaths / AdminPaths); and resolves a domain name ↔ service / table / id column from the registry passed in
   - closed lib: entry "." @/lib/domain (client and server, no React value code / hooks / HTTP client), "./server" @/lib/domain/server (registry lookups, getJunctionTable)
-  - "./node" src/lib/domain/node.mjs (the .mjs tables, the declaration shape, readDomain + nodeDomainSource; scripts / eslint-rules) | "./declarations" (shape + readDomain without fs; libs like districtMap)
+  - "./node" src/lib/domain/node.mjs (the .mjs tables, the declaration shape, readDomain + nodeDomainSource; scripts / eslint-rules) | a lib that must not pull node:fs (districtMap ".") takes readDomain passed in from its own "./node"
   - access types and presets → @/lib/domainAccess
 use: always
 change: override → entities/\<registration\>/entity.override.ts beside a core registration's entity.json (point entities in src/lib/domain/extensionPoints.ts: apiAccess only, replaces that serviceRegistry row's access whole)

@@ -4,7 +4,6 @@
 // 宣言は今の置き場が正本(domain.json・entities/<登録名>/entity.json・extensionPoints・門の規則・frame:・CATALOG.md)。この読み手は写しを持たない。
 // 載せない物(目録 D8・D12): 値・access・関数・門の pathPatterns と enabled・受け口の項目の一覧・所有(どのリポの物か)。
 
-import { isGeneratedRegistration, isRegisteredRegistration, readDomain } from "../domain/declarations.mjs";
 import { listLibsFrom } from "../libPackage/index.mjs";
 import { readDeclaration } from "./declarations.mjs";
 import { overrideGlobOf } from "./extensionNames.mjs";
@@ -193,12 +192,24 @@ function readGates(source, featuresByFolder, problems) {
 }
 
 /**
+ * ドメインの宣言の読み手(lib/domain の宣言の読み込みの部品。この lib の "." は lib/domain を読まず、渡されて使う:
+ * 入口 "./node" の readDistrictMapAt が lib/domain の "./node" から渡す。型だけをそこから読む)
+ * @typedef {{
+ *   readDomain: typeof import("../domain/node.mjs").readDomain,
+ *   isGeneratedRegistration: typeof import("../domain/node.mjs").isGeneratedRegistration,
+ *   isRegisteredRegistration: typeof import("../domain/node.mjs").isRegisteredRegistration,
+ * }} DomainDeclarationReader
+ */
+
+/**
  * 地区の地図を読む
  * @param {DistrictSource} source
+ * @param {DomainDeclarationReader} declarations ドメインの宣言の読み手(lib/domain の readDomain・isGeneratedRegistration・isRegisteredRegistration)
  * @returns {{ districts: District[], problems: string[], tableFiles: { name: string, file: string, dir: string }[], tableProblems: string[] }}
  *   districts の並び = 種類(DISTRICT_KINDS の順)→ 名前。tableFiles = domains の地区の表と定義ファイル(パス順 → 出現順。schemaRegistry が定義ファイルを使う。jsonl には載せない)、tableProblems = 表名を字面で読めない問題だけ(problems にも入る)
  */
-export function readDistrictMap(source) {
+export function readDistrictMap(source, declarations) {
+  const { readDomain, isGeneratedRegistration, isRegisteredRegistration } = declarations;
   /** @type {string[]} */
   const problems = [];
   /** @type {{ name: string, file: string, dir: string }[]} */
@@ -257,7 +268,7 @@ export function readDistrictMap(source) {
       // 汎用 API・表の資源の名前 = 登録表に出す登録(registered が false でない)の登録名、requires = その登録の entity.json の requires(D336)
       const registered = declaration.registrations.filter(isRegisteredRegistration);
       district.apiKeys = registered.map((registration) => registration.name);
-      district.requires = [...new Set(registered.flatMap((registration) => (Array.isArray(registration.entity.requires) ? registration.entity.requires : [])))];
+      district.requires = [...new Set(registered.flatMap((registration) => (Array.isArray(registration.entity?.requires) ? registration.entity.requires : [])))];
       for (const key of district.apiKeys) apiKeyOwners.set(key, [...(apiKeyOwners.get(key) ?? []), d.dir]);
       for (const path of files.filter((f) => SOURCE_FILE.test(f) && !TEST_FILE.test(f)).sort()) {
         const read = readTableNames(path, source.readText(path) ?? "");

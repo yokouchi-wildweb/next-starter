@@ -194,5 +194,8 @@
         "objectRemovedAt"
       ]
     }
+  ],
+  "hiddenColumns": [
+    "sessionUri"
   ]
 }

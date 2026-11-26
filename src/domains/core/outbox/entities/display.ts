@@ -4,7 +4,9 @@
 import type { DomainDisplay } from "@/lib/domain";
 
 export const domainDisplay: DomainDisplay = {
+  "singular": "outbox",
   "plural": "outbox_jobs",
+  "label": "送り箱",
   "fields": [],
   "relations": [],
   "searchFields": [],
