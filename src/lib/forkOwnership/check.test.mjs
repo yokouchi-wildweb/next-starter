@@ -126,10 +126,13 @@ describe("pnpm workflow ownership check", () => {
       write(fork, CORE, render(["LATER", ...LINES.slice(1)]));
       commitAll(fork, "took the later upstream version by hand");
       const later = runCheck(fork);
+      assert.equal(later.status, "pass");
       assert.equal(later.entries.find((entry) => entry.path === CORE)?.reason, "upstream-version", "親の先端までの版");
       write(fork, CORE, render(["old", ...LINES.slice(1)]));
       commitAll(fork, "the version older than the base");
-      assert.equal(runCheck(fork).entries.find((entry) => entry.path === CORE)?.reason, "outside-intake", "基準より古い版は数えない");
+      const older = runCheck(fork);
+      assert.equal(older.status, "fail");
+      assert.equal(older.entries.find((entry) => entry.path === CORE)?.reason, "outside-intake", "基準より古い版は数えない");
     });
   });
 
