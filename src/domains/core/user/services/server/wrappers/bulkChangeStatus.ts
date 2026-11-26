@@ -15,7 +15,7 @@ import { BULK_STATUS_TARGETS } from "@/domains/core/user/constants/status";
 import { getRoleCategory } from "@/domains/core/user/utils/roleHelpers";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
-import { base } from "../drizzleBase";
+import { userBase } from "../userBase";
 import { afterStatusChange, changeStatus } from "./changeStatus";
 
 const CHUNK = 200;
@@ -49,7 +49,7 @@ export async function bulkChangeStatus(params: BulkChangeStatusParams): Promise<
 
   for (let at = 0; at < params.userIds.length; at += CHUNK) {
     const ids = params.userIds.slice(at, at + CHUNK);
-    const { results } = await base.searchWithDeleted({ where: { field: "id", op: "in", value: ids }, limit: ids.length });
+    const { results } = await userBase.searchWithDeleted({ where: { field: "id", op: "in", value: ids }, limit: ids.length });
     const byId = new Map((results as User[]).map((user) => [user.id, user]));
     for (const userId of ids) {
       const user = byId.get(userId);

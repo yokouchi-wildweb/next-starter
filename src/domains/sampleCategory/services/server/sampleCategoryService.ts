@@ -1,7 +1,7 @@
 // src/domains/sampleCategory/services/server/sampleCategoryService.ts
 
-import { base } from "./drizzleBase";
+import { sampleCategoryBase } from "./sampleCategoryBase";
 
 export const sampleCategoryService = {
-  ...base,
+  ...sampleCategoryBase,
 };

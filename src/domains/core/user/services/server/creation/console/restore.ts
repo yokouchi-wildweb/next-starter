@@ -7,7 +7,7 @@ import { getServerAuth } from "@/lib/firebase/server";
 import { withUserNameGuard } from "@/domains/core/user/services/server/helpers/nameAvailability";
 import { recordStatusTransition } from "@/domains/core/user/services/server/statusHistory";
 import { createHash } from "@/utils/hash";
-import { base } from "../../drizzleBase";
+import { userBase } from "../../userBase";
 
 export type RestoreSoftDeletedUserInput = {
   existingUser: User;
@@ -73,8 +73,8 @@ export async function restoreSoftDeletedUser(data: RestoreSoftDeletedUserInput):
   const updatedUser = await withUserNameGuard(
     { name, excludeUserId: existingUser.id },
     async (tx) => {
-      await base.restore(existingUser.id, tx);
-      return base.update(existingUser.id, updatePayload, tx);
+      await userBase.restore(existingUser.id, tx);
+      return userBase.update(existingUser.id, updatePayload, tx);
     },
   );
 

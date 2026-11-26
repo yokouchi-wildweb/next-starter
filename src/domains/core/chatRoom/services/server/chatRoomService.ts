@@ -1,7 +1,7 @@
 // src/domains/chatRoom/services/server/chatRoomService.ts
 
-import { base } from "./firestoreBase";
+import { chatRoomBase } from "./chatRoomBase";
 
 export const chatRoomService = {
-  ...base,
+  ...chatRoomBase,
 };

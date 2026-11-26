@@ -5,7 +5,7 @@
 import type { ChatRoom } from "@/domains/core/chatRoom/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { EditButton, DeleteButton } from "@/lib/crud";
-import presenters from "@/domains/core/chatRoom/presenters";
+import presenters from "@/domains/core/chatRoom/chatRoomPresenters";
 import { useState } from "react";
 import ChatRoomDetailModal from "../common/ChatRoomDetailModal";
 import { buildDomainColumns } from "@/lib/crud";

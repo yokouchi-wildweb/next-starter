@@ -7,7 +7,7 @@ import { useMemo } from "react";
 
 import { selectBulkActions } from "@/lib/tableSuite";
 import { useDomainAdminBulkActions } from "@/domains/core/admin/hooks/useDomainAdminBulkActions";
-import type { BankTransferReviewAdminBulkActionItem } from "@/domains/core/bankTransferReview/types/adminBulkAction";
+import type { BankTransferReviewAdminBulkActionItem } from "@/domains/core/bankTransferReview/types/bankTransferReviewAdminBulkAction";
 import { useAdminBulkActionCan } from "@/domains/core/user/hooks/useAdminBulkActionCan";
 
 export function useBankTransferReviewAdminBulkActions(): BankTransferReviewAdminBulkActionItem[] {

@@ -11,7 +11,7 @@
 import { findByPurchaseRequest } from "@/domains/core/bankTransferReview/services/server/wrappers/findHelpers";
 import type { PurchaseRequest } from "@/domains/core/purchaseRequest/entities/model";
 
-import { base as purchaseRequestBase } from "./drizzleBase";
+import { purchaseRequestBase as purchaseRequestBase } from "./purchaseRequestBase";
 import { INHOUSE_BANK_TRANSFER_METHOD_ID, INHOUSE_PROVIDER_NAME } from "./payment/inhouse";
 
 const SUBMITTABLE_STATUSES: readonly PurchaseRequest["status"][] = ["processing", "completed"];

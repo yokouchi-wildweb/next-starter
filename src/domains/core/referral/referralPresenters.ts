@@ -1,0 +1,20 @@
+// src/domains/core/referral/referralPresenters.ts
+
+import type { Referral } from "@/domains/core/referral/entities";
+import type { FieldPresenter } from "@/lib/domain";
+import { formatBoolean, formatNumber, formatString, formatStringArray, formatEnumLabel, formatDateValue } from "@/lib/domain";
+import { formatDateJa } from "@/utils/date";
+
+export type ReferralFieldPresenter = FieldPresenter<Referral>;
+
+export const presenters: Record<string, ReferralFieldPresenter> = {
+  coupon_id: ({ value, field, record }) => formatString(value),
+  inviter_user_id: ({ value, field, record }) => formatString(value),
+  invitee_user_id: ({ value, field, record }) => formatString(value),
+  status: ({ value, field, record }) => formatEnumLabel(value, { "active": "有効", "cancelled": "取消" }),
+  createdAt: ({ value }) => formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null })),
+  updatedAt: ({ value }) => formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null })),
+};
+
+export default presenters;
+

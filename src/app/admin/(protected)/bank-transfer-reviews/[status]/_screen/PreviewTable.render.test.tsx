@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { JSDOM } from "jsdom";
 
 import type { BankTransferReviewImportRowDto } from "@/domains/core/bankTransferReview";
-import { formatJpyAmount } from "@/domains/core/bankTransferReview/presenters";
+import { formatJpyAmount } from "@/domains/core/bankTransferReview/bankTransferReviewPresenters";
 
 import { PreviewTable } from "./BankTransferReviewCsvImportDialog";
 

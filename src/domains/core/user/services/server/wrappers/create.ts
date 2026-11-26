@@ -6,7 +6,7 @@ import { getRoleCategory, hasRoleProfile, type UserRoleType } from "@/domains/co
 import { userProfileService } from "@/domains/core/userProfile/services/server/userProfileService";
 import { syncBelongsToManyRelations } from "@/lib/crud/server";
 import { db } from "@/lib/drizzle";
-import { baseOptions } from "../drizzleBase";
+import { baseOptions } from "../userBase";
 
 export async function create(data: CreateUserInput): Promise<User> {
   const { profileData, user_tag_ids, ...userData } = data;

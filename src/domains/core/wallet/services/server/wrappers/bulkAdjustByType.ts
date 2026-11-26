@@ -15,7 +15,7 @@ import {
   grantLotsBulk,
   rebaselineLotsBulk,
 } from "@/domains/core/wallet/services/server/lots/lotAccounting";
-import type { WalletTypeValue } from "@/domains/core/wallet/types/field";
+import type { WalletTypeValue } from "@/domains/core/wallet/types/walletField";
 import { normalizeAmount, resolveRequestBatchId, sanitizeMeta } from "./utils";
 import { type TransactionClient } from "./utils";
 import { db } from "@/lib/drizzle";

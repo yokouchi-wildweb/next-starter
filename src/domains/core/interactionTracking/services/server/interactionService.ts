@@ -1,6 +1,6 @@
 // src/domains/core/interactionTracking/services/server/interactionService.ts
 
-import { base } from "./drizzleBase";
+import { interactionEventBase } from "./interactionEventBase";
 import { getAudience, getAudienceSummary } from "./wrappers/getAudience";
 import { getCounts, getCountsBulk } from "./wrappers/getCounts";
 import { getDailySeries } from "./wrappers/getDailySeries";
@@ -21,7 +21,7 @@ import { recordBatch } from "./wrappers/recordBatch";
  * 本サービスをサーバー側で呼び出す。配線レシピは README.md を参照。
  */
 export const interactionService = {
-  ...base,
+  ...interactionEventBase,
   record,
   recordBatch,
   getCounts,

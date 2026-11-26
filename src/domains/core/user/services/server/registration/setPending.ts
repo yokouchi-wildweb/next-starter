@@ -4,7 +4,7 @@ import type { User } from "@/domains/core/user/entities";
 import { UserPreRegistrationSchema } from "@/domains/core/user/entities/schema";
 import type { UserProviderType } from "@/domains/core/user/types";
 import { recordStatusTransition } from "@/domains/core/user/services/server/statusHistory";
-import { base } from "../drizzleBase";
+import { userBase } from "../userBase";
 import { DomainError } from "@/lib/errors";
 
 /** 仮登録可能なステータス */
@@ -54,9 +54,9 @@ export async function setPending(
     deletedAt: null,
     // 新規登録の場合はsignupIpを記録
     ...(input.signupIp ? { signupIp: input.signupIp } : {}),
-  } as unknown as Parameters<typeof base.upsert>[0];
+  } as unknown as Parameters<typeof userBase.upsert>[0];
 
-  const user = await base.upsert(
+  const user = await userBase.upsert(
     upsertData,
     { conflictFields: ["providerType", "providerUid"] as any },
   );

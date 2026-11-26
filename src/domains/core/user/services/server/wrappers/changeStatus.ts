@@ -8,7 +8,7 @@ import { recordStatusTransition } from "@/domains/core/user/services/server/stat
 import type { DbTransaction } from "@/lib/crud/server";
 import { runWithTransaction } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
-import { base } from "../drizzleBase";
+import { userBase } from "../userBase";
 
 export type ChangeStatusInput = {
   userId: string;
@@ -30,7 +30,7 @@ export type StatusChangeBefore = Pick<User, "id" | "status" | "providerUid" | "f
 export async function changeStatus(input: ChangeStatusInput, tx?: DbTransaction): Promise<User> {
   const { userId, newStatus, reason } = input;
 
-  const currentUser = await base.get(userId);
+  const currentUser = await userBase.get(userId);
   if (!currentUser) {
     throw new DomainError("ユーザーが見つかりません", { status: 404 });
   }
@@ -53,7 +53,7 @@ export async function changeStatus(input: ChangeStatusInput, tx?: DbTransaction)
   }
 
   const updatedUser = await runWithTransaction(tx, async (trx) => {
-    const updated = await base.update(userId, updatePayload, trx);
+    const updated = await userBase.update(userId, updatePayload, trx);
 
     await recordStatusTransition({
       userId,

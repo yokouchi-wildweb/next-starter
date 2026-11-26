@@ -32,7 +32,7 @@ test("このリポ: 集まりを持つ主の表には、サービスを読まな
   assert.deepEqual(
     missing,
     [],
-    "entities/<登録名>/drizzle.ts に defineTableCollections(<Domain>Table, () => import(\"…/services/server/collections\").then((m) => m.collections)) が要る（pnpm generate domain が出す）",
+    "entities/<登録名>/drizzle.ts に defineTableCollections(<Domain>Table, () => import(\"…/services/server/<登録名>Collections\").then((m) => m.collections)) が要る（pnpm generate domain が出す）",
   );
 });
 

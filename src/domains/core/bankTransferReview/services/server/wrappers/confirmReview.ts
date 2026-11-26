@@ -19,7 +19,7 @@
 import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
 import { auditLogger } from "@/domains/core/auditLog/services/server";
-import { base as purchaseRequestBase } from "@/domains/purchaseRequest/services/server/drizzleBase";
+import { purchaseRequestBase as purchaseRequestBase } from "@/domains/purchaseRequest/services/server/purchaseRequestBase";
 import type { PurchaseRequest } from "@/domains/purchaseRequest/entities/model";
 import { INHOUSE_PROVIDER_NAME } from "@/domains/purchaseRequest/services/server/payment/inhouse";
 import { completePurchase } from "@/domains/purchaseRequest/services/server/wrappers/completePurchase";
@@ -29,7 +29,7 @@ import type {
   BankTransferReviewApprovalSource,
 } from "@/domains/bankTransferReview/entities/model";
 
-import { base } from "../drizzleBase";
+import { bankTransferReviewBase } from "../bankTransferReviewBase";
 import { lockReviewStatus } from "./lockReviewStatus";
 
 export type ConfirmReviewParams = {
@@ -58,7 +58,7 @@ export async function confirmReview(
 ): Promise<ConfirmReviewResult> {
   const { reviewId, reviewedBy, source } = params;
 
-  const review = (await base.get(reviewId)) as BankTransferReview | null;
+  const review = (await bankTransferReviewBase.get(reviewId)) as BankTransferReview | null;
   if (!review) {
     throw new DomainError("レビューが見つかりません。", { status: 404 });
   }
@@ -116,7 +116,7 @@ export async function confirmReview(
       );
     }
 
-    const next = (await base.update(
+    const next = (await bankTransferReviewBase.update(
       review.id,
       {
         status: "confirmed" as const,

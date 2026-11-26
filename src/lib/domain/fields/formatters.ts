@@ -1,5 +1,5 @@
 // src/lib/domain/fields/formatters.ts
-// 欄の値の表示(生成した presenters.ts が読む)。FieldPresenter の戻り値の型だけ react を読む(値は読まない)
+// 欄の値の表示(生成した <登録名>Presenters.ts が読む)。FieldPresenter の戻り値の型だけ react を読む(値は読まない)
 
 import type React from "react";
 

@@ -12,7 +12,7 @@ import { getPublicColumns } from "@/lib/crud/server";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 
-import { base } from "../drizzleBase";
+import { userBase } from "../userBase";
 
 export type SeedUserInput = {
   name: string;
@@ -39,7 +39,7 @@ export async function seedCreate(input: SeedUserInput): Promise<User> {
   });
 
   const [user] = await db.insert(UserTable).values(values).returning(getPublicColumns(UserTable));
-  base.invalidateRequestMemo();
+  userBase.invalidateRequestMemo();
 
   await recordStatusTransition({ userId: user.id, fromStatus: null, toStatus: "active", trigger: "demo_create" });
 

@@ -7,7 +7,7 @@ import { auditLogger } from "@/domains/core/auditLog/services/server";
 import { storageObjectService } from "@/domains/core/storageObject/services/server/storageObjectService";
 import { DomainError } from "@/lib/errors";
 import { getRoleCategory } from "@/domains/core/user/constants";
-import { base } from "../drizzleBase";
+import { userBase } from "../userBase";
 
 export type HardDeleteInput = {
   userId: string;
@@ -23,7 +23,7 @@ export type HardDeleteInput = {
 export async function hardDelete(input: HardDeleteInput): Promise<void> {
   const { userId, reason } = input;
 
-  const user = await base.getWithDeleted(userId);
+  const user = await userBase.getWithDeleted(userId);
 
   if (!user) {
     throw new DomainError("ユーザーが見つかりません", { status: 404 });
@@ -44,7 +44,7 @@ export async function hardDelete(input: HardDeleteInput): Promise<void> {
     await deleteAuthUser(user.providerUid);
   }
 
-  await base.hardDelete(userId);
+  await userBase.hardDelete(userId);
 
   // その人がアップロードしてまだどこにも紐付いていないファイルを取り消して消す（他の行・チャットが参照するファイルは残る）。
   // 行の削除は済んでいるので失敗しても throw しない（掃除 cron が期限・猶予の後に消す）

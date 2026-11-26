@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { TASK_RUN_KINDS, TASK_RUN_STATUSES } from "@/domains/taskRun/constants";
 
-/** CRUD ベース(drizzleBase)の create。行を書くのは taskRunService.startRun だけ */
+/** CRUD ベース(taskRunBase)の create。行を書くのは taskRunService.startRun だけ */
 export const TaskRunCreateSchema = z.object({
   name: z.string().trim().min(1),
   kind: z.enum(TASK_RUN_KINDS),

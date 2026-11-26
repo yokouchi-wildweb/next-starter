@@ -2,7 +2,7 @@
 // ウォレット有効期限設定（wallet の config.ts の expiration）の読み取りヘルパー
 
 import { walletConfig, type WalletExpirationBasis, type WalletExpirationConfig, type WalletExpiredNotice, type WalletPreExpiryNoticeStage, type WalletType } from "@/domains/wallet/config";
-import type { WalletTypeValue } from "@/domains/core/wallet/types/field";
+import type { WalletTypeValue } from "@/domains/core/wallet/types/walletField";
 
 /**
  * 指定通貨の失効日数を返す。無効な通貨は null。

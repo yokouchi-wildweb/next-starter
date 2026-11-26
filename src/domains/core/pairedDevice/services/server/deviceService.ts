@@ -29,7 +29,7 @@ import { db } from "@/lib/drizzle";
 
 import { isValidScopePattern } from "@/domains/pairedDevice/utils/scopeContains";
 
-import { pairedDeviceBase } from "./drizzleBase";
+import { pairedDeviceBase } from "./pairedDeviceBase";
 import { isIdleExpired, resolveIdleRevokeDays } from "./deviceToken";
 import {
   PairedDeviceError,

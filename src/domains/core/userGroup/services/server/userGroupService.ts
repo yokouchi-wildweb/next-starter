@@ -2,7 +2,7 @@
 // ユーザーグループの service: CRUD の土台 + 評価の口(count・isMember・listMemberIds・evaluate、./evaluation)
 // + 静的グループへ書く口(replaceMembers・addMembers・removeMembers、./writes)。定期計算は cron(./recompute)。作る・直す口は次の指令
 
-import { userGroupBase } from "./drizzleBase";
+import { userGroupBase } from "./userGroupBase";
 import { userGroupEvaluator } from "./evaluation";
 import { staticMemberWriter } from "./writes";
 

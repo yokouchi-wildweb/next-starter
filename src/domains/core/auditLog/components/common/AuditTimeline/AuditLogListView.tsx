@@ -15,7 +15,7 @@ import {
   formatActionLabel,
   formatActorTypeLabel,
   formatAuditDate,
-} from "@/domains/core/auditLog/presenters";
+} from "@/domains/core/auditLog/auditLogPresenters";
 
 import { DiffView } from "./DiffView";
 

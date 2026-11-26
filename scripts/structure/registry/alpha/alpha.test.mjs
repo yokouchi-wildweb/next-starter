@@ -111,16 +111,16 @@ test("生成: 集める入口 entities/<種類>.ts は宣言のある全ドメ�
   assert.ok(!Object.keys(outputs).some((file) => file.startsWith("src/domains/loose/")), "宣言の無いドメインには書かない");
 });
 
-test("生成: ファイル用途の一覧は services/server/storagePurposes.ts を path 順に並べる(core も同じ)", () => {
+test("生成: ファイル用途の一覧は services/server/<登録名>StoragePurposes.ts を path 順に並べる(core も同じ)", () => {
   const root = mkdtempSync(join(tmpdir(), "alpha-purposes-"));
-  for (const dir of ["src/domains/album", "src/domains/core/coupon"]) {
+  for (const [dir, registration] of [["src/domains/album", "album"], ["src/domains/core/coupon", "coupon"]]) {
     mkdirSync(join(root, dir, "services/server"), { recursive: true });
-    writeFileSync(join(root, dir, "services/server/storagePurposes.ts"), "export const purposes = {};\n");
+    writeFileSync(join(root, dir, `services/server/${registration}StoragePurposes.ts`), "export const purposes = {};\n");
   }
   const text = buildAlphaRegistries(root).outputs[STORAGE_PURPOSE_REGISTRY_FILE];
   rmSync(root, { recursive: true, force: true });
-  assert.match(text, /import \{ purposes as albumPurposes \} from "@\/domains\/album\/services\/server\/storagePurposes";/);
-  assert.match(text, /import \{ purposes as couponPurposes \} from "@\/domains\/core\/coupon\/services\/server\/storagePurposes";/);
+  assert.match(text, /import \{ purposes as albumPurposes \} from "@\/domains\/album\/services\/server\/albumStoragePurposes";/);
+  assert.match(text, /import \{ purposes as couponPurposes \} from "@\/domains\/core\/coupon\/services\/server\/couponStoragePurposes";/);
   assert.match(text, /storagePurposeRegistry: StoragePurposeMap\[\] = \[\n  albumPurposes,\n  couponPurposes,\n\];/);
 });
 

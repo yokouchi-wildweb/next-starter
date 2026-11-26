@@ -17,7 +17,7 @@ import { onDemoUserCreated } from "@/domains/core/demo/services/server/onDemoUse
 import { getCouponIssuerProgram, isCouponIssuerProgramEnabled } from "@/domains/core/couponIssuerGrant/services/server/program";
 import { getPaymentSessionEnricher } from "@/domains/core/purchaseRequest/services/server/payment/getSessionEnricher";
 import { getAllCoinIssuanceLabels, getCoinIssuanceLabel } from "@/domains/core/analytics/services/server/coinIssuance/labels";
-import { formatActionLabel } from "@/domains/core/auditLog/presenters";
+import { formatActionLabel } from "@/domains/core/auditLog/auditLogPresenters";
 import { buildCouponAdminSectionTabs } from "@/domains/core/coupon/lib/adminSectionTabs";
 import { activeCoinIssuanceSources } from "@/domains/core/analytics/services/server/coinIssuance/activeSources";
 import type { CoinIssuanceSource } from "@/domains/core/analytics/services/server/coinIssuance/types";

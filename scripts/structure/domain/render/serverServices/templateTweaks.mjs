@@ -1,4 +1,4 @@
-// drizzleBase.ts / firestoreBase.ts テンプレートの、ドメインの形に応じた差し込みと削り: storage binding と空スキーマ
+// <登録名>Base.ts のテンプレート(Neon / Firestore)の、ドメインの形に応じた差し込みと削り: storage binding と空スキーマ
 
 import { belongsToManyRelations, belongsToRelations } from "../../domain/relations.mjs";
 import { AUDIT_LOGGER_IMPORT, auditLiteral, isAuditActive } from "../../spec/audit.mjs";
@@ -25,14 +25,14 @@ export function buildStorageBindingOption(camel, mediaFields) {
   ].join("\n");
 }
 
-/** 主の集まりの項目（collections.ts、registry カテゴリが書く）の import。集まりの無いドメインは空 */
-export function buildCollectionsImport(hasCollections) {
-  return hasCollections ? 'import { collections } from "./collections";\n' : "";
+/** 主の集まりの項目（<登録名>Collections.ts、registry カテゴリが書く）の import。集まりの無いドメインは空 */
+export function buildCollectionsImport(hasCollections, camel) {
+  return hasCollections ? `import { collections } from "./${camel}Collections";\n` : "";
 }
 
 /** createCrudService に渡す collections（ドメイン集約）。集まりの無いドメインは空 */
 export function buildCollectionsOption(hasCollections) {
-  return hasCollections ? "  // 主の集まりの項目（従属ドメインの行の並び）を同じ TX で差分同期する。宣言は collections.ts\n  collections,\n" : "";
+  return hasCollections ? "  // 主の集まりの項目（従属ドメインの行の並び）を同じ TX で差分同期する。宣言は <登録名>Collections.ts\n  collections,\n" : "";
 }
 
 /** 監査ログの recorder の import。audit の無いドメインは空 */
@@ -64,7 +64,7 @@ const PARSE_LINES = [
   /  parseUpsert: \(data\) => \w+CreateSchema\.parse\(data\),\n/g,
 ];
 
-/** 空スキーマ時: drizzleBase テンプレートから parse / satisfies / 不要 import を除く */
+/** 空スキーマ時: Neon の土台のテンプレートから parse / satisfies / 不要 import を除く */
 export function stripDrizzleBaseForEmptySchema(content) {
   content = content.replace(/import \{ \w+CreateSchema, \w+UpdateSchema \} from [^\n]+;\n/, "");
   content = content.replace(/import type \{ z \} from "zod";\n/, "");
@@ -74,7 +74,7 @@ export function stripDrizzleBaseForEmptySchema(content) {
   return content;
 }
 
-/** 空スキーマ時: firestoreBase テンプレートから parse / 不要 import を除く */
+/** 空スキーマ時: Firestore の土台のテンプレートから parse / 不要 import を除く */
 export function stripFirestoreBaseForEmptySchema(content) {
   content = content.replace(/import \{ \w+CreateSchema, \w+UpdateSchema \} from [^\n]+;\n/, "");
   for (const pattern of PARSE_LINES) content = content.replace(pattern, "");

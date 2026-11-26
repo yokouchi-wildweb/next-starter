@@ -17,7 +17,7 @@ import {
 } from "@/domains/core/purchaseRequest/constants/bankTransferJudgment";
 import type { PurchaseRequest } from "@/domains/purchaseRequest/entities/model";
 
-import { base } from "../drizzleBase";
+import { purchaseRequestBase } from "../purchaseRequestBase";
 
 export type RecordBankTransferJudgmentParams = {
   purchaseRequestId: string;
@@ -31,7 +31,7 @@ export async function recordBankTransferJudgment(
 ): Promise<void> {
   const { purchaseRequestId, userId, judgment } = params;
 
-  const purchaseRequest = (await base.get(
+  const purchaseRequest = (await purchaseRequestBase.get(
     purchaseRequestId,
   )) as PurchaseRequest | null;
   if (!purchaseRequest || purchaseRequest.user_id !== userId) {
@@ -45,12 +45,12 @@ export async function recordBankTransferJudgment(
       ? (purchaseRequest.metadata as Record<string, unknown>)
       : {};
 
-  await base.update(purchaseRequestId, {
+  await purchaseRequestBase.update(purchaseRequestId, {
     metadata: {
       ...currentMetadata,
       [BANK_TRANSFER_JUDGMENT_METADATA_KEY]: judgment,
     },
     // base.update の型は drizzle DefaultInsert ベースで jsonb 列を絞り込めないため
     // 同ドメインの他 wrapper と同様にキャストで通す。
-  } as unknown as Parameters<typeof base.update>[1]);
+  } as unknown as Parameters<typeof purchaseRequestBase.update>[1]);
 }

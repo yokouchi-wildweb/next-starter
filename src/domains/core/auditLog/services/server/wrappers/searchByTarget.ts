@@ -3,7 +3,7 @@
 import type { BoundedSearchParams, PaginatedResult } from "@/lib/crud";
 
 import type { AuditLog } from "@/domains/core/auditLog/entities/model";
-import { auditLogBase } from "../drizzleBase";
+import { auditLogBase } from "../auditLogBase";
 
 export type SearchByTargetParams = Omit<BoundedSearchParams, "where"> & {
   /**
@@ -16,7 +16,7 @@ export type SearchByTargetParams = Omit<BoundedSearchParams, "where"> & {
 /**
  * 指定ターゲットの監査ログをタイムライン順に取得する。
  *
- * - createdAt DESC が既定 (drizzleBase 設定済み)
+ * - createdAt DESC が既定 (auditLogBase 設定済み)
  * - targetId 省略時は targetType 全体を返す
  *
  * cross-domain 検索や actor 起点の検索は base.search() を直接使う。

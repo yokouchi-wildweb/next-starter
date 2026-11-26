@@ -6,7 +6,7 @@ import { z } from "zod";
 const LabelSchema = z.string().trim().min(1).max(PAIRED_DEVICE_LABEL_MAX_LENGTH);
 const KindSchema = z.string().trim().min(1).max(64);
 /**
- * CRUD ベース（drizzleBase）の create バリデーション。
+ * CRUD ベース（pairedDeviceBase）の create バリデーション。
  * scope の形は kind の scopeSchema で別途検証する（createPairedDevice）。
  */
 export const PairedDeviceCreateSchema = z.object({

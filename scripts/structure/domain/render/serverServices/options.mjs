@@ -1,4 +1,4 @@
-// drizzleBase.ts / firestoreBase.ts の createCrudService オプションの組み立てと直列化。
+// <登録名>Base.ts の createCrudService オプションの組み立てと直列化。
 // 関係の各スニペットは relations/ が作り、ここでオプションリテラル（Firestore 用 __serviceOptions__）と
 // テンプレートの __belongsToManyRelations__（Drizzle 用。baseOptions に続く relations の行）にまとめる
 

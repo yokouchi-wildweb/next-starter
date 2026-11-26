@@ -2,7 +2,7 @@
 
 import type { Wallet } from "@/domains/core/wallet/entities";
 import { WalletTable } from "@/domains/core/wallet/entities/drizzle";
-import type { WalletTypeValue } from "@/domains/core/wallet/types/field";
+import type { WalletTypeValue } from "@/domains/core/wallet/types/walletField";
 import type { WalletHistoryMeta, WalletHistoryMetaInput } from "@/domains/core/walletHistory/types/meta";
 import { DomainError } from "@/lib/errors";
 import { isPgUniqueViolation, handleConstraintError } from "@/lib/crud/server";

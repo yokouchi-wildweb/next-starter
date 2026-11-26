@@ -1,6 +1,6 @@
 // src/domains/core/fingerprintChallenge/services/server/index.ts
 
-export { fingerprintChallengeBase } from "./drizzleBase";
+export { fingerprintChallengeBase } from "./fingerprintChallengeBase";
 export {
   issueChallenge,
   getChallengeForUser,
@@ -23,7 +23,7 @@ export {
   type ListChallengeAccessEventsParams,
   type ListChallengeAccessEventsResult,
 } from "./accessLog";
-import { fingerprintChallengeBase } from "./drizzleBase";
+import { fingerprintChallengeBase } from "./fingerprintChallengeBase";
 
 /**
  * チャレンジ参照系サービス (serviceRegistry 登録用 = admin の一覧・検索)。

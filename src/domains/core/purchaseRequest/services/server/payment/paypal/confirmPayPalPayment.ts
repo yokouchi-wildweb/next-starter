@@ -25,7 +25,7 @@ import { PurchaseRequestTable } from "@/domains/core/purchaseRequest/entities/dr
 import type { PurchaseRequest } from "@/domains/core/purchaseRequest/entities/model";
 import { completePurchase } from "@/domains/core/purchaseRequest/services/server/wrappers/completePurchase";
 import { failPurchase } from "@/domains/core/purchaseRequest/services/server/wrappers/failPurchase";
-import { base } from "@/domains/core/purchaseRequest/services/server/drizzleBase";
+import { purchaseRequestBase } from "@/domains/core/purchaseRequest/services/server/purchaseRequestBase";
 import { paypalPaymentProvider, type PayPalOrder } from "./paypalProvider";
 import { PAYPAL_CAPTURE_STATUS, PAYPAL_ORDER_STATUS } from "./errorMapping";
 
@@ -94,7 +94,7 @@ export async function confirmPayPalPayment(
 
   // 1. purchase_request 取得 + 認可 + provider 整合性。
   //    認可（user 不一致）と存在（NULL）は 404 で同一視して情報秘匿。
-  const purchaseRequest = await base.get(purchaseRequestId);
+  const purchaseRequest = await purchaseRequestBase.get(purchaseRequestId);
   if (!purchaseRequest || purchaseRequest.user_id !== userId) {
     throw new DomainError("購入リクエストが見つかりません", { status: 404 });
   }
@@ -206,7 +206,7 @@ export async function confirmPayPalPayment(
   } catch (error) {
     if (error instanceof DomainError && error.status === 409) {
       // 並行で Webhook が完了させた。最新状態を再取得して alreadyCompleted で返す。
-      const refreshed = await base.get(purchaseRequest.id);
+      const refreshed = await purchaseRequestBase.get(purchaseRequest.id);
       if (refreshed && refreshed.status === "completed") {
         return {
           purchaseRequest: refreshed,

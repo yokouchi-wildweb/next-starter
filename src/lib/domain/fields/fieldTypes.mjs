@@ -224,7 +224,7 @@ export function collectMediaFields(config) {
 }
 
 /**
- * 選択肢（options）を持つ項目。constants/field.ts と types/field.ts の生成対象
+ * 選択肢（options）を持つ項目。constants/<登録名>Field.ts と types/<登録名>Field.ts の生成対象
  * @template {{ options?: unknown }} F
  * @param {{ fields?: F[] } | null | undefined} config
  * @returns {F[]}

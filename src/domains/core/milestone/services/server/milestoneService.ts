@@ -1,7 +1,7 @@
 // src/domains/milestone/services/server/milestoneService.ts
 
-import { base } from "./drizzleBase";
+import { milestoneBase } from "./milestoneBase";
 
 export const milestoneService = {
-  ...base,
+  ...milestoneBase,
 };

@@ -1,4 +1,4 @@
-// 生成カテゴリ serverServices: services/server/{drizzleBase|firestoreBase}.ts（毎回）、<domain>Service.ts（write-once）、wrappers/.gitkeep
+// 生成カテゴリ serverServices: services/server/<登録名>Base.ts（毎回。Neon / Firestore のテンプレートを選ぶ）、<domain>Service.ts（write-once）、wrappers/.gitkeep
 //
 // <domain>Service.ts はラッパーや独自処理を組み込む手書きの場所なので再生成で上書きしない（作り直すときはファイルを消してから生成する）
 
@@ -27,7 +27,7 @@ function legacyDuplicateWarning(ctx, serviceFileName) {
     existing.includes("./wrappers/duplicate")
       ? [
           `[${ctx.camel}] ${serviceFileName} が wrappers/duplicate（旧ファイル複製）を組み込んでいます。` +
-            `複製は drizzleBase の storage binding が行うため、\`import { duplicate } from "./wrappers/duplicate";\` と \`duplicate,\` を外してください` +
+            `複製は <登録名>Base の storage binding が行うため、\`import { duplicate } from "./wrappers/duplicate";\` と \`duplicate,\` を外してください` +
             `（残すと複製した旧 URL の保存が binding に拒否されます）。`,
         ]
       : [];
@@ -53,27 +53,28 @@ export function renderServerServices(ctx, workspace) {
   const mediaEngineError = checkMediaFieldsEngine(camel, config, dbEngine);
   if (mediaEngineError) throw new Error(mediaEngineError);
 
-  const baseFile = dbEngine === "Firestore" ? "firestoreBase.ts" : "drizzleBase.ts";
+  // 登録ごとの土台(D336・D344): services/server/<登録名>Base.ts、export <登録名>Base。テンプレートはエンジンで選ぶ
+  const baseFile = `${camel}Base.ts`;
+  const baseTemplate = dbEngine === "Firestore" ? "__domain__Base.firestore.ts" : "__domain__Base.ts";
   const outputDir = path.join(ctx.dir, "services", "server");
 
   // ドメイン名のトークンは共通の置換（render/tokens.mjs）、サービス固有のトークンはここで
   const replaceTokens = (content) =>
     replaceDomainTokens(content, tokenCtx)
-      .replace(/__serviceBase__/g, baseFile.replace(/\.ts$/, ""))
       .replace(/__serviceOptions__/g, composed?.optionsLiteral ?? "{}")
       .replace(/__DrizzleEntityImports__/g, buildEntityImports(pascal, composed?.relationTableImports ?? []))
       .replace(/__belongsToManyRelations__/g, composed?.belongsToManyLiteral ?? "")
       .replace(/__RelationTableImports__/g, buildRelationTableImports(composed?.relationDomainImports ?? [], camel))
-      .replace(/__StorageBindingImport__/g, buildStorageBindingImport(mediaFields) + buildCollectionsImport(hasCollections) + buildAuditImport(config?.audit))
+      .replace(/__StorageBindingImport__/g, buildStorageBindingImport(mediaFields) + buildCollectionsImport(hasCollections, camel) + buildAuditImport(config?.audit))
       .replace(/__storageBinding__/g, buildStorageBindingOption(camel, mediaFields) + buildCollectionsOption(hasCollections) + buildAuditOption(config?.audit) + buildCacheTagsOption(camel, config?.cache));
 
   // wrappers/ が無ければ作って .gitkeep を置く（あれば中身に触らない）
   const outputs = [dir(path.join(outputDir, "wrappers"), { keepFile: ".gitkeep" })];
 
-  let baseContent = replaceTokens(workspace.readTemplate("services", "server", baseFile));
+  let baseContent = replaceTokens(workspace.readTemplate("services", "server", baseTemplate));
   // 全フィールドが formInput: "none" の場合、parse / satisfies を除去
   if (isEmptyCreateSchema) {
-    baseContent = baseFile === "drizzleBase.ts" ? stripDrizzleBaseForEmptySchema(baseContent) : stripFirestoreBaseForEmptySchema(baseContent);
+    baseContent = dbEngine === "Firestore" ? stripFirestoreBaseForEmptySchema(baseContent) : stripDrizzleBaseForEmptySchema(baseContent);
   }
   outputs.push(file(path.join(outputDir, baseFile), baseContent, { label: "サーバーサービスを生成しました" }));
 

@@ -1,7 +1,7 @@
 // ファイル用途（合成した全用途）と生成器の検査。
-// - 全用途（core・fork の項目とドメインの storagePurposes.ts）が ID の形式・型・規則に合う
+// - 全用途（core・fork の項目とドメインの <登録名>StoragePurposes.ts）が ID の形式・型・規則に合う
 // - 全ドメインの主の登録の entity.json（business と core の設定源）のメディア項目に、対応する用途が登録されている
-// - 生成器の導出（visibility の必須化・上限の既定値・metadata の検査と書き出し）と生成した storagePurposes.ts の本文
+// - 生成器の導出（visibility の必須化・上限の既定値・metadata の検査と書き出し）と生成した <登録名>StoragePurposes.ts の本文
 // - 用途の metadata（strip / keep）の規則と、user.avatar が keep でないこと（D29）
 // - storage オプションのメディア列は systemColumns・hiddenColumns にできない（登録済みの全サービスが作れることも確かめる）
 // 実行: pnpm test scripts/structure/registry/check-storage-purposes.test.mjs
@@ -260,7 +260,7 @@ describe("生成器の metadata", () => {
   });
 });
 
-describe("ドメインの storagePurposes.ts", () => {
+describe("ドメインの <登録名>StoragePurposes.ts", () => {
   const ENTRIES = [
     { id: "item.photo", value: '{ visibility: "public", maxBytes: storageObjectConfig.defaultMaxBytesByPreset.images, contentTypes: ["image/*"], upload: { allow: "authenticated" } }' },
     { id: "item.cover", value: '{ visibility: "public", maxBytes: 1, contentTypes: ["image/*"], upload: { allow: "authenticated" } }' },
@@ -278,7 +278,7 @@ describe("ドメインの storagePurposes.ts", () => {
       const { entries, errors } = buildStoragePurposeEntries({ camel: domain, config, roleCategories: ROLE_CATEGORIES });
       assert.deepEqual(errors, []);
       // 書いた中身 = 雛形の中身 + 生成物の印(scripts/structure/domain/render/output.mjs の file())
-      assert.equal(fs.readFileSync(path.join(rootDir, rel, "services/server/storagePurposes.ts"), "utf8"), withGeneratedMark("storagePurposes.ts", renderStoragePurposesContent(rel, entries)));
+      assert.equal(fs.readFileSync(path.join(rootDir, rel, `services/server/${domain}StoragePurposes.ts`), "utf8"), withGeneratedMark(`${domain}StoragePurposes.ts`, renderStoragePurposesContent(rel, entries, domain)));
     }
     const upload = { allow: "authenticated" };
     const media = { visibility: "public", maxBytes: 104857600, contentTypes: ["image/*", "video/*"], metadata: "strip", upload };

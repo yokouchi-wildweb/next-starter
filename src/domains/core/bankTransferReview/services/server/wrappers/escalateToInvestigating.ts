@@ -20,7 +20,7 @@ import { auditLogger } from "@/domains/core/auditLog/services/server";
 
 import type { BankTransferReview } from "@/domains/bankTransferReview/entities/model";
 
-import { base } from "../drizzleBase";
+import { bankTransferReviewBase } from "../bankTransferReviewBase";
 import { lockReviewStatus } from "./lockReviewStatus";
 
 export type EscalateToInvestigatingParams = {
@@ -47,7 +47,7 @@ export async function escalateToInvestigating(
   const { reviewId, triggeredBy } = params;
   const note = (params.note ?? "").trim() || null;
 
-  const review = (await base.get(reviewId)) as BankTransferReview | null;
+  const review = (await bankTransferReviewBase.get(reviewId)) as BankTransferReview | null;
   if (!review) {
     throw new DomainError("レビューが見つかりません。", { status: 404 });
   }
@@ -76,13 +76,13 @@ export async function escalateToInvestigating(
       );
     }
 
-    const next = (await base.update(
+    const next = (await bankTransferReviewBase.update(
       review.id,
       {
         status: "investigating" as const,
         // base.update の引数型は drizzle DefaultInsert ベースで enum 列等を絞り込めないため
         // 同ドメインの他 wrapper と同様に any キャストで通す。
-      } as unknown as Parameters<typeof base.update>[1],
+      } as unknown as Parameters<typeof bankTransferReviewBase.update>[1],
       tx,
     )) as BankTransferReview;
 

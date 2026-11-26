@@ -15,7 +15,7 @@ import { db } from "@/lib/drizzle";
 import { formatDateJa } from "@/utils/date";
 
 import { BankTransferReviewTable } from "@/domains/core/bankTransferReview/entities/drizzle";
-import { formatJpyAmount } from "@/domains/core/bankTransferReview/presenters";
+import { formatJpyAmount } from "@/domains/core/bankTransferReview/bankTransferReviewPresenters";
 
 import type { MessageRecordRecipient, MessageRecordTarget } from "@/lib/messaging";
 

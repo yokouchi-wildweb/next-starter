@@ -14,7 +14,7 @@ import { auditLogger } from "@/domains/core/auditLog/services/server";
 
 import type { BankTransferReview } from "@/domains/bankTransferReview/entities/model";
 
-import { base } from "../drizzleBase";
+import { bankTransferReviewBase } from "../bankTransferReviewBase";
 
 export type UpdateAdminMemoParams = {
   reviewId: string;
@@ -49,7 +49,7 @@ export async function updateAdminMemo(
     );
   }
 
-  const review = (await base.get(reviewId)) as BankTransferReview | null;
+  const review = (await bankTransferReviewBase.get(reviewId)) as BankTransferReview | null;
   if (!review) {
     throw new DomainError("レビューが見つかりません。", { status: 404 });
   }
@@ -60,11 +60,11 @@ export async function updateAdminMemo(
   }
 
   const updated = await db.transaction(async (tx) => {
-    const next = (await base.update(
+    const next = (await bankTransferReviewBase.update(
       review.id,
       // base.update の引数型は drizzle DefaultInsert ベースで追加列を絞り込めないため、
       // 同ドメインの他 wrapper と同様にキャストで通す。
-      { admin_memo: nextMemo } as unknown as Parameters<typeof base.update>[1],
+      { admin_memo: nextMemo } as unknown as Parameters<typeof bankTransferReviewBase.update>[1],
       tx,
     )) as BankTransferReview;
 

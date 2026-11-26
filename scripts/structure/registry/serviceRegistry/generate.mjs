@@ -9,7 +9,7 @@
 // 行 = registered が false でない登録 1 件: キー = 登録名、service = entity.json の service か既定 <登録名>Service(services/server/ の遅延読み込み)、
 // table = entity.table か snake(plural)(Firestore は null)、idColumn = 主キーの 1 列か id、access = ./access.mjs の accessOfDeclaration、requires。
 // 書き出さず失敗する条件(./check.mjs の静的検査と同じ。キーと直し方を出す): 登録名・表の重なり / サービスのファイルが無い /
-// drizzleBase.ts・firestoreBase.ts があるのに登録が無い / storageBindingFor の第 1 引数(record_type)がキーに無い / 上書きが読めない・許可外の静的 import /
+// 登録の無い <名前>Base.ts / storageBindingFor の第 1 引数(record_type)がキーに無い / 上書きが読めない・許可外の静的 import /
 // 生成物の印の無い(手書きの)serviceRegistry.ts。詳細: src/lib/domain/README.md
 
 import fs from "node:fs";
@@ -23,7 +23,7 @@ import { GENERATED_HEADER, OVERRIDE_EXPORT, OVERRIDE_FILE, REGISTRY_FILE, discov
  * 生成物のテキストと検査結果を作る(ファイルは書かない)
  * @param {string} repoRoot
  * @param {{ view?: import("./discover.mjs").FileView }} [options] view = ファイルの見え方。pnpm generate domain が「これから書く
- *   サービス・drizzleBase.ts」を重ねて渡し、書く前に検査する(createOverlayView)
+ *   サービス・<登録名>Base.ts」を重ねて渡し、書く前に検査する(createOverlayView)
  * @returns {{ text: string, errors: string[], keys: string[], rows: import("./discover.mjs").RegistryRow[] }}
  */
 export function buildServiceRegistry(repoRoot, { view } = {}) {

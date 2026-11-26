@@ -1,7 +1,7 @@
 // src/domains/userTag/services/server/userTagService.ts
 
-import { base } from "./drizzleBase";
+import { userTagBase } from "./userTagBase";
 
 export const userTagService = {
-  ...base,
+  ...userTagBase,
 };

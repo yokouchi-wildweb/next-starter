@@ -21,7 +21,7 @@ export const serviceRegistry: DomainRegistry = {
     },
   },
   auditLogFailed: {
-    service: () => import("@/domains/core/auditLog/services/server/drizzleBase").then((m) => m.auditLogFailedBase),
+    service: () => import("@/domains/core/auditLog/services/server/auditLogFailedBase").then((m) => m.auditLogFailedBase),
     table: "audit_logs_failed",
     idColumn: "id",
     access: {
@@ -156,7 +156,7 @@ export const serviceRegistry: DomainRegistry = {
     },
   },
   pairedDevice: {
-    service: () => import("@/domains/core/pairedDevice/services/server/drizzleBase").then((m) => m.pairedDeviceBase),
+    service: () => import("@/domains/core/pairedDevice/services/server/pairedDeviceBase").then((m) => m.pairedDeviceBase),
     table: "paired_devices",
     idColumn: "id",
     access: {
@@ -216,7 +216,7 @@ export const serviceRegistry: DomainRegistry = {
     },
   },
   taskRun: {
-    service: () => import("@/domains/core/taskRun/services/server/drizzleBase").then((m) => m.taskRunBase),
+    service: () => import("@/domains/core/taskRun/services/server/taskRunBase").then((m) => m.taskRunBase),
     table: "task_runs",
     idColumn: "id",
     access: {

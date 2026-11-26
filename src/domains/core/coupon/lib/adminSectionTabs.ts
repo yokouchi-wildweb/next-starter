@@ -6,7 +6,7 @@
 // クーポン管理画面（core / downstream 問わず）はローカルでタブ配列を組まず、必ずこの関数を使う。
 
 import type { PageTabItem } from "@/components/Navigation/PageTab";
-import { CouponTypeOptions } from "@/domains/core/coupon/constants/field";
+import { CouponTypeOptions } from "@/domains/core/coupon/constants/couponField";
 import { couponSectionTabs } from "@/domains/core/coupon/extensions/couponSectionTabs";
 import type { CouponSectionTabItem } from "@/domains/core/coupon/types/sectionTab";
 import type { PlugsFilter } from "@/featureGate/client";

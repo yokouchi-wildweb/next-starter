@@ -16,7 +16,7 @@ import { randomUUID } from "node:crypto";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
 import type { Wallet } from "@/domains/core/wallet/entities";
-import type { WalletTypeValue } from "@/domains/core/wallet/types/field";
+import type { WalletTypeValue } from "@/domains/core/wallet/types/walletField";
 import { WalletHistoryTable } from "@/domains/core/walletHistory/entities/drizzle";
 import { DomainError } from "@/lib/errors";
 

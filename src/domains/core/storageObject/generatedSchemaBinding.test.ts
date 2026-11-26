@@ -38,7 +38,7 @@ const PURPOSES: StoragePurposeMap = {
   "sample.sub_image": image,
 };
 
-// 生成される drizzleBase（src/domains/sample/services/server/drizzleBase.ts）と同じ宣言
+// 生成される土台（src/domains/sample/services/server/sampleBase.ts）と同じ宣言
 const SAMPLE_FIELDS = [
   { name: "main_image", purpose: "sample.main_image", multi: false },
   { name: "sub_image", purpose: "sample.sub_image", multi: false },

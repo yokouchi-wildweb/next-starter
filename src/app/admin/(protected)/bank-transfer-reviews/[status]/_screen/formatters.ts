@@ -16,4 +16,4 @@ export {
   approvalSourceBadgeVariant,
   formatPurchaseRequestStatusLabel,
   purchaseRequestStatusBadgeVariant,
-} from "@/domains/core/bankTransferReview/presenters";
+} from "@/domains/core/bankTransferReview/bankTransferReviewPresenters";

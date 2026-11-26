@@ -138,9 +138,9 @@ test("registry カテゴリはドメインのフォルダの中だけを書く�
     const paths = outputs.map((o) => o.path);
     assert.ok(paths.length >= 1);
     for (const p of paths) assert.ok(p.startsWith(path.join(root, dir) + path.sep), p);
-    assert.ok(paths.some((p) => p.endsWith("services/server/storagePurposes.ts")));
+    assert.ok(paths.some((p) => p.endsWith("StoragePurposes.ts")));
     // 登録表の行は書かない(src/registry/serviceRegistry.ts は登録の entity.json から pnpm generate registry が作る)
-    for (const p of paths) assert.match(p, /services\/server\/(collections|storagePurposes)\.ts$/, "registry カテゴリは collections.ts / storagePurposes.ts だけ");
+    for (const p of paths) assert.match(p, /services\/server\/[a-z][A-Za-z0-9]*(Collections|StoragePurposes)\.ts$/, "registry カテゴリは <登録名>Collections.ts / <登録名>StoragePurposes.ts だけ");
   }
 });
 

@@ -1,7 +1,7 @@
 // src/domains/wallet/services/server/walletService.ts
 
 import type { Wallet } from "@/domains/core/wallet/entities";
-import type { WalletTypeValue } from "@/domains/core/wallet/types/field";
+import type { WalletTypeValue } from "@/domains/core/wallet/types/walletField";
 import type {
   AdjustWalletParams,
   ReserveWalletParams,
@@ -23,7 +23,7 @@ import type {
   ListExpirationResultsParams,
   ListExpirationResultsResult,
 } from "@/domains/core/wallet/services/types";
-import { base } from "./drizzleBase";
+import { walletBase } from "./walletBase";
 import { getExpiringLots, getExpiringSummaryByUsers } from "./lots/getExpiringLots";
 import { findUsersWithExpiringLots } from "./lots/findUsersWithExpiringLots";
 import { listExpirationResults } from "./lots/listExpirationResults";
@@ -41,7 +41,7 @@ import { getTotalBalancesByType } from "./wrappers/getTotalBalancesByType";
 import { getWallet, runWithTransaction, type TransactionClient } from "./wrappers/utils";
 
 export const walletService = {
-  ...base,
+  ...walletBase,
 
   /** ウォレットを取得（オプションで自動作成） */
   getWallet: (

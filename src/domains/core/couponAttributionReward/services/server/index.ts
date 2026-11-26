@@ -1,6 +1,6 @@
 // src/domains/core/couponAttributionReward/services/server/index.ts
 
-export { couponAttributionRewardBase } from "./drizzleBase";
+export { couponAttributionRewardBase } from "./couponAttributionRewardBase";
 export {
   grantAttributionReward,
   retryAttributionReward,
@@ -9,7 +9,7 @@ export {
 } from "./grant";
 export { getRewardByCouponHistory, getRecipientRewardSummary } from "./queries";
 
-import { couponAttributionRewardBase } from "./drizzleBase";
+import { couponAttributionRewardBase } from "./couponAttributionRewardBase";
 import { grantAttributionReward, retryAttributionReward } from "./grant";
 import { getRewardByCouponHistory, getRecipientRewardSummary } from "./queries";
 

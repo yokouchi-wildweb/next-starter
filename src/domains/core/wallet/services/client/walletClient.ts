@@ -18,7 +18,7 @@ import type {
   BulkGrantResult,
   ExpiringLotsPayload,
 } from "@/domains/core/wallet/services/types";
-import type { WalletTypeValue } from "@/domains/core/wallet/types/field";
+import type { WalletTypeValue } from "@/domains/core/wallet/types/walletField";
 
 /** bulkAdjustByType のリクエストペイロード */
 export type BulkAdjustByTypePayload = Omit<WalletAdjustRequestPayload, "requestBatchId"> & {

@@ -1,4 +1,4 @@
-// services/server/storagePurposes.ts（毎回上書き）: 登録の entity.json のメディア項目のファイル用途。
+// services/server/<登録名>StoragePurposes.ts（毎回上書き）: 登録の entity.json のメディア項目のファイル用途。
 // src/registry/storagePurposeRegistry.ts はこのファイルの一覧（pnpm generate registry が走査で作る）。
 // 検査（規則違反）は Output を作る時点で済ませ、例外で止める（書き込みの前）
 
@@ -14,10 +14,10 @@ export { allowsGeneralUser, resolveOperationRule, unionUploadRules } from "./rul
 const PREFIX = "[storagePurposes]";
 
 /** 1 ドメイン分のファイルの本文 */
-export function renderStoragePurposesContent(rel, entries) {
+export function renderStoragePurposesContent(rel, entries, registration = path.posix.basename(rel)) {
   const lines = entries.map(({ id, value }) => `  "${id}": ${value},`);
   return [
-    `// ${rel}/services/server/storagePurposes.ts`,
+    `// ${rel}/services/server/${registration}StoragePurposes.ts`,
     "// pnpm generate domain が登録の entity.json のメディア項目から生成する。手で直さない（手で持つなら entity.json の generate を false）。",
     "// 型と規則: src/lib/storage/README.md",
     "",
@@ -52,7 +52,7 @@ export function renderStoragePurposesOutput(ctx, workspace, warn = console.warn)
   }
   if (entries.length === 0) return [];
   return [
-    file(path.join(ctx.dir, "services", "server", "storagePurposes.ts"), renderStoragePurposesContent(domainRel(ctx), entries), {
+    file(path.join(ctx.dir, "services", "server", `${ctx.camel}StoragePurposes.ts`), renderStoragePurposesContent(domainRel(ctx), entries, ctx.camel), {
       label: "ファイル用途を生成しました",
     }),
   ];

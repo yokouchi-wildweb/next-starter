@@ -4,7 +4,7 @@ import { FINGERPRINT_CHALLENGE_STATUSES } from "@/domains/core/fingerprintChalle
 import { z } from "zod";
 
 /**
- * CRUD ベース (drizzleBase) の create バリデーション。
+ * CRUD ベース (fingerprintChallengeBase) の create バリデーション。
  * 主経路は issueChallenge (トークン生成込み) であり、汎用 create の直接利用は想定しない。
  */
 export const FingerprintChallengeCreateSchema = z.object({

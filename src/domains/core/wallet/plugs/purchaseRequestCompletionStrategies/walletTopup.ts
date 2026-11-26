@@ -7,7 +7,7 @@
 import { walletConfig } from "@/domains/wallet/config";
 import { DomainError } from "@/lib/errors";
 import { walletService } from "@/domains/core/wallet/services/server/walletService";
-import type { WalletTypeValue } from "@/domains/core/wallet/types/field";
+import type { WalletTypeValue } from "@/domains/core/wallet/types/walletField";
 import type { PurchaseCompletionStrategy } from "@/domains/core/purchaseRequest/services/server/completion/types";
 
 export const strategy: PurchaseCompletionStrategy = {

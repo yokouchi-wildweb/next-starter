@@ -10,7 +10,7 @@ import { CACHED_READS_FILE, checkCachedReads, generateCachedReads, planCachedRea
 import { buildCacheTagsOption } from "../domain/render/serverServices/templateTweaks.mjs";
 
 const neon = { singular: "post", dbEngine: "Neon", fields: [{ name: "title" }, { name: "is_published" }] };
-const BASE_OK = 'export const base = createCrudService(PostTable, {\n  ...baseOptions,\n  cacheTags: { domain: "post" },\n});\n';
+const BASE_OK = 'export const postBase = createCrudService(PostTable, {\n  ...baseOptions,\n  cacheTags: { domain: "post" },\n});\n';
 
 /** 仮の木を作って fn(root, rows) を走らせ、消す */
 function withTree(files, rows, fn) {
@@ -50,18 +50,18 @@ test("render: tagged の get は行のキャッシュタグ・行の全部のキ
     "src/domains/post/entities/post/entity.json",
   );
   assert.match(text, /^\/\/ 生成物・編集不可: pnpm generate cache が src\/domains\/post\/entities\/post\/entity\.json の cache から生成する/);
-  assert.match(text, /async function cachedGet\(id: string\) \{\n {2}"use cache: remote";\n {2}cacheLife\("days"\);\n {2}cacheTag\(cacheTagOf\("post", id\), cacheRowsTagOf\("post"\), cacheTagOf\("user"\)\);\n {2}return base\.get\(id\);/);
+  assert.match(text, /async function cachedGet\(id: string\) \{\n {2}"use cache: remote";\n {2}cacheLife\("days"\);\n {2}cacheTag\(cacheTagOf\("post", id\), cacheRowsTagOf\("post"\), cacheTagOf\("user"\)\);\n {2}return postBase\.get\(id\);/);
   assert.match(text, /const get = \(id: string\) => readThrough\("post\.get", \(\) => cachedGet\(id\), \(\) => base\.get\(id\)\);/);
-  assert.match(text, /async function cachedList\(\) \{[\s\S]*?cacheTag\(cacheTagOf\("post"\), cacheTagOf\("user"\)\);\n {2}return base\.search\(\{ limit: 100 \}\);/);
-  assert.match(text, /return base\.search\(\{ where: \{ field: "isPublished", op: "eq", value: true \}, orderBy: \[\["createdAt", "DESC"\]\], limit: 20 \}\);/);
-  assert.match(text, /async function cachedFresh\(\) \{\n {2}"use cache: remote";\n {2}cacheLife\(\{ revalidate: 60, expire: 600 \}\);\n {2}return base\.search\(\{ limit: 5 \}\);/);
+  assert.match(text, /async function cachedList\(\) \{[\s\S]*?cacheTag\(cacheTagOf\("post"\), cacheTagOf\("user"\)\);\n {2}return postBase\.search\(\{ limit: 100 \}\);/);
+  assert.match(text, /return postBase\.search\(\{ where: \{ field: "isPublished", op: "eq", value: true \}, orderBy: \[\["createdAt", "DESC"\]\], limit: 20 \}\);/);
+  assert.match(text, /async function cachedFresh\(\) \{\n {2}"use cache: remote";\n {2}cacheLife\(\{ revalidate: 60, expire: 600 \}\);\n {2}return postBase\.search\(\{ limit: 5 \}\);/);
   assert.match(text, /import \{ cacheLife, cacheTag \} from "next\/cache";\nimport \{ cacheRowsTagOf, cacheTagOf, readThrough \} from "@\/lib\/cacheTags\/server";/);
   assert.match(text, /export const postCachedReads = \{ get, list, published, fresh \};/);
 });
 
 test("render: ttl だけ・get: false はキャッシュタグの import も get も出さない", () => {
   const ttl = renderCachedReads(postRow, { mode: "ttl", life: "minutes" }, "x");
-  assert.match(ttl, /import \{ cacheLife \} from "next\/cache";\nimport \{ readThrough \} from "@\/lib\/cacheTags\/server";\n\nimport \{ base \}/);
+  assert.match(ttl, /import \{ cacheLife \} from "next\/cache";\nimport \{ readThrough \} from "@\/lib\/cacheTags\/server";\n\nimport \{ postBase \}/);
   assert.doesNotMatch(ttl, /cacheTag\(/);
   assert.match(ttl, /export const postCachedReads = \{ get \};/);
   const noGet = renderCachedReads(postRow, { mode: "tagged", life: "hours", get: false, list: { limit: 10 } }, "x");
@@ -73,10 +73,10 @@ test("render: ttl だけ・get: false はキャッシュタグの import も get
 test("generate: entity.json と cache.json(手書きのドメイン)の両方に書き、2 回目は何もしない、check は宣言どおり", () => {
   const files = {
     ...declared("src/domains/post", { ...neon, generate: false, cache: { mode: "tagged", life: "days" } }),
-    "src/domains/post/services/server/drizzleBase.ts": BASE_OK,
+    "src/domains/post/services/server/postBase.ts": BASE_OK,
     "src/domains/core/tag/cache.json": { mode: "ttl", life: "minutes", get: false, list: { limit: 50 } },
-    "src/domains/core/tag/services/server/drizzleBase.ts": BASE_OK.replace('"post"', '"tag"'),
-    "src/domains/core/user/services/server/drizzleBase.ts": "export const base = {};\n",
+    "src/domains/core/tag/services/server/tagBase.ts": BASE_OK.replace('"post"', '"tag"').replace("postBase", "tagBase"),
+    "src/domains/core/user/services/server/userBase.ts": "export const userBase = {};\n",
   };
   withTree(files, [postRow, tagRow, userRow], (root, rows) => {
     const plan = planCachedReads(root, rows);
@@ -105,7 +105,7 @@ test("消去: 宣言が消えたドメインの印のある cachedReads.ts だ�
   });
 });
 
-test("問題: 宣言の誤り・手書きの base に cacheTags が無い・drizzleBase が無い は何も書かない", () => {
+test("問題: 宣言の誤り・手書きの土台に cacheTags が無い・土台(<登録名>Base.ts)が無い は何も書かない", () => {
   const bad = declared("src/domains/post", { ...neon, cache: { mode: "tagged", life: "default" } });
   withTree(bad, [postRow], (root, rows) => {
     const plan = planCachedReads(root, rows);
@@ -114,14 +114,14 @@ test("問題: 宣言の誤り・手書きの base に cacheTags が無い・driz
   });
   const noOption = {
     ...declared("src/domains/post", { ...neon, cache: { mode: "tagged", life: "days" } }),
-    "src/domains/post/services/server/drizzleBase.ts": "export const base = createCrudService(PostTable, { ...baseOptions });\n",
+    "src/domains/post/services/server/postBase.ts": "export const postBase = createCrudService(PostTable, { ...baseOptions });\n",
     "src/domains/core/tag/cache.json": { mode: "tagged", life: "days" },
   };
   withTree(noOption, [postRow, tagRow], (root, rows) => {
     const plan = planCachedReads(root, rows);
     const text = plan.problems.join("\n");
     assert.match(text, /\[post\] .*cacheTags: \{ domain: "post" \} を書いてください/);
-    assert.match(text, /\[tag\] src\/domains\/core\/tag\/services\/server\/drizzleBase\.ts がありません/);
+    assert.match(text, /\[tag\] src\/domains\/core\/tag\/services\/server\/tagBase\.ts がありません/);
     assert.deepEqual(plan.writes, []);
   });
 });
@@ -133,7 +133,7 @@ test("入口: 実の木の宣言 0 では generate は何も書かず、check �
   assert.ok(typeof generateCachedReads === "function");
 });
 
-test("domain の生成器: cache の宣言があれば drizzleBase の option に cacheTags、無ければ出さない", () => {
+test("domain の生成器: cache の宣言があれば <登録名>Base の option に cacheTags、無ければ出さない", () => {
   assert.equal(buildCacheTagsOption("post", undefined), "");
   assert.match(buildCacheTagsOption("post", { mode: "tagged", life: "days" }), /^ {2}\/\/ .*\n {2}cacheTags: \{ domain: "post" \},\n$/);
 });

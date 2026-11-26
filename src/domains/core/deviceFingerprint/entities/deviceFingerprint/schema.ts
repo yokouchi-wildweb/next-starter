@@ -34,7 +34,7 @@ export const DeviceFingerprintIngestSchema = z.object({
 export type DeviceFingerprintIngestInput = z.infer<typeof DeviceFingerprintIngestSchema>;
 
 /**
- * CRUD ベース (drizzleBase) の create バリデーション。
+ * CRUD ベース (deviceFingerprintBase) の create バリデーション。
  * 主経路は recordDeviceFingerprint (upsert) であり、汎用 create は
  * admin の手動補正くらいにしか使われない想定。
  */

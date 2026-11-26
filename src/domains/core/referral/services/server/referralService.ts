@@ -1,6 +1,6 @@
 // src/domains/referral/services/server/referralService.ts
 
-import { base } from "./drizzleBase";
+import { referralBase } from "./referralBase";
 import { createReferralFromRedemption } from "./wrappers/createReferralFromRedemption";
 import { getByInvitee } from "./wrappers/getByInvitee";
 import { getByInviter } from "./wrappers/getByInviter";
@@ -12,7 +12,7 @@ export type { ReferralInviterStats } from "./wrappers/getStatsByInviters";
 export type { InviteCodeValidationResult } from "./wrappers/validateInviteCode";
 
 export const referralService = {
-  ...base,
+  ...referralBase,
   // 招待コードのログイン前検証（type=invite スコープ、使用者判定は省略）
   validateInviteCode,
   // クーポン使用 → referral 作成

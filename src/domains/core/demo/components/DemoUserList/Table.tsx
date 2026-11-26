@@ -10,7 +10,7 @@ import { HardDeleteButton } from "@/lib/crud";
 import { Button } from "@/components/Button/Button";
 import type { User } from "@/domains/core/user/entities";
 import { adminConfig } from "@/domains/admin/config";
-import presenters from "@/domains/core/user/presenters";
+import presenters from "@/domains/core/user/userPresenters";
 import AdminWalletAdjustModal from "@/domains/core/wallet/components/AdminWalletAdjustModal";
 import { UserAdminMemoCell } from "@/domains/core/user/components/common/UserAdminMemoCell";
 import { userConfig } from "@/domains/user/config";

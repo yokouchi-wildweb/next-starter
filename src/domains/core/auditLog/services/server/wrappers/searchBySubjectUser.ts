@@ -3,7 +3,7 @@
 import type { BoundedSearchParams, PaginatedResult } from "@/lib/crud";
 
 import type { AuditLog } from "@/domains/core/auditLog/entities/model";
-import { auditLogBase } from "../drizzleBase";
+import { auditLogBase } from "../auditLogBase";
 
 /**
  * 指定ユーザーが "data subject" となっている監査ログをタイムライン順に取得する。
@@ -13,7 +13,7 @@ import { auditLogBase } from "../drizzleBase";
  * アクティビティを集約したいユースケース用。`audit_logs.subject_user_id` の部分インデックス
  * を活用する。
  *
- * - createdAt DESC が既定 (drizzleBase 設定済み)
+ * - createdAt DESC が既定 (auditLogBase 設定済み)
  * - cross-domain 検索や bulk aggregate (subject_user_id=null) は base.search() を直接使う
  */
 export async function searchBySubjectUser(

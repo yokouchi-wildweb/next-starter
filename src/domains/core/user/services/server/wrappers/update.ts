@@ -3,7 +3,7 @@
 import type { User } from "@/domains/core/user/entities";
 import { UserUpdateByAdminSchema } from "@/domains/core/user/entities";
 import type { UpdateUserInput } from "@/domains/core/user/services/types";
-import { base, baseOptions } from "../drizzleBase";
+import { userBase, baseOptions } from "../userBase";
 import { DomainError } from "@/lib/errors";
 import { omitUndefined } from "@/lib/crud/server";
 import { getServerAuth } from "@/lib/firebase/server";
@@ -98,7 +98,7 @@ async function applyUpdate(
 
   const { newPassword, profileData, user_tag_ids, ...restRawData } = rawData;
 
-  const current = await base.get(id);
+  const current = await userBase.get(id);
   if (!current) {
     throw new DomainError("ユーザーが見つかりません", { status: 404 });
   }
@@ -189,7 +189,7 @@ async function applyUpdate(
     Object.keys(updatePayload).length === 0
       ? current
       : await withUserNameGuard({ name: nameForGuard, excludeUserId: id }, (tx) =>
-          base.update(id, updatePayload, tx),
+          userBase.update(id, updatePayload, tx),
         );
 
   // パスワード変更が発生した場合は全セッションを失効させる (既存 JWT 無効化 + Firebase revoke)。

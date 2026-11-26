@@ -9,7 +9,7 @@ import { CouponUpdateSchema } from "@/domains/core/coupon/entities/schema";
 import type { CouponUpdateFields } from "@/domains/core/coupon/entities/form";
 import type { Coupon } from "@/domains/core/coupon/entities";
 import { useUpdateCoupon } from "@/domains/core/coupon/hooks/useUpdateCoupon";
-import { CouponTypeOptions } from "@/domains/core/coupon/constants/field";
+import { CouponTypeOptions } from "@/domains/core/coupon/constants/couponField";
 import { useCouponCategories } from "@/domains/core/coupon/hooks/useCouponCategories";
 import { CouponForm } from "./CouponForm";
 import { useRouter } from "@/lib/unsavedGuard";

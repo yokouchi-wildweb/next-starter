@@ -1,4 +1,4 @@
-// 生成カテゴリ fieldConstants: constants/field.ts（選択肢の定数）と types/field.ts（その型）。options を持つ項目があるときだけ
+// 生成カテゴリ fieldConstants: constants/<登録名>Field.ts（選択肢の定数）と types/<登録名>Field.ts（その型）。options を持つ項目があるときだけ
 
 import path from "node:path";
 import { toPascalCase } from "../../../../../src/lib/stringCase/index.mjs";
@@ -24,7 +24,7 @@ export function buildConstants(fields, filePath) {
 }
 
 export function buildTypes(fields, filePath) {
-  const alias = 'type FieldConstants = typeof import("../constants/field");';
+  const alias = `type FieldConstants = typeof import("../constants/${path.posix.basename(filePath).replace(/\.ts$/, "")}");`;
   const blocks = fields.map((field) =>
     [
       `export type ${field.optionTypeName} = FieldConstants["${field.constantName}"][number];`,
@@ -57,10 +57,10 @@ export function renderFieldConstants(ctx) {
     };
   });
 
-  const constantRelPath = path.posix.join("src", "domains", camel, "constants", "field.ts");
-  const typeRelPath = path.posix.join("src", "domains", camel, "types", "field.ts");
+  const constantRelPath = path.posix.join("src", "domains", camel, "constants", `${camel}Field.ts`);
+  const typeRelPath = path.posix.join("src", "domains", camel, "types", `${camel}Field.ts`);
   return [
-    file(path.join(ctx.dir, "constants", "field.ts"), buildConstants(fieldMeta, constantRelPath), { label: "フィールド定数を生成しました" }),
-    file(path.join(ctx.dir, "types", "field.ts"), buildTypes(fieldMeta, typeRelPath), { label: "フィールド型を生成しました" }),
+    file(path.join(ctx.dir, "constants", `${camel}Field.ts`), buildConstants(fieldMeta, constantRelPath), { label: "フィールド定数を生成しました" }),
+    file(path.join(ctx.dir, "types", `${camel}Field.ts`), buildTypes(fieldMeta, typeRelPath), { label: "フィールド型を生成しました" }),
   ];
 }

@@ -213,7 +213,7 @@
 画像は非公開の用途 `purchaseRequest.bankProof`（purchaseRequest/plugs/storageObjectPurposes/purchaseRequest.ts）に置き、`proof_image_url` には storage ref を保存する。
 
 1. アップロード（`useBankTransferProofUpload`）: `scopeId = requestId` で発行を求め、サーバーが「本人の・申告できる振込依頼か」を判定する（`isOwnPendingPurchaseRequest`）
-2. 申告（`submitReview`）: base の storage binding（`services/server/drizzleBase.ts`）が保存と同じ TX で台帳に紐付ける。通るのは「アップロードした本人」「scopeId = この行の purchase_request_id」「未紐付け」の ref だけで、外れたら 400 で TX ごと巻き戻る
+2. 申告（`submitReview`）: base の storage binding（`services/server/bankTransferReviewBase.ts`）が保存と同じ TX で台帳に紐付ける。通るのは「アップロードした本人」「scopeId = この行の purchase_request_id」「未紐付け」の ref だけで、外れたら 400 で TX ごと巻き戻る
 3. 閲覧: 固定 URL `/api/storage/objects/<id>` → 用途の read（依頼者本人か管理者）を毎回判定して短期署名へ 302
 
 これにより以下を遮断する:
@@ -270,7 +270,7 @@
 
 #### storageObject ドメイン / lib/storage
 
-- `storageBindingFor()` (`domains/core/storageObject`): `proof_image_url` の紐付け（drizzleBase）
+- `storageBindingFor()` (`domains/core/storageObject`): `proof_image_url` の紐付け（bankTransferReviewBase）
 - `uploadToStorage()` (`@/lib/storage`): 振込明細画像のアップロード（UI 側、`useBankTransferProofUpload` 経由）
 - `resolveStorageSrc()` (`@/lib/storage`): 管理画面の表示で固定 URL に解決
 

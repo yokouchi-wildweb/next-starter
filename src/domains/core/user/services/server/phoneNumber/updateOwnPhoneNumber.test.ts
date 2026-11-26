@@ -16,9 +16,9 @@ const state = {
   taken: new Set<string>(),
 };
 
-mock.module("@/domains/core/user/services/server/drizzleBase", {
+mock.module("@/domains/core/user/services/server/userBase", {
   namedExports: {
-    base: {
+    userBase: {
       get: async () => state.current,
       update: async (_id: string, data: Record<string, unknown>) => {
         state.updates.push(data);

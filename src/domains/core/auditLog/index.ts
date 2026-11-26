@@ -32,7 +32,7 @@ export {
   formatActionLabel,
   formatActorTypeLabel,
   formatAuditDate,
-} from "./presenters";
+} from "./auditLogPresenters";
 
 export { AuditTimeline } from "./components/common/AuditTimeline";
 export { UserActivityTimeline } from "./components/common/UserActivityTimeline";

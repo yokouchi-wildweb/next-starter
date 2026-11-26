@@ -19,9 +19,9 @@ import { ControlledNumberInput, ControlledRadioGroupInput, ControlledTextInput }
 import { Button } from "@/components/Button/Button";
 import { err } from "@/lib/errors";
 import type { User } from "@/domains/core/user/entities";
-import { WalletTypeOptions } from "@/domains/core/wallet/constants/field";
+import { WalletTypeOptions } from "@/domains/core/wallet/constants/walletField";
 import { walletConfig, type WalletType } from "@/domains/wallet/config";
-import { WalletHistoryChangeMethodOptions } from "@/domains/core/walletHistory/constants/field";
+import { WalletHistoryChangeMethodOptions } from "@/domains/core/walletHistory/constants/walletHistoryField";
 import { useAdjustWallet } from "@/domains/core/wallet/hooks/useAdjustWallet";
 import { useWalletBalances } from "@/domains/core/wallet/hooks/useWalletBalances";
 import type { WalletAdjustRequestPayload } from "@/domains/core/wallet/services/types";

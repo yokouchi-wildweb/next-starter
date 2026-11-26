@@ -1,6 +1,6 @@
 // 集まりの配線の突き合わせ: 登録の宣言 entity.json の集まりの項目（mediaCollection）と、登録表から読み込んだ主のサービスの
 // collectionFields（createCrudService の collections オプション）が一致するかを比べる。
-// 手書きの drizzleBase.ts（generate: false のドメイン）に collections を渡し忘れた主を、生成の後で見つける
+// 手書きの <登録名>Base.ts（generate: false のドメイン）に collections を渡し忘れた主を、生成の後で見つける
 
 import { nodeDomainSource, readDomains } from "../../../../src/lib/domain/node.mjs";
 
@@ -39,8 +39,8 @@ export function compareCollectionWiring({ declared, wired }) {
     const extra = [...haveSet].filter((name) => !want.includes(name));
     if (missing.length) {
       problems.push(
-        `${domain}: 集まりの項目 ${missing.join(", ")} がサービスに配線されていない（drizzleBase.ts の createCrudService に collections を渡す: ` +
-          `import { collections } from "./collections"）`,
+        `${domain}: 集まりの項目 ${missing.join(", ")} がサービスに配線されていない（<登録名>Base.ts の createCrudService に collections を渡す: ` +
+          `import { collections } from "./<登録名>Collections"）`,
       );
     }
     if (extra.length) problems.push(`${domain}: サービスの collections に登録の entity.json に無い項目 ${extra.join(", ")} がある`);

@@ -23,7 +23,7 @@ import { getPublicColumns } from "@/lib/crud/server";
 import { isPgUniqueViolation } from "@/lib/crud/server";
 import type { DbExecutor, DbTransaction } from "@/lib/crud/server";
 import { db } from "@/lib/drizzle";
-import { base } from "@/domains/core/user/services/server/drizzleBase";
+import { userBase } from "@/domains/core/user/services/server/userBase";
 
 /** 表示名が空になったとき (プロバイダーが名前を返さない・使えない文字だけ) の既定名 */
 export const PROVIDER_USER_DEFAULT_NAME = "ユーザー";
@@ -90,7 +90,7 @@ export async function createFromProvider(
   };
 
   const outcome = input.tx ? await run(input.tx) : await db.transaction(run);
-  base.invalidateRequestMemo();
+  userBase.invalidateRequestMemo();
 
   // IP 横断検索用テーブル (user_login_events) の signup。新規・再登録のときだけ。
   // recordLoginEvent は IP 未指定や書き込み失敗を内部で握り潰す best-effort。
@@ -183,13 +183,13 @@ async function activateExisting(
     lastAuthenticatedAt: params.now,
   });
 
-  const user = await base.update(
+  const user = await userBase.update(
     existing.id,
     {
       ...parsed,
       deletedAt: null,
       ...(isRejoin && params.ip ? { signupIp: params.ip } : {}),
-    } as Parameters<typeof base.update>[1],
+    } as Parameters<typeof userBase.update>[1],
     tx,
   );
 

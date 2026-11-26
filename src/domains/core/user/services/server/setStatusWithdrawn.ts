@@ -4,7 +4,7 @@ import { UserTable } from "@/domains/core/user/entities/drizzle";
 import type { DbTransaction } from "@/lib/crud/server";
 import { eq } from "drizzle-orm";
 
-import { base } from "./drizzleBase";
+import { userBase } from "./userBase";
 
 /**
  * ユーザーのステータスを「退会済み（withdrawn）」に変更する
@@ -12,5 +12,5 @@ import { base } from "./drizzleBase";
  */
 export async function setStatusWithdrawn(userId: string, tx: DbTransaction): Promise<void> {
   await tx.update(UserTable).set({ status: "withdrawn" }).where(eq(UserTable.id, userId));
-  base.invalidateRequestMemo();
+  userBase.invalidateRequestMemo();
 }

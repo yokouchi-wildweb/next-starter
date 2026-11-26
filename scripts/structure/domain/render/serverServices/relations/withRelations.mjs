@@ -1,4 +1,4 @@
-// drizzleBase.ts の withRelations 用の設定: belongsToRelations / belongsToManyObjectRelations / hasManyRelations。
+// <登録名>Base.ts の withRelations 用の設定: belongsToRelations / belongsToManyObjectRelations / hasManyRelations。
 // 3 種は「先頭の数行」だけが違い、リレーション先のソフトデリート・1 段の nested 展開・import 情報は共通（relationEntry）。
 // belongsTo と belongsToMany は互いに再帰する（リレーション先のリレーションを 1 段だけ nested に展開）
 

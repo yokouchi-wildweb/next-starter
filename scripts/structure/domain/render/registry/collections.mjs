@@ -1,5 +1,5 @@
-// services/server/collections.ts（毎回上書き）: 主の集まりの項目（mediaCollection）から createCrudService の collections の宣言を書く。
-// 生成の drizzleBase.ts はこれを import して options に渡す。drizzleBase.ts を手書きする主（generate: false）は
+// services/server/<登録名>Collections.ts（毎回上書き）: 主の集まりの項目（mediaCollection）から createCrudService の collections の宣言を書く。
+// 生成の <登録名>Base.ts はこれを import して options に渡す。<登録名>Base.ts を手書きする主（generate: false）は
 // 自分で import と options を足す（渡し忘れは pnpm test scripts/structure/registry/collectionWiring/collectionWiring.test.mjs が見つける）。集まりの無い主には出さない
 
 import path from "node:path";
@@ -57,9 +57,9 @@ export function renderCollectionsOutput(ctx, workspace) {
   const children = resolveCollectionChildren(ctx, workspace);
   const tables = [...new Set(fields.map((f) => children.get(f.name)?.camel ?? toCamelCase(f.collection.domain)))];
   const content = [
-    `// ${domainRel(ctx)}/services/server/collections.ts`,
+    `// ${domainRel(ctx)}/services/server/${ctx.camel}Collections.ts`,
     "// pnpm generate domain が登録の entity.json の集まりの項目（mediaCollection）から生成する。手で直さない。",
-    "// createCrudService の collections オプション（ドメイン集約）。生成の drizzleBase.ts が import して渡す。",
+    "// createCrudService の collections オプション（ドメイン集約）。生成の <登録名>Base.ts が import して渡す。",
     "// 詳細: src/lib/crud/collections/README.md",
     "",
     'import type { CrudCollectionConfig } from "@/lib/crud/server";',
@@ -70,5 +70,5 @@ export function renderCollectionsOutput(ctx, workspace) {
     "];",
     "",
   ].join("\n");
-  return [file(path.join(ctx.dir, "services", "server", "collections.ts"), content, { label: "集まりの宣言を生成しました" })];
+  return [file(path.join(ctx.dir, "services", "server", `${ctx.camel}Collections.ts`), content, { label: "集まりの宣言を生成しました" })];
 }

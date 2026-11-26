@@ -184,7 +184,7 @@ async function recordExceededAudit(params: {
       subjectUserId: params.userId,
       // action 名は ESLint rule (audit/action-naming) で静的検証する必要があるためリテラル指定。
       // 変更時は src/domains/core/purchaseQuota/constants/index.ts の
-      // PURCHASE_QUOTA_AUDIT_ACTIONS.EXCEEDED と src/domains/core/auditLog/presenters.ts の
+      // PURCHASE_QUOTA_AUDIT_ACTIONS.EXCEEDED と src/domains/core/auditLog/auditLogPresenters.ts の
       // DEFAULT_ACTION_LABELS のキーを必ず同期させること。
       action: "purchase_quota.reservation.exceeded",
       after: {

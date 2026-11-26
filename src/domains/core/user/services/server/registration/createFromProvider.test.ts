@@ -108,9 +108,9 @@ mock.module("@/domains/userLoginEvent/services/server", {
     },
   },
 });
-mock.module("@/domains/core/user/services/server/drizzleBase", {
+mock.module("@/domains/core/user/services/server/userBase", {
   namedExports: {
-    base: {
+    userBase: {
       update: async (id: string, data: Record<string, unknown>, tx: { label: string }) => {
         calls.push(`update:${tx.label}`);
         state.updated.push({ id, data });

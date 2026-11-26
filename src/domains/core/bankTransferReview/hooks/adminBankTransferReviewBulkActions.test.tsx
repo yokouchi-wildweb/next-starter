@@ -19,12 +19,12 @@ mock.module("@/domains/core/messaging/components/DefinitionSendModal", {
   },
 });
 
-let adminBulkActions: Record<string, import("../types/adminBulkAction").BankTransferReviewAdminBulkActionItem>;
+let adminBulkActions: Record<string, import("../types/bankTransferReviewAdminBulkAction").BankTransferReviewAdminBulkActionItem>;
 let selectBulkActions: typeof import("@/lib/tableSuite").selectBulkActions;
 let renderToStaticMarkup: typeof import("react-dom/server").renderToStaticMarkup;
 before(async () => {
   const { adminBulkActions: all } = await import("@/domains/core/admin/extensions/adminBulkActions");
-  adminBulkActions = Object.fromEntries(all.filter((entry) => entry.domain === "bankTransferReview").map((entry) => [entry.plug.key, entry.plug as import("../types/adminBulkAction").BankTransferReviewAdminBulkActionItem]));
+  adminBulkActions = Object.fromEntries(all.filter((entry) => entry.domain === "bankTransferReview").map((entry) => [entry.plug.key, entry.plug as import("../types/bankTransferReviewAdminBulkAction").BankTransferReviewAdminBulkActionItem]));
   ({ selectBulkActions } = await import("@/lib/tableSuite"));
   ({ renderToStaticMarkup } = await import("react-dom/server"));
 });

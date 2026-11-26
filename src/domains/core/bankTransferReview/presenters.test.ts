@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { formatBankTransferDate } from "./presenters";
+import { formatBankTransferDate } from "./bankTransferReviewPresenters";
 
 test("formatBankTransferDate: UTC の時刻を日本時間で書く(文字列・Date とも、日付の境目もずらす)", () => {
   assert.equal(formatBankTransferDate("2026-11-24T21:52:57Z"), "2026/11/25 06:52");

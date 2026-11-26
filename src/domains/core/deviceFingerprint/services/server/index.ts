@@ -1,6 +1,6 @@
 // src/domains/core/deviceFingerprint/services/server/index.ts
 
-export { deviceFingerprintBase } from "./drizzleBase";
+export { deviceFingerprintBase } from "./deviceFingerprintBase";
 export {
   recordDeviceFingerprint,
   type RecordDeviceFingerprintInput,
@@ -15,7 +15,7 @@ export {
   type ExactFingerprintUserRow,
   type FindUsersByExactFingerprintOptions,
 } from "./similarity";
-import { deviceFingerprintBase } from "./drizzleBase";
+import { deviceFingerprintBase } from "./deviceFingerprintBase";
 
 /**
  * デバイスフィンガープリント参照系サービス (serviceRegistry 登録用)。

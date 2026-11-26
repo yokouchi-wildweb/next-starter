@@ -1,6 +1,6 @@
 // pnpm generate domain のメディア列の生成出力（スキーマ・presenters・Fields コンポーネント）の回帰テスト。
 // ファイル用途の登録表のエントリ（storage.read → read.allow）もここで見る。
-// drizzleBase の storage binding と Firestore の生成エラーは serverServiceWriteOnce.test.mjs で見る。
+// <登録名>Base の storage binding と Firestore の生成エラーは serverServiceWriteOnce.test.mjs で見る。
 // 実行: pnpm test scripts/structure/domain/tests/storageOutput.test.mjs
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
@@ -26,7 +26,7 @@ const FIXTURE = {
 };
 
 function albumContext(config) {
-  const root = makeProject({ templates: ["presenters.ts"], configs: { album: config }, cleanup });
+  const root = makeProject({ templates: ["__domain__Presenters.ts"], configs: { album: config }, cleanup });
   return contextFor(root, "album");
 }
 
@@ -72,7 +72,7 @@ test("Fields: メディア列に purpose `<domain>.<field>` を付けて FieldRe
   assert.match(plain, /const baseFields = domainDisplay\.fields as FieldConfig\[\];/);
 });
 
-// ---- ファイル用途のエントリ（storagePurposes.ts の値） ----
+// ---- ファイル用途のエントリ（<登録名>StoragePurposes.ts の値） ----
 
 const purposeOf = (storage, apiAccess = { read: "authenticated", write: { roleCategories: ["admin"] } }) => {
   const field = { name: "doc", label: "書類", fieldType: "mediaUploader", formInput: "mediaUploader", accept: "application/pdf", validationRule: { maxSizeBytes: 1000 } };

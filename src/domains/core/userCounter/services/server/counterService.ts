@@ -1,6 +1,6 @@
 // src/domains/core/userCounter/services/server/counterService.ts
 
-import { base } from "./drizzleBase";
+import { userCounterBase } from "./userCounterBase";
 import { bump } from "./wrappers/bump";
 import { bumpDaily } from "./wrappers/bumpDaily";
 import { getCounter, getCounters, getCountersByPrefix } from "./wrappers/getCounters";
@@ -19,7 +19,7 @@ import { getDailySeries, getTodayCount } from "./wrappers/getDailyCounters";
  * 本サービスをサーバ側で呼び出す。詳細・配線レシピは README.md を参照。
  */
 export const counterService = {
-  ...base,
+  ...userCounterBase,
   bump,
   bumpDaily,
   getCounter,

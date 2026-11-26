@@ -328,7 +328,7 @@ export const serviceOfRegistration = (registration, entity) => entity.service ??
 /**
  * 全ドメインの登録(registered が false でない物)を登録表の行にし、形の誤りを errors に積む。
  * 検査: 登録名の重なり(登録表のキー = 登録名、全ドメインで一意。registered:false の登録も同じ名前の空間)・表の重なり・
- * サービスのファイルが無い・表のサービスの土台(drizzleBase.ts / firestoreBase.ts)があるのに登録が 1 つも無い・上書きの形
+ * サービスのファイルが無い・登録の無い表のサービスの土台(services/server/<名前>Base.ts の <名前> の登録が無い)・上書きの形
  * @param {string} repoRoot
  * @param {FileView} [view] ファイルの見え方(既定 = ディスク)。pnpm generate domain がこれから書くサービスを重ねて渡す
  * @returns {{ rows: RegistryRow[], errors: string[] }}
@@ -351,9 +351,11 @@ export function discoverRegistrations(repoRoot, view = diskView) {
       errors.push(`${domainRel}: フォルダ名 ${name} が ${declaration.dir} と重なる(登録のキーが同じになる。後から足した側の名前を変える)`);
       continue;
     }
-    const hasBase = [`${SERVICE_DIR}/drizzleBase.ts`, `${SERVICE_DIR}/firestoreBase.ts`].some((file) => view.exists(path.join(repoRoot, domainRel, file)));
-    if (hasBase && declaration.registrations.length === 0) {
-      errors.push(`${domainRel}/${SERVICE_DIR} に drizzleBase.ts / firestoreBase.ts があるのに登録(${ENTITIES_DIR}/<登録名>/${ENTITY_DECLARATION_FILE})が 1 つも無い(宣言を書く。形: src/domains/README.md)`);
+    // 土台(services/server/<登録名>Base.ts)は登録ごと: 登録の無い土台は、宣言の無い表のサービス
+    const serviceDir = path.join(repoRoot, domainRel, SERVICE_DIR);
+    const strayBases = (fs.existsSync(serviceDir) ? fs.readdirSync(serviceDir) : []).filter((name) => /^[a-z][A-Za-z0-9]*Base\.ts$/.test(name) && !declaration.registrations.some((registration) => `${registration.name}Base.ts` === name));
+    for (const name of strayBases) {
+      errors.push(`${domainRel}/${SERVICE_DIR}/${name} の登録(${ENTITIES_DIR}/${name.slice(0, -"Base.ts".length)}/${ENTITY_DECLARATION_FILE})が無い(土台は登録ごと: 宣言を書くか、ファイルの名前を登録名に合わせる。形: src/domains/README.md)`);
     }
     for (const registration of declaration.registrations) {
       const entityPath = `${registration.dir}/${ENTITY_DECLARATION_FILE}`;

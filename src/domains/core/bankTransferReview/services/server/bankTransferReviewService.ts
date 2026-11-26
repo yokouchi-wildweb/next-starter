@@ -3,7 +3,7 @@
 // 自社銀行振込レビューのサーバー側エントリポイント。
 // CRUD ベース + 専用 wrappers を 1 つの service オブジェクトに集約する。
 
-import { base } from "./drizzleBase";
+import { bankTransferReviewBase } from "./bankTransferReviewBase";
 import { submitReview } from "./wrappers/submitReview";
 import { confirmReview } from "./wrappers/confirmReview";
 import { rejectReview } from "./wrappers/rejectReview";
@@ -21,7 +21,7 @@ import { findDetailForAdmin } from "./wrappers/findDetailForAdmin";
 import { searchForAdmin } from "./wrappers/searchForAdmin";
 
 export const bankTransferReviewService = {
-  ...base,
+  ...bankTransferReviewBase,
   submitReview,
   confirmReview,
   rejectReview,

@@ -33,7 +33,7 @@ import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
 import type { BankTransferReviewImportRowDto } from "@/domains/core/bankTransferReview";
 import { useAdminBankTransferReviewCsvImport } from "@/domains/core/bankTransferReview/hooks/useAdminBankTransferReviewCsvImport";
 
-import { formatJpyAmount } from "@/domains/core/bankTransferReview/presenters";
+import { formatJpyAmount } from "@/domains/core/bankTransferReview/bankTransferReviewPresenters";
 
 type Props = {
   open: boolean;

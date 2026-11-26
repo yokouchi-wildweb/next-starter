@@ -70,7 +70,8 @@ const config = [
       "src/app/admin/_template/__domains__/new/_screen/loader.ts",
       "src/domains/_template/components/Admin__Domain__List/Table.tsx",
       "src/domains/_template/components/Admin__Domain__List/Table.withDetailModal.tsx",
-      "src/domains/_template/services/server/drizzleBase.ts",
+      "src/domains/_template/services/server/__domain__Base.ts",
+      "src/domains/_template/services/server/__domain__Base.firestore.ts",
     ],
   },
   // テンプレートのフックは名前がプレースホルダー(use__Domain__)でフックの命名規則を満たせないため、

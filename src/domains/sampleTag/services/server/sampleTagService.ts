@@ -1,7 +1,7 @@
 // src/domains/sampleTag/services/server/sampleTagService.ts
 
-import { base } from "./drizzleBase";
+import { sampleTagBase } from "./sampleTagBase";
 
 export const sampleTagService = {
-  ...base,
+  ...sampleTagBase,
 };

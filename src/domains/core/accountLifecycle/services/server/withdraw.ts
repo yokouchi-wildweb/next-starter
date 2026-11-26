@@ -6,7 +6,7 @@ import { executeCleanup } from "@/domains/core/user/services/server/executeClean
 import { recordStatusTransition } from "@/domains/core/user/services/server/statusHistory";
 import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
-import { base } from "@/domains/core/user/services/server/drizzleBase";
+import { userBase } from "@/domains/core/user/services/server/userBase";
 
 export type WithdrawResult = {
   user: User;
@@ -22,7 +22,7 @@ export type WithdrawResult = {
  * actor は AsyncLocalStorage 経由で routeFactory から自動注入される。
  */
 export async function withdraw(userId: string): Promise<WithdrawResult> {
-  const user = await base.get(userId);
+  const user = await userBase.get(userId);
 
   if (!user) {
     throw new DomainError("ユーザーが見つかりません", { status: 404 });
@@ -39,7 +39,7 @@ export async function withdraw(userId: string): Promise<WithdrawResult> {
   const beforeStatus = user.status;
 
   const updatedUser = await db.transaction(async (tx) => {
-    const updated = await base.update(userId, {
+    const updated = await userBase.update(userId, {
       status: "withdrawn",
     } as Partial<User>, tx);
 

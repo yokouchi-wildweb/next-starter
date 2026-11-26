@@ -31,7 +31,7 @@ const fakePresenters = Object.fromEntries(
     ({ value }: { value: unknown }) => `${field}:${String(value)}`,
   ]),
 );
-mock.module("@/domains/core/user/presenters", { defaultExport: fakePresenters });
+mock.module("@/domains/core/user/userPresenters", { defaultExport: fakePresenters });
 
 let createGeneralUserListColumns: typeof import("./columns").createGeneralUserListColumns;
 let renderToStaticMarkup: typeof import("react-dom/server").renderToStaticMarkup;

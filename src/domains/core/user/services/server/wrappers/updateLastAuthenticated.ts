@@ -7,7 +7,7 @@ import { MAX_LOGIN_HISTORY } from "@/domains/core/user/constants/domain";
 import type { UserMetadata, UserLoginRecord } from "@/domains/core/user/entities/model";
 import { db } from "@/lib/drizzle";
 import { recordLoginEvent } from "@/domains/userLoginEvent/services/server";
-import { base } from "../drizzleBase";
+import { userBase } from "../userBase";
 
 export type UpdateLastAuthenticatedOptions = {
   ip?: string;
@@ -68,7 +68,7 @@ export async function updateLastAuthenticated(
       })
       .where(eq(UserTable.id, userId));
   }
-  base.invalidateRequestMemo();
+  userBase.invalidateRequestMemo();
 
   // IP 横断検索用の正規化テーブル (user_login_events) にも記録する。
   // IP 未指定 / 書き込み失敗は recordLoginEvent 内でスキップ・握り潰される

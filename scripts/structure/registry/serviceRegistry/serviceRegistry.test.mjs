@@ -244,7 +244,7 @@ test("生成: core → 業務の順に並び、上書きは access だけ差し�
   t.mock.method(console, "log", () => {});
   const root = makeRoot({
     ...declared("src/domains/core/user", { user: { plural: "users" } }),
-    "src/domains/core/user/services/server/drizzleBase.ts": "",
+    "src/domains/core/user/services/server/userBase.ts": "",
     ...declared("src/domains/core/userTag", { userTag: { plural: "userTags" } }),
     "src/domains/core/userTag/entities/userTag/entity.override.ts": OVERRIDE(`import { PUBLIC_READ } from "@/lib/domainAccess";`, "PUBLIC_READ"),
     ...declared("src/domains/article", { article: { plural: "articles", requires: ["user"] } }),
@@ -308,7 +308,7 @@ test("検査: 登録名の重なり・サービスのファイル無し・base �
     ...declared("src/domains/core/dup", { user: { plural: "dups" } }),
     ...declared("src/domains/core/noService", { noService: {} }, { service: false }),
     ...declared("src/domains/core/orphan"),
-    "src/domains/core/orphan/services/server/drizzleBase.ts": "",
+    "src/domains/core/orphan/services/server/orphanBase.ts": "",
     "src/domains/core/orphan/services/server/photo.ts": 'storageBindingFor("orphanPhoto", [])',
     "src/domains/core/orphan/services/server/photo.test.ts": 'storageBindingFor("ignored", [])',
     ...declared("src/domains/core/leak", { leak: {} }),
@@ -320,15 +320,15 @@ test("検査: 登録名の重なり・サービスのファイル無し・base �
     // entity.json も表のファイルも無いフォルダは登録でない(孤立した上書きは pnpm check extensions の orphans.mjs)
     "src/domains/core/user/entities/nope/entity.override.ts": OVERRIDE("", `{ read: "none", write: "none" }`),
     ...declared("src/domains/business"),
-    "src/domains/business/services/server/firestoreBase.ts": "",
+    "src/domains/business/services/server/businessBase.ts": "",
   });
   const { errors } = checkServiceRegistry(root);
   const expect = (pattern) => assert.ok(errors.some((error) => pattern.test(error)), `${pattern} が無い:\n${errors.join("\n")}`);
   expect(/登録名 "user" が重なる: src\/domains\/core\/dup\/entities\/user\/entity\.json と src\/domains\/core\/user\/entities\/user\/entity\.json/);
   expect(/core\/noService\/entities\/noService\/entity\.json: サービスのファイル src\/domains\/core\/noService\/services\/server\/noServiceService\.ts が無い/);
   assert.ok(!errors.some((error) => error.includes("hidden/entities/hidden/entity.json: サービスのファイル")), "registered: false の登録はサービスを求めない");
-  expect(/src\/domains\/core\/orphan\/services\/server に drizzleBase\.ts \/ firestoreBase\.ts があるのに登録\(entities\/<登録名>\/entity\.json\)が 1 つも無い/);
-  expect(/src\/domains\/business\/services\/server に drizzleBase\.ts \/ firestoreBase\.ts があるのに登録/);
+  expect(/src\/domains\/core\/orphan\/services\/server\/orphanBase\.ts の登録\(entities\/orphan\/entity\.json\)が無い/);
+  expect(/src\/domains\/business\/services\/server\/businessBase\.ts の登録\(entities\/business\/entity\.json\)が無い/);
   expect(/storageBindingFor\("orphanPhoto"\) の record_type が登録表のキーに無い/);
   assert.ok(!errors.some((error) => error.includes('"ignored"')), "*.test.* は走査しない");
   expect(/leak\/entities\/leak\/entity\.override\.ts: "\.\/leakService" を値で import している\(解けない指定子/);

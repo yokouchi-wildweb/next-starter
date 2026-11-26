@@ -1,6 +1,6 @@
 // src/domains/purchaseRequest/services/server/purchaseRequestService.ts
 
-import { base } from "./drizzleBase";
+import { purchaseRequestBase } from "./purchaseRequestBase";
 import {
   initiatePurchase,
   getPurchaseStatus,
@@ -14,7 +14,7 @@ import {
 import { recordBankTransferJudgment } from "./wrappers/recordBankTransferJudgment";
 
 export const purchaseRequestService = {
-  ...base,
+  ...purchaseRequestBase,
   // 購入フロー固有のメソッド
   initiatePurchase,
   getPurchaseStatus,

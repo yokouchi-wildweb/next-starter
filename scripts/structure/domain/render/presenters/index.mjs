@@ -1,4 +1,4 @@
-// 生成カテゴリ presenters: presenters.ts（一覧・詳細表示のフォーマッタ。メディア列は formatMediaThumbnail(s) で表示用 URL に解決）。
+// 生成カテゴリ presenters: <登録名>Presenters.ts（一覧・詳細表示のフォーマッタ。メディア列は formatMediaThumbnail(s) で表示用 URL に解決）。
 // 項目を何で表示するかは src/lib/domain/fields/presenterFor.mjs が決める。ここはその答えを式に写すだけ
 
 import path from "node:path";
@@ -13,7 +13,7 @@ const DATETIME_FORMATTER = `formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt
 
 const buildOptionsMap = (options = []) => options.map((opt) => `"${String(opt.value)}": "${opt.label ?? opt.value}"`).join(", ");
 
-/** presenterFor の答えの種類 → presenters.ts の式 */
+/** presenterFor の答えの種類 → <登録名>Presenters.ts の式 */
 const FORMATTERS = {
   boolean: () => `formatBoolean(value, "はい", "いいえ")`,
   number: () => `formatNumber(value)`,
@@ -32,12 +32,12 @@ function buildFormatter(field) {
   return FORMATTERS[spec.kind](spec);
 }
 
-/** presenters.ts の内容 */
+/** <登録名>Presenters.ts の内容 */
 export function renderPresentersContent(ctx, workspace) {
   const config = requireConfig(ctx);
   const { camel, pascal } = ctx;
   const dbEngine = config.dbEngine || "";
-  const template = workspace.readTemplate("presenters.ts");
+  const template = workspace.readTemplate("__domain__Presenters.ts");
 
   const entries = (config.fields ?? []).map(
     (field) => `  ${resolveFieldName(field.name, dbEngine)}: ({ value, field, record }) => ${buildFormatter(field)},`,
@@ -63,5 +63,5 @@ export function renderPresentersContent(ctx, workspace) {
  * @returns {import("../output.mjs").Output[]}
  */
 export function renderPresenters(ctx, workspace) {
-  return [file(path.join(ctx.dir, "presenters.ts"), renderPresentersContent(ctx, workspace), { label: "presenters.ts を生成しました" })];
+  return [file(path.join(ctx.dir, `${ctx.camel}Presenters.ts`), renderPresentersContent(ctx, workspace), { label: `${ctx.camel}Presenters.ts を生成しました` })];
 }

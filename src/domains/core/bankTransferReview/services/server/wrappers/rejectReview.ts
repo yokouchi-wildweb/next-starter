@@ -17,14 +17,14 @@
 import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
 import { auditLogger } from "@/domains/core/auditLog/services/server";
-import { base as purchaseRequestBase } from "@/domains/purchaseRequest/services/server/drizzleBase";
+import { purchaseRequestBase as purchaseRequestBase } from "@/domains/purchaseRequest/services/server/purchaseRequestBase";
 import type { PurchaseRequest } from "@/domains/purchaseRequest/entities/model";
 import { INHOUSE_PROVIDER_NAME } from "@/domains/purchaseRequest/services/server/payment/inhouse";
 import { failPurchase } from "@/domains/purchaseRequest/services/server/wrappers/failPurchase";
 
 import type { BankTransferReview } from "@/domains/bankTransferReview/entities/model";
 
-import { base } from "../drizzleBase";
+import { bankTransferReviewBase } from "../bankTransferReviewBase";
 import { lockReviewStatus } from "./lockReviewStatus";
 
 export type RejectReviewParams = {
@@ -48,7 +48,7 @@ export async function rejectReview(
     throw new DomainError("拒否理由を入力してください。", { status: 400 });
   }
 
-  const review = (await base.get(reviewId)) as BankTransferReview | null;
+  const review = (await bankTransferReviewBase.get(reviewId)) as BankTransferReview | null;
   if (!review) {
     throw new DomainError("レビューが見つかりません。", { status: 404 });
   }
@@ -104,7 +104,7 @@ export async function rejectReview(
       );
     }
 
-    const next = (await base.update(
+    const next = (await bankTransferReviewBase.update(
       review.id,
       {
         status: "rejected" as const,

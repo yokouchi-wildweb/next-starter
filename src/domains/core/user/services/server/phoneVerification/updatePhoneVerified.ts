@@ -3,7 +3,7 @@
 import type { User } from "@/domains/core/user/entities";
 import { DomainError } from "@/lib/errors";
 
-import { base } from "../drizzleBase";
+import { userBase } from "../userBase";
 import { assertPhoneAvailability } from "../helpers/assertPhoneAvailability";
 
 export type UpdatePhoneVerifiedParams = {
@@ -35,7 +35,7 @@ export async function updatePhoneVerified({
 
   const now = new Date();
 
-  const updated = await base.update(userId, {
+  const updated = await userBase.update(userId, {
     phoneNumber,
     phoneVerifiedAt: now,
     updatedAt: now,

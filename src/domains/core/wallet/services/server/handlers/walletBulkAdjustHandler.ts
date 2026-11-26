@@ -4,8 +4,8 @@ import { batchJobService } from "@/domains/batchJob/services/server/batchJobServ
 import type { BulkAdjustByUsersParams } from "../wrappers/bulkAdjustByUsers";
 import { WALLET_BULK_ADJUST_JOB_TYPE } from "../../../constants/batchJob";
 import type { BatchJob } from "@/domains/batchJob/types";
-import type { WalletTypeValue } from "@/domains/wallet/types/field";
-import type { WalletHistoryChangeMethodValue, WalletHistorySourceTypeValue } from "@/domains/walletHistory/types/field";
+import type { WalletTypeValue } from "@/domains/wallet/types/walletField";
+import type { WalletHistoryChangeMethodValue, WalletHistorySourceTypeValue } from "@/domains/walletHistory/types/walletHistoryField";
 import type { ReasonCategory } from "@/domains/walletHistory/config";
 
 export { WALLET_BULK_ADJUST_JOB_TYPE };

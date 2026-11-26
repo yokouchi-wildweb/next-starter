@@ -6,7 +6,7 @@ import { assertRoleEnabled, hasRoleProfile } from "@/domains/core/user/utils/rol
 import { auditLogger } from "@/domains/core/auditLog/services/server";
 import { DomainError } from "@/lib/errors";
 import { deleteProfile } from "@/domains/core/userProfile/services/server/operations/deleteProfile";
-import { base } from "../drizzleBase";
+import { userBase } from "../userBase";
 
 export type ChangeRoleInput = {
   userId: string;
@@ -24,7 +24,7 @@ export async function changeRole(input: ChangeRoleInput): Promise<User> {
 
   assertRoleEnabled(newRole);
 
-  const currentUser = await base.get(userId);
+  const currentUser = await userBase.get(userId);
   if (!currentUser) {
     throw new DomainError("ユーザーが見つかりません", { status: 404 });
   }
@@ -40,7 +40,7 @@ export async function changeRole(input: ChangeRoleInput): Promise<User> {
   }
 
   const updatePayload = { role: newRole } as Partial<User>;
-  const updatedUser = await base.update(userId, updatePayload);
+  const updatedUser = await userBase.update(userId, updatePayload);
 
   await auditLogger.record({
     targetType: "user",

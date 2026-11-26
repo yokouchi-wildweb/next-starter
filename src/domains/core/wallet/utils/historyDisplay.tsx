@@ -11,7 +11,7 @@ import { Span } from "@/components/TextBlocks/Span";
 import {
   WalletHistoryChangeMethodOptions,
   WalletHistorySourceTypeOptions,
-} from "@/domains/core/walletHistory/constants/field";
+} from "@/domains/core/walletHistory/constants/walletHistoryField";
 import { walletHistoryConfig, type ReasonCategory } from "@/domains/walletHistory/config";
 import { getMetaFieldLabelMap } from "@/domains/core/wallet/utils/currency";
 import { formatNumber, formatMetaValue } from "./formatters";

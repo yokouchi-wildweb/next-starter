@@ -34,7 +34,7 @@ export {
   approvalSourceBadgeVariant,
   formatPurchaseRequestStatusLabel,
   purchaseRequestStatusBadgeVariant,
-} from "./presenters";
+} from "./bankTransferReviewPresenters";
 
 // クライアント側 API
 // 注: サーバー側 service (bankTransferReviewService) は import するとサーバー専用依存

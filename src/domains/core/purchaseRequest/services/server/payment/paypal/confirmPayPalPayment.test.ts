@@ -43,8 +43,8 @@ mock.module("@/domains/core/purchaseRequest/services/server/payment/paypal/paypa
     },
   },
 });
-mock.module("@/domains/core/purchaseRequest/services/server/drizzleBase", {
-  namedExports: { base: { get: async () => request } },
+mock.module("@/domains/core/purchaseRequest/services/server/purchaseRequestBase", {
+  namedExports: { purchaseRequestBase: { get: async () => request } },
 });
 
 const completions: Array<{ transactionId?: string }> = [];

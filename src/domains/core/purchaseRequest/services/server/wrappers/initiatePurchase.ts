@@ -3,7 +3,7 @@
 
 import type { PurchaseRequest } from "@/domains/core/purchaseRequest/entities/model";
 import { db } from "@/lib/drizzle";
-import { base } from "../drizzleBase";
+import { purchaseRequestBase } from "../purchaseRequestBase";
 import {
   getPaymentProvider,
   type PaymentProviderName,
@@ -124,7 +124,7 @@ async function buildLaunchForRequest(args: {
   const redirectUrlForDb =
     session.instruction.type === "redirect" ? session.instruction.url : null;
 
-  const updated = await base.update(purchaseRequest.id, {
+  const updated = await purchaseRequestBase.update(purchaseRequest.id, {
     status: "processing",
     payment_session_id: session.sessionId,
     redirect_url: redirectUrlForDb,
@@ -346,7 +346,7 @@ export async function initiatePurchase(
   if (reuseTarget) {
     purchaseRequest = await db.transaction(async (tx) => {
       // 既存の pending リクエストのクーポン情報を更新して再利用
-      const updated = await base.update(reuseTarget.id, {
+      const updated = await purchaseRequestBase.update(reuseTarget.id, {
         payment_amount: actualPaymentAmount,
         metadata: metadata ?? null,
         ...(couponCode
@@ -414,7 +414,7 @@ export async function initiatePurchase(
     // afterInitiate 内で throw されると create もロールバックされ、
     // 副次テーブルとの整合を保ったまま購入失敗として呼び出し元に伝播する。
     purchaseRequest = await db.transaction(async (tx) => {
-      const created = await base.create(createData as any, tx) as PurchaseRequest;
+      const created = await purchaseRequestBase.create(createData as any, tx) as PurchaseRequest;
       await reserveQuota(
         {
           userId,

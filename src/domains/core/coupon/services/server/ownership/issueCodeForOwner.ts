@@ -9,7 +9,7 @@ import { runWithTransaction, type TransactionClient } from "@/lib/drizzle";
 import { isStorageRef } from "@/lib/storage";
 import { storageObjectService } from "@/domains/core/storageObject/services/server/storageObjectService";
 
-/** coupon.image_url の用途（drizzleBase の storage binding と同じ） */
+/** coupon.image_url の用途（couponBase の storage binding と同じ） */
 const COUPON_IMAGE_PURPOSE = "coupon.image_url";
 
 export type CouponTypeWithOwner = "invite" | "affiliate";

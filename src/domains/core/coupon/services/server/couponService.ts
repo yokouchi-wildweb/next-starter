@@ -1,6 +1,6 @@
 // src/domains/coupon/services/server/couponService.ts
 
-import { base } from "./drizzleBase";
+import { couponBase } from "./couponBase";
 import { duplicate } from "./wrappers/duplicate";
 import { redeem } from "./redemption/redeem";
 import { isUsable } from "./redemption/isUsable";
@@ -17,8 +17,8 @@ import { validateForCategory } from "./wrappers/validateForCategory";
 import { redeemWithEffect } from "./wrappers/redeemWithEffect";
 
 export const couponService = {
-  ...base,
-  // 削除系のファイル処理は base の storage binding（drizzleBase）が行う。
+  ...couponBase,
+  // 削除系のファイル処理は base の storage binding（couponBase）が行う。
   // duplicate はコードの再発行・使用回数のリセットのため独自（画像のコピーは binding の duplicateValues）。
   duplicate,
   // 使用処理

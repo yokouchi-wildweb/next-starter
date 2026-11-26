@@ -6,7 +6,7 @@
 import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { WalletTable, WalletLotTable } from "@/domains/core/wallet/entities/drizzle";
-import type { WalletTypeValue } from "@/domains/core/wallet/types/field";
+import type { WalletTypeValue } from "@/domains/core/wallet/types/walletField";
 import { isExpirationEnabled } from "@/domains/core/wallet/utils/expiration";
 import type {
   ExpiringLotsSummary,

@@ -10,7 +10,7 @@ import {
 const SettingsSchema = z.record(z.string(), z.unknown());
 
 /**
- * CRUD ベース (drizzleBase) の create バリデーション。
+ * CRUD ベース (couponIssuerGrantBase) の create バリデーション。
  * 主経路は apply()（本人申請）であり、汎用 create は管理者による代理登録用。
  */
 export const CouponIssuerGrantCreateSchema = z.object({

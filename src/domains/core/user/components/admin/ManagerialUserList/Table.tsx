@@ -12,7 +12,7 @@ import { Button } from "@/components/Button/Button";
 import Dialog from "@/components/Overlays/Dialog";
 import type { User } from "@/domains/core/user/entities";
 import { adminConfig } from "@/domains/admin/config";
-import presenters from "@/domains/core/user/presenters";
+import presenters from "@/domains/core/user/userPresenters";
 import AdminWalletAdjustModal from "@/domains/core/wallet/components/AdminWalletAdjustModal";
 import AdminUserManageModal from "@/domains/core/user/components/admin/AdminUserManageModal";
 import { UserAdminMemoCell } from "@/domains/core/user/components/common/UserAdminMemoCell";

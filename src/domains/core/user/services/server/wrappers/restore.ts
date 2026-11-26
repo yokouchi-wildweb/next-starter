@@ -6,7 +6,7 @@ import { userConfig } from "@/domains/user/config";
 import type { User } from "@/domains/core/user/entities";
 import { UserTable } from "@/domains/core/user/entities/drizzle";
 import { db } from "@/lib/drizzle";
-import { base } from "../drizzleBase";
+import { userBase } from "../userBase";
 import {
   findAvailableSuffixedUserName,
   isUserNameTaken,
@@ -22,7 +22,7 @@ import {
  */
 export async function restore(id: string): Promise<User> {
   if (!userConfig.name.unique.enabled) {
-    return base.restore(id);
+    return userBase.restore(id);
   }
 
   const [current] = await db
@@ -35,14 +35,14 @@ export async function restore(id: string): Promise<User> {
 
   // 名前なし・デモユーザーは占有判定の対象外なのでそのまま復元
   if (!current || !name || current.isDemo) {
-    return base.restore(id);
+    return userBase.restore(id);
   }
 
   return db.transaction(async (tx) => {
     // 同名の同時書き込みと直列化 (withUserNameGuard と同じロックキー)
     await lockUserName(tx, name);
 
-    const restored = await base.restore(id, tx);
+    const restored = await userBase.restore(id, tx);
 
     if (!(await isUserNameTaken(name, { excludeUserId: id, executor: tx }))) {
       return restored;
@@ -53,6 +53,6 @@ export async function restore(id: string): Promise<User> {
       executor: tx,
       lockCandidates: true,
     });
-    return base.update(id, { name: fallback } as Parameters<typeof base.update>[1], tx);
+    return userBase.update(id, { name: fallback } as Parameters<typeof userBase.update>[1], tx);
   });
 }

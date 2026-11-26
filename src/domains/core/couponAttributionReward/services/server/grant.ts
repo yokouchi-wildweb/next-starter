@@ -17,7 +17,7 @@ import { runWithTransaction, type TransactionClient } from "@/lib/drizzle";
 import { markUserDirty } from "@/lib/userDirty/server";
 import { DomainError } from "@/lib/errors";
 import { walletService } from "@/domains/core/wallet/services/server/walletService";
-import type { WalletTypeValue } from "@/domains/core/wallet/types/field";
+import type { WalletTypeValue } from "@/domains/core/wallet/types/walletField";
 import type { ReasonCategory } from "@/domains/walletHistory/config";
 import type { Coupon } from "@/domains/core/coupon/entities/model";
 import type { CouponHistory } from "@/domains/core/couponHistory/entities/model";

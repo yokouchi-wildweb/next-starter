@@ -9,7 +9,7 @@ import type { User } from "@/domains/core/user/entities";
 import { E164_PHONE_REGEX } from "@/domains/core/user/utils/phoneNumber";
 import { DomainError } from "@/lib/errors";
 
-import { base } from "../drizzleBase";
+import { userBase } from "../userBase";
 import { assertPhoneAvailability } from "../helpers/assertPhoneAvailability";
 
 const OwnPhoneNumberSchema = z.object({
@@ -42,7 +42,7 @@ export async function updateOwnPhoneNumber({ userId, input }: UpdateOwnPhoneNumb
   }
   const { phoneNumber } = parsed.data;
 
-  const current = await base.get(userId);
+  const current = await userBase.get(userId);
   if (!current) {
     throw new DomainError("ユーザーが見つかりません", { status: 404 });
   }
@@ -54,7 +54,7 @@ export async function updateOwnPhoneNumber({ userId, input }: UpdateOwnPhoneNumb
     await assertPhoneAvailability({ phoneNumber, excludeUserId: userId });
   }
 
-  const updated = await base.update(userId, {
+  const updated = await userBase.update(userId, {
     phoneNumber,
     phoneVerifiedAt: null,
     updatedAt: new Date(),

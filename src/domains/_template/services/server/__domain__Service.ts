@@ -1,7 +1,7 @@
 // src/domains/__domain__/services/server/__domain__Service.ts
 
-import { base } from "./__serviceBase__";
+import { __domain__Base } from "./__domain__Base";
 
 export const __domain__Service = {
-  ...base,
+  ...__domain__Base,
 };

@@ -3,7 +3,7 @@
 import type { User } from "@/domains/core/user/entities";
 import type { BulkUpdateRecord, BulkUpdateResult } from "@/lib/crud";
 import type { DbTransaction } from "@/lib/crud/server";
-import { base } from "../drizzleBase";
+import { userBase } from "../userBase";
 import { assertBulkUpdateIds, parseBulkUpdateFields, type UserBulkUpdateFields } from "../helpers/bulkUpdateFields";
 
 /**
@@ -16,7 +16,7 @@ export async function bulkUpdateByIds(
   tx?: DbTransaction,
 ): Promise<{ count: number }> {
   assertBulkUpdateIds(ids);
-  return base.bulkUpdateByIds(ids, parseBulkUpdateFields(data) as never, tx);
+  return userBase.bulkUpdateByIds(ids, parseBulkUpdateFields(data) as never, tx);
 }
 
 export async function bulkUpdate(
@@ -25,5 +25,5 @@ export async function bulkUpdate(
 ): Promise<BulkUpdateResult<User>> {
   assertBulkUpdateIds(Array.isArray(records) ? records.map((record) => record?.id) : records);
   const parsed = records.map((record) => ({ id: record.id, data: parseBulkUpdateFields(record.data) }));
-  return base.bulkUpdate(parsed as never, tx) as unknown as Promise<BulkUpdateResult<User>>;
+  return userBase.bulkUpdate(parsed as never, tx) as unknown as Promise<BulkUpdateResult<User>>;
 }

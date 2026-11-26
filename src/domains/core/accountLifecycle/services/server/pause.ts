@@ -4,7 +4,7 @@ import type { User } from "@/domains/core/user/entities";
 import { auditLogger } from "@/domains/core/auditLog/services/server";
 import { recordStatusTransition } from "@/domains/core/user/services/server/statusHistory";
 import { DomainError } from "@/lib/errors";
-import { base } from "@/domains/core/user/services/server/drizzleBase";
+import { userBase } from "@/domains/core/user/services/server/userBase";
 
 export type PauseResult = {
   user: User;
@@ -19,7 +19,7 @@ export type PauseResult = {
  * actor は AsyncLocalStorage 経由で routeFactory から自動注入される。
  */
 export async function pause(userId: string): Promise<PauseResult> {
-  const user = await base.get(userId);
+  const user = await userBase.get(userId);
 
   if (!user) {
     throw new DomainError("ユーザーが見つかりません", { status: 404 });
@@ -35,7 +35,7 @@ export async function pause(userId: string): Promise<PauseResult> {
 
   const beforeStatus = user.status;
 
-  const updatedUser = await base.update(userId, {
+  const updatedUser = await userBase.update(userId, {
     status: "inactive",
   } as Partial<User>);
 

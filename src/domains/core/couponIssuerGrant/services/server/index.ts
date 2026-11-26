@@ -1,6 +1,6 @@
 // src/domains/core/couponIssuerGrant/services/server/index.ts
 
-export { couponIssuerGrantBase } from "./drizzleBase";
+export { couponIssuerGrantBase } from "./couponIssuerGrantBase";
 export { getGrantByUser } from "./queries";
 export {
   applyGrant,
@@ -41,7 +41,7 @@ export {
   type IssuerRewardHistoryItem,
 } from "./stats";
 
-import { couponIssuerGrantBase } from "./drizzleBase";
+import { couponIssuerGrantBase } from "./couponIssuerGrantBase";
 import { getGrantByUser } from "./queries";
 import {
   applyGrant,

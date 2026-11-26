@@ -97,10 +97,10 @@ export function renderDrizzleEntity(ctx, workspace) {
 
   content += renderHiddenColumnsDeclaration(pascal, hiddenColumns);
   if (ownsCollections) {
-    // 他ドメインの withRelations で埋め込まれた行にも集まりを載せるため、表に宣言を登録する（collections.ts は遅延 import = 循環を避ける）
+    // 他ドメインの withRelations で埋め込まれた行にも集まりを載せるため、表に宣言を登録する（<登録名>Collections.ts は遅延 import = 循環を避ける）
     content +=
       `\n// 主の集まりの項目（従属ドメインの行の並び）。他ドメインの withRelations で埋め込まれた行にも載せるため表に登録する\n` +
-      `defineTableCollections(${pascal}Table, () => import("@/domains/${camel}/services/server/collections").then((m) => m.collections));\n`;
+      `defineTableCollections(${pascal}Table, () => import("@/domains/${camel}/services/server/${camel}Collections").then((m) => m.collections));\n`;
   }
   content += renderJunctionTables(ctx, junctionTables);
   return content;

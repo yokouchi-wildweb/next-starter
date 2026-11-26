@@ -15,7 +15,7 @@ import {
 } from "@/domains/core/user/services/server/helpers/nameAvailability";
 import { assertRoleEnabled } from "@/domains/core/user/utils/roleHelpers";
 import { recordStatusTransition } from "@/domains/core/user/services/server/statusHistory";
-import { base } from "../../drizzleBase";
+import { userBase } from "../../userBase";
 import { restoreSoftDeletedUser } from "./restore";
 import { getPublicColumns } from "@/lib/crud/server";
 
@@ -96,7 +96,7 @@ export async function createGeneralUser(data: CreateGeneralUserInput): Promise<U
   const [user] = await withUserNameGuard({ name: values.name }, (tx) =>
     (tx ?? db).insert(UserTable).values(values).returning(getPublicColumns(UserTable)),
   );
-  base.invalidateRequestMemo();
+  userBase.invalidateRequestMemo();
 
   await recordStatusTransition({
     userId: user.id,

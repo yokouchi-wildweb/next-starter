@@ -8,7 +8,7 @@ import { auditLogger } from "@/domains/core/auditLog/services/server";
 import { recordStatusTransition } from "@/domains/core/user/services/server/statusHistory";
 import { db } from "@/lib/drizzle";
 import type { User } from "@/domains/core/user/entities";
-import { base } from "../drizzleBase";
+import { userBase } from "../userBase";
 
 /**
  * アカウントロックアウトの方針実装。
@@ -86,7 +86,7 @@ export async function recordFailedLogin(
         updatedAt: now,
       })
       .where(eq(UserTable.id, user.id));
-    base.invalidateRequestMemo();
+    userBase.invalidateRequestMemo();
 
     // ログイン失敗応答を壊さないよう、監査ログ同様 best-effort で記録する
     try {
@@ -126,7 +126,7 @@ export async function recordFailedLogin(
         updatedAt: now,
       })
       .where(eq(UserTable.id, user.id));
-    base.invalidateRequestMemo();
+    userBase.invalidateRequestMemo();
 
     await auditLogger.record({
       targetType: "user",
@@ -152,7 +152,7 @@ export async function recordFailedLogin(
       updatedAt: now,
     })
     .where(eq(UserTable.id, user.id));
-  base.invalidateRequestMemo();
+  userBase.invalidateRequestMemo();
 
   return { kind: "counted", failedLoginCount: newCount };
 }
@@ -180,7 +180,7 @@ export async function clearLockState(userId: string): Promise<void> {
       updatedAt: new Date(),
     })
     .where(eq(UserTable.id, userId));
-  base.invalidateRequestMemo();
+  userBase.invalidateRequestMemo();
 }
 
 /** 短期ロック中の認証失敗で表示するエラーメッセージ */

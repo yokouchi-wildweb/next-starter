@@ -4,7 +4,7 @@
 // 字面で読むだけ(表の定義・サービスは import しない)。core も業務ドメインも同じ走査で、手書きの区画は無い。
 // serviceRegistry は ../serviceRegistry/。コマンドの入口: ../generate.mjs・../check.mjs / 詳細: ../README.md
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
@@ -136,20 +136,22 @@ function renderAdminDomains(repoRoot, domains) {
   ].join("\n");
 }
 
-/** domains の地区の services/server/storagePurposes.ts(path 順、ドメインの生成物か手書き)。地区の見つけ方は src/lib/districtMap */
+/** domains の地区の services/server/<登録名>StoragePurposes.ts(path 順、ドメインの生成物か手書き)。地区の見つけ方は src/lib/districtMap */
 function readStoragePurposeFiles(repoRoot) {
   return readDistrictMapAt(repoRoot)
     .districts.filter((district) => district.kind === "domains")
-    .map((district) => `${district.dir}/services/server/storagePurposes.ts`)
-    .filter((file) => existsSync(join(repoRoot, file)))
+    .flatMap((district) => {
+      const dir = join(repoRoot, district.dir, "services", "server");
+      return existsSync(dir) ? readdirSync(dir).filter((name) => name.endsWith("StoragePurposes.ts")).map((name) => `${district.dir}/services/server/${name}`) : [];
+    })
     .sort(byString);
 }
 
 function renderStoragePurposeRegistry(repoRoot) {
   const files = readStoragePurposeFiles(repoRoot);
-  const nameOf = (file) => `${file.split("/").at(-4)}Purposes`;
+  const nameOf = (file) => `${file.split("/").at(-1).replace(/StoragePurposes\.ts$/, "")}Purposes`;
   return [
-    headerOf(`${FEATURES_DIR}/**/services/server/storagePurposes.ts`),
+    headerOf(`${FEATURES_DIR}/**/services/server/*StoragePurposes.ts`),
     `// ${STORAGE_PURPOSE_REGISTRY_FILE}`,
     "//",
     "// ドメインのファイル用途の一覧。core と fork の項目は <ドメイン>/plugs/storageObjectPurposes/、合成は storageObject/services/server/purposeSource.ts。型と規則: src/lib/storage/README.md",

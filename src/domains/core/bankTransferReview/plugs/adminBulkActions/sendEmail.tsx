@@ -8,7 +8,7 @@
 "use client";
 
 import { definitionBulkAction } from "@/domains/core/messaging/components/DefinitionBulkAction";
-import type { BankTransferReviewAdminBulkActionItem } from "@/domains/core/bankTransferReview/types/adminBulkAction";
+import type { BankTransferReviewAdminBulkActionItem } from "@/domains/core/bankTransferReview/types/bankTransferReviewAdminBulkAction";
 
 export const bulkAction: BankTransferReviewAdminBulkActionItem = definitionBulkAction(
   { key: "sendEmail", order: 100 },

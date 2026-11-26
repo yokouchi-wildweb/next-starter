@@ -6,7 +6,7 @@ import { executeCleanup } from "@/domains/core/user/services/server/executeClean
 import { setStatusWithdrawn } from "@/domains/core/user/services/server/setStatusWithdrawn";
 import { recordStatusTransition } from "@/domains/core/user/services/server/statusHistory";
 import { db } from "@/lib/drizzle";
-import { base } from "../drizzleBase";
+import { userBase } from "../userBase";
 
 export type SoftDeleteInput = {
   userId: string;
@@ -23,7 +23,7 @@ export type SoftDeleteInput = {
 export async function softDelete(input: SoftDeleteInput): Promise<void> {
   const { userId, reason } = input;
 
-  const currentUser = await base.get(userId);
+  const currentUser = await userBase.get(userId);
   if (!currentUser) {
     throw new DomainError("ユーザーが見つかりません", { status: 404 });
   }
@@ -33,7 +33,7 @@ export async function softDelete(input: SoftDeleteInput): Promise<void> {
   }
 
   await db.transaction(async (tx) => {
-    await base.delete(userId, tx);
+    await userBase.delete(userId, tx);
     await setStatusWithdrawn(userId, tx);
     // すでに withdrawn だった場合（本人退会後の管理者削除等）はヘルパー側で no-op
     await recordStatusTransition({

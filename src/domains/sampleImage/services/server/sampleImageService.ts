@@ -1,7 +1,7 @@
 // src/domains/sampleImage/services/server/sampleImageService.ts
 
-import { base } from "./drizzleBase";
+import { sampleImageBase } from "./sampleImageBase";
 
 export const sampleImageService = {
-  ...base,
+  ...sampleImageBase,
 };

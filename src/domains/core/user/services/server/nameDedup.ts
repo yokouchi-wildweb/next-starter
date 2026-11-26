@@ -5,7 +5,7 @@ import { sql } from "drizzle-orm";
 import { userConfig } from "@/domains/user/config";
 import { UserTable } from "@/domains/core/user/entities/drizzle";
 import { db } from "@/lib/drizzle";
-import { base } from "./drizzleBase";
+import { userBase } from "./userBase";
 import { findAvailableSuffixedUserName } from "./helpers/nameAvailability";
 
 export type UserNameDedupResult = {
@@ -83,7 +83,7 @@ export async function dedupUserNames(
       renamed.push({ userId: member.id, from: member.name, to });
 
       if (!dryRun) {
-        await base.update(member.id, { name: to } as Parameters<typeof base.update>[1]);
+        await userBase.update(member.id, { name: to } as Parameters<typeof userBase.update>[1]);
       }
     }
   }

@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 
 import { auditLogger } from "@/domains/core/auditLog/services/server";
 import { UserTable } from "@/domains/core/user/entities/drizzle";
-import { base as userBase } from "@/domains/core/user/services/server/drizzleBase";
+import { userBase as userBase } from "@/domains/core/user/services/server/userBase";
 import { db } from "@/lib/drizzle";
 import { revokeAuthTokens } from "@/lib/firebase/server";
 

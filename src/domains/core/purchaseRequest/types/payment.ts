@@ -2,7 +2,7 @@
 
 import type { PurchaseRequest } from "@/domains/core/purchaseRequest/entities/model";
 import type { PurchaseTypeKey } from "@/domains/purchaseRequest/config";
-import type { WalletTypeValue } from "@/domains/core/wallet/types/field";
+import type { WalletTypeValue } from "@/domains/core/wallet/types/walletField";
 
 /**
  * 購入者住所情報（決済ページで事前入力）

@@ -172,7 +172,7 @@ test("rule client-no-domain-json: import・型・import()・export from を止�
   ruleTester.run("client-no-domain-json", plugin.rules["client-no-domain-json"], {
     valid: [
       { code: `import { domainDisplay } from "@/domains/x/entities/display";`, filename: part },
-      { code: `import c from "${json}";`, filename: at("src/domains/x/services/server/drizzleBase.ts") },
+      { code: `import c from "${json}";`, filename: at("src/domains/x/services/server/xBase.ts") },
       { code: `import c from "${json}";`, filename: at("src/app/admin/samples/new/_screen/loader.ts") },
       { code: `import c from "${json}";`, filename: at("src/app/admin/(protected)/users/general/_components/loader.ts") },
       { code: `import c from "${json}";`, filename: at("src/app/admin/x/_components/XScreen.tsx") },

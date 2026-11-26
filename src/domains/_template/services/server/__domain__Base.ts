@@ -1,0 +1,50 @@
+// src/domains/__domain__/services/server/__domain__Base.ts
+
+import { normalizeEntityDeclaration } from "@/lib/domain";
+import type { DomainConfigOptionals } from "@/lib/domain";
+import rawConf from "@/domains/__domain__/entities/__domain__/entity.json";
+import { __DrizzleEntityImports__ } from "@/domains/__domain__/entities/drizzle";
+__RelationTableImports__import { __Domain__CreateSchema, __Domain__UpdateSchema } from "@/domains/__domain__/entities/schema";
+__StorageBindingImport__import { createCrudService } from "@/lib/crud/server";
+import type { CrudServiceOptions } from "@/lib/crud/server";
+import type { IdStrategy, OrderBySpec, SearchRankSpec } from "@/lib/crud";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import type { z } from "zod";
+
+const conf = normalizeEntityDeclaration(rawConf) as typeof rawConf & DomainConfigOptionals;
+
+// sortOrderField が設定されている場合、対応するカラムを取得
+const sortOrderColumn = conf.sortOrderField
+  ? ((__Domain__Table as unknown as Record<string, unknown>)[conf.sortOrderField] as AnyPgColumn)
+  : undefined;
+
+export const baseOptions = {
+  idType: conf.idType as IdStrategy,
+  useCreatedAt: conf.useCreatedAt,
+  useUpdatedAt: conf.useUpdatedAt,
+  useSoftDelete: conf.useSoftDelete,
+  defaultSearchFields: conf.searchFields,
+  // 関連度ランキング（searchRank: true 時のフィールド重み。未宣言なら searchFields 等重み）
+  defaultSearchRank: conf.searchRank as SearchRankSpec | undefined,
+  defaultOrderBy: conf.defaultOrderBy as OrderBySpec,
+  // systemUpdate / systemBulkUpdateByQuery（特権書き込み）の allowlist（未宣言なら無効）
+  systemColumns: conf.systemColumns,
+__belongsToManyRelations__
+} satisfies CrudServiceOptions<
+  z.infer<typeof __Domain__CreateSchema>
+>;
+
+// 互換性のためエイリアスもエクスポート
+export const __domain__ServiceOptions = baseOptions;
+
+// NOTE: <登録名>Base ではスキーマの parse/validation のみに責務を限定すること。
+// ドメイン固有のロジック（外部サービス連携や判定処理など）は
+// src/domains/__domain__/services/server/wrappers/ 以下にラップを作成して差し替えること。
+
+export const __domain__Base = createCrudService(__Domain__Table, {
+  ...baseOptions,
+  sortOrderColumn,
+__storageBinding__  parseCreate: (data) => __Domain__CreateSchema.parse(data),
+  parseUpdate: (data) => __Domain__UpdateSchema.parse(data),
+  parseUpsert: (data) => __Domain__CreateSchema.parse(data),
+});

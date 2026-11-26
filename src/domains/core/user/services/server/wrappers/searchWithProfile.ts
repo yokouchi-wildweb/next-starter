@@ -17,7 +17,7 @@ import type { User } from "@/domains/core/user/entities";
 import { getProfileConfig } from "@/domains/core/userProfile/utils/configHelpers";
 import { profileTables } from "@/domains/core/userProfile/extensions/profileTables";
 import { buildWhere } from "@/lib/crud/server";
-import { base } from "../drizzleBase";
+import { userBase } from "../userBase";
 
 export type SearchWithProfileParams = BoundedSearchParams & WithOptions & ExtraWhereClause & {
   /** プロフィールフィールドの構造化フィルタ（WhereExpr DSL） */
@@ -72,14 +72,14 @@ export async function searchWithProfile(
 
   // searchQuery も profileWhere もなければ通常検索
   if (!searchQuery && !profileWhere) {
-    return base.search(params) as Promise<PaginatedResult<User>>;
+    return userBase.search(params) as Promise<PaginatedResult<User>>;
   }
 
   const profileTable = profileTables[role];
 
   // プロフィールテーブルが存在しない場合は通常検索にフォールバック
   if (!profileTable) {
-    return base.search(params) as Promise<PaginatedResult<User>>;
+    return userBase.search(params) as Promise<PaginatedResult<User>>;
   }
 
   const conditions: SQL[] = [];
@@ -134,7 +134,7 @@ export async function searchWithProfile(
 
   // 条件がなければ通常検索にフォールバック
   if (!conditions.length) {
-    return base.search(params) as Promise<PaginatedResult<User>>;
+    return userBase.search(params) as Promise<PaginatedResult<User>>;
   }
 
   // searchQuery / profileWhere を除いた params で base.search() を呼ぶ
@@ -154,7 +154,7 @@ export async function searchWithProfile(
     ? sql`${existingExtraWhere} AND (${combined})`
     : combined;
 
-  return base.search({
+  return userBase.search({
     ...rest,
     extraWhere: finalExtraWhere,
   }) as Promise<PaginatedResult<User>>;

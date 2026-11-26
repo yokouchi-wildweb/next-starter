@@ -1,5 +1,5 @@
 // 主の集まりの項目（mediaCollection）の主の生成物の回帰テスト: 列を出さない・スキーマ・モデル・Fields の用途とファイルの条件、
-// 配線（collections.ts・drizzleBase の import と options・手書きの drizzleBase への案内）。
+// 配線（<登録名>Collections.ts・<登録名>Base の import と options・手書きの土台への案内）。
 // parity の fixture showcase（従属 showcase_photo はこの実行で書き出す）を一時の workspace で組ごと生成して見る。
 // 実行: pnpm test scripts/structure/domain/tests/parentOutputs.test.mjs
 import { after, test } from "node:test";
@@ -94,7 +94,7 @@ test("Fields: 従属が分からなくても用途名は collection.domain か�
   assert.deepEqual(patch, { purpose: "showcasePhoto.file", validationRule: { maxItems: 8, minItems: 1 } });
 });
 
-// ---- 配線: collections.ts（registry）・drizzleBase の import と options・手書きの drizzleBase への案内 ----
+// ---- 配線: <登録名>Collections.ts（registry）・<登録名>Base の import と options・手書きの土台への案内 ----
 
 function ownerContext(config = showcase) {
   const root = makeProject({ templates: ["services"], configs: { showcase: config, plainThing: { ...config, singular: "plain_thing", plural: "plain_things", fields: config.fields.filter((f) => f.fieldType !== "mediaCollection") } }, cleanup });
@@ -106,9 +106,9 @@ function ownerContext(config = showcase) {
 }
 const contentOf = (outputs, name) => outputs.find((out) => out.path?.endsWith(name))?.content;
 
-test("collections.ts: 集まりの項目ごとに CrudCollectionConfig（従属のサービス・列・件数・複製）を書く。集まりの無い主には出さない", () => {
+test("<登録名>Collections.ts: 集まりの項目ごとに CrudCollectionConfig（従属のサービス・列・件数・複製）を書く。集まりの無い主には出さない", () => {
   const { workspace, ctx } = ownerContext();
-  const collections = contentOf(renderCollectionsOutput(ctx), "services/server/collections.ts");
+  const collections = contentOf(renderCollectionsOutput(ctx), "services/server/showcaseCollections.ts");
   assert.equal(
     collections.split("\n").slice(6).join("\n"), // 先頭 = パスの行・生成物の印・注釈 4 行
     [
@@ -134,16 +134,16 @@ test("collections.ts: 集まりの項目ごとに CrudCollectionConfig（従属�
   assert.deepEqual(renderCollectionsOutput(plain), []);
 });
 
-test("drizzleBase: 集まりを持つ主だけ collections を import して options に渡す。集まりの無い主の drizzleBase は変わらない", () => {
+test("<登録名>Base: 集まりを持つ主だけ collections を import して options に渡す。集まりの無い主の土台は変わらない", () => {
   const { workspace, ctx } = ownerContext();
-  const owner = contentOf(renderServerServices(ctx, workspace), "drizzleBase.ts");
-  assert.match(owner, /^import \{ collections \} from "\.\/collections";$/m);
+  const owner = contentOf(renderServerServices(ctx, workspace), "showcaseBase.ts");
+  assert.match(owner, /^import \{ collections \} from "\.\/showcaseCollections";$/m);
   assert.match(owner, /^ {2}collections,$/m);
   const plainCtx = loadDomainForGenerate(workspace, "plainThing", SILENT);
-  const plain = contentOf(renderServerServices(plainCtx, workspace), "drizzleBase.ts");
+  const plain = contentOf(renderServerServices(plainCtx, workspace), "plainThingBase.ts");
   assert.doesNotMatch(plain, /collections/);
   const ownerWithoutCollections = owner
-    .replace('import { collections } from "./collections";\n', "")
+    .replace('import { collections } from "./showcaseCollections";\n', "")
     .replace(/ {2}\/\/ 主の集まりの項目[^\n]*\n {2}collections,\n/, "");
   assert.equal(ownerWithoutCollections.replace(/showcase/g, "x").replace(/Showcase/g, "X"), plain.replace(/plain_things|plainThing/g, "x").replace(/PlainThing/g, "X"));
 });

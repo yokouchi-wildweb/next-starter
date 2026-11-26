@@ -53,7 +53,7 @@ import {
   modeBadgeVariant,
   purchaseRequestStatusBadgeVariant,
   statusBadgeVariant,
-} from "@/domains/core/bankTransferReview/presenters";
+} from "@/domains/core/bankTransferReview/bankTransferReviewPresenters";
 
 
 type Props = {

@@ -1,9 +1,9 @@
 // src/domains/wallet/services/types.ts
 
 import type { Wallet } from "@/domains/core/wallet/entities";
-import type { WalletTypeValue } from "@/domains/core/wallet/types/field";
+import type { WalletTypeValue } from "@/domains/core/wallet/types/walletField";
 import type { WalletHistory } from "@/domains/core/walletHistory/entities";
-import type { WalletHistoryChangeMethodValue, WalletHistorySourceTypeValue } from "@/domains/core/walletHistory/types/field";
+import type { WalletHistoryChangeMethodValue, WalletHistorySourceTypeValue } from "@/domains/core/walletHistory/types/walletHistoryField";
 import type { WalletHistoryMetaInput } from "@/domains/core/walletHistory/types/meta";
 import type { ReasonCategory } from "@/domains/walletHistory/config";
 

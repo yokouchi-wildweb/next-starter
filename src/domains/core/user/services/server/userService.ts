@@ -1,6 +1,6 @@
 // src/domains/core/user/services/server/userService.ts
 
-import { base } from "./drizzleBase";
+import { userBase } from "./userBase";
 import { checkAdminUserExists } from "./finders/checkAdminUserExists";
 import { findByIdWithSecrets } from "./finders/findByIdWithSecrets";
 import { findByLocalEmail } from "./finders/findByLocalEmail";
@@ -54,7 +54,7 @@ const {
   bulkUpdateByQuery: _bulkUpdateByQuery,
   bulkHardDeleteByIds: _bulkHardDeleteByIds,
   ...exposedBase
-} = base;
+} = userBase;
 
 export const userService = {
   ...exposedBase,

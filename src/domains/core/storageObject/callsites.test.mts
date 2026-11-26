@@ -3,7 +3,7 @@
 // - core 用途（src/registry/storagePurposes/core.ts の実物）での private read の代表: 本人 / 明示 admin / 現参加者、
 //   退室・logout の後は新しい署名が出ない、admin でもチャット添付は読めない（暗黙の通過なし）
 // - 業務行の公開状態を見る private 用途: 非公開化の後は新しい署名が出ない
-// - core の保存（アバター・振込明細）が新 ref の検査を迂回しない: 実際の drizzleBase の binding 設定（fields / scope）を使う
+// - core の保存（アバター・振込明細）が新 ref の検査を迂回しない: 実際の土台(<登録名>Base)の binding 設定（fields / scope）を使う
 // core.ts の check は本物の判定関数（isChatParticipant / isOwnPendingPurchaseRequest）を通す。
 // 判定関数が読むデータ源（Firestore のルーム・購入リクエスト・振込レビュー）だけをモックする（下の注記）。
 // 実行: pnpm test src/domains/core/storageObject/callsites.test.mts
@@ -30,9 +30,9 @@ mock.module("@/domains/core/chatRoom/services/server/chatRoomService", {
     },
   },
 });
-mock.module("@/domains/core/purchaseRequest/services/server/drizzleBase", {
+mock.module("@/domains/core/purchaseRequest/services/server/purchaseRequestBase", {
   namedExports: {
-    base: {
+    purchaseRequestBase: {
       get: async (id: string) =>
         id in REQUEST_OWNERS
           ? {
@@ -55,9 +55,9 @@ mock.module("@/domains/core/bankTransferReview/services/server/wrappers/findHelp
 const { overrideSwitches, configRules } = await import("@/featureGate/ruleList");
 overrideSwitches(Object.fromEntries(configRules.map((rule) => [rule.name, true])));
 const { UserSelfUpdateSchema, UserUpdateByAdminSchema } = await import("@/domains/core/user/entities/schema");
-const { baseOptions: userBaseOptions } = await import("@/domains/core/user/services/server/drizzleBase");
+const { baseOptions: userBaseOptions } = await import("@/domains/core/user/services/server/userBase");
 const { storageBinding: bankTransferReviewBinding } = await import(
-  "@/domains/core/bankTransferReview/services/server/drizzleBase"
+  "@/domains/core/bankTransferReview/services/server/bankTransferReviewBase"
 );
 const { runWithAuditContext } = await import("@/lib/audit/server");
 const { createFakeStoragePort, passThroughImageStrip } = await import("@/lib/storage/server");

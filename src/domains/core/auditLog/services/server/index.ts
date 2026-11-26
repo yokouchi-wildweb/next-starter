@@ -1,7 +1,8 @@
 // src/domains/core/auditLog/services/server/index.ts
 
 export { auditLogger, type AuditLogger } from "./auditLogService";
-export { auditLogBase, auditLogFailedBase } from "./drizzleBase";
+export { auditLogBase } from "./auditLogBase";
+export { auditLogFailedBase } from "./auditLogFailedBase";
 export { searchByTarget, type SearchByTargetParams } from "./wrappers/searchByTarget";
 export { searchBySubjectUser } from "./wrappers/searchBySubjectUser";
 export {
@@ -11,7 +12,7 @@ export {
 } from "./recoverDeadLetter";
 export { buildUserVisibleActionsWhere } from "./userVisibility";
 
-import { auditLogBase } from "./drizzleBase";
+import { auditLogBase } from "./auditLogBase";
 import { searchByTarget } from "./wrappers/searchByTarget";
 import { searchBySubjectUser } from "./wrappers/searchBySubjectUser";
 

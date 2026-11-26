@@ -7,7 +7,7 @@ import { defineConfig, type OverrideOf } from "@/lib/defineConfig";
 
 export type AuditLogConfig = {
   /**
-   * action の表示名(AuditTimeline / 管理画面)。上流の既定は ./presenters.ts、同じ action はこちらが勝つ。
+   * action の表示名(AuditTimeline / 管理画面)。上流の既定は ./auditLogPresenters.ts、同じ action はこちらが勝つ。
    * 例: { "post.published": "公開" }。未登録の action は名前がそのまま表示される
    */
   actionLabels: Readonly<Record<string, string>>;

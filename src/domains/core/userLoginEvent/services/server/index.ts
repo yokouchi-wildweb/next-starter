@@ -1,6 +1,6 @@
 // src/domains/core/userLoginEvent/services/server/index.ts
 
-export { userLoginEventBase } from "./drizzleBase";
+export { userLoginEventBase } from "./userLoginEventBase";
 export {
   recordLoginEvent,
   recordLogoutEvent,
@@ -22,7 +22,7 @@ export {
   type FindUsersBySameIpOptions,
   type FindUsersBySubnetOptions,
 } from "./ipAnalytics";
-import { userLoginEventBase } from "./drizzleBase";
+import { userLoginEventBase } from "./userLoginEventBase";
 
 /**
  * ユーザーログインイベント参照系サービス。

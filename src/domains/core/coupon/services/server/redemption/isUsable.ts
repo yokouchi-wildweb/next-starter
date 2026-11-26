@@ -1,6 +1,6 @@
 // クーポン使用可否判定
 
-import { base } from "../drizzleBase";
+import { couponBase } from "../couponBase";
 import { getUsageCount } from "./getUsageCount";
 import { validateCouponStatically } from "./utils";
 import type { UsabilityCheckOptions, UsabilityResult } from "../../../types/redeem";
@@ -34,7 +34,7 @@ export async function isUsable(
   options?: UsabilityCheckOptions
 ): Promise<UsabilityResult> {
   // 1. クーポン取得
-  const result = await base.search({
+  const result = await couponBase.search({
     where: { field: "code", op: "eq", value: code },
     limit: 1,
   });

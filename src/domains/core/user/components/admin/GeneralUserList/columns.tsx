@@ -7,7 +7,7 @@ import { TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { EditButton } from "@/lib/crud";
 import { Button } from "@/components/Button/Button";
 import type { User } from "@/domains/core/user/entities";
-import presenters from "@/domains/core/user/presenters";
+import presenters from "@/domains/core/user/userPresenters";
 import { UserAdminMemoCell } from "@/domains/core/user/components/common/UserAdminMemoCell";
 import { domainDisplay as userDisplay } from "@/domains/core/user/entities/display";
 import type { GeneralUserListColumnHandlers } from "@/domains/core/user/hooks/useGeneralUserListTable";

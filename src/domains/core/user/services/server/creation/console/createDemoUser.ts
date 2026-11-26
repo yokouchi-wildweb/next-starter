@@ -19,7 +19,7 @@ import { findSoftDeletedUser } from "@/domains/core/user/services/server/finders
 import { recordStatusTransition } from "@/domains/core/user/services/server/statusHistory";
 import { userProfileService } from "@/domains/core/userProfile/services/server/userProfileService";
 import type { CreateDemoUserInput } from "../../../types";
-import { base } from "../../drizzleBase";
+import { userBase } from "../../userBase";
 import { restoreSoftDeletedUser } from "./restore";
 import { getPublicColumns } from "@/lib/crud/server";
 
@@ -90,7 +90,7 @@ async function createDemoAdmin(data: CreateDemoUserInput): Promise<User> {
   });
 
   const [user] = await db.insert(UserTable).values(values).returning(getPublicColumns(UserTable));
-  base.invalidateRequestMemo();
+  userBase.invalidateRequestMemo();
 
   await recordStatusTransition({
     userId: user.id,
@@ -153,7 +153,7 @@ async function createDemoGeneralUser(data: CreateDemoUserInput): Promise<User> {
   });
 
   const [user] = await db.insert(UserTable).values(values).returning(getPublicColumns(UserTable));
-  base.invalidateRequestMemo();
+  userBase.invalidateRequestMemo();
 
   await recordStatusTransition({
     userId: user.id,

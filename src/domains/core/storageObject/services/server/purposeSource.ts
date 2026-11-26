@@ -21,7 +21,7 @@ export function withFixedStripPurposes(map: StoragePurposeMap): StoragePurposeMa
   return fixed;
 }
 
-/** 用途表を合成する: 項目(core・fork)+ ドメインの storagePurposes.ts の一覧。同じ用途 ID は例外(黙って上書きしない) */
+/** 用途表を合成する: 項目(core・fork)+ ドメインの <登録名>StoragePurposes.ts の一覧。同じ用途 ID は例外(黙って上書きしない) */
 export function mergeStoragePurposes(maps: readonly StoragePurposeMap[]): StoragePurposeMap {
   const merged: Record<string, StoragePurposeMap[string]> = {};
   for (const map of maps) {

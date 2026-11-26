@@ -26,7 +26,7 @@ import type {
 } from "@/domains/core/fingerprintChallenge/entities/model";
 import type { EffectiveChallengeStatus } from "@/domains/core/fingerprintChallenge/constants";
 import { recordChallengeView } from "./accessLog";
-import { fingerprintChallengeBase } from "./drizzleBase";
+import { fingerprintChallengeBase } from "./fingerprintChallengeBase";
 import { getPublicColumns } from "@/lib/crud/server";
 
 /** prompt (質問定義 JSONB) の保存上限バイト数 */

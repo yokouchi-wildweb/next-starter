@@ -11,16 +11,16 @@ import { fields } from "../../definitions";
 import { isMaintenanceWindowActive } from "../../utils/maintenanceWindow";
 import type { AdminSetupInput } from "../types";
 import { codeValueKeys, codeValues, isCodeKey } from "./codeValues";
-import { base } from "./drizzleBase";
+import { settingBase } from "./settingBase";
 import { readSettingValues } from "./read";
 import { createReadMemo } from "./readMemo";
 import { saveSettingValues } from "./save";
 
-type Stored = { row: Awaited<ReturnType<typeof base.get>> | null; stored: Record<string, unknown> | null };
+type Stored = { row: Awaited<ReturnType<typeof settingBase.get>> | null; stored: Record<string, unknown> | null };
 
 /** 期限つきのメモの中身: DB の 1 行の読み(期限 = config の readMemoMs) */
 const storedMemo = createReadMemo<Stored>(async () => {
-  const row = await base.get("global");
+  const row = await settingBase.get("global");
   return { row: row ?? null, stored: (row?.extended as Record<string, unknown> | null | undefined) ?? null };
 }, () => settingConfig.readMemoMs);
 
@@ -33,7 +33,7 @@ async function readStored(): Promise<Stored> {
 /** 保存の後: このインスタンスの読みのメモとリクエストのメモを捨てる */
 function invalidateReads(): void {
   storedMemo.clear();
-  base.invalidateRequestMemo();
+  settingBase.invalidateRequestMemo();
 }
 
 async function getGlobalSetting(): Promise<Setting> {
@@ -91,7 +91,7 @@ export async function initializeAdminSetup(data: AdminSetupInput): Promise<User>
   // role はクライアント入力を無視して admin 固定（セットアップUIにロール選択は存在しない）
   const user = await createAdmin({ ...data, role: "admin" });
   // 行を作るだけ。既定値は書かない
-  if (!(await base.get("global"))) await base.create({ id: "global" });
+  if (!(await settingBase.get("global"))) await settingBase.create({ id: "global" });
   invalidateReads();
 
   return user;
@@ -102,7 +102,7 @@ const closed = (name: string) => async (): Promise<never> => {
 };
 
 export const settingService = {
-  ...base,
+  ...settingBase,
   get: async (_id: string) => getGlobalSetting(),
   // 値の書き手は保存処理だけ(行を作るのは initializeAdminSetup の base.create)
   update: (_id: string, data: Partial<SettingValues>) => updateFields(data),

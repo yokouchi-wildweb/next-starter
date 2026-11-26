@@ -14,7 +14,8 @@ export const CACHED_READS_FILE = path.join("services", "server", "cachedReads.ts
 /** 生成物の印(頭の行の始まり。消す時はこの印のあるファイルだけ消す) */
 export const GENERATED_MARK = "// 生成物・編集不可: pnpm generate cache が ";
 
-const BASE_FILE = path.join("services", "server", "drizzleBase.ts");
+/** 主の登録の土台(services/server/<登録名>Base.ts、export <登録名>Base。キャッシュの宣言は主の登録 = ドメイン名の登録の entity.json) */
+const baseFileOf = (row) => path.join("services", "server", `${row.name}Base.ts`);
 
 const literal = (value) => JSON.stringify(value);
 const IDENTIFIER_KEY = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
@@ -72,15 +73,15 @@ export function renderCachedReads(row, cache, source) {
         params: "id: string",
         args: "id",
         doc: `1 行を id で読む(行のキャッシュタグ・行の全部のキャッシュタグ${relatedTags.length ? "・読むドメインのキャッシュタグ" : ""})`,
-        body: readBody({ life: declared.life, mode: declared.mode, tags: [`cacheTagOf(${d}, id)`, `cacheRowsTagOf(${d})`, ...relatedTags], call: "base.get(id)" }),
-        call: "base.get(id)",
+        body: readBody({ life: declared.life, mode: declared.mode, tags: [`cacheTagOf(${d}, id)`, `cacheRowsTagOf(${d})`, ...relatedTags], call: `${row.name}Base.get(id)` }),
+        call: `${row.name}Base.get(id)`,
         domain: row.name,
       }),
     );
   }
   if (declared.list) {
     names.push("list");
-    const call = `base.search({ limit: ${declared.list.limit} })`;
+    const call = `${row.name}Base.search({ limit: ${declared.list.limit} })`;
     functions.push(
       wrapped({
         name: "list",
@@ -96,7 +97,7 @@ export function renderCachedReads(row, cache, source) {
   for (const read of declared.reads) {
     names.push(read.name);
     const params = [read.where && `where: ${tsLiteral(read.where)}`, read.orderBy && `orderBy: ${tsLiteral(read.orderBy)}`, `limit: ${read.limit}`].filter(Boolean);
-    const call = `base.search({ ${params.join(", ")} })`;
+    const call = `${row.name}Base.search({ ${params.join(", ")} })`;
     functions.push(
       wrapped({
         name: read.name,
@@ -119,13 +120,13 @@ export function renderCachedReads(row, cache, source) {
     `// ${row.dir}/services/server/cachedReads.ts`,
     "//",
     "// 共有の読みのキャッシュ(\"use cache: remote\"、行き先は next.config の cacheHandlers、既定は Vercel の Runtime Cache)。",
-    "// 書き込みは base(drizzleBase の option cacheTags)がキャッシュタグを積み、入口が要求の終わりに消す(src/lib/cacheTags)。",
-    "// 判断の道(引く・買う・残高・在庫の引当など)はこの読みを使わず base を直に読む。server だけが読む",
+    `// 書き込みは ${row.name}Base(${row.name}Base.ts の option cacheTags)がキャッシュタグを積み、入口が要求の終わりに消す(src/lib/cacheTags)。`,
+    `// 判断の道(引く・買う・残高・在庫の引当など)はこの読みを使わず ${row.name}Base を直に読む。server だけが読む`,
     "",
     `import { ${nextImports} } from "next/cache";`,
     `import { ${[...tagImports, "readThrough"].join(", ")} } from "@/lib/cacheTags/server";`,
     "",
-    'import { base } from "./drizzleBase";',
+    `import { ${row.name}Base } from "./${row.name}Base";`,
     "",
     functions.join("\n\n"),
     "",
@@ -136,11 +137,12 @@ export function renderCachedReads(row, cache, source) {
 
 /** 手書きの base が option cacheTags を持つか(generate: true のドメインは domain の生成器が書く) */
 function baseIssues(rootDir, row) {
+  const BASE_FILE = baseFileOf(row);
   const file = path.join(rootDir, row.dir, BASE_FILE);
-  if (!fs.existsSync(file)) return [`[${row.name}] ${row.dir}/${BASE_FILE} がありません(包む読みは drizzleBase の base を読む)`];
+  if (!fs.existsSync(file)) return [`[${row.name}] ${row.dir}/${BASE_FILE} がありません(包む読みは主の登録の土台 ${row.name}Base を読む)`];
   const text = fs.readFileSync(file, "utf8");
   const issues = [];
-  if (!/export const base\b/.test(text)) issues.push(`[${row.name}] ${row.dir}/${BASE_FILE} に export const base がありません`);
+  if (!new RegExp(`export const ${row.name}Base\\b`).test(text)) issues.push(`[${row.name}] ${row.dir}/${BASE_FILE} に export const ${row.name}Base がありません`);
   if (!new RegExp(`cacheTags:\\s*\\{\\s*domain:\\s*"${row.name}"\\s*,?\\s*\\}`).test(text)) {
     issues.push(`[${row.name}] ${row.dir}/${BASE_FILE} の createCrudService に cacheTags: { domain: "${row.name}" } を書いてください(書き込みがキャッシュタグを積まないと包んだ読みが古いまま。generate: true のドメインは pnpm generate domain が書く)`);
   }

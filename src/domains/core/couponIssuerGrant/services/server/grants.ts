@@ -12,7 +12,7 @@
 import { runWithTransaction, type TransactionClient } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 import type { CouponIssuerGrant } from "@/domains/core/couponIssuerGrant/entities/model";
-import { couponIssuerGrantBase } from "./drizzleBase";
+import { couponIssuerGrantBase } from "./couponIssuerGrantBase";
 import { getGrantByUser, requireGrantForUpdate as requireGrant } from "./queries";
 import {
   setCurrentPeriodCouponStatus,

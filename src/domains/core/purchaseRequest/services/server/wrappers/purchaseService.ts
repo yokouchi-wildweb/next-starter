@@ -3,7 +3,7 @@
 // 各機能は個別ファイルに分割済み。外部からの import パスを維持するためのエントリポイント。
 
 import type { PaymentProviderName } from "../payment";
-import type { WalletTypeValue } from "@/domains/core/wallet/types/field";
+import type { WalletTypeValue } from "@/domains/core/wallet/types/walletField";
 import type { PersistedMilestoneResult } from "@/domains/core/milestone/types/milestone";
 import type { PurchaseRequest } from "@/domains/core/purchaseRequest/entities/model";
 import type { PurchaseTypeKey } from "@/domains/purchaseRequest/config";
@@ -160,7 +160,7 @@ export { settleExpiredClientSdkSessions } from "./expireStaleSessions";
 export type { SettleExpiredClientSdkSessionsResult, StaleSessionOutcome } from "./expireStaleSessions";
 
 // ステータス取得（ポーリング用）— 小規模なので inline で維持
-import { base } from "../drizzleBase";
+import { purchaseRequestBase } from "../purchaseRequestBase";
 import type { PurchaseRequest as PR } from "@/domains/core/purchaseRequest/entities/model";
 import { reconcileWithProvider } from "./reconcileWithProvider";
 
@@ -168,7 +168,7 @@ import { reconcileWithProvider } from "./reconcileWithProvider";
  * 購入リクエストのステータスを取得
  */
 export async function getPurchaseStatus(requestId: string): Promise<PR | null> {
-  const result = await base.get(requestId);
+  const result = await purchaseRequestBase.get(requestId);
   return result as PR | null;
 }
 
@@ -180,7 +180,7 @@ export async function getPurchaseStatusForUser(
   requestId: string,
   userId: string
 ): Promise<PR | null> {
-  const request = await base.get(requestId) as PR | null;
+  const request = await purchaseRequestBase.get(requestId) as PR | null;
   if (!request || request.user_id !== userId) {
     return null;
   }

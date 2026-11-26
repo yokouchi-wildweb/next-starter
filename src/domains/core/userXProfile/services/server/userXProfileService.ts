@@ -1,6 +1,6 @@
 // src/domains/userXProfile/services/server/userXProfileService.ts
 
-import { base } from "./drizzleBase";
+import { userXProfileBase } from "./userXProfileBase";
 import { linkXAccount } from "./wrappers/linkXAccount";
 import { unlinkXAccount } from "./wrappers/unlinkXAccount";
 import { findByUserId } from "./wrappers/findByUserId";
@@ -11,7 +11,7 @@ import { updateTokens } from "./wrappers/updateTokens";
 export type { LinkXAccountOptions } from "./wrappers/linkXAccount";
 
 export const userXProfileService = {
-  ...base,
+  ...userXProfileBase,
   // X 連携操作
   linkXAccount,
   unlinkXAccount,

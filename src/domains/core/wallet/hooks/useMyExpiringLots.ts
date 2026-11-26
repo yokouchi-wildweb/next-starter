@@ -5,7 +5,7 @@
 import useSWR from "swr";
 
 import type { ExpiringLotsPayload } from "@/domains/core/wallet/services/types";
-import type { WalletTypeValue } from "@/domains/core/wallet/types/field";
+import type { WalletTypeValue } from "@/domains/core/wallet/types/walletField";
 import { walletClient } from "@/domains/core/wallet/services/client/walletClient";
 
 /**

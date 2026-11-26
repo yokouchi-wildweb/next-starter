@@ -52,7 +52,7 @@ test("CLI: --dry-run は --generate と併用、対話なしで一覧を出す�
   const bad = spawnSync("node", [index, "--delete", "sampleTag", "--dry-run"], { cwd: repoRoot, encoding: "utf8" });
   assert.equal(bad.status, 1);
   assert.match(bad.stderr, /--dry-run は --generate と併用/);
-  // registry カテゴリが書く物(collections.ts・storagePurposes.ts)を持つ sample で見る(登録表の行は登録の entity.json から pnpm generate registry が作る)
+  // registry カテゴリが書く物(<登録名>Collections.ts・<登録名>StoragePurposes.ts)を持つ sample で見る(登録表の行は登録の entity.json から pnpm generate registry が作る)
   const ok = spawnSync("node", [index, "--generate", "sample", "--yes", "--dry-run", "--only", "registry"], { cwd: repoRoot, encoding: "utf8" });
   assert.equal(ok.status, 0, ok.stderr);
   // 集まりの組(sample → sampleImage)なので組の一覧も出る: 主は従属の宣言を「保持」(既にある)と書く物の「変更なし」

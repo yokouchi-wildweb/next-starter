@@ -27,7 +27,7 @@ import type { BulkActionItem, BulkActionProps } from "@/lib/tableSuite";
 import { walletConfig, type WalletType } from "@/domains/wallet/config";
 import { useBulkGrantWallet } from "@/domains/core/wallet/hooks/useBulkGrantWallet";
 import type { BulkGrantKind } from "@/domains/core/wallet/services/types";
-import type { WalletTypeValue } from "@/domains/core/wallet/types/field";
+import type { WalletTypeValue } from "@/domains/core/wallet/types/walletField";
 import type { BulkGrantRunResult } from "@/domains/core/wallet/utils/bulkGrantChunks";
 
 /** 項目の並べ方・出し分け(BulkActionItem の Component 以外) */

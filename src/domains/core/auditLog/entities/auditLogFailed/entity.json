@@ -8,7 +8,7 @@
     "write": "none"
   },
   "service": {
-    "file": "drizzleBase",
+    "file": "auditLogFailedBase",
     "export": "auditLogFailedBase"
   },
   "columns": [

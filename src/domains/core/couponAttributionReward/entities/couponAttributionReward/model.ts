@@ -1,6 +1,6 @@
 // src/domains/core/couponAttributionReward/entities/couponAttributionReward/model.ts
 
-import type { WalletTypeValue } from "@/domains/core/wallet/types/field";
+import type { WalletTypeValue } from "@/domains/core/wallet/types/walletField";
 import type { CouponAttributionRewardStatus } from "@/domains/core/couponAttributionReward/constants";
 
 export type CouponAttributionReward = {

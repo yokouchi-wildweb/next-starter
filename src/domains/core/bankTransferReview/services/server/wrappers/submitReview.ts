@@ -29,7 +29,7 @@ import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
 import { auditLogger } from "@/domains/core/auditLog/services/server";
 import { readBankTransferJudgmentFromMetadata } from "@/domains/core/purchaseRequest/constants/bankTransferJudgment";
-import { base as purchaseRequestBase } from "@/domains/purchaseRequest/services/server/drizzleBase";
+import { purchaseRequestBase as purchaseRequestBase } from "@/domains/purchaseRequest/services/server/purchaseRequestBase";
 import type { PurchaseRequest } from "@/domains/purchaseRequest/entities/model";
 import {
   INHOUSE_BANK_TRANSFER_METHOD_ID,
@@ -43,7 +43,7 @@ import type {
   BankTransferReviewNeedsCheckContext,
 } from "@/domains/bankTransferReview/entities/model";
 
-import { base } from "../drizzleBase";
+import { bankTransferReviewBase } from "../bankTransferReviewBase";
 import { findByPurchaseRequest } from "./findHelpers";
 import { lockReviewForSubmit } from "./lockReviewStatus";
 
@@ -161,7 +161,7 @@ export async function submitReview(
 
   // 6. レビューを作成または更新 + 監査ログ記録（同一トランザクションで atomic）
   //    再申告時は画像を差し替えて submitted_at を更新する。
-  //    振込明細画像（ref）の検証は base の storage binding が同じ TX で行う（drizzleBase.ts）:
+  //    振込明細画像（ref）の検証は base の storage binding が同じ TX で行う（bankTransferReviewBase.ts）:
   //    アップロードした本人・scopeId = この purchase_request・未紐付けの ref だけが紐付き、
   //    それ以外（外部 URL・他人や別の依頼の画像・新しい旧 URL）は 400 で TX ごと巻き戻る。
   //    差し替えで外れた前の画像は deleted になり、実物は storage-sweep が消す（tx を渡しているため）。
@@ -209,13 +209,13 @@ export async function submitReview(
         updates.needs_check_context = null;
       }
 
-      next = (await base.update(
+      next = (await bankTransferReviewBase.update(
         existing.id,
-        updates as unknown as Parameters<typeof base.update>[1],
+        updates as unknown as Parameters<typeof bankTransferReviewBase.update>[1],
         tx,
       )) as BankTransferReview;
     } else {
-      next = (await base.create(
+      next = (await bankTransferReviewBase.create(
         {
           purchase_request_id: purchaseRequestId,
           user_id: userId,
@@ -231,7 +231,7 @@ export async function submitReview(
                 needs_check_reason: "image_judgment_failed" as const,
                 needs_check_context: needsCheckContext,
               }),
-        } as unknown as Parameters<typeof base.create>[0],
+        } as unknown as Parameters<typeof bankTransferReviewBase.create>[0],
         tx,
       )) as BankTransferReview;
     }

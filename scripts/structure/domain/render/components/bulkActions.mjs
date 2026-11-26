@@ -1,5 +1,5 @@
 // 生成カテゴリ components の一部: 管理一覧の一括操作の項目の型(棚の評議会 D149)。
-// - <domain>/types/adminBulkAction.ts: 項目の型(core/admin の AdminBulkActionItemOf<Row>。domain? = 効く一覧のドメイン、省略 = 差したドメイン)
+// - <domain>/types/<登録名>AdminBulkAction.ts: 項目の型(core/admin の AdminBulkActionItemOf<Row>。domain? = 効く一覧のドメイン、省略 = 差したドメイン)
 // 点 adminBulkActions は core/admin の 1 点(段 3 注文 24 Q2)なので、生成するドメインは宣言を持たない。項目は <domain>/plugs/adminBulkActions/<名前>.tsx。
 // 一覧の Table(Admin__Domain__List/Table.tsx)が core/admin の useDomainAdminBulkActions で自分の項目を読み、項目があれば選択の表と一括操作のバーを出す
 
@@ -12,7 +12,7 @@ import { file } from "../output.mjs";
 const domainImport = (ctx) => `@/domains/${domainRel(ctx).replace(/^src\/domains\//, "").replace(/^core\//, "")}`;
 
 export function adminBulkActionTypeContent(ctx) {
-  return `// ${domainRel(ctx)}/types/adminBulkAction.ts
+  return `// ${domainRel(ctx)}/types/${ctx.camel}AdminBulkAction.ts
 // ${ctx.label}の管理一覧の一括操作の項目の型(pnpm generate domain が生成する。手で編集しない)
 
 import type { AdminBulkActionItemOf } from "@/domains/core/admin/types/adminBulkAction";
@@ -26,6 +26,6 @@ export type ${ctx.pascal}AdminBulkActionItem = AdminBulkActionItemOf<${ctx.pasca
 /** @returns {import("../output.mjs").Output[]} */
 export function renderBulkActionFiles(ctx) {
   return [
-    file(path.join(ctx.dir, "types", "adminBulkAction.ts"), adminBulkActionTypeContent(ctx), { label: "型を生成しました" }),
+    file(path.join(ctx.dir, "types", `${ctx.camel}AdminBulkAction.ts`), adminBulkActionTypeContent(ctx), { label: "型を生成しました" }),
   ];
 }

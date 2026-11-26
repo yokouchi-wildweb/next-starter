@@ -75,7 +75,7 @@ function buildLabelMap(config: DomainJsonConfig): {
 }
 
 /**
- * presenters を渡していない列の表示。entity.json の項目は生成の presenters.ts と同じ答え（presenterFor）で描く。
+ * presenters を渡していない列の表示。entity.json の項目は生成の <登録名>Presenters.ts と同じ答え（presenterFor）で描く。
  * 一覧特有の扱い: 空・null は空欄（presenters の "―" ではなく ""）、textarea の文字列は切り詰める、値が Date なら日付。
  * 項目でない列（リレーション・id）と createdAt / updatedAt は presenterFor の外
  */

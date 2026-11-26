@@ -22,7 +22,7 @@ import type {
   BankTransferReviewNeedsCheckReason,
 } from "@/domains/bankTransferReview/entities/model";
 
-import { base } from "../drizzleBase";
+import { bankTransferReviewBase } from "../bankTransferReviewBase";
 import { lockReviewStatus } from "./lockReviewStatus";
 
 export type EscalateToNeedsCheckParams = {
@@ -53,7 +53,7 @@ export async function escalateToNeedsCheck(
 ): Promise<EscalateToNeedsCheckResult> {
   const { reviewId, reason, context, triggeredBy } = params;
 
-  const review = (await base.get(reviewId)) as BankTransferReview | null;
+  const review = (await bankTransferReviewBase.get(reviewId)) as BankTransferReview | null;
   if (!review) {
     throw new DomainError("レビューが見つかりません。", { status: 404 });
   }
@@ -85,7 +85,7 @@ export async function escalateToNeedsCheck(
       );
     }
 
-    const next = (await base.update(
+    const next = (await bankTransferReviewBase.update(
       review.id,
       {
         status: "needs_check" as const,
@@ -93,7 +93,7 @@ export async function escalateToNeedsCheck(
         needs_check_context: context,
         // base.update の引数型は drizzle DefaultInsert ベースで enum 列等を絞り込めないため
         // 同ドメインの他 wrapper と同様に any キャストで通す。
-      } as unknown as Parameters<typeof base.update>[1],
+      } as unknown as Parameters<typeof bankTransferReviewBase.update>[1],
       tx,
     )) as BankTransferReview;
 

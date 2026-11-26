@@ -1,10 +1,10 @@
 // src/domains/core/coupon/services/server/wrappers/duplicate.ts
 
-import { base, storageBinding } from "../drizzleBase";
+import { couponBase, storageBinding } from "../couponBase";
 import { generateCouponCode } from "../../../utils/generateCode";
 
 export async function duplicate(id: string): Promise<Record<string, unknown>> {
-  const record = await base.get(id);
+  const record = await couponBase.get(id);
   if (!record) {
     throw new Error(`Record not found: ${id}`);
   }
@@ -33,5 +33,5 @@ export async function duplicate(id: string): Promise<Record<string, unknown>> {
   // 業務 TX の外で先に済ませ、紐付けは base.create（storage binding）が同じ TX で行う
   const copiedValues = await storageBinding.duplicateValues(record);
 
-  return base.create({ ...newData, ...copiedValues } as Parameters<typeof base.create>[0]);
+  return couponBase.create({ ...newData, ...copiedValues } as Parameters<typeof couponBase.create>[0]);
 }

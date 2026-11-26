@@ -1,4 +1,4 @@
-// 登録表（serviceRegistry.ts）の書く前の検査: これから書くサービス・drizzleBase.ts を重ねた見え方で検査し、作れなければ何も書かない。
+// 登録表（serviceRegistry.ts）の書く前の検査: これから書くサービス・<登録名>Base.ts を重ねた見え方で検査し、作れなければ何も書かない。
 // 実行: pnpm test scripts/structure/domain/tests/registryPrecheck.test.mjs
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
@@ -26,7 +26,7 @@ function project() {
 
 function plannedOutputs(root) {
   const serverDir = path.join(root, "src", "domains", "foo", "services", "server");
-  return [file(path.join(serverDir, "drizzleBase.ts"), "// base\n"), writeOnce(path.join(serverDir, "fooService.ts"), "// service\n")];
+  return [file(path.join(serverDir, "fooBase.ts"), "// base\n"), writeOnce(path.join(serverDir, "fooService.ts"), "// service\n")];
 }
 
 /** foo の登録のサービスのファイルが無いという誤り */
@@ -65,10 +65,10 @@ test("他のドメインに base があるのに登録が無ければ、書く�
   const workspace = createWorkspace(root);
   const barServer = path.join(root, "src", "domains", "bar", "services", "server");
   fs.mkdirSync(barServer, { recursive: true });
-  fs.writeFileSync(path.join(barServer, "drizzleBase.ts"), "// bar base\n");
+  fs.writeFileSync(path.join(barServer, "barBase.ts"), "// bar base\n");
   assert.throws(() => precheckServiceRegistry(workspace, plannedOutputs(root), { errorPrefix: "✗ " }), (err) => {
     assert.match(err.message, /^✗ src\/registry\/serviceRegistry\.ts を生成できません:\n/);
-    assert.match(err.message, /src\/domains\/bar\/services\/server に drizzleBase\.ts \/ firestoreBase\.ts があるのに登録\(entities\/<登録名>\/entity\.json\)が 1 つも無い/);
+    assert.match(err.message, /src\/domains\/bar\/services\/server\/barBase\.ts の登録\(entities\/bar\/entity\.json\)が無い/);
     assert.doesNotMatch(err.message, MISSING_SERVICE, "これから書く foo のサービスは見えている");
     return true;
   });

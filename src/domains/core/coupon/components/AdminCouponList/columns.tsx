@@ -6,7 +6,7 @@
 import type { Coupon } from "@/domains/core/coupon/entities";
 import { TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { EditButton, DeleteButton, DuplicateButton } from "@/lib/crud";
-import presenters from "@/domains/core/coupon/presenters";
+import presenters from "@/domains/core/coupon/couponPresenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { formatDateJa } from "@/utils/date";
 import { truncateJapanese } from "@/utils/string";

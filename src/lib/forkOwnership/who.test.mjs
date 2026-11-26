@@ -351,7 +351,7 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     // 集める入口 entities/<種類>.ts は pnpm generate registry の物(generate: false のドメインにも書く)
     "src/domains/sample/entities/drizzle.ts": "export * from \"./sample/drizzle\";\n",
     "src/domains/hand/entities/drizzle.ts": "export * from \"./hand/drizzle\";\n",
-    "src/domains/sample/services/server/drizzleBase.ts": "export const b = 1;\n",
+    "src/domains/sample/services/server/sampleBase.ts": "export const b = 1;\n",
     "src/domains/sample/seed.ts": "export default 1;\n",
     "src/app/admin/(protected)/samples/_screen/loader.ts": "export const loader = 1;\n",
     "src/domains/hand/domain.json": JSON.stringify({ domainConfigVersion: "2.0" }),
@@ -391,7 +391,7 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     // 生成物
     ["生成器の出力(phase.json)", "src/registry/district-map.jsonl", { type: "generated", write: null, keys: null, source: "pnpm generate district-map" }],
     ["pnpm generate domain が毎回書く(直す元 = 主の登録の entity.json)", "src/domains/sample/entities/sample/drizzle.ts", { type: "generated", write: "src/domains/sample/entities/sample/entity.json", keys: null, source: "pnpm generate domain" }],
-    ["pnpm generate domain が毎回書く(直す元 = wrappers/)", "src/domains/sample/services/server/drizzleBase.ts", { type: "generated", write: "src/domains/sample/services/server/wrappers/", keys: null, source: "pnpm generate domain" }],
+    ["pnpm generate domain が毎回書く(直す元 = wrappers/)", "src/domains/sample/services/server/sampleBase.ts", { type: "generated", write: "src/domains/sample/services/server/wrappers/", keys: null, source: "pnpm generate domain" }],
     ["管理画面の生成物(ルートのフォルダ → ドメイン)", "src/app/admin/(protected)/samples/_screen/loader.ts", { type: "generated", write: "src/domains/sample/entities/sample/entity.json", keys: null, source: "pnpm generate domain" }],
     // 型 5
     ["自分の版(self の行)", "repo.json", { type: "5", write: "repo.json", keys: null }],

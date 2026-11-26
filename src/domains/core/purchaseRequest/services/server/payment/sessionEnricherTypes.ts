@@ -26,7 +26,7 @@
 // - 複数のエンリッチャーが同じフィールドを書き換える競合を防ぐための設計
 
 import type { CreatePaymentSessionParams } from "@/domains/core/purchaseRequest/types/payment";
-import type { WalletTypeValue } from "@/domains/core/wallet/types/field";
+import type { WalletTypeValue } from "@/domains/core/wallet/types/walletField";
 
 /**
  * エンリッチャーに渡されるコンテキスト

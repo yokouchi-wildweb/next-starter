@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CouponCreateSchema } from "@/domains/core/coupon/entities/schema";
 import { CouponCreateFields } from "@/domains/core/coupon/entities/form";
 import { useCreateCoupon } from "@/domains/core/coupon/hooks/useCreateCoupon";
-import { CouponTypeOptions } from "@/domains/core/coupon/constants/field";
+import { CouponTypeOptions } from "@/domains/core/coupon/constants/couponField";
 import { useCouponCategories } from "@/domains/core/coupon/hooks/useCouponCategories";
 import { CouponForm } from "./CouponForm";
 import { useRouter } from "@/lib/unsavedGuard";

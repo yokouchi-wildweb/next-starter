@@ -5,7 +5,7 @@ import { z } from "zod";
 import { COUPON_ATTRIBUTION_REWARD_STATUSES } from "@/domains/core/couponAttributionReward/constants";
 
 /**
- * CRUD ベース (drizzleBase) の create バリデーション。
+ * CRUD ベース (couponAttributionRewardBase) の create バリデーション。
  * 主経路は grant()（付与 + 台帳記録を同一 tx で実施）であり、汎用 create の直接利用は
  * 想定しない（管理 API から作っても付与は走らない）。
  */

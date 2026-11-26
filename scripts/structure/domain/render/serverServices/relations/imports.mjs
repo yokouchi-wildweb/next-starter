@@ -1,4 +1,4 @@
-// drizzleBase.ts の import 行: 自ドメインの表 + 中間テーブル、リレーション先ドメインの表
+// <登録名>Base.ts の import 行: 自ドメインの表 + 中間テーブル、リレーション先ドメインの表
 
 import { toCamelCase } from "../../../../../../src/lib/stringCase/index.mjs";
 
