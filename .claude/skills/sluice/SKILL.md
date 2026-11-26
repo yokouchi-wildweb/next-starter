@@ -51,6 +51,7 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - including a notice (after step 5) → `pnpm check notices` (called by name it runs without looking at the watch)
 3-6. → commit.md (judge downstream impact, check whether it is a fix, write the notice (notice.md), commit)
 7. **push** (not with `no-push`): first `pnpm workflow notices catchUp --onto=<push target>` every time (CATCH UP below: a tip that took the target into the line is rebuilt, else nothing) → `git push` | WORKTREE ROUTE below when it applies | failed → never paper over it, report the reason
+   - then `pnpm workflow notices freshOutputs --onto=<push target>` every time (FRESH OUTPUTS below) | exit 1 → commit the files it rewrote, then push
    - rejected because the remote moved → `pnpm workflow notices catchUp --onto=<remote>/<branch>` (CATCH UP below), rerun `pnpm check notices` when it applies, push again (the full checks of `--safe` come after the push, so a moving remote never restarts them)
    - then, **with `--safe` only, run the full checks on the pushed HEAD** (a plain ship runs the area checks above instead and makes no tag; `.notices/README.md` section `区切り(checkpoint)と区間適用`, part `セーフポイント`): `pnpm workflow notices safePoint check`
      - upstream does not check intermediate checkpoints (each fork's /flux checks every segment on its side); only the pushed tip of a `--safe` ship gets the full checks
@@ -83,8 +84,14 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
 - applies: in a linked worktree (`git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`) whose branch has no upstream of its own (`git rev-parse --abbrev-ref @{u}` fails, or prints `origin/main`) | a branch tracking its own remote branch → a plain `git push` of that branch
 - never touch the main checkout and never move its local `main` ref (no exception: it belongs to whoever works there, and the tools read what is shipped from `origin/main`)
 - `git fetch origin main` → `pnpm workflow notices catchUp` every time (CATCH UP below: lays the line again when origin/main is not an ancestor of HEAD — then rerun `pnpm check notices` when it applies —, rebuilds a tip that took origin/main into the line, else nothing; the full checks of `--safe` run after the push, step 7) → `git merge-base --is-ancestor origin/main HEAD` must succeed
+  - then `pnpm workflow notices freshOutputs` (FRESH OUTPUTS below)
 - push with `git push origin HEAD:main` | the push target of this route = `origin/main` (COMMITTED RANGE, the safe point tag)
 - any condition fails → STOP
+
+## FRESH OUTPUTS (generated files fresh before every push)
+- `pnpm workflow notices freshOutputs [--onto=<push target>]` runs the ship generators (`pnpm generate --phase=ship` over the range) on a clean work tree: a generator is work, not a check (core/notices.md checks_in_ship)
+- exit 0 = fresh | 1 = it rewrote the files it lists (left in the work tree) → commit them (subject `generated: <what>`; `Ship: quick` on a quick ship; with `hotfix`: `git restore` `src/app/route-map.jsonl` and `pnpm-lock.yaml` first), then push | 2 = cannot run (a dirty work tree, a generator failed: fix the source and rerun; not obvious → STOP)
+- why: a stale generated file pushed reaches every fork stopped at that checkpoint (order 20261119-111917-district-map-stale-at-ship); the written generator step alone did not stop commits made outside /sluice (team tools)
 
 ## CATCH UP (laying your branch again on a moved push target — D395 (2))
 - `pnpm workflow notices catchUp [--onto=<ref>]` (default origin/main): the same commits in the same order on the target; a work merge on the line (e.g. a guild ticket's merge) stays a merge, a merge that took main into the line is dropped (main's first-parent is one line), the line's root moves onto the target | this is the tool for it: a plain `git rebase` would flatten the work merges
