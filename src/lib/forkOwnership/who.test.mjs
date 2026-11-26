@@ -432,6 +432,7 @@ describe("型の答え(パスの表、explain.mjs)", () => {
   });
 
   test("generated の行の注記は読まない(生成器の宣言に無い生成物も同じ how)", () => {
+    /** @type {Record<string, string>} */
     const small = { "src/lib/forkOwnership/intake.txt": "generated src/x/old.json  # 古い手書き: pnpm foo で作る\n", "src/x/old.json": "{}\n" };
     const v = explainView({ files: Object.keys(small), read: (path) => small[path] ?? null, intake: parseIntake(small["src/lib/forkOwnership/intake.txt"]).rules });
     const r = explainPath("src/x/old.json", v, { tier: "tier1", addable: false, parent: "parent" });
