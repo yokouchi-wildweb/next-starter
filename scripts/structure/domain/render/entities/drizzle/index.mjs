@@ -8,7 +8,7 @@ import { belongsToColumns, renderDeferredForeignKeys } from "./foreignKeys.mjs";
 import { collectJunctionTables, renderJunctionTables } from "./junction.mjs";
 import { compositeUniqueIndexes, extraIndexes, extraIndexesHaveExpression, extraIndexesHaveUnique, extraIndexesHaveWhere, uniqueActiveIndexes } from "./indexes.mjs";
 import { hiddenColumnsOf, renderHiddenColumnsDeclaration, validateHiddenColumns } from "./hiddenColumns.mjs";
-import { declaredEnums, shapedFieldColumn, tableShapeEntries } from "./shape.mjs";
+import { declaredEnums, markColumnPrimaryKey, shapedFieldColumn, tableShapeEntries } from "./shape.mjs";
 import { domainRel } from "../../../domain/context.mjs";
 
 /**
@@ -32,7 +32,7 @@ export function renderDrizzleEntity(ctx, workspace) {
   const shapeEnums = declaredEnums(config, imports);
   const selfFile = `${domainRel(ctx)}/entities/drizzle.ts`;
   const shape = tableShapeEntries(config, tableName, workspace.rootDir, selfFile, imports, needs);
-  fields.push(...fieldLines, ...systemColumns(config, imports));
+  fields.push(...markColumnPrimaryKey(config, fieldLines), ...systemColumns(config, imports));
 
   const junctionTables = collectJunctionTables(ctx, workspace, tableName, imports, relationImports);
 

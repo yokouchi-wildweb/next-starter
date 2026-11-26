@@ -45,7 +45,8 @@ export function tableFactsOf(table) {
     const enumConfig = /** @type {{ enum?: { enumName: string, enumValues: string[] } }} */ (/** @type {unknown} */ (column)).enum;
     if (enumConfig) put(`${at} の enum`, `${enumConfig.enumName} [${enumConfig.enumValues.join(", ")}]`);
   }
-  for (const pk of config.primaryKeys) put(`主キー ${pk.getName()}`, pk.columns.map((column) => column.name));
+  // 列の無い主キー(宣言の項目がまだ揃わない時)は「(無い列)」
+  for (const pk of config.primaryKeys) put(`主キー ${pk.getName()}`, pk.columns.map((column) => column?.name ?? "(無い列)"));
   for (const fk of config.foreignKeys) {
     const reference = fk.reference();
     put(`FK ${fk.getName()}`, {

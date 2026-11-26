@@ -13,7 +13,9 @@ export function buildColumn(typeFn, columnName, fieldType) {
 }
 
 export function formatValue(v) {
-  return typeof v === "string" ? `"${v}"` : v;
+  if (typeof v === "string") return `"${v}"`;
+  // オブジェクト・配列の既定(jsonb の {} など)は JSON の字面で(そのまま埋めると [object Object] になる)
+  return v !== null && typeof v === "object" ? JSON.stringify(v) : v;
 }
 
 /** id 列。idType に応じて uuid / text / integer */

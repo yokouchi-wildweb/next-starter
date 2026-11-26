@@ -154,6 +154,16 @@ function importPathOf(file) {
   return `@/${file.slice("src/".length).replace(/\.(ts|tsx|mts|mjs|js)$/, "")}`;
 }
 
+/** 主キーが名前なしの 1 列 = 列の .primaryKey()(DB の制約名は <表>_pkey。primaryKey() の制約にすると名前が変わる) */
+export const isColumnPrimaryKey = (config) => config.primaryKey?.columns?.length === 1 && !config.primaryKey.name;
+
+/** 列の主キーをその項目の行に付ける(項目がまだ無ければ何もしない) */
+export function markColumnPrimaryKey(config, lines) {
+  if (!isColumnPrimaryKey(config)) return lines;
+  const prefix = `  ${config.primaryKey.columns[0]}: `;
+  return lines.map((line) => (line.startsWith(prefix) && line.endsWith(",") ? `${line.slice(0, -1)}.primaryKey(),` : line));
+}
+
 /** @param {string[]} columns */
 const tableColumns = (columns) => columns.map((column) => `table.${column}`).join(", ");
 
@@ -170,7 +180,7 @@ const tableColumns = (columns) => columns.map((column) => `table.${column}`).joi
 export function tableShapeEntries(config, tableName, rootDir, selfFile, imports, needs) {
   const entries = [];
   const importLines = new Set();
-  if (config.primaryKey) {
+  if (config.primaryKey && !isColumnPrimaryKey(config)) {
     imports.add("primaryKey");
     const { columns, name } = config.primaryKey;
     entries.push(`  primaryKey({ ${name ? `name: "${name}", ` : ""}columns: [${tableColumns(columns)}] })`);
