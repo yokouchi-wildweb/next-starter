@@ -25,7 +25,10 @@ using:
 - cleanup_wording: never promise "removed right after expiry" for a cleanup task (hobby runs it once a day)
 - oneshot_apart: one-shot tasks (backfill, migration) live in the domain's scripts/{tasks,migrations}/, never under src/app/api/cron/
 - pii_prune_kept: an expiryRules item with `pii: true` refuses a fork override `enabled: false` (pnpm generate extensions and the extensions check stop) | its gate comes from the domain that plugs it (a closable domain's prune stops with the domain, whose tables are not created)
-- expiry_rules: a delete of rows past their time (expiresAt / age / rowDays, where? to narrow) = one expiryRules item run by the one cron expiry-prune, never its own cron folder | delete only, no after-delete hook | table, key and columns are literal names | upstream example: domains/core/wallet/plugs/expiryRules/walletLotsPrune.ts (age + where)
+- expiry_rules: a delete of rows past their time (expiresAt / age / rowDays, where? to narrow) = one expiryRules item run by the one cron expiry-prune, never its own cron folder | table, key and columns are literal names | upstream example: domains/core/wallet/plugs/expiryRules/walletLotsPrune.ts (age + where)
+  - how it deletes: the direct DELETE by default | or the item passes remove(keys, ctx) = the owner domain's public delete (audit, files, events) per key; the lib never reads a domain
+  - remove: rows are picked without row locks in small batches (default 50, 1-1000) | idempotent per row (a row already gone counts as removed) | re-check ctx.condition in the owner's TX before deleting | return failed keys, never throw for one row (they are recorded and picked again next run)
+  - another domain's table: an item that deletes rows of a table its own domain does not own passes remove calling that owner's public service (a rule, no check)
 - regenerate_after_override: placing or changing task.override.ts is followed by pnpm generate cron (plan = repo.json vercel.plan, or -- --plan <hobby|pro>; vercel_plan)
 - maintenance_pass_only: scheduled runs skip during maintenance (the cronMaintenance item, upstream from setting; empty = never) | `maintenance: "pass"` in task.ts only for a task whose skip loses data | an upstream task a fork must keep running → disable it in task.override.ts + its own task folder with pass (task.override.ts has no maintenance key)
 editing:

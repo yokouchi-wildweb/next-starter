@@ -86,7 +86,7 @@ serverless では 1 回の実行が maxDuration（Vercel 既定 300s）で途中
 
 ### 期限で行を消す(増設点 expiryRules の項目)
 
-期限を過ぎた行を消すだけの掃除は、定期タスクのフォルダを足さず、持ち主のドメインに項目を 1 つ置く。1 本の定期タスク `expiry-prune`(毎日 03:50 JST)が全部の項目を回す。
+期限を過ぎた行を消す掃除は、定期タスクのフォルダを足さず、持ち主のドメインに項目を 1 つ置く。1 本の定期タスク `expiry-prune`(毎日 03:50 JST)が全部の項目を回す。
 
 ```ts
 // src/domains/<ドメイン>/plugs/expiryRules/<名前>.ts
@@ -104,8 +104,35 @@ export const rule: ExpiryRule = {
 ```
 
 - `rule` は 3 つ: `{ kind: "expiresAt", column }`(列の時刻が今より前)/ `{ kind: "age", column, days }`(列の時刻から days 日。days は数か設定を読む関数)/ `{ kind: "rowDays", column, daysColumn }`(列の時刻 + 行の日数の列)
-- 消すだけ(消した後の処理の口は無い)。閉じたドメインの項目は門番で外れる(表が作られていないので)
+- 消し方は 2 つ: 既定は直の DELETE(上の例)。行ごとに監査・ファイルの取り消し・出来事の点などが要る削除は、項目が `remove` を渡し、持ち主のドメインの公開の削除の手順で消す(下)
+- 閉じたドメインの項目は門番で外れる(表が作られていないので)
 - 置いたら `pnpm generate extensions`(一覧 `src/wiring/cron.ts`)。定期タスクは増えないので `pnpm generate cron` は要らない
+
+消し方を渡す項目(`remove`):
+
+```ts
+// src/domains/<ドメイン>/plugs/expiryRules/<名前>.ts
+import { sql } from "drizzle-orm";
+import type { ExpiryRule } from "@/lib/cron/points";
+
+export const rule: ExpiryRule = {
+  table: "users",
+  key: "id",
+  rule: { kind: "age", column: "created_at", days: 7 },
+  where: sql`is_demo`,
+  // batchSize: 50,           // remove の項目は既定 50(1〜1000)
+  remove: async (keys, { condition }) => {
+    // 鍵ごとに持ち主の公開の削除の手順を呼ぶ: 自分の TX で condition を確かめ直し(合わなければ飛ばす)、もう無い行は消せたと数える
+    // 1 行の失敗は投げずに failed へ(記録され、次の回にもう一度選ばれる)
+    return { removed: keys.length, failed: [] };
+  },
+};
+```
+
+- 選び方: 行の鍵を持たずに `SELECT <key> … WHERE <規則> AND <key> > <この回の続き> ORDER BY <key> LIMIT n`(外への呼び出しの間に行を押さえない)。束ごとに `remove(keys, { now, deadline, condition })`
+- 持ち主の務め: 1 行ずつ冪等、`condition` を自分の TX で確かめ直してから消す(選んでから条件が変わる競合を防ぐ)、1 行の失敗は `failed` に返す(束ごと投げると、その束の鍵が全部失敗として記録される)
+- 失敗: 実行の結果 `items[].failed`(数と先頭 20 件)に載り、cron の成功の JSON ログに出る。鍵の順で先へ進み、後ろの行・項目を詰まらせない。失敗の行は条件に合うまま残り、次の回にもう一度選ばれる
+- 別のドメインの表を消す項目は、その持ち主の公開の削除の手順を呼ぶ `remove` を渡す(札 expiry_rules。検査はしない)
 
 ### スケジュールのセットアップ
 
@@ -180,8 +207,8 @@ env ファイルを置かずホストの環境変数で動かすときは、`APP
 - `extensionPoints.ts` — 上書きの対象の点 `cronTasks` の宣言（`task.override.ts` が書いてよい鍵 = `schedule`・`disabled`。読み手は `discover.ts`、値の検査 = cron 式・真偽はそちら）
 - `discover.ts` — task を探す処理（`src/app/api/cron/<name>/` の走査・`task.override.ts` の反映・`listCronTaskDirs` / `loadCronTasks` / `scheduledCronTasks`）。入口 `./node`（`node.ts` が出す。`@/lib/cron/node`。node:fs を使う。画面からは読まない）。門番は読まず、閉じているかは呼ぶ側が `closedBy` で渡す。生成器・検査（`scripts/structure/cron`）と `pnpm task` が共有する
 - `runBudgetedBatches.ts` — 時間予算付き・再開可能バッチランナー（下記）
-- `expiry.ts` — 期限の削除: 項目の型 `ExpiryRule`(入口 `./points` も)、1 回の実行 `runExpiryRules({ items, store, checkpoint, deadline })` → `{ skipped?: "no-items" | "locked", items: [{ name, deleted, exhausted }], truncated }`、SQL の組み立て `expiryDeleteQuery`・`expiryCondition`、項目の字面の確かめ `expiryRuleProblems`
-- `expiryStore.ts` — 期限の削除の本物の表 `drizzleExpiryStore`(1 本の鍵と 1 束の DELETE)。入口 `./server`(`server.ts`、`@/lib/cron/server`)
+- `expiry.ts` — 期限の削除: 項目の型 `ExpiryRule`・消し方の型 `ExpiryRemove`(`(keys, ExpiryRemoveContext) => ExpiryRemoveResult`、入口 `./points` も)、1 回の実行 `runExpiryRules({ items, store, checkpoint, deadline })` → `{ skipped?: "no-items" | "locked", items: [{ name, deleted, exhausted, failed? }], truncated }`、SQL の組み立て `expiryDeleteQuery`・`expirySelectKeysQuery`(remove の項目の鍵の SELECT)・`expiryCondition`、束の数 `expiryBatchSize`、項目の字面の確かめ `expiryRuleProblems`
+- `expiryStore.ts` — 期限の削除の本物の表 `drizzleExpiryStore`(1 本の鍵・1 束の DELETE・remove の項目の 1 束の鍵の SELECT `selectKeys`)。入口 `./server`(`server.ts`、`@/lib/cron/server`)
 - `index.ts` — 公開エントリ
 
 周辺: `src/app/api/cron/<name>/{task.ts,route.ts}`（各タスク）・`task.override.ts`（fork の上書き、任意）/ `src/wiring/cronRoute.ts`（門番を結んだ `createCronTaskRoute`）/
@@ -274,7 +301,8 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
 - 結び: `src/wiring/expiryPrune.ts` が一覧を門番で絞り、本物の表と一緒に `runExpiryRules` に渡す。印(`@/domains/cronCheckpoint`)は task.ts が渡す
 - 1 本: 外の取引で `pg_try_advisory_xact_lock`(取れなければ待たずに `skipped: "locked"`)。外の取引は行の鍵を持たない
 - 順: 項目ごとの印 `expiry-prune:<差した側>/<名前>`(最後に消し切った時、単調)の古い順。予算で切れた項目は印が古いまま = 次の回の先頭(前回の続き)
-- 1 束: `WITH d AS (DELETE FROM <表> WHERE <key> IN (SELECT <key> … WHERE <規則> [AND (<where>)] ORDER BY <列> LIMIT n FOR UPDATE SKIP LOCKED) RETURNING 1) SELECT count(*)`。`runBudgetedBatches` + 締切(240 秒)の内で消し切るまで
+- 1 束(直の DELETE): `WITH d AS (DELETE FROM <表> WHERE <key> IN (SELECT <key> … WHERE <規則> [AND (<where>)] ORDER BY <列> LIMIT n FOR UPDATE SKIP LOCKED) RETURNING 1) SELECT count(*)`。`runBudgetedBatches` + 締切(240 秒)の内で消し切るまで
+- 1 束(remove の項目): `SELECT <key>::text … WHERE (<規則> [AND (<where>)]) [AND <key> > <続き>] ORDER BY <key> LIMIT n`(FOR UPDATE なし)→ `remove`。続き = その束の最後の鍵(この回の中だけ)。失敗の鍵・投げた束の鍵は結果に記録して先へ。選び切れば印を進め(失敗があっても)、締切で切れれば進めない
 - 項目 0(enabled: false だけも)はすぐ `skipped: "no-items"`。表・列の名前は小文字・数字・_ だけを通し(`sql.identifier` で括る)、使えない項目があれば消す前に止める
 
 ### 運用上の注意
@@ -284,7 +312,7 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
 
 ## Verification
 
-- `pnpm test src/lib/cron/expiry.test.mts`(期限の削除: 規則ごとの SQL・where・束の数・印の順と続き・締切・鍵・項目 0・字面の止め)。上書きの止め(overrideRefuse)は `pnpm test scripts/structure/extensions/extensions.test.mjs`
+- `pnpm test src/lib/cron/expiry.test.mts`(期限の削除: 規則ごとの SQL・where・束の数・印の順と続き・締切・鍵・項目 0・字面の止め。remove の項目: 鍵の SELECT の字面・束ごとの呼び出しと条件・失敗の記録と先送り・次の回の選び直し・既定の束 50・remove の字面の止め)。上書きの止め(overrideRefuse)は `pnpm test scripts/structure/extensions/extensions.test.mjs`
 
 ### `pnpm test scripts/structure/cron/cronWiring.test.mjs` が検査すること
 
