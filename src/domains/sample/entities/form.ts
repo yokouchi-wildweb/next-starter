@@ -3,3 +3,4 @@
 // 登録ごとのフォルダ(entities/<登録名>/form.ts)を集めるだけの入口(import の道を変えないため)。中身は各登録のフォルダに書く
 
 export * from "./sample/form";
+export * from "./sampleImage/form";

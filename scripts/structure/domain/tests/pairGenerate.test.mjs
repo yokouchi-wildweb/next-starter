@@ -1,4 +1,4 @@
-// 主と従属の組の生成（組の解決・従属 → 主の順・書き出した従属をその場で生成・組の誤りは何も書かずに止める・最後の一覧）の回帰テスト。
+// 主と従属の組の生成（組の解決・従属は主のドメインの中の登録(D348)・従属 → 主の順・書き出した従属をその場で生成・組の誤りは何も書かずに止める・最後の一覧）の回帰テスト。
 // 一時の workspace で entities カテゴリだけを生成して確かめる（--only entities）。
 // 実行: pnpm test scripts/structure/domain/tests/pairGenerate.test.mjs
 import { after, test } from "node:test";
@@ -7,9 +7,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { generateDomain, generateWithPairs, loadDomainForGenerate } from "../pipeline/generate.mjs";
 import { runGenerateAll } from "../pipeline/generateAll.mjs";
-import { assertPairs, orderWithPairs, resolvePairs } from "../pipeline/pairs.mjs";
+import { assertPairs, resolvePairs } from "../pipeline/pairs.mjs";
 import { createWorkspace } from "../domain/workspace.mjs";
-import { entityDeclarationPath, makeProject, removeAll } from "./helpers.mjs";
+import { makeProject, registrationDeclarationPath, removeAll } from "./helpers.mjs";
 
 const cleanup = [];
 after(() => removeAll(cleanup));
@@ -28,68 +28,66 @@ const base = (singular, fields = [], extra = {}) => ({
   fields: [{ name: "name", label: "名前", fieldType: "string", formInput: "textInput", required: true }, ...fields],
   ...extra,
 });
-const collectionField = (name, domain) => ({ name, label: name, fieldType: "mediaCollection", formInput: "mediaUploaderMulti", required: true, reorderable: true, collection: { domain, maxItems: 5 } });
+const collectionField = (name, registration) => ({ name, label: name, fieldType: "mediaCollection", formInput: "mediaUploaderMulti", required: true, reorderable: true, collection: { registration, maxItems: 5 } });
 
 const capture = () => {
   const lines = [];
   return { io: { log: (m) => lines.push(String(m)), warn: (m) => lines.push(`WARN ${m}`) }, text: () => lines.join("\n"), lines };
 };
 /** 表の本体(登録のフォルダ entities/<登録名>/drizzle.ts。entities/drizzle.ts は集める入口) */
-const drizzle = (root, domain) => path.join(root, "src", "domains", domain, "entities", domain, "drizzle.ts");
-const domainJson = (root, domain) => path.join(root, "src", "domains", domain, "domain.json");
+const drizzle = (root, domain, registration = domain) => path.join(root, "src", "domains", domain, "entities", registration, "drizzle.ts");
 const order = (lines) => lines.filter((l) => /の生成を開始します|Drizzle エンティティを生成しました/.test(l)).map((l) => l.match(/domains\/(\w+)\/|\[(\w+)\]/).slice(1).find(Boolean));
-const generateOne = (root, domain, options = {}) => {
+const generateOne = (root, domain, options = {}, overrides = {}) => {
   const workspace = createWorkspace(root);
   const out = capture();
-  const ctx = loadDomainForGenerate(workspace, domain, out.io);
+  const ctx = loadDomainForGenerate(workspace, domain, out.io, overrides);
   generateWithPairs(ctx, workspace, GEN, { only: ONLY, io: out.io, ...options });
   return out;
 };
 const listFiles = (root) => fs.readdirSync(path.join(root, "src", "domains"), { recursive: true }).sort();
 
-test("主を生成すると、従属の宣言を書き出してその中身で従属も生成し、従属 → 主の順。最後に一覧を出す", () => {
+test("主を生成すると、従属の宣言を主のドメインの中に書き出してその中身で従属も生成し、従属 → 主の順。最後に一覧を出す", () => {
   const root = makeProject({ configs: { album: base("album", [collectionField("photos", "album_photo")]) }, cleanup });
   const out = generateOne(root, "album");
-  assert.ok(fs.existsSync(domainJson(root, "albumPhoto")));
-  assert.ok(fs.existsSync(entityDeclarationPath(root, "albumPhoto")));
-  assert.ok(fs.existsSync(drizzle(root, "albumPhoto")));
+  assert.equal(fs.existsSync(path.join(root, "src", "domains", "albumPhoto")), false, "従属はドメインのフォルダを作らない");
+  assert.ok(fs.existsSync(registrationDeclarationPath(root, "album", "albumPhoto")));
+  assert.ok(fs.existsSync(drizzle(root, "album", "albumPhoto")));
   assert.ok(fs.existsSync(drizzle(root, "album")));
   assert.deepEqual(order(out.lines).filter((d, i, a) => a.indexOf(d) === i), ["albumPhoto", "album"]);
   const text = out.text();
-  assert.match(text, /\[組\] 書き出した登録の entity\.json: .*albumPhoto\/entities\/albumPhoto\/entity\.json/);
+  assert.match(text, /\[組\] 書き出した登録の entity\.json: .*album\/entities\/albumPhoto\/entity\.json/);
   assert.match(text, /\[組\] db:push が要る表: album_photos（pnpm db:push を実行してください）/);
-  assert.match(text, /\[組\] コミットに含めるもの: .*domains\/albumPhoto\//);
-  assert.match(fs.readFileSync(drizzle(root, "albumPhoto"), "utf8"), /album_id/);
+  assert.match(text, /\[組\] コミットに含めるもの: .*domains\/album\//);
+  assert.match(fs.readFileSync(drizzle(root, "album", "albumPhoto"), "utf8"), /album_id/);
 });
 
 test("従属を生成すると所有する主も続けて生成する。既にある従属は書き出さず、db:push の表も出さない", () => {
   const root = makeProject({ configs: { album: base("album", [collectionField("photos", "album_photo")]) }, cleanup });
   generateOne(root, "album");
   fs.rmSync(drizzle(root, "album"));
-  const out = generateOne(root, "albumPhoto");
+  const out = generateOne(root, "album", {}, { registration: "albumPhoto", firstUnit: false });
   assert.ok(fs.existsSync(drizzle(root, "album")));
   assert.match(out.text(), /\[組\] 書き出した登録の entity\.json: なし/);
   assert.match(out.text(), /\[組\] db:push が要る表: なし/);
 });
 
-test("一括生成: 従属は主の直前、組に関わらないドメインの順は変えない", () => {
+test("一括生成: 従属は主のドメインの単位の後に並び、組に関わらないドメインの順は変えない", () => {
   const root = makeProject({
     configs: { album: base("album", [collectionField("photos", "album_photo")]), zoo: base("zoo"), apple: base("apple") },
     cleanup,
   });
   const out = capture();
   runGenerateAll(createWorkspace(root), ["album", "apple", "zoo"], null, ONLY, { io: out.io });
-  const started = out.lines.filter((l) => l.includes("の生成を開始します")).map((l) => l.match(/\[(\w+)\]/)[1]);
-  assert.deepEqual(started, ["albumPhoto", "album", "apple", "zoo"]);
-  assert.ok(fs.existsSync(drizzle(root, "albumPhoto")));
+  const started = out.lines.filter((l) => l.includes("の生成を開始します")).map((l) => l.match(/\[([\w/]+)\]/)[1]);
+  assert.deepEqual(started, ["album", "album/albumPhoto", "apple", "zoo"]);
+  assert.ok(fs.existsSync(drizzle(root, "album", "albumPhoto")));
   assert.match(out.text(), /\[組\] 書き出した登録の entity\.json: .*albumPhoto/);
-  assert.deepEqual(orderWithPairs(resolvePairs(createWorkspace(root)), ["apple", "zoo", "album", "albumPhoto"]), ["apple", "zoo", "albumPhoto", "album"]);
 });
 
 test("集まりの項目に従属の名前が無ければ、何も書かずに止まる（一括も）", () => {
   const root = makeProject({ configs: { album: base("album", [{ ...collectionField("photos", ""), collection: { maxItems: 3 } }]) }, cleanup });
   const before = listFiles(root);
-  assert.throws(() => generateOne(root, "album"), /album: 集まりの項目 "photos" に従属のドメイン名（collection\.domain）がありません/);
+  assert.throws(() => generateOne(root, "album"), /album: 集まりの項目 "photos" に従属の登録名（collection\.registration）がありません/);
   assert.throws(() => runGenerateAll(createWorkspace(root), ["album"], null, ONLY, { io: capture().io }), /何も生成せずに終了します/);
   assert.deepEqual(listFiles(root), before);
 });
@@ -110,7 +108,7 @@ test("1 ドメインの生成は、関わらない主の組の誤りでは止ま
   const root = makeProject({ configs: { album: base("album", [{ ...collectionField("photos", ""), collection: {} }]), apple: base("apple") }, cleanup });
   generateOne(root, "apple");
   assert.ok(fs.existsSync(drizzle(root, "apple")));
-  assert.throws(() => assertPairs(resolvePairs(createWorkspace(root))), /collection\.domain/);
+  assert.throws(() => assertPairs(resolvePairs(createWorkspace(root))), /collection\.registration/);
 });
 
 test("dry-run は何も書かず、一覧を「書き出す予定」として出す", () => {
@@ -118,7 +116,7 @@ test("dry-run は何も書かず、一覧を「書き出す予定」として出
   const before = listFiles(root);
   const out = generateOne(root, "album", { dryRun: true });
   assert.deepEqual(listFiles(root), before);
-  assert.match(out.text(), /\[dry-run\]\[組\] 書き出す予定の登録の entity\.json: .*albumPhoto\/entities\/albumPhoto\/entity\.json/);
+  assert.match(out.text(), /\[dry-run\]\[組\] 書き出す予定の登録の entity\.json: .*album\/entities\/albumPhoto\/entity\.json/);
   assert.match(out.text(), /\[dry-run\] albumPhoto: 作成/);
 });
 

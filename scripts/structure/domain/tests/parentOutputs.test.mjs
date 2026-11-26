@@ -1,6 +1,6 @@
 // 主の集まりの項目（mediaCollection）の主の生成物の回帰テスト: 列を出さない・スキーマ・モデル・Fields の用途とファイルの条件、
 // 配線（<登録名>Collections.ts・<登録名>Base の import と options・手書きの土台への案内）。
-// parity の fixture showcase（従属 showcase_photo はこの実行で書き出す）を一時の workspace で組ごと生成して見る。
+// parity の fixture showcase（従属 showcase_photo はこの実行で主のドメインの中に書き出す、D348）を一時の workspace で組ごと生成して見る。
 // 実行: pnpm test scripts/structure/domain/tests/parentOutputs.test.mjs
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
@@ -44,7 +44,8 @@ test("drizzle: 集まりの項目は列を出さない（型名の列関数も i
     /^defineTableCollections\(ShowcaseTable, \(\) => import\("@\/domains\/showcase\/services\/server\/showcaseCollections"\)\.then\(\(m\) => m\.collections\)\);$/m,
   );
   // 従属（集まりを持たない）には出さない
-  const child = fs.readFileSync(path.join(root, "src", "domains", "showcasePhoto", "entities", "showcasePhoto", "drizzle.ts"), "utf8");
+  const child = fs.readFileSync(path.join(root, "src", "domains", "showcase", "entities", "showcasePhoto", "drizzle.ts"), "utf8");
+  assert.equal(fs.existsSync(path.join(root, "src", "domains", "showcasePhoto")), false, "従属はドメインのフォルダを作らない");
   assert.doesNotMatch(child, /defineTableCollections/);
 });
 
@@ -58,7 +59,7 @@ test("スキーマ: 値は複数枚の行と同じ z.array(storageMediaValueSche
 });
 
 test("スキーマ: 必須でなく最大件数も無い集まりは min / max を付けない", () => {
-  const fields = showcase.fields.map((f) => (f.name === "photos" ? { ...f, required: false, collection: { domain: "showcase_photo" } } : f));
+  const fields = showcase.fields.map((f) => (f.name === "photos" ? { ...f, required: false, collection: { registration: "showcase_photo" } } : f));
   const schema = generateShowcase({ ...showcase, fields }).read("entities/showcase/schema.ts");
   assert.match(schema, /photos: z\.array\(storageMediaValueSchema\)\.default\(\[\]\),/);
 });
@@ -74,22 +75,23 @@ test("Fields: 従属の file の用途・accept・上限サイズと、集まり
   assert.match(fieldsTsx, /return field\.name in COLLECTION_FIELD_PATCHES \? \{ \.\.\.withPurpose, \.\.\.COLLECTION_FIELD_PATCHES\[field\.name\] \} : withPurpose;/);
 });
 
-test("Fields: 既にある従属の entity.json の file の条件を読み、用途は collection.domain に従う", () => {
-  const fields = showcase.fields.map((f) => (f.name === "photos" ? { ...f, required: false, collection: { domain: "gallery_shot" } } : f));
+test("Fields: 既にある従属の entity.json の file の条件を読み、用途は collection.registration に従う", () => {
+  const fields = showcase.fields.map((f) => (f.name === "photos" ? { ...f, required: false, collection: { registration: "gallery_shot" } } : f));
   const owner = { ...showcase, fields };
   const { workspace } = generateShowcase(owner);
   const pairs = resolvePairs(workspace);
   const [{ patch }] = collectionFieldPatches(owner, collectionChildrenOf(workspace, pairs, "showcase"));
   assert.deepEqual(patch, { purpose: "galleryShot.file", accept: "image/*", validationRule: { maxSizeBytes: 10485760 } });
 
-  const child = JSON.parse(fs.readFileSync(workspace.configPath("galleryShot"), "utf8"));
+  const childPath = workspace.registrationConfigPath("showcase", "galleryShot");
+  const child = JSON.parse(fs.readFileSync(childPath, "utf8"));
   child.fields[0] = { ...child.fields[0], accept: "image/png", validationRule: { maxSizeBytes: 2048 } };
-  fs.writeFileSync(workspace.configPath("galleryShot"), JSON.stringify(child));
+  fs.writeFileSync(childPath, JSON.stringify(child));
   const [{ patch: fromDisk }] = collectionFieldPatches(owner, collectionChildrenOf(workspace, resolvePairs(workspace), "showcase"));
   assert.deepEqual(fromDisk, { purpose: "galleryShot.file", accept: "image/png", validationRule: { maxSizeBytes: 2048 } });
 });
 
-test("Fields: 従属が分からなくても用途名は collection.domain から出す（直接 render を呼ぶ経路）", () => {
+test("Fields: 従属が分からなくても用途名は collection.registration から出す（直接 render を呼ぶ経路）", () => {
   const [{ patch }] = collectionFieldPatches(showcase);
   assert.deepEqual(patch, { purpose: "showcasePhoto.file", validationRule: { maxItems: 8, minItems: 1 } });
 });
@@ -113,12 +115,12 @@ test("<登録名>Collections.ts: 集まりの項目ごとに CrudCollectionConfi
     collections.split("\n").slice(6).join("\n"), // 先頭 = パスの行・生成物の印・注釈 4 行
     [
       'import type { CrudCollectionConfig } from "@/lib/crud/server";',
-      'import { ShowcasePhotoTable } from "@/domains/showcasePhoto/entities/drizzle";',
+      'import { ShowcasePhotoTable } from "@/domains/showcase/entities/drizzle";',
       "",
       "export const collections: CrudCollectionConfig[] = [",
       "  {",
       '    fieldName: "photos",',
-      '    service: () => import("@/domains/showcasePhoto/services/server/showcasePhotoService").then((m) => m.showcasePhotoService),',
+      '    service: () => import("@/domains/showcase/services/server/showcasePhotoService").then((m) => m.showcasePhotoService),',
       "    parentColumn: ShowcasePhotoTable.showcase_id,",
       "    valueColumn: ShowcasePhotoTable.file,",
       "    sortColumn: ShowcasePhotoTable.sort_order,",

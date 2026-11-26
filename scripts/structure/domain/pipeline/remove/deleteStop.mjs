@@ -1,5 +1,5 @@
-// pnpm generate domain -- --delete を止める判定: 主と従属の組を壊す削除と、他のドメインの登録の entity.json から関連で指されているドメインの削除と、
-// 消さずに残るコード（src 配下）から import されているドメインの削除を止める。
+// pnpm generate domain -- --delete を止める判定: 他のドメインの登録の entity.json から関連で指されているドメインの削除と、
+// 消さずに残るコード（src 配下）から import されているドメインの削除を止める。集まりの従属は主のドメインの中の登録(D334)なので、ドメインと一緒に消える。
 // 読むだけで何も消さない。消すドメイン自身の関連（外向き）は数えない。指されたまま消すと、参照元の生成物が消えたドメインを import し続け、後で tsc / db:push が離れた場所で落ちる
 // 見えないもの: 外部キーを張らない素の id 列（宣言にもコードにも参照が出ない）、文字列でドメイン名を渡す参照（serviceRegistry 経由など）、src の外（servers/ など）
 
@@ -7,7 +7,6 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { toCamelCase } from "../../../../../src/lib/stringCase/index.mjs";
-import { resolvePairs } from "../pairs.mjs";
 
 /** 指されていれば止める関連の種類。belongsToMany は includeRelationTable: false の逆側も含む（生成物が相手を import する） */
 const REFERENCE_TYPES = new Set(["belongsTo", "belongsToMany", "hasMany", "hasOne"]);
@@ -119,39 +118,15 @@ export function codeReferenceStopMessage(workspace, domainDir, excludedDirs = []
   ].join("\n");
 }
 
-/** 組を壊す削除の理由（無ければ message: null）と、文面に出した残っている従属（remaining）を返す */
-function pairStop(workspace, folder, pairs) {
-  // 主: 登録の entity.json が残っている従属があれば止める（まだ書き出していない従属は残っていない）
-  const remaining = (pairs.childrenOf.get(folder) ?? []).filter((child) => workspace.exists(workspace.configPath(child)));
-  if (remaining.length > 0) {
-    const fields = remaining.map((child) => `"${pairs.fieldOf.get(child)}"`).join(", ");
-    return {
-      remaining,
-      message:
-        `${folder} は集まりの従属（${remaining.join(", ")}）を持っているため削除できません。` +
-        `消すなら、先に ${folder}/entities/${folder}/entity.json の集まりの項目 ${fields} を外し、従属を pnpm generate domain -- --delete --remove-config してから ${folder} を消してください`,
-    };
-  }
-  // 従属: 主が集まりの項目を宣言している間は止める（残すと次の生成で雛形がまた書き出される）
-  const owner = pairs.ownerOf.get(folder);
-  if (owner) {
-    return { remaining, message: `${folder} は ${owner} の集まりの従属です。先に ${owner}/entities/${owner}/entity.json の集まりの項目 "${pairs.fieldOf.get(folder)}" を外してください` };
-  }
-  return { remaining, message: null };
-}
-
 /**
  * @param {import("../../domain/workspace.mjs").Workspace} workspace
  * @param {string} folder 消すドメインのフォルダ名（camelCase）
- * @param {import("../pairs.mjs").PairIndex} [pairs]
  * @returns {string | null} 止める理由（null = 止めない）
  */
-export function deleteStopMessage(workspace, folder, pairs = resolvePairs(workspace)) {
-  const { remaining, message } = pairStop(workspace, folder, pairs);
+export function deleteStopMessage(workspace, folder) {
   const configs = new Map(workspace.listDomains().map((domain) => [domain, workspace.readConfigLenient(domain)]));
-  // 組の文面に出した従属は重ねて出さない（直すものは 1 回の実行で全部見せる）
-  const references = inboundReferences(configs, folder).filter((reference) => !remaining.includes(reference.domain));
-  const lines = message ? [message] : [];
+  const references = inboundReferences(configs, folder);
+  const lines = [];
   if (references.length > 0) {
     lines.push(
       `${folder} は他のドメインから参照されているため削除できません:`,

@@ -48,7 +48,10 @@ async function resolveGenerateTargets(ctx, pairs, options) {
  */
 export async function runGenerate(workspace, domain, options = {}) {
   const folder = toCamelCase(toSnakeCase(domain.trim()) || domain.trim()) || domain.trim();
-  const units = workspace.generationUnitsOf(folder);
+  // 従属の登録(主の集まりの項目の相手、D334)は主の単位が組で生成するので、主が同じドメインで生成されるなら単位に数えない
+  const pairs = resolvePairs(workspace);
+  const all = workspace.generationUnitsOf(folder);
+  const units = all.filter((registration) => !all.includes(pairs.ownerOf.get(registration) ?? ""));
   // 表 1 つのドメイン(登録名 = ドメイン名)と宣言の無いドメインは今までどおり 1 回
   if (units.length <= 1 && (units.length === 0 || units[0] === folder)) return runGenerateUnit(workspace, domain, null, true, options);
   let registry = false;

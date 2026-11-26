@@ -82,6 +82,24 @@ test("生成: 表の入口・ドメイン設定", () => {
   assert.match(config, /\n  chat_room: \{ \.\.\.chatRoomConfig, singular: "chat_room", fields: \[\] \},\n  sample: \{ \.\.\.sampleConfig, singular: "sample", fields: \[\] \},\n  sample_category: \{ \.\.\.sampleCategoryConfig, singular: "sample_category", fields: \[\] \},\n  sample_image: \{ \.\.\.sampleImageConfig, singular: "sample_image", fields: \[\] \},\n\} as const;/);
 });
 
+test("生成: ドメイン設定は全ての登録を並べる(主でない登録・主の無いドメインの登録も、キー = 登録名、表示名の既定は登録名、D348)", () => {
+  const root = fixture({
+    ...declared("src/domains/sample", '{ "label": "サンプル", "plural": "samples" }'),
+    "src/domains/sample/entities/sampleImage/entity.json": '{ "singular": "sample_image", "plural": "sample_images" }',
+    "src/domains/core/messaging/domain.json": JSON.stringify({ domainConfigVersion: "2.0", label: "メッセージ" }),
+    "src/domains/core/messaging/entities/messageTemplate/entity.json": '{ "plural": "message_templates" }',
+    "src/domains/core/messaging/entities/messageLog/entity.json": '{ "plural": "message_logs" }',
+  });
+  const { outputs, problems } = buildAlphaRegistries(root);
+  rmSync(root, { recursive: true, force: true });
+  assert.deepEqual(problems, []);
+  const config = outputs[DOMAIN_CONFIG_REGISTRY_FILE];
+  assert.match(config, /import sampleImageConfig from "@\/domains\/sample\/entities\/sampleImage\/entity\.json";/);
+  assert.match(config, /\n  sample_image: \{ \.\.\.sampleImageConfig, label: "sampleImage", fields: \[\] \},/);
+  assert.match(config, /\n  message_template: \{ \.\.\.messageTemplateConfig, singular: "message_template", label: "messageTemplate", fields: \[\] \},/);
+  assert.match(config, /\n  message_log: /);
+});
+
 test("生成: 集める入口 entities/<種類>.ts は宣言のある全ドメインに、その種類を持つ登録を登録のフォルダの並びで書く(generate: false も)", () => {
   const root = fixture({
     ...declared("src/domains/shop", '{ "plural": "shops" }'),

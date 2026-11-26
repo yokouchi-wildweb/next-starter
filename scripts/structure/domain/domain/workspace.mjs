@@ -9,7 +9,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
-import { DOMAIN_DECLARATION_FILE, ENTITIES_DIR, ENTITY_DECLARATION_FILE, findRegistration, listDomains as listDeclaredDomains, nodeDomainSource, primaryRegistrationOf, readDomain, readDomains } from "../../../../src/lib/domain/node.mjs";
+import { ENTITIES_DIR, ENTITY_DECLARATION_FILE, findRegistration, listDomains as listDeclaredDomains, nodeDomainSource, primaryRegistrationOf, readDomain, readDomains } from "../../../../src/lib/domain/node.mjs";
 import { CACHE_FILE } from "../spec/cache.mjs";
 import { cacheDeclarationOf, configOfDeclaration, generatedRegistrationsOf, registrationConfigOf } from "./declarationOf.mjs";
 
@@ -49,20 +49,16 @@ export function createWorkspace(rootDir = process.cwd()) {
     return { kind, dir, configPath: path.join(dir, ENTITIES_DIR, camel, ENTITY_DECLARATION_FILE), rel: path.relative(rootDir, dir).split(path.sep).join("/") };
   }
   const configPath = (camel) => locateDomain(camel).configPath;
-  /** ドメインの宣言 domain.json の場所(従属ドメインを書き出す時) */
-  const domainDeclarationPath = (camel) => path.join(locateDomain(camel).dir, DOMAIN_DECLARATION_FILE);
 
   /** ドメインの主の登録の entity.json(決まりは ./declarationOf.mjs)。宣言が無ければ null */
-  const readConfig = (camel) => {
-    const declaration = declarationOf(camel);
-    return declaration ? configOfDeclaration(declaration) : null;
-  };
+  const readConfig = (camel) => (declarationOf(camel) ? configOfDeclaration(declarationOf(camel)) : null);
 
   /** ドメインの中の名前の登録の entity.json(登録ごとの一式の config)。無ければ null */
-  const readRegistrationConfig = (domain, registration) => {
-    const declaration = declarationOf(domain);
-    return declaration ? registrationConfigOf(declaration, registration) : null;
-  };
+  const readRegistrationConfig = (domain, registration) => (declarationOf(domain) ? registrationConfigOf(declarationOf(domain), registration) : null);
+  /** ドメインの全ての登録(名前と entity.json の写し、フォルダの順)。宣言が無ければ空(主と従属の組を解く: pipeline/pairs.mjs) */
+  const registrationsOf = (domain) => declarationOf(domain)?.registrations.map((registration) => ({ name: registration.name, config: registration.entity ? { ...registration.entity } : null })) ?? [];
+  /** ドメインの中の登録の entity.json の場所(まだ無い登録を書き出す先) */
+  const registrationConfigPath = (domain, registration) => path.join(locateDomain(domain).dir, ENTITIES_DIR, registration, ENTITY_DECLARATION_FILE);
 
   /**
    * ドメインの生成の単位(登録名の並び): 生成する登録(主が先)。生成する登録が無ければ主の登録だけ(generate: false の知らせを出すため)、
@@ -156,7 +152,6 @@ export function createWorkspace(rootDir = process.cwd()) {
     domainPath,
     locateDomain,
     configPath,
-    domainDeclarationPath,
     readRegistration,
     tableFileOf,
     templatePath: (...segments) => path.join(templateDir, ...segments),
@@ -167,6 +162,8 @@ export function createWorkspace(rootDir = process.cwd()) {
     readConfig,
     readConfigLenient,
     readRegistrationConfig,
+    registrationsOf,
+    registrationConfigPath,
     generationUnitsOf,
     importRootOf,
     listDomains,

@@ -23,8 +23,8 @@ export type DomainFieldOptionValue = {
 
 /** 主の集まり(fieldType mediaCollection)の項目の collection(キーは COLLECTION_KEYS) */
 export type DomainFieldCollection = {
-  /** 従属ドメインの singular */
-  readonly domain: string;
+  /** 従属の登録名(主と同じドメインの中の登録の singular、D334) */
+  readonly registration: string;
   readonly maxItems?: number;
   /** 複製で写すか */
   readonly duplicate?: boolean;

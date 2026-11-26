@@ -20,9 +20,9 @@ export function nameIssues(config) {
       return;
     }
     if (!isSnakeCaseName(field.name)) issues.push(snakeIssue(`fields[${index}] の name`, field.name));
-    const childDomain = field.collection?.domain;
+    const childDomain = field.collection?.registration;
     if (typeof childDomain === "string" && childDomain.length > 0 && !isSnakeCaseName(childDomain)) {
-      issues.push(snakeIssue(`fields "${field.name}" の collection.domain`, childDomain));
+      issues.push(snakeIssue(`fields "${field.name}" の collection.registration`, childDomain));
     }
   });
   (config.relations ?? []).forEach((relation, index) => {

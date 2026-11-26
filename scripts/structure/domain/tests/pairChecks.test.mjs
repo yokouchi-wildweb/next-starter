@@ -23,7 +23,7 @@ const field = (overrides = {}) => ({
   formInput: "mediaUploaderMulti",
   required: true,
   reorderable: true,
-  collection: { domain: "album_photo", maxItems: 5 },
+  collection: { registration: "album_photo", maxItems: 5 },
   ...overrides,
 });
 const owner = (fieldOverrides = {}, extra = {}) => ({
@@ -45,8 +45,9 @@ const withFile = (child, storage) => ({ ...child, fields: [{ ...child.fields[0],
 /** 一時の workspace（ロール editor = admin、member = user）で組を解く */
 function resolve({ ownerConfig = owner(), child, others = {} } = {}) {
   const configs = { album: ownerConfig, ...others };
-  if (child !== undefined) configs.albumPhoto = child;
-  const root = makeProject({ configs, cleanup });
+  // 従属は主のドメインの中の登録(D348): src/domains/album/entities/albumPhoto/entity.json
+  const registrations = child !== undefined ? { "album/albumPhoto": child } : {};
+  const root = makeProject({ configs, registrations, cleanup });
   const rolesDir = path.join(root, "src", "domains", "core", "user", "roles");
   fs.mkdirSync(rolesDir, { recursive: true });
   fs.writeFileSync(path.join(rolesDir, "editor.role.json"), JSON.stringify({ id: "editor", category: "admin" }));
@@ -81,7 +82,7 @@ test("雛形どおりの組（showcase の fixture を含む）はすべての�
 });
 
 test("a. 主の集まりの項目にファイルの条件があれば誤り", () => {
-  expectError({ ownerConfig: owner({ accept: "image/*", storage: { visibility: "public" } }) }, /集まりの項目 "photos": ファイルの条件（accept, storage）は主に書けません。albumPhoto\/entities\/albumPhoto\/entity\.json の file/);
+  expectError({ ownerConfig: owner({ accept: "image/*", storage: { visibility: "public" } }) }, /集まりの項目 "photos": ファイルの条件（accept, storage）は主に書けません。album\/entities\/albumPhoto\/entity\.json の file/);
 });
 
 test("b. 主への belongsTo は 1 本・必須・CASCADE", () => {
@@ -100,7 +101,7 @@ test("e. メディア項目はちょうど 1 つ、集まりは持たない", ()
   const child = childOf(owner());
   expectError({ child: { ...child, fields: child.fields.slice(1) } }, /今 mediaUploader 0 \/ 集まり 0/);
   expectError(
-    { child: { ...child, fields: [...child.fields, { name: "more", label: "x", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", collection: { domain: "x" } }] } },
+    { child: { ...child, fields: [...child.fields, { name: "more", label: "x", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", collection: { registration: "x" } }] } },
     /集まり 1/,
   );
 });
@@ -161,8 +162,8 @@ test("j. 名前の衝突: 従属の表名が他のドメインと重なる、主
 });
 
 test("k. 必須 × duplicate: false は誤り、必須でなければ通る", () => {
-  expectError({ ownerConfig: owner({ collection: { domain: "album_photo", duplicate: false } }) }, /required の集まりに collection\.duplicate: false は書けません/);
-  assert.deepEqual(errorsOf({ ownerConfig: owner({ required: false, collection: { domain: "album_photo", duplicate: false } }) }), []);
+  expectError({ ownerConfig: owner({ collection: { registration: "album_photo", duplicate: false } }) }, /required の集まりに collection\.duplicate: false は書けません/);
+  assert.deepEqual(errorsOf({ ownerConfig: owner({ required: false, collection: { registration: "album_photo", duplicate: false } }) }), []);
 });
 
 test("l. 従属の汎用 API が開いていれば知らせるだけ", () => {
@@ -170,6 +171,12 @@ test("l. 従属の汎用 API が開いていれば知らせるだけ", () => {
   assert.deepEqual(errorsOf({ child }), []);
   assert.match(noticesOf({ child }).join("\n"), /汎用 API（apiAccess）が開いています/);
   assert.match(noticesOf({ child: { ...child, apiAccess: undefined } }).join("\n"), /開いています/);
+});
+
+test("従属の登録が主と別のドメインにあれば止まり、移す道具を案内する", () => {
+  const root = makeProject({ configs: { album: owner(), albumPhoto: childOf(owner()) }, cleanup });
+  const messages = resolvePairs(createWorkspace(root)).errors.map((e) => e.message).join("\n");
+  assert.match(messages, /albumPhoto: 従属の登録が主（album）のドメイン album でなく albumPhoto にあります/);
 });
 
 test("誤りが複数あれば全件を並べて止まり、何も書かない（1 ドメインの生成・知らせるだけのものは出す）", () => {

@@ -335,6 +335,19 @@ export const serviceRegistry: DomainRegistry = {
       },
     },
   },
+  sampleImage: {
+    service: () => import("@/domains/sample/services/server/sampleImageService").then((m) => m.sampleImageService),
+    table: "sample_images",
+    idColumn: "id",
+    access: {
+      ...INTERNAL_ONLY,
+      operations: {
+        truncateAll: ADMIN_RULE,
+        export: "none",
+        import: "none",
+      },
+    },
+  },
   sampleCategory: {
     service: () => import("@/domains/sampleCategory/services/server/sampleCategoryService").then((m) => m.sampleCategoryService),
     table: "sample_categories",
@@ -345,19 +358,6 @@ export const serviceRegistry: DomainRegistry = {
         truncateAll: ADMIN_RULE,
         export: ADMIN_RULE,
         import: ADMIN_RULE,
-      },
-    },
-  },
-  sampleImage: {
-    service: () => import("@/domains/sampleImage/services/server/sampleImageService").then((m) => m.sampleImageService),
-    table: "sample_images",
-    idColumn: "id",
-    access: {
-      ...INTERNAL_ONLY,
-      operations: {
-        truncateAll: ADMIN_RULE,
-        export: "none",
-        import: "none",
       },
     },
   },

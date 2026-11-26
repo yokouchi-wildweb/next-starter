@@ -60,13 +60,13 @@ export function childStorageRules(parentConfig) {
 
 /**
  * @param {{ singular: string, label?: string, idType?: string, apiAccess?: object, generate?: boolean }} parentConfig 主の登録の entity.json
- * @param {{ name: string, label: string, collection: { domain: string } }} field 主の集まりの項目
+ * @param {{ name: string, label: string, collection: { registration: string } }} field 主の集まりの項目
  * @returns {{ config: object, uncopied: string[] }} 従属の登録の entity.json(ドメインの domain.json は表示名だけ: render/collections)と、
  *   写せず管理者のみにした storage のキー（upload / read）
  */
 export function buildChildDomainConfig(parentConfig, field) {
   const parentSnake = toSnakeCase(parentConfig.singular);
-  const singular = field.collection.domain;
+  const singular = field.collection.registration;
   const suggested = defaultChildName(parentConfig.singular, field.name);
   // 既定の名前のままなら plural も既定（項目名）。名前を変えていれば singular から作る（plural は必須: checks/required.mjs）
   const plural = singular === suggested.singular && suggested.plural ? suggested.plural : toSnakeCase(toPlural(singular));

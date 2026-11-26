@@ -60,11 +60,11 @@ test("名前: 項目名・従属名は snake_case で止め、singular・plural�
     singular: "sampleTag",
     plural: "sampleTags",
     relations: [{ domain: "sampleCategory", fieldName: "sample_category_id", fieldType: "uuid", relationType: "belongsTo" }],
-    fields: [{ name: "galleryImages", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", collection: { domain: "productImage" } }],
+    fields: [{ name: "galleryImages", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", collection: { registration: "productImage" } }],
   });
   const issues = joined(nameIssues(config));
   assert.match(issues, /fields\[0\] の name "galleryImages"/);
-  assert.match(issues, /collection\.domain "productImage"/);
+  assert.match(issues, /collection\.registration "productImage"/);
   assert.doesNotMatch(issues, /singular|plural|relations/);
   const warnings = joined(nameWarnings(config));
   assert.match(warnings, /singular "sampleTag"/);
@@ -157,7 +157,7 @@ test("メディア: accept の型が無い（制限なしでも列挙）、prese
   assert.match(issues, /mediaTypePreset "imagesOnly"/);
   assert.match(issues, /キー "size"/);
   assert.match(issues, /書き先 "missing"/);
-  const firestore = { camel: "memo", config: { ...good({ dbEngine: "Firestore", relations: [] }), fields: [{ name: "images", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", collection: { domain: "memo_image" } }] } };
+  const firestore = { camel: "memo", config: { ...good({ dbEngine: "Firestore", relations: [] }), fields: [{ name: "images", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", collection: { registration: "memo_image" } }] } };
   assert.match(joined(preflightIssues(firestore)), /mediaCollection/);
 });
 

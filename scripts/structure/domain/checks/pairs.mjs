@@ -1,4 +1,4 @@
-// 検査: 主と従属の組（主の集まりの項目 mediaCollection → 従属ドメイン）の書く前の検査。登録の entity.json だけを読む。
+// 検査: 主と従属の組（主の集まりの項目 mediaCollection → 同じドメインの中の従属の登録、D334）の書く前の検査。登録の entity.json だけを読む。
 // 1 組の誤りを全件返す（止めるのは呼び出し側。全組の誤りを集めてから、何も書く前に throw する）。知らせるだけのものは notices。
 // 道具は人の entity.json を書き換えない: 誤りの文は直す場所（どの entity.json のどのキー）を言う。
 // 「所有する主が 2 つ以上」「従属の名前が無い」は組を解く段（pipeline/pairs.mjs）が見る
@@ -31,20 +31,21 @@ function childEffectiveRules(childConfig, mediaField) {
 
 /**
  * @param {object} params
- * @param {string} params.owner 主のフォルダ名
+ * @param {string} params.domain 主と従属のドメインのフォルダ名
+ * @param {string} params.owner 主の登録名
  * @param {object} params.ownerConfig 主の登録の entity.json
  * @param {object} params.field 主の集まりの項目
- * @param {string} params.child 従属のフォルダ名
+ * @param {string} params.child 従属の登録名
  * @param {object} params.childConfig 従属の登録の entity.json（この実行で書き出すなら書き出す中身）
- * @param {Map<string, object>} params.domains 全ドメインのフォルダ名 → 主の登録の entity.json（名前の衝突を見る）
+ * @param {Map<string, { domain: string, config: object | null }>} params.registrations 全ドメインの登録名 → ドメインと entity.json（名前の衝突を見る）
  * @param {Map<string, string>} params.roleCategories ロール ID → カテゴリ
  * @returns {{ errors: string[], notices: string[] }}
  */
-export function pairIssues({ owner, ownerConfig, field, child, childConfig, domains, roleCategories }) {
+export function pairIssues({ domain, owner, ownerConfig, field, child, childConfig, registrations, roleCategories }) {
   const errors = [];
   const notices = [];
-  const ownerAt = `${owner}/entities/${owner}/entity.json の集まりの項目 "${field.name}"`;
-  const childAt = `${child}/entities/${child}/entity.json`;
+  const ownerAt = `${domain}/entities/${owner}/entity.json の集まりの項目 "${field.name}"`;
+  const childAt = `${domain}/entities/${child}/entity.json`;
   const fields = childConfig.fields ?? [];
 
   // a. ファイルの条件は従属に書く
@@ -118,11 +119,12 @@ export function pairIssues({ owner, ownerConfig, field, child, childConfig, doma
     }
   }
 
-  // j. 名前の衝突（組の外のドメインと従属・主の項目名どうし）
-  for (const [other, config] of domains) {
+  // j. 名前の衝突（組の外の登録と従属・主の項目名どうし）
+  for (const [other, { domain: otherDomain, config }] of registrations) {
     if (other === child || !config) continue;
-    if (sameDomain(config.singular, childConfig.singular)) errors.push(`${childAt}: singular "${childConfig.singular}" が ${other}/entities/${other}/entity.json と重なります`);
-    else if (domainTableName(other, config) === childTable) errors.push(`${childAt}: 表名 "${childTable}" が ${other}/entities/${other}/entity.json の表と重なります`);
+    const otherAt = `${otherDomain}/entities/${other}/entity.json`;
+    if (sameDomain(config.singular, childConfig.singular)) errors.push(`${childAt}: singular "${childConfig.singular}" が ${otherAt} と重なります`);
+    else if (domainTableName(other, config) === childTable) errors.push(`${childAt}: 表名 "${childTable}" が ${otherAt} の表と重なります`);
   }
   const ownerNames = [
     ...(ownerConfig.fields ?? []).filter((f) => f !== field).map((f) => f.name),

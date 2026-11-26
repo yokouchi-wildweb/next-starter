@@ -41,10 +41,21 @@ function readDomains(repoRoot) {
     .filter((domain) => !domain.core && listed.some((other) => other.core && other.name === domain.name))
     .map((domain) => `${domain.dir}/${ENTITIES_DIR}/${domain.name}/${ENTITY_DECLARATION_FILE}: フォルダ名 ${domain.name} が src/domains/core/${domain.name} と重なる(登録のキーが同じになる)`);
   const domains = [];
+  const registrations = [];
   for (const declaration of readDeclaredDomains(source)) {
     if (declaration.domain === null) continue;
     problems.push(...declaration.problems.filter((problem) => problem.includes("JSON として読めない")));
     const registration = primaryRegistrationOf(declaration);
+    // 主でない登録(同じドメインの別の表・主の集まりの子、D348)も設定の一覧には並べる(キー = 登録名)。表示名の既定は登録名
+    for (const other of declaration.registrations) {
+      if (other === registration || !other.entity) continue;
+      const otherDefaults = {
+        ...(other.entity.singular === undefined ? { singular: toSnakeCase(other.name) } : {}),
+        ...(other.entity.label === undefined ? { label: other.name } : {}),
+        ...(other.entity.fields === undefined ? { fields: [] } : {}),
+      };
+      registrations.push({ file: `${other.dir}/${ENTITY_DECLARATION_FILE}`, camel: other.name, defaults: otherDefaults });
+    }
     if (!registration?.entity) continue;
     // 表示名はドメインの宣言 domain.json の label(管理の一覧・データ操作の一覧の名前、D335)
     const label = declaration.domain.label ?? registration.entity.label ?? declaration.name;
@@ -58,13 +69,15 @@ function readDomains(repoRoot) {
     };
     domains.push({ file: `${registration.dir}/${ENTITY_DECLARATION_FILE}`, camel: declaration.name, label, defaults, config: { ...registration.entity, ...defaults } });
   }
+  registrations.push(...domains.map(({ file, camel, defaults }) => ({ file, camel, defaults })));
   domains.sort((a, b) => byString(a.file, b.file));
+  registrations.sort((a, b) => byString(a.file, b.file));
   const seen = new Map();
   for (const domain of domains) {
     if (seen.has(domain.camel)) problems.push(`${domain.file}: フォルダ名 ${domain.camel} が ${seen.get(domain.camel)} と重なる(登録のキーが同じになる)`);
     seen.set(domain.camel, domain.file);
   }
-  return { domains, problems };
+  return { domains, registrations, problems };
 }
 
 function renderSchemaRegistry(repoRoot) {
@@ -85,21 +98,21 @@ function renderSchemaRegistry(repoRoot) {
   return { text: lines.join("\n"), problems };
 }
 
-function renderDomainConfigRegistry(domains) {
+function renderDomainConfigRegistry(registrations) {
   const lines = [
     headerOf(`${FEATURES_DIR}/**/entities/*/entity.json`),
     `// ${DOMAIN_CONFIG_REGISTRY_FILE}`,
     "//",
-    "// 全ドメインの主の登録の宣言 entity.json の一覧(キー = フォルダ名の snake_case)。読み手: src/wiring/domainConfig.ts",
+    "// 全ての登録の宣言 entity.json の一覧(キー = 登録名の snake_case。汎用の単位 = 登録 1 件、D348)。読み手: src/wiring/domainConfig.ts",
     "",
     'import "server-only";',
     "",
     'import type { DomainConfigOptionals } from "@/lib/domain";',
     "",
-    ...domains.map((d) => `import ${d.camel}Config from "@/${d.file.slice("src/".length)}";`),
+    ...registrations.map((d) => `import ${d.camel}Config from "@/${d.file.slice("src/".length)}";`),
     "",
     "export const domainConfigMap = {",
-    ...domains.map((d) => `  ${toSnakeCase(d.camel)}: ${Object.keys(d.defaults).length > 0 ? `{ ...${d.camel}Config, ${Object.entries(d.defaults).map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join(", ")} }` : `${d.camel}Config`},`),
+    ...registrations.map((d) => `  ${toSnakeCase(d.camel)}: ${Object.keys(d.defaults).length > 0 ? `{ ...${d.camel}Config, ${Object.entries(d.defaults).map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join(", ")} }` : `${d.camel}Config`},`),
     "} as const;",
     "",
     "export type DomainKey = keyof typeof domainConfigMap;",
@@ -175,14 +188,14 @@ function renderStoragePurposeRegistry(repoRoot) {
  * @returns {{ outputs: Record<string, string>, problems: string[] }}
  */
 export function buildAlphaRegistries(repoRoot) {
-  const { domains, problems: domainProblems } = readDomains(repoRoot);
+  const { domains, registrations, problems: domainProblems } = readDomains(repoRoot);
   const schema = renderSchemaRegistry(repoRoot);
   const messages = renderMessageRegistry(repoRoot);
   const recordTargets = renderRecordTargetRegistry(repoRoot);
   return {
     outputs: {
       [SCHEMA_REGISTRY_FILE]: schema.text,
-      [DOMAIN_CONFIG_REGISTRY_FILE]: renderDomainConfigRegistry(domains),
+      [DOMAIN_CONFIG_REGISTRY_FILE]: renderDomainConfigRegistry(registrations),
       ...Object.fromEntries(domains.map(({ file, config }) => [domainDisplayPath(file), renderDomainDisplay(file, config, domains.map((domain) => domain.config))])),
       [STORAGE_PURPOSE_REGISTRY_FILE]: renderStoragePurposeRegistry(repoRoot),
       [ADMIN_DOMAINS_FILE]: renderAdminDomains(repoRoot, domains),

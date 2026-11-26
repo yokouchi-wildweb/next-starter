@@ -272,13 +272,14 @@ describe("ドメインの <登録名>StoragePurposes.ts", () => {
   });
 
   test("上流の生成物は entity.json から作り直しても変わらず、値は移す前の 3 用途のまま", () => {
-    for (const domain of ["sample", "sampleImage"]) {
-      const rel = `src/domains/${domain}`;
-      const config = JSON.parse(fs.readFileSync(path.join(rootDir, rel, "entities", domain, "entity.json"), "utf8"));
-      const { entries, errors } = buildStoragePurposeEntries({ camel: domain, config, roleCategories: ROLE_CATEGORIES });
+    // 集まりの従属 sampleImage は主のドメイン sample の中の登録(D348)
+    for (const registration of ["sample", "sampleImage"]) {
+      const rel = "src/domains/sample";
+      const config = JSON.parse(fs.readFileSync(path.join(rootDir, rel, "entities", registration, "entity.json"), "utf8"));
+      const { entries, errors } = buildStoragePurposeEntries({ camel: registration, config, roleCategories: ROLE_CATEGORIES });
       assert.deepEqual(errors, []);
       // 書いた中身 = 雛形の中身 + 生成物の印(scripts/structure/domain/render/output.mjs の file())
-      assert.equal(fs.readFileSync(path.join(rootDir, rel, `services/server/${domain}StoragePurposes.ts`), "utf8"), withGeneratedMark(`${domain}StoragePurposes.ts`, renderStoragePurposesContent(rel, entries, domain)));
+      assert.equal(fs.readFileSync(path.join(rootDir, rel, `services/server/${registration}StoragePurposes.ts`), "utf8"), withGeneratedMark(`${registration}StoragePurposes.ts`, renderStoragePurposesContent(rel, entries, registration)));
     }
     const upload = { allow: "authenticated" };
     const media = { visibility: "public", maxBytes: 104857600, contentTypes: ["image/*", "video/*"], metadata: "strip", upload };

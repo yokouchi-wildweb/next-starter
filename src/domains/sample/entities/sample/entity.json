@@ -182,7 +182,7 @@
       "required": false,
       "reorderable": true,
       "collection": {
-        "domain": "sample_image",
+        "registration": "sample_image",
         "maxItems": 8,
         "duplicate": true
       }

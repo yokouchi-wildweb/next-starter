@@ -1,4 +1,4 @@
-// src/domains/sampleImage/services/server/sampleImageService.ts
+// src/domains/sample/services/server/sampleImageService.ts
 
 import { sampleImageBase } from "./sampleImageBase";
 

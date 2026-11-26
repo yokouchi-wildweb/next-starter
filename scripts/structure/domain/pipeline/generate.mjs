@@ -1,5 +1,5 @@
 // 1 ドメインの生成: 読む（context）→ 検査（checks）→ 作る（plan）→ 登録表の事前検査 → 書く（apply）→ serviceRegistry を作り直す。
-// 主と従属の組（pairs.mjs）に属するドメインは組の全員を「従属 → 主」の順に生成する（generateWithPairs）。
+// 主と従属の組（pairs.mjs、従属は主のドメインの中の登録）に属する登録は組の全員を「従属 → 主」の順に生成する（generateWithPairs）。
 // 対話（-i の生成方法の選択・上書き確認）は cli/generate.mjs。ここは対話の有無によらず同じ
 
 import path from "node:path";
@@ -136,9 +136,12 @@ export function generateWithPairs(ctx, workspace, gen, { only = null, dryRun = f
   if (group.length === 1) return generateDomain(ctx, workspace, gen, { dryRun, io });
   printPairNotices(pairs, group, io);
 
-  const members = group.map((domain) => {
-    if (domain === ctx.camel) return { ctx, gen };
-    const memberCtx = loadDomainForGenerate(workspace, domain, io, pairs.pending.has(domain) ? { config: pairs.pending.get(domain) } : {});
+  const members = group.map((registration) => {
+    if (registration === ctx.camel) return { ctx, gen };
+    const domain = pairs.domainOf.get(registration) ?? ctx.folder;
+    const pendingConfig = pairs.pending.get(registration);
+    const overrides = registration === domain ? {} : { registration, firstUnit: false, ...(pendingConfig ? { config: pendingConfig } : {}) };
+    const memberCtx = loadDomainForGenerate(workspace, domain, io, overrides);
     return { ctx: memberCtx, gen: configTargets(memberCtx, pairs, only, io) };
   });
   // 主の生成物（Fields）が従属の file を読む

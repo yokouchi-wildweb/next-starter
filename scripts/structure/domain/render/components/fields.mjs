@@ -32,10 +32,10 @@ const RELATION_BLOCK = `
  */
 export function collectionFieldPatches(config, collectionChildren = new Map()) {
   return (config?.fields ?? [])
-    .filter((f) => isCollectionFieldType(f.fieldType) && typeof f.collection?.domain === "string")
+    .filter((f) => isCollectionFieldType(f.fieldType) && typeof f.collection?.registration === "string")
     .map((f) => {
       const child = collectionChildren.get(f.name);
-      const childCamel = child?.camel ?? toCamelCase(f.collection.domain);
+      const childCamel = child?.camel ?? toCamelCase(f.collection.registration);
       const file = (child?.config?.fields ?? []).find((field) => isMediaFieldType(field.fieldType));
       const validationRule = {
         ...(typeof file?.validationRule?.maxSizeBytes === "number" ? { maxSizeBytes: file.validationRule.maxSizeBytes } : {}),

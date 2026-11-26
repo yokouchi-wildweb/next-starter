@@ -1,4 +1,4 @@
-// pnpm generate domain -- --delete を止める判定（組を壊す削除・他のドメインから参照されているドメインの削除・残るコードから import されているドメインの削除を止める）と、既定の対話なしの確認（--confirm）の回帰テスト。
+// pnpm generate domain -- --delete を止める判定（他のドメインから参照されているドメインの削除・残るコードから import されているドメインの削除を止める）と、既定の対話なしの確認（--confirm）の回帰テスト。
 // 止まる経路は runDelete を直接呼ぶ（-i でなければ対話は出ない）。止まらない経路は判定が null であることを見る。
 // 実行: pnpm test scripts/structure/domain/tests/deleteStop.test.mjs
 import { after, test } from "node:test";
@@ -26,7 +26,7 @@ const base = (singular, fields = [], extra = {}) => ({
   fields: [{ name: "name", label: "名前", fieldType: "string", formInput: "textInput", required: true }, ...fields],
   ...extra,
 });
-const photos = { name: "photos", label: "写真", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", required: true, reorderable: true, collection: { domain: "album_photo" } };
+const photos = { name: "photos", label: "写真", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", required: true, reorderable: true, collection: { registration: "album_photo" } };
 const album = base("album", [photos]);
 const albumPhoto = buildChildDomainConfig(album, photos).config;
 
@@ -49,35 +49,18 @@ async function deleteCapturing(workspace, domain, options = {}) {
 }
 const snapshot = (root) => fs.readdirSync(path.join(root, "src"), { recursive: true }).sort();
 
-test("主: 従属の宣言が残っていれば一覧と直す順を出して止まり、何も消さない", async () => {
-  const root = makeProject({ configs: { album, albumPhoto }, cleanup });
+test("主: 集まりの従属は主のドメインの中の登録なので一緒に消え、止まらない（D348）", async () => {
+  const root = makeProject({ configs: { album }, registrations: { "album/albumPhoto": albumPhoto }, cleanup });
   const workspace = createWorkspace(root);
-  const before = snapshot(root);
-  const { stderr, exitCode } = await deleteCapturing(workspace, "album");
-  assert.equal(exitCode, 1);
-  assert.match(stderr, /album は集まりの従属（albumPhoto）を持っているため削除できません/);
-  assert.match(stderr, /album\/entities\/album\/entity\.json の集まりの項目 "photos" を外し、従属を pnpm generate domain -- --delete --remove-config してから album を消してください/);
-  assert.deepEqual(snapshot(root), before);
+  assert.equal(deleteStopMessage(workspace, "album"), null);
+  await deleteCapturing(workspace, "album", { confirm: "album", removeConfig: true });
+  assert.equal(fs.existsSync(path.join(root, "src/domains/album")), false);
 });
-
-test("従属: 主が集まりの項目を宣言している間は止まり、何も消さない", async () => {
-  const root = makeProject({ configs: { album, albumPhoto }, cleanup });
-  const workspace = createWorkspace(root);
-  const before = snapshot(root);
-  const { stderr, exitCode } = await deleteCapturing(workspace, "album_photo");
-  assert.equal(exitCode, 1);
-  assert.match(stderr, /albumPhoto は album の集まりの従属です。先に album\/entities\/album\/entity\.json の集まりの項目 "photos" を外してください/);
-  assert.deepEqual(snapshot(root), before);
-});
-
 const relation = (domain, relationType, fieldName, extra = {}) => ({ domain, label: "a", fieldName, fieldType: "uuid", relationType, ...extra });
 
-test("止まらない: 従属がまだ書き出されていない主・項目を外した後の従属・組も参照も無いドメイン", () => {
+test("止まらない: 従属がまだ書き出されていない主・組も参照も無いドメイン", () => {
   const notWritten = createWorkspace(makeProject({ configs: { album }, cleanup }));
   assert.equal(deleteStopMessage(notWritten, "album"), null);
-
-  const detached = createWorkspace(makeProject({ configs: { album: base("album"), albumPhoto }, cleanup }));
-  assert.equal(deleteStopMessage(detached, "albumPhoto"), null);
 
   const none = createWorkspace(makeProject({ configs: { note: base("note"), memo: base("memo") }, cleanup }));
   assert.equal(deleteStopMessage(none, "note"), null);
@@ -133,36 +116,13 @@ test("参照されているドメイン: --confirm が合っていても、参�
   assert.equal(deleteStopMessage(workspace, "comment"), null);
 });
 
-test("主の停止は、従属以外の参照元も同じ文面で一度に出す（従属は重ねて出さない）", () => {
+test("主の停止: 他のドメインの参照元は出し、ドメインの中の従属は参照元に数えない", () => {
   const comment = base("comment", [], { relations: [relation("album", "belongsTo", "album_id")] });
-  const workspace = createWorkspace(makeProject({ configs: { album, albumPhoto, comment }, cleanup }));
+  const workspace = createWorkspace(makeProject({ configs: { album, comment }, registrations: { "album/albumPhoto": albumPhoto }, cleanup }));
   const message = deleteStopMessage(workspace, "album");
-  assert.match(message, /集まりの従属（albumPhoto）/);
   assert.match(message, /comment: album_id（belongsTo）/);
-  assert.doesNotMatch(message, /albumPhoto: /);
+  assert.doesNotMatch(message, /albumPhoto/);
 });
-
-test("消す順: 主の項目を外す → 従属を --remove-config で消す → 主を消す。従属の宣言を残すと主は止まったまま", async () => {
-  const root = makeProject({ configs: { album: base("album"), albumPhoto }, cleanup });
-  const workspace = createWorkspace(root);
-  // 主の生成物(宣言 entities/album/entity.json の横に置く表のファイル)。--remove-config なしの削除で消え、宣言は残る
-  const owner = path.join(root, "src/domains/album/entities/model.ts");
-  fs.writeFileSync(owner, "export type Album = { id: string };\n");
-  assert.match(deleteStopMessage(workspace, "album"), /albumPhoto: album_id（belongsTo）/);
-
-  await deleteCapturing(workspace, "album_photo", { confirm: "album_photo" });
-  assert.equal(fs.existsSync(path.join(root, "src/domains/albumPhoto/domain.json")), true);
-  assert.equal(fs.existsSync(entityDeclarationPath(root, "albumPhoto")), true);
-  assert.match(deleteStopMessage(workspace, "album"), /albumPhoto: album_id（belongsTo）/);
-
-  await deleteCapturing(workspace, "album_photo", { confirm: "album_photo", removeConfig: true });
-  assert.equal(fs.existsSync(path.join(root, "src/domains/albumPhoto")), false);
-  assert.equal(deleteStopMessage(workspace, "album"), null);
-  await deleteCapturing(workspace, "album", { confirm: "album" });
-  assert.equal(fs.existsSync(owner), false);
-  assert.equal(fs.existsSync(entityDeclarationPath(root, "album")), true);
-});
-
 test("--confirm: 無い・違うなら消すものの一覧と打てるコマンドを出して止まり、何も消さない。一致なら消し、宣言(domain.json と entities/<d>/entity.json)は --remove-config のときだけ消す", async () => {
   const note = base("note");
   const root = makeProject({ configs: { note }, cleanup });

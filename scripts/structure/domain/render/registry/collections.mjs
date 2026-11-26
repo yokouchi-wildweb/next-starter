@@ -26,14 +26,14 @@ function childColumns(ownerConfig, child) {
 
 /** 集まりの項目 1 つ分の宣言（CrudCollectionConfig）の行 */
 function entryLines(ctx, ownerConfig, field, child) {
-  const childCamel = child?.camel ?? toCamelCase(field.collection.domain);
+  const childCamel = child?.camel ?? toCamelCase(field.collection.registration);
   const table = `${toPascalCase(childCamel)}Table`;
   const columns = childColumns(ownerConfig, child);
   const collection = field.collection ?? {};
   return [
     "  {",
     `    fieldName: "${resolveFieldName(field.name, "Neon")}",`,
-    `    service: () => import("${importRootFor(ctx, childCamel)}/services/server/${childCamel}Service").then((m) => m.${childCamel}Service),`,
+    `    service: () => import("${importRootFor(ctx)}/services/server/${childCamel}Service").then((m) => m.${childCamel}Service),`,
     `    parentColumn: ${table}.${columns.parent},`,
     `    valueColumn: ${table}.${columns.value},`,
     `    sortColumn: ${table}.${columns.sort},`,
@@ -52,10 +52,10 @@ function entryLines(ctx, ownerConfig, field, child) {
  */
 export function renderCollectionsOutput(ctx, workspace) {
   const { config, camel } = ctx;
-  const fields = (config?.fields ?? []).filter((f) => isCollectionFieldType(f.fieldType) && typeof f.collection?.domain === "string");
+  const fields = (config?.fields ?? []).filter((f) => isCollectionFieldType(f.fieldType) && typeof f.collection?.registration === "string");
   if (!fields.length) return [];
   const children = resolveCollectionChildren(ctx, workspace);
-  const tables = [...new Set(fields.map((f) => children.get(f.name)?.camel ?? toCamelCase(f.collection.domain)))];
+  const tables = [...new Set(fields.map((f) => children.get(f.name)?.camel ?? toCamelCase(f.collection.registration)))];
   const content = [
     `// ${domainRel(ctx)}/services/server/${ctx.camel}Collections.ts`,
     "// pnpm generate domain が登録の entity.json の集まりの項目（mediaCollection）から生成する。手で直さない。",
@@ -63,7 +63,8 @@ export function renderCollectionsOutput(ctx, workspace) {
     "// 詳細: src/lib/crud/collections/README.md",
     "",
     'import type { CrudCollectionConfig } from "@/lib/crud/server";',
-    ...tables.map((child) => `import { ${toPascalCase(child)}Table } from "${importRootFor(ctx, child)}/entities/drizzle";`),
+    // 従属は主のドメインの中の登録(D334): 従属の表とサービスは主と同じドメインのフォルダから読む
+    `import { ${tables.map((child) => `${toPascalCase(child)}Table`).join(", ")} } from "${importRootFor(ctx)}/entities/drizzle";`,
     "",
     "export const collections: CrudCollectionConfig[] = [",
     ...fields.flatMap((field) => entryLines(ctx, config, field, children.get(field.name))),

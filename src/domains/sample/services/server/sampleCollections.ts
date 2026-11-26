@@ -5,12 +5,12 @@
 // 詳細: src/lib/crud/collections/README.md
 
 import type { CrudCollectionConfig } from "@/lib/crud/server";
-import { SampleImageTable } from "@/domains/sampleImage/entities/drizzle";
+import { SampleImageTable } from "@/domains/sample/entities/drizzle";
 
 export const collections: CrudCollectionConfig[] = [
   {
     fieldName: "images",
-    service: () => import("@/domains/sampleImage/services/server/sampleImageService").then((m) => m.sampleImageService),
+    service: () => import("@/domains/sample/services/server/sampleImageService").then((m) => m.sampleImageService),
     parentColumn: SampleImageTable.sample_id,
     valueColumn: SampleImageTable.file,
     sortColumn: SampleImageTable.sort_order,

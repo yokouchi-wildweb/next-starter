@@ -1,6 +1,6 @@
 // 複数ドメインの一括生成。全ドメインの生成物を先に組み立て、登録表（serviceRegistry.ts）が作れることを確かめてから書く。
 // serviceRegistry.ts は最後に 1 回だけ作り直す。
-// 主と従属の組（pairs.mjs）を一度解き、この実行で書き出す従属も加えて、従属を所有する主の直前に並べる（それ以外の順は変えない）
+// 主と従属の組（pairs.mjs）を一度解く。従属は主のドメインの中の登録(D334)なので、この実行で書き出す従属は主のドメインの生成の単位に加わる
 
 import path from "node:path";
 
@@ -9,7 +9,7 @@ import { applyOutputs } from "./apply.mjs";
 import { reportDryRun, summarizeDryRun } from "./dryRun.mjs";
 import { isHandManaged } from "../spec/categories.mjs";
 import { configTargets, loadDomainForGenerate, narrowTargets, refreshDistrictMap } from "./generate.mjs";
-import { assertPairs, collectionChildrenOf, groupOf, involvesPairs, orderWithPairs, pairSummary, printPairNotices, resolvePairs } from "./pairs.mjs";
+import { assertPairs, collectionChildrenOf, involvesPairs, pairSummary, pendingChildrenIn, printPairNotices, resolvePairs } from "./pairs.mjs";
 import { planDomain } from "./plan.mjs";
 import { precheckServiceRegistry, regenerateServiceRegistry } from "./serviceRegistry.mjs";
 
@@ -34,24 +34,27 @@ export function planGenerateAll(workspace, selectedDomains, manualGenerate, only
   assertDomainFolderNames(workspace, selectedDomains.filter((domain) => !isHandManaged(workspace.readConfigLenient(domain))));
   const pairs = resolvePairs(workspace);
   assertPairs(pairs);
-  // 選んだドメインの組の全員（この実行で書き出す従属・選んだ従属の主）を加え、従属 → 主の順に並べる
-  const domains = orderWithPairs(pairs, [...new Set(selectedDomains.flatMap((domain) => groupOf(pairs, domain)))]);
-  printPairNotices(pairs, domains, io);
-  // 生成の単位 = ドメインの中の登録 1 件(D336): 主の登録(登録名 = ドメイン名)は今までどおり、ほかの生成する登録はその名前で(主が先)
+  const domains = [...new Set(selectedDomains)];
+  // 生成の単位 = ドメインの中の登録 1 件(D336): 主の登録(登録名 = ドメイン名)は今までどおり、ほかの生成する登録はその名前で(主が先)、
+  // この実行で書き出す従属(まだディスクに無い)はその後
   const units = domains.flatMap((domain) => {
-    const registrations = pairs.pending.has(domain) ? [] : workspace.generationUnitsOf(domain).filter((registration) => registration !== domain);
-    const own = pairs.pending.has(domain) || workspace.generationUnitsOf(domain).includes(domain) || registrations.length === 0;
+    const onDisk = workspace.generationUnitsOf(domain);
+    const registrations = [...onDisk.filter((registration) => registration !== domain), ...pendingChildrenIn(pairs, domain)];
+    const own = onDisk.includes(domain) || registrations.length === 0;
     return [...(own ? [{ domain, registration: null }] : []), ...registrations.map((registration) => ({ domain, registration }))].map((unit, index) => ({ ...unit, firstUnit: index === 0 }));
   });
+  const registrationsOfRun = units.map((unit) => unit.registration ?? unit.domain);
+  printPairNotices(pairs, registrationsOfRun, io);
   const plans = units.map(({ domain, registration, firstUnit }) => {
     const { buffer, flush } = bufferedIo(io);
-    const overrides = registration ? { registration, firstUnit } : pairs.pending.has(domain) ? { config: pairs.pending.get(domain) } : {};
+    const pendingConfig = registration ? pairs.pending.get(registration) : undefined;
+    const overrides = registration ? { registration, firstUnit, ...(pendingConfig ? { config: pendingConfig } : {}) } : {};
     const ctx = loadDomainForGenerate(workspace, domain, buffer, overrides);
     const gen = manualGenerate ? narrowTargets(ctx, manualGenerate, only, buffer) : configTargets(ctx, pairs, only, buffer);
     ctx.collectionChildren = collectionChildrenOf(workspace, pairs, ctx.camel);
     return { domain: registration ? `${domain}/${registration}` : domain, ctx, gen, outputs: planDomain(ctx, workspace, gen), flush };
   });
-  return { pairs, domains, plans };
+  return { pairs, domains, registrations: registrationsOfRun, plans };
 }
 
 /**
@@ -75,7 +78,7 @@ export function everyRunPathsOf(plans, rootDir) {
  */
 export function runGenerateAll(workspace, selectedDomains, manualGenerate, only, { dryRun = false, io = console } = {}) {
   // 1. 全ドメインの生成物を組み立てる（ここで検査に落ちれば何も書かない）
-  const { pairs, domains, plans } = planGenerateAll(workspace, selectedDomains, manualGenerate, only, io);
+  const { pairs, registrations, plans } = planGenerateAll(workspace, selectedDomains, manualGenerate, only, io);
   const registryGenerated = plans.some((plan) => plan.gen.registry);
 
   // 2. 書いた後の状態で登録表が作れるかを先に確かめる
@@ -95,7 +98,7 @@ export function runGenerateAll(workspace, selectedDomains, manualGenerate, only,
     }
   }
 
-  const summary = involvesPairs(pairs, domains) ? pairSummary(workspace, pairs, domains, { registry: registryGenerated, dryRun }) : [];
+  const summary = involvesPairs(pairs, registrations) ? pairSummary(workspace, pairs, registrations, { registry: registryGenerated, dryRun }) : [];
   if (dryRun) {
     if (summary.length) io.log("");
     summary.forEach((line) => io.log(line));

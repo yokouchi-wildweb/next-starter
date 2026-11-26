@@ -62,7 +62,6 @@
     {"glob": "src/app/admin/(protected)/{route}/sort/page.tsx", "kind": "write-once", "source": "the written file itself (hand-owned after the first write)"},
     {"glob": "{dir}/seed.ts", "kind": "write-once", "source": "the written file itself (hand-owned after the first write)"},
     {"glob": "{dir}/services/server/{camel}Service.ts", "kind": "write-once", "source": "the written file itself (hand-owned after the first write)"},
-    {"glob": "src/domains/*/domain.json", "kind": "write-once", "source": "the written file itself (hand-owned after the first write)"},
     {"glob": "src/domains/*/entities/*/entity.json", "kind": "write-once", "source": "the written file itself (hand-owned after the first write)"}
   ]
 }

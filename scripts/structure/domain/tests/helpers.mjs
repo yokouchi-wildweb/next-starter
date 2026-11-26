@@ -17,7 +17,7 @@ export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)
  *   templates = リポジトリの src/domains/_template からコピーする相対パス、domains = リポジトリの宣言(domain.json と主の登録の entity.json)をコピーするドメイン、
  *   configs = 直接書く宣言（フォルダ名 → 主の登録の entity.json の内容。writeDeclaration）、cleanup = 作った一時ディレクトリを積む配列（after で消す）
  */
-export function makeProject({ templates = [], domains = [], configs = {}, cleanup }) {
+export function makeProject({ templates = [], domains = [], configs = {}, registrations = {}, cleanup }) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "dc-test-"));
   cleanup.push(root);
   for (const rel of templates) {
@@ -32,8 +32,23 @@ export function makeProject({ templates = [], domains = [], configs = {}, cleanu
     fs.copyFileSync(path.join(from, "entities", domain, "entity.json"), path.join(to, "entities", domain, "entity.json"));
   }
   for (const [folder, config] of Object.entries(configs)) writeDeclaration(root, folder, config);
+  for (const [at, config] of Object.entries(registrations)) writeRegistration(root, path.dirname(at), path.basename(at), config);
   return root;
 }
+
+/**
+ * ドメインの中の主でない登録(同じドメインの別の表・主の集まりの子、D348)の宣言を書く: src/domains/<folder>/entities/<registration>/entity.json。
+ * makeProject の registrations は "<folder>/<登録名>" → config
+ */
+export function writeRegistration(root, folder, registration, config) {
+  const dir = path.join(root, "src", "domains", folder, "entities", registration);
+  const { domainConfigVersion: _version, ...entity } = config;
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, "entity.json"), JSON.stringify(entity));
+}
+
+/** ドメインの中の登録の entity.json の場所 */
+export const registrationDeclarationPath = (root, folder, registration) => path.join(root, "src", "domains", folder, "entities", registration, "entity.json");
 
 /**
  * 1 表のドメインの宣言を書く: config(表の鍵・登録の鍵。domainConfigVersion は持たなくてよい)を主の登録の entities/<名前>/entity.json に、

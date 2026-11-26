@@ -52,7 +52,7 @@ test("presenters: メディア列を resolveStorageSrc で解決するサムネ�
 });
 
 test("presenters: 主の集まりの項目は formatCollectionThumbnails（import も足す）", () => {
-  const gallery = { name: "gallery", label: "ギャラリー", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", collection: { domain: "album_gallery" } };
+  const gallery = { name: "gallery", label: "ギャラリー", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", collection: { registration: "album_gallery" } };
   const { ctx, workspace } = albumContext({ ...FIXTURE, fields: [...FIXTURE.fields, gallery] });
   const presenters = renderPresentersContent(ctx, workspace);
   assert.match(presenters, /gallery: \(\{ value, field, record \}\) => formatCollectionThumbnails\(value\),/);

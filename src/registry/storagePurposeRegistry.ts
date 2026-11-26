@@ -7,10 +7,10 @@ import "server-only";
 
 import type { StoragePurposeMap } from "@/lib/storage";
 
+import { purposes as sampleImagePurposes } from "@/domains/sample/services/server/sampleImageStoragePurposes";
 import { purposes as samplePurposes } from "@/domains/sample/services/server/sampleStoragePurposes";
-import { purposes as sampleImagePurposes } from "@/domains/sampleImage/services/server/sampleImageStoragePurposes";
 
 export const storagePurposeRegistry: StoragePurposeMap[] = [
-  samplePurposes,
   sampleImagePurposes,
+  samplePurposes,
 ];

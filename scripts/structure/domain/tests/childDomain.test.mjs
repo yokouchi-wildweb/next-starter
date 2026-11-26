@@ -1,4 +1,4 @@
-// 主の集まりの項目（mediaCollection）から従属ドメインの宣言(domain.json と entities/<従属>/entity.json)を組む純関数と、その write-once の書き出しの回帰テスト。
+// 主の集まりの項目（mediaCollection）から従属の登録の宣言(主のドメインの entities/<従属>/entity.json、D348)を組む純関数と、その write-once の書き出しの回帰テスト。
 // 実行: pnpm test scripts/structure/domain/tests/childDomain.test.mjs
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
@@ -9,8 +9,7 @@ import { reportDryRun } from "../pipeline/dryRun.mjs";
 import { planDomain } from "../pipeline/plan.mjs";
 import { buildChildDomainConfig } from "../render/collections/childDomainConfig.mjs";
 import formatDomainConfig from "../spec/format.mjs";
-import { DOMAIN_CONFIG_VERSION } from "../spec/version.mjs";
-import { applyAndCapture, contextFor, entityDeclarationPath, makeProject, removeAll } from "./helpers.mjs";
+import { applyAndCapture, contextFor, makeProject, registrationDeclarationPath, removeAll } from "./helpers.mjs";
 
 const cleanup = [];
 after(() => removeAll(cleanup));
@@ -23,7 +22,7 @@ const field = (overrides = {}) => ({
   formInput: "mediaUploaderMulti",
   required: true,
   reorderable: true,
-  collection: { domain: "sample_image", maxItems: 10, duplicate: true },
+  collection: { registration: "sample_image", maxItems: 10, duplicate: true },
   ...overrides,
 });
 const parent = (overrides = {}) => ({
@@ -68,11 +67,11 @@ test("従属の形: belongsTo 主（必須・CASCADE）、メディア 1 項目 
 });
 
 test("名前と plural: 既定の名前なら既定の plural（項目名）、変えていれば・s で終わらない項目なら singular から作る（plural は必須）", () => {
-  assert.equal(buildChildDomainConfig(parent(), field({ collection: { domain: "photo_item" } })).config.plural, "photo_items");
-  const gallery = buildChildDomainConfig(parent(), field({ name: "gallery", collection: { domain: "sample_gallery" } })).config;
+  assert.equal(buildChildDomainConfig(parent(), field({ collection: { registration: "photo_item" } })).config.plural, "photo_items");
+  const gallery = buildChildDomainConfig(parent(), field({ name: "gallery", collection: { registration: "sample_gallery" } })).config;
   assert.equal(gallery.singular, "sample_gallery");
   assert.equal(gallery.plural, "sample_galleries");
-  assert.equal(buildChildDomainConfig(parent(), field({ name: "gallery", collection: { domain: "sample_gallery" } })).config.fields[0].slug, "gallery");
+  assert.equal(buildChildDomainConfig(parent(), field({ name: "gallery", collection: { registration: "sample_gallery" } })).config.fields[0].slug, "gallery");
 });
 
 test("idType と外部キーの型は主に従う（数値の ID は integer 列）", () => {
@@ -117,38 +116,36 @@ test("権限の写し: 閉じた主（none / INTERNAL_ONLY）・custom などの
 
 // ---- 書き出し（write-once） ----
 
-/** 従属の登録の entity.json と、従属のドメインの domain.json */
-const childPath = (root) => entityDeclarationPath(root, "sampleImage");
-const childDomainPath = (root) => path.join(root, "src", "domains", "sampleImage", "domain.json");
+/** 従属の登録の entity.json(主のドメイン sample の中) */
+const childPath = (root) => registrationDeclarationPath(root, "sample", "sampleImage");
 const outputsFor = (root, gen = { entities: false }) => {
   const { workspace, ctx } = contextFor(root, "sample");
   return { workspace, outputs: planDomain(ctx, workspace, gen) };
 };
 
-test("書き出し: 従属の宣言(domain.json と entity.json)が無ければ formatDomainConfig の形で書き、パスを出す（生成カテゴリに関わらず）", () => {
+test("書き出し: 従属の登録の宣言が無ければ主のドメインの中に formatDomainConfig の形で書き、パスを出す（domain.json は書かない・生成カテゴリに関わらず）", () => {
   const root = makeProject({ configs: { sample: parent() }, cleanup });
   const { stdout } = applyAndCapture(outputsFor(root).outputs);
   const { config } = buildChildDomainConfig(parent(), field());
   assert.equal(fs.readFileSync(childPath(root), "utf8"), formatDomainConfig(config));
-  assert.equal(fs.readFileSync(childDomainPath(root), "utf8"), formatDomainConfig({ domainConfigVersion: DOMAIN_CONFIG_VERSION, label: config.label }));
-  assert.match(stdout, /集まり images の従属の domain\.json を書き出しました: .*sampleImage\/domain\.json/);
-  assert.match(stdout, /集まり images の従属の登録の entity\.json を書き出しました: .*sampleImage\/entities\/sampleImage\/entity\.json/);
+  assert.equal(fs.existsSync(path.join(root, "src", "domains", "sampleImage")), false);
+  assert.match(stdout, /集まり images の従属の登録の entity\.json を書き出しました: .*sample\/entities\/sampleImage\/entity\.json/);
 });
 
 test("書き出し: 既にあれば書かない（中身はそのまま、権限の案内も出さない）", () => {
   const closedParent = parent({ apiAccess: { read: "none", write: "none" } });
-  const root = makeProject({ configs: { sample: closedParent, sampleImage: { singular: "sample_image", handWritten: true } }, cleanup });
+  const root = makeProject({ configs: { sample: closedParent }, registrations: { "sample/sampleImage": { singular: "sample_image", handWritten: true } }, cleanup });
   const before = fs.readFileSync(childPath(root), "utf8");
   const { stdout } = applyAndCapture(outputsFor(root).outputs);
   assert.equal(fs.readFileSync(childPath(root), "utf8"), before);
-  assert.match(stdout, /従属の domain\.json は既にあるため書きません/);
+  assert.match(stdout, /従属の登録の entity\.json は既にあるため書きません/);
   assert.doesNotMatch(stdout, /管理者のみにしました/);
 });
 
 test("書き出し: 写せない権限は管理者のみにして直す場所を出す", () => {
   const root = makeProject({ configs: { sample: parent({ apiAccess: { read: "none", write: "none" } }) }, cleanup });
   const { stdout } = applyAndCapture(outputsFor(root).outputs);
-  assert.match(stdout, /従属の storage\.upload \/ storage\.read を管理者のみにしました。直す場所: .*sampleImage\/entities\/sampleImage\/entity\.json の fields "file"/);
+  assert.match(stdout, /従属の storage\.upload \/ storage\.read を管理者のみにしました。直す場所: .*sample\/entities\/sampleImage\/entity\.json の fields "file"/);
 });
 
 test("dry-run: 無ければ「作成」、あれば「保持」と出し、何も書かない", () => {
@@ -156,15 +153,15 @@ test("dry-run: 無ければ「作成」、あれば「保持」と出し、何�
   const lines = [];
   const { workspace, outputs } = outputsFor(root);
   const counts = reportDryRun(outputs, workspace, { log: (m) => lines.push(m) });
-  assert.equal(counts["作成"], 2);
-  assert.match(lines.join("\n"), /作成.*sampleImage\/domain\.json/);
+  assert.equal(counts["作成"], 1);
+  assert.match(lines.join("\n"), /作成.*sample\/entities\/sampleImage\/entity\.json/);
   assert.equal(fs.existsSync(childPath(root)), false);
 
   applyAndCapture(outputs);
   const again = outputsFor(root);
   const keptLines = [];
-  assert.equal(reportDryRun(again.outputs, again.workspace, { log: (m) => keptLines.push(m) })["保持"], 2);
-  assert.match(keptLines.join("\n"), /保持.*sampleImage\/domain\.json/);
+  assert.equal(reportDryRun(again.outputs, again.workspace, { log: (m) => keptLines.push(m) })["保持"], 1);
+  assert.match(keptLines.join("\n"), /保持.*sample\/entities\/sampleImage\/entity\.json/);
 });
 
 test("集まりの項目が無い主は何も足さない", () => {

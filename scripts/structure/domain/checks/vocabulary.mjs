@@ -68,16 +68,19 @@ function topLevelWarnings(acc, config) {
   }
 }
 
-/** 主の集まりの項目の collection（下位キーの型だけ。従属ドメインの存在など組をまたぐ検査は生成時） */
+/** 改名した collection の鍵(D334: 従属はドメインでなく主のドメインの中の登録) */
+const LEGACY_COLLECTION_KEYS = { domain: "registration（従属の登録名。従属のドメインは .notices の移す道具で主のドメインの中へ）" };
+
+/** 主の集まりの項目の collection（下位キーの型だけ。従属の登録の存在など組をまたぐ検査は生成時） */
 function collectionWarnings(acc, collection, location, where) {
   if (collection === undefined) return;
   if (!collection || typeof collection !== "object" || Array.isArray(collection)) {
     acc.warnings.push(`${where}: collection はオブジェクトで書いてください`);
     return;
   }
-  checkKeys(acc, collection, COLLECTION_KEYS, {}, `${location}.collection`, `${where}: collection: `);
-  if (collection.domain !== undefined && (typeof collection.domain !== "string" || collection.domain.length === 0)) {
-    acc.warnings.push(`${where}: collection.domain は従属ドメインの singular（空でない文字列）にしてください`);
+  checkKeys(acc, collection, COLLECTION_KEYS, LEGACY_COLLECTION_KEYS, `${location}.collection`, `${where}: collection: `);
+  if (collection.registration !== undefined && (typeof collection.registration !== "string" || collection.registration.length === 0)) {
+    acc.warnings.push(`${where}: collection.registration は従属の登録名（主と同じドメインの中の登録の singular、空でない文字列）にしてください`);
   }
   if (collection.maxItems !== undefined && (!Number.isInteger(collection.maxItems) || collection.maxItems < 1)) {
     acc.warnings.push(`${where}: collection.maxItems は 1 以上の整数にしてください`);

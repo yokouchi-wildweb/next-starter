@@ -87,8 +87,8 @@ export const FIELD_KEYS = new Set([
   "column", DECLARATION_COMMENT_KEY,
 ]);
 
-/** 主の集まりの項目(fieldType mediaCollection)の collection の鍵: 従属ドメインの singular・最大件数・複製で写すか */
-export const COLLECTION_KEYS = new Set(["domain", "maxItems", "duplicate", DECLARATION_COMMENT_KEY]);
+/** 主の集まりの項目(fieldType mediaCollection)の collection の鍵: 従属の登録名(主と同じドメインの中の登録の singular)・最大件数・複製で写すか */
+export const COLLECTION_KEYS = new Set(["registration", "maxItems", "duplicate", DECLARATION_COMMENT_KEY]);
 
 /** fieldGroups の 1 項目の鍵(管理画面フォームのセクション) */
 export const FIELD_GROUP_KEYS = new Set(["key", "label", "fields", "collapsible", "defaultCollapsed", "bgColor", DECLARATION_COMMENT_KEY]);

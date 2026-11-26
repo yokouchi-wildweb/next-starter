@@ -87,19 +87,19 @@ test("generate は知っているキー（generateFiles は廃止キー = checks
 
 test("主の集まりの項目（mediaCollection + collection）は警告なく通り、collection の下位キーの誤りは警告する", () => {
   const gallery = { name: "gallery", label: "ギャラリー", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", required: true, reorderable: true };
-  const ok = { ...BASE, fields: [...BASE.fields, { ...gallery, collection: { domain: "memoImage", maxItems: 10, duplicate: false } }] };
+  const ok = { ...BASE, fields: [...BASE.fields, { ...gallery, collection: { registration: "memoImage", maxItems: 10, duplicate: false } }] };
   assert.deepEqual(vocabularyWarnings(ok), []);
-  assert.deepEqual(vocabularyWarnings({ ...BASE, fields: [...BASE.fields, { ...gallery, collection: { domain: "memoImage" } }] }), []);
+  assert.deepEqual(vocabularyWarnings({ ...BASE, fields: [...BASE.fields, { ...gallery, collection: { registration: "memoImage" } }] }), []);
 
   const text = vocabularyWarnings({
     ...BASE,
     fields: [
-      { ...gallery, collection: { domain: "", maxItems: 0, duplicate: "no", minItems: 1 } },
+      { ...gallery, collection: { registration: "", maxItems: 0, duplicate: "no", minItems: 1 } },
       { ...gallery, name: "other", collection: ["memoImage"] },
     ],
   }).join("\n");
   assert.match(text, /知らないキー "minItems": 1 か所（fields\.gallery\.collection）/);
-  assert.match(text, /fields\[0\] "gallery": collection\.domain は従属ドメインの singular/);
+  assert.match(text, /fields\[0\] "gallery": collection\.registration は従属の登録名/);
   assert.match(text, /fields\[0\] "gallery": collection\.maxItems は 1 以上の整数/);
   assert.match(text, /fields\[0\] "gallery": collection\.duplicate は true か false/);
   assert.match(text, /fields\[1\] "other": collection はオブジェクトで書いてください/);
@@ -109,7 +109,7 @@ test("mediaCollection は Firestore に無い型", () => {
   const warnings = vocabularyWarnings({
     ...BASE,
     dbEngine: "Firestore",
-    fields: [{ name: "gallery", label: "g", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", collection: { domain: "x" } }],
+    fields: [{ name: "gallery", label: "g", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", collection: { registration: "x" } }],
   });
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /"mediaCollection" は Firestore に無い型/);
