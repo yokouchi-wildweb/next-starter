@@ -1,4 +1,4 @@
-// 主の集まりの項目（fieldType mediaCollection）の純関数: 従属ドメインの既定の名前と snake_case の判定。
+// 主の集まりの項目（fieldType mediaCollection）の純関数: 従属の登録の既定の名前と snake_case の判定。
 // 従属の宣言(domain.json と登録の entity.json)を書き出す生成（render/collections）と名前の検査（checks/names.mjs）が使う。
 
 import { toSnakeCase } from "../../../../src/lib/stringCase/index.mjs";
@@ -9,7 +9,7 @@ const SNAKE_CASE_NAME = /^[a-z][a-z0-9]*(_[a-z0-9]+)*$/;
 export const isSnakeCaseName = (name) => typeof name === "string" && SNAKE_CASE_NAME.test(name);
 
 /**
- * 従属ドメインの既定の名前。項目名が s で終われば末尾の s を 1 つ外して singular、項目名のまま plural にする。
+ * 従属の登録の既定の名前。項目名が s で終われば末尾の s を 1 つ外して singular、項目名のまま plural にする。
  * それ以外は singular だけを返す（plural は生成時の推定に任せる）
  * @returns {{ singular: string, plural?: string }}
  */

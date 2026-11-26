@@ -1,4 +1,4 @@
-// 主の集まりの項目（fieldType mediaCollection）から、従属ドメインの宣言(domain.json と登録の entity.json)の中身を組む純関数。
+// 主の集まりの項目（fieldType mediaCollection）から、従属の登録の宣言(domain.json と登録の entity.json)の中身を組む純関数。
 // 従属 = 主に belongsTo（必須・CASCADE）するメディア 1 枚ずつの行。汎用 API と管理画面は閉じて生まれ、主の画面から読み書きする。
 // ファイルの権限は主の汎用 API の規則から写す（写せるのは public / authenticated / ロールの規則だけ。それ以外は管理者のみ + 直す場所の案内）
 

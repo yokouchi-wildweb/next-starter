@@ -15,7 +15,7 @@
 | `lookupDomainService(registry, key, { require })` | 非同期・throw しない。`found | unregistered | load_failed | unsupported(missing)` を状態で返す。「引けない」と「行なし」を区別したい照合処理用（例: `require: ["searchWithDeleted"]`） |
 | `findDomainByTable(registry, tableName)` | 同期・読み込まない。表の物理名 → キー。登録の無い表（中間表・履歴・カウンター・cron の記録など）は `null`。同じ表が 2 キーの登録表（pnpm check registry を通っていない）では throw |
 | `getDomainTable(registry, key)` | 同期・読み込まない。キー → `{ table, idColumn }`。未登録と Firestore 版は `null` |
-| `getDomainList(registry, configMap)` / `getDomainListWithCount` / `withRecordCounts` / `isValidDomainKey` / `getInvalidDomainKeys` | 全件削除の一覧（access の評価は呼び手）。`getDomainList` はサービスを読み込まず、`table` を持つ行（= Drizzle 版 = truncateAll あり）で作る。読み込めないドメインも一覧に出るが、実行の直前の `isValidDomainKey` / `getInvalidDomainKeys` はサービスを読み込んで truncateAll を確かめる |
+| `getDomainList(registry, configMap, coreKeys)` / `getDomainListWithCount` / `withRecordCounts` / `isValidDomainKey` / `getInvalidDomainKeys` | 全件削除の一覧（access の評価は呼び手）。`getDomainList` はサービスを読み込まず、`table` を持つ行（= Drizzle 版 = truncateAll あり）で作る。読み込めないドメインも一覧に出るが、実行の直前の `isValidDomainKey` / `getInvalidDomainKeys` はサービスを読み込んで truncateAll を確かめる |
 
 戻りの型 `DomainService` は createCrudService の操作の構造型（全 optional）。Drizzle 版は `getTableName()`（表の物理名）と `getIdColumnName()`（主キー列の物理名）を持つ。主キーの論理名は常に `CRUD_ID_FIELD = "id"`（この lib の "."）。表そのものは公開しない。Firestore 版（凍結）は `truncateAll` / `getTableName` / `getIdColumnName` を持たない。
 

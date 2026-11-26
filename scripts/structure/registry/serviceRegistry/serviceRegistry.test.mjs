@@ -23,7 +23,7 @@ import { GENERATED_HEADER, REGISTRY_FILE, SERVICE_DIR, checkOverrideStaticImport
 import { buildServiceRegistry, generateServiceRegistry } from "./generate.mjs";
 import { checkServiceRegistry } from "./check.mjs";
 import { serviceRegistry } from "../../../../src/registry/serviceRegistry.ts";
-import { domainConfigMap } from "../../../../src/registry/domainConfigRegistry.ts";
+import { coreRegistrations, domainConfigMap } from "../../../../src/registry/domainConfigRegistry.ts";
 // 閉じた lib は入口のファイル(domainAccess の "."・domain の "." と "./server")を相対で読む
 import { ADMIN_ONLY, ADMIN_RULE, DOMAIN_CRUD_OPERATIONS, DOMAIN_DATA_OPERATIONS, INTERNAL_ONLY, PUBLIC_READ } from "../../../../src/lib/domainAccess/index.ts";
 import { isGenericApiClosed, resolveAccessRule } from "../../../../src/lib/domain/index.ts";
@@ -119,7 +119,7 @@ test("core 7 キーは登録されているが、汎用 API・全件削除の一
     assert.equal(lookup.status, "found", `${key}: ${JSON.stringify(lookup)}`);
   }
   // 全件削除の一覧（truncateAll 対応の全行）には出るが、access の truncateAll が none なのでルートが除く
-  const listed = (await getDomainList(serviceRegistry, domainConfigMap)).map((domain) => domain.key);
+  const listed = (await getDomainList(serviceRegistry, domainConfigMap, coreRegistrations)).map((domain) => domain.key);
   for (const key of INTERNAL_KEYS) {
     const inList = listed.includes(key);
     assert.ok(inList, `${key}: truncateAll を持つので一覧の候補には出る（ルートが access で除く）`);
@@ -546,17 +546,30 @@ test("getDomainList: サービスを読み込まずに登録表の table で一�
     room: { service, access: ADMIN_ONLY, table: null, idColumn: null },
     auditTrail: { service, access: ADMIN_ONLY, table: "audit_trails", idColumn: "id" },
   };
-  const list = await getDomainList(registry, { article: { label: "記事" } });
+  // core = 宣言の置き場(coreKeys)。設定の表にあっても core、無くても core でない物は core でない
+  const list = await getDomainList(registry, { article: { label: "記事" }, audit_trail: { label: "監査" } }, ["auditTrail"]);
   assert.equal(loads, 0);
   assert.deepEqual(list, [
-    { key: "auditTrail", label: "auditTrail", tableName: "audit_trails", isCore: true },
+    { key: "auditTrail", label: "監査", tableName: "audit_trails", isCore: true },
     { key: "article", label: "記事", tableName: "articles", isCore: false },
   ]);
 
   // 実リポ: 表を持つ全キー（= Drizzle 版）が一覧に出る
-  const real = (await getDomainList(serviceRegistry, domainConfigMap)).map((domain) => domain.key).sort();
+  const real = (await getDomainList(serviceRegistry, domainConfigMap, coreRegistrations)).map((domain) => domain.key).sort();
   const expected = Object.entries(serviceRegistry).filter(([, entry]) => entry.table !== null).map(([key]) => key).sort();
   assert.deepEqual(real, expected);
+});
+
+test("getDomainList: 実リポの core の印は宣言の置き場どおり(core の複数登録のドメインの登録も core、業務のドメインは core でない)", async () => {
+  const list = await getDomainList(serviceRegistry, domainConfigMap, coreRegistrations);
+  const flag = Object.fromEntries(list.map((domain) => [domain.key, domain.isCore]));
+  // auditLog は core の auditLog ドメインの主、auditLogFailed は同じドメインの主でない登録
+  assert.equal(flag.auditLog, true);
+  assert.equal(flag.auditLogFailed, true);
+  // sampleImage は業務のドメイン sample の中の集まりの従属の登録(D348)
+  assert.equal(flag.sample, false);
+  assert.equal(flag.sampleImage, false);
+  assert.deepEqual(list.filter((domain) => domain.isCore).map((domain) => domain.key), [...list.filter((domain) => domain.isCore).map((domain) => domain.key)].sort((a, b) => a.localeCompare(b)), "core が先、キーの順");
 });
 
 test("上書きが差し替える鍵は宣言 src/lib/domain/extensionPoints.ts の entities から(今は apiAccess だけ)", () => {

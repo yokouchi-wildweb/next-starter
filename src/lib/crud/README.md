@@ -73,7 +73,7 @@ createCrudService<TTable, TCreate>(table, {
   // ファイル台帳との連動（Drizzle のみ、`storageIntegration/README.md`）
   storage?: CrudStorageBinding,
 
-  // ドメイン集約（Drizzle のみ、`collections/README.md`）
+  // 登録どうしの集まり（Drizzle のみ、`collections/README.md`）
   collections?: CrudCollectionConfig[],
 })
 ```
@@ -399,7 +399,7 @@ PostgreSQL 制約違反を `DomainError` に変換:
 - `hooks/README.md`: 生成フックの使い方
 - `components/Buttons/README.md`: CRUD ボタン
 - `storageIntegration/README.md`: storage オプション（ファイル台帳との連動）
-- `collections/README.md`: ドメイン集約（collections オプション）、移行の手順は `collections/Usage.md`
+- `collections/README.md`: 登録どうしの集まり（collections オプション）、移行の手順は `collections/Usage.md`
 - `drizzle/query/README.md`: search() / count() の詳細仕様
 - `drizzle/relations/README.md`: belongsToMany と withRelations / withCount
 - `drizzle/fractionalSort/README.md`: 並び替え（Fractional Indexing）

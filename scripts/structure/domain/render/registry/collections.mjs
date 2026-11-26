@@ -59,7 +59,7 @@ export function renderCollectionsOutput(ctx, workspace) {
   const content = [
     `// ${domainRel(ctx)}/services/server/${ctx.camel}Collections.ts`,
     "// pnpm generate domain が登録の entity.json の集まりの項目（mediaCollection）から生成する。手で直さない。",
-    "// createCrudService の collections オプション（ドメイン集約）。生成の <登録名>Base.ts が import して渡す。",
+    "// createCrudService の collections オプション（登録どうしの集まり）。生成の <登録名>Base.ts が import して渡す。",
     "// 詳細: src/lib/crud/collections/README.md",
     "",
     'import type { CrudCollectionConfig } from "@/lib/crud/server";',

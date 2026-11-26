@@ -25,7 +25,7 @@
 //   array     配列列（text[]、必須は空配列既定）。フォームの checkbox はこの型だけ複数選択にする
 //   presenter 表示フォーマッタの種類（無ければ formInput で決める）
 //   noDefault entity.json の defaultValue を持てない（生成前の検査 checks/fields.mjs が止める）
-//   collection 主の集まり（列を持たない。従属ドメインの行の並びを lib の collections で読み書きする。項目の collection キーで宣言）
+//   collection 主の集まり（列を持たない。従属の登録の行の並びを lib の collections で読み書きする。項目の collection キーで宣言）
 //   retired   廃止した型: 生成前の検査（checks/retiredFieldTypes.mjs）が移り先の案内文で止める。実行時は見ない
 // 意味の属性（生成器と実行時の両方が読む）:
 //   datetime  日時の型: Zod は required で requiredDatetime / nullableDatetime、編集フォームでは値を Date にする

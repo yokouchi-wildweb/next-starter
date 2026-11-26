@@ -69,7 +69,7 @@ function topLevelWarnings(acc, config) {
 }
 
 /** 改名した collection の鍵(D334: 従属はドメインでなく主のドメインの中の登録) */
-const LEGACY_COLLECTION_KEYS = { domain: "registration（従属の登録名。従属のドメインは .notices の移す道具で主のドメインの中へ）" };
+const LEGACY_COLLECTION_KEYS = { domain: "registration（従属の登録名。別のドメインにある従属は .notices の移す道具で主のドメインの中へ）" };
 
 /** 主の集まりの項目の collection（下位キーの型だけ。従属の登録の存在など組をまたぐ検査は生成時） */
 function collectionWarnings(acc, collection, location, where) {

@@ -154,7 +154,7 @@ export type CrudServiceOptions<TData extends Record<string, any>> = CrudServiceB
    */
   storage?: CrudStorageBinding;
   /**
-   * ドメイン集約（主の 1 行に属する従属ドメインの行の集まり）。項目ごとに従属のサービス・主への参照列・
+   * 登録どうしの集まり（主の 1 行に属する従属の登録の行の集まり）。項目ごとに従属のサービス・主への参照列・
    * ref 列・並びの列・最大件数・最小件数を宣言する。指定すると、create / update / upsert で項目の配列（ref の並び）を
    * 主の行の書き込みと同じ TX の中で従属のサービスを通して差分同期し（省略 = 維持、[] = 全部消す、
    * 重複・最大件数の超過・最小件数の不足は 400。minItems の項目は create の省略を [] とみなし、upsert の省略は

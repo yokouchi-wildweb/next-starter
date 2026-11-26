@@ -31,7 +31,7 @@ function childEffectiveRules(childConfig, mediaField) {
 
 /**
  * @param {object} params
- * @param {string} params.domain 主と従属のドメインのフォルダ名
+ * @param {string} params.domain 主と従属が属するドメインのフォルダ名
  * @param {string} params.owner 主の登録名
  * @param {object} params.ownerConfig 主の登録の entity.json
  * @param {object} params.field 主の集まりの項目

@@ -131,7 +131,7 @@ export function createCrudService<
   // 無効時も invalidateRequestMemo (no-op) を公開し、サービスの形を一定に保つ。
   // hiddenColumns: テーブルに defineHiddenColumns() の宣言があれば、最外層で
   // 全メソッドの戻り値から秘匿カラムを null 化する（audit / memo は生値で動作済み）。
-  // collections: ドメイン集約の差分同期。指定したサービスだけ書き込み系メソッドを包む（未指定なら service そのまま）。
+  // collections: 登録どうしの集まりの差分同期。指定したサービスだけ書き込み系メソッドを包む（未指定なら service そのまま）。
   // storage: ファイル台帳との連動。指定したサービスだけ書き込み系メソッドを包み、storageFields を出す（未指定なら service そのまま）。
   const withCollections: typeof service & CollectionFieldsAugmented = serviceOptions.collections?.length
     ? applyCollections(service, {

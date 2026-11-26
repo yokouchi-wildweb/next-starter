@@ -1,5 +1,5 @@
 // src/lib/crud/collections/collections.db.test.ts
-// createCrudService の collections オプション（ドメイン集約の差分同期）の実 DB テスト。
+// createCrudService の collections オプション（登録どうしの集まりの差分同期）の実 DB テスト。
 // 開発 DB に専用の表 test_crud_coll_*（主・従属・読み出し用・照合順序用）を作り、終了時に DROP する（それ以外には書かない）。
 // 複製のケースは fake のストレージポートとテスト用の binding を使う（features には依存しない）。
 // C 以外の照合順序のケースは、DB にその照合順序（ICU / glibc の en_US）が無ければ明示して飛ばす。

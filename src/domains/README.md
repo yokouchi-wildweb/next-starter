@@ -327,7 +327,7 @@ custom リレーションの UI 実装例:
 | jsonb | JSONオブジェクト |
 | array | 配列 |
 | mediaUploader | メディアアップロード用 |
-| mediaCollection | 主の集まり（従属ドメインのメディアの行の並び。列を持たない。formInput は `mediaUploaderMulti`） |
+| mediaCollection | 主の集まり（同じドメインの従属の登録のメディアの行の並び。列を持たない。formInput は `mediaUploaderMulti`） |
 
 `mediaUploaderMulti`（1 列の text[] に複数のメディアを持つ型）は廃止した。entity.json に残っていると pnpm generate domain が集まりへの移行を案内するエラーで止まる。複数のメディアは mediaCollection で持つ（formInput の `mediaUploaderMulti` は集まりの入力欄の名前として残る）
 
@@ -500,28 +500,29 @@ import { ControlledField } from "@/lib/formSuite";
 
 ### 主の集まりの項目（mediaCollection）
 
-主の 1 行に属する従属ドメインの行の並び（例: 商品のギャラリー画像）。主の表に列は持たず、lib の collections オプション（[src/lib/crud/collections/README.md](../lib/crud/collections/README.md)）で読み書きする。Neon のみ。
+主の登録の 1 行に属する、同じドメインの中の従属の登録の行の並び（例: 商品のギャラリー画像）。従属はドメインではなく主のドメインの中の登録（`entities/<従属>/`）で、主と一緒に開け閉めする。主の表に列は持たず、lib の collections オプション（[src/lib/crud/collections/README.md](../lib/crud/collections/README.md)）で読み書きする。Neon のみ。
 
-- 1 つのレコードに複数のメディアを持たせる方法はこれだけ（1 枚ずつ従属のドメインの行に保存）。旧来の fieldType `mediaUploaderMulti`（1 列の text[]）は廃止した
-- 例: `src/domains/sample/entities/sample/entity.json` の `images`（従属 `sampleImage`）
+- 1 つのレコードに複数のメディアを持たせる方法はこれだけ（1 枚ずつ従属の登録の行に保存）。旧来の fieldType `mediaUploaderMulti`（1 列の text[]）は廃止した
+- 例: `src/domains/sample/entities/sample/entity.json` の `images`（従属の登録 `src/domains/sample/entities/sampleImage/`）
+- 所有の印は書かない: 主の集まりの項目が名指し、同じドメインにあり、主への必須の CASCADE の belongsTo を持つことから読む
 - 廃止前の mediaUploaderMulti 列を集まりへ移す: [src/lib/crud/collections/Usage.md](../lib/crud/collections/Usage.md)「既存の mediaUploaderMulti 列からの移行」（手順・やってはいけないこと・確かめ方・戻し方）
 
 ```json
 { "name": "gallery_images", "label": "ギャラリー", "fieldType": "mediaCollection", "formInput": "mediaUploaderMulti",
-  "required": true, "reorderable": true, "collection": { "domain": "product_image", "maxItems": 10, "duplicate": true } }
+  "required": true, "reorderable": true, "collection": { "registration": "product_image", "maxItems": 10, "duplicate": true } }
 ```
 
 | プロパティ | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
-| collection.domain | string | 🟢 Yes | 従属ドメインの singular（snake_case） |
+| collection.registration | string | 🟢 Yes | 従属の登録の singular（snake_case。主と同じドメインの中の登録） |
 | collection.maxItems | number（1 以上の整数） | ⚪ No | 最大件数。省略 = 上限なし |
 | collection.duplicate | boolean | ⚪ No | 主の複製で従属も写すか。省略 = true |
 
 - 必須 = `required`、並べ替え = `reorderable`（既存のキー。省略 = true）
-- ファイルの条件（slug・mediaTypePreset・accept・validationRule・storage）は主に書かず、従属ドメインのメディア項目に書く
+- ファイルの条件（slug・mediaTypePreset・accept・validationRule・storage）は主に書かず、従属の登録のメディア項目に書く
 - 語彙の検査（宣言の語彙の警告）は collection の下位キーの型を見る
-- pnpm generate domain は、従属ドメインの宣言（`src/domains/<collection.domain の camelCase>/domain.json` と `entities/<同じ名前>/entity.json`）が**無いときだけ**書き出す（既にあれば触らない。`--only` でも、dry-run では「作成 / 保持」と出すだけ）。書き出す雛形:
-  - singular = `collection.domain`、plural = 既定の名前のままなら `<主>_<項目名>`（項目名が s で終わるとき）、それ以外は singular の複数形、label = 主の項目の label、Neon、idType = 主と同じ（外部キーの型は idType number なら integer）
+- pnpm generate domain は、従属の登録の宣言（主のドメインの `entities/<collection.registration の camelCase>/entity.json`。domain.json は書かない）が**無いときだけ**書き出し、主のドメインの生成の単位に足す（既にあれば触らない。`--only` でも、dry-run では「作成 / 保持」と出すだけ）。書き出す雛形:
+  - singular = `collection.registration`、plural = 既定の名前のままなら `<主>_<項目名>`（項目名が s で終わるとき）、それ以外は singular の複数形、label = 主の項目の label、Neon、idType = 主と同じ（外部キーの型は idType number なら integer）
   - relations = 主への belongsTo（`<主>_id`、必須、onDelete CASCADE）。主の relations には足さない
   - fields = メディア項目 `file`（mediaUploader、images / `image/*`、10MB、slug = 主の項目名の camelCase）と並び列 `sort_order`（hidden、`sortOrderField` と `systemColumns` に宣言）。useSoftDelete false
   - 汎用 API は閉じる（`apiAccess: { read: "none", write: "none" }` = INTERNAL_ONLY）、addToAdminDataMenu false。従属の生成カテゴリは生成器が決める: entities / serverServices / registry / fieldConstants / presenters だけ（管理画面・フック・クライアントは主の画面から使う。entity.json には書かない）
@@ -533,7 +534,7 @@ import { ControlledField } from "@/lib/formSuite";
   - `sortOrderField` とその項目を持ち、`systemColumns` に入れる（集まりの並びを持つ列。主の項目が reorderable: false でも要る）
   - 主の画面から埋められない必須の項目（主への参照・メディア・並び以外で required かつ defaultValue なし）を持たない
   - `file` の upload は主の create・update の和より狭くしない、read は主の get より狭くしない（public の従属は見ない）。広い upload と、開いた汎用 API は知らせるだけ
-  - 表名・主への FK 名は 63 字以内、singular・表名は他のドメインと重ねない。required の集まりは `collection.duplicate: false` にしない
+  - 表名・主への FK 名は 63 字以内、singular・表名は他の登録と重ねない。従属の登録が主と別のドメインにあれば止まる（主のドメインの中へ移す）。required の集まりは `collection.duplicate: false` にしない
 
 ### MediaUploader フィールド追加プロパティ
 
@@ -574,7 +575,7 @@ pnpm generate domain は、メディア項目ごとにファイル用途（`<dom
   - strip の約束の範囲（動画・keep・導入前のファイルは対象外）と公開文書に書いてよい表現: [src/lib/storage/README.md](../lib/storage/README.md)「位置情報の約束」
 - image は `storage.image` を明示値で書き出す（省略 = 書き出さない = 縮めない）。縮小の指定はこの用途に 1 か所で、validationRule・FieldConfig には書かない。ブラウザが送る前に縮め、サーバーが描き直しで守らせる（[src/lib/storage/README.md](../lib/storage/README.md)「画像の縮小の指定」）
   - **生成エラー**: 形・範囲の誤り（maxDimension は 1 以上の整数、quality は 1〜100 の整数、ほかのキーは書けない）/ 画像の型が accept に無い / `storage.metadata: "keep"`（keep はサーバーが描き直さず守らせられない）
-  - 写真の集まり（collection）の写真は、主の項目ではなく従属のドメインの `file` 項目の `storage.image` に書く（集まりを作るときに主の項目から写す口は無い）
+  - 写真の集まり（collection）の写真は、主の項目ではなく従属の登録の `file` 項目の `storage.image` に書く（集まりを作るときに主の項目から写す口は無い）
   - 利用者への案内は欄の `helperText` に書く（フィールドの枠が描く。部品の中には案内を足さない）。例: `"helperText": "大きな写真は長い辺 2048px まで自動で縮小してから送ります"`。数値は `storage.image.maxDimension` と揃える
 - maxBytes は `validationRule.maxSizeBytes` を使う。無ければ `src/domains/core/storageObject/config.ts` の `storageObjectConfig.defaultMaxBytesByPreset.<mediaTypePreset>` を参照する式を書き、警告を出す
 - upload.allow は `storage.upload` を使う。無ければ apiAccess の create と update の許可者の和にする

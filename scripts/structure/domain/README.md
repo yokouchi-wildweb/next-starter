@@ -35,7 +35,7 @@
 
 | コマンド | 実体 | 用途 |
 |---|---|---|
-| `pnpm generate domain -- <Domain>` | `index.mjs --generate` | 1 ドメイン（と主・従属の組の全員）を生成・再生成する |
+| `pnpm generate domain -- <Domain>` | `index.mjs --generate` | 1 ドメイン（その全ての生成する登録、主の集まりの従属の登録を含む）を生成・再生成する |
 | `pnpm generate domain` | `index.mjs --generate --all` | 全ドメインを一括で再生成する |
 | `pnpm generate domain -- --delete <Domain> --confirm <snake_name>` | `index.mjs --delete` | 生成物とレジストリ登録を削除する |
 | `pnpm check domain -- --parity <git-ref>` | `tests/parity.mjs` | 生成器の前後比較（Internals.md「前後比較」） |
@@ -75,9 +75,8 @@
 
 ### `pnpm generate domain -- --delete <Domain> --confirm <snake_name>`
 
-0. 主と従属の組を壊す削除と、他のドメインから参照されているドメインの削除と、残るコードから import されているドメインの削除は、エラーで止まり何も消さない（`pipeline/remove/deleteStop.mjs`。`--force` は無い。他のドメインの宣言は書き換えない）
-   - 主: 登録の entity.json が残っている従属があれば止まる。消す順 = 主の集まりの項目を外す → 従属を `pnpm generate domain -- --delete --remove-config` → 主を `pnpm generate domain -- --delete`
-   - 従属: 主が集まりの項目を宣言している間は止まる（残すと次の生成で雛形がまた書き出される）。先に主の項目を外す
+0. 他のドメインから参照されているドメインの削除と、残るコードから import されているドメインの削除は、エラーで止まり何も消さない（`pipeline/remove/deleteStop.mjs`。`--force` は無い。他のドメインの宣言は書き換えない）
+   - 集まりの従属は主のドメインの中の登録なので、ドメインと一緒に消える（組で止めない）
    - 参照: 他のドメインの登録の entity.json の `relations` が belongsTo / belongsToMany（`includeRelationTable: false` の逆側を含む）/ hasMany / hasOne で指していれば止まり、参照元のドメインと fieldName を全部出す。先に参照元の関連を外すか、参照元を `--remove-config` 付きで消す
    - 判定は登録の entity.json の宣言だけを見る: 宣言を残した削除（既定）の参照元は宣言が残るので止まり続ける。自己参照と、消すドメイン自身が持つ関連は数えない。主の登録の entity.json の無いドメイン・読めない entity.json は見えない
    - import: `src` 配下の消さずに残るコード（`.ts` / `.tsx` / `.mts` / `.mjs` など）が消すドメインのフォルダを import していれば止まり、参照元のファイルと from 先を全部出す（`codeReferences`、純関数）。`@/domains/<d>/…`・`@/domains/core/<d>/…`（core は `core/` を省いた書き方も）・解決するとフォルダに入る相対パス・動的 `import()`・`require()` を数える。コメントの中は数えない

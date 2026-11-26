@@ -31,7 +31,7 @@ export const SampleTable = pgTable("samples", {
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
-// 主の集まりの項目（従属ドメインの行の並び）。他ドメインの withRelations で埋め込まれた行にも載せるため表に登録する
+// 主の集まりの項目（従属の登録の行の並び）。他ドメインの withRelations で埋め込まれた行にも載せるため表に登録する
 defineTableCollections(SampleTable, () => import("@/domains/sample/services/server/sampleCollections").then((m) => m.collections));
 
 export const SampleToSampleTagTable = pgTable(

@@ -1,7 +1,7 @@
 // src/lib/crud/client/collectionEntries.ts
 //
 // 主の集まりをエントリ（従属の行 id 付き）で読む client service（GET /api/<domain>/collection-entries）。
-// どの主ドメインにも使える汎用の 1 つ（ドメインごとの生成は無い）。UI からは hooks の useCollectionEntries を使う
+// どの主の登録にも使える汎用の 1 つ（ドメインごとの生成は無い）。UI からは hooks の useCollectionEntries を使う
 
 import axios from "axios";
 

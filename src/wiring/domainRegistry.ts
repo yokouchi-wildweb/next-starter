@@ -27,7 +27,7 @@ import {
 import type { DomainTable } from "@/lib/domain/server";
 import type { DomainInfo, DomainService, DomainServiceLookup } from "@/lib/domain";
 import type { DomainApiAccessConfig } from "@/lib/domainAccess";
-import { domainConfigMap } from "@/registry/domainConfigRegistry";
+import { coreRegistrations, domainConfigMap } from "@/registry/domainConfigRegistry";
 import { serviceRegistry } from "@/registry/serviceRegistry";
 
 /** 中間表の名前（snake_case）から表を引く。表の定義は呼ばれたときに読む（このファイルの import を軽く保つ） */
@@ -62,10 +62,10 @@ export const getDomainAccess = (key: string): DomainApiAccessConfig | undefined 
   hasServiceFrom(serviceRegistry, key) ? serviceRegistry[key].access : undefined;
 
 /** 全件削除できるドメインの一覧（truncateAll 対応のものだけ。access の評価は呼び手が行う） */
-export const getDomainList = () => getDomainListFrom(serviceRegistry, domainConfigMap);
+export const getDomainList = () => getDomainListFrom(serviceRegistry, domainConfigMap, coreRegistrations);
 
 /** 全件削除できるドメインの一覧（レコード数付き） */
-export const getDomainListWithCount = () => getDomainListWithCountFrom(serviceRegistry, domainConfigMap);
+export const getDomainListWithCount = () => getDomainListWithCountFrom(serviceRegistry, domainConfigMap, coreRegistrations);
 
 /** ドメイン一覧にレコード数を付ける（access で絞った後に使う） */
 export const withRecordCounts = (domains: readonly DomainInfo[]) => withRecordCountsFrom(serviceRegistry, domains);

@@ -47,9 +47,11 @@ async function loadService(registry: DomainRegistry, key: string): Promise<Domai
  * 登録表からドメイン一覧を取得する（truncateAll 対応 = 表を持つドメインのみ。サービスは読み込まない）
  *
  * @param registry serviceRegistry
- * @param configMap domainConfigMap（label の参照用。無いキーは core 扱い）
+ * @param configMap domainConfigMap（label の参照用）
+ * @param coreKeys core のドメイン（src/domains/core/ の宣言）の登録のキー（生成の coreRegistrations。宣言の置き場から読む）
  */
-export async function getDomainList(registry: DomainRegistry, configMap: DomainLabelMap): Promise<DomainInfo[]> {
+export async function getDomainList(registry: DomainRegistry, configMap: DomainLabelMap, coreKeys: readonly string[]): Promise<DomainInfo[]> {
+  const core = new Set(coreKeys);
   const domains: DomainInfo[] = [];
 
   for (const [key, entry] of Object.entries(registry)) {
@@ -62,8 +64,8 @@ export async function getDomainList(registry: DomainRegistry, configMap: DomainL
     const configKey = Object.keys(configMap).find((k) => snakeToCamel(k) === key);
     const config = configKey ? configMap[configKey] : undefined;
 
-    // domainConfigMapに存在しない = コアドメイン
-    const isCore = !configKey;
+    // core = 宣言の置き場(core のドメインの登録)。表に無いことからは読まない
+    const isCore = core.has(key);
     const label = config?.label ?? key;
     const tableName = entry.table;
 
@@ -126,8 +128,9 @@ export async function withRecordCounts(
 export async function getDomainListWithCount(
   registry: DomainRegistry,
   configMap: DomainLabelMap,
+  coreKeys: readonly string[],
 ): Promise<DomainInfoWithCount[]> {
-  return withRecordCounts(registry, await getDomainList(registry, configMap));
+  return withRecordCounts(registry, await getDomainList(registry, configMap, coreKeys));
 }
 
 /**

@@ -88,7 +88,7 @@ export const sampleBase = createCrudService(SampleTable, {
     { name: "main_image", purpose: "sample.main_image", multi: false },
     { name: "sub_image", purpose: "sample.sub_image", multi: false },
   ]),
-  // 主の集まりの項目（従属ドメインの行の並び）を同じ TX で差分同期する。宣言は <登録名>Collections.ts
+  // 主の集まりの項目（従属の登録の行の並び）を同じ TX で差分同期する。宣言は <登録名>Collections.ts
   collections,
   parseCreate: (data) => SampleCreateSchema.parse(data),
   parseUpdate: (data) => SampleUpdateSchema.parse(data),

@@ -1,8 +1,8 @@
 // src/lib/crud/collections/types.ts
 //
-// createCrudService の `collections` オプション（ドメイン集約: 主の 1 行に属する従属ドメインの行の集まり）の型。
+// createCrudService の `collections` オプション（登録どうしの集まり: 主の 1 行に属する従属の登録の行の集まり）の型。
 // 主のレコード上では列でない配列（値の並び）として扱い、create / update / upsert で
-// 同じ TX の中で従属ドメインのサービスを通して差分同期する。
+// 同じ TX の中で従属の登録のサービスを通して差分同期する。
 
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
@@ -25,7 +25,7 @@ export type CollectionFieldsAugmented = {
 export type CollectionValue = string | number;
 
 /**
- * 同期が使う従属ドメインのサービスの口（createCrudService の戻り値がそのまま満たす）。
+ * 同期が使う従属の登録のサービスの口（createCrudService の戻り値がそのまま満たす）。
  * 並びの列は systemUpdate で書くため、従属のサービスは systemColumns に並びの列を宣言する。
  */
 export type CrudCollectionChildService = {
@@ -39,11 +39,11 @@ export type CrudCollectionChildService = {
   duplicateStorageValues?(source: Record<string, unknown>): Promise<Record<string, unknown>>;
 };
 
-/** 主ドメインの集まりの項目 1 つ分の宣言 */
+/** 主の登録の集まりの項目 1 つ分の宣言 */
 export type CrudCollectionConfig = {
   /** 主のレコード上のフィールド名（列ではない配列）。e.g. galleryImages */
   fieldName: string;
-  /** 従属ドメインのサービス。import の循環を避けるため遅延で渡す（e.g. () => import("...").then((m) => m.childService)） */
+  /** 従属の登録のサービス。import の循環を避けるため遅延で渡す（e.g. () => import("...").then((m) => m.childService)） */
   service: () => CrudCollectionChildService | Promise<CrudCollectionChildService>;
   /** 従属の表の主への参照列（主の物理削除で cascade する外部キー） */
   parentColumn: AnyPgColumn;

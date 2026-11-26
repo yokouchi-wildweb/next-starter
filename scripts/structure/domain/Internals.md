@@ -16,9 +16,9 @@
 
 #### 主と従属の組（`pipeline/pairs.mjs`）
 
-生成の前に全ドメインの主の登録の entity.json から「集まりの項目 → 従属、従属 → 所有する主」を一度だけ解く。主・従属のどちらを指定しても組の全員を「従属 → 主」の順に生成する（この実行で書き出す従属は、書き出す中身でそのまま生成する）。組の他の員のカテゴリは自分の `generate`（`--only` で絞る）。`:all` では選んだドメインの組の全員を加え、従属を所有する主の直前に並べる。
+従属はドメインではなく主のドメインの中の登録（`entities/<従属>/`、所有の印は無い）。生成の前に全ドメインの全ての登録の entity.json から「集まりの項目 → 従属、従属 → 所有する主」を登録名で一度だけ解く。1 ドメインの生成では主の単位が組の全員を「従属 → 主」の順に生成する（従属の単位は数えない。この実行で書き出す従属は、書き出す中身でそのまま生成する）。組の他の員のカテゴリは自分の `generate`（`--only` で絞る）。一括の生成ではこの実行で書き出す従属を主のドメインの生成の単位の後に足す。
 
-組の誤りは何も書く前に全件を並べて止まる。1 ドメインの生成では、指定したドメインの組に関わる誤りだけを見る。道具は宣言を書き換えず、直す場所を出す。組を解く段が見るもの: 集まりの項目に `collection.domain` が無い・1 つの従属を 2 つ以上の主が宣言。組ごとの検査（`checks/pairs.mjs`）:
+組の誤りは何も書く前に全件を並べて止まる。1 ドメインの生成では、指定したドメインの組に関わる誤りだけを見る。道具は宣言を書き換えず、直す場所を出す。組を解く段が見るもの: 集まりの項目に `collection.registration` が無い・1 つの従属を 2 つ以上の主が宣言・従属の登録が主と別のドメインにある（主のドメインの中へ移す）。組ごとの検査（`checks/pairs.mjs`）:
 
 - 主の集まりの項目にファイルの条件（slug・accept・mediaTypePreset・validationRule・storage）がある（従属の `file` に書く）
 - 従属の主への belongsTo が 1 本でない・required でない・onDelete が CASCADE でない / 従属が `useSoftDelete: true`
@@ -26,13 +26,13 @@
 - 並び列（主の項目が reorderable のとき）: `sortOrderField` が無い・その項目が無い・`systemColumns` に無い
 - 主から埋められない必須の項目（主への参照・メディア・並び以外で required かつ defaultValue なし）
 - 権限: 従属の `file` の upload が主の create・update の和より狭い / read が主の get より狭い（従属が public なら見ない）。主の規則が写せない形（none・知らない値・主が `generate: false`）なら見ない。広さは public ⊇ authenticated ⊇ ロールの規則 ⊇ none、ロールは role.json のカテゴリに解いて比べる（`checks/accessRules.mjs`）
-- 63 字: 従属の表名、主への FK の短い名前も超えるとき / 名前の衝突: 従属の singular・表名が他のドメインと重なる、主の集まりの項目名が主の他の項目・関係の fieldName と重なる
+- 63 字: 従属の表名、主への FK の短い名前も超えるとき / 名前の衝突: 従属の singular・表名が他の登録と重なる、主の集まりの項目名が主の他の項目・関係の fieldName と重なる
 - required の集まりに `collection.duplicate: false`
 - 知らせるだけ（止めない）: 従属の upload が主より広い、従属の汎用 API（apiAccess）が開いている
 
 組が関わる生成は最後に 3 行の一覧を出す: 書き出した登録の entity.json / `db:push` が要る表（この実行で新しく書き出した従属の表だけ）/ コミットに含めるもの。`--dry-run` では「書き出す予定」として同じ一覧。
 
-従属のドメイン名の既定（`spec/collectionField.mjs` の `defaultChildName`）: 項目名が s で終われば `<主の singular>_<項目名から末尾の s を 1 つ外したもの>`（plural = `<主の singular>_<項目名>`）、それ以外は `<主の singular>_<項目名>`（plural は推定）。例: sample + images → sample_image / sample_images。
+従属の登録名の既定（`spec/collectionField.mjs` の `defaultChildName`）: 項目名が s で終われば `<主の singular>_<項目名から末尾の s を 1 つ外したもの>`（plural = `<主の singular>_<項目名>`）、それ以外は `<主の singular>_<項目名>`（plural は推定）。例: sample + images → sample_image / sample_images。
 
 複数形の推定（plural の無い entity.json・関係先の項目名・従属の plural）: `domain/plural.mjs` の `toPlural` 1 か所だけ。語の規則は devDependency の `pluralize` の表に任せ、名前の最後の語だけを複数形にする（例: card_set → card_sets、user_media → user_media、userPerson → userPeople）。entity.json の `plural` が常に優先。推定が誤る語は手の規則を書かず、`plural.mjs` で `pluralize.addIrregularRule` / `addUncountableRule` を足す。
 

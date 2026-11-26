@@ -2,15 +2,15 @@
 
 ## Overview
 
-- 主ドメインの 1 行に属する従属ドメインの行の集まりを、主のレコード上の「列でない配列」として読み書きする（例: 商品の 1 行に属するギャラリー画像の行）。書き込みは主の保存と同じ TX で従属のサービスを通して差分同期し、読み出しでは並び順の配列を全件載せる。指定しないサービスの挙動は変わらない（Drizzle のみ）。
+- 主の登録の 1 行に属する従属の登録の行の集まりを、主のレコード上の「列でない配列」として読み書きする（例: 商品の 1 行に属するギャラリー画像の行）。書き込みは主の保存と同じ TX で従属のサービスを通して差分同期し、読み出しでは並び順の配列を全件載せる。指定しないサービスの挙動は変わらない（Drizzle のみ）。
 - 使う時・直す時の決まりは札 .claude/rules/items/lib/crud.md にある
 
 ### 呼び名と API 名
 
 | 呼び名 | API |
 |--------|-----|
-| 主ドメイン | `collections` を指定したサービス |
-| 従属ドメイン | `CrudCollectionConfig.service` が返すサービス（`createCrudService` の戻り値でよい） |
+| 主の登録 | `collections` を指定したサービス |
+| 従属の登録 | `CrudCollectionConfig.service` が返すサービス（`createCrudService` の戻り値でよい） |
 | 集まり（の項目） | `CrudCollectionConfig`（主のレコード上のフィールド名 = `fieldName`） |
 | 集まりの値 | `CollectionValue`（`valueColumn` の値。`string \| number`） |
 | 差分同期 | `syncCollection` / `createCrudService` の create・update・upsert |

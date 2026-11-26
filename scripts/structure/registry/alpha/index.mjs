@@ -54,7 +54,7 @@ function readDomains(repoRoot) {
         ...(other.entity.label === undefined ? { label: other.name } : {}),
         ...(other.entity.fields === undefined ? { fields: [] } : {}),
       };
-      registrations.push({ file: `${other.dir}/${ENTITY_DECLARATION_FILE}`, camel: other.name, defaults: otherDefaults });
+      registrations.push({ file: `${other.dir}/${ENTITY_DECLARATION_FILE}`, camel: other.name, core: declaration.core === true, defaults: otherDefaults });
     }
     if (!registration?.entity) continue;
     // 表示名はドメインの宣言 domain.json の label(管理の一覧・データ操作の一覧の名前、D335)
@@ -67,9 +67,9 @@ function readDomains(repoRoot) {
       ...(entity.label === undefined ? { label } : {}),
       ...(entity.fields === undefined ? { fields: [] } : {}),
     };
-    domains.push({ file: `${registration.dir}/${ENTITY_DECLARATION_FILE}`, camel: declaration.name, label, defaults, config: { ...registration.entity, ...defaults } });
+    domains.push({ file: `${registration.dir}/${ENTITY_DECLARATION_FILE}`, camel: declaration.name, core: declaration.core === true, label, defaults, config: { ...registration.entity, ...defaults } });
   }
-  registrations.push(...domains.map(({ file, camel, defaults }) => ({ file, camel, defaults })));
+  registrations.push(...domains.map(({ file, camel, core, defaults }) => ({ file, camel, core, defaults })));
   domains.sort((a, b) => byString(a.file, b.file));
   registrations.sort((a, b) => byString(a.file, b.file));
   const seen = new Map();
@@ -114,6 +114,11 @@ function renderDomainConfigRegistry(registrations) {
     "export const domainConfigMap = {",
     ...registrations.map((d) => `  ${toSnakeCase(d.camel)}: ${Object.keys(d.defaults).length > 0 ? `{ ...${d.camel}Config, ${Object.entries(d.defaults).map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join(", ")} }` : `${d.camel}Config`},`),
     "} as const;",
+    "",
+    "// core のドメイン(src/domains/core/ の宣言)の登録のキー(camelCase、serviceRegistry のキーと同じ)。管理のドメイン一覧の core の印",
+    "export const coreRegistrations: readonly string[] = [",
+    ...registrations.filter((d) => d.core).map((d) => `  "${d.camel}",`),
+    "];",
     "",
     "export type DomainKey = keyof typeof domainConfigMap;",
     "",

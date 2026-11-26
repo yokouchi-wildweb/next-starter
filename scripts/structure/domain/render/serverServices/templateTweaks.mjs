@@ -30,9 +30,9 @@ export function buildCollectionsImport(hasCollections, camel) {
   return hasCollections ? `import { collections } from "./${camel}Collections";\n` : "";
 }
 
-/** createCrudService に渡す collections（ドメイン集約）。集まりの無いドメインは空 */
+/** createCrudService に渡す collections（登録どうしの集まり）。集まりの無いドメインは空 */
 export function buildCollectionsOption(hasCollections) {
-  return hasCollections ? "  // 主の集まりの項目（従属ドメインの行の並び）を同じ TX で差分同期する。宣言は <登録名>Collections.ts\n  collections,\n" : "";
+  return hasCollections ? "  // 主の集まりの項目（従属の登録の行の並び）を同じ TX で差分同期する。宣言は <登録名>Collections.ts\n  collections,\n" : "";
 }
 
 /** 監査ログの recorder の import。audit の無いドメインは空 */
