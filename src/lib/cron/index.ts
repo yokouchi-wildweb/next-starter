@@ -32,11 +32,27 @@ export type {
 export {
   EXPIRY_CHECKPOINT_PREFIX,
   EXPIRY_DEFAULT_BATCH,
+  EXPIRY_FAILED_LIST_MAX,
   EXPIRY_LOCK_KEY,
+  EXPIRY_REMOVE_DEFAULT_BATCH,
+  EXPIRY_REMOVE_MAX_BATCH,
+  expiryBatchSize,
   expiryCondition,
   expiryDeleteQuery,
   expiryItemName,
   expiryRuleProblems,
+  expirySelectKeysQuery,
   runExpiryRules,
 } from "./expiry";
-export type { ExpiryCheckpoint, ExpiryItemResult, ExpiryRule, ExpiryRuleItem, ExpiryRuleKind, ExpiryRunResult, ExpiryStore } from "./expiry";
+export type {
+  ExpiryCheckpoint,
+  ExpiryItemResult,
+  ExpiryRemove,
+  ExpiryRemoveContext,
+  ExpiryRemoveResult,
+  ExpiryRule,
+  ExpiryRuleItem,
+  ExpiryRuleKind,
+  ExpiryRunResult,
+  ExpiryStore,
+} from "./expiry";

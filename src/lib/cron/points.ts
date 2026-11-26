@@ -2,4 +2,4 @@
 // 型だけの入口(D33、注文 37): この地区の点の約束の型だけを出す。差す側の項目はここだけを型として読む(値は無い)。点の宣言: ./extensionPoints.ts
 
 export type { CronMaintenancePlug } from "./createCronRoute";
-export type { ExpiryRule, ExpiryRuleKind } from "./expiry";
+export type { ExpiryRemove, ExpiryRemoveContext, ExpiryRemoveResult, ExpiryRule, ExpiryRuleKind } from "./expiry";
