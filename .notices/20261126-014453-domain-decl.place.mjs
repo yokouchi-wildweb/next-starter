@@ -150,14 +150,21 @@ export function planPlacement(input) {
     }
   }
   // 名前で付かない文: 使う名前の付いた先、それも無ければ自分を使う文の付いた先
-  const ownerOf = new Map();
+  // 名前の持ち主: 同じファイルの宣言を先に(別のファイルに同じ名前の export しない定数があっても取り違えない)、無ければ export した物
+  const owners = new Map();
   const settle = () => {
-    for (const item of items) for (const name of item.names) if (item.registration) ownerOf.set(name, item);
+    owners.clear();
+    for (const item of items) for (const name of item.names) if (item.registration) owners.set(name, [...(owners.get(name) ?? []), item]);
   };
+  const ownerFor = (name, file) => {
+    const candidates = owners.get(name) ?? [];
+    return candidates.find((item) => item.file === file) ?? candidates.find((item) => item.exported) ?? null;
+  };
+  const ownerOf = { get: (name, file) => ownerFor(name, file) };
   for (let round = 0; round < 3; round++) {
     settle();
     for (const item of items.filter((candidate) => !candidate.registration)) {
-      const used = [...item.uses].map((name) => ownerOf.get(name)).find((owner) => owner?.registration);
+      const used = [...item.uses].map((name) => ownerOf.get(name, item.file)).find((owner) => owner?.registration);
       const user = items.find((other) => other.registration && item.names.some((name) => other.uses.has(name)));
       item.registration = used?.registration ?? user?.registration ?? null;
       if (!item.kind && used) item.kind = used.kind;
@@ -183,8 +190,8 @@ export function planPlacement(input) {
     const needs = new Map();
     for (const item of group) {
       for (const name of item.uses) {
-        const owner = ownerOf.get(name);
-        if (owner && `${owner.registration}/${owner.kind}` !== key) {
+        const owner = ownerOf.get(name, item.file);
+        if (owner && owner !== item && `${owner.registration}/${owner.kind}` !== key) {
           if (!owner.exported) {
             result.stops.push(`${entities}: ${name} は export されずに ${owner.registration}/${owner.kind} と ${key} の両方で使われる`);
             continue;
@@ -258,7 +265,7 @@ export function checkExports(input, plan) {
 }
 
 /** 守り: 消す手のファイルをリポジトリの中で読む所(git grep) */
-function readersOfRemoved(repoRoot, removes) {
+export function readersOfRemoved(repoRoot, removes) {
   const problems = [];
   for (const rel of removes) {
     const stem = rel.replace(/\.ts$/, "");
@@ -321,6 +328,24 @@ async function checkTables(repoRoot, plan, tempDir) {
   return problems;
 }
 
+/**
+ * 置き場の計画の入力: 登録(名前と表の物理名)と entities/ 直下のファイル
+ * @param {string} repoRoot
+ * @param {string} domainRel
+ * @param {{ name: string, entity: Record<string, unknown> }[]} registrations Neon の登録
+ */
+export function placementInput(repoRoot, domainRel, registrations) {
+  const entitiesDir = path.join(repoRoot, domainRel, "entities");
+  const files = fs.existsSync(entitiesDir)
+    ? Object.fromEntries(fs.readdirSync(entitiesDir, { withFileTypes: true }).filter((e) => e.isFile()).map((e) => [e.name, fs.readFileSync(path.join(entitiesDir, e.name), "utf8")]))
+    : {};
+  return {
+    domainRel,
+    registrations: registrations.map((r) => ({ name: r.name, table: typeof r.entity.table === "string" ? r.entity.table : toSnakeCase(typeof r.entity.plural === "string" ? r.entity.plural : r.name) })),
+    files,
+  };
+}
+
 /** 書く(git mv はしない: 新しい中身を書いて古い手のファイルを消す。git は名前の変わりを中身の近さで見る) */
 function writePlacement(repoRoot, plan) {
   for (const [rel, text] of Object.entries(plan.writes)) {
@@ -344,13 +369,7 @@ async function main() {
       const neon = domain.registrations.filter((r) => (r.entity.dbEngine ?? "Neon") === "Neon");
       if (neon.length === 0) continue;
       count++;
-      const entitiesDir = path.join(repoRoot, domain.dir, "entities");
-      const files = Object.fromEntries(fs.readdirSync(entitiesDir, { withFileTypes: true }).filter((e) => e.isFile()).map((e) => [e.name, fs.readFileSync(path.join(entitiesDir, e.name), "utf8")]));
-      const input = {
-        domainRel: domain.dir,
-        registrations: neon.map((r) => ({ name: r.name, table: typeof r.entity.table === "string" ? r.entity.table : toSnakeCase(typeof r.entity.plural === "string" ? r.entity.plural : r.name) })),
-        files,
-      };
+      const input = placementInput(repoRoot, domain.dir, neon);
       const plan = planPlacement(input);
       if (Object.keys(plan.writes).length === 0 && plan.stops.length === 0) {
         console.log(`## ${domain.name}: 置いてある(何もしない)`);

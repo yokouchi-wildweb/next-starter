@@ -4,9 +4,10 @@
 // 推測で書かない: 表の形は今の表から読み、宣言から生成器で組んだ表との違いを埋め、照らしの差 0・登録表の値・表示の写し・管理一覧の値が
 // 前後で同じになった物だけを書く。崩れたドメインは書かずに止め、違いを出す。宣言と動いている値の食い違いは「動いている値で書いた」行に出す。
 //
-// 使い方(リポのルートで、.ts を読むので tsx の上): npx tsx .notices/20261126-014453-domain-decl.declare.mjs [--write] [--domain=<名前>] [--labels=<file>]
+// 使い方(リポのルートで、.ts を読むので tsx の上): npx tsx .notices/20261126-014453-domain-decl.declare.mjs [--write] [--domain=<名前>] [--labels=<file>] [--with-place]
 //   既定 = 計画だけ(何も書かない)。--write = 止めなかったドメインの domain.json(短い形に書き換え)と entity.json を書く。
 //   --labels = { "<ドメイン>": "<表示名>" } の JSON(1 ファイルの domain.json の無いドメインの label。無いドメインは止める)
+//   --with-place = 計画だけの時、計画した登録で置き場の道具(place)の分け方と名前の守りも見る(書かない。表の読み込みの守りは place 自身)
 //   今の domainEntry.ts・表の定義は消さない(読み手の付け替えの後に消す)。何度走らせても同じ結果(短い形の domain.json は読み直して使う)
 
 import fs from "node:fs";
@@ -25,6 +26,7 @@ import { buildDomainEntryAccess } from "../scripts/structure/domain/render/regis
 import { toDomainDisplay } from "../scripts/structure/registry/alpha/domainDisplay.mjs";
 import { diffTableFacts, tableFactsOf } from "../scripts/structure/domain-tables/facts.mjs";
 import { makeTempDir, renderExpected, resolveRepoImport } from "../scripts/structure/domain-tables/tables.mjs";
+import { checkExports, placementInput, planPlacement, readersOfRemoved } from "./20261126-014453-domain-decl.place.mjs";
 
 const dialect = new PgDialect();
 const ADMIN_RULE = { roleCategories: ["admin"] };
@@ -487,6 +489,7 @@ export function writePlan(repoRoot, plan) {
 async function main() {
   const args = process.argv.slice(2);
   const write = args.includes("--write");
+  const withPlace = args.includes("--with-place") && !write;
   const only = args.find((arg) => arg.startsWith("--domain="))?.slice("--domain=".length);
   const labelsFile = args.find((arg) => arg.startsWith("--labels="))?.slice("--labels=".length);
   const labels = labelsFile ? JSON.parse(fs.readFileSync(labelsFile, "utf8")) : {};
@@ -502,6 +505,15 @@ async function main() {
   try {
     for (const district of districts) {
       const plan = await planDomain(repoRoot, district, map.tableFiles, labels, tempDir, allOld);
+      if (withPlace && plan.stops.length === 0) {
+        const neon = plan.registrations.filter((r) => (r.entity.dbEngine ?? "Neon") === "Neon");
+        if (neon.length > 0) {
+          const input = placementInput(repoRoot, plan.dir, neon);
+          const placement = planPlacement(input);
+          const problems = placement.stops.length > 0 ? placement.stops : [...checkExports(input, placement), ...readersOfRemoved(repoRoot, placement.removes)];
+          plan.stops.push(...problems.map((line) => `置き場: ${line}`));
+        }
+      }
       const ok = plan.stops.length === 0;
       if (!ok) stopped++;
       console.log(`## ${plan.name} (${plan.dir}) ${ok ? "書ける" : "止めた"}: 登録 ${plan.registrations.map((r) => r.name).join(", ") || "0"}`);
