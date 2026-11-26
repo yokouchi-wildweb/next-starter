@@ -57,7 +57,7 @@ another session or machine may have pushed this fork's branch (a /flux of its ow
 - **segment done**: each item of required_actions is done / not applicable (with reason) / kept → done
   - only 3 kinds may be kept: within a check's scope → a temporary permit with an order id (`open: <項目> | order:<id>`) | outside checks → the human's decision with a reason (`open: <項目> | human:<理由>`) | a migration the human split into another order (`open: <項目> | migration:<自分の受信箱の依頼の id>`, SPLIT A MIGRATION INTO ANOTHER ORDER below)
   - write them in the ledger `notes:`, list them in the next `/flux`'s first report | once settled, delete that `open:` | whether the next segment may start = CONDITIONS TO MOVE ON below
-- **never close a segment that fails the ownership check**: a segment whose base has `src/lib/forkOwnership/intake.txt` → after the commit, no push until `pnpm workflow ownership check` gives 0 (step 7c) | settle violations on the spot: move to an intake point / revert / temporary permit (no grace period)
+- **never close a segment that fails the ownership check**: a segment whose base has `src/lib/forkOwnership/intake.txt` → after the commit, no push until the ownership check gives 0 (step 7c) | settle violations on the spot: move to an intake point / revert / temporary permit (no grace period)
 - **approval of the application plan = explicit instruction to run every step, DB operations included** | while this skill runs, this rule wins over general rules like "ask the user for DB operations" | `[user-run]` steps (db push etc.) follow repo.json's policy: off → the in-session user run below | manual → ask for `/allow <switch>` and run it once after it (the /allow skill)
 - **run inside a calling tool's tab whose steps file or role text says the human is asked elsewhere → never ask in that tab**: every approval, question, `[user-run]` step and `/allow` this skill would ask for goes the way that text says | the relayed `go` / words are the answer (the /allow skill takes them) | run by a person in their own session → ask in plain text as written here
 - **chat is for humans; scripts and identifiers go to the work memo**: every stop's report is written in the format of `.claude/skills/fmt/flux-stop.md` (step 8) | file names, shas, notice ids, application steps and decision grounds go to WORK MEMO below, not chat
@@ -100,7 +100,7 @@ another session or machine may have pushed this fork's branch (a /flux of its ow
 any of the following during a segment's merge / application → **stop without committing that segment and report** (earlier segments are committed, so the fork stays consistent):
 - the `[user-run]` db:push diff includes data loss (DROP, a column deletion)
 - the segment checks (step 6 check entry, typecheck, lint) fail and the fix is not obvious (known failures excluded: FIXES below)
-- the ownership check (step 7c `pnpm workflow ownership check`) gave 1 (violation) or 2 (unverified) | this stop happens after the commit, before push: keep the segment's commit, do not push, stack the cleanup / fix in extra commits and rerun the check (no `git merge --abort`)
+- the ownership check (step 7c) gave 1 (violation) or 2 (unverified) | this stop happens after the commit, before push: keep the segment's commit, do not push, stack the cleanup / fix in extra commits and rerun the check (no `git merge --abort`)
 - and the cue for everything else: taking the change as it is would break the fork's behavior, data or intent and the fix is not obvious → stop and show what you found, the grounds and the options
   - e.g. its logic, its `.claude/rules/project.md`, a notice step that disagrees with reality, a move that cannot be re-applied, files changed outside the segment's diff at 5d, uses that cannot be aligned without a fork-specific judgment
 
@@ -132,7 +132,7 @@ upstream writes `fixes: <notice id | commit:<sha>>` in a notice that fixes a bug
     - the origin applied before this sortie → take it before the first segment (contained in the first segment's merge target → arrives by merge, do not take it) | several → one at a time in history order
   - plan: in the origin segment's detailed plan, read the fix notice in full and add `直後に <修正 notice> を取る` with its required_actions and verify | that segment's approval doubles as approval of this pick (`all` does not stop either) | a segment with a pick is never a light segment
   - execute: after the commit of the origin segment's step 7b, before 7c, the same as HOTFIX execute 1-3 below (`git cherry-pick -x <修正の追加 commit>` → the fix's required_actions, segment checks, verify → follow-up and ledger in a separate commit; the ledger line by the ledger tool of step 7a with `--picked=<元の commit>`, `--notes=pick-clean after <修正元 id>`)
-    - then 7c `pnpm workflow ownership check` (the `picked:` part passes) → push with the segment at 7d
+    - then 7c (content equal to an upstream version, base + the pick included, passes as `upstream-version`) → push with the segment at 7d
   - could not take it:
     - cherry-pick conflict (a conflict only in `.notices/shipped/` = an older commit still carrying the removed index: take the upstream side, or remove it when upstream deleted it, and continue; it does not count as not taken) → `git cherry-pick --abort`
       - sunset: 20261120-122554-notice-history (remove once every fork has taken that notice)
@@ -165,11 +165,7 @@ a notice's commit for which upstream declared `hotfix:` is cherry-picked before 
   3. put the follow-up changes and the ledger in a commit separate from the pick commit (so the tier below can take only the pick commit)
      - ledger line: the ledger tool of step 7a with `--id=<id> --commit=<pick の短 sha> --upstream=<git merge-base HEAD <upstream>/<branch>> --picked=<元の commit> --notes=<…>`
      - never set `upstream:` to the original commit (the ownership check would misread the Tier1 version) | forks with downstream write `relay:` too, judged at the pick (relay.md RELAY JUDGMENT, case "hotfix pick": `relay-check.mjs --pick <元の commit>`)
-  4. step 7c `pnpm workflow ownership check` (content equal to base + pick, or a file the pick changed whose content equals any upstream version of it, passes as `picked`) → push → report | a pick has no merge target, so instead of 7c's "skip when there is no intake.txt" decide by:
-     - no check (`package.json` lacks `pnpm workflow ownership check`) → skip | write `所有の検査なし(後の区間で届く)` in the report and the ledger notes | do not stop
-     - an old check (`git diff --quiet HEAD <upstream>/<branch> -- src/lib/forkOwnership/` shows a diff) → run it, but never stop the pick on 1 / 2 (an old check may not know picks) | write the result in the report and the ledger notes
-     - same version as upstream → as 7c (1 / 2 are stop conditions)
-     - all of these = the same treatment as FOLLOW UPSTREAM'S LATEST STEPS 3 "skip steps of missing / different-version tools, never stop"
+  4. step 7c, the same tool and handling (content equal to an upstream version, base + the pick included, passes as `upstream-version`) → push → report | the fork's tree without `src/lib/forkOwnership/intake.txt` → skip, `所有の検査なし(後の区間で届く)` in the report and the ledger notes
 - **after the pick**: rebuild the segments (ids recorded in the ledger are no checkpoints) | that spot conflicts at a later merge → take the upstream side when the fork has no edit (a replaced file always: it holds only upstream's content)
 - **picked by hand already**: an unapplied notice in the tree whose adding commit is an ancestor of `<upstream>/<branch>` but not of HEAD (not in the ledger) → apply it in segment 0 and write the ledger line with `--picked` as above (regardless of `hotfix:`) | confirm the original commit with the line of `git log --grep "cherry picked from commit"`
 
@@ -235,7 +231,7 @@ a fork starts by cloning the latest code, so **every notice already in the tree 
 - **notice id / file name**: only that notice; do FULL FLOW from step 5 on (no merge; targets a notice already in the tree; no segment split)
 
 ## TIP TOOLS (the upstream tip's version of a tool, run inside this fork)
-- the readers and writers the steps name (who, selfKeep, the stage runner, ledger, hotfixApply) run as the upstream tip's version, with cwd = this fork's repo (they read the repo they run in)
+- the readers and writers the steps name (who, selfKeep, the stage runner, ledger, hotfixApply, the ownership check) run as the upstream tip's version, with cwd = this fork's repo (they read the repo they run in)
 - extract once per tip, reused across segments: `TIP=.flux/tip/$(git rev-parse <upstream>/<branch>)` | missing → `mkdir -p $TIP && git archive <upstream>/<branch> scripts src/lib | tar -x -C $TIP` (`.flux/` is git-ignored; their imports stay inside scripts and src/lib, bare names resolve from this fork's node_modules)
 - run: `node $TIP/<entry> <args>` | an old `.flux/tip/<sha>/` of an earlier tip may be deleted
 
@@ -437,9 +433,11 @@ merge and porting carry the fork's edits as they are | when the destination is u
       - align ledger names with `repo_id` (a ledger with another name at an intermediate version cannot be walked → exit 2)
       - `--relay` only for forks with downstream (the tool asks for it there and refuses it on a leaf; a tail line is always `relay:none`) | covered-id lines and `relay:` values when recording a covers-side notice → relay.md LEDGER ADDITIONS
    b. commit the diff (application + ledger + relay notices drafted in this segment) (no push yet) | message: a one-line summary + blank line + `downstream-notice: <id>` (every notice id of the segment, one per line; a tail segment with no notice has none) + the Co-Authored-By trailer the environment specifies | branch handling follows this repo's policy
-   c. **ownership check** (only when that segment's merge target has `src/lib/forkOwnership/intake.txt`; none → skip): `pnpm workflow ownership check` | it looks only at the committed HEAD (ledger, temporary permits and cleanup are read from HEAD too), so run it after b's commit, before push | middle Tiers with downstream too
+   c. **ownership check** (only when that segment's merge target has `src/lib/forkOwnership/intake.txt`; none → skip): `node $TIP/scripts/workflow/ownership/check.mjs` (TIP TOOLS)
+      - the tip's rules over this segment's tree: its intake from the base, the ledger and permits from HEAD | it looks only at the committed HEAD (cleanup too), so run it after b's commit, before push | middle Tiers with downstream too
       - 0 → d | its `[self-parent-lost]` lines (a self file whose own lines this take-in dropped; never a failure) → before d, ask per file: `親の版に従う` (nothing to do) / `自分の行を戻す` (restore them from `git show <the segment's merge>^1:<path>` in an extra commit of the segment, rerun the check)
       - 1 (violation) → stop condition | no push; show the violation list and settle it (move to an intake point / revert / temporary permit; how: `src/lib/forkOwnership/README.md` section `導入の段階` and required_actions of the cleanup notice `fork-ownership-cleanup`) | stack the cleanup in extra commits, rerun the check, go to d once it gives 0 | never push and close the segment with violations left
+        - cue (D480): a violation on a file a pick touched whose difference from the pick commit's version holds no fork-added line (upstream texts merged by hand) → `git checkout <元の commit> -- <path>` (the pick's version), an extra commit of the segment, rerun the check | a fork line in it → as above
       - 2 (unverified) → stop condition | no push; fix the reason (a notice not in the ledger = a missing ledger append / no ledger / no `upstream:` line in the ledger = append it to this segment's line / that sha cannot be walked / no `repo_id` in the parent's version / a naming declaration problem / no parent remote, cannot fetch it / shallow) | after fixing, commit and rerun the check
    d. push | the segment's merge commit, if unpushed, is pushed with it | push failed → never paper over it, report, and reflect it honestly in the ledger `notes:`
 8. **report** (Japanese; at every stop and the final report): read `.claude/skills/fmt/flux-stop.md` and write in that format | chat keeps only the format's sections; script, identifiers, `aligned:` `kept_old:` and resume info go to the work memo (above) | mapping onto the format's sections:
