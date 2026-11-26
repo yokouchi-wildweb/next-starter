@@ -3,7 +3,7 @@
 // 1. fork の上書き services/server/domainEntry.override.ts(export const domainEntryOverrides = { <キー>: <access> })を、キーごとに
 //    登録のフォルダ entities/<キー>/entity.override.ts(export const entityOverride = { apiAccess: <access> })へ移す
 // 2. 守り: 今の domainEntry.ts の各キーの行(table・idColumn・access・requires・service の結び付き先)が、宣言から作る行(pnpm generate registry と同じ部品)と
-//    同じこと、宣言から作る行に domainEntry.ts に無いキーが無いことを確かめる。違えば何も書かずに止め、違いを出す(宣言の entity.json を直してから走らせ直す)
+//    同じこと、domainEntry.ts の残るドメインの宣言の行に domainEntry.ts に無いキーが無いことを確かめる(core・移し済みのドメインは比べない)。違えば何も書かずに止め、違いを出す(宣言の entity.json を直してから走らせ直す)
 // 3. --write: 上書きを書き、domainEntry.ts と domainEntry.override.ts を消す。続けて pnpm generate registry(登録表と集める入口を作り直す)
 //
 // 使い方(リポのルートで、.ts を読むので tsx の上): npx tsx --import ./scripts/runner/preload/serverOnly.mjs .notices/20261126-014453-domain-decl.registry.mjs [--write]
@@ -63,6 +63,18 @@ export function convertOverride(text) {
   return { files, problems };
 }
 
+/**
+ * 宣言から作る行のうち、今の domainEntry.ts に無い物。比べるのは domainEntry.ts の残るドメインの行だけ:
+ * domainEntry.ts の無いドメイン(core・上流の業務ドメイン・移し済みの登録)は宣言が正で、比べる相手が無い
+ * @param {{ key: string, dir: string }[]} rows
+ * @param {Set<string>} seen domainEntry.ts に出てきたキー
+ * @param {string[]} entryFiles 残っている domainEntry.ts(src/domains/<dir>/services/server/domainEntry.ts)
+ */
+export function missingFromEntries(rows, seen, entryFiles) {
+  const entryDirs = new Set(entryFiles.map((file) => file.slice("src/domains/".length, -`/${ENTRY_FILE}`.length)));
+  return rows.filter((row) => entryDirs.has(row.dir) && !seen.has(row.key));
+}
+
 /** 登録表の比べる形 */
 const rowOf = (row) => ({ table: row.table ?? null, idColumn: row.idColumn ?? null, access: row.access, requires: row.requires ?? [] });
 
@@ -101,7 +113,7 @@ async function main() {
       if (!isDeepStrictEqual(rowOf(entry), rowOf(row))) stops.push(`${file}: キー ${key}: 今 ${JSON.stringify(rowOf(entry))} / 宣言 ${JSON.stringify(rowOf(row))}`);
     }
   }
-  for (const row of rows) if (!seen.has(row.key)) stops.push(`${row.entityPath}: 宣言から作る行 ${row.key} が今の domainEntry.ts に無い(登録表に出さない登録なら entity.json に "registered": false)`);
+  for (const row of missingFromEntries(rows, seen, entryFiles)) stops.push(`${row.entityPath}: 宣言から作る行 ${row.key} が今の domainEntry.ts に無い(登録表に出さない登録なら entity.json に "registered": false)`);
   const writes = {};
   for (const file of overrideFiles) {
     const domainRel = file.slice(0, -`/${OLD_OVERRIDE_FILE}`.length);
@@ -118,7 +130,7 @@ async function main() {
     console.error(`✗ 止めました(${stops.length} 件。何も書いていない):\n${stops.map((stop) => `  - ${stop}`).join("\n")}`);
     process.exit(1);
   }
-  console.log(`登録表の行 ${rows.length} 件が今の domainEntry.ts と同じ。上書きの移し ${Object.keys(writes).length} 件、消す ${entryFiles.length + overrideFiles.length} 本`);
+  console.log(`登録表の行(domainEntry.ts の残るドメインの分)が今の domainEntry.ts と同じ。上書きの移し ${Object.keys(writes).length} 件、消す ${entryFiles.length + overrideFiles.length} 本`);
   for (const target of Object.keys(writes)) console.log(`  書く: ${target}`);
   for (const file of [...entryFiles, ...overrideFiles]) console.log(`  消す: ${file}`);
   if (!write) {

@@ -12,7 +12,7 @@ import { bigint, check, index, inet, jsonb, pgEnum, pgTable, smallint, text, tim
 import { makeTempDir } from "../scripts/structure/domain-tables/tables.mjs";
 import { UserTable } from "../src/domains/core/user/entities/user/drizzle.ts";
 import { accessOfDeclaration } from "../scripts/structure/registry/serviceRegistry/access.mjs";
-import { declareTable } from "./20261126-014453-domain-decl.declare.mjs";
+import { declareTable, skipReasonOf } from "./20261126-014453-domain-decl.declare.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const thisFile = path.relative(repoRoot, fileURLToPath(import.meta.url)).split(path.sep).join("/");
@@ -141,4 +141,21 @@ test("fork でだけ出た形: 外部キーの無い関連・NOT NULL の関連�
   assert.ok(result.discrepancies.some((line) => /owner_id の NOT NULL/.test(line)));
   assert.ok(result.discrepancies.some((line) => /enum dtLink_status_enum の値を今の値で書いた/.test(line)));
   assert.ok(result.discrepancies.some((line) => /fieldType "uuid\[\]" は型の表に無い/.test(line)));
+});
+
+test("core のドメインと、既に宣言の形(domain.json 2.0 + entities/<登録名>/entity.json)のドメインは起こさない(上流の宣言を上書きしない)", () => {
+  const root = fs.mkdtempSync(path.join(tempDir, "skip-"));
+  const put = (rel, text) => {
+    fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
+    fs.writeFileSync(path.join(root, rel), text);
+  };
+  put("src/domains/core/coupon/domain.json", '{ "domainConfigVersion": "2.0", "label": "クーポン" }\n');
+  put("src/domains/sample/domain.json", '{ "domainConfigVersion": "2.0", "label": "サンプル" }\n');
+  put("src/domains/sample/entities/sample/entity.json", "{}\n");
+  put("src/domains/game/domain.json", '{ "label": "ゲーム", "singular": "game" }\n');
+  put("src/domains/half/domain.json", '{ "domainConfigVersion": "2.0", "label": "途中" }\n');
+  assert.match(skipReasonOf(root, { name: "coupon", dir: "src/domains/core/coupon", core: true }), /core/);
+  assert.match(skipReasonOf(root, { name: "sample", dir: "src/domains/sample", core: false }), /既に宣言の形/);
+  assert.equal(skipReasonOf(root, { name: "game", dir: "src/domains/game", core: false }), null, "1 ファイルの宣言は起こす");
+  assert.equal(skipReasonOf(root, { name: "half", dir: "src/domains/half", core: false }), null, "2.0 でも entity.json が無ければ起こす");
 });

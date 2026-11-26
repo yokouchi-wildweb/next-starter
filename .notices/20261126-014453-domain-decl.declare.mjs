@@ -4,11 +4,12 @@
 // 推測で書かない: 表の形は今の表から読み、宣言から生成器で組んだ表との違いを埋め、照らしの差 0・登録表の値・表示の写し・管理一覧の値が
 // 前後で同じになった物だけを書く。崩れたドメインは書かずに止め、違いを出す。宣言と動いている値の食い違いは「動いている値で書いた」行に出す。
 //
-// 使い方(リポのルートで、.ts を読むので tsx の上): npx tsx .notices/20261126-014453-domain-decl.declare.mjs [--write] [--domain=<名前>] [--labels=<file>] [--with-place]
+// 使い方(リポのルートで、.ts を読むので tsx の上): npx tsx --import ./scripts/runner/preload/serverOnly.mjs .notices/20261126-014453-domain-decl.declare.mjs [--write] [--domain=<名前>] [--labels=<file>] [--with-place]
 //   既定 = 計画だけ(何も書かない)。--write = 止めなかったドメインの domain.json(短い形に書き換え)と entity.json を書く。
 //   --labels = { "<ドメイン>": "<表示名>" } の JSON(1 ファイルの domain.json の無いドメインの label。無いドメインは止める)
 //   --with-place = 計画だけの時、計画した登録で置き場の道具(place)の分け方と名前の守りも見る(書かない。表の読み込みの守りは place 自身)
 //   今の domainEntry.ts・表の定義は消さない(読み手の付け替えの後に消す)。何度走らせても同じ結果(短い形の domain.json は読み直して使う)
+//   core のドメインと、既に宣言の形(domain.json 2.0 + entities/<登録名>/entity.json)のドメインは飛ばす(skipReasonOf。--domain でも書かない)
 
 import fs from "node:fs";
 import path from "node:path";
@@ -528,6 +529,23 @@ function guardViews(old, entity, allOld, result) {
   if (!isDeepStrictEqual(admin(old), admin(config))) result.stops.push(`${old.plural}: 管理一覧の値が変わる`);
 }
 
+/**
+ * 起こさないドメインの理由(null = 起こす)。core は上流の持ち物(fork は書かない、上流は起こし済み)、
+ * 既に宣言の形(domain.json が 2.0 で entities/<登録名>/entity.json を持つ)のドメインは起こし済み。
+ * どちらも計画に入れない: domainEntry.ts の無い今の木から起こすと registered: false などで上流の宣言を上書きし得る
+ * @param {string} repoRoot
+ * @param {{ name: string, dir: string, core?: boolean }} district
+ * @returns {string | null}
+ */
+export function skipReasonOf(repoRoot, district) {
+  if (district.core) return "core のドメイン(上流の持ち物。宣言は上流が書いた物を使う)";
+  const config = readJson(path.join(repoRoot, district.dir, "domain.json"));
+  if (config?.domainConfigVersion !== DOMAIN_DECLARATION_VERSION) return null;
+  const entitiesDir = path.join(repoRoot, district.dir, "entities");
+  const declared = fs.existsSync(entitiesDir) && fs.readdirSync(entitiesDir, { withFileTypes: true }).some((entry) => entry.isDirectory() && fs.existsSync(path.join(entitiesDir, entry.name, "entity.json")));
+  return declared ? "既に宣言の形(domain.json 2.0 + entities/<登録名>/entity.json)" : null;
+}
+
 /** 書く: 短い domain.json と entities/<登録名>/entity.json */
 export function writePlan(repoRoot, plan) {
   fs.writeFileSync(path.join(repoRoot, plan.dir, "domain.json"), `${JSON.stringify(plan.domainJson, null, 2)}\n`);
@@ -554,8 +572,16 @@ async function main() {
     .filter((config) => config && config.domainConfigVersion !== DOMAIN_DECLARATION_VERSION);
   const tempDir = makeTempDir();
   let stopped = 0;
+  let skipped = 0;
   try {
     for (const district of districts) {
+      // core と起こし済みのドメインは計画に入れない(--domain で名指しても書かない)
+      const skip = skipReasonOf(repoRoot, district);
+      if (skip) {
+        skipped++;
+        console.log(`## ${district.name} (${district.dir}) 飛ばした: ${skip}`);
+        continue;
+      }
       const plan = await planDomain(repoRoot, district, map.tableFiles, labels, tempDir, allOld);
       if (withPlace && plan.stops.length === 0) {
         const neon = plan.registrations.filter((r) => (r.entity.dbEngine ?? "Neon") === "Neon");
@@ -580,7 +606,7 @@ async function main() {
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
-  console.log(`\n${districts.length} ドメイン、止めた ${stopped}${write ? "(止めなかったドメインを書いた)" : "(計画だけ。--write で書く)"}`);
+  console.log(`\n${districts.length} ドメイン、飛ばした ${skipped}、止めた ${stopped}${write ? "(止めなかったドメインを書いた)" : "(計画だけ。--write で書く)"}`);
   process.exitCode = stopped > 0 ? 1 : 0;
 }
 

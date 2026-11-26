@@ -1,0 +1,19 @@
+# DOWNSTREAM NOTICE id:20261126-151516-domain-decl-tools-fix
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:(this commit)
+date: 2026-11-26T15:15:16+09:00
+severity: action-required
+checkpoint: domain-decl-tools-fix
+fixes: 20261126-014453-domain-decl
+pick: clean
+hotfix: the domain-decl tools can overwrite upstream declarations and stop or break a fork's take-in (found on boardgame-site): take this before running them
+change: .notices/20261126-014453-domain-decl.declare.mjs skips core domains and domains already in the declaration form (domain.json 2.0 + entities/<registration>/entity.json), also with --domain (F11); …registry.mjs checks only rows of domains that still have services/server/domainEntry.ts (F12); …place.mjs writes no entities/<registration>/<kind>.ts and no collector for a kind whose every statement moves to the domain-wide files, and removes the old entities/<kind>.ts (F13); pnpm generate registry's collectors (scripts/structure/registry/alpha/entityCollectors.mjs) list only registration files that have an export
+why: declare.mjs without --domain planned core / upstream domains with no domainEntry.ts left as registered: false + generate: false, so --write would overwrite upstream entity.json; registry.mjs stopped every fork on 31 upstream rows ("declared row missing from domainEntry.ts") with no way to --write; place.mjs left comment-only files that the collector export-* → TS2306 'is not a module' (forge typecheck stops)
+required_actions:
+1. not taken domain-decl yet: take this hotfix first, then run domain-decl's required_actions as written (the tools are replaced in place, same file names and flags)
+2. already ran declare.mjs --write without --domain: list the upstream-owned declarations it rewrote: `git diff --name-only --diff-filter=M <upstream ref> -- 'src/domains/**/domain.json' 'src/domains/**/entities/*/entity.json'` (<upstream ref> = the upstream commit you merged for domain-decl); every path under src/domains/core/ and under an upstream business domain (sample, sampleCategory, sampleImage, sampleTag) → `git restore --source=<upstream ref> -- <those paths>`; files it added there (`git diff --name-only --diff-filter=A <upstream ref> -- 'src/domains/core/**' 'src/domains/sample*/**'`) → delete; keep your own domains' files; then `pnpm generate registry`
+3. already ran place.mjs --write: delete comment-only registration files of your own domains: `git grep -L -E '^\s*export\b' -- 'src/domains/**/entities/*/*.ts'`; then `pnpm generate registry`; a collector src/domains/<d>/entities/<kind>.ts that still export-* a file you deleted → delete it (the generator does not delete a collector it no longer writes)
+4. stopped at registry.mjs on upstream rows: rerun `npx tsx --import ./scripts/runner/preload/serverOnly.mjs .notices/20261126-014453-domain-decl.registry.mjs` (plan), then with `--write`, as domain-decl's step 5 says
+verify: `npx tsx --import ./scripts/runner/preload/serverOnly.mjs .notices/20261126-014453-domain-decl.declare.mjs` prints 飛ばした for every core / declared domain; `git diff --name-only <upstream ref> -- 'src/domains/core/**/domain.json' 'src/domains/core/**/entity.json'` is empty; `pnpm generate registry` leaves no diff; `pnpm typecheck` passes (no TS2306)
+manual_steps: -
+refs: .notices/20261126-014453-domain-decl.md (steps 1-5); .notices/20261126-014453-domain-decl.{declare,registry,place}.mjs; scripts/structure/registry/alpha/entityCollectors.mjs; boardgame-site report F11-F13
+notes: upstream's tree is unchanged (in plan mode upstream: declare skipped 48 of 48 domains, registry "移し済み", place nothing to place; pnpm generate registry no diff). The declare / place header usage lines now say --import ./scripts/runner/preload/serverOnly.mjs, as domain-decl's steps already did. boardgame-site worked around F11-F13 by hand; this notice carries the same into the tools for every fork

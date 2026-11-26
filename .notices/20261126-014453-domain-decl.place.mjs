@@ -11,7 +11,7 @@
 // 消す手のファイルを読む所が無い・移る名前を外から export * で出す所が無い・ドメイン全体のファイルに同じ名前が無い。
 // 崩れたドメインは書かずに止めて理由を出す。
 //
-// 使い方(リポのルートで、declare --write の後。tsx の上): npx tsx .notices/20261126-014453-domain-decl.place.mjs [--write] [--domain=<名前>]
+// 使い方(リポのルートで、declare --write の後。tsx の上): npx tsx --import ./scripts/runner/preload/serverOnly.mjs .notices/20261126-014453-domain-decl.place.mjs [--write] [--domain=<名前>]
 
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -36,6 +36,9 @@ const SKIP_FILES = new Set(["index.ts", "display.ts"]);
 
 /** @param {string} text @param {string} name */
 const sourceOf = (text, name) => ts.createSourceFile(name, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+
+/** import の他に文があるか(コメントと import だけのファイルは空) */
+const hasStatements = (text, name) => sourceOf(text, name).statements.some((statement) => !ts.isImportDeclaration(statement));
 
 /** 文が宣言する名前 */
 function declaredNames(statement) {
@@ -277,7 +280,14 @@ export function planPlacement(input) {
       const wideHere = items.filter((item) => item.wide && item.file === file);
       let text = files[file];
       if (wideHere.length > 0) text = withoutStatements(sources.get(file), wideHere.map((item) => item.statement), items.filter((item) => !item.wide && item.file === file));
-      result.writes[`${entities}/${registration.name}/${kind}.ts`] = moveIntoRegistration(text, { domainRel, registration: registration.name, kind, siblings: kindFiles });
+      const moved = moveIntoRegistration(text, { domainRel, registration: registration.name, kind, siblings: kindFiles });
+      if (!hasStatements(moved, `${kind}.ts`)) {
+        // 文が全部ドメイン全体の物へ移った: 空の登録のファイルも集める入口も書かず、元の entities/<種類>.ts を消す
+        // (コメントだけのファイルを集める入口が export * すると TS2306。読み手は下の読み手の守りが付け替えるか止める)
+        result.removes.push(`${entities}/${kind}.ts`);
+        continue;
+      }
+      result.writes[`${entities}/${registration.name}/${kind}.ts`] = moved;
       result.writes[`${entities}/${kind}.ts`] = renderEntityCollector(domainRel, kind, [registration.name]);
     }
   } else {

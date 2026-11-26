@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { convertOverride } from "./20261126-014453-domain-decl.registry.mjs";
+import { convertOverride, missingFromEntries } from "./20261126-014453-domain-decl.registry.mjs";
 
 test("domainEntryOverrides のキーごとに entity.override.ts を作り、値に使う名前の import だけを道を直して持っていく", () => {
   const text = [
@@ -35,4 +35,16 @@ test("services/server/ の隣のファイルへの ./ は entities/<登録名>/ 
 
 test("読めない上書きは問題を返す", () => {
   assert.equal(convertOverride("export const other = {};").problems.length, 1);
+});
+
+test("domainEntry.ts の残るドメインの行だけを「domainEntry.ts に無い」と比べる(core・移し済みのドメインは比べない)", () => {
+  const rows = [
+    { key: "user", dir: "core/user" },
+    { key: "sample", dir: "sample" },
+    { key: "game", dir: "game" },
+    { key: "gameLog", dir: "game" },
+  ];
+  const entryFiles = ["src/domains/game/services/server/domainEntry.ts"];
+  assert.deepEqual(missingFromEntries(rows, new Set(["game"]), entryFiles).map((row) => row.key), ["gameLog"]);
+  assert.deepEqual(missingFromEntries(rows, new Set(["game", "gameLog"]), entryFiles), []);
 });

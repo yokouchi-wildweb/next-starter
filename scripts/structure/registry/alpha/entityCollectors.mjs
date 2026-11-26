@@ -1,13 +1,18 @@
 // scripts/structure/registry/alpha/entityCollectors.mjs
 // entities/<種類>.ts(drizzle・schema・form・model)の集める入口: 登録ごとのフォルダ entities/<登録名>/<種類>.ts を集めるだけ(D335)。
 // fork と他のドメインの import の道(@/domains/<d>/entities/drizzle など)を変えないための入口で、中身を持たない。
-// 宣言のある全ドメイン(generate:false の登録も)に pnpm generate registry が書く: 登録のフォルダの並びのうち、その種類のファイルを持つ登録を並べる
+// 宣言のある全ドメイン(generate:false の登録も)に pnpm generate registry が書く: 登録のフォルダの並びのうち、その種類のファイルを持ち export のある登録を並べる
 // (どの登録もその種類を持たない = 入口を書かない。Firestore の登録は entities/<種類>.ts を生成器 pnpm generate domain が直に書く)
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { ENTITY_FILE_KINDS } from "../../../../src/lib/domain/node.mjs";
+
+/** ファイルがあり export を持つか(コメントだけの登録のファイルを export * すると TS2306 'is not a module' になるので並べない) */
+function exportsAnything(file) {
+  return existsSync(file) && /^\s*export\b/m.test(readFileSync(file, "utf8"));
+}
 
 /** 集める入口を持つ種類(登録のフォルダの 4 ファイル。正は src/lib/domain の ENTITY_FILE_KINDS) */
 export const COLLECTOR_KINDS = [...ENTITY_FILE_KINDS];
@@ -41,7 +46,7 @@ export function renderEntityCollectors(repoRoot, declarations) {
   for (const declaration of declarations) {
     if (declaration.domain === null) continue;
     for (const kind of COLLECTOR_KINDS) {
-      const having = declaration.registrations.filter((registration) => existsSync(join(repoRoot, registration.dir, `${kind}.ts`))).map((registration) => registration.name);
+      const having = declaration.registrations.filter((registration) => exportsAnything(join(repoRoot, registration.dir, `${kind}.ts`))).map((registration) => registration.name);
       if (having.length === 0) continue;
       outputs[`${declaration.dir}/entities/${kind}.ts`] = renderEntityCollector(declaration.dir, kind, having);
     }

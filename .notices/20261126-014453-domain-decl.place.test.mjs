@@ -161,3 +161,18 @@ test("belongsToMany の中間の表は持ち主の登録へ(自分の登録が�
   assert.deepEqual(plan.stops, []);
   assert.match(plan.writes[`${domainRel}/entities/widget/drizzle.ts`], /WidgetToTagTable = pgTable\("widget_to_tag"/);
 });
+
+test("登録 1 つ: 文が全部ドメイン全体の物へ移って空になる種類は、登録のファイルも集める入口も書かず元を消す(コメントだけのファイルは TS2306 の元)", () => {
+  const files = {
+    "drizzle.ts": 'import { pgTable, uuid } from "drizzle-orm/pg-core";\nexport const WidgetTable = pgTable("widgets", { id: uuid("id") });\n',
+    "schema.ts": '// src/domains/core/widget/entities/schema.ts\nimport { z } from "zod";\nexport const SendThingSchema = z.object({ text: z.string() });\nexport type SendThingInput = z.infer<typeof SendThingSchema>;\n',
+  };
+  const input = { domainRel, registrations: [{ name: "widget", table: "widgets" }], files };
+  const plan = planPlacement(input);
+  assert.deepEqual(plan.stops, []);
+  assert.equal(plan.writes[`${domainRel}/entities/widget/schema.ts`], undefined, "空の登録のファイルは書かない");
+  assert.equal(plan.writes[`${domainRel}/entities/schema.ts`], undefined, "集める入口も書かない");
+  assert.deepEqual(plan.removes, [`${domainRel}/entities/schema.ts`]);
+  assert.ok(Object.keys(plan.writes).some((rel) => rel.startsWith(`${domainRel}/constants/`) || rel.startsWith(`${domainRel}/types/`)), "文はドメイン全体の物へ");
+  assert.match(plan.writes[`${domainRel}/entities/widget/drizzle.ts`], /WidgetTable/, "他の種類は今のまま移す");
+});
