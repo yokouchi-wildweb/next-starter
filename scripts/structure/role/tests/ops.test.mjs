@@ -9,7 +9,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { copyByImports } from "../../../runner/test/lib.copyByImports.mjs";
-import { ENV, git } from "../../../../src/lib/forkOwnership/node.mjs";
+import { ENV, catalogSectionNames, git } from "../../../../src/lib/forkOwnership/node.mjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "../../../..");
 // 走らせる命令(この入口から import で届くコードは before で足す)
@@ -24,15 +24,26 @@ const COPY = [
   "src/domains/core/user/extensions",
   "src/domains/core/user/extensionPoints.ts",
   "src/registry",
-  // 持ち主の判定(rolePaths.mjs の parentOwns)が読む名前の宣言: Tier1 = 全部が自分の物
+  // 持ち主の判定(rolePaths.mjs の parentOwns)が読む名前の宣言。repo.json は写した後に Tier1 の物へ書き直す(writeTier1RepoJson)
   "repo.json",
   "src/lib/CATALOG.md",
 ];
+/**
+ * 写した先を Tier1 にする: repo_id = 写した CATALOG.md の先頭の節(Tier1 の名前)、tier root。
+ * fork で走らせると写した repo.json は fork の物(tier leaf)で、git の無い写しでは親の remote が無く、役の道具が
+ * 「親の持ち物か見分けられない」で止まる(1b910b565 から)。この試験は Tier1 として道具を走らせる
+ */
+function writeTier1RepoJson(dir) {
+  const [first] = catalogSectionNames(fs.readFileSync(path.join(dir, "src/lib/CATALOG.md"), "utf8"));
+  assert.ok(first, "CATALOG.md に節が無い");
+  fs.writeFileSync(path.join(dir, "repo.json"), JSON.stringify({ repo_id: first, tier: "root" }, null, 2) + "\n");
+}
 let root;
 before(async () => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), "role-ops-"));
   const entries = COMMANDS.map((c) => `scripts/structure/role/${c}`);
   await copyByImports({ from: repoRoot, to: root, entries, data: COPY, nodeModules: true });
+  writeTier1RepoJson(root);
 });
 after(() => fs.rmSync(root, { recursive: true, force: true }));
 
@@ -255,6 +266,7 @@ test("fork で親の持ち物の JSON は書かない・消さない: toggle は
     // 親(Tier1 役) = 道具と role の置き場の写し。fork = その clone(親の remote = upstream)
     const parent = path.join(base, "parent");
     await copyByImports({ from: repoRoot, to: parent, entries: COMMANDS.map((c) => `scripts/structure/role/${c}`), data: COPY });
+    writeTier1RepoJson(parent);
     fs.writeFileSync(path.join(parent, ".gitignore"), "node_modules\n");
     fs.writeFileSync(path.join(parent, "src/domains/core/userProfile/profiles/contributor.profile.json"), JSON.stringify({ roleId: "contributor", fields: [{ name: "nick", label: "呼び名", fieldType: "string", formInput: "textInput" }] }));
     git(parent, "init", "-q", "-b", "main");
