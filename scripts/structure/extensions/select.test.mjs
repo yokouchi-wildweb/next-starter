@@ -3,7 +3,8 @@
 // (作り物の lib src/lib/kit に口 mail の選ぶ点 mailers、項目 alpha / beta、要る能力を宣言するドメイン)。
 // - 宣言: select の形・選ぶ点に書けないキー・export "adapter"・持ち主(lib か常設のドメイン)・backendRequirements の形と置き場
 // - 項目: declaration の D29 の鍵・billing(none の同居・usage の unit)・env・adapter の有無・知らない語・語の再定義・予約名・置き場
-// - 選択表: 無い・鍵の欠け・余り・知らない値・fake・任意でない口の none・口のどれかの点に項目が無い・requires ↔ provides・開いているドメインの要る能力
+// - 選択表: 無い・鍵の欠け・余り・知らない値・fake・任意でない口の none・口のどれかの点に項目が無い・requires ↔ provides・開いているドメインの要る能力・
+//   選んだ実装の requiresFeatures(閉・知らない・読めない → 止める、選ばれていない実装のは読まない)
 // - 生成: 選んだ 1 項目の adapter だけの re-export、none は createNoneAdapter。選ぶ点が 0 個なら選択表を読まない
 // - 起動時の知らせ: startup.ts の一覧に選ぶ点ごとの 1 行(持ち主の公開の入口の <点>BackendStatus を NEXT_RUNTIME が nodejs の時だけ読む、D49)
 // - 選択に問題がある時: ほかの一覧は書き、選ぶ点の生成物は残し、検査は古いと数えない(写しの通しの F2・F3)
@@ -105,6 +106,19 @@ test("項目の宣言: D29 の鍵だけ・全部要る・billing の none は単
   assert.match(read(`{ provides: ["send"], requires: [], billing: [{ kind: "fixed" }], env: { required: [] } }`), /provides は能力の名前/);
   assert.match(read(`{ provides: [], requires: [], billing: [{ kind: "fixed" }], env: { required: [] } }`, false), /export const adapter が無い/);
   assert.match(readBackendDeclaration("x.ts", "export const declaration = make();\nexport const adapter = 1;\n").problems[0], /リテラルでない値/);
+});
+
+test("項目の宣言: 任意の requiresFeatures は機能の名前の配列(省略 = 空)、形違い・名前違い・重なりは止める", () => {
+  const decl = (extra) => `{ provides: [], requires: [], billing: [{ kind: "fixed" }], env: { required: [] }${extra} }`;
+  const read = (extra) => readBackendDeclaration("x.ts", ITEM(decl(extra)));
+  assert.deepEqual(read("").declaration?.requiresFeatures, [], "省略 = 空");
+  const ok = read(`, requiresFeatures: ["outbox", "pairedDevice"]`);
+  assert.deepEqual(ok.problems, []);
+  assert.deepEqual(ok.declaration?.requiresFeatures, ["outbox", "pairedDevice"]);
+  assert.match(read(`, requiresFeatures: "outbox"`).problems.join("\n"), /requiresFeatures は機能の名前/);
+  assert.match(read(`, requiresFeatures: ["out-box"]`).problems.join("\n"), /requiresFeatures は機能の名前/);
+  assert.match(read(`, requiresFeatures: ["outbox", "outbox"]`).problems.join("\n"), /requiresFeatures に同じ機能が 2 回ある/);
+  assert.match(read(`, features: ["outbox"]`).problems.join("\n"), /未知のキー features/);
 });
 
 test("生成: 選んだ 1 項目の adapter だけを re-export、none は組み込みの none の adapter。実際の木の選ぶ点は 0 個で何も書かない", () => {
@@ -340,4 +354,39 @@ test("選択に問題がある時(F2・F3): 生成は選ぶ点でない一覧を
   for (const f of selectionFiles) assert.ok(!strays.includes(f), `${f} を古いと数えない`);
   const clean = withEnv({ PHASE: undefined, MAIL_PROVIDER: undefined }, () => planExtensions(root));
   assert.deepEqual(heldSelectionPaths(clean), []);
+});
+
+test("選んだ実装の requiresFeatures: 開なら通り、閉・知らない名前・開閉が読めなければ直し方つきで止め、選ばれていない実装のは読まない", () => {
+  const BETA_NEEDS = ITEM(`{ provides: ["mail.send", "mail.batch"], requires: [], billing: [{ kind: "none" }], env: { required: [] }, requiresFeatures: ["outbox"] }`);
+  const run = (selection, states, { reads } = { reads: [] }) => {
+    // 生成の全体(planExtensions)は選択表 alpha で読む(beta を選ぶと本物の機能の開閉を子プロセスで読みに行くため)、その後で選択表を差し替える
+    const root = fixture(tree({ "src/lib/kit/plugs/mailers/beta.ts": BETA_NEEDS }));
+    const base = planExtensions(root);
+    writeFileSync(join(root, "backend-selection.json"), selection);
+    return planSelection({
+      repoRoot: root,
+      points: base.points,
+      itemsByPoint: base.itemsByPoint,
+      alwaysOpen: [],
+      backendRequirements: [],
+      gateDomains: [],
+      headerFor,
+      featureStates: () => {
+        reads.push(1);
+        return typeof states === "string" ? { problem: states } : { states };
+      },
+    }).problems;
+  };
+  const beta = '{ "mail": "beta" }\n';
+  assert.deepEqual(run(beta, { outbox: true }), []);
+  const closed = run(beta, { outbox: false }).join("\n");
+  assert.match(closed, /src\/lib\/kit\/plugs\/mailers\/beta\.ts: 口 mail の選んだ実装 "beta" は機能 outbox が開いていないと動かない/);
+  assert.match(closed, /pnpm ops features set outbox on/);
+  assert.match(closed, /pnpm workflow backend-selection set mail <alpha>/);
+  assert.match(run(beta, { other: true }).join("\n"), /requiresFeatures の outbox は知らない機能/);
+  assert.match(run(beta, "機能の開閉が読めない(テスト)").join("\n"), /機能の開閉が読めない\(テスト\)/);
+
+  const reads = [];
+  assert.deepEqual(run('{ "mail": "alpha" }\n', { outbox: false }, { reads }), [], "選ばれていない beta の requiresFeatures は読まない");
+  assert.equal(reads.length, 0, "要る所が無ければ機能の開閉を読まない");
 });

@@ -562,17 +562,20 @@ export function replacePointsOf(points) {
   return { replaces: replaces.sort((a, b) => (a.default < b.default ? -1 : 1)), problems };
 }
 
-/** 項目の宣言の鍵(D29、ほかの鍵は止める) */
+/** 項目の宣言の鍵(D29、ほかの鍵は止める): 要る鍵と任意の鍵(requiresFeatures = 選んだときに開いていなければならない機能の名前) */
 const BACKEND_DECLARATION_KEYS = ["provides", "requires", "billing", "env"];
+const BACKEND_DECLARATION_OPTIONAL_KEYS = ["requiresFeatures"];
+/** 機能の名前(門番の規則 src/featureGate/rules/<名前>.ts の名前の字面) */
+const FEATURE_NAME = /^[A-Za-z][A-Za-z0-9]*$/;
 /** 課金の目盛りの種類 */
 export const BILLING_KINDS = ["none", "fixed", "mau", "perRecipient", "egress", "usage"];
 
 /**
- * 選ぶ点の項目の宣言 export const declaration = { provides, requires, billing, env } を構文木で読む(実行しない、D9・D29)。
- * 形の問題を返す(知らない語・選択表との照らし合わせは生成器)。adapter = export const adapter があるか
+ * 選ぶ点の項目の宣言 export const declaration = { provides, requires, billing, env, requiresFeatures? } を構文木で読む(実行しない、D9・D29)。
+ * 形の問題を返す(知らない語・選択表との照らし合わせ・機能の開閉は生成器)。adapter = export const adapter があるか
  * @param {string} path
  * @param {string} text
- * @returns {{ declaration?: { provides: string[], requires: string[], billing: { kind: string, unit?: string, priceKey?: string }[], env: { required: string[], optional?: string[] } }, adapter: boolean, problems: string[] }}
+ * @returns {{ declaration?: { provides: string[], requires: string[], billing: { kind: string, unit?: string, priceKey?: string }[], env: { required: string[], optional?: string[] }, requiresFeatures: string[] }, adapter: boolean, problems: string[] }}
  */
 export function readBackendDeclaration(path, text) {
   const adapter = exportedInitializer(path, text, BACKEND_ADAPTER_NAME) !== null;
@@ -585,7 +588,8 @@ export function readBackendDeclaration(path, text) {
   /** @type {string[]} */
   const problems = [];
   const at = (/** @type {string} */ m) => problems.push(`${path}: ${BACKEND_DECLARATION_NAME}: ${m}`);
-  for (const key of Object.keys(value)) if (!BACKEND_DECLARATION_KEYS.includes(key)) at(`未知のキー ${key}(使えるのは ${BACKEND_DECLARATION_KEYS.join(" / ")})`);
+  const allowed = [...BACKEND_DECLARATION_KEYS, ...BACKEND_DECLARATION_OPTIONAL_KEYS];
+  for (const key of Object.keys(value)) if (!allowed.includes(key)) at(`未知のキー ${key}(使えるのは ${allowed.join(" / ")})`);
   for (const key of BACKEND_DECLARATION_KEYS) if (value[key] === undefined) at(`${key} が無い`);
   const names = (/** @type {string} */ key) => {
     const list = value[key];
@@ -628,6 +632,17 @@ export function readBackendDeclaration(path, text) {
       at(`env は { required: string[], optional?: string[] }(env の名前だけ)`);
     } else env = /** @type {{ required: string[], optional?: string[] }} */ (/** @type {unknown} */ (e));
   }
+  /** @type {string[]} */
+  let requiresFeatures = [];
+  if (value.requiresFeatures !== undefined) {
+    const list = value.requiresFeatures;
+    if (!Array.isArray(list) || !list.every((v) => typeof v === "string" && FEATURE_NAME.test(v))) {
+      at(`requiresFeatures は機能の名前(門番の規則の名前、英字と数字)の配列`);
+    } else {
+      if (new Set(list).size !== list.length) at(`requiresFeatures に同じ機能が 2 回ある`);
+      requiresFeatures = /** @type {string[]} */ (list);
+    }
+  }
   if (!adapter) problems.push(`${path}: export const ${BACKEND_ADAPTER_NAME} が無い(口の実装の本体。isConfigured を持つ)`);
-  return { declaration: problems.length === 0 ? { provides, requires, billing, env } : undefined, adapter, problems };
+  return { declaration: problems.length === 0 ? { provides, requires, billing, env, requiresFeatures } : undefined, adapter, problems };
 }

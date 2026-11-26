@@ -4,7 +4,8 @@
 // - 根の backend-selection.json({ <口>: <実装の名前> })が指す 1 項目の adapter だけを <持ち主>/extensions/<点>.ts に静的に re-export する
 //   ("none" = 組み込みの none の adapter、@/lib/backends の createNoneAdapter)
 // - 食い違いで止める(D14 fail-closed): 選択表の鍵の欠け・余り・知らない値・"fake"・任意でない口の "none"・口のどれかの点に項目が無い・
-//   requires ↔ provides の不足・開いているドメインの backendRequirements の不足・項目の宣言の形・知らない語・語の再定義
+//   requires ↔ provides の不足・開いているドメインの backendRequirements の不足・項目の宣言の形・知らない語・語の再定義・
+//   選んだ実装の requiresFeatures の機能が閉・知らない名前・開閉が読めない(直し方 = 機能を開くか別の実装を選ぶ)
 // - 段 build・ship(env PHASE)では env の今の設定(compat が from "env")が選択と食い違えば止め、段 build では選んだ実装の env.required の
 //   欠けを止めずに 1 行知らせる(D14。env の値は出さない)
 // - 点 startupTasks が在れば、選ぶ点ごとに起動時の知らせの 1 行を一覧 src/wiring/startup.ts に足す(項目のファイルは作らない、D49):
@@ -236,7 +237,7 @@ export function planSelection(input) {
   }
 
   // 項目: 名前 → 宣言(点ごと)。予約名・置き場・宣言の形・知らない語を止める
-  /** @type {Map<object, Map<string, { path: string, provides: string[], requires: string[], envRequired: string[] }>>} */
+  /** @type {Map<object, Map<string, { path: string, provides: string[], requires: string[], envRequired: string[], requiresFeatures: string[] }>>} */
   const declared = new Map();
   for (const p of selectPoints) {
     const port = p.spec.select.port;
@@ -268,7 +269,13 @@ export function planSelection(input) {
         else if (!knownCapability(name)) problems.push(`${item.path}: provides の ${name} は知らない語(口 ${port} の語: ${[...(words.get(port)?.keys() ?? [])].join(", ")}。足すなら backendCapabilities の項目)`);
       }
       for (const name of read.declaration.requires) if (!knownCapability(name)) problems.push(`${item.path}: requires の ${name} は知らない能力(在る口の select.words か backendCapabilities の語)`);
-      byItem.set(item.name, { path: item.path, provides: read.declaration.provides, requires: read.declaration.requires, envRequired: read.declaration.env.required });
+      byItem.set(item.name, {
+        path: item.path,
+        provides: read.declaration.provides,
+        requires: read.declaration.requires,
+        envRequired: read.declaration.env.required,
+        requiresFeatures: read.declaration.requiresFeatures,
+      });
     }
   }
   for (const r of backendRequirements) for (const name of r.requires) if (!knownCapability(name)) problems.push(`${r.declaredIn}: backendRequirements の ${name} は知らない能力(在る口の select.words か backendCapabilities の語)`);
@@ -330,15 +337,37 @@ export function planSelection(input) {
     for (const capability of item.requires) if (!provided.has(capability)) problems.push(`${item.path}: requires の ${capability} を選択表のどの実装も出さない(口 ${portOf(capability)} の選択を見直す: ${SET})`);
   }
 
+  // 選んだ実装の requiresFeatures(口ごと、その口の全部の点の選んだ項目の分。選ばれていない項目のは読まない)
+  /** @type {{ path: string, port: string, name: string, feature: string }[]} */
+  const featureNeeds = [];
+  for (const p of selectPoints) {
+    const name = chosen.get(p.spec.select.port);
+    const item = declared.get(p)?.get(name ?? "");
+    if (!item || name === undefined) continue;
+    for (const feature of item.requiresFeatures) featureNeeds.push({ path: item.path, port: p.spec.select.port, name, feature });
+  }
+
   // 開いているドメインの backendRequirements(常設か、載せる規則のどれかが開。どの規則にも載らず常設でもないドメインは閉)
   const ruleHolders = new Map(gateDomains.map((d) => [d.folder, d.features]));
-  const needStates = backendRequirements.some((r) => !alwaysOpen.includes(r.domain) && ruleHolders.has(r.domain.slice(DOMAINS_ROOT.length)));
+  const needStates =
+    featureNeeds.length > 0 || backendRequirements.some((r) => !alwaysOpen.includes(r.domain) && ruleHolders.has(r.domain.slice(DOMAINS_ROOT.length)));
   /** @type {Record<string, boolean>} */
   let states = {};
   if (needStates) {
     const read = (input.featureStates ?? (() => readFeatureStates(repoRoot)))();
     if ("problem" in read) return { paths, outputs, warnings, statusEntries, problems: [...problems, read.problem] };
     states = read.states;
+  }
+  for (const need of featureNeeds) {
+    const others = [...new Set(selectPoints.filter((p) => p.spec.select.port === need.port).flatMap((p) => [...(declared.get(p)?.keys() ?? [])]))]
+      .filter((n) => n !== need.name)
+      .sort(byName);
+    const pick = `別の実装を選ぶ: pnpm workflow backend-selection set ${need.port} <${others.join("|") || "実装の名前"}>`;
+    if (!(need.feature in states)) {
+      problems.push(`${need.path}: 口 ${need.port} の選んだ実装 "${need.name}" の requiresFeatures の ${need.feature} は知らない機能(門番の規則 src/featureGate/rules/<名前>.ts の名前。直すか、${pick})`);
+    } else if (states[need.feature] !== true) {
+      problems.push(`${need.path}: 口 ${need.port} の選んだ実装 "${need.name}" は機能 ${need.feature} が開いていないと動かない(機能を開く: pnpm ops features set ${need.feature} on。または ${pick})`);
+    }
   }
   for (const r of backendRequirements) {
     const open = alwaysOpen.includes(r.domain) || (ruleHolders.get(r.domain.slice(DOMAINS_ROOT.length)) ?? []).some((rule) => states[rule] === true);

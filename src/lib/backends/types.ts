@@ -1,8 +1,12 @@
 // src/lib/backends/types.ts
 // 口(port)の実装の宣言と本体の型(D29)。宣言は字面だけで書き、生成器と検査が構文木で読む(実行しない)
+// 宣言の鍵: provides・requires・billing・env(要る)、requiresFeatures(任意、選んだときに開いていなければならない機能の名前)
 
 /** 能力の名前 = "<口>.<語>"。語は口の持ち主の選ぶ点の宣言と増設点 backendCapabilities が持つ */
 export type CapabilityName = `${string}.${string}`;
+
+/** 機能の名前(門番の規則の名前の字面。lib/backends は門番もドメインも読まない、照らすのは選択表の検査) */
+export type FeatureName = string;
 
 /** 課金の目盛りの種類 */
 export type BillingKind = "none" | "fixed" | "mau" | "perRecipient" | "egress" | "usage";
@@ -32,6 +36,8 @@ export type BackendDeclaration = {
   /** 課金の目盛りの配列 */
   billing: readonly BillingScale[];
   env: BackendEnv;
+  /** この実装を選んだときに開いていなければならない機能の名前(省略 = 無い)。閉・不明・読めなければ選択表の検査が止める */
+  requiresFeatures?: readonly FeatureName[];
 };
 
 /** isConfigured の戻り値。missing = 足りない env・設定の名前(値は持たない) */

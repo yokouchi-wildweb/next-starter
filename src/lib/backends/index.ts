@@ -26,5 +26,6 @@ export type {
   BillingKind,
   BillingScale,
   CapabilityName,
+  FeatureName,
   IsConfiguredResult,
 } from "./types";
