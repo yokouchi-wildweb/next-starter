@@ -5,6 +5,8 @@ import { useRouter } from "@/lib/unsavedGuard";
 import { notFound } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { useOnPageLeave } from "@/lib/pageLeave";
+
 import { GUARD_FAIL_MESSAGES } from "./constants";
 import type {
   GuardFailAction,
@@ -66,6 +68,12 @@ export function useTransitionGuard(
   // StrictMode での二重実行を防ぐためのフラグ
   // consumeToken() がトークンを消費（削除）するため、2回目の実行で no_token エラーになる
   const hasValidatedRef = useRef(false);
+  // 検証は訪れるたび: <Activity> に隠されて戻った時も検証し直す(状態と ref が保たれるので、離れた時に戻す)。
+  // StrictMode の作り直しは離れたと見なさない(useOnPageLeave)ので、上の二重実行の守りはそのまま
+  useOnPageLeave(() => {
+    hasValidatedRef.current = false;
+    setStatus(config.disabled ? "passed" : "checking");
+  });
 
   useEffect(() => {
     // disabled時は検証をスキップ

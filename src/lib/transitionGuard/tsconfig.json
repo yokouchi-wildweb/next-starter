@@ -29,6 +29,12 @@
       "@/lib/plainObject/*": [
         "../plainObject/*"
       ],
+      "@/lib/pageLeave": [
+        "../pageLeave"
+      ],
+      "@/lib/pageLeave/*": [
+        "../pageLeave/*"
+      ],
       "@/lib/unsavedGuard": [
         "../unsavedGuard"
       ],

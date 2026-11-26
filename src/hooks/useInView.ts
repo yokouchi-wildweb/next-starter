@@ -71,6 +71,7 @@ export function useInView(options: UseInViewOptions = {}): UseInViewResult {
         setIsInView(latest.isIntersecting);
 
         if (once && latest.isIntersecting) {
+          // eslint-disable-next-line activity/once-ref-guard -- once は 1 度見えたら固定する約束(戻っても見えた状態のまま)
           frozenRef.current = true;
           observer.disconnect();
         }

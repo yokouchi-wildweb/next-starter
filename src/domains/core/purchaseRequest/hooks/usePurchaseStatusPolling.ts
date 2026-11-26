@@ -99,6 +99,11 @@ export function usePurchaseStatusPolling({
 
   useEffect(() => {
     isMountedRef.current = true;
+    // 見張りは effect ごと: <Activity> に隠されて戻ると effect が走り直すので、前の片付けで止めた状態から始め直す
+    // (前の回の待ちの setTimeout は active で止まる)
+    let active = true;
+    isPollingRef.current = false;
+    pollCountRef.current = 0;
 
     if (!requestId) {
       // ポーリング(外部 API との同期)の入口。リクエスト ID が無い場合はここで結果を確定する
@@ -110,13 +115,13 @@ export function usePurchaseStatusPolling({
 
     const pollStatus = async () => {
       // 重複実行を防止
-      if (isPollingRef.current || !isMountedRef.current) return;
+      if (!active || isPollingRef.current || !isMountedRef.current) return;
       isPollingRef.current = true;
 
       try {
         const status = await getPurchaseStatus(requestId);
 
-        if (!isMountedRef.current) return;
+        if (!active || !isMountedRef.current) return;
 
         switch (status.status) {
           case "completed":
@@ -159,7 +164,7 @@ export function usePurchaseStatusPolling({
         isPollingRef.current = false;
         setTimeout(pollStatus, POLL_INTERVAL);
       } catch (err) {
-        if (!isMountedRef.current) return;
+        if (!active || !isMountedRef.current) return;
         console.error("Status polling failed:", err);
         setError("ステータスの確認中にエラーが発生しました。");
         setIsPolling(false);
@@ -171,6 +176,7 @@ export function usePurchaseStatusPolling({
 
     // クリーンアップ
     return () => {
+      active = false;
       isMountedRef.current = false;
       isPollingRef.current = true;
     };

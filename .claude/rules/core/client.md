@@ -17,6 +17,7 @@ client_layer: client HTTP code lives in src/lib/** or services/client/** (axios 
 - lint: client-service-boundary/no-direct-import = UI importing services/client or a barrel's *Client → error in Tier1 UI, warn in forks → wrap in a hooks/ hook (useInfiniteScrollQuery / useDomainMutation / SWR) | a real exception = reasoned eslint-disable | guarded by eslint-rules/client-service-boundary.test.mjs (/sluice runs it) | ref: docs/!must-read/アプリ構築における構成層.md
 swr_keys: a domain's SWR keys live in one keys file under hooks/, never inline strings at call sites
 client_guards_ux_only: a client-side guard is UX only (bypassable) | data and permissions are guarded on the server
+activity_state: cacheComponents keeps a left page in <Activity> (state and refs kept, effects re-run on return) | an init that must run per visit never relies on a ref guard alone → reset it with useOnPageLeave (@/lib/pageLeave) | intended keeping (drafts, scroll, locks, once-only firing) stays, with a reasoned disable | lint activity/once-ref-guard (Tier1 error, forks warn)
 ## stores (zustand)
 placement: app-wide mechanism → closed lib src/lib/\<name\>/ (state inside, via its entry; no src/stores) | domain-specific → domains/\<domain\>/stores/ | one-frame-only → app/\<route\>/_layout/stores/ | structure: stores/\<name\>/{index.ts, internalStore.ts, useStore.ts}, internalStore → useStore → hooks/useXxx (optional)
 rules: state only (logic in services) | UI side effects in useStore's useEffect | internalStore accessed only from useStore.ts | ref: src/lib/toast/stores (a lib-internal store)

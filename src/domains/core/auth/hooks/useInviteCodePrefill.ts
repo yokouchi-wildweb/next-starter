@@ -47,6 +47,8 @@ export function useInviteCodePrefill({
     if (getInviteCode()) return;
 
     setInviteCode(pendingInviteCode);
+    // 戻ってもそのまま(<Activity> はフォームの値も保つ。入れた招待コードを戻った時に入れ直さない)
+    // eslint-disable-next-line activity/once-ref-guard -- 意図した状態の保存(フォームの値と同じく保つ)
     prefilledRef.current = true;
     // getInviteCode / setInviteCode はインラインで渡される想定のため依存に含めない
     // eslint-disable-next-line react-hooks/exhaustive-deps

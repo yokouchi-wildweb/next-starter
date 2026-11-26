@@ -10,6 +10,7 @@
 // 期限切れの判定はサーバーの応答だけを信じる（端末の時計がずれていても誤判定しない）。
 
 import { useCallback, useEffect, useRef, useState } from "react";
+
 import { useSWRConfig } from "swr";
 
 import type { SessionDevice } from "@/domains/pairedDevice/entities/model";
@@ -21,6 +22,7 @@ import {
 import { getPairedDeviceErrorReason } from "@/domains/pairedDevice/utils/errorReason";
 import { useDomainMutation } from "@/lib/crud";
 import { isHttpError } from "@/lib/errors";
+import { useOnPageLeave } from "@/lib/pageLeave";
 
 import { SESSION_DEVICE_KEY } from "./keys";
 
@@ -132,6 +134,12 @@ export function useStartDevicePairing(options: UseStartDevicePairingOptions = {}
     autoStartedRef.current = true;
     void start();
   }, [autoStart, start]);
+  // 自動の開始は訪れるたび: <Activity> に隠されて戻った時に前の待ち・終わった画面を残さない(離れた時に戻し、戻った時の effect が始め直す)
+  useOnPageLeave(() => {
+    autoStartedRef.current = false;
+    generationRef.current += 1;
+    setState(INITIAL_STATE);
+  });
 
   const { phase, pollIntervalSeconds, failures, lastError } = state;
   useEffect(() => {

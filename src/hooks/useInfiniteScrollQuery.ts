@@ -390,6 +390,8 @@ export function useInfiniteScrollQuery<
   const observerRef = useRef<IntersectionObserver | null>(null);
   const sentinelNodeRef = useRef<HTMLElement | null>(null);
   const depsInitializedRef = useRef<boolean>(false);
+  // 再初期化の effect が前に見た deps(<Activity> の戻りで同じ値のまま走り直すのを見分ける)
+  const depsSeenRef = useRef<ReadonlyArray<unknown> | null>(null);
   const initialDataRef = useRef(initialData);
   // カーソルのモードの続きの位置 (直前に成功した取得の nextCursor)
   const nextCursorRef = useRef<string | null>(initialState.nextCursor);
@@ -665,13 +667,18 @@ export function useInfiniteScrollQuery<
     };
   }, [revalidateOnFocus, revalidate]);
 
-  // deps 変化での再初期化
+  // deps 変化での再初期化。<Activity> に隠されて戻ると effect が同じ deps で走り直すので、前に見た deps と値で比べ、
+  // 本当に変わった時だけ戻す(戻るたびに一覧とスクロールを初めに戻さない = 意図した状態の保存)
   useEffect(() => {
     if (!deps || deps.length === 0) return;
+    const previous = depsSeenRef.current;
+    depsSeenRef.current = deps;
     if (!depsInitializedRef.current) {
+      // eslint-disable-next-line activity/once-ref-guard -- 初回の deps を覚えるだけ(戻った時は上の deps の値の比べが見る)
       depsInitializedRef.current = true;
       return;
     }
+    if (previous && previous.length === deps.length && previous.every((value, index) => Object.is(value, deps[index]))) return;
     applyReset(initialDataRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps ?? []);

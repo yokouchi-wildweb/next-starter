@@ -12,6 +12,7 @@ import noServerActionPlugin from "./eslint-rules/no-server-action.mjs";
 import deprecatedImportsPlugin from "./eslint-rules/deprecated-imports.mjs";
 import fieldTypeGuardPlugin from "./eslint-rules/field-type-guard.mjs";
 import intersectionObserverPlugin from "./eslint-rules/intersection-observer.mjs";
+import activityPlugin from "./eslint-rules/activity.mjs";
 import appEnvPlugin from "./eslint-rules/app-env.mjs";
 import useClientPlugin from "./eslint-rules/use-client.mjs";
 import assetPathsPlugin from "./eslint-rules/asset-paths.mjs";
@@ -523,6 +524,16 @@ const config = [
     plugins: { "intersection-observer": intersectionObserverPlugin },
     rules: {
       "intersection-observer/via-use-in-view": libOwnership.isRoot ? "error" : "warn",
+    },
+  },
+  // <Activity>(cacheComponents)は離れたページの状態と ref を保ち、戻ると effect を走らせ直す。ref の守りの 1 回だけの初期化を
+  // 戻す所なしに書かない(core/client.md activity_state。詳細: eslint-rules/activity.mjs)。強さはリポジトリ単位: 上流リポ = error、fork = warn
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["**/*.test.{ts,tsx,mjs,mts}"],
+    plugins: { activity: activityPlugin },
+    rules: {
+      "activity/once-ref-guard": libOwnership.isRoot ? "error" : "warn",
     },
   },
   // 段階の読み手は 1 つだけ(本部 D178。詳細: eslint-rules/app-env.mjs, src/lib/appEnv/README.md)。process.env.APP_ENV / NODE_ENV を

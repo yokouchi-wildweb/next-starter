@@ -55,6 +55,7 @@
 - src/lib/messaging — 連絡の定義の型(defineMessage・送信チャンネルごとの欄 MessageContent・上書き MessageOverride)と定義の読み手の検査(validateMessageDefinition)、送信チャンネルの失敗 ChannelError
 - src/lib/metadata — Next.js の generateMetadata 生成ヘルパ(createMetadata)
 - src/lib/pageGuard — ページの守りの汎用版(範囲の Guard(守りの境界)・createLoader・guardMetadata・extend、親子 AND。利用者の解き方と access の評価を差し込む。値 import は src/wiring だけ、guard.ts は @/wiring/pageGuard)。閉じた lib(入口 ".")
+- src/lib/pageLeave — ページを本当に離れた時(<Activity> に隠された・アンマウント)だけ後片付けを呼ぶ useOnPageLeave(訪れるたびの初期化の ref と状態を戻す。StrictMode の作り直しは離れたと見なさない)
 - src/lib/pathPattern — 住所のパターン照合(セグメント境界の前方一致と = の完全一致、ルートを覆うか)
 - src/lib/realtimeRoom — ホットパス・リアルタイム基盤の SDK(servers/room 接続、購読フック、サーバー dispatch)
 - src/lib/recaptcha — Google reCAPTCHA v3 / v2 ハイブリッドのボット対策(RecaptchaProvider は src/wiring/AppProviders が置く)。閉じた lib: 入口 "."(client の部品・フック・アクション名・サイトキー)・"./server"(検証・版ごとの設定)、キーは上書き src/config/lib/recaptcha.config.ts
