@@ -31,6 +31,8 @@ const READS = {
   },
   // 値の輪の走査は src 全体のソースを読む
   cycles: { entries: ["scripts/structure/cycles/cycles.test.mjs"], data: ["src/**/*.{ts,tsx,mts,mjs,js}"] },
+  // 照らしの検査: 宣言(entity.json)から生成器で組んだ表と今の表(src のドメインの表の定義と、それが import する物)を読み込む
+  "domain-tables": { entries: ["scripts/structure/domain-tables/tables.test.mjs"], data: ["src/domains/**/entities/*.ts"] },
   // 生成の --dry-run(書く先の有無を見る)
   domain: {
     entries: ["scripts/structure/domain/check.mjs", "scripts/structure/domain/index.mjs"],
@@ -129,10 +131,10 @@ for (const name of Object.keys(READS)) {
 test("関係ない変更では対象が飛び、対象の入力を変えると回る(実物の phase.json)", () => {
   const runs = (changedFiles) => shipTargets.filter((name) => changedFiles.some(covered(declOf(name).watch)));
   assert.deepEqual(runs(["docs/setup/x.md", "README.md", "servers/room/src/index.ts", "scripts/operations/db/inspect.ts"]), []);
-  assert.deepEqual(runs(["src/domains/core/user/roles/editor.role.json"]).sort(), ["admin-menu", "config", "config-overrides", "cron", "cycles", "district-map", "domain", "extensions", "proxies", "registry", "role", "routes"].filter((n) => shipTargets.includes(n)).sort());
+  assert.deepEqual(runs(["src/domains/core/user/roles/editor.role.json"]).sort(), ["admin-menu", "config", "config-overrides", "cron", "cycles", "district-map", "domain", "domain-tables", "extensions", "proxies", "registry", "role", "routes"].filter((n) => shipTargets.includes(n)).sort());
   assert.deepEqual(runs(["eslint-rules/page-authz.mjs"]), ["eslint"]);
-  assert.deepEqual(runs(["scripts/structure/domain/render/index.mjs"]).sort(), ["domain", "eslint", "extensions", "registry", "role"].sort());
-  assert.deepEqual(runs(["src/app/(user)/page.tsx"]).sort(), ["admin-menu", "config", "cron", "cycles", "extensions", "proxies", "registry", "routes"].sort());
+  assert.deepEqual(runs(["scripts/structure/domain/render/index.mjs"]).sort(), ["domain", "domain-tables", "eslint", "extensions", "registry", "role"].sort());
+  assert.deepEqual(runs(["src/app/(user)/page.tsx"]).sort(), ["admin-menu", "config", "cron", "cycles", "domain-tables", "extensions", "proxies", "registry", "routes"].sort());
   for (const name of shipTargets) assert.ok(runs([`scripts/structure/${name}/phase.json`]).includes(name), `${name}: 自分のフォルダの変更で回らない`);
 });
 

@@ -1,0 +1,1 @@
+{ "check": "tables.test.mjs", "phases": ["ship"], "after": ["domain"], "watch": ["src/**", "scripts/structure/domain/**", "scripts/structure/domain-tables/**", "tsconfig.json", "package.json", "pnpm-lock.yaml", "scripts/runner/phases/**", "scripts/runner/preload/**"] }
