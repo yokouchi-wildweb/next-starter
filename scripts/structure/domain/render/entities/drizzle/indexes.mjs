@@ -15,19 +15,6 @@ export function uniqueActiveIndexes(tableName, uniqueFields) {
   );
 }
 
-/** 複合ユニーク制約（ソフトデリート時は部分インデックス） */
-export function compositeUniqueIndexes(config, tableName) {
-  return (config.compositeUniques || []).map((compositeFields, index) => {
-    const fieldsOnClause = compositeFields.map((f) => `table.${f}`).join(", ");
-    let indexDef = `  // 複合ユニーク制約 ${index}: [${compositeFields.join(", ")}]\n`;
-    indexDef += `  uniqueIndex("${tableName}_composite_unique_${index}").on(${fieldsOnClause})`;
-    if (config.useSoftDelete) {
-      indexDef += `.where(sql\`deleted_at IS NULL\`)`;
-    }
-    return indexDef;
-  });
-}
-
 function validateExtraIndex(idx, label) {
   const method = idx.using ?? "btree";
   if (typeof method !== "string" || !SQL_IDENTIFIER.test(method)) {
@@ -49,7 +36,7 @@ function validateExtraIndex(idx, label) {
 }
 
 /**
- * インデックス（domain.json・entity.json の indexes 配列）。検索・集計頻度の高いカラム向け。unique:true は名前つき・部分のユニーク（今の形の compositeUniques とは別の鍵）。
+ * インデックス（entity.json の indexes 配列）。検索・集計頻度の高いカラム向け。unique:true は名前つき・部分・複数の列のユニーク（ユニークはこの形だけ）。
  * 形式: { fields: string[], where?: string, name?: string, using?: string, opclass?: Record<string, string> }
  *   - fields: 生成後の entities/drizzle.ts に現れるプロパティ名（業務フィールドは domain.json の name そのまま、システム列は createdAt / updatedAt / deletedAt）
  *   - where: 省略可。指定時は partial index（例: "deleted_at IS NULL"）

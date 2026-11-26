@@ -100,8 +100,7 @@ business ドメインの `entities/` は `pnpm generate domain` が生成する�
 | useDuplicateButton | boolean | ⚪ No | 複製ボタンの有無 |
 | useImportExport | boolean | ⚪ No | データ入出力機能の有無（CSV/ZIP形式）。`true` のときだけ管理者に export / import を開く。省略・`false` = 閉じる（サーバー側のインポート処理も拒否する） |
 | useAutoSave | boolean | ⚪ No | 編集フォームでオートセーブを使用するか |
-| compositeUniques | string[][] | ⚪ No | 複合ユニーク制約（Neon のみ） |
-| indexes | Index[] | ⚪ No | 非ユニーク検索/集計用インデックス（Neon のみ） |
+| indexes | Index[] | ⚪ No | 検索/集計用インデックスとユニーク制約（`unique: true`。複数の列のユニークもこれ。Neon のみ） |
 | systemColumns | string[] | ⚪ No | `systemUpdate` / `systemBulkUpdateByQuery`（特権書き込み）で書き込みを許可するカラムの allowlist（Neon のみ）。Zod スキーマ外のシステム管理カラム（`ended_at` 等）をサービス層から正規経路で書き込むための宣言。**未宣言時は system 系メソッドは常に throw（fail-closed）**。詳細: `src/lib/crud/README.md` |
 | hiddenColumns | string[] | ⚪ No | 秘匿カラム（APIキー・トークン等「DB には保持するがレスポンスに決して含めない」カラム、Neon のみ）。プロパティ名（camelCase）で指定すると `pnpm generate domain` が `entities/drizzle.ts` に `defineHiddenColumns()` を出力し、サービスの**全戻り値**・他ドメインの **withRelations 展開**から該当カラムが null 置換される。秘匿値をサーバー内部で読む場合は `services/server/` に直接 drizzle の専用ファインダーを作ること（例: user の `findByIdWithSecrets`）。詳細: `src/lib/crud/README.md` の hiddenColumns 節 |
 | audit | object | ⚪ No | 監査ログ（`createCrudService` の `audit` のうち JSON で書ける部分。`targetType`・`actionPrefix` は `enabled: false` 以外で必須、`trackedFields` は camelCase の列名、recorder は生成器が渡す、Neon のみ）。`generate: false` のドメインでは効かないので `drizzleBase.ts` に手で書く |
@@ -473,27 +472,21 @@ import { ControlledField } from "@/lib/formSuite";
 - セクションへのUI差し込み（オーバーライド警告等）は `beforeGroup` / `afterGroup` props で行う
 - 描画仕様・カスタマイズの詳細: `src/lib/formSuite/FieldRenderer/README.md`
 
-### compositeUniques（複合ユニーク制約）
+### 複数の列のユニーク制約
 
-**Neon (PostgreSQL/Drizzle) 専用機能**。Firestore では利用不可。
-
-複数フィールドの組み合わせでユニーク制約を設定する場合に使用。
+**Neon (PostgreSQL/Drizzle) 専用機能**。`indexes` の 1 件に `"unique": true` を書く（ユニークはこの形だけ。今の entity.json に `compositeUniques` は無い）。
 
 ```json
 {
-  "compositeUniques": [
-    ["name", "type", "category_id"],
-    ["email", "organization_id"]
+  "indexes": [
+    { "fields": ["name", "type", "category_id"], "unique": true, "name": "things_name_type_category_unique" },
+    { "fields": ["email", "organization_id"], "unique": true, "where": "deleted_at IS NULL" }
   ]
 }
 ```
 
-- 各配列は1つの複合ユニーク制約を表す
-- フィールド名または belongsTo リレーションの fieldName を指定可能
-- `useSoftDelete: true` の場合、`WHERE deleted_at IS NULL` の部分インデックスとして生成
+- ソフトデリートの表で生きている行だけに効かせるなら `where` に `deleted_at IS NULL` を書く
 - CRUD 操作時に制約違反があると 409 エラーを返す
-
-生成されるインデックス名: `{テーブル名}_composite_unique_{連番}`
 
 ## Extension
 
@@ -587,11 +580,11 @@ pnpm generate domain は、メディア項目ごとにファイル用途（`<dom
 - 項目を消して再生成すると、そのファイルから消える（メディア項目が 1 つも無くなるとファイルは書かれず、前の版が残るので手で消す）。pnpm generate domain -- --delete はフォルダごと消す
 - core ドメインの domain.json（notification / coupon など）は、手で管理（`generate: false`）の間は `<ドメイン>/plugs/storageObjectPurposes/` に手で書く。`generate: true` にすると同じ ID は重複の例外になるので、そちらからは消す。`pnpm test scripts/structure/registry/check-storage-purposes.test.mjs` が、全 domain.json のメディア項目に用途があるかと、手書き（CORE / FORK）の用途の metadata の規則（上の生成エラーと同じ規則、`user.avatar` を keep にしない）を確かめる
 
-### indexes（非ユニーク検索/集計用インデックス）
+### indexes（検索/集計用インデックスとユニーク制約）
 
 **Neon (PostgreSQL/Drizzle) 専用機能**。Firestore では利用不可。
 
-検索・集計頻度が高いカラム（WHERE フィルタ、期間絞り込み、JOIN キー等）にインデックスを宣言する場合に使用。`compositeUniques` がユニーク制約を強制するのに対し、`indexes` は**ユニーク制約なしの検索高速化用**。
+検索・集計頻度が高いカラム（WHERE フィルタ、期間絞り込み、JOIN キー等）にインデックスを宣言する場合に使用。`unique: true` を書けばユニーク制約（上の節）、書かなければ**ユニーク制約なしの検索高速化用**。
 
 ```json
 {
@@ -633,12 +626,12 @@ PostgreSQL の識別子上限 (63 文字) を超える場合は generator がエ
 - **演算子クラスは push で比較されない**: drizzle-kit の index 比較キーに opclass は含まれない（`using` = 方式は含まれる。`scripts/structure/registry/README.md` の round-trip 節）。宣言済みの opclass を後から変えても DB は作り直されないので、変えるときは `name` も変えて別 index として作り直す
 - 典型例: 部分一致検索（`ILIKE '%…%'`）= `gin` + `gin_trgm_ops` | jsonb の包含検索（`@>`）= `gin` + `jsonb_path_ops`（既定の `jsonb_ops` なら opclass 不要） | 前方一致（`LIKE 'abc%'`、C 以外の照合順序）= btree + `text_pattern_ops`
 
-#### compositeUniques との使い分け
+#### ユニークとの使い分け
 
-| 用途 | フィールド |
+| 用途 | 書き方 |
 |---|---|
-| 一意性を強制したい (DB レベルの制約) | `compositeUniques` |
-| 検索/集計を高速化したい (ユニーク強制なし) | `indexes` |
+| 一意性を強制したい (DB レベルの制約) | `indexes` の 1 件に `"unique": true` |
+| 検索/集計を高速化したい (ユニーク強制なし) | `indexes` の 1 件(`unique` なし) |
 
 #### ⚠️ DB への反映が必須
 

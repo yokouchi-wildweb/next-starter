@@ -34,7 +34,6 @@ const good = (extra = {}) => ({
   searchFields: ["name", "sample_category_id"],
   defaultOrderBy: [["name", "ASC", "LAST"], ["createdAt", "DESC"]],
   tableFields: ["name", "kind", "sample_category_id", "createdAt"],
-  compositeUniques: [["name"], ["name", "sample_category_id"]],
   ...extra,
 });
 
@@ -158,18 +157,17 @@ test("メディア: accept の型が無い（制限なしでも列挙）、prese
   assert.match(issues, /mediaTypePreset "imagesOnly"/);
   assert.match(issues, /キー "size"/);
   assert.match(issues, /書き先 "missing"/);
-  const firestore = { camel: "memo", config: { ...good({ dbEngine: "Firestore", relations: [], compositeUniques: [] }), fields: [{ name: "images", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", collection: { domain: "memo_image" } }] } };
+  const firestore = { camel: "memo", config: { ...good({ dbEngine: "Firestore", relations: [] }), fields: [{ name: "images", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", collection: { domain: "memo_image" } }] } };
   assert.match(joined(preflightIssues(firestore)), /mediaCollection/);
 });
 
-test("一覧の設定: 無い項目名・向き・FIRST / LAST、複合ユニーク（空・無い名・Firestore）。文字列でない列の検索は警告だけ", () => {
+test("一覧の設定: 無い項目名・向き・FIRST / LAST。文字列でない列の検索は警告だけ", () => {
   const issues = joined(
     viewConfigIssues(
       good({
         searchFields: ["missing"],
         defaultOrderBy: [["name", "UP"], ["missing", "ASC"], ["name", "ASC", "MIDDLE"], ["name"]],
         tableFields: ["price_plan_id"],
-        compositeUniques: [[], ["missing"]],
       }),
     ),
   );
@@ -179,9 +177,6 @@ test("一覧の設定: 無い項目名・向き・FIRST / LAST、複合ユニー
   assert.match(issues, /3 つ目 "MIDDLE"/);
   assert.match(issues, /defaultOrderBy\[3\] は/);
   assert.match(issues, /tableFields "price_plan_id"/);
-  assert.match(issues, /compositeUniques\[0\] は 1 つ以上/);
-  assert.match(issues, /compositeUniques\[1\] の "missing"/);
-  assert.match(joined(viewConfigIssues(good({ dbEngine: "Firestore", relations: [] }))), /Firestore のドメインでは compositeUniques/);
   // Neon は buildSearchWhere が ::text に cast するので警告しない(指令 20261103-140459)。Firestore は今の警告
   assert.deepEqual(viewConfigWarnings(good({ searchFields: ["level"] })), []);
   assert.match(joined(viewConfigWarnings(good({ dbEngine: "Firestore", searchFields: ["level"] }))), /searchFields "level" は文字列の列ではありません/);

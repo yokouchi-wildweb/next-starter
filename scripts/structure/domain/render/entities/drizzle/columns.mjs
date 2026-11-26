@@ -52,8 +52,8 @@ export function fieldColumns(ctx, imports, shapedColumn) {
   const { config, camel, pascal } = ctx;
   const lines = [];
   const enumDefs = [];
-  // 単一フィールドのユニーク制約 (f.unique) は生成だけ実装済み（質問フローは無く、domain.json に "unique": true を手で書く）。
-  // 複合ユニーク制約 (compositeUniques) は質問フロー込み
+  // 単一フィールドのユニーク制約 (f.unique) は生成だけ実装済み（質問フローは無く、entity.json に "unique": true を手で書く）。
+  // 複数の列のユニークは indexes[] の unique: true で書く(indexes.mjs)
   const uniqueFields = [];
 
   (config.fields || []).forEach((f) => {

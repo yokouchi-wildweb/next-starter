@@ -109,12 +109,14 @@ test("problems: 字面で読めない pgTable・読めない entity.json・フ�
   assert.ok(problems.some((p) => p.includes("a/entities/drizzle.ts") && p.includes("文字列リテラルでない")));
 });
 
-test("管理一覧の一覧: 一覧の画面があるドメインだけ(generate: false も)、キー = フォルダ名、印の無い addToAdminDataMenu は false", () => {
+test("管理一覧の一覧: 一覧の画面があるドメインだけ(generate: false も、adminList: false は出さない)、キー = フォルダ名、印の無い addToAdminDataMenu は false", () => {
   const root = fixture({
     ...declared("src/domains/core/chatRoom", '{ "generate": false, "label": "チャット", "plural": "chat_rooms" }'),
     ...declared("src/domains/sample", '{ "label": "サンプル", "plural": "samples", "addToAdminDataMenu": true }'),
     ...declared("src/domains/sampleImage", '{ "label": "画像", "plural": "sample_images", "addToAdminDataMenu": true }'),
     ...declared("src/domains/core/coupon", '{ "generate": false, "label": "クーポン", "plural": "coupons" }'),
+    ...declared("src/domains/core/auditLog", '{ "generate": false, "label": "監査ログ", "plural": "audit_logs", "adminList": false }'),
+    "src/app/admin/(protected)/audit-logs/page.tsx": "export {};\n",
     "src/app/admin/(protected)/chat-rooms/page.tsx": "export {};\n",
     "src/app/admin/(protected)/samples/page.tsx": "export {};\n",
     "src/app/admin/(protected)/coupons/official/page.tsx": "export {};\n",

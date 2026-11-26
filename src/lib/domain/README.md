@@ -135,6 +135,10 @@ export const domainEntries = {
 | `columns` | `[{ name, column }]`(`column.type` か `column.enum` は必ず) | 表だけの列(画面・フォームの項目でない表の事実)。1 つの列は fields と columns のどちらか一方にだけ書く |
 | `fields[].column`・`columns[].column` | `{ name?, type?, enum?, default?, notNull?, identity?, unique? }` | `type` = SQL の型の書き方(smallint・numeric・inet・uuid[])、`default` = 値か `{ sql: "now()" }`、`identity` = always・byDefault、`unique` = 列の制約(ソフトデリートの表でも部分索引にしない) |
 
+登録の鍵(entity.json だけ): `generate`(省略 = true、D337)・`registered`・`reason`・`requires`・`service`・`adminList`。
+`adminList: false` = 汎用の管理一覧の目録 src/registry/adminDomains.ts に出さない(省略 = 一覧の画面 /admin/<複数形>/page.tsx がある登録は出る)。
+手で作った管理の画面を持ち、今の形の宣言を持たなかった登録(auditLog・setting・userGroup)は false(起こす道具が書く。管理の一覧を黙って変えない)
+
 ## Extension
 
 - fork が core の access を変える: 隣に `domainEntry.override.ts`(fork 所有)。`export const domainEntryOverrides = { <key>: <access> } satisfies DomainEntryOverrides` で access を丸ごと置き換える。生成器が読む(拡張点の宣言 `extensionPoints.ts` の `domainEntries`、差し替えられる鍵は `access` だけ)

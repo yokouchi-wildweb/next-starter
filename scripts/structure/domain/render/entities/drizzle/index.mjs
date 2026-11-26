@@ -6,7 +6,7 @@ import { isCollectionFieldType } from "../../../spec/fieldTypes.mjs";
 import { fieldColumns, idColumn, systemColumns } from "./columns.mjs";
 import { belongsToColumns, renderDeferredForeignKeys } from "./foreignKeys.mjs";
 import { collectJunctionTables, renderJunctionTables } from "./junction.mjs";
-import { compositeUniqueIndexes, extraIndexes, extraIndexesHaveExpression, extraIndexesHaveUnique, extraIndexesHaveWhere, uniqueActiveIndexes } from "./indexes.mjs";
+import { extraIndexes, extraIndexesHaveExpression, extraIndexesHaveUnique, extraIndexesHaveWhere, uniqueActiveIndexes } from "./indexes.mjs";
 import { hiddenColumnsOf, renderHiddenColumnsDeclaration, validateHiddenColumns } from "./hiddenColumns.mjs";
 import { declaredEnums, markColumnPrimaryKey, shapedFieldColumn, tableOnlyColumns, tableShapeEntries } from "./shape.mjs";
 import { domainRel } from "../../../domain/context.mjs";
@@ -39,8 +39,7 @@ export function renderDrizzleEntity(ctx, workspace) {
 
   // インデックス関連の import 判定（import 行は本文より先に確定させる）
   const needsPartialIndex = config.useSoftDelete && uniqueFields.length > 0;
-  const hasCompositeUniques = (config.compositeUniques || []).length > 0;
-  if (needsPartialIndex || hasCompositeUniques || extraIndexesHaveUnique(config)) {
+  if (needsPartialIndex || extraIndexesHaveUnique(config)) {
     imports.add("uniqueIndex");
   }
   validateHiddenColumns(config);
@@ -53,7 +52,7 @@ export function renderDrizzleEntity(ctx, workspace) {
   let content = `// ${domainRel(ctx)}/entities/drizzle.ts\n\n`;
   content += `import { ${Array.from(imports).sort().join(", ")} } from "drizzle-orm/pg-core";\n`;
   // ソフトデリート + ユニーク制約、または非ユニークインデックスの where 句があるときは sql を import
-  if (needsPartialIndex || (config.useSoftDelete && hasCompositeUniques) || extraIndexesHaveWhere(config) || extraIndexesHaveExpression(config) || needs.sql) {
+  if (needsPartialIndex || extraIndexesHaveWhere(config) || extraIndexesHaveExpression(config) || needs.sql) {
     content += `import { sql } from "drizzle-orm";\n`;
   }
   // crud の入口 ./server から読む名前(秘匿カラムの宣言・集まりの宣言)
@@ -79,7 +78,6 @@ export function renderDrizzleEntity(ctx, workspace) {
   // pgTable の第 3 引数（インデックスと短縮 FK）
   const tableIndexes = [
     ...(needsPartialIndex ? uniqueActiveIndexes(tableName, uniqueFields) : []),
-    ...(hasCompositeUniques ? compositeUniqueIndexes(config, tableName) : []),
     ...(hasExtraIndexes ? extraIndexes(config, tableName) : []),
     ...renderDeferredForeignKeys(deferredForeignKeys),
     ...shape.entries,

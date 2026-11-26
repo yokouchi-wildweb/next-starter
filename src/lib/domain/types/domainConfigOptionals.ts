@@ -23,7 +23,6 @@ export type DomainConfigOptionals = {
   useDuplicateButton?: boolean;
   useImportExport?: boolean;
   useAutoSave?: boolean;
-  compositeUniques?: string[][];
   // 正規の型は src/lib/formSuite/FieldRenderer/types.ts の FieldGroup を参照。
   // JSON インポートの型推論と相性を保つためインラインで再宣言している。
   fieldGroups?: Array<{

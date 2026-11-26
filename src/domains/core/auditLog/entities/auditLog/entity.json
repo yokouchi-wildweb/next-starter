@@ -165,5 +165,6 @@
       ],
       "where": "batch_id IS NOT NULL"
     }
-  ]
+  ],
+  "adminList": false
 }

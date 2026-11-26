@@ -64,8 +64,10 @@ export const ENTITY_TABLE_KEYS = new Set([...TABLE_KEYS, ...TABLE_SHAPE_KEYS]);
  * - reason: registered:false の理由、または apiAccess を閉じた・細かくした理由(人が読む 1 文)
  * - requires: 前提の機能(門番の依存の検査が読む、今の domainEntry.ts の requires)
  * - service: 登録のサービスの結び付き { file, export }(services/server/ からの相対・export 名)。既定 <登録名>Service と違う時だけ
+ * - adminList: 汎用の管理一覧の目録(src/registry/adminDomains.ts)に出すか(省略 = true。一覧の画面 /admin/<複数形>/page.tsx がある登録だけが出る)。
+ *   false = 一覧の画面があっても目録に出さない(手で作った管理の画面を持ち、今の形の宣言を持たなかった登録。管理の一覧を黙って変えない)
  */
-export const ENTITY_REGISTRATION_KEYS = new Set(["generate", "registered", "reason", "requires", "service"]);
+export const ENTITY_REGISTRATION_KEYS = new Set(["generate", "registered", "reason", "requires", "service", "adminList"]);
 
 /** entity.json の鍵の全部 */
 export const ENTITY_KEYS = new Set([...ENTITY_TABLE_KEYS, ...ENTITY_REGISTRATION_KEYS, DECLARATION_COMMENT_KEY]);

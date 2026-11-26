@@ -21,7 +21,7 @@
   {"name":"opened_at","label":"開封","fieldType":"timestamp With Time Zone","formInput":"datetimeInput","required":true},
   {"name":"labels","label":"ラベル","fieldType":"stringArray","formInput":"multiSelect","required":true,"options":[{"value":"x","label":"X"}]}
  ],
- "compositeUniques":[["name","code"]],
+ 
  "indexes":[{"fields":["name"],"using":"gin","opclass":{"name":"gin_trgm_ops"}},{"fields":["code","createdAt"],"where":"deleted_at IS NULL","name":"vault_code_live_idx"},{"fields":["kind"]}],
  "searchFields":["name","code"],"defaultOrderBy":[["name","ASC"],["createdAt","DESC"]],"tableFields":["name","kind","createdAt"],
  "useDetailModal":false,"useDuplicateButton":true,"useImportExport":true,"addToAdminDataMenu":true,"useAutoSave":true,

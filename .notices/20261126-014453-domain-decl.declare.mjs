@@ -20,7 +20,7 @@ import { getTableConfig, PgDialect, PgTable } from "drizzle-orm/pg-core";
 
 import { DOMAIN_DECLARATION_VERSION, FIELD_TYPES } from "../src/lib/domain/node.mjs";
 import { readDistrictMapAt } from "../src/lib/districtMap/node.mjs";
-import { toCamelCase, toSnakeCase } from "../src/lib/stringCase/index.mjs";
+import { toCamelCase, toKebabCase, toSnakeCase } from "../src/lib/stringCase/index.mjs";
 import { domainTableName } from "../scripts/structure/domain/domain/names.mjs";
 import { buildDomainEntryAccess } from "../scripts/structure/domain/render/registry/domainEntry.mjs";
 import { toDomainDisplay } from "../scripts/structure/registry/alpha/domainDisplay.mjs";
@@ -359,6 +359,10 @@ async function loadTable(repoRoot, file, name) {
   return entry ? { exportName: entry[0], table: entry[1] } : null;
 }
 
+/** 汎用の管理一覧の画面(src/app/admin/(protected)/<kebab 複数形>/page.tsx。登録表の生成 registry/alpha の adminListHref と同じ道)があるか */
+const hasAdminListPage = (repoRoot, plural) =>
+  typeof plural === "string" && fs.existsSync(path.join(repoRoot, "src", "app", "admin", "(protected)", toKebabCase(toCamelCase(plural)), "page.tsx"));
+
 const readJson = (file) => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : null);
 const lowerFirst = (text) => text.charAt(0).toLowerCase() + text.slice(1);
 
@@ -407,6 +411,11 @@ export async function planDomain(repoRoot, district, tableFiles, labels, tempDir
     const base = fromOld ? baseFromOld(old, tableFile.name) : { plural: tableFile.name, dbEngine: "Neon", fields: [] };
     if (!fromOld || old.generate === false || district.core) base.generate = false;
     if (!fromOld) Object.assign(base, systemFlagsOf(loaded.table), idTypeOf(loaded.table) ?? primaryKeyOf(loaded.table));
+    // 今の形の宣言を持たなかった表は汎用の管理一覧の目録(adminDomains)に無かった: 一覧の画面があっても目録に出さない(管理の一覧を黙って変えない)
+    if (!fromOld && hasAdminListPage(repoRoot, base.plural)) {
+      base.adminList = false;
+      result.notes.push(`${tableFile.name}: 管理の一覧の画面はあるが今の形の宣言を持たなかった → adminList:false(管理一覧の目録に出さない)`);
+    }
     if (entry) {
       Object.assign(base, registrationKeysOf(entry, entryText, base, result));
     } else {
