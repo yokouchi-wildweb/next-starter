@@ -5,8 +5,7 @@
 // その上に修正のコミットだけを載せた一時の木で次を全部満たすときだけ clean:
 //   1. 機械で決まる hotfix の条件: notice と本体が同じ 1 commit / pnpm-lock.yaml・src/app/route-map.jsonl を含まない /
 //      required_actions 〜 manual_steps が、壊れた地点より後の notice を名指さない
-//   2. cherry-pick が衝突しない(出荷索引 .notices/shipped/ の変更は捨てて載せる: lib.pickDroppingIndex.mjs)
-//      sunset: 20261120-122554-notice-history(全部の fork が取り込んだら外す)
+//   2. cherry-pick が衝突しない
 //   3. 載せた木で検査が通る(既定 pnpm typecheck・pnpm test scripts/structure/config/moduleLoad.test.mjs・pnpm check registry。再編の前の木 = 入口が
 //      package.json に無ければ旧い名前 test:config-module-load・registry:check で回す。どちらも無い script は未実行と書いて飛ばす)
 //   4. 前提の検査(lib.hotfixGaps.mjs の findGaps: paths:・pnpm <script>・名指すパス)が何も挙げない
@@ -33,7 +32,6 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { findGaps, hasGaps, noticeSections } from "./lib.hotfixGaps.mjs";
-import { pickDroppingIndex } from "./lib.pickDroppingIndex.mjs";
 
 export const FORBIDDEN = ["pnpm-lock.yaml", "src/app/route-map.jsonl"];
 /**
@@ -246,23 +244,34 @@ export function provideDeps(repo, dir) {
   return r.status === 0 ? null : `依存を入れられない(pnpm install): ${(r.stderr || r.stdout).trim().split("\n").slice(-2).join(" / ")}`;
 }
 
+/** dir(一時の木)で `git cherry-pick -n <commit>`。戻り値 = 衝突したパス(空 = 載った)。衝突以外の失敗は投げる */
+function pickNoCommit(dir, commit) {
+  try {
+    git(dir, ["cherry-pick", "-n", commit]);
+    return [];
+  } catch {
+    const unmerged = [...new Set(git(dir, ["diff", "--name-only", "--diff-filter=U"]).split("\n").filter(Boolean))];
+    if (unmerged.length === 0) throw new Error(`cherry-pick ${commit.slice(0, 8)} が衝突以外の理由で失敗した`);
+    return unmerged;
+  }
+}
+
 /** 土台 + picks + 修正の commit を載せた一時の木で 2〜4 を見る */
 export function tryOnBase(repo, commit, { base, picks }, { checks = DEFAULT_CHECKS, noticePath } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "pick-check-"));
   try {
     execFileSync("git", ["clone", "-q", "--shared", "--no-checkout", repo, dir], { stdio: "ignore" });
     git(dir, ["switch", "-q", "--detach", base]);
-    // 出荷索引の変更は捨てて載せる(索引の無い・短い土台で必ず衝突するため。lib.pickDroppingIndex.mjs)
     for (const p of picks) {
       try {
-        if (pickDroppingIndex(dir, p).conflicts.length) throw new Error("conflict");
+        if (pickNoCommit(dir, p).length) throw new Error("conflict");
         git(dir, ["-c", "user.name=pick-check", "-c", "user.email=pick-check@local", "commit", "-q", "--no-verify", "--allow-empty", "-m", `pick ${p}`]);
       } catch {
         return { failed: [`先に載せる修正 ${p.slice(0, 8)} が土台に載らない`], skipped: [] };
       }
     }
     try {
-      const { conflicts } = pickDroppingIndex(dir, commit);
+      const conflicts = pickNoCommit(dir, commit);
       if (conflicts.length) return { failed: [`cherry-pick が衝突する(土台 ${base.slice(0, 8)}: ${conflicts.join(", ")})`], skipped: [] };
     } catch {
       return { failed: [`cherry-pick が衝突する(土台 ${base.slice(0, 8)})`], skipped: [] };

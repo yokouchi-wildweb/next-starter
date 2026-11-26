@@ -5,8 +5,6 @@
 // 元の commit が変えたファイルごとに決める(cherry-pick には頼らない)。人には聞かない:
 //   - 道具が上流の先端を読むファイル(TIP_READ: .claude/skills/flux/ の下)→ 外す(left-out)。/flux も鉄道もその手順と
 //     incoming.mjs を上流の先端の版で読むので、fork に先に入れる物ではない
-//   - 出荷索引 .notices/shipped/(索引を外す前の commit だけが持つ)→ fork 側のまま(index)
-//     sunset: 20261120-122554-notice-history(全部の fork が取り込んだら外す)
 //   - (c) fork の木に有り、中身が上流のどれかの版(merge-base・元の commit の親・台帳の前の picked: の commit)と同じ
 //     = fork が触っていない → 元の commit の版に置き換える(消す変更なら消す)(replaced)
 //     fork が手で変えた → git merge-file で 3 方向(基 = 元の commit の親の版)。通れば採る(merged)、ぶつかれば全部取り消して止まる
@@ -22,7 +20,7 @@
 // 実行: node <上流の先端から出した>/scripts/workflow/notices/hotfixApply.mjs <元の commit> [--upstream=<ref>](fork の checkout で)
 //   --upstream = 直接の親の ref(既定 upstream/main。merge-base を取る)。作業ツリーは綺麗であること
 // 出力(1 行ずつ、タブ区切り): picked <新しい sha> / replaced <path> / merged <path> / added <path> /
-//   left-out <path> / rename-candidate <path> <R の行> / index <path> / gap <rules|scripts|paths|imports|libs> <物> / notes <台帳の notes に写す文>
+//   left-out <path> / rename-candidate <path> <R の行> / gap <rules|scripts|paths|imports|libs> <物> / notes <台帳の notes に写す文>
 //   (台帳の notes の語 moved-merged は D476 から出ない。読み手の数えは 0 のまま)
 //   止まった時: conflict <path>(fork が手で変えたファイル)
 //   exit 0 = 取れた | 1 = fork が手で変えたファイルでぶつかった(何も残さない) | 2 = 使い方・作業ツリー・commit の誤り
@@ -35,8 +33,6 @@ import { findGaps, importGaps, libGaps } from "./lib.hotfixGaps.mjs";
 
 /** 道具が上流の先端の版を読むファイルの置き場(緊急修正の先取りの対象にしない) */
 export const TIP_READ = [".claude/skills/flux/"];
-// sunset: 20261120-122554-notice-history (the index branch: remove once every fork has taken that notice)
-const INDEX_DIR = ".notices/shipped/";
 
 function git(cwd, args, input) {
   return execFileSync("git", ["-C", cwd, "-c", "core.quotePath=false", ...args], { encoding: "utf8", input, stdio: ["pipe", "pipe", "pipe"], maxBuffer: 64 * 1024 * 1024 });
@@ -111,16 +107,12 @@ export function renameCandidates(repo, base, to, paths) {
 export function plan(repo, orig, base) {
   const parent = `${orig}^`;
   const versions = (path) => new Set([base, parent, ...ledgerPickedShas(repo)].map((rev) => blobAt(repo, rev, path)).filter(Boolean));
-  const r = { replaced: [], merged: [], added: [], leftOut: [], renameCandidates: [], index: [], conflicts: [], actions: [] };
+  const r = { replaced: [], merged: [], added: [], leftOut: [], renameCandidates: [], conflicts: [], actions: [] };
   for (const l of lines(git(repo, ["diff-tree", "--no-commit-id", "-r", "--no-renames", "--name-status", orig]))) {
     const [st, path] = l.split("\t");
     const status = st[0];
     if (isTipRead(path)) {
       r.leftOut.push(path);
-      continue;
-    }
-    if (path.startsWith(INDEX_DIR)) {
-      r.index.push(path);
       continue;
     }
     const head = blobAt(repo, "HEAD", path);
@@ -180,7 +172,7 @@ export function treeGaps(repo, orig, applied) {
  * @param {string} upstream 直接の親の ref
  */
 export function hotfixApply(repo, sha, upstream = "upstream/main") {
-  const empty = { status: "error", replaced: [], merged: [], added: [], leftOut: [], renameCandidates: [], index: [], conflicts: [], gaps: [] };
+  const empty = { status: "error", replaced: [], merged: [], added: [], leftOut: [], renameCandidates: [], conflicts: [], gaps: [] };
   const full = tryGit(repo, ["rev-parse", "--verify", `${sha}^{commit}`]);
   if (!full.ok) return { ...empty, message: `commit がありません: ${sha}` };
   const orig = full.out.trim();
@@ -236,7 +228,6 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   for (const p of r.added) console.log(`added\t${p}`);
   for (const p of r.leftOut) console.log(`left-out\t${p}`);
   for (const c of r.renameCandidates) console.log(`rename-candidate\t${c.path}\t${c.line}`);
-  for (const p of r.index) console.log(`index\t${p}`);
   if (r.status === "picked") {
     for (const g of r.gaps) console.log(`gap\t${g.kind}\t${g.item}`);
     console.log(`picked\t${r.picked}`);

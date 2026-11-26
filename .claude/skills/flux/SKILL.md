@@ -134,8 +134,7 @@ upstream writes `fixes: <notice id | commit:<sha>>` in a notice that fixes a bug
   - execute: after the commit of the origin segment's step 7b, before 7c, the same as HOTFIX execute 1-3 below (`git cherry-pick -x <修正の追加 commit>` → the fix's required_actions → follow-up and ledger in a separate commit; the ledger line by the ledger tool of step 7a with `--picked=<元の commit>`, `--notes=pick-clean after <修正元 id>`)
     - then PRE-PUSH CHECKS with the segment (the fix's verify included; content equal to an upstream version, base + the pick included, passes the ownership check as `upstream-version`) → one push
   - could not take it:
-    - cherry-pick conflict (a conflict only in `.notices/shipped/` = an older commit still carrying the removed index: take the upstream side, or remove it when upstream deleted it, and continue; it does not count as not taken) → `git cherry-pick --abort`
-      - sunset: 20261120-122554-notice-history (remove once every fork has taken that notice)
+    - cherry-pick conflict → `git cherry-pick --abort`
     - checks / verify failed → undo the unpushed commits this pick made (`git reset --keep <区間の 7b の commit>`; never undo pushed commits)
     - either way, append `pick failed: <理由>` to `notes:` of the origin's ledger line and commit (when the fix is a side commit, that segment later stops at step 5a's side-commit check), ask the "origin unapplied" question above (`1 区間ずつ進める / ここで止める`); STOP: wait | one line in FINDINGS FOR UPSTREAM (b) (passed upstream's judgment but not in the fork)
   - later segments: ids recorded in the ledger are no checkpoints (same as hotfix) | that spot conflicts at a later merge → take the upstream side when the fork has no edit
@@ -152,8 +151,7 @@ a notice's commit for which upstream declared `hotfix:` is cherry-picked before 
 - **execute** (do steps 6-8 as follows):
   1. the upstream tip's version of the tool (a lagging fork's own one may lack the fix's handling): `node $TIP/scripts/workflow/notices/hotfixApply.mjs <元の commit> --upstream=<upstream>/<branch>` (TIP TOOLS)
      - in the fork's checkout (the tree must be clean) — every file settled without asking, one commit (`.notices/README.md` `緊急修正(hotfix)`):
-     - files the tools read from the upstream tip (`.claude/skills/flux/`) → left out (`left-out`) | `.notices/shipped/` (older hotfix commits only) → the fork side (`index`)
-       - sunset: 20261120-122554-notice-history (remove once every fork has taken that notice)
+     - files the tools read from the upstream tip (`.claude/skills/flux/`) → left out (`left-out`)
      - a file whose content equals an upstream version (merge-base, the original commit's parent, an earlier `picked:`) = the fork never touched it → the original commit's version (`replaced`; deleted when the fix deletes it)
      - a file the fork changed by hand → a 3-way merge of the fix (`merged`) | it conflicts → nothing is changed, exit 1 with those files (`conflict`) → stop and give options (`手で解いて続行` / `この緊急修正を飛ばす` / `元の commit まで区間で進める` = resolve by hand and continue / skip this hotfix / advance by segments up to the original commit); STOP
      - a file the fix adds → added (`added`) | the file to fix is not in the fork's tree → skipped (`left-out`; it arrives with a later segment) — never a stop

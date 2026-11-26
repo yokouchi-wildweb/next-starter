@@ -191,7 +191,6 @@ test("parseFixes: id と commit", () => {
 });
 
 const PROJECT = { "repo.json": '{"repo_id": "up", "tier": "root"}\n' };
-const IDX = ".notices/shipped/up.md";
 
 test("run: 判定をその notice の本文の pick: に書く(fixes: の直後。索引の行は要らない)", (t) => {
   const r = repo(t);
@@ -215,33 +214,14 @@ test("run: 本文が作業ツリーに無ければ書かずに exit 2", (t) => {
   assert.match(out.join("\n"), /作業ツリーに無い/);
 });
 
-test("clean: 出荷索引の変更だけが衝突する修正(索引の無い土台・短い索引の土台)", (t) => {
-  // 索引の無い土台: 修正元の後で索引ができ、修正が索引に行を足す(modify/delete)
+test("-: cherry-pick が衝突するなら、そのパスを挙げて -", (t) => {
   const r = repo(t);
   r.commit({ "src/a.txt": "bug\n", [F(N(1))]: notice(N(1)) });
-  r.commit({ [IDX]: "- id:a\n" });
-  r.commit({ "src/a.txt": "ok\n", [F(N(2))]: notice(N(2), { fixes: N(1) }), [IDX]: "- id:a\n- id:fix\n" });
-  const [res] = judge(r.dir, "HEAD", { checks: [OK] });
-  assert.equal(res.verdict, "clean", res.reasons.join("\n"));
-
-  // 短い索引の土台: 間の commit が末尾に行を足し、修正も末尾に足す(同じ所の追記)
-  const r2 = repo(t);
-  r2.commit({ "src/a.txt": "bug\n", [IDX]: "- id:n1\n", [F(N(1))]: notice(N(1)) });
-  r2.commit({ [IDX]: "- id:n1\n- id:between\n" });
-  r2.commit({ "src/a.txt": "ok\n", [F(N(2))]: notice(N(2), { fixes: N(1) }), [IDX]: "- id:n1\n- id:between\n- id:fix\n" });
-  const [res2] = judge(r2.dir, "HEAD", { checks: [OK] });
-  assert.equal(res2.verdict, "clean", res2.reasons.join("\n"));
-});
-
-test("-: 索引のほかに本体のファイルも衝突するなら、そのパスを挙げて -", (t) => {
-  const r = repo(t);
-  r.commit({ "src/a.txt": "bug\n", [F(N(1))]: notice(N(1)) });
-  r.commit({ "src/a.txt": "bug2\n", [IDX]: "- id:a\n" });
-  r.commit({ "src/a.txt": "ok\n", [F(N(2))]: notice(N(2), { fixes: N(1) }), [IDX]: "- id:a\n- id:fix\n" });
+  r.commit({ "src/a.txt": "bug2\n" });
+  r.commit({ "src/a.txt": "ok\n", [F(N(2))]: notice(N(2), { fixes: N(1) }) });
   const [res] = judge(r.dir, "HEAD", { checks: [OK] });
   assert.equal(res.verdict, "-");
   assert.match(res.reasons.join("\n"), /衝突する.*src\/a\.txt/);
-  assert.doesNotMatch(res.reasons.join("\n"), /shipped/);
 });
 
 // 別の notice の pick:clean の修正 G を先に載せる(stackedPicks)。N0 が b.txt を壊し、G が N0 を直す。F は N1 の修正
