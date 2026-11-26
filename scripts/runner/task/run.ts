@@ -16,7 +16,7 @@
 //
 // 定期タスクは src/app/api/cron/<name>/task.ts を走査して読み込む（ここには書かない。API ルートと同じ定義を使う）。
 // 機能が閉じた定期タスク（住所 /api/cron/<name> を規則が閉じている。scripts/structure/cron/discover.ts の closedBy）は、--due でも名前指定でも飛ばす。
-// メンテナンスの期間(settingService.isMaintenanceActive)は、--due は task.ts で maintenance: "pass" を宣言したタスクだけ走らせる(route と同じ)。名前指定は運用者の意図なので走らせる。
+// メンテナンスの期間(点 cronMaintenance の項目、上流は setting。route の src/wiring/cronRoute.ts と同じ読み方)は、--due は task.ts で maintenance: "pass" を宣言したタスクだけ走らせる(route と同じ)。名前指定は運用者の意図なので走らせる。
 // ワンショット・任意タスクはドメインの src/domains/<ドメイン>/scripts/tasks/<名前>.ts、1 回きりの移行は scripts/migrations/<名前>.ts を走査する
 // （名前 = <ドメイン>:<名前>、src/lib/task/README.md）。
 //
@@ -106,12 +106,14 @@ async function runTask(name: string, task: TaskFn): Promise<boolean> {
 async function runDue(cronTasks: LoadedCronTask[]) {
   const now = new Date();
   let failed = 0;
-  // メンテナンスの期間か(route と同じ判定 settingService.isMaintenanceActive)。走らせる候補が出た時に 1 回だけ読む
+  // メンテナンスの期間か。route(src/wiring/cronRoute.ts)と同じく点 cronMaintenance の項目(0〜1 個、閉じたドメインの項目は gate.plugs が外す)に聞き、
+  // 項目が無ければ期間なし。走らせる候補が出た時に 1 回だけ読む(src/wiring と門番は道具から import() で読む: lint scripts-no-static-wiring)
   let maintenanceActive: boolean | undefined;
   const isMaintenanceActive = async () => {
     if (maintenanceActive === undefined) {
-      const { settingService } = await import("@/domains/core/setting/services/server/settingService");
-      maintenanceActive = await settingService.isMaintenanceActive();
+      const [{ cronMaintenance }, { gate }] = await Promise.all([import("@/wiring/cron"), import("@/featureGate/node")]);
+      const plug = gate.plugs(cronMaintenance)[0]?.plug;
+      maintenanceActive = plug ? await plug.deps.isActive() : false;
     }
     return maintenanceActive;
   };

@@ -34,7 +34,7 @@ export const seed = defineSeed({
 
 - `tables` のキー = DB の表名、行の列 = 表の定義(drizzle)の列のキー(サービスの create が受ける名前)
 - 入れるのはその表のドメインのサービス: `seedCreate` があればそれ、無ければ `create`(サービスの無い表は止める)。例: user の `seedCreate` はデモの利用者だけを作る
-- `$unique` の行はその列で `search` してから入れる(2 回目は使い回し、行が増えない)。`$unique` の無い行は打つたびに入る
+- `$unique` の行はその列で `searchWithDeleted`(サービスに無ければ `search`)で探してから入れる(2 回目は使い回し、行が増えない)。削除済みの行も探すのは、削除済みの行と同じ値で create すると一意の制約で落ちるため。`$unique` の無い行は打つたびに入る
 - fork の行から上流の行は `ref("user", "demoUser")` のように指せる
 
 ## API

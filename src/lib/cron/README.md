@@ -260,7 +260,7 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
   false のときルートは本体を呼ばず `{ ok: true, skipped: true, reason: "disabled" }` を返す。vercel.json には載る（値を変えても再生成は要らない）。
   期限の削除は enabled に載せない(増設点 expiryRules の項目)。門は項目を差したドメインから付く: 閉じられる機能の項目（deviceFingerprint・fingerprintChallenge など）はその機能を閉じると `gate.plugs` が外し（その機能の表は作られない）、常に開くドメインの項目（auditLog・userLoginEvent など）は止まらない
 - **メンテナンス**: 認証・門・enabled の後、設定のメンテナンスの期間（`settingService.isMaintenanceActive()`、API・画面と同じ判定。点 `cronMaintenance`（0〜1 個、`./extensionPoints.ts`）の項目で、上流は `domains/core/setting` の `plugs/cronMaintenance/maintenance.ts`。生成物 `src/wiring/cron.ts` を `src/wiring/cronRoute.ts` が結ぶ。空なら飛ばさない）なら、route は本体を呼ばず
-  `{ ok: true, skipped: true, reason: "maintenance" }` を返す。`pnpm task --due` も同じに飛ばす（期間は走らせる候補が出た時に 1 回だけ読む）。名前指定の `pnpm task <name>` は運用者の意図なので飛ばさない。
+  `{ ok: true, skipped: true, reason: "maintenance" }` を返す。`pnpm task --due` も同じ項目に聞いて同じに飛ばす（期間は走らせる候補が出た時に 1 回だけ読む）。名前指定の `pnpm task <name>` は運用者の意図なので飛ばさない。
   `maintenance: "pass"` のタスクは走る。期間は閉・無効のタスクでは読まない。切り替わりは設定の読みのメモ（`readMemoMs`、既定 10 秒）だけ遅れる（`src/domains/core/setting/README.md`「メンテナンスで止まる物と確かめ方」）。
   期間中に飛んだ回は取り戻さない（次の時刻の回が走る）
 - **最初の文は connection()**: route の作り手（`createCronRoute`）は認証・門・enabled より前に `await connection()`（next/server）を待つ。
