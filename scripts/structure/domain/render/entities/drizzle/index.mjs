@@ -10,7 +10,7 @@ import { extraIndexes, extraIndexesHaveExpression, extraIndexesHaveUnique, extra
 import { hiddenColumnsOf, renderHiddenColumnsDeclaration, validateHiddenColumns } from "./hiddenColumns.mjs";
 import { declaredEnums, shapedFieldColumn, tableOnlyColumns } from "./shape.mjs";
 import { markColumnPrimaryKey, tableShapeEntries } from "./tableShape.mjs";
-import { domainRel } from "../../../domain/context.mjs";
+import { domainRel, importRootFor } from "../../../domain/context.mjs";
 
 /**
  * @param {import("../../../domain/context.mjs").DomainContext} ctx
@@ -70,7 +70,7 @@ export function renderDrizzleEntity(ctx, workspace) {
     content += `import { ${crudServerNames.join(", ")} } from "@/lib/crud/server";\n`;
   }
   relationImports.forEach((domainPascal, domainCamel) => {
-    content += `import { ${domainPascal}Table } from "@/domains/${domainCamel}/entities/drizzle";\n`;
+    content += `import { ${domainPascal}Table } from "${importRootFor(ctx, domainCamel)}/entities/drizzle";\n`;
   });
   for (const line of [...shapeEnums.importLines, ...shape.importLines]) content += `${line}\n`;
   content += `\n`;
@@ -100,7 +100,7 @@ export function renderDrizzleEntity(ctx, workspace) {
     // 他ドメインの withRelations で埋め込まれた行にも集まりを載せるため、表に宣言を登録する（<登録名>Collections.ts は遅延 import = 循環を避ける）
     content +=
       `\n// 主の集まりの項目（従属ドメインの行の並び）。他ドメインの withRelations で埋め込まれた行にも載せるため表に登録する\n` +
-      `defineTableCollections(${pascal}Table, () => import("@/domains/${camel}/services/server/${camel}Collections").then((m) => m.collections));\n`;
+      `defineTableCollections(${pascal}Table, () => import("${importRootFor(ctx)}/services/server/${camel}Collections").then((m) => m.collections));\n`;
   }
   content += renderJunctionTables(ctx, junctionTables);
   return content;

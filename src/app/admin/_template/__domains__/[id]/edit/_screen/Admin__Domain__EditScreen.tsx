@@ -3,10 +3,10 @@
 // 画面を変えるときは _components/ にコピーして page.tsx の import 先を向ける。
 
 __RELATION_IMPORTS__
-import Admin__Domain__Edit from "@/domains/__domain__/components/Admin__Domain__Edit";
+import Admin__Domain__Edit from "@/domains/__folder__/components/Admin__Domain__Edit";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { AdminEditItemNavigator } from "@/app/admin/_layout/AdminEditItemNavigator";
-import { domainDisplay as __domain__Display } from "@/domains/__domain__/entities/display";
+import { domainDisplay as __domain__Display } from "@/domains/__folder__/entities/display";
 import { createScreen } from "@/wiring/screen";
 
 import { loadAdmin__Domain__EditScreen } from "./loader";

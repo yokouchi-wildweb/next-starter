@@ -2,7 +2,7 @@
 // このファイルは pnpm generate domain が生成する(再生成で上書きされるため手で編集しない)。
 // 画面を変えるときは _components/ にコピーして page.tsx の import 先を向ける。
 
-import Admin__Domain__List from "@/domains/__domain__/components/Admin__Domain__List";
+import Admin__Domain__List from "@/domains/__folder__/components/Admin__Domain__List";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { createScreen } from "@/wiring/screen";
 

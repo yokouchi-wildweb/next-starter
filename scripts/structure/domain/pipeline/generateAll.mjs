@@ -37,12 +37,19 @@ export function planGenerateAll(workspace, selectedDomains, manualGenerate, only
   // 選んだドメインの組の全員（この実行で書き出す従属・選んだ従属の主）を加え、従属 → 主の順に並べる
   const domains = orderWithPairs(pairs, [...new Set(selectedDomains.flatMap((domain) => groupOf(pairs, domain)))]);
   printPairNotices(pairs, domains, io);
-  const plans = domains.map((domain) => {
+  // 生成の単位 = ドメインの中の登録 1 件(D336): 主の登録(登録名 = ドメイン名)は今までどおり、ほかの生成する登録はその名前で(主が先)
+  const units = domains.flatMap((domain) => {
+    const registrations = pairs.pending.has(domain) ? [] : workspace.generationUnitsOf(domain).filter((registration) => registration !== domain);
+    const own = pairs.pending.has(domain) || workspace.generationUnitsOf(domain).includes(domain) || registrations.length === 0;
+    return [...(own ? [{ domain, registration: null }] : []), ...registrations.map((registration) => ({ domain, registration }))].map((unit, index) => ({ ...unit, firstUnit: index === 0 }));
+  });
+  const plans = units.map(({ domain, registration, firstUnit }) => {
     const { buffer, flush } = bufferedIo(io);
-    const ctx = loadDomainForGenerate(workspace, domain, buffer, pairs.pending.has(domain) ? { config: pairs.pending.get(domain) } : {});
+    const overrides = registration ? { registration, firstUnit } : pairs.pending.has(domain) ? { config: pairs.pending.get(domain) } : {};
+    const ctx = loadDomainForGenerate(workspace, domain, buffer, overrides);
     const gen = manualGenerate ? narrowTargets(ctx, manualGenerate, only, buffer) : configTargets(ctx, pairs, only, buffer);
-    ctx.collectionChildren = collectionChildrenOf(workspace, pairs, domain);
-    return { domain, ctx, gen, outputs: planDomain(ctx, workspace, gen), flush };
+    ctx.collectionChildren = collectionChildrenOf(workspace, pairs, ctx.camel);
+    return { domain: registration ? `${domain}/${registration}` : domain, ctx, gen, outputs: planDomain(ctx, workspace, gen), flush };
   });
   return { pairs, domains, plans };
 }

@@ -2,19 +2,19 @@
 
 "use client";
 
-import type { __Domain__ } from "@/domains/__domain__/entities";
+import type { __Domain__ } from "@/domains/__folder__/entities";
 import { useMemo } from "react";
 import { BulkActionItems, DataTable, RecordSelectionTable, TableCellAction, selectBulkActions, type DataTableColumn } from "@/lib/tableSuite";
 import { useDomainAdminBulkActions } from "@/domains/core/admin/hooks/useDomainAdminBulkActions";
-import type { __Domain__AdminBulkActionItem } from "@/domains/__domain__/types/__domain__AdminBulkAction";
+import type { __Domain__AdminBulkActionItem } from "@/domains/__folder__/types/__domain__AdminBulkAction";
 import { useAdminBulkActionCan } from "@/domains/core/user/hooks/useAdminBulkActionCan";
 import { EditButton, DeleteButton } from "@/lib/crud";
-__DUPLICATE_IMPORT__import presenters from "@/domains/__domain__/__domain__Presenters";
+__DUPLICATE_IMPORT__import presenters from "@/domains/__folder__/__domain__Presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { formatDateJa } from "@/utils/date";
 import { truncateJapanese } from "@/utils/string";
 import { adminConfig } from "@/domains/admin/config";
-import { domainDisplay as __domain__Display } from "@/domains/__domain__/entities/display";
+import { domainDisplay as __domain__Display } from "@/domains/__folder__/entities/display";
 
 export type Admin__Domain__ListTableProps = {
   /**

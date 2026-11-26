@@ -4,16 +4,16 @@
 
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { __Domain__UpdateSchema } from "@/domains/__domain__/entities/schema";
-import type { __Domain__UpdateFields } from "@/domains/__domain__/entities/form";
-import type { __Domain__ } from "@/domains/__domain__/entities";
-import { useUpdate__Domain__ } from "@/domains/__domain__/hooks/useUpdate__Domain__";
+import { __Domain__UpdateSchema } from "@/domains/__folder__/entities/schema";
+import type { __Domain__UpdateFields } from "@/domains/__folder__/entities/form";
+import type { __Domain__ } from "@/domains/__folder__/entities";
+import { useUpdate__Domain__ } from "@/domains/__folder__/hooks/useUpdate__Domain__";
 import { __Domain__Form } from "./__Domain__Form";
 import { useRouter } from "@/lib/unsavedGuard";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/lib/formSuite";
-import { domainDisplay } from "@/domains/__domain__/entities/display";
+import { domainDisplay } from "@/domains/__folder__/entities/display";
 
 type Props = {
   __domain__: __Domain__;

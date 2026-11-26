@@ -5,14 +5,14 @@
 import { useState } from "react";
 import { Link } from "@/components/Navigation/Link";
 import { SortableList, type ReorderResult } from "@/lib/sortableList";
-import type { __Domain__ } from "@/domains/__domain__/entities/model";
+import type { __Domain__ } from "@/domains/__folder__/entities/model";
 import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Button } from "@/components/Button/Button";
 import { Span } from "@/components/TextBlocks/Span";
-import { useReorder__Domain__ } from "@/domains/__domain__/hooks/useReorder__Domain__";
+import { useReorder__Domain__ } from "@/domains/__folder__/hooks/useReorder__Domain__";
 import { useLoadingToast } from "@/lib/toast";
 
 type Props = {

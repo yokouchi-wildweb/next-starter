@@ -120,7 +120,7 @@ import {
   type InsertFieldsMap,
   type MediaState,${hasRelations ? "\n  useRelationOptions," : ""}
 } from "@/lib/formSuite";
-${hasRelations ? RELATION_IMPORTS : ""}import { domainDisplay } from "@/domains/__domain__/entities/display";
+${hasRelations ? RELATION_IMPORTS : ""}import { domainDisplay } from "@/domains/__folder__/entities/display";
 ${baseFieldsBlock(collectMediaFields(config), collectionFieldPatches(config, collectionChildren))}
 export type __Domain__FieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;

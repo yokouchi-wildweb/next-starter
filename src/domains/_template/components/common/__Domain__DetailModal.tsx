@@ -6,7 +6,7 @@ import { Block } from "@/components/Layout/Block";
 import Modal from "@/components/Overlays/Modal";
 import DetailModal from "@/components/Overlays/DetailModal";
 import DetailModalSkeleton from "@/components/Skeleton/DetailModalSkeleton";
-import { use__Domain__ViewModal } from "@/domains/__domain__/hooks/use__Domain__ViewModal";
+import { use__Domain__ViewModal } from "@/domains/__folder__/hooks/use__Domain__ViewModal";
 
 const PLACEHOLDER_MESSAGE = "詳細モーダルの機能を使用するには表示ロジックを実装してください。";
 

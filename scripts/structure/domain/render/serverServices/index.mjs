@@ -2,6 +2,7 @@
 //
 // <domain>Service.ts はラッパーや独自処理を組み込む手書きの場所なので再生成で上書きしない（作り直すときはファイルを消してから生成する）
 
+import { importRootFor } from "../../domain/context.mjs";
 import path from "node:path";
 import { collectMediaFields, isCollectionFieldType } from "../../spec/fieldTypes.mjs";
 import { dir, file, writeOnce } from "../output.mjs";
@@ -64,7 +65,7 @@ export function renderServerServices(ctx, workspace) {
       .replace(/__serviceOptions__/g, composed?.optionsLiteral ?? "{}")
       .replace(/__DrizzleEntityImports__/g, buildEntityImports(pascal, composed?.relationTableImports ?? []))
       .replace(/__belongsToManyRelations__/g, composed?.belongsToManyLiteral ?? "")
-      .replace(/__RelationTableImports__/g, buildRelationTableImports(composed?.relationDomainImports ?? [], camel))
+      .replace(/__RelationTableImports__/g, buildRelationTableImports(composed?.relationDomainImports ?? [], camel, (registration) => importRootFor(ctx, registration)))
       .replace(/__StorageBindingImport__/g, buildStorageBindingImport(mediaFields) + buildCollectionsImport(hasCollections, camel) + buildAuditImport(config?.audit))
       .replace(/__storageBinding__/g, buildStorageBindingOption(camel, mediaFields) + buildCollectionsOption(hasCollections) + buildAuditOption(config?.audit) + buildCacheTagsOption(camel, config?.cache));
 

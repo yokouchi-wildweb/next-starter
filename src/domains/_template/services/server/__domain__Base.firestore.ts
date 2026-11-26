@@ -2,8 +2,8 @@
 
 import { createFirestoreCrudService } from "@/lib/crud/server";
 import type { FirestoreCrudServiceOptions } from "@/lib/crud/server";
-import type { __Domain__ } from "@/domains/__domain__/entities";
-import { __Domain__CreateSchema, __Domain__UpdateSchema } from "@/domains/__domain__/entities/schema";
+import type { __Domain__ } from "@/domains/__folder__/entities";
+import { __Domain__CreateSchema, __Domain__UpdateSchema } from "@/domains/__folder__/entities/schema";
 
 export const baseOptions = __serviceOptions__ satisfies FirestoreCrudServiceOptions;
 

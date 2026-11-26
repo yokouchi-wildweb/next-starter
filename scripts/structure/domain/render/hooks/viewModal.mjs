@@ -6,15 +6,16 @@ import { toPlural } from "../../domain/plural.mjs";
 /**
  * @param {string} content トークン置換済みのテンプレート
  * @param {object | null} config 登録の entity.json
+ * @param {(registration: string) => string} [rootOf] 登録の置き場の import の根(関連の先は登録名、置き場はそのドメインのフォルダ)
  */
-export function injectViewModalRelations(content, config) {
+export function injectViewModalRelations(content, config, rootOf = (registration) => `@/domains/${registration}`) {
   const relations = Array.isArray(config?.relations) ? config.relations : [];
   const details = relations.map((relation) => {
     const relationNormalized = toSnakeCase(relation.domain) || relation.domain;
     const relationCamel = toCamelCase(relationNormalized) || relationNormalized;
     const relationPascal = toPascalCase(relationNormalized) || relationNormalized;
     const hookName = `use${relationPascal}List`;
-    return { hookName, importPath: `@/domains/${relationCamel}/hooks/${hookName}`, camelPlural: toPlural(relationCamel) };
+    return { hookName, importPath: `${rootOf(relationCamel)}/hooks/${hookName}`, camelPlural: toPlural(relationCamel) };
   });
 
   const relationImports = details.map(({ hookName, importPath }) => `import { ${hookName} } from "${importPath}";`).join("\n");

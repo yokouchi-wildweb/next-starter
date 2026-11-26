@@ -20,6 +20,10 @@ export function renderEntities(ctx, workspace) {
   requireConfig(ctx);
   const out = (name) => path.join(ctx.dir, "entities", name);
   if (ctx.dbEngine === "Firestore") {
+    // Firestore は entities/<種類>.ts をドメインに直に書く(登録のフォルダが無い): 登録が複数のドメインでは書けない
+    if (ctx.folder && ctx.camel !== ctx.folder) {
+      throw new Error(`エラー: ${ctx.folder} の登録 ${ctx.camel} は Firestore です。Firestore の登録は登録名 = ドメイン名の 1 つだけ生成できます(entities/<種類>.ts をドメインに直に書くため)`);
+    }
     if (hasTableShape(ctx.config)) {
       throw new Error(`エラー: ${ctx.camel} は Firestore です。表の形の鍵(table・primaryKey・foreignKeys・checks・enums・dbObjects・fields[].column)は Neon だけ`);
     }

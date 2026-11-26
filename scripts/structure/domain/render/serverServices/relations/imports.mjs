@@ -51,7 +51,7 @@ export function buildEntityImports(pascal, relationTableImports) {
 }
 
 /** `__RelationTableImports__`: リレーション先ドメインごとに 1 行の import（自ドメインは __DrizzleEntityImports__ 側なので除く） */
-export function buildRelationTableImports(relationDomainImports, selfDomain = "") {
+export function buildRelationTableImports(relationDomainImports, selfDomain = "", rootOf = (registration) => `@/domains/${registration}`) {
   if (!relationDomainImports.length) return "";
 
   const byDomain = new Map();
@@ -65,7 +65,7 @@ export function buildRelationTableImports(relationDomainImports, selfDomain = ""
 
   const lines = [];
   byDomain.forEach((imports, domainCamel) => {
-    lines.push(`import { ${imports.join(", ")} } from "@/domains/${domainCamel}/entities/drizzle";`);
+    lines.push(`import { ${imports.join(", ")} } from "${rootOf(domainCamel)}/entities/drizzle";`);
   });
   return lines.length ? lines.join("\n") + "\n" : "";
 }

@@ -47,6 +47,7 @@ export function renderPresentersContent(ctx, workspace) {
   const body = entries.length ? entries.join("\n") : "  // TODO: add presenters";
 
   let content = template
+    .replace(/__folder__/g, ctx.folder ?? camel)
     .replace(/__domain__/g, toCamelCase(config.singular) || camel)
     .replace(/__Domain__/g, toPascalCase(config.singular) || pascal)
     .replace(/__PRESENTERS_BODY__/g, body);

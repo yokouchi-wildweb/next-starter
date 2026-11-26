@@ -9,7 +9,7 @@ import { belongsToRelations } from "../../domain/relations.mjs";
 import { isCollectionFieldType, isMediaFieldType } from "../../spec/fieldTypes.mjs";
 import { resolveCollectionChildren } from "../collections/children.mjs";
 import { file } from "../output.mjs";
-import { domainRel } from "../../domain/context.mjs";
+import { domainRel, importRootFor } from "../../domain/context.mjs";
 
 /** 従属の列（主への参照・値・並び）のプロパティ名。従属の登録の entity.json が無ければ雛形の名前 */
 function childColumns(ownerConfig, child) {
@@ -25,7 +25,7 @@ function childColumns(ownerConfig, child) {
 }
 
 /** 集まりの項目 1 つ分の宣言（CrudCollectionConfig）の行 */
-function entryLines(ownerConfig, field, child) {
+function entryLines(ctx, ownerConfig, field, child) {
   const childCamel = child?.camel ?? toCamelCase(field.collection.domain);
   const table = `${toPascalCase(childCamel)}Table`;
   const columns = childColumns(ownerConfig, child);
@@ -33,7 +33,7 @@ function entryLines(ownerConfig, field, child) {
   return [
     "  {",
     `    fieldName: "${resolveFieldName(field.name, "Neon")}",`,
-    `    service: () => import("@/domains/${childCamel}/services/server/${childCamel}Service").then((m) => m.${childCamel}Service),`,
+    `    service: () => import("${importRootFor(ctx, childCamel)}/services/server/${childCamel}Service").then((m) => m.${childCamel}Service),`,
     `    parentColumn: ${table}.${columns.parent},`,
     `    valueColumn: ${table}.${columns.value},`,
     `    sortColumn: ${table}.${columns.sort},`,
@@ -63,10 +63,10 @@ export function renderCollectionsOutput(ctx, workspace) {
     "// 詳細: src/lib/crud/collections/README.md",
     "",
     'import type { CrudCollectionConfig } from "@/lib/crud/server";',
-    ...tables.map((child) => `import { ${toPascalCase(child)}Table } from "@/domains/${child}/entities/drizzle";`),
+    ...tables.map((child) => `import { ${toPascalCase(child)}Table } from "${importRootFor(ctx, child)}/entities/drizzle";`),
     "",
     "export const collections: CrudCollectionConfig[] = [",
-    ...fields.flatMap((field) => entryLines(config, field, children.get(field.name))),
+    ...fields.flatMap((field) => entryLines(ctx, config, field, children.get(field.name))),
     "];",
     "",
   ].join("\n");

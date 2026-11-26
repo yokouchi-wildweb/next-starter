@@ -2,9 +2,9 @@
 
 import { normalizeEntityDeclaration } from "@/lib/domain";
 import type { DomainConfigOptionals } from "@/lib/domain";
-import rawConf from "@/domains/__domain__/entities/__domain__/entity.json";
-import { __DrizzleEntityImports__ } from "@/domains/__domain__/entities/drizzle";
-__RelationTableImports__import { __Domain__CreateSchema, __Domain__UpdateSchema } from "@/domains/__domain__/entities/schema";
+import rawConf from "@/domains/__folder__/entities/__domain__/entity.json";
+import { __DrizzleEntityImports__ } from "@/domains/__folder__/entities/drizzle";
+__RelationTableImports__import { __Domain__CreateSchema, __Domain__UpdateSchema } from "@/domains/__folder__/entities/schema";
 __StorageBindingImport__import { createCrudService } from "@/lib/crud/server";
 import type { CrudServiceOptions } from "@/lib/crud/server";
 import type { IdStrategy, OrderBySpec, SearchRankSpec } from "@/lib/crud";

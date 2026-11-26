@@ -130,16 +130,15 @@ export function explainView({ files, read, intake }) {
     domainOutputs: lazy(() => {
         const text = fileSet.has(DOMAIN_OUTPUTS_FILE) ? read(DOMAIN_OUTPUTS_FILE) : null;
         const outputs = text === null ? [] : parseDomainOutputs(text).outputs;
-        // 宣言は読み込みの部品 readDomains だけで読む(D335): plural = 主の登録の entity.json、generate = 生成する登録が 1 つでもあるか
+        // 宣言は読み込みの部品 readDomains だけで読む(D335)。生成の単位 = ドメインの中の登録 1 件(D336): 生成する登録ごとに 1 行
+        // (plural = その登録の entity.json)。生成する登録の無いドメインは主の登録の 1 行(generate: false)
         const domains = readDomains(listSource(list, read))
           .filter((declaration) => declaration.domain !== null)
-          .map((declaration) => {
-            const entity = primaryRegistrationOf(declaration)?.entity;
-            return {
-              dir: declaration.dir,
-              plural: isRecord(entity) && typeof entity.plural === "string" ? entity.plural : undefined,
-              generate: declaration.registrations.some(isGeneratedRegistration),
-            };
+          .flatMap((declaration) => {
+            const pluralOf = (entity) => (isRecord(entity) && typeof entity.plural === "string" ? entity.plural : undefined);
+            const generated = declaration.registrations.filter(isGeneratedRegistration);
+            if (generated.length === 0) return [{ dir: declaration.dir, plural: pluralOf(primaryRegistrationOf(declaration)?.entity), generate: false }];
+            return generated.map((registration) => ({ dir: declaration.dir, registration: registration.name, plural: pluralOf(registration.entity), generate: true }));
           });
         return { outputs, domains };
       }),

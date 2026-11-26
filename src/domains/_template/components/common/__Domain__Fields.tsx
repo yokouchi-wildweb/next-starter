@@ -13,7 +13,7 @@ import {
   type InsertFieldsMap,
   type MediaState,
 } from "@/lib/formSuite";
-import { domainDisplay } from "@/domains/__domain__/entities/display";
+import { domainDisplay } from "@/domains/__folder__/entities/display";
 
 const baseFields = domainDisplay.fields as FieldConfig[];
 

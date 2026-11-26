@@ -2,9 +2,8 @@
 // ファイルを読むのはこのモジュールと pipeline/apply（書き込み）・pipeline/remove だけ。render/ と checks/ は読まない。
 //
 // ドメインの所在: business = src/domains/<camel>、core = src/domains/core/<camel>（違いはフォルダだけで、生成・検査・generate の旗は同じ扱い）。
-// 宣言は読み込みの部品 readDomain(src/lib/domain、D335)だけで読む。生成器の 1 ドメインの config = その主の登録
-// (登録名 = ドメイン名、表 1 つのドメイン)の entity.json。生成する登録(generate、D337)を持つのに登録が 2 つ以上のドメインは止める
-// (登録ごとの一式は区切り registration-kit。config の決まりは ./declarationOf.mjs)
+// 宣言は読み込みの部品 readDomain(src/lib/domain、D335)だけで読む。生成の単位 = ドメインの中の登録 1 件(D336): 登録ごとに
+// その entity.json を config にして一式を書く(生成する登録 = generate が false でない物、D337)。config の決まりは ./declarationOf.mjs
 
 import fs from "node:fs";
 import path from "node:path";
@@ -22,7 +21,7 @@ import {
   readDomains,
 } from "../../../../src/lib/domain/node.mjs";
 import { CACHE_FILE } from "../spec/cache.mjs";
-import { cacheDeclarationOf, configOfDeclaration } from "./declarationOf.mjs";
+import { cacheDeclarationOf, configOfDeclaration, generatedRegistrationsOf, registrationConfigOf } from "./declarationOf.mjs";
 
 const NOT_DOMAIN_DIRS = new Set(["_template", "core"]);
 
@@ -63,11 +62,36 @@ export function createWorkspace(rootDir = process.cwd()) {
   /** ドメインの宣言 domain.json の場所(従属ドメインを書き出す時) */
   const domainDeclarationPath = (camel) => path.join(locateDomain(camel).dir, DOMAIN_DECLARATION_FILE);
 
-  /** 生成器の config(主の登録の entity.json。決まりは ./declarationOf.mjs)。宣言が無ければ null */
+  /** ドメインの主の登録の entity.json(決まりは ./declarationOf.mjs)。宣言が無ければ null */
   const readConfig = (camel) => {
     const declaration = declarationOf(camel);
-    return declaration ? configOfDeclaration(declaration, camel) : null;
+    return declaration ? configOfDeclaration(declaration) : null;
   };
+
+  /** ドメインの中の名前の登録の entity.json(登録ごとの一式の config)。無ければ null */
+  const readRegistrationConfig = (domain, registration) => {
+    const declaration = declarationOf(domain);
+    return declaration ? registrationConfigOf(declaration, registration) : null;
+  };
+
+  /**
+   * ドメインの生成の単位(登録名の並び): 生成する登録(主が先)。生成する登録が無ければ主の登録だけ(generate: false の知らせを出すため)、
+   * 主も無ければ空
+   */
+  function generationUnitsOf(domain) {
+    const declaration = declarationOf(domain);
+    if (!declaration) return [];
+    const generated = generatedRegistrationsOf(declaration);
+    if (generated.length > 0) return generated;
+    const primary = primaryRegistrationOf(declaration);
+    return primary ? [primary.name] : [];
+  }
+
+  /** 登録の置き場の import の根(@/domains/<ドメインのフォルダ名>。core は core/ を省いた別名)。見つからなければ登録名のフォルダ */
+  function importRootOf(registration) {
+    const found = findRegistration(readDomains(source), registration);
+    return `@/domains/${found ? found.declaration.name : registration}`;
+  }
 
   /** readConfig の失敗を null にする(関連の先の表名の解決など、失敗しても続ける場面用) */
   function readConfigLenient(camel) {
@@ -84,13 +108,13 @@ export function createWorkspace(rootDir = process.cwd()) {
     return found?.registration.entity ?? null;
   }
 
-  /** 主の登録を持つドメインのフォルダ名（business = src/domains 直下、core = src/domains/core 直下。_template は除く。ソート済み）。名前が重なれば例外 */
+  /** 主の登録か生成する登録を持つドメインのフォルダ名（business = src/domains 直下、core = src/domains/core 直下。_template は除く。ソート済み）。名前が重なれば例外 */
   function listDomains() {
     const listed = listDeclaredDomains(source);
     if (listed.problems.length > 0) throw new Error(listed.problems.join("\n").replace(/ が .* の両方にある\(1 つにする\)/, " の宣言が src/domains/ と src/domains/core/ の両方にあります"));
     const names = listed.domains.map((domain) => domain.name).filter((name) => {
       const declaration = declarationOf(name);
-      return declaration !== null && primaryRegistrationOf(declaration) !== null;
+      return declaration !== null && (primaryRegistrationOf(declaration) !== null || generatedRegistrationsOf(declaration).length > 0);
     });
     return [...new Set(names)].sort();
   }
@@ -154,6 +178,9 @@ export function createWorkspace(rootDir = process.cwd()) {
     listDir: (dir) => (fs.existsSync(dir) ? fs.readdirSync(dir) : []),
     readConfig,
     readConfigLenient,
+    readRegistrationConfig,
+    generationUnitsOf,
+    importRootOf,
     listDomains,
     readTemplate,
   };

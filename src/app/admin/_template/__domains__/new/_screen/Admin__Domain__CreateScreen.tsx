@@ -3,7 +3,7 @@
 // 画面を変えるときは _components/ にコピーして page.tsx の import 先を向ける。
 
 __RELATION_IMPORTS__
-import Admin__Domain__Create from "@/domains/__domain__/components/Admin__Domain__Create";
+import Admin__Domain__Create from "@/domains/__folder__/components/Admin__Domain__Create";
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import { createScreen } from "@/wiring/screen";
 

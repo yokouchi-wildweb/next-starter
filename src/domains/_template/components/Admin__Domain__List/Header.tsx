@@ -11,7 +11,7 @@ import { Button } from "@/components/Button/Button";
 import { useSearchParams } from "next/navigation";
 import { CreateButton } from "@/lib/crud";
 import { getAdminPaths } from "@/lib/domain";
-import { domainDisplay as __domain__Display } from "@/domains/__domain__/entities/display";
+import { domainDisplay as __domain__Display } from "@/domains/__folder__/entities/display";
 
 const paths = getAdminPaths("__domainsSlug__");
 const hasSearch = __domain__Display.searchFields.length > 0;

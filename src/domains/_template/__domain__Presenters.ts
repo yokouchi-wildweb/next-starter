@@ -1,6 +1,6 @@
 // src/domains/__domain__/__domain__Presenters.ts
 
-import type { __Domain__ } from "@/domains/__domain__/entities";
+import type { __Domain__ } from "@/domains/__folder__/entities";
 import type { FieldPresenter } from "@/lib/domain";
 import {
   formatBoolean,

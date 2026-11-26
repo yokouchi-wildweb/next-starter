@@ -2,7 +2,7 @@
 
 import path from "node:path";
 import { toPascalCase } from "../../../../../src/lib/stringCase/index.mjs";
-import { requireConfig } from "../../domain/context.mjs";
+import { domainRel, requireConfig } from "../../domain/context.mjs";
 import { collectOptionFields } from "../../spec/fieldTypes.mjs";
 import { file } from "../output.mjs";
 
@@ -57,8 +57,8 @@ export function renderFieldConstants(ctx) {
     };
   });
 
-  const constantRelPath = path.posix.join("src", "domains", camel, "constants", `${camel}Field.ts`);
-  const typeRelPath = path.posix.join("src", "domains", camel, "types", `${camel}Field.ts`);
+  const constantRelPath = path.posix.join(domainRel(ctx), "constants", `${camel}Field.ts`);
+  const typeRelPath = path.posix.join(domainRel(ctx), "types", `${camel}Field.ts`);
   return [
     file(path.join(ctx.dir, "constants", `${camel}Field.ts`), buildConstants(fieldMeta, constantRelPath), { label: "フィールド定数を生成しました" }),
     file(path.join(ctx.dir, "types", `${camel}Field.ts`), buildTypes(fieldMeta, typeRelPath), { label: "フィールド型を生成しました" }),

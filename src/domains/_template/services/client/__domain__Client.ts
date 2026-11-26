@@ -2,11 +2,11 @@
 
 import { createApiClient } from "@/lib/crud";
 import type { ApiClient } from "@/lib/crud";
-import type { __Domain__ } from "@/domains/__domain__/entities";
+import type { __Domain__ } from "@/domains/__folder__/entities";
 import type {
   __Domain__CreateFields,
   __Domain__UpdateFields,
-} from "@/domains/__domain__/entities/form";
+} from "@/domains/__folder__/entities/form";
 
 export const __domain__Client: ApiClient<
   __Domain__,

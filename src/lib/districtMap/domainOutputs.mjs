@@ -4,7 +4,8 @@
 // 古い木(遅れた fork の区間の木、D313)の短い形(glob の文字列 = every-run、kind・source の省略)は strict でない読みでそろえる。
 // データは JSON(src から scripts を import しない: 読み手が本文を渡す)。生成器の実際の書き込みとの照合は scripts/structure/domain/tests/outputs.test.mjs、
 // パスの答えは pnpm workflow ownership who(src/lib/forkOwnership/explain.mjs)、受け口の一覧の generated の行は src/lib/districtMap/intakeRows.mjs(入力を集めるのは scripts/structure/extensions/intake.mjs)。
-// glob の置き換え: {dir} = ドメインのフォルダ・{camel} = フォルダ名・{Pascal} = その PascalCase・{route} = 管理画面のルートのフォルダ。
+// glob の置き換え: {dir} = ドメインのフォルダ・{camel} = 登録名(生成の単位 = ドメインの中の登録 1 件、D336。省略 = フォルダ名)・{Pascal} = その PascalCase・
+// {route} = 管理画面のルートのフォルダ。ドメインの並びは生成する登録 1 件ごとに 1 行(同じ dir が登録の数だけ並ぶ)。
 // [ と ] は字そのもの([id] のルート。glob の文字の組には使わない)、* と ** は glob。
 
 import { matchesGlob } from "node:path";
@@ -87,11 +88,12 @@ export function parseDomainOutputs(text) {
 }
 
 /**
- * 1 ドメインの置き換えの値
- * @param {{ dir: string, plural?: string }} domain dir = リポジトリ直下からのドメインのフォルダ、plural = entity.json の plural
+ * 1 つの生成の単位(ドメインの中の登録 1 件)の置き換えの値
+ * @param {{ dir: string, plural?: string, registration?: string }} domain dir = リポジトリ直下からのドメインのフォルダ、plural = その登録の entity.json の plural、
+ *   registration = 登録名(省略 = フォルダ名 = 表 1 つのドメイン)
  */
-export function domainNamesOf({ dir, plural }) {
-  const camel = dir.slice(dir.lastIndexOf("/") + 1);
+export function domainNamesOf({ dir, plural, registration }) {
+  const camel = registration ?? dir.slice(dir.lastIndexOf("/") + 1);
   return { dir, camel, Pascal: toPascalCase(toSnakeCase(camel)), route: adminRouteFolderOf(camel, plural) };
 }
 

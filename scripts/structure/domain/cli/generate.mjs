@@ -1,10 +1,12 @@
-// pnpm generate domain -- <Domain>: 生成方法の選択（entity.json の generate どおり / 手動選択 / 全部）と上書き確認をしてから pipeline に渡す
+// pnpm generate domain -- <Domain>: 生成方法の選択（entity.json の generate どおり / 手動選択 / 全部）と上書き確認をしてから pipeline に渡す。
+// 生成の単位はドメインの中の登録 1 件(D336): ドメインの生成する登録ごとに(主が先)同じ手順を回す
 
 import { pickCategories } from "./pickCategories.mjs";
 import { ALL_GENERATE_OPTIONS, isHandManaged } from "../spec/categories.mjs";
 import { configTargets, generateWithPairs, loadDomainForGenerate, narrowTargets } from "../pipeline/generate.mjs";
 import { assertPairs, groupOf, resolvePairs } from "../pipeline/pairs.mjs";
 import { confirm, prompt } from "./prompts.mjs";
+import { toCamelCase, toSnakeCase } from "../../../../src/lib/stringCase/index.mjs";
 
 /**
  * 生成するカテゴリを決める（--only で絞った後）。手動選択は entity.json に保存しない（区分は entity.json に持たない）
@@ -45,7 +47,25 @@ async function resolveGenerateTargets(ctx, pairs, options) {
  *   --yes = { mode: "config", interactive: false, shouldGenerate: true } | --dry-run = 書かずに一覧（上書き確認も出さない）
  */
 export async function runGenerate(workspace, domain, options = {}) {
-  const ctx = loadDomainForGenerate(workspace, domain);
+  const folder = toCamelCase(toSnakeCase(domain.trim()) || domain.trim()) || domain.trim();
+  const units = workspace.generationUnitsOf(folder);
+  // 表 1 つのドメイン(登録名 = ドメイン名)と宣言の無いドメインは今までどおり 1 回
+  if (units.length <= 1 && (units.length === 0 || units[0] === folder)) return runGenerateUnit(workspace, domain, null, true, options);
+  let registry = false;
+  for (const [index, registration] of units.entries()) {
+    console.log(`\n[${folder}/${registration}] 登録 ${registration} の一式を生成します。`);
+    const result = await runGenerateUnit(workspace, domain, registration, index === 0, options);
+    registry = registry || Boolean(result?.registry);
+  }
+  return { registry };
+}
+
+/**
+ * 生成の単位 1 件(ドメインの中の登録 1 件)の pnpm generate domain
+ * @param {string | null} registration 登録名(null = ドメインの主の登録)
+ */
+async function runGenerateUnit(workspace, domain, registration, firstUnit, options) {
+  const ctx = loadDomainForGenerate(workspace, domain, console, registration ? { registration, firstUnit } : {});
   // 手で管理（generate: false）は -i でも生成方法を聞かずに終える（生成器を一切通さない）
   if (isHandManaged(ctx.config)) {
     console.log(`[${ctx.camel}] generate: false（手で管理）のため何も書きません（作り直すときは generate を true に戻す）`);

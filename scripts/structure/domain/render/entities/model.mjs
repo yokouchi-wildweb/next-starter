@@ -5,7 +5,7 @@ import { toPlural } from "../../domain/plural.mjs";
 import { resolveFieldName } from "../../domain/fieldName.mjs";
 import { belongsToManyRelations, belongsToRelations } from "../../domain/relations.mjs";
 import { isCollectionFieldType, isEnumFieldType, tsType } from "../../spec/fieldTypes.mjs";
-import { domainRel } from "../../domain/context.mjs";
+import { domainRel, importRootFor } from "../../domain/context.mjs";
 
 const typeLine = (name, type, required) => `  ${name}: ${required ? type : `${type} | null`};`;
 
@@ -36,13 +36,13 @@ function bodyLines(config, dbEngine) {
 }
 
 /** リレーション先の型 import（同じドメインは 1 回） */
-function relationTypeImports(belongsTo, belongsToMany) {
+function relationTypeImports(belongsTo, belongsToMany, rootOf) {
   const imports = [];
   const addedDomains = new Set();
   for (const rel of [...belongsTo, ...belongsToMany]) {
     if (addedDomains.has(rel.domain)) continue;
     addedDomains.add(rel.domain);
-    imports.push(`import type { ${toPascalCase(rel.domain)} } from "@/domains/${toCamelCase(rel.domain)}/entities/model";`);
+    imports.push(`import type { ${toPascalCase(rel.domain)} } from "${rootOf(toCamelCase(rel.domain))}/entities/model";`);
   }
   return imports.join("\n");
 }
@@ -96,7 +96,7 @@ export function renderModel(ctx) {
   const hasCountable = belongsToMany.length > 0;
 
   let content = `// ${domainRel(ctx)}/entities/model.ts\n\n`;
-  const imports = relationTypeImports(belongsTo, belongsToMany);
+  const imports = relationTypeImports(belongsTo, belongsToMany, (registration) => importRootFor(ctx, registration));
   if (imports) content += imports + "\n\n";
   content += `export type ${pascal} = {\n${bodyLines(config, dbEngine).join("\n")}\n};\n`;
   if (hasRelations) content += withRelationsType(pascal, dbEngine, belongsTo, belongsToMany);

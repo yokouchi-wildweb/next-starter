@@ -1,5 +1,6 @@
 // 管理画面 _screen/ テンプレート(Screen と loader.ts)の、関連選択肢の先読み(SSR → SWR fallback)に関するトークン
 
+import { importRootFor } from "../../domain/context.mjs";
 import { getStaticRelations } from "../../../../../src/lib/domain/node.mjs";
 
 /**
@@ -14,7 +15,8 @@ import { getStaticRelations } from "../../../../../src/lib/domain/node.mjs";
  * どの関連を読むかは取得本体が登録の entity.json から同じ helper で判定し、関連先の access と service は wiring が serviceRegistry から
  * 解決するので、生成物は関連先の service を import しない。行単位のトークンは末尾に改行を含める
  */
-export function buildRelationTokens(relations, { camel }) {
+export function buildRelationTokens(relations, ctx) {
+  const { camel } = ctx;
   // 先読みする関連が無い場合は access の判定(追加)と編集レコードの取得だけ
   if (getStaticRelations({ relations }).length === 0) {
     return {
@@ -35,7 +37,7 @@ export function buildRelationTokens(relations, { camel }) {
     editRenderParams: `{ record: ${camel}, redirectPath, relationFallback }`,
     swrStart: "  <SWRConfig value={{ fallback: relationFallback }}>\n",
     swrEnd: "  </SWRConfig>\n",
-    loaderImport: `import domainConfig from "@/domains/${camel}/entities/${camel}/entity.json";\n`,
+    loaderImport: `import domainConfig from "${importRootFor(ctx)}/entities/${camel}/entity.json";\n`,
     createRelationsArg: ", { relations: domainConfig }",
     editRelationsArg: ", relations: domainConfig",
   };
