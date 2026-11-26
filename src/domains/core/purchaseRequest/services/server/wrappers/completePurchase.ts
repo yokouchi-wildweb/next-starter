@@ -1,7 +1,7 @@
 // src/domains/core/purchaseRequest/services/server/wrappers/completePurchase.ts
 // 購入完了処理（Webhook / ポーリングから呼び出し）
 
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, or, sql } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { PurchaseRequestTable } from "@/domains/core/purchaseRequest/entities/drizzle";
 import type { PurchaseRequest } from "@/domains/core/purchaseRequest/entities/model";
@@ -17,11 +17,7 @@ import { getPurchaseCompleteHooks } from "../hooks/purchaseCompleteHookRegistry"
 import { markUserDirty } from "@/lib/userDirty/server";
 import { getPurchaseCompletionStrategy } from "../completion";
 import { findByWebhookIdentifier } from "./purchaseHelpers";
-import { statusesInto } from "./transitionStatus";
 import type { CompletePurchaseParams, CompletePurchaseResult } from "./purchaseService";
-
-/** completePurchase が完了にしてよい status = 許可表 ALLOWED_TRANSITIONS で completed へ行ける物（processing・failed・expired） */
-const COMPLETABLE_STATUSES = statusesInto("completed");
 
 // トランザクションクライアント型
 type TransactionClient = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -55,10 +51,8 @@ export async function completePurchase(
     };
   }
 
-  // 3. processing・failed（Webhook順序逆転の救済）・expired（こちらの窓が閉じた後に払いが確かめられた物）を許可。
-  //    呼び手（Webhook の決済完了・照合 reconcileWithProvider・確定 API・銀行振込の承認）は払いを確かめた物だけを渡す。
-  //    窓が閉じただけで、受け取った支払いを捨てない（ALLOWED_TRANSITIONS の expired → completed）
-  if (!COMPLETABLE_STATUSES.includes(purchaseRequest.status)) {
+  // 3. processing または failed（Webhook順序逆転の救済）のみ許可
+  if (purchaseRequest.status !== "processing" && purchaseRequest.status !== "failed") {
     throw new DomainError(
       `無効なステータスです: ${purchaseRequest.status}`,
       { status: 400 }
@@ -87,7 +81,7 @@ export async function completePurchase(
 
   // 5. トランザクションでウォレット更新とステータス更新を実行
   const result = await db.transaction(async (tx: TransactionClient) => {
-    // 楽観的ロック: processing・failed・expired（上の 3.）の場合のみ更新
+    // 楽観的ロック: processing または failed（Webhook順序逆転の救済）の場合のみ更新
     const [updated] = await tx
       .update(PurchaseRequestTable)
       .set({
@@ -98,7 +92,7 @@ export async function completePurchase(
         ...(paymentMethod && { payment_method: paymentMethod }),
         paid_at: paidAt ?? new Date(),
         webhook_signature: webhookSignature,
-        // failed・expired からの救済時、確定 API の未確認の記録（PAYPAL_CAPTURE_UNCONFIRMED 等）をクリア
+        // failed からの救済時にエラー情報をクリア
         error_code: null,
         error_message: null,
         updatedAt: new Date(),
@@ -106,7 +100,10 @@ export async function completePurchase(
       .where(
         and(
           eq(PurchaseRequestTable.id, purchaseRequest.id),
-          inArray(PurchaseRequestTable.status, COMPLETABLE_STATUSES),
+          or(
+            eq(PurchaseRequestTable.status, "processing"),
+            eq(PurchaseRequestTable.status, "failed")
+          )
         )
       )
       .returning();

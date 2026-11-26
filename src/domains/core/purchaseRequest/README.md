@@ -17,12 +17,11 @@
 pending ──(セッション作成)──→ processing ──(決済確定)──→ completed
    │                              │
    ├──→ failed                    ├──→ failed ──(Webhook 順序逆転の救済)──→ completed
-   └──→ expired                   └──→ expired ──(窓が閉じた後に払いが確かめられた)──→ completed
+   └──→ expired                   └──→ expired
 ```
 
 - `failed → completed`: 「PENDING → 失敗扱いの後に COMPLETED が届く」順序の逆転を `completePurchase` が救う
-- `expired → completed`: こちらの窓が閉じた後に払いが確かめられた物(Webhook の決済完了・照合・確定 API・銀行振込の管理者の承認)を `completePurchase` が完了にする。払われた物は捨てない
-- `completed` は終端。同じ冪等キーで `failed` / `expired` を再 initiate すると 400(新しい購入として始めさせる)
+- `completed` / `expired` は終端。同じ冪等キーで `failed` / `expired` を再 initiate すると 400(新しい購入として始めさせる)
 - 独立した `cancelled` は無い: 決済画面でのキャンセル = `failed`(`error_code = PAYMENT_ERROR_CODES.PAYMENT_CANCELLED` = `"payment_cancelled"`)| ユーザーの取消(`cancelPurchase`)/ 期限切れ / ユーザー削除(`cancelPending`)= `expired`
 
 ## Usage
@@ -39,8 +38,8 @@ pending ──(セッション作成)──→ processing ──(決済確定)�
 [戻り]      successUrl / cancelUrl（既定: /api/wallet/purchase/callback）
             → /wallet/[slug]/purchase/callback（reason 付きなら /failed）へ 303
 [ポーリング] callback ページの usePurchaseStatusPolling が GET /api/wallet/purchase/[id]/status
-            → getPurchaseStatusForUser: processing なら reconcileWithProvider(getPaymentStatus に照会)
-              completed → completePurchase / failed・expired → failPurchase / 他はそのまま
+            → getPurchaseStatusForUser: processing ならプロバイダの getPaymentStatus に照会し
+              completed → completePurchase / failed・expired → failPurchase
 [確定 API]  client_sdk 型のみ: POST /api/wallet/purchase/[id]/<provider>/confirm（payment/README.md 参照）
 ```
 
@@ -122,7 +121,7 @@ export const strategy: PurchaseCompletionStrategy = {
 
 - `afterInitiate`: 新規作成と同じ tx。throw すると purchase_request ごとロールバック(= 購入が始まらない)。pending の再利用では呼ばれない
 - `onFail`: `failPurchase` の `failed` への遷移と同じ tx。throw すると失敗の印も戻り `processing` のまま残る。利用者のキャンセルとの区別は `errorCode === PAYMENT_ERROR_CODES.PAYMENT_CANCELLED`
-- `onExpire`: `expired` への遷移すべてと同じ tx = `expirePendingRequests`(行ごとの tx、失敗はログしてスキップ)| `cancelPending`(呼び手の tx)| `cancelPurchase`(利用者の取消。throw すると取消ごとロールバック = 利用者にエラー)| `settleStaleClientSdkSession`(放置の照合で決まらなかった行。行ごとの tx、失敗はログしてスキップ)。遷移の元は pending / processing のどちらもある
+- `onExpire`: `expired` への遷移すべてと同じ tx = `expirePendingRequests`(行ごとの tx、失敗はログしてスキップ)| `cancelPending`(呼び手の tx)| `cancelPurchase`(利用者の取消。throw すると取消ごとロールバック = 利用者にエラー)| `expireStaleClientSdkSessions`(行ごとの tx、失敗はログしてスキップ)。遷移の元は pending / processing のどちらもある
 - `onFail` / `onExpire` は Webhook のリトライ・並行の処理で何度も呼ばれ得る
 - 性能: `onExpire` の無い型は bulk UPDATE 1 本、ある型だけ行ごとの tx
 - 戦略が登録されていなければ `initiatePurchase` / `completePurchase` が `DomainError` を投げる(黙って飛ばさない)
@@ -160,7 +159,7 @@ export const strategy: PurchaseCompletionStrategy = {
 5. `purchaseRequestConfig.type` と完了戦略を解いて `strategy.validateInitiation`(`wallet_topup` は `CURRENCY_CONFIG` のパッケージ照合)。reuse-pending でも再実行する
 6. `walletType` があれば保有上限のチェック(`assertHoldingLimit`)
 7. クーポンの検証(`couponService.validateForCategory`、purchase_discount カテゴリ)→ 割引後の金額 `<= 0` は 400。クーポンの機能が閉(`gate.enabled("coupon")` が false)のときにクーポンコードつきで来たら 400「クーポンは現在使えません。」。完了側も閉なら redeem を飛ばし warn 1 行
-8. 1 tx で create(または pending の更新)+ `reserveQuota` +(新規の時だけ)`strategy.afterInitiate`。新規作成の直前に `expireStaleClientSdkSessions(userId)` で同じ利用者の放置された client_sdk の processing を照らしてから閉じる(best-effort、「期限切れ」の照合)
+8. 1 tx で create(または pending の更新)+ `reserveQuota` +(新規の時だけ)`strategy.afterInitiate`。新規作成の直前に `expireStaleClientSdkSessions(userId)` で同じ利用者の放置された client_sdk の processing を expired にする(best-effort)
 9. `buildLaunchForRequest`: セッションのエンリッチャー → `provider.createSession` → `processing` に更新(`payment_session_id`、redirect 型だけ `redirect_url`、`deriveProviderOrderId` があれば `provider_order_id`)→ `LaunchInstruction` を返す
 
 - `baseUrl` は route で `getAppBaseUrl()` から作る(リクエストヘッダの Host は使わない)
@@ -175,9 +174,9 @@ export const strategy: PurchaseCompletionStrategy = {
 ### completePurchase
 
 1. `findByWebhookIdentifier(sessionId, providerName)`: `payment_session_id` → UUID なら `id` → プロバイダ固有のリゾルバー(Fincode)
-2. `completed` なら冪等に既存の結果を返す / `processing`・`failed`・`expired`(許可表で completed へ行ける物、`statusesInto("completed")`)以外は 400
+2. `completed` なら冪等に既存の結果を返す / `processing`・`failed` 以外は 400
 3. `paidAmount` があり `payment_amount` と違う → `markAsFatalFailure` で `failed` にしてから 400
-4. tx: 楽観ロック(`WHERE status IN ('processing','failed','expired')`、0 行なら 409)→ `commitQuota`(救済の完了は released からも committed) → `strategy.complete()`(戻り値に walletHistory があれば `wallet_history_id` を記録)→ クーポンの redeem(SAVEPOINT で隔離、失敗(例外、または期限切れ等で `success: false`)しても購入は完了させ `coupon_redeem_failed = true`)→ ポストフック(それぞれ SAVEPOINT で隔離、失敗はログだけ)→ マイルストーンの評価(達成分を `milestone_results` に保存、完了画面の通知に使う)
+4. tx: 楽観ロック(`WHERE status IN ('processing','failed')`、0 行なら 409)→ `commitQuota` → `strategy.complete()`(戻り値に walletHistory があれば `wallet_history_id` を記録)→ クーポンの redeem(SAVEPOINT で隔離、失敗(例外、または期限切れ等で `success: false`)しても購入は完了させ `coupon_redeem_failed = true`)→ ポストフック(それぞれ SAVEPOINT で隔離、失敗はログだけ)→ マイルストーンの評価(達成分を `milestone_results` に保存、完了画面の通知に使う)
 5. コミットの後に `markUserDirty(user_id)`
 
 - `handleWebhook` は `DomainError` を 200 で飲み込むので、status を動かさずに throw すると `processing` のまま残り、ポーリングは 60 秒のタイムアウトまで待つ。`markAsFatalFailure(id, code, message)` は `WHERE status='processing'` つきで completed / failed を上書きしない
@@ -194,10 +193,7 @@ export const strategy: PurchaseCompletionStrategy = {
 ### 期限切れ
 
 - `expirePendingRequests()`: `status='pending' AND expires_at < now` を `expired` に(`processing` は対象外)+ `releaseQuota`
-- 放置の照合 `settleStaleClientSdkSession(row)`: client_sdk の `processing` 1 行を `reconcileWithProvider` で照らす。払われていれば完了、失敗なら failed、決まらない(承認だけ・未承認)物だけ `expired`(+ onExpire・releaseQuota)、照会が throw した行は触らない(次の回)
-  - 読み手: 新しい購入の開始(`expireStaleClientSdkSessions(userId)`、同じ利用者)と cron(`settleExpiredClientSdkSessions()`、`expires_at` を過ぎた全利用者の行、`runBudgetedBatches` で 1 回 200 件・120 秒まで)
-  - 照らす理由: confirm の capture が応答を受け取れずに終わった後も PayPal 側では capture が済んでいることがある(照らさずに閉じると払われた注文にコインが付かない)
-- 実行: Vercel Cron が 15 分ごとに `GET /api/cron/expire-pending-purchases`(pending の期限切れ + 放置の照合)(`CRON_SECRET` 認証)を呼ぶ(Vercel Hobby では 1 日 1 回。`vercel.json` の項目は `pnpm generate cron` が作る)。手動は `pnpm task expire-pending-purchases`。準備は [src/lib/cron/README.md](../../../lib/cron/README.md)「スケジュールのセットアップ」
+- 実行: Vercel Cron が 15 分ごとに `GET /api/cron/expire-pending-purchases`(`CRON_SECRET` 認証)を呼ぶ(Vercel Hobby では 1 日 1 回。`vercel.json` の項目は `pnpm generate cron` が作る)。手動は `pnpm task expire-pending-purchases`。準備は [src/lib/cron/README.md](../../../lib/cron/README.md)「スケジュールのセットアップ」
 - `cancelPending`: ユーザー削除の時に pending / processing をまとめて expired(user の点 userCleanupHandlers から呼ばれる)
 
 ### 二重購入の防止(多層)

@@ -255,7 +255,6 @@
 
 - **inhouseProvider** (`src/domains/core/purchaseRequest/services/server/payment/inhouse/`): `createSession` で振込案内 URL を返す + `validateInitiation` で並行ブロック + `generateInhouseTransferIdentifier` で識別子生成
 - **completePurchase** (`wrappers/completePurchase.ts`): submitReview (immediate) と confirmReview (approval_required) から呼ばれる。ウォレット加算・履歴・クーポン消化・マイルストーン評価を一括実行
-  - 購入リクエストが期限切れ(`expired`、有効期限 7 日を過ぎた)でも、承認すれば完了して通貨を付与する(払いが確かめられた物は期限切れからも完了する、purchaseRequest README「状態遷移」)
 - **failPurchase** (`wrappers/failPurchase.ts`): rejectReview (approval_required) から呼ばれる
 - **initiatePurchase** (`wrappers/initiatePurchase.ts`): provider.validateInitiation を呼ぶ拡張ポイント、expires_at をプロバイダ別 (`getProviderSessionExpiryMinutes`) で算出
 

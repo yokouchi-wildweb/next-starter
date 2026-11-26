@@ -52,7 +52,6 @@ commitQuota(purchaseRequestId, tx?): Promise<void>
 ```
 
 - status reserved → committed (集計値不変)
-- status released → committed も: 失敗・期限切れで解放した後に払いが確かめられた購入(failed / expired からの完了の救済)は上限に数える
 
 ### releaseQuota
 
@@ -136,7 +135,7 @@ reserveQuota: ルールごとに使用量を集計 → 上限超過なら Purcha
   ↓ pass
 ledger に reserved 行を insert (または上書き)
   ↓
-completePurchase → commitQuota (reserved → committed、集計値は不変。救済の完了は released → committed)
+completePurchase → commitQuota (reserved → committed、集計値は不変)
 failPurchase / cancelPurchase / expirePending → releaseQuota (集計から除外)
 ```
 
@@ -157,7 +156,7 @@ ledger の status:
 | `failPurchase` (onFail あり/なし両方) | `releaseQuota` |
 | `cancelPurchase` (ユーザーキャンセル) | `releaseQuota` |
 | `expirePendingRequests` (bulk + per-row 両方) | `releaseQuota` |
-| `settleStaleClientSdkSession` (client_sdk の放置の照合で決まらなかった行) | `releaseQuota` |
+| `expireStaleClientSdkSessions` (client_sdk の古いセッション) | `releaseQuota` |
 
 `bankTransferReview` の `submitReview` / `confirmReview` / `rejectReview` は内部で `completePurchase` / `failPurchase` を呼ぶため自動で連動する。
 

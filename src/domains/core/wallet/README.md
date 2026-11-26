@@ -189,19 +189,6 @@ UI レシピ例（ダウンストリームで実装）:
 - 残高ページに「うち ○○ コインが ○月○日 に失効します」バナー → `useMyExpiringLots` の `lots[0]`
 - 失効前・失効後のユーザー通知 → `Extension.md`「失効通知の設定」（設定だけで送れる）
 
-### 本人の残高の表示と取り直し
-
-```typescript
-// クライアント: 本人の残高（/api/me/wallet、SWR キー myWalletBalancesKey(userId) = "my-wallet-balances:<userId>"）
-const { data } = useMyWalletBalances(user?.userId);
-
-// 残高を変えた操作の後: 表示中の残高を取り直す（購入の完了画面 PurchaseComplete が completed で 1 回呼ぶ）
-const refreshMyWalletBalances = useRefreshMyWalletBalances();
-await refreshMyWalletBalances();
-```
-
-- 鍵の作り方は `myWalletBalancesKey` の 1 か所（取得と取り直しが同じ物を使う）。fork が残高を変える自前の画面を持つ時も `useRefreshMyWalletBalances` を呼ぶ
-
 ### 管理機能
 
 #### 管理API

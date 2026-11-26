@@ -26,8 +26,6 @@ Payment Buttons）でページ内ボタンを描画し、承認後にサーバ�
         - 即 successUrl（callback 画面）へ遷移、ポーリングで status を監視
   → confirmPayPalPayment
         - GET order で金額/状態を再確認 → APPROVED なら capture → completePurchase → 監査ログ
-        - capture の応答が取れない → order を読み直し、COMPLETED なら完了 / 決まらなければ行に記録して 502
-  → （補助）放置の照合: 次の購入の開始と cron expire-pending-purchases が processing の行を getPaymentStatus で照らす
   → （補助）Webhook /api/webhook/payment?provider=paypal
         - 署名検証（verify-webhook-signature API）→ PAYMENT.CAPTURE.COMPLETED で救済確定
 ```
@@ -202,8 +200,6 @@ Webhook を待たず、クライアント（onApprove）から能動的に呼ば
 2. ステータス確認（`completed` なら冪等 return、`processing` 以外は 400）
 3. `fetchOrder` で金額 / 状態を再確認
 4. ステータス別: `APPROVED` → `captureOrder` 実行 / `COMPLETED` → 既に capture 済みで skip / `VOIDED` → `failPurchase` で 400
-   - `captureOrder` が null(応答なし・時間切れ・5xx・422 の他の理由): PayPal 側で capture が済んでいることがあるので `fetchOrder` で読み直し、`COMPLETED` なら 5. へ。決まらなければ行に `error_code = "PAYPAL_CAPTURE_UNCONFIRMED"`(status は `processing` のまま = confirm をやり直せる、同じ `PayPal-Request-Id` で capture は冪等)を書いて 502
-   - 502 のまま放置された行は照合(`settleStaleClientSdkSession`、purchaseRequest README「期限切れ」)が getPaymentStatus で照らしてから閉じる。後から `PAYMENT.CAPTURE.COMPLETED` が届けば expired からも完了する
 5. `completePurchase` 呼び出し（楽観ロック 409 は alreadyCompleted として吸収）
 6. `auditLogger.record({ action: "purchase_request.payment.confirmed", ... })`
 

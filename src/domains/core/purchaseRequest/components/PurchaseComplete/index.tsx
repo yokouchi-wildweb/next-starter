@@ -13,7 +13,6 @@ import { LinkButton } from "@/components/Button/LinkButton";
 import { InlineLoader } from "@/components/Overlays/Loading";
 import { usePurchaseStatus } from "@/domains/core/purchaseRequest/hooks/usePurchaseStatus";
 import { CurrencyDisplay, getCurrencyConfigBySlug } from "@/domains/core/wallet";
-import { useRefreshMyWalletBalances } from "@/domains/core/wallet/hooks/useMyWalletBalances";
 import { useGoogleAdsConversion } from "@/lib/googleTag";
 
 export type PurchaseCompleteProps = {
@@ -34,13 +33,6 @@ export function PurchaseComplete({ slug }: PurchaseCompleteProps) {
       ? "購入情報の取得に失敗しました。"
       : null;
   const loading = requestId !== null && isLoading;
-
-  // 購入の完了で残高が変わる: 本人の残高(ヘッダー・ウォレット画面の表示)を 1 回取り直す。購入の各経路はこの画面に着く
-  const refreshMyWalletBalances = useRefreshMyWalletBalances();
-  const completed = purchaseInfo?.status === "completed";
-  useEffect(() => {
-    if (completed) void refreshMyWalletBalances();
-  }, [completed, refreshMyWalletBalances]);
 
   // コイン購入完了コンバージョン（status==="completed" 時のみ・transaction_id で dedup。env 未設定なら no-op）
   const { fire } = useGoogleAdsConversion();
