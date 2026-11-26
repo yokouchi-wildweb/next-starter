@@ -104,8 +104,8 @@ export const COLUMN_KEYS = new Set(["name", "type", "enum", "default", "notNull"
 export const TABLE_COLUMN_KEYS = new Set(["name", "column", DECLARATION_COMMENT_KEY]);
 export const IDENTITY_VALUES = new Set(["always", "byDefault"]);
 
-/** 索引(indexes[])の鍵: 今の fields・where・name・using・opclass + unique・desc(降順の列)・expression(列の代わりの SQL の式) */
-export const INDEX_KEYS = new Set(["fields", "where", "name", "using", "opclass", "unique", "desc", "expression", DECLARATION_COMMENT_KEY]);
+/** 索引(indexes[])の鍵: 今の fields・where・name・using・opclass + unique・desc(降順の列)・expression(列の代わりの SQL の式)・expressions(部分ごとの SQL の式の並び) */
+export const INDEX_KEYS = new Set(["fields", "where", "name", "using", "opclass", "unique", "desc", "expression", "expressions", DECLARATION_COMMENT_KEY]);
 
 export const PRIMARY_KEY_KEYS = new Set(["columns", "name", DECLARATION_COMMENT_KEY]);
 export const FOREIGN_KEY_KEYS = new Set(["columns", "references", "onDelete", "onUpdate", "name", DECLARATION_COMMENT_KEY]);

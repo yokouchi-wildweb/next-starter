@@ -7,7 +7,7 @@ import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { sql } from "drizzle-orm";
-import { bigint, check, index, inet, jsonb, pgEnum, pgTable, smallint, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { bigint, check, index, inet, jsonb, pgEnum, pgTable, smallint, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 import { makeTempDir } from "../scripts/structure/domain-tables/tables.mjs";
 import { UserTable } from "../src/domains/core/user/entities/user/drizzle.ts";
@@ -38,6 +38,8 @@ const widgets = pgTable(
   (table) => [
     index("dt_widgets_seen_idx").on(table.seenAt.desc()),
     index("dt_widgets_name_lower_idx").on(sql`lower(${table.name})`),
+    // 式だけの 3 つの部分 + where(fork の手の表の形: 部分ごとに式を読む expressions で書き、照らしの差 0 = DROP+CREATE を出さない)
+    uniqueIndex("dt_widgets_meta_parts_uq").on(sql`(meta->>'a')`, sql`(meta->>'b')`, sql`lower(name)`).where(sql`parent_id IS NULL`),
     check("dt_widgets_rank_check", sql`rank >= 0`),
   ],
 );
@@ -63,6 +65,9 @@ test("手で持つ表(宣言なし)は今の表から起こし、照らしの差
   assert.deepEqual(entity.enums, [{ name: "dt_widget_kind", values: ["a", "b"] }]);
   assert.deepEqual(entity.indexes.find((i) => i.name === "dt_widgets_seen_idx"), { name: "dt_widgets_seen_idx", fields: ["seenAt"], desc: ["seenAt"] });
   assert.ok(entity.indexes.some((i) => i.name === "dt_widgets_name_lower_idx" && /lower/.test(i.expression)));
+  assert.deepEqual(entity.indexes.find((i) => i.name === "dt_widgets_meta_parts_uq"), {
+    name: "dt_widgets_meta_parts_uq", expressions: ["(meta->>'a')", "(meta->>'b')", "lower(name)"], unique: true, where: "parent_id IS NULL",
+  });
   assert.deepEqual(entity.checks, [{ name: "dt_widgets_rank_check", sql: "rank >= 0" }]);
   assert.equal(entity.columns.some((c) => c.name === "createdAt"), false, "システム列は useCreatedAt のまま");
   assert.deepEqual(result.discrepancies, [], "宣言の無い表は食い違いの行を出さない");
@@ -96,6 +101,13 @@ test("宣言に書けない形(関数の既定)は書かずに止める", async 
   const result = await declareTable(input(actual, { plural: "dt_fn_defaults", dbEngine: "Neon", fields: [], generate: false, idType: "uuid" }));
   assert.equal(result.entity, null);
   assert.match(result.stops[0], /既定が関数\(\$defaultFn\)で宣言に書けない/);
+});
+
+test("列と式の混ざった索引は書かずに止める", async () => {
+  const actual = pgTable("dt_mixed", { id: uuid("id").defaultRandom().primaryKey(), name: text("name") }, (table) => [index("dt_mixed_idx").on(table.name, sql`lower(name)`)]);
+  const result = await declareTable(input(actual, { plural: "dt_mixed", dbEngine: "Neon", fields: [], generate: false, idType: "uuid" }));
+  assert.equal(result.entity, null);
+  assert.match(result.stops[0], /索引 dt_mixed_idx は列と式が混ざり宣言に書けない/);
 });
 
 test("登録の access: 手で持つ登録は apiAccess をそのまま、生成する登録は既定に書いた鍵を重ねる", () => {

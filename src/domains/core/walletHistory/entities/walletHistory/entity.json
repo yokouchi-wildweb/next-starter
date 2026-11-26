@@ -121,10 +121,10 @@
   "enums": [
     {
       "name": "wallet_type_enum",
-      "values": [
-        "regular_coin",
-        "regular_point"
-      ]
+      "valuesFrom": {
+        "file": "src/domains/core/wallet/entities/drizzle.ts",
+        "export": "walletTypes"
+      }
     },
     {
       "name": "wallet_change_method",

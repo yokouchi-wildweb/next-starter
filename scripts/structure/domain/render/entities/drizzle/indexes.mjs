@@ -46,12 +46,13 @@ function validateExtraIndex(idx, label) {
  *   - unique: 省略可。true = uniqueIndex(名前の既定は _idx でなく _unique。名前つき・部分のユニークはこの形)
  *   - desc: 省略可。降順にする fields の名前(列に .desc())
  *   - expression: 省略可。列の代わりの SQL の式(fields は書かない、name は必須)
+ *   - expressions: 省略可。部分ごとの SQL の式の並び(2 つ以上の式の索引。fields・expression は書かない、name は必須)
  */
 export function extraIndexes(config, tableName) {
   const indexes = Array.isArray(config.indexes) ? config.indexes : [];
   const defs = [];
   indexes.forEach((idx) => {
-    if (idx.expression !== undefined) {
+    if (idx.expression !== undefined || idx.expressions !== undefined) {
       defs.push(expressionIndex(idx, tableName));
       return;
     }
@@ -89,17 +90,25 @@ export function extraIndexes(config, tableName) {
   return defs;
 }
 
-/** 式の索引(expression): uniqueIndex か index の .on(sql`<式>`)。名前は必須(列から作れない) */
+/**
+ * 式の索引(expression = 式 1 つ、expressions = 部分ごとの式の並び): uniqueIndex か index の .on(sql`<式>`, …)。名前は必須(列から作れない)
+ */
 function expressionIndex(idx, tableName) {
-  if (typeof idx.expression !== "string" || idx.expression.length === 0) throw new Error(`エラー: ${tableName} の indexes の expression は空でない SQL の式で書いてください`);
-  if (idx.fields !== undefined) throw new Error(`エラー: indexes "${idx.expression}" は expression と fields の両方を持てません`);
-  if (typeof idx.name !== "string" || idx.name.length === 0) throw new Error(`エラー: indexes "${idx.expression}" の式の索引には name が要ります`);
+  if (idx.expression !== undefined && idx.expressions !== undefined) throw new Error(`エラー: ${tableName} の indexes "${idx.name ?? "?"}" は expression と expressions の両方を持てません`);
+  const parts = idx.expressions !== undefined ? idx.expressions : [idx.expression];
+  const key = idx.expressions !== undefined ? "expressions" : "expression";
+  if (idx.expressions !== undefined && (!Array.isArray(idx.expressions) || idx.expressions.length < 2)) throw new Error(`エラー: ${tableName} の indexes の expressions は 2 つ以上の SQL の式の並びで書いてください(式 1 つは expression)`);
+  if (parts.some((part) => typeof part !== "string" || part.length === 0)) throw new Error(`エラー: ${tableName} の indexes の ${key} は空でない SQL の式で書いてください`);
+  const label = parts.join(", ");
+  if (idx.fields !== undefined) throw new Error(`エラー: indexes "${label}" は ${key} と fields の両方を持てません`);
+  if (typeof idx.name !== "string" || idx.name.length === 0) throw new Error(`エラー: indexes "${label}" の式の索引には name が要ります`);
   if (idx.name.length > PG_MAX_IDENTIFIER_LENGTH) throw new Error(`エラー: インデックス名 "${idx.name}" が ${PG_MAX_IDENTIFIER_LENGTH} 文字を超えています`);
   const method = idx.using ?? "btree";
   if (typeof method !== "string" || !SQL_IDENTIFIER.test(method)) throw new Error(`エラー: indexes ${idx.name} の using "${method}" が不正です`);
   const indexFn = idx.unique ? "uniqueIndex" : "index";
-  const on = method === "btree" ? `.on(sql\`${idx.expression}\`)` : `.using("${method}", sql\`${idx.expression}\`)`;
-  let indexDef = `  // ${idx.unique ? "ユニーク" : "インデックス"}: ${idx.expression}\n  ${indexFn}("${idx.name}")${on}`;
+  const sqlParts = parts.map((part) => `sql\`${part}\``).join(", ");
+  const on = method === "btree" ? `.on(${sqlParts})` : `.using("${method}", ${sqlParts})`;
+  let indexDef = `  // ${idx.unique ? "ユニーク" : "インデックス"}: ${label}\n  ${indexFn}("${idx.name}")${on}`;
   if (typeof idx.where === "string" && idx.where.length > 0) indexDef += `.where(sql\`${idx.where}\`)`;
   return indexDef;
 }
@@ -111,7 +120,7 @@ export function extraIndexesHaveUnique(config) {
 
 /** indexes に式の索引があるか（sql の import 判定） */
 export function extraIndexesHaveExpression(config) {
-  return Array.isArray(config.indexes) && config.indexes.some((i) => i.expression !== undefined);
+  return Array.isArray(config.indexes) && config.indexes.some((i) => i.expression !== undefined || i.expressions !== undefined);
 }
 
 /** entity.json の indexes に where 句を持つものがあるか（sql の import 判定） */

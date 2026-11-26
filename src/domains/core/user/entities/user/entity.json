@@ -337,13 +337,10 @@
     },
     {
       "name": "user_role",
-      "values": [
-        "admin",
-        "user",
-        "editor",
-        "debugger",
-        "contributor"
-      ]
+      "valuesFrom": {
+        "file": "src/domains/core/user/constants/role.ts",
+        "export": "USER_ROLES"
+      }
     },
     {
       "name": "user_status",

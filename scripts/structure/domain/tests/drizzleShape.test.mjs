@@ -119,12 +119,16 @@ test("indexes の unique・desc・expression", () => {
       { fields: ["name", "createdAt"], desc: ["createdAt"] },
       { fields: ["name"], unique: true, where: "deleted_at IS NULL", name: "sample_tags_name_uq" },
       { expression: "lower(btrim(name))", name: "sample_tags_name_lower_idx" },
+      { expressions: ["(meta->>'a')", "(meta->>'b')", "lower(name)"], unique: true, where: "deleted_at IS NULL", name: "sample_tags_meta_parts_uq" },
+      { expressions: ["to_tsvector('simple', name)", "to_tsvector('simple', code)"], using: "gin", name: "sample_tags_search_idx" },
     ],
   });
   assert.equal(error, null);
   assert.match(output, /index\("sample_tags_name_created_at_idx"\)\.on\(table\.name, table\.createdAt\.desc\(\)\)/);
   assert.match(output, /uniqueIndex\("sample_tags_name_uq"\)\.on\(table\.name\)\.where\(sql`deleted_at IS NULL`\)/);
   assert.match(output, /index\("sample_tags_name_lower_idx"\)\.on\(sql`lower\(btrim\(name\)\)`\)/);
+  assert.match(output, /uniqueIndex\("sample_tags_meta_parts_uq"\)\.on\(sql`\(meta->>'a'\)`, sql`\(meta->>'b'\)`, sql`lower\(name\)`\)\.where\(sql`deleted_at IS NULL`\)/);
+  assert.match(output, /index\("sample_tags_search_idx"\)\.using\("gin", sql`to_tsvector\('simple', name\)`, sql`to_tsvector\('simple', code\)`\)/);
 });
 
 test("表だけの列 columns・列のユニーク column.unique・関連の 1 対 1 の unique", () => {
@@ -170,6 +174,12 @@ test("書けない形はエラーにする", () => {
     [{ fields: [{ name: "x", fieldType: "string", defaultValue: "a", column: { default: "b" } }] }, /defaultValue と column\.default の両方/],
     [{ enums: [{ name: "e" }] }, /values\(空でない配列\)か valuesFrom/],
     [{ indexes: [{ expression: "lower(name)" }] }, /式の索引には name が要ります/],
+    [{ indexes: [{ expressions: ["a", "b"] }] }, /式の索引には name が要ります/],
+    [{ indexes: [{ expressions: ["a", "b"], fields: ["name"], name: "x" }] }, /expressions と fields の両方を持てません/],
+    [{ indexes: [{ expressions: ["a", "b"], expression: "c", name: "x" }] }, /expression と expressions の両方を持てません/],
+    [{ indexes: [{ expressions: [], name: "x" }] }, /expressions は 2 つ以上の SQL の式の並び/],
+    [{ indexes: [{ expressions: ["a"], name: "x" }] }, /expressions は 2 つ以上の SQL の式の並び/],
+    [{ indexes: [{ expressions: ["a", 1], name: "x" }] }, /expressions は空でない SQL の式/],
     [{ indexes: [{ fields: ["name"], desc: ["other"] }] }, /desc "other" が fields にありません/],
     [{ foreignKeys: [{ columns: ["name"], references: { table: "nowhere", columns: ["id"] } }] }, /references\.table "nowhere" の表がどのドメインにもありません/],
   ];

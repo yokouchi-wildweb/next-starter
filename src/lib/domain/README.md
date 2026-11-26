@@ -75,7 +75,7 @@
 | `table` | string(省略 = snake(plural)) | `"users"` |
 | `primaryKey` | `{ columns, name? }`(省略 = idType の id 列) | 複合の主キー・名前の主キー |
 | `foreignKeys` | `[{ columns, references: { table, columns }, onDelete?, onUpdate?, name? }]` | relations で言えない FK(名前つき・同じ相手への 2 本目・自己参照) |
-| `indexes[]` の `unique`・`desc`・`expression` | `unique: true`・`desc: [列]`(降順)・`expression: "<SQL の式>"`(列の代わり) | 名前つき・部分のユニーク(ユニークはこの形だけ、`compositeUniques` は entity.json に無い)・`lower(btrim(name))` |
+| `indexes[]` の `unique`・`desc`・`expression`・`expressions` | `unique: true`・`desc: [列]`(降順)・`expression: "<SQL の式>"`(列の代わり)・`expressions: ["<式>", …]`(2 つ以上の式の部分、`fields`・`expression` と並べない) | 名前つき・部分のユニーク(ユニークはこの形だけ、`compositeUniques` は entity.json に無い)・`lower(btrim(name))`・`(a->>'x')`, `(b)::date` |
 | `checks` | `[{ name, sql }]` | check 制約 |
 | `enums` | `[{ name, values }]` か `[{ name, valuesFrom: { file, export } }]` | pgEnum。設定から値を作る物は値を写さず名指す(照らしは読み込んだ値で比べる) |
 | `relations[].unique` | `true` | belongsTo の外部キーの列のユニーク(1 対 1) |
