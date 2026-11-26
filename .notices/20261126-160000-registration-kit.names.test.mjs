@@ -1,9 +1,12 @@
 // .notices/20261126-160000-registration-kit.names.mjs の検査(土台の分け方と読み手の書き換え。ファイルの中身だけで確かめる)。
 // 実行: pnpm test .notices/20261126-160000-registration-kit.names.test.mjs
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { test } from "node:test";
 
-import { planBaseFile, planReaders } from "./20261126-160000-registration-kit.names.mjs";
+import { addUpstreamMoves, movedRowsOf, planBaseFile, planReaders } from "./20261126-160000-registration-kit.names.mjs";
 
 const declaration = (name, registrations) => ({ name, registrations: registrations.map((registration) => ({ name: registration })) });
 
@@ -90,4 +93,66 @@ test("読み手: 名前の変わる export を export from で外へ出す・新
   });
   assert.match(stops.join("\n"), /export \{ base \} from .*名前が xBase に変わる/);
   assert.match(stops.join("\n"), /新しい名前 xBase が既にある/);
+});
+
+test("上流の移し済み(order 20261126-161230): notice の moved: の行で古い道が無く新しい道がある物は、fork の読み手を書き換える(書く・消すは無し)", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "names-upstream-"));
+  try {
+    const put = (rel, text) => {
+      fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
+      fs.writeFileSync(path.join(root, rel), text);
+    };
+    put("src/domains/core/user/services/server/userBase.ts", "export const userBaseOptions = {};\nexport const userBase = createCrudService(UserTable, userBaseOptions);\n");
+    put("src/domains/core/user/userPresenters.ts", "export const presenters = {};\n");
+    put("src/domains/core/auditLog/services/server/auditLogBase.ts", "export const auditLogBase = createCrudService(AuditLogTable);\n");
+    put("src/domains/core/auditLog/services/server/auditLogFailedBase.ts", "export const auditLogFailedBase = createCrudService(AuditLogFailedTable);\n");
+    put("src/domains/core/coupon/presenters.ts", "export const presenters = {};\n");
+    const notice = [
+      "# DOWNSTREAM NOTICE id:x",
+      [
+        "moved: src/domains/_template/presenters.ts -> src/domains/_template/__domain__Presenters.ts",
+        "src/domains/core/user/services/server/drizzleBase.ts -> src/domains/core/user/services/server/userBase.ts",
+        "src/domains/core/user/presenters.ts -> src/domains/core/user/userPresenters.ts",
+        "src/domains/core/auditLog/services/server/drizzleBase.ts -> src/domains/core/auditLog/services/server/auditLogBase.ts",
+        "src/domains/core/coupon/presenters.ts -> src/domains/core/coupon/couponPresenters.ts",
+        "src/domains/core/gone/presenters.ts -> src/domains/core/gone/gonePresenters.ts",
+      ].join("; "),
+      "change: x",
+    ].join("\n");
+    assert.equal(movedRowsOf(notice).length, 6);
+    const plan = { writes: {}, removes: [], moves: new Map(), kept: [], stops: [], entityJson: {} };
+    addUpstreamMoves(root, plan, notice);
+    assert.deepEqual(plan.writes, {});
+    assert.deepEqual(plan.removes, []);
+    assert.deepEqual(
+      plan.upstream.sort(),
+      ["src/domains/core/auditLog/services/server/drizzleBase.ts", "src/domains/core/user/presenters.ts", "src/domains/core/user/services/server/drizzleBase.ts"],
+      "_template・古い道が残る物(coupon)・新しい道の無い物(gone)は足さない",
+    );
+    assert.equal(plan.moves.get("src/domains/core/user/services/server/drizzleBase").names.get("base").name, "userBase");
+    assert.equal(plan.moves.get("src/domains/core/auditLog/services/server/drizzleBase").whole, null, "分けた土台は export ごと");
+
+    const readers = {
+      "src/domains/mine/services/server/mineService.ts": [
+        'import { base } from "@/domains/core/user/services/server/drizzleBase";',
+        'import { presenters } from "@/domains/core/user/presenters";',
+        'import { auditLogBase, auditLogFailedBase } from "@/domains/core/auditLog/services/server/drizzleBase";',
+        "export const mine = { list: () => base.search({}), presenters, a: auditLogBase, b: auditLogFailedBase };",
+        "",
+      ].join("\n"),
+    };
+    const { writes, stops } = planReaders(root, plan, readers);
+    assert.deepEqual(stops, []);
+    const service = writes["src/domains/mine/services/server/mineService.ts"];
+    assert.match(service, /^import \{ userBase \} from "@\/domains\/core\/user\/services\/server\/userBase";$/m);
+    assert.match(service, /^import \{ presenters \} from "@\/domains\/core\/user\/userPresenters";$/m);
+    assert.match(service, /^import \{ auditLogBase \} from "@\/domains\/core\/auditLog\/services\/server\/auditLogBase";$/m);
+    assert.match(service, /^import \{ auditLogFailedBase \} from "@\/domains\/core\/auditLog\/services\/server\/auditLogFailedBase";$/m);
+    assert.match(service, /list: \(\) => userBase\.search\(\{\}\)/);
+
+    const namespace = planReaders(root, plan, { "src/domains/mine/a.ts": 'import * as user from "@/domains/core/user/services/server/drizzleBase";\nexport const y = user.base;\n' });
+    assert.match(namespace.stops.join("\n"), /src\/domains\/mine\/a\.ts/, "名前の変わる export を import * で読む読み手は止める");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });

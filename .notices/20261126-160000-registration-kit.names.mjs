@@ -17,6 +17,9 @@
 // 使い方(リポのルートで、tsx の上): npx tsx --import ./scripts/runner/preload/serverOnly.mjs .notices/20261126-160000-registration-kit.names.mjs [--write]
 //   既定 = 計画だけ(何も書かない)。--write = 移す・書き換える。続けて pnpm generate registry と pnpm generate domain(生成する登録のあるドメイン)。
 //   何度走らせても同じ結果(移し済みのファイルは計画に出ない)
+// - 上流の移し済み(order 20261126-161230): この道具の notice の moved: の行のうち、古い道が無く新しい道がある物(上流のファイルで、区切りを取り込んだ時に
+//   もう移っている)も移しとして持つ(書く・消すは無し)。その古い道を読む fork の読み手を同じように書き換える(または止める)。土台は export base →
+//   <登録名>Base、上流が分けた土台(UPSTREAM_SPLITS)は分けた先のファイルの export ごと
 
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -38,6 +41,10 @@ export const KIT_FILES = [
 ];
 /** 土台の今の名前 */
 export const BASE_FILES = ["services/server/drizzleBase.ts", "services/server/firestoreBase.ts"];
+/** この道具の notice(同じ id。moved: = 上流の移し) */
+export const NOTICE_PATH = ".notices/20261126-160000-registration-kit.md";
+/** 上流が 1 つの土台を登録ごとのファイルに分けた物: moved: の行(古い道 → 最初のファイル)のほかに分けた先のファイル(notice の notes) */
+export const UPSTREAM_SPLITS = { "src/domains/core/auditLog/services/server/drizzleBase.ts": ["src/domains/core/auditLog/services/server/auditLogFailedBase.ts"] };
 /** 土台を作る関数 */
 const BASE_FACTORIES = new Set(["createCrudService", "createFirestoreCrudService"]);
 /** 読み手を探す場所 */
@@ -243,7 +250,60 @@ export function planMoves(repoRoot) {
       plan.entityJson[entityPath] = `${JSON.stringify(entity, null, 2)}\n`;
     }
   }
+  addUpstreamMoves(repoRoot, plan);
   return plan;
+}
+
+/** notice の本文の moved: の行 → [古い道, 新しい道][] */
+export function movedRowsOf(noticeText) {
+  const line = noticeText.split("\n").find((row) => row.startsWith("moved: "));
+  if (!line) return [];
+  return line
+    .slice("moved: ".length)
+    .split(";")
+    .map((pair) => pair.trim().split(/\s+->\s+/))
+    .filter((pair) => pair.length === 2);
+}
+
+/** ファイルの export する名前(宣言の export と export { … }) */
+function exportedNamesOf(text, rel) {
+  const names = [];
+  for (const statement of sourceOf(text, rel).statements) {
+    if (ts.isExportDeclaration(statement) && statement.exportClause && ts.isNamedExports(statement.exportClause)) names.push(...statement.exportClause.elements.map((e) => e.name.text));
+    else if (ts.canHaveModifiers(statement) && ts.getModifiers(statement)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) names.push(...declaredNames(statement));
+  }
+  return names;
+}
+
+/**
+ * 上流の移し済みを移しとして足す(書く・消すは無し): moved: の行で、古い道が無く新しい道がある物。fork 自身の移しと同じ古い道は fork の方を使う
+ * @param {string} repoRoot
+ * @param {ReturnType<typeof planMoves>} plan
+ * @param {string} [noticeText] 省略 = NOTICE_PATH を読む
+ */
+export function addUpstreamMoves(repoRoot, plan, noticeText) {
+  const exists = (rel) => fs.existsSync(path.join(repoRoot, rel));
+  const text = noticeText ?? (exists(NOTICE_PATH) ? fs.readFileSync(path.join(repoRoot, NOTICE_PATH), "utf8") : "");
+  plan.upstream = [];
+  for (const [from, to] of movedRowsOf(text)) {
+    if (from.startsWith("src/domains/_") || exists(from) || !exists(to) || plan.moves.has(stemOf(from))) continue;
+    const isBase = BASE_FILES.some((baseFile) => from.endsWith(`/${baseFile}`));
+    if (!isBase) {
+      plan.moves.set(stemOf(from), { whole: stemOf(to), names: new Map() });
+      plan.upstream.push(from);
+      continue;
+    }
+    const files = [to, ...(UPSTREAM_SPLITS[from] ?? [])].filter(exists);
+    const names = new Map();
+    for (const file of files) {
+      for (const name of exportedNamesOf(fs.readFileSync(path.join(repoRoot, file), "utf8"), file)) names.set(name, { stem: stemOf(file), name });
+    }
+    // 土台 1 つ: 今の export base は <登録名>Base(新しいファイルの名前)になった
+    const baseName = path.posix.basename(stemOf(to));
+    if (files.length === 1 && names.has(baseName) && !names.has("base")) names.set("base", { stem: stemOf(to), name: baseName });
+    plan.moves.set(stemOf(from), { whole: files.length === 1 ? stemOf(to) : null, names });
+    plan.upstream.push(from);
+  }
 }
 
 /** 頭のコメントの自分の道(最初の // 行が今の道か、その末尾で終わる道。core/ の無い古い形も)を新しい道に */
@@ -340,10 +400,9 @@ export function planReaders(repoRoot, plan, given) {
   }
 
   for (const [rel, original] of Object.entries(texts)) {
-    if (GENERATED_HEAD.test(original.slice(0, 400)) && !plan.writes[rel]) {
-      out.generated.push(rel);
-      continue;
-    }
+    // 生成物は書き換えず止めもしない(生成器が作り直す)。直す所がある物だけ一覧に出す
+    const generated = GENERATED_HEAD.test(original.slice(0, 400)) && !plan.writes[rel];
+    const stopsBefore = out.stops.length;
     const source = program.getSourceFile(path.join(repoRoot, rel));
     if (!source) continue;
     const from = originOf.get(rel) ?? rel; // 相対の指定子を解く場所
@@ -487,6 +546,11 @@ export function planReaders(repoRoot, plan, given) {
       };
       refs(source);
     }
+    if (generated) {
+      out.stops.length = stopsBefore;
+      if (edits.length > 0) out.generated.push(rel);
+      continue;
+    }
     if (edits.length === 0) continue;
     // 重なる編集(import 文の置き換えの中の指定子)は外側だけ
     const sorted = edits.sort((a, b) => b.start - a.start || a.end - b.end);
@@ -515,8 +579,10 @@ async function main() {
   }
   const writes = { ...readers.writes, ...plan.entityJson };
   for (const [target, text] of Object.entries(plan.writes)) writes[target] = readers.writes[target] ?? text;
+  if (plan.upstream.length > 0) console.log(`上流の移し済み(読み手だけ書き換える): ${plan.upstream.length} 本`);
   console.log(`移す ${plan.removes.length} 本 → 書く ${Object.keys(plan.writes).length} 本、読み手の書き換え ${Object.keys(readers.writes).filter((rel) => !plan.writes[rel]).length} 本、entity.json ${Object.keys(plan.entityJson).length} 本`);
   for (const [stem, move] of plan.moves) {
+    if (plan.upstream.includes(`${stem}.ts`)) continue;
     const targets = move.whole ? [move.whole] : [...new Set([...move.names.values()].map((target) => target.stem))];
     const renamed = [...move.names].filter(([name, target]) => name !== target.name).map(([name, target]) => `${name} → ${target.name}`);
     console.log(`  ${stem}.ts → ${targets.map((target) => `${target}.ts`).join(" + ")}${renamed.length > 0 ? `(${renamed.join(", ")})` : ""}`);
