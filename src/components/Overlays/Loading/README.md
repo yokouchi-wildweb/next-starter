@@ -54,4 +54,4 @@ if (isLoading) return <InlineLoader />;
 
 - `ScreenLoader` の fullscreen の外側は `FullscreenLayer`(client): SSR とハイドレーションの間はその場に流れの中で画面の高さ(`--viewport-height`)、mount の後に `<body>` 直下へ portal して fixed + cover の層で覆う。サーバーが出した Suspense の fallback は中身が届くまでハイドレーションされないので、直の読み込みの待ちの間はその場の形のまま(その場で fixed にすると PageTransition の `contain: layout paint` に切られて高さ 0)。`BodyPortal` は mount の前は何も出さない(最初の描画から出したい全画面の待ちには使わない)
 
-- 画面全体のローダー(`GlobalScreenLoader` を root layout に 1 つ置き、`useGlobalLoader()` の `showLoader` / `hideLoader` で出し入れする)は閉じた lib [`@/lib/globalLoader`](../../../lib/globalLoader/README.md) にある。lib は package.json の `peers` で棚を読み、描画は `ScreenLoader`(fullscreen)そのもの。`globalLoaderParity.test.tsx` が同じ DOM になることを確かめる
+- 画面全体のローダー(`GlobalScreenLoader` を root layout に 1 つ置き、`useGlobalLoader()` の `showLoader` で出し、返る終わりの関数で外す。全部の終わりまで出し続ける)は閉じた lib [`@/lib/globalLoader`](../../../lib/globalLoader/README.md) にある。lib は package.json の `peers` で棚を読み、描画は `ScreenLoader`(fullscreen)そのもの。`globalLoaderParity.test.tsx` が同じ DOM になることを確かめる

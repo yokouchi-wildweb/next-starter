@@ -34,12 +34,9 @@ type Options = import("@/lib/globalLoader").LoaderOptions;
 async function renderLib(options: Options): Promise<string> {
   document.body.innerHTML = "";
   function Driver() {
-    const { showLoader, hideLoader } = Lib.useGlobalLoader();
+    const { showLoader } = Lib.useGlobalLoader();
     // 次の場合へ前の表示を持ち越さない(store は 1 つ。持ち越すと属性が後から足されて並びが変わる)
-    useEffect(() => {
-      showLoader(options);
-      return hideLoader;
-    }, [showLoader, hideLoader]);
+    useEffect(() => showLoader(options), [showLoader]);
     return h(Lib.GlobalScreenLoader);
   }
   const container = document.createElement("div");
@@ -91,14 +88,11 @@ for (const [label, options] of CASES) {
   });
 }
 
-test("hideLoader で消える", async () => {
+test("showLoader の終わりの関数で消える", async () => {
   document.body.innerHTML = "";
   function Driver({ visible }: { visible: boolean }) {
-    const { showLoader, hideLoader } = Lib.useGlobalLoader();
-    useEffect(() => {
-      if (visible) showLoader("x");
-      else hideLoader();
-    }, [visible, showLoader, hideLoader]);
+    const { showLoader } = Lib.useGlobalLoader();
+    useEffect(() => (visible ? showLoader("x") : undefined), [visible, showLoader]);
     return h(Lib.GlobalScreenLoader);
   }
   const container = document.createElement("div");

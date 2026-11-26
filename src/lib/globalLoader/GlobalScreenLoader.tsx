@@ -11,7 +11,7 @@ import { useGlobalLoaderStore } from "./stores";
 
 /**
  * グローバルローダーを Portal で body 直下に描画するコンポーネント。
- * ルートレイアウトに 1 つだけ配置して使用する。動かすのは useGlobalLoader の showLoader / hideLoader。
+ * ルートレイアウトに 1 つだけ配置して使用する。動かすのは useGlobalLoader の showLoader(終わりの関数を返す)。
  *
  * 描画は棚の ScreenLoader(mode="fullscreen")をそのまま使う(package.json の peers で components を読む、当議会 D208)。
  * 出力が ScreenLoader と同じことは src/components/Overlays/Loading/globalLoaderParity.test.tsx が確かめる。
@@ -21,10 +21,13 @@ import { useGlobalLoaderStore } from "./stores";
  * <GlobalScreenLoader />
  *
  * // 使う側
- * const { showLoader, hideLoader } = useGlobalLoader();
- * showLoader("ガチャ準備中…");
- * await draw();
- * hideLoader();
+ * const { showLoader } = useGlobalLoader();
+ * const end = showLoader("ガチャ準備中…");
+ * try {
+ *   await draw();
+ * } finally {
+ *   end();
+ * }
  */
 export function GlobalScreenLoader() {
   const { isVisible, options } = useGlobalLoaderStore();
