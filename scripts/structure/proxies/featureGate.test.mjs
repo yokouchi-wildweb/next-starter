@@ -270,7 +270,7 @@ test("上流の規則の汎用 API の住所(導出の固定。登録表に出�
     pairedDevice: ["/api/pairedDevice"],
     payment: ["/api/purchaseRequest", "/api/bankTransferReview"],
     referral: ["/api/referral", "/api/referralReward"],
-    sampleDomain: ["/api/sample", "/api/sampleCategory", "/api/sampleTag", "/api/sampleImage"],
+    sampleDomain: ["/api/sample", "/api/sampleImage", "/api/sampleCategory", "/api/sampleTag"],
     userCounter: ["/api/userCounter"],
     userGroups: ["/api/userGroup"],
     userLineProfile: ["/api/userLineProfile"],

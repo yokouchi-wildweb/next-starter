@@ -70,7 +70,10 @@ export function renderDrizzleEntity(ctx, workspace) {
     content += `import { ${crudServerNames.join(", ")} } from "@/lib/crud/server";\n`;
   }
   relationImports.forEach((domainPascal, domainCamel) => {
-    content += `import { ${domainPascal}Table } from "${importRootFor(ctx, domainCamel)}/entities/drizzle";\n`;
+    // 同じドメインの別の登録(主の集まりの従属など、D348)は登録のファイルを直に読む(集める入口 entities/drizzle.ts はこの表も集めるので輪になる)
+    const root = importRootFor(ctx, domainCamel);
+    const sameDomain = domainCamel !== ctx.camel && root === importRootFor(ctx);
+    content += `import { ${domainPascal}Table } from "${root}/entities/${sameDomain ? `${domainCamel}/drizzle` : "drizzle"}";\n`;
   });
   for (const line of [...shapeEnums.importLines, ...shape.importLines]) content += `${line}\n`;
   content += `\n`;
