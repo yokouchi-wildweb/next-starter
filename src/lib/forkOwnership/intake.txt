@@ -246,10 +246,12 @@ generated src/registry/recordTargetRegistry.ts  # 生成器 registry の出力
 generated src/domains/core/*/entities/display.ts  # 生成器 registry の出力
 generated src/domains/*/entities/display.ts  # 生成器 registry の出力
 generated src/domains/core/*/entities/drizzle.ts  # 生成器 registry の出力
+generated src/domains/core/*/entities/firestore.ts  # 生成器 registry の出力
 generated src/domains/core/*/entities/form.ts  # 生成器 registry の出力
 generated src/domains/core/*/entities/model.ts  # 生成器 registry の出力
 generated src/domains/core/*/entities/schema.ts  # 生成器 registry の出力
 generated src/domains/*/entities/drizzle.ts  # 生成器 registry の出力
+generated src/domains/*/entities/firestore.ts  # 生成器 registry の出力
 generated src/domains/*/entities/form.ts  # 生成器 registry の出力
 generated src/domains/*/entities/model.ts  # 生成器 registry の出力
 generated src/domains/*/entities/schema.ts  # 生成器 registry の出力
