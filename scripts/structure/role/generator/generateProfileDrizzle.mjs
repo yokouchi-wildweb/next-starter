@@ -23,33 +23,6 @@ function formatValue(v) {
 }
 
 /**
- * リレーション先ドメインのテーブル名を取得
- * domain.json が存在すれば plural を使用、なければ snake_case 化
- */
-function getForeignTableName(domainName) {
-  const domainCamel = toCamelCase(domainName) || domainName;
-  const domainsDir = path.join(ROOT_DIR, "src", "domains");
-  const candidates = [
-    path.join(domainsDir, domainCamel, "domain.json"),
-    path.join(domainsDir, "core", domainCamel, "domain.json"),
-  ];
-  for (const configPath of candidates) {
-    if (fs.existsSync(configPath)) {
-      try {
-        const foreignConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
-        if (foreignConfig.plural) {
-          return toSnakeCase(foreignConfig.plural);
-        }
-      } catch {
-        // JSON パースエラー時はフォールバック
-      }
-      break;
-    }
-  }
-  return toSnakeCase(domainName);
-}
-
-/**
  * onDelete 設定から Drizzle オプション文字列を生成
  */
 function buildOnDeleteOption(behavior) {

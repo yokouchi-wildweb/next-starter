@@ -4,8 +4,8 @@
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
-import { overrideFileName, readRoleOverride, requireOverride } from "../overrides.mjs";
-import { findRoleFile } from "../rolePaths.mjs";
+import { overrideFileName, readRoleOverride, requireOverride, writeRoleOverrideKey } from "../overrides.mjs";
+import { findRoleFile, parentOwns } from "../rolePaths.mjs";
 import { writeProfileLists } from "./writeLists.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -29,22 +29,30 @@ function cleanupGeneratedFolder(roleId) {
 }
 
 /**
- * 上書きが hasProfile を決めているロールは JSON を書いても効かないので、何も消す前に止める
+ * 自分の JSON に書くロールで、上書きが hasProfile を決めていれば JSON を書いても効かないので、何も消す前に止める
+ * (fork で親の持ち物の追加ロールは上書きに書くので止めない。core ロールは今どおり止める)
  */
 export function assertHasProfileNotOverridden(roleId) {
   const file = findRoleFile(roleId);
-  if (file && requireOverride(readRoleOverride(file)).hasProfile !== undefined) {
+  if (file && (file.isCore || !parentOwns(file.filePath)) && requireOverride(readRoleOverride(file)).hasProfile !== undefined) {
     throw new Error(`ロール「${roleId}」の hasProfile は ${overrideFileName(file.fileName)} が決めています。そのファイルを直してから実行してください。`);
   }
 }
 
 /**
- * ロール設定ファイルの hasProfile を false に更新
+ * ロールの hasProfile を false に更新。持ち主で書く所を決める: 自分の JSON はそのまま、fork で親の持ち物は隣の上書き
+ * (CLAUDE.md ROLES・CORE_FILES)。core ロールは今どおり書かない(hasProfile は上書きで決まる)
  */
 function updateRoleHasProfile(roleId) {
   const file = findRoleFile(roleId);
-  // core ロールの JSON は上流の物なので書かない（hasProfile は上書きで決まる）
   if (!file || file.isCore) return false;
+  if (parentOwns(file.filePath)) {
+    const override = requireOverride(readRoleOverride(file));
+    const current = override.hasProfile ?? JSON.parse(fs.readFileSync(file.filePath, "utf-8")).hasProfile;
+    if (current === false) return false;
+    writeRoleOverrideKey(file, "hasProfile", false);
+    return true;
+  }
   const targetPath = file.filePath;
 
   const config = JSON.parse(fs.readFileSync(targetPath, "utf-8"));

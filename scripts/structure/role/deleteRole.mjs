@@ -11,8 +11,8 @@ import { fileURLToPath } from "url";
 import inquirer from "inquirer";
 import { failUsage, parseRoleOpsArgs } from "./cliArgs.mjs";
 import { cleanupRole } from "./generator/cleanupRole.mjs";
-import { overrideFileName, removeOverride } from "./overrides.mjs";
-import { listRoleFiles, ROLES_DIR } from "./rolePaths.mjs";
+import { overrideFileName, removeOverride, writeRoleOverrideKey } from "./overrides.mjs";
+import { listRoleFiles, parentOwns, ROLES_DIR } from "./rolePaths.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "../../..");
@@ -26,7 +26,7 @@ const USAGE = "pnpm generate role -- --delete <roleId> --confirm <roleId> [--kee
  */
 function getExistingRoles() {
   return listRoleFiles()
-    .map(({ fileName, filePath, isCore }) => {
+    .map(({ dir, fileName, filePath, isCore }) => {
       const content = JSON.parse(fs.readFileSync(filePath, "utf-8"));
 
       // プロフィール設定の存在確認
@@ -38,6 +38,7 @@ function getExistingRoles() {
         label: content.label,
         hasProfile,
         isCore,
+        dir,
         filePath,
         fileName,
       };
@@ -137,23 +138,33 @@ export default async function deleteRole(roleIdArg, options = {}) {
   // JSON ごと消すときは hasProfile を書き戻す先が無い（上書きが hasProfile を決めていても止めない）
   cleanupRole(selectedRoleId, { includeProfile: true, deleteEntity, updateHasProfile: !deleteJsonFiles });
 
-  // JSON ファイルの削除（隣の上書きも一緒に）
+  // JSON ファイルの削除（隣の上書きも一緒に）。fork で親の持ち物の JSON は消さない(CLAUDE.md CORE_FILES):
+  // ロールは上書きで enabled: false、プロフィールは消さずに 1 行で知らせる
   if (deleteJsonFiles) {
     // ロール設定ファイル
-    if (fs.existsSync(selectedRole.filePath)) {
-      fs.unlinkSync(selectedRole.filePath);
-      console.log(`  ✓ ${selectedRole.fileName} を削除`);
+    if (parentOwns(selectedRole.filePath)) {
+      const written = writeRoleOverrideKey(selectedRole, "enabled", false);
+      console.log(`  ✓ ${selectedRole.fileName} は親の持ち物なので消さず、${written} で enabled: false に`);
+    } else {
+      if (fs.existsSync(selectedRole.filePath)) {
+        fs.unlinkSync(selectedRole.filePath);
+        console.log(`  ✓ ${selectedRole.fileName} を削除`);
+      }
+      if (removeOverride(ROLES_DIR, selectedRole.fileName)) console.log(`  ✓ ${overrideFileName(selectedRole.fileName)} を削除`);
     }
-    if (removeOverride(ROLES_DIR, selectedRole.fileName)) console.log(`  ✓ ${overrideFileName(selectedRole.fileName)} を削除`);
 
     // プロフィール設定ファイル
     const profileFile = `${selectedRoleId}.profile.json`;
     const profilePath = path.join(PROFILES_DIR, profileFile);
-    if (fs.existsSync(profilePath)) {
-      fs.unlinkSync(profilePath);
-      console.log(`  ✓ ${profileFile} を削除`);
+    if (fs.existsSync(profilePath) && parentOwns(profilePath)) {
+      console.log(`  - ${profileFile} は親の持ち物なので残しました（ロールが無効なので生成されません）`);
+    } else {
+      if (fs.existsSync(profilePath)) {
+        fs.unlinkSync(profilePath);
+        console.log(`  ✓ ${profileFile} を削除`);
+      }
+      if (removeOverride(PROFILES_DIR, profileFile)) console.log(`  ✓ ${overrideFileName(profileFile)} を削除`);
     }
-    if (removeOverride(PROFILES_DIR, profileFile)) console.log(`  ✓ ${overrideFileName(profileFile)} を削除`);
   }
 
   console.log("\n削除完了しました。\n");

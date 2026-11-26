@@ -9,8 +9,8 @@ import { fileURLToPath } from "url";
 import inquirer from "inquirer";
 import formatDomainConfig from "../domain/spec/format.mjs";
 import { failUsage, parseRoleOpsArgs } from "./cliArgs.mjs";
-import { overrideFileName, readRoleOverride, requireOverride } from "./overrides.mjs";
-import { findRoleFile, isCoreRole, listRoleFiles } from "./rolePaths.mjs";
+import { overrideFileName, readRoleOverride, requireOverride, writeRoleOverrideKey } from "./overrides.mjs";
+import { findRoleFile, isCoreRole, listRoleFiles, parentOwns } from "./rolePaths.mjs";
 
 const USAGE = "pnpm generate role -- --toggle <roleId> --on|--off [-i]";
 
@@ -45,20 +45,29 @@ function toggleRoleEnabled(roleId, newState) {
     process.exit(1);
   }
 
-  // 上書きが enabled を決めているロールは JSON を書いても効かないので止める
-  const roleFile = findRoleFile(roleId);
-  if (requireOverride(readRoleOverride(roleFile)).enabled !== undefined) {
+  // fork で親の持ち物の JSON は書かない: 隣の上書きに enabled を書く(CLAUDE.md ROLES、intake.txt の roleDefinitions の上書き)
+  const roleFile = /** @type {import("./rolePaths.mjs").RoleFile} */ (findRoleFile(roleId));
+  const override = requireOverride(readRoleOverride(roleFile));
+  const toOverride = parentOwns(roleFile.filePath);
+  // 自分の JSON でも、上書きが enabled を決めていれば JSON を書いても効かないので止める
+  if (!toOverride && override.enabled !== undefined) {
     console.error(`エラー: ロール「${roleId}」の enabled は ${overrideFileName(roleFile.fileName)} が決めています。そのファイルを直してから pnpm generate role を実行してください。`);
     process.exit(1);
   }
 
-  const currentState = role.enabled ?? true;
+  const currentState = override.enabled ?? role.enabled ?? true;
   const targetState = newState !== undefined ? newState : !currentState;
 
   if (currentState === targetState) {
     console.log(
       `ロール「${role.label}」は既に ${targetState ? "有効" : "無効"} です。`
     );
+    return;
+  }
+
+  if (toOverride) {
+    const written = writeRoleOverrideKey(roleFile, "enabled", targetState);
+    console.log(`ロール「${role.label}」を ${targetState ? "有効" : "無効"} にしました（親の持ち物なので ${written} に書きました）。`);
     return;
   }
 

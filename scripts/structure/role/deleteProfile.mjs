@@ -10,7 +10,7 @@ import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import inquirer from "inquirer";
 import { failUsage, parseRoleOpsArgs } from "./cliArgs.mjs";
-import { findRoleFile } from "./rolePaths.mjs";
+import { findRoleFile, parentOwns } from "./rolePaths.mjs";
 import { cleanupProfile } from "./generator/cleanupProfile.mjs";
 import { removeOverride } from "./overrides.mjs";
 
@@ -141,14 +141,18 @@ export default async function deleteProfile(roleIdArg, options = {}) {
   console.log("");
   cleanupProfile(selectedRoleId, { deleteEntity });
 
-  // JSON ファイルの削除
+  // JSON ファイルの削除。fork で親の持ち物の JSON は消さない(CLAUDE.md CORE_FILES): 1 行で知らせる
   if (deleteJson) {
     const jsonPath = path.join(PROFILES_DIR, `${selectedRoleId}.profile.json`);
-    if (fs.existsSync(jsonPath)) {
-      fs.unlinkSync(jsonPath);
-      console.log(`  ✓ ${selectedRoleId}.profile.json を削除`);
+    if (fs.existsSync(jsonPath) && parentOwns(jsonPath)) {
+      console.log(`  - ${selectedRoleId}.profile.json は親の持ち物なので残しました（hasProfile: false なので生成されません）`);
+    } else {
+      if (fs.existsSync(jsonPath)) {
+        fs.unlinkSync(jsonPath);
+        console.log(`  ✓ ${selectedRoleId}.profile.json を削除`);
+      }
+      if (removeOverride(PROFILES_DIR, `${selectedRoleId}.profile.json`)) console.log(`  ✓ ${selectedRoleId}.profile.override.ts を削除`);
     }
-    if (removeOverride(PROFILES_DIR, `${selectedRoleId}.profile.json`)) console.log(`  ✓ ${selectedRoleId}.profile.override.ts を削除`);
   }
 
   console.log("\n削除完了しました。\n");

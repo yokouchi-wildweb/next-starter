@@ -64,6 +64,13 @@
 
 fork がロールを変える上書き（core ロールは `label`・`hasProfile`、足したロールは `label`・`hasProfile`・`enabled`）は、JSON の隣の `<JSON の名前>.override.ts`（`src/domains/core/userProfile/README.md`「fork の上書き」）。
 
+fork で親の持ち物（基準にある JSON。持ち主は所有の道具の `forkAddedFiles` で見る）を道具が変える時は、JSON を書かず・消さずに上書きへ書く:
+
+- `pnpm generate role -- --toggle <id> --on|--off` → `enabled`
+- `--delete <id> --remove-json` → ロールは `enabled: false`（プロフィールの JSON は残して 1 行で知らせる）
+- `--delete-profile <id>` → `hasProfile: false`（`--remove-json` でもプロフィールの JSON は残す）
+- 自分で足した JSON は今どおり JSON を書く・消す。親の持ち物か見分けられない（親の remote が無い等）時は書かずに止まる
+
 ### 状態をまとめて変える
 
 運用者が複数のユーザーの状態をまとめて変える(規約違反の一斉の処分保留・誤ロックの一斉の解除など)。

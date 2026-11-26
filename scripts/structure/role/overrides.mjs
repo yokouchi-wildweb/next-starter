@@ -125,4 +125,50 @@ export function removeOverride(dir, jsonName) {
   return true;
 }
 
+/**
+ * ロールの上書きに鍵を 1 つ書く(fork で親の持ち物のロールの JSON を変える所。JSON は書かない)。無い・空のファイルは型の import と一緒に作る、
+ * 既にあればその鍵の値だけを構文木の場所で置き換えるか末尾に足す(ほかの鍵・コメントはそのまま)。書く前に検査する
+ * @param {import("./rolePaths.mjs").RoleFile} file
+ * @param {string} key
+ * @param {boolean | string} value
+ * @returns {string} 書いたファイル名
+ */
+export function writeRoleOverrideKey(file, key, value) {
+  const typeName = file.isCore ? "CoreRoleOverride" : "RoleOverride";
+  const fileName = overrideFileName(file.fileName);
+  const filePath = path.join(file.dir, fileName);
+  const literal = JSON.stringify(value);
+  const text = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : "";
+  let next;
+  if (isBlankSource(text)) {
+    next = `import type { ${typeName} } from "../types";\n\nexport const override: ${typeName} = { ${key}: ${literal} };\n`;
+  } else {
+    const source = ts.createSourceFile(fileName, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+    let object = null;
+    for (const statement of source.statements) {
+      if (!ts.isVariableStatement(statement)) continue;
+      for (const d of statement.declarationList.declarations) {
+        let init = d.initializer;
+        while (init && (ts.isAsExpression(init) || ts.isSatisfiesExpression(init) || ts.isParenthesizedExpression(init))) init = init.expression;
+        if (d.name.getText() === "override" && init && ts.isObjectLiteralExpression(init)) object = init;
+      }
+    }
+    if (!object) throw new Error(`[${fileName}] export const override = { … } が読めないので書けません。直してから実行してください`);
+    const property = object.properties.find((p) => ts.isPropertyAssignment(p) && p.name.getText().replace(/^["']|["']$/g, "") === key);
+    if (property && ts.isPropertyAssignment(property)) {
+      next = text.slice(0, property.initializer.getStart()) + literal + text.slice(property.initializer.getEnd());
+    } else if (object.properties.length === 0) {
+      next = text.slice(0, object.getStart()) + `{ ${key}: ${literal} }` + text.slice(object.getEnd());
+    } else {
+      const last = object.properties[object.properties.length - 1];
+      const hasComma = object.properties.hasTrailingComma;
+      const at = hasComma ? text.indexOf(",", last.getEnd()) + 1 : last.getEnd();
+      next = text.slice(0, at) + `${hasComma ? "" : ","} ${key}: ${literal}` + text.slice(at);
+    }
+  }
+  requireOverride(parseOverride(fileName, next, keysOf(USER_DECLARATION, file.isCore ? "coreRoleDefinitions" : "roleDefinitions")));
+  fs.writeFileSync(filePath, next);
+  return fileName;
+}
+
 export { overrideFileName };

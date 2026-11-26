@@ -9,6 +9,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { copyByImports } from "../../../runner/test/lib.copyByImports.mjs";
+import { ENV, git } from "../../../../src/lib/forkOwnership/testRepos.mjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "../../../..");
 // 走らせる命令(この入口から import で届くコードは before で足す)
@@ -23,6 +24,9 @@ const COPY = [
   "src/domains/core/user/extensions",
   "src/domains/core/user/extensionPoints.ts",
   "src/registry",
+  // 持ち主の判定(rolePaths.mjs の parentOwns)が読む名前の宣言: Tier1 = 全部が自分の物
+  "repo.json",
+  "src/lib/CATALOG.md",
 ];
 let root;
 before(async () => {
@@ -243,4 +247,69 @@ test("pnpm generate role -- --delete / pnpm generate role -- --delete-profile: I
   assert.equal(run("deleteRole.mjs", "editor", "--confirm", "editor", "--remove-json").status, 0);
   assert.equal(fs.existsSync(rolePath("editor.role.json")), false);
   assert.equal(run("deleteRole.mjs", "nobody", "--confirm", "nobody").status, 1);
+});
+
+test("fork で親の持ち物の JSON は書かない・消さない: toggle は上書きの enabled、--delete --remove-json は enabled: false、hasProfile の書き戻しは上書き、プロフィールの JSON は残す。自分で足した JSON は今どおり", async () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), "role-fork-"));
+  try {
+    // 親(Tier1 役) = 道具と role の置き場の写し。fork = その clone(親の remote = upstream)
+    const parent = path.join(base, "parent");
+    await copyByImports({ from: repoRoot, to: parent, entries: COMMANDS.map((c) => `scripts/structure/role/${c}`), data: COPY });
+    fs.writeFileSync(path.join(parent, ".gitignore"), "node_modules\n");
+    fs.writeFileSync(path.join(parent, "src/domains/core/userProfile/profiles/contributor.profile.json"), JSON.stringify({ roleId: "contributor", fields: [{ name: "nick", label: "呼び名", fieldType: "string", formInput: "textInput" }] }));
+    git(parent, "init", "-q", "-b", "main");
+    git(parent, "add", "-A");
+    git(parent, "commit", "-q", "-m", "base");
+    const fork = path.join(base, "fork");
+    git(base, "clone", "-q", parent, fork);
+    git(fork, "remote", "rename", "origin", "upstream");
+    fs.symlinkSync(path.join(repoRoot, "node_modules"), path.join(fork, "node_modules"), "dir");
+    fs.writeFileSync(path.join(fork, "repo.json"), JSON.stringify({ repo_id: "child", tier: "leaf" }, null, 2) + "\n");
+    git(fork, "commit", "-q", "-am", "fork start");
+    const runIn = (script, ...args) => spawnSync("node", [path.join(fork, "scripts/structure/role", script), ...args], { cwd: fork, encoding: "utf8", input: "", timeout: 20000, env: ENV });
+    const roles = path.join(fork, "src/domains/core/user/roles");
+    const profiles = path.join(fork, "src/domains/core/userProfile/profiles");
+    const changed = () => git(fork, "status", "--porcelain", "--untracked-files=all").split("\n").filter(Boolean).map((line) => line.slice(3)).sort();
+    const overrideText = () => fs.readFileSync(path.join(roles, "contributor.role.override.ts"), "utf8");
+
+    // toggle: 親の JSON はそのまま、隣の上書きに enabled(作り直しは値だけ置き換える)
+    const on = runIn("toggleRole.mjs", "contributor", "--on");
+    assert.equal(on.status, 0, on.stderr);
+    assert.deepEqual(changed(), ["src/domains/core/user/roles/contributor.role.override.ts"]);
+    assert.match(overrideText(), /import type \{ RoleOverride \} from "\.\.\/types";[\s\S]*export const override: RoleOverride = \{ enabled: true \};/);
+    assert.equal(runIn("toggleRole.mjs", "contributor", "--off").status, 0);
+    assert.match(overrideText(), /\{ enabled: false \}/);
+
+    // 自分で足した JSON(まだコミットしていない物も)は今どおり JSON を書く
+    fs.writeFileSync(path.join(roles, "auditor.role.json"), JSON.stringify({ id: "auditor", label: "監査", category: "user", hasProfile: false }));
+    assert.equal(runIn("toggleRole.mjs", "auditor", "--off").status, 0);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(roles, "auditor.role.json"), "utf8")).enabled, false);
+    assert.equal(fs.existsSync(path.join(roles, "auditor.role.override.ts")), false);
+
+    // hasProfile の書き戻し(--delete-profile): 親のロールは上書きに hasProfile: false、--remove-json でも親のプロフィールの JSON は残す
+    fs.writeFileSync(path.join(roles, "contributor.role.override.ts"), 'import type { RoleOverride } from "../types";\n\n// 試し\nexport const override: RoleOverride = { enabled: true, hasProfile: true };\n');
+    const dropped = runIn("deleteProfile.mjs", "contributor", "--confirm", "contributor", "--remove-json");
+    assert.equal(dropped.status, 0, dropped.stderr);
+    assert.match(dropped.stdout, /contributor\.profile\.json は親の持ち物なので残しました/);
+    assert.ok(fs.existsSync(path.join(profiles, "contributor.profile.json")));
+    assert.match(overrideText(), /\/\/ 試し\nexport const override: RoleOverride = \{ enabled: true, hasProfile: false \};/);
+
+    // --delete --remove-json: 親の JSON は消さずに上書きで enabled: false。自分の JSON は今どおり消す
+    const deleted = runIn("deleteRole.mjs", "contributor", "--confirm", "contributor", "--remove-json");
+    assert.equal(deleted.status, 0, deleted.stderr);
+    assert.ok(fs.existsSync(path.join(roles, "contributor.role.json")));
+    assert.match(overrideText(), /\{ enabled: false, hasProfile: false \}/);
+    assert.equal(git(fork, "diff", "--name-only", "HEAD", "--", "src/domains/core/user/roles/contributor.role.json", "src/domains/core/userProfile/profiles/contributor.profile.json"), "");
+    assert.equal(runIn("deleteRole.mjs", "auditor", "--confirm", "auditor", "--remove-json").status, 0);
+    assert.equal(fs.existsSync(path.join(roles, "auditor.role.json")), false);
+
+    // 親の remote が無い = 見分けられない → 書かずに止まる
+    git(fork, "remote", "remove", "upstream");
+    const blind = runIn("toggleRole.mjs", "editor", "--off");
+    assert.notEqual(blind.status, 0);
+    assert.match(blind.stderr, /見分けられない/);
+    assert.equal(git(fork, "diff", "--name-only", "HEAD", "--", "src/domains/core/user/roles/editor.role.json"), "");
+  } finally {
+    fs.rmSync(base, { recursive: true, force: true });
+  }
 });
