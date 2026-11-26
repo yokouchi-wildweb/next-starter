@@ -239,20 +239,23 @@ test("moved: 引数の誤り(--base 無し・知らない引数・commit でな�
   });
 });
 
-// 計画書 04 の前の main(指令 23 の base)。履歴に無い repo(fork の浅い clone など)では飛ばす
+// 計画書 04 の前の main(指令 23 の base)と、指令 25・26 の移動が済んだ後の commit(比べ先)。
+// 比べ先を HEAD にしないのは、移した後でファイルを書き直すと git が改名と見なくなるから(frameDims の登録の形で
+// useFrameDimsStyle.ts を書き直した build b2 の注文 82)。履歴に無い repo(fork の浅い clone など)では飛ばす
 const SHEET04_BASE = "023ada03";
-const hasBase = (() => {
+const SHEET04_HEAD = "c2aebb59";
+const hasBase = [SHEET04_BASE, SHEET04_HEAD].every((rev) => {
   try {
-    execFileSync("git", ["rev-parse", "--verify", "--quiet", `${SHEET04_BASE}^{commit}`], { cwd: repo, stdio: "ignore" });
+    execFileSync("git", ["rev-parse", "--verify", "--quiet", `${rev}^{commit}`], { cwd: repo, stdio: "ignore" });
     return true;
   } catch {
     return false;
   }
-})();
+});
 
-test("d3: 今の repo で計画書 04 の前の main から: 指令 25・26 の 5 行が imports: に出る", { skip: !hasBase && `${SHEET04_BASE} が履歴に無い` }, () => {
+test("d3: 今の repo で計画書 04 の前の main から: 指令 25・26 の 5 行が imports: に出る", { skip: !hasBase && `${SHEET04_BASE}・${SHEET04_HEAD} が履歴に無い` }, () => {
   clearLibPackageCache();
-  const rows = movedRows(repo, { base: SHEET04_BASE });
+  const rows = movedRows(repo, { base: SHEET04_BASE, head: SHEET04_HEAD });
   const imports = Object.fromEntries(rows.imports.map((r) => [r.from, r.to]));
   for (const [from, to] of [
     ["@/hooks/useIsClient", "@/lib/isClient"],
