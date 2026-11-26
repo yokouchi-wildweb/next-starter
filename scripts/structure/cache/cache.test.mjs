@@ -51,7 +51,7 @@ test("render: tagged の get は行のキャッシュタグ・行の全部のキ
   );
   assert.match(text, /^\/\/ 生成物・編集不可: pnpm generate cache が src\/domains\/post\/entities\/post\/entity\.json の cache から生成する/);
   assert.match(text, /async function cachedGet\(id: string\) \{\n {2}"use cache: remote";\n {2}cacheLife\("days"\);\n {2}cacheTag\(cacheTagOf\("post", id\), cacheRowsTagOf\("post"\), cacheTagOf\("user"\)\);\n {2}return postBase\.get\(id\);/);
-  assert.match(text, /const get = \(id: string\) => readThrough\("post\.get", \(\) => cachedGet\(id\), \(\) => base\.get\(id\)\);/);
+  assert.match(text, /const get = \(id: string\) => readThrough\("post\.get", \(\) => cachedGet\(id\), \(\) => postBase\.get\(id\)\);/);
   assert.match(text, /async function cachedList\(\) \{[\s\S]*?cacheTag\(cacheTagOf\("post"\), cacheTagOf\("user"\)\);\n {2}return postBase\.search\(\{ limit: 100 \}\);/);
   assert.match(text, /return postBase\.search\(\{ where: \{ field: "isPublished", op: "eq", value: true \}, orderBy: \[\["createdAt", "DESC"\]\], limit: 20 \}\);/);
   assert.match(text, /async function cachedFresh\(\) \{\n {2}"use cache: remote";\n {2}cacheLife\(\{ revalidate: 60, expire: 600 \}\);\n {2}return postBase\.search\(\{ limit: 5 \}\);/);

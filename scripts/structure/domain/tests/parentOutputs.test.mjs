@@ -41,7 +41,7 @@ test("drizzle: 集まりの項目は列を出さない（型名の列関数も i
   assert.match(drizzle, /^import \{ defineTableCollections \} from "@\/lib\/crud\/server";$/m);
   assert.match(
     drizzle,
-    /^defineTableCollections\(ShowcaseTable, \(\) => import\("@\/domains\/showcase\/services\/server\/collections"\)\.then\(\(m\) => m\.collections\)\);$/m,
+    /^defineTableCollections\(ShowcaseTable, \(\) => import\("@\/domains\/showcase\/services\/server\/showcaseCollections"\)\.then\(\(m\) => m\.collections\)\);$/m,
   );
   // 従属（集まりを持たない）には出さない
   const child = fs.readFileSync(path.join(root, "src", "domains", "showcasePhoto", "entities", "showcasePhoto", "drizzle.ts"), "utf8");
