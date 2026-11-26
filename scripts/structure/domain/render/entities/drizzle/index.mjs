@@ -1,12 +1,14 @@
 // entities/drizzle.ts（表の定義）を組み立てる。列 → 外部キー → 中間テーブル → インデックス → 秘匿カラム → 集まりの登録 の順に部品を集め、最後に文字列にする
+// 手で持つ表の形の鍵(table・primaryKey・foreignKeys・checks・enums・fields[].column)は ./shape.mjs。鍵の無い config の出力は変わらない
 
 import { domainTableName } from "../../../domain/names.mjs";
 import { isCollectionFieldType } from "../../../spec/fieldTypes.mjs";
 import { fieldColumns, idColumn, systemColumns } from "./columns.mjs";
 import { belongsToColumns, renderDeferredForeignKeys } from "./foreignKeys.mjs";
 import { collectJunctionTables, renderJunctionTables } from "./junction.mjs";
-import { compositeUniqueIndexes, extraIndexes, extraIndexesHaveWhere, uniqueActiveIndexes } from "./indexes.mjs";
+import { compositeUniqueIndexes, extraIndexes, extraIndexesHaveExpression, extraIndexesHaveUnique, extraIndexesHaveWhere, uniqueActiveIndexes } from "./indexes.mjs";
 import { hiddenColumnsOf, renderHiddenColumnsDeclaration, validateHiddenColumns } from "./hiddenColumns.mjs";
+import { declaredEnums, shapedFieldColumn, tableShapeEntries } from "./shape.mjs";
 import { domainRel } from "../../../domain/context.mjs";
 
 /**
@@ -16,16 +18,20 @@ import { domainRel } from "../../../domain/context.mjs";
  */
 export function renderDrizzleEntity(ctx, workspace) {
   const { config, camel, pascal, snake } = ctx;
-  const tableName = domainTableName(snake, config);
+  const tableName = config.table ?? domainTableName(snake, config);
 
   const imports = new Set(["pgTable"]);
   const relationImports = new Map();
 
   // 列（id → belongsTo の外部キー → fields → システム列）。順序が生成物の列順になる
-  const fields = [idColumn(config, imports)];
+  const needs = { sql: false };
+  const fields = config.primaryKey ? [] : [idColumn(config, imports)];
   const { lines: fkLines, deferredForeignKeys } = belongsToColumns(ctx, workspace, tableName, imports, relationImports);
   fields.push(...fkLines);
-  const { lines: fieldLines, enumDefs, uniqueFields } = fieldColumns(ctx, imports);
+  const { lines: fieldLines, enumDefs, uniqueFields } = fieldColumns(ctx, imports, (field, defs) => shapedFieldColumn(ctx, field, imports, defs, needs));
+  const shapeEnums = declaredEnums(config, imports);
+  const selfFile = `${domainRel(ctx)}/entities/drizzle.ts`;
+  const shape = tableShapeEntries(config, tableName, workspace.rootDir, selfFile, imports, needs);
   fields.push(...fieldLines, ...systemColumns(config, imports));
 
   const junctionTables = collectJunctionTables(ctx, workspace, tableName, imports, relationImports);
@@ -33,20 +39,20 @@ export function renderDrizzleEntity(ctx, workspace) {
   // インデックス関連の import 判定（import 行は本文より先に確定させる）
   const needsPartialIndex = config.useSoftDelete && uniqueFields.length > 0;
   const hasCompositeUniques = (config.compositeUniques || []).length > 0;
-  if (needsPartialIndex || hasCompositeUniques) {
+  if (needsPartialIndex || hasCompositeUniques || extraIndexesHaveUnique(config)) {
     imports.add("uniqueIndex");
   }
   validateHiddenColumns(config);
   const hiddenColumns = hiddenColumnsOf(config);
   const hasExtraIndexes = Array.isArray(config.indexes) && config.indexes.length > 0;
-  if (hasExtraIndexes) {
+  if (hasExtraIndexes && config.indexes.some((idx) => !idx.unique)) {
     imports.add("index");
   }
 
   let content = `// ${domainRel(ctx)}/entities/drizzle.ts\n\n`;
   content += `import { ${Array.from(imports).sort().join(", ")} } from "drizzle-orm/pg-core";\n`;
   // ソフトデリート + ユニーク制約、または非ユニークインデックスの where 句があるときは sql を import
-  if (needsPartialIndex || (config.useSoftDelete && hasCompositeUniques) || extraIndexesHaveWhere(config)) {
+  if (needsPartialIndex || (config.useSoftDelete && hasCompositeUniques) || extraIndexesHaveWhere(config) || extraIndexesHaveExpression(config) || needs.sql) {
     content += `import { sql } from "drizzle-orm";\n`;
   }
   // crud の入口 ./server から読む名前(秘匿カラムの宣言・集まりの宣言)
@@ -64,8 +70,10 @@ export function renderDrizzleEntity(ctx, workspace) {
   relationImports.forEach((domainPascal, domainCamel) => {
     content += `import { ${domainPascal}Table } from "@/domains/${domainCamel}/entities/drizzle";\n`;
   });
+  for (const line of [...shapeEnums.importLines, ...shape.importLines]) content += `${line}\n`;
   content += `\n`;
-  if (enumDefs.length) content += enumDefs.join("\n") + "\n\n";
+  const allEnumDefs = [...shapeEnums.defs, ...enumDefs];
+  if (allEnumDefs.length) content += allEnumDefs.join("\n") + "\n\n";
 
   // pgTable の第 3 引数（インデックスと短縮 FK）
   const tableIndexes = [
@@ -73,6 +81,7 @@ export function renderDrizzleEntity(ctx, workspace) {
     ...(hasCompositeUniques ? compositeUniqueIndexes(config, tableName) : []),
     ...(hasExtraIndexes ? extraIndexes(config, tableName) : []),
     ...renderDeferredForeignKeys(deferredForeignKeys),
+    ...shape.entries,
   ];
 
   content += `export const ${pascal}Table = pgTable("${tableName}", {\n`;

@@ -41,10 +41,12 @@ function arrayColumn(name, required) {
 
 /**
  * fields の列定義。
+ * @param {(field: object, enumDefs: string[]) => { line: string, uniqueColumnName: string | null }} [shapedColumn]
+ *   列の形 column を持つ項目の行(./shape.mjs の shapedFieldColumn を呼び手が結ぶ。column の無い項目はここの今の形)
  * @returns {{ lines: string[], enumDefs: string[], uniqueFields: { name: string, columnName: string }[] }}
  *   uniqueFields = ソフトデリート時に部分インデックスへ変換する単一ユニーク列（.unique() を付けない）
  */
-export function fieldColumns(ctx, imports) {
+export function fieldColumns(ctx, imports, shapedColumn) {
   const { config, camel, pascal } = ctx;
   const lines = [];
   const enumDefs = [];
@@ -55,6 +57,12 @@ export function fieldColumns(ctx, imports) {
   (config.fields || []).forEach((f) => {
     // 主の集まりの項目は列を持たない（従属の行。collections オプションで読み書きする）
     if (isCollectionFieldType(f.fieldType)) return;
+    if (f.column !== undefined && shapedColumn) {
+      const shaped = shapedColumn(f, enumDefs);
+      lines.push(shaped.line);
+      if (shaped.uniqueColumnName) uniqueFields.push({ name: f.name, columnName: shaped.uniqueColumnName });
+      return;
+    }
     const defaultSuffix = f.defaultValue !== undefined ? `.default(${formatValue(f.defaultValue)})` : "";
 
     if (isEnumFieldType(f.fieldType)) {

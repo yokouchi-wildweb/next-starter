@@ -116,6 +116,9 @@ export const domainEntries = {
 
 手で持つ表の形の鍵(entity.json だけ、Neon のみ。今の 1 ファイルの形では書けなかった物):
 
+- 宣言から表を組む手段は生成器の 1 つ(`scripts/structure/domain/render/entities/drizzle/shape.mjs`・`indexes.mjs` が下の鍵を entities/drizzle.ts に書く、dbObjects は書かず名指すだけ、Firestore に書けば止める)
+
+
 | 鍵 | 形 | 例 |
 |---|---|---|
 | `table` | string(省略 = snake(plural)) | `"users"` |

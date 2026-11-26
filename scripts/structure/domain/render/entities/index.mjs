@@ -4,6 +4,7 @@ import path from "node:path";
 import { requireConfig } from "../../domain/context.mjs";
 import { file } from "../output.mjs";
 import { renderDrizzleEntity } from "./drizzle/index.mjs";
+import { hasTableShape } from "./drizzle/shape.mjs";
 import { renderModel } from "./model.mjs";
 import { renderSchema } from "./schema.mjs";
 import { renderEntityIndex, renderFirestoreEntity, renderFormEntity } from "./small.mjs";
@@ -21,6 +22,9 @@ export function renderEntities(ctx, workspace) {
     file(out("form.ts"), renderFormEntity(ctx), { label: "フォームエンティティを生成しました" }),
   ];
   if (ctx.dbEngine === "Firestore") {
+    if (hasTableShape(ctx.config)) {
+      throw new Error(`エラー: ${ctx.camel} は Firestore です。表の形の鍵(table・primaryKey・foreignKeys・checks・enums・dbObjects・fields[].column)は Neon だけ`);
+    }
     outputs.push(file(out("firestore.ts"), renderFirestoreEntity(ctx), { label: "Firestore エンティティを生成しました" }));
   } else {
     outputs.push(file(out("drizzle.ts"), renderDrizzleEntity(ctx, workspace), { label: "Drizzle エンティティを生成しました" }));
