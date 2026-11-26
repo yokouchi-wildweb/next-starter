@@ -50,7 +50,7 @@
 
 管理の枠の部位に付ける `data-slot`(管理の枠の 8 名 = `src/app/_layout/frame/parts.mjs` の管理の枠)と、この枠の部品が描く見出しの印 `admin-page-title`(一覧の見出しのうち source がこのフォルダのもの)。fork の CSS はこの名前で狙う(`[data-slot="admin-header"]` など)。枠の部品は見た目のための id・`data-admin-main-wrapper` を持たない(狙う先は data-slot だけ)。一覧と要素の照合 = `AdminFrame.test.tsx`(片方にしか無い名前・Primitives の部品の data-slot との衝突は失敗)
 
-- `admin-app-container` — AdminLayout の外枠(枠の根 `data-frame-root`)
+- `admin-app-container` — AdminLayout の外枠(枠の根 `data-frame-root`、`useFrameRootRef()` で frameDims に登録)
 - `admin-header` — AdminHeader(AdminPage の行)の `<header>`
 - `admin-header-title` — AdminHeader のタイトルの位置(ロゴの右隣)
 - `admin-header-center` — AdminHeader の中央の位置

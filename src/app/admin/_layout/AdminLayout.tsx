@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import { FrameParts } from "@/app/_layout/FrameParts";
+import { useFrameRootRef } from "@/lib/frameDims";
 import { useFrameAttributes } from "@/app/_layout/frame/useFrameAttributes";
 import { Flex } from "@/components/Layout/Flex";
 import { cn } from "@/lib/cn";
@@ -31,6 +32,8 @@ export type AdminLayoutProps = {
 export function AdminLayout({ children, className }: AdminLayoutProps) {
   const { extraClassName } = useAdminLayoutStore();
   const frameAttributes = useFrameAttributes(frameTable);
+  // 外枠を frameDims に登録する(body 直下の部品が測るのはこの枠、D92)
+  const frameRootRef = useFrameRootRef();
 
   // ヘッダーの行の高さは端末ごとに決まった値(--admin-header-row-height)なので測らない。--app-header-height は
   // styles/core/frame.css が枠の根に同じ値で書く(行を隠す宣言のときは 0)。inline には書かない。
@@ -46,6 +49,7 @@ export function AdminLayout({ children, className }: AdminLayoutProps) {
       )}
       data-slot="admin-app-container"
       data-frame-root=""
+      ref={frameRootRef}
       {...frameAttributes}
     >
       {/* ヘッダー固定 + メイン領域は配下が独自にスクロールを担う土台。

@@ -38,7 +38,7 @@ export function AcmeUserLayout({ children }: { children: ReactNode }) {
 export { AcmeUserLayout as default } from "./_layout/UserLayout.replace";
 ```
 
-3. 枠の構造そのもの(部品の並びや外枠)を変えるときだけ、UserLayout.tsx を `UserLayout.replace.tsx` へコピーして編集する(外枠の `data-frame-root`、隠しうる部位と本文の包みの `FramePart`、部位の `data-slot` は残す。無いと枠の宣言が効かない。枠の根でセッションや URL を読まない = 殻に入る)
+3. 枠の構造そのもの(部品の並びや外枠)を変えるときだけ、UserLayout.tsx を `UserLayout.replace.tsx` へコピーして編集する(外枠の `data-frame-root` と `ref={useFrameRootRef()}`(`@/lib/frameDims`。付けないと body 直下の部品が枠の寸法を測れない)、隠しうる部位と本文の包みの `FramePart`、部位の `data-slot` は残す。無いと枠の宣言が効かない。枠の根でセッションや URL を読まない = 殻に入る)
 - 組み立てでガードを書かない(範囲の守りは layout の隣の guard.ts の Guard だけ)。組み立て(スイッチ先)が旧ガード(authGuard 等)を呼ぶとルート地図の生成が失敗する(`pnpm generate routes`、src/lib/screens/README.md「ルート地図（`src/app/route-map.jsonl`）」)
 
 ### fill のページ(本文が画面の高さを埋める)
@@ -320,7 +320,7 @@ export default {
 - 外枠の配下(ページ・その中の fixed 要素)は px を直書きせずこれらを使う(例 `bottom-[calc(var(--app-bottom-nav-height)+8px)]`。規則: .claude/rules/core/style.md frame_dims)。ボトムナビを隠したページや PC では自動で 0 になる。`--app-*-height` は inline が勝つので fork の CSS(`src/styles/` 直下)からは上書きできない
 - `--app-header-height` は枠の宣言でヘッダーを隠すと測る前から 0(frame.css)、測った後も display: none で 0 に追随する。`--app-banner-height` は隠す対象外
 - BottomNavSpacer は `--app-bottom-nav-height` を読む 1 要素。BottomNav 本体の高さ(`style` の height)も同じ計算(`calc(<px> + var(--app-safe-area-bottom))`、safe-area は padding-bottom で避ける)。変数が safe-area を含むので、使う側で safe-area を足さない
-- body 直下へ portal する部品(GlobalToast・fork の BodyPortal の部品)は外枠の変数を継げない(:root の 0px になる) → `useFrameDimsStyle()`(`@/lib/frameDims`。変数の名前と外枠の印は `src/config/lib/frameDims.config.ts` で上書き)の style を portal した一番外の要素に付け、中は外枠の中と同じく `var(--app-bottom-nav-height)` などで書く。値は外枠 `[data-frame-root]` の計算値(header / banner / bottom-nav。隠している間・出さないデバイスでは 0)で、表示中の切り替えと画面幅の変化にも追随する。外枠を自分で読まない。GlobalToast もこれを使う
+- body 直下へ portal する部品(GlobalToast・fork の BodyPortal の部品)は外枠の変数を継げない(:root の 0px になる) → `useFrameDimsStyle()`(`@/lib/frameDims`。変数の名前は `src/config/lib/frameDims.config.ts` で上書き)の style を portal した一番外の要素に付け、中は外枠の中と同じく `var(--app-bottom-nav-height)` などで書く。値は枠が `useFrameRootRef()` で登録した外枠の計算値(文書の最初の `[data-frame-root]` を探さない。header / banner / bottom-nav。隠している間・出さないデバイスでは 0)で、表示中の切り替えと画面幅の変化にも追随する。外枠を自分で読まない。GlobalToast もこれを使う
 - 既定の DOM の差分(test で固定): Header の class `top-0` → `top-[var(--app-banner-height,0px)]`、外枠の style に `--app-bottom-nav-height:calc(64px + var(--app-safe-area-bottom))`(safe-area の無い端末では 64px と同じ)。banner が無い時の Header の計算値・見た目は同じ
 - 端の避け方(viewport-fit=cover が既定、root の枠の設定 `src/app/_layout/config.ts`(上書き `src/config/layout/root.config.ts`)): 枠の部品が `--app-safe-area-*` で端末の切り欠きを避ける。ヘッダー = 上(banner がある時は banner が上を避け、ヘッダーは `max(0, 上 − banner の高さ)`)と左右、banner = 上と左右、本文の包み・フッター = 左右、ボトムナビ = 下と左右。切り欠きの無い画面では全部 0 で見た目は同じ。ページ側で同じ辺を足さない(UserPage の `safeArea` は枠の部位を隠したページ用)
 - header / footer の決め方は「slot → 既定(`./Header` の UserNavigation・`./Footer` の UserFooter)」。config は値だけを持ち、部品を export しない
@@ -358,7 +358,7 @@ fork の CSS はこの名前で狙う(`[data-slot="header-shell"]` など)。
 ほかの見出しの印(`page-title`・`sec-title` など)は TextBlocks の部品が付ける(`src/components/TextBlocks/README.md`)。
 一覧と要素の照合 = `UserFrame.test.tsx`(片方にしか無い名前・Primitives の部品の data-slot との衝突は失敗)
 
-- `app-container` — UserLayout の外枠(枠の根 `data-frame-root`)
+- `app-container` — UserLayout の外枠(枠の根 `data-frame-root`、`useFrameRootRef()` で frameDims に登録)
 - `app-banner` — Banner の `#app-banner`
 - `header` — Header の `<header>`
 - `header-shell` — HeaderShell の行の箱

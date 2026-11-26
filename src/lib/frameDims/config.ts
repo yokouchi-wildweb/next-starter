@@ -7,8 +7,6 @@ import override from "@lib-config/frameDims";
 export type FrameDimVar = `--${string}`;
 
 export type FrameDimsConfig = {
-  /** 外枠の印(UserLayout・AdminLayout の外枠の公開の属性) */
-  rootSelector: string;
   /**
    * 部位の名前 → 寸法変数の名前。部位の名前は枠の部位一覧(src/app/_layout/frame/parts.mjs の data-slot)に合わせる。
    * 値の意味と書く所: src/app/(user)/_layout/README.md「寸法の CSS 変数」、変数を定義するのは src/styles/core/frame.css
@@ -21,7 +19,6 @@ export type FrameDimsConfig = {
 };
 
 const defaults: FrameDimsConfig = {
-  rootSelector: "[data-frame-root]",
   vars: {
     header: "--app-header-height",
     "app-banner": "--app-banner-height",

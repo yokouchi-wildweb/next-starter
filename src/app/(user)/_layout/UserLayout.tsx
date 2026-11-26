@@ -6,6 +6,7 @@ import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { useHeaderHeight } from "@/app/_layout/useHeaderHeight";
 import { FrameParts } from "@/app/_layout/FrameParts";
+import { useFrameRootRef } from "@/lib/frameDims";
 
 import { BackgroundLayer } from "./BackgroundLayer";
 import { Banner } from "./Banner";
@@ -61,6 +62,8 @@ export function UserLayout({
   background,
 }: UserLayoutProps) {
   const headerHeight = useHeaderHeight();
+  // 外枠を frameDims に登録する(body 直下の部品が測るのはこの枠、D92)
+  const frameRootRef = useFrameRootRef();
   const [bannerHeight, setBannerHeight] = useState(0);
   const hasBanner = banner !== undefined && banner !== null;
   // ボトムナビの高さは config の値 + 下の safe-area(ナビが実際に覆う高さ。固定要素・スペーサー・トーストがこれだけ避ける)。
@@ -96,6 +99,7 @@ export function UserLayout({
       <Flex
         data-slot="app-container"
         data-frame-root=""
+        ref={frameRootRef}
         direction="column"
         className="my-0 min-h-[var(--viewport-height,100dvh)] text-foreground"
         style={layoutStyle}
