@@ -26,7 +26,7 @@ import { buildDomainEntryAccess } from "../scripts/structure/domain/render/regis
 import { toDomainDisplay } from "../scripts/structure/registry/alpha/domainDisplay.mjs";
 import { diffTableFacts, tableFactsOf } from "../scripts/structure/domain-tables/facts.mjs";
 import { makeTempDir, renderExpected, resolveRepoImport } from "../scripts/structure/domain-tables/tables.mjs";
-import { checkExports, placementInput, planPlacement, readersOfRemoved } from "./20261126-014453-domain-decl.place.mjs";
+import { checkExports, placementInput, planPlacement, planReaders, readerOf, readersOfRemoved } from "./20261126-014453-domain-decl.place.mjs";
 
 const dialect = new PgDialect();
 const ADMIN_RULE = { roleCategories: ["admin"] };
@@ -559,8 +559,11 @@ async function main() {
         if (neon.length > 0) {
           const input = placementInput(repoRoot, plan.dir, neon);
           const placement = planPlacement(input);
-          const problems = placement.stops.length > 0 ? placement.stops : [...checkExports(input, placement), ...readersOfRemoved(repoRoot, placement.removes)];
+          const readers = placement.stops.length > 0 ? null : planReaders(repoRoot, placement);
+          const handled = new Set([...Object.keys(readers?.writes ?? {}), ...(readers?.generated ?? [])]);
+          const problems = readers ? [...readers.stops, ...checkExports(input, placement), ...readersOfRemoved(repoRoot, placement.removes).filter((line) => !handled.has(readerOf(line)))] : placement.stops;
           plan.stops.push(...problems.map((line) => `置き場: ${line}`));
+          if (placement.moved.size > 0) plan.notes.push(`置き場: ドメイン全体の物へ移る ${[...placement.moved.keys()].join(", ")}(読み手 ${Object.keys(readers?.writes ?? {}).length} ファイル)`);
         }
       }
       const ok = plan.stops.length === 0;
