@@ -21,7 +21,7 @@
 新しい API を作りたい
 │
 ├─ ドメインの標準 CRUD で足りる？
-│   └─ YES → createDomainRoute（手書き不要。domainEntry.ts の access で宣言）
+│   └─ YES → createDomainRoute（手書き不要。登録の entity.json の apiAccess で宣言）
 │
 ├─ 自分（ログインユーザー本人）のデータだけを扱う？
 │   └─ YES → createMeRoute（/api/me/**）
@@ -67,8 +67,8 @@ export const POST = createApiRoute(
   async (req, { user }) => exampleService.submit(user, await req.json()),
 );
 
-// services/server/domainEntry.ts（業務ドメインは登録の entities/<登録名>/entity.json の apiAccess に同じ値を書く）
-access: { read: "public", write: "none" },
+// entities/<登録名>/entity.json の apiAccess(登録表の access になる)
+"apiAccess": { "read": "public", "write": "none" },
 ```
 
 移行の後に確かめること: 他人の id を指定した要求 | 汎用 URL（`/api/<domain>`）での迂回 | 利用停止中の利用者 | 利用者のいない内部の呼び出し
@@ -113,10 +113,10 @@ access: { read: "public", write: "none" },
 
 | 宣言 | 通す人 | `ctx.user` | 使える場所 |
 |---|---|---|---|
-| `"public"` | 誰でも | Cookie があり**利用可能な status**（または宣言した `allowStatuses`）のときだけ利用者、他は `null` | createApiRoute・domainEntry.ts |
-| `"authenticated"` | ログイン中で利用可能な status | 必ずいる | createApiRoute・createDeviceRoute の `orUser`・domainEntry.ts（createMeRoute は固定でこれ） |
+| `"public"` | 誰でも | Cookie があり**利用可能な status**（または宣言した `allowStatuses`）のときだけ利用者、他は `null` | createApiRoute・entity.json の apiAccess |
+| `"authenticated"` | ログイン中で利用可能な status | 必ずいる | createApiRoute・createDeviceRoute の `orUser`・entity.json の apiAccess（createMeRoute は固定でこれ） |
 | `{ roles?, roleCategories? }` | 指定ロール / ロールカテゴリ | 必ずいる | 同上。プリセット `ADMIN_RULE` / `ADMIN_OR_DEBUGGER_RULE`（`src/lib/domainAccess/accessPresets.ts`） |
-| `"none"` | 誰も（存在しない扱いの 404） | — | **汎用 CRUD の domainEntry.ts だけ** |
+| `"none"` | 誰も（存在しない扱いの 404） | — | **汎用 CRUD の apiAccess だけ** |
 
 - 拒否: 未認証 → 401、権限不足・利用できない status → 403（JSON に `code: "unauthenticated" | "forbidden"`）。`"none"`・未登録のドメインは 404（`text/plain`、存在を隠す）
 - **`allowStatuses`**（全 Factory。createMeRoute・ページの守り（guard.ts / createLoader）と同じ語彙）: 既定は `USER_AVAILABLE_STATUSES`（active のみ）。
@@ -190,7 +190,7 @@ export const POST = createApiRoute(
 
 ### `createDomainRoute` / `createDomainIdRoute` - 汎用CRUDファクトリー
 
-`/api/[domain]/**` 配下の汎用 CRUD 専用。登録表（`src/registry/serviceRegistry.ts`、各ドメインの `services/server/domainEntry.ts` から生成）の行を wiring が差し込み、URL のドメイン名から引く。認可はサービスの遅延読み込みより先に判定する。
+`/api/[domain]/**` 配下の汎用 CRUD 専用。登録表（`src/registry/serviceRegistry.ts`、各ドメインの登録の `entities/<登録名>/entity.json` から生成）の行を wiring が差し込み、URL のドメイン名から引く。認可はサービスの遅延読み込みより先に判定する。
 
 ```ts
 import { createDomainRoute } from "@/wiring/apiRoute";
@@ -201,23 +201,23 @@ export const GET = createDomainRoute<any, { domain: string }>(
 );
 ```
 
-アクセスポリシーは各ドメインの `domainEntry.ts` の `{ service, access }` で宣言する（型必須）:
+アクセスポリシーは登録の `entities/<登録名>/entity.json` の `apiAccess` / `useImportExport` で宣言し、`pnpm generate registry` が登録表の行の `access` に組む:
 
 ```ts
-// src/domains/sample/services/server/domainEntry.ts（業務ドメインは pnpm generate domain が登録の entity.json から生成）
-export const domainEntries = {
+// src/registry/serviceRegistry.ts の行(生成物。sample の entity.json の apiAccess と useImportExport: true から)
   sample: {
-    service: () => import("./sampleService").then((m) => m.sampleService),
+    service: () => import("@/domains/sample/services/server/sampleService").then((m) => m.sampleService),
+    table: "samples",
+    idColumn: "id",
     access: {
       ...PUBLIC_READ,
       operations: { update: "authenticated", reorder: "authenticated", truncateAll: ADMIN_RULE, export: ADMIN_RULE, import: ADMIN_RULE },
     },
   },
-} satisfies DomainEntries;
 ```
 
-- 編集元: 自動生成ドメインは登録の `entities/<登録名>/entity.json` の `apiAccess` / `useImportExport`（entity.json に手で書き、`pnpm generate domain` / forge が domainEntry.ts に展開）。
-  コアドメインは domainEntry.ts を手書き、fork が core の access を変えるときは隣に `domainEntry.override.ts`。ルール値・スキーマは `src/domains/README.md`「ApiAccess（汎用 API アクセス制御）」、仕組みは `src/lib/domain/README.md`
+- 編集元: 登録の `entities/<登録名>/entity.json` の `apiAccess` / `useImportExport`（手で持つ登録 `generate: false` は `apiAccess` がそのまま access）。
+  fork が core の access を変えるときは登録のフォルダに `entity.override.ts`。ルール値・スキーマは `src/domains/README.md`「ApiAccess（汎用 API アクセス制御）」、仕組みは `src/lib/domain/README.md`
 - 管理データ操作 `truncateAll` / `export` / `import` は `operations` に明示したときだけ開く（未指定 = `"none"`）。
   全件削除・データ移行のルートは自分の門（`{ roleCategories: ["admin"] }`）に加えて、ドメインごとの access を `enforceAccessRule(rule, ctx.user)` で評価する（AND）
 - 解決順: `operations[操作名]` → `read` / `write` → `DEFAULT_ACCESS_RULE`(`src/lib/domainAccess/accessPresets.ts`)（`resolveAccessRule`、`src/lib/domain/definition/apiAccess.ts`）。

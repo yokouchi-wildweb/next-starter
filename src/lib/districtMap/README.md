@@ -2,7 +2,7 @@
 
 ## Overview
 
-アプリを「地区(district)」に分けて見つけ、各地区が何を持つかを 1 つの読み手で返す lib。今の宣言(ドメインの宣言 domain.json + entity.json(読み込みの部品 `readDomain` で読む)・domainEntry・extensionPoints・門の規則・`frame:`・CATALOG.md)が正本のままで、この読み手はそれを字面で読むだけ(ファイルは実行しない)。
+アプリを「地区(district)」に分けて見つけ、各地区が何を持つかを 1 つの読み手で返す lib。今の宣言(ドメインの宣言 domain.json + entity.json(読み込みの部品 `readDomain` で読む)・extensionPoints・門の規則・`frame:`・CATALOG.md)が正本のままで、この読み手はそれを字面で読むだけ(ファイルは実行しない)。
 
 地区 = 一つの性質を持つまとまり(名前空間・増設点・持ち主の単位)。種類は 7 つに閉じていて(中間の Tier が種類を足す口は無い)、決まりは種類の表 1 か所(`kinds.mjs` の `KINDS`)の属性で持ちます。
 
@@ -60,12 +60,12 @@ const { districts, problems } = readDistrictMap({ listDir, readText });
 
 - `kind`・`name`・`core`(features だけ true / false、ほかは null)・`dir`
 - `config` と `override`(`{ path, exists }`)・`uiConfig` と `uiOverride`(描画専用の `config.ui.ts` と `<名前>.ui.config.ts`、同じ形)
-- `apiKeys`(domainEntry のキー)・`tables`(地区の中の `pgTable` の表名、テストを除く)・`requires`(domainEntry の requires)
+- `apiKeys`(登録表に出す登録の登録名)・`tables`(地区の中の `pgTable` の表名、テストを除く)・`requires`(その登録の entity.json の requires)
 - ゲートの無い地区(種類の表の `hasGate: false`)のファイルはドメインを値も型も読まない: lint `import-boundaries/district-no-domains` がこの種類の表と地図の枠で地区を決める(D22。テストと `__tests__/` の下の補助・生成物は対象外)
 - `gates`(features に自分を持つ規則の名前)・`alwaysOpen`(domains だけ: 常設の明示の宣言 `export const alwaysOpen = true`。`gates` が空なら true、空でなければ false でないと止める)・`receptacles`(地区の中の extensionPoints.ts の点の名前)・`frame`(枠だけ)
 - `featureRequirements`(持ち主の config.ts の機能を要する値の宣言。判定は門番の検査、`src/config/README.md`)
 
-- domainEntry のキー(汎用 API・表の資源の名前)は地区の名前と別。1 ドメインが複数のキーを持ってよく、フォルダ名と違ってよい。キーは全部の地区を通して一意(重なりは problems)
+- 登録名(汎用 API・表の資源の名前)は地区の名前と別。1 ドメインが複数の登録を持ってよく、フォルダ名と違ってよい。キーは全部の地区を通して一意(重なりは problems)
 - 名前は種類の中で一意(features の core と業務の同名・枠の `frame:` の名前の重なりは problems)
 
 載せない物: 値・access・関数・門の pathPatterns と enabled・受け口の項目の一覧・所有(所有の軸は `src/lib/forkOwnership`・`src/lib/folderCatalog`(CATALOG.md))。

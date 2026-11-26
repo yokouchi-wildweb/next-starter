@@ -198,7 +198,7 @@ test("codeReferences: @/domains/<d>・@/domains/core/<d>（core/ を省いた書
     { path: "src/domains/core/wallet/y.ts", text: '// import { a } from "@/domains/coupon";\n/* import "@/domains/coupon"; */' },
     { path: "src/domains/core/coupon/internal.ts", text: 'import { b } from "@/domains/coupon/b";' },
     { path: "src/app/admin/(protected)/coupons/page.tsx", text: 'import { c } from "@/domains/coupon/c";' },
-    { path: "src/registry/serviceRegistry.ts", text: 'coupon: () => import("@/domains/core/coupon/services/server/domainEntry"),' },
+    { path: "src/registry/serviceRegistry.ts", text: 'coupon: { service: () => import("@/domains/core/coupon/services/server/couponService").then((m) => m.couponService) },' },
     { path: "src/domains/core/wallet/README.md", text: 'import { a } from "@/domains/coupon";' },
   ];
   assert.deepEqual(codeReferences(files, "src/domains/core/coupon", ["src/app/admin/(protected)/coupons"]), [

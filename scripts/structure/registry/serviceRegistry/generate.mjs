@@ -1,185 +1,91 @@
 #!/usr/bin/env node
 // scripts/structure/registry/serviceRegistry/generate.mjs
-// src/registry/serviceRegistry.ts を src/domains/**/services/server/domainEntry.ts（+ domainEntry.override.ts）から丸ごと生成する
+// src/registry/serviceRegistry.ts を登録の宣言(src/domains/**/entities/<登録名>/entity.json)と fork の上書き(隣の entity.override.ts)から丸ごと生成する(D336)
 //
 // 使い方:
-//   pnpm generate registry            # 生成して書き出す（pnpm generate domain / pnpm generate domain -- --delete の最後にも自動で走る）
-//   pnpm check registry               # 生成せず一致を検査（./check.mjs。ビルドの冒頭と test でも走る）
+//   pnpm generate registry            # 生成して書き出す(pnpm generate domain / pnpm generate domain -- --delete の最後にも自動で走る)
+//   pnpm check registry               # 生成せず一致を検査(./check.mjs。ビルドの冒頭と test でも走る)
 //
-// 書き出さず失敗する条件（./check.mjs の静的検査と同じ。キーと直し方を出す）:
-// - 移行前の手書き行（どの domainEntry.ts からも作られないキー）が、生成ヘッダの無い既存の serviceRegistry.ts にある
-// - キーの重複 / drizzleBase.ts・firestoreBase.ts があるのに domainEntry.ts が無い（例外表 ENTRY_EXCEPTIONS を除く）
-// - storageBindingFor の第 1 引数（record_type）がキーに無い / domainEntry.ts が読めない・許可外の静的 import
-// 生成ヘッダ付きの既存ファイルから消えるキー（pnpm generate domain -- --delete 後）は正当な除去として通す。
-// 詳細: src/lib/domain/README.md
+// 行 = registered が false でない登録 1 件: キー = 登録名、service = entity.json の service か既定 <登録名>Service(services/server/ の遅延読み込み)、
+// table = entity.table か snake(plural)(Firestore は null)、idColumn = 主キーの 1 列か id、access = ./access.mjs の accessOfDeclaration、requires。
+// 書き出さず失敗する条件(./check.mjs の静的検査と同じ。キーと直し方を出す): 登録名・表の重なり / サービスのファイルが無い /
+// drizzleBase.ts・firestoreBase.ts があるのに登録が無い / storageBindingFor の第 1 引数(record_type)がキーに無い / 上書きが読めない・許可外の静的 import /
+// 生成物の印の無い(手書きの)serviceRegistry.ts。詳細: src/lib/domain/README.md
 
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import {
-  ENTRY_EXCEPTIONS,
-  ENTRY_FILE,
-  GENERATED_HEADER,
-  OVERRIDE_FILE,
-  REGISTRY_FILE,
-  discoverDomainEntries,
-  overrideAttribute,
-  listStorageBindingRecordTypes,
-  readExistingRegistry,
-  readDeclarationFacts,
-} from "./discover.mjs";
-
-/** 移行前の手書き行の移し先を案内する */
-function legacyKeyHint(repoRoot, key, serviceImports) {
-  const features = path.join(repoRoot, "src", "domains");
-  // 旧 import の変数名（xService / xBase）からドメインのディレクトリを引く
-  const importedDir = [...serviceImports.entries()].find(([name]) => name.toLowerCase().startsWith(key.toLowerCase()))?.[1];
-  // 旧 import は tsconfig の別名（@/domains/user = core/user）で書かれていることがあるので core/ も探す
-  const candidates = [importedDir, importedDir && `core/${importedDir}`, key, `core/${key}`].filter(Boolean);
-  const dir = candidates.find((candidate) => fs.existsSync(path.join(features, candidate))) ?? key;
-  if (!fs.existsSync(path.join(features, dir))) {
-    return `対応するドメインが見つからない。fork が core パスに作ったドメインなら src/domains/core/<domain>/services/server/${ENTRY_FILE} を手書きする（access を変えるだけなら ${OVERRIDE_FILE}）`;
-  }
-  const facts = readDeclarationFacts(repoRoot, path.basename(dir));
-  if (!dir.startsWith("core/") && facts.handManaged) {
-    return `登録の entity.json が "generate": false なので pnpm generate domain は書かない → src/domains/${dir}/services/server/${ENTRY_FILE} を手書きし、access をそこへ移す（形: src/lib/domain/README.md「generate: false の業務ドメイン」）`;
-  }
-  if (!dir.startsWith("core/") && facts.hasDomainJson) {
-    return `access は登録の entity.json の apiAccess に移し、pnpm generate domain -- ${key} --yes --only registry で src/domains/${dir}/services/server/${ENTRY_FILE} を生成する`;
-  }
-  return `src/domains/${dir}/services/server/${ENTRY_FILE} を手書きする（core の access を fork で変えるなら隣に ${OVERRIDE_FILE}）`;
-}
+import { PRESET_MODULE, serializeAccess } from "./access.mjs";
+import { GENERATED_HEADER, OVERRIDE_EXPORT, OVERRIDE_FILE, REGISTRY_FILE, discoverRegistrations, listStorageBindingRecordTypes, overrideAttribute, readExistingRegistry } from "./discover.mjs";
 
 /**
- * 生成物のテキストと検査結果を作る（ファイルは書かない）
+ * 生成物のテキストと検査結果を作る(ファイルは書かない)
  * @param {string} repoRoot
  * @param {{ view?: import("./discover.mjs").FileView }} [options] view = ファイルの見え方。pnpm generate domain が「これから書く
- *   domainEntry.ts / drizzleBase.ts」を重ねて渡し、書く前に検査する（createOverlayView）
- * @returns {{ text: string, errors: string[], keys: string[], domains: import("./discover.mjs").DomainEntryInfo[] }}
+ *   サービス・drizzleBase.ts」を重ねて渡し、書く前に検査する(createOverlayView)
+ * @returns {{ text: string, errors: string[], keys: string[], rows: import("./discover.mjs").RegistryRow[] }}
  */
 export function buildServiceRegistry(repoRoot, { view } = {}) {
-  const domains = discoverDomainEntries(repoRoot, view);
-  const errors = [];
-  const keyOwners = new Map();
-
-  for (const domain of domains) {
-    errors.push(...domain.entryErrors, ...domain.overrideErrors);
-    if (!domain.entryPath && domain.hasBase && !(domain.dir in ENTRY_EXCEPTIONS)) {
-      errors.push(
-        `src/domains/${domain.dir}/services/server に drizzleBase.ts / firestoreBase.ts があるのに ${ENTRY_FILE} が無い` +
-          (domain.hasDomainJson && !domain.isCore && !domain.handManaged
-            ? `（pnpm generate domain -- ${domain.camel} --yes --only registry で生成する）`
-            : domain.hasDomainJson && !domain.isCore
-              ? `（登録の entity.json が "generate": false なので pnpm generate domain は書かない → 手書きする。形: src/lib/domain/README.md「generate: false の業務ドメイン」）`
-              : `（手書きする。登録表に載せないドメインは scripts/structure/registry/serviceRegistry/discover.mjs の ENTRY_EXCEPTIONS に理由付きで書く）`),
-      );
-    }
-    if (domain.entryPath && domain.keys.length === 0 && domain.entryErrors.length === 0) {
-      errors.push(`${domain.entryPath}: キーが 1 つも無い`);
-    }
-    for (const key of domain.keys) {
-      if (keyOwners.has(key)) {
-        errors.push(`キー "${key}" が重複している: ${keyOwners.get(key)} と ${domain.entryPath}`);
-      } else {
-        keyOwners.set(key, domain.entryPath);
-      }
-    }
-  }
-  // 1 テーブル 1 ドメイン（D58: 表名 → ドメインの逆引きが一意に決まるように）
-  const tableOwners = new Map();
-  for (const domain of domains) {
-    for (const [key, { table }] of Object.entries(domain.tables)) {
-      if (table === null) continue;
-      const owner = tableOwners.get(table);
-      if (owner) {
-        errors.push(`表 "${table}" が 2 つのキーにある: ${owner.path} の "${owner.key}" と ${domain.entryPath} の "${key}"（1 つの表は 1 つのドメインだけに登録する）`);
-      } else {
-        tableOwners.set(table, { key, path: domain.entryPath });
-      }
-    }
-  }
-
-  for (const [dir, reason] of Object.entries(ENTRY_EXCEPTIONS)) {
-    const domain = domains.find((item) => item.dir === dir);
-    if (!domain || !domain.hasBase || domain.entryPath) {
-      errors.push(`ENTRY_EXCEPTIONS の "${dir}"（${reason}）は不要になった（drizzleBase が無い・domainEntry.ts がある・ドメインが無い）。行を消す`);
-    }
-  }
+  const { rows, errors } = discoverRegistrations(repoRoot, view);
+  const keys = rows.map((row) => row.key);
 
   for (const { recordType, file } of listStorageBindingRecordTypes(repoRoot)) {
-    if (!keyOwners.has(recordType)) {
-      errors.push(`${file}: storageBindingFor("${recordType}") の record_type が登録表のキーに無い（${ENTRY_FILE} のキーと一致させる）`);
+    if (!keys.includes(recordType)) {
+      errors.push(`${file}: storageBindingFor("${recordType}") の record_type が登録表のキーに無い(登録名と一致させる)`);
     }
   }
 
   const existing = readExistingRegistry(repoRoot);
   if (existing) {
     if (existing.error) errors.push(`${REGISTRY_FILE}: ${existing.error}`);
-    if (!existing.generated) {
-      const legacy = existing.keys.filter((key) => !keyOwners.has(key));
-      for (const key of legacy) {
-        errors.push(`${REGISTRY_FILE}: 手書きの行 "${key}" はどの ${ENTRY_FILE} からも作られない → ${legacyKeyHint(repoRoot, key, existing.serviceImports)}`);
-      }
-    }
+    if (!existing.generated) errors.push(`${REGISTRY_FILE}: 生成物の印が無い(手書きの登録表)。行は登録の entity.json に移し(fork が core の access を変えるなら ${OVERRIDE_FILE})、消してから pnpm generate registry`);
   }
 
-  // 並び: core → 業務、ディレクトリ名順。alias は <camel>Entries（衝突時は番号を足す）
-  const ordered = [...domains]
-    .filter((domain) => domain.entryPath)
-    .sort((a, b) => (a.isCore !== b.isCore ? (a.isCore ? -1 : 1) : a.dir.localeCompare(b.dir)));
-  const aliases = new Map();
-  const usedAliases = new Set();
-  for (const domain of ordered) {
-    let alias = `${domain.camel}Entries`;
-    for (let i = 2; usedAliases.has(alias); i++) alias = `${domain.camel}Entries${i}`;
-    usedAliases.add(alias);
-    aliases.set(domain, alias);
+  // 並び: core → 業務、ドメインのフォルダ名順、ドメインの中は登録のフォルダの並び
+  const ordered = [...rows].sort((a, b) => (a.isCore !== b.isCore ? (a.isCore ? -1 : 1) : a.dir.localeCompare(b.dir)));
+  const overridden = ordered.filter((row) => row.overridePath);
+  const attribute = overridden.length > 0 ? overrideAttribute() : null;
+  const presets = new Set();
+  const body = [];
+  for (const row of ordered) {
+    body.push(`  ${row.key}: {`, `    service: () => import("${row.serviceImport}").then((m) => m.${row.service.export}),`);
+    body.push(`    table: ${JSON.stringify(row.table)},`, `    idColumn: ${JSON.stringify(row.idColumn)},`);
+    if (row.overridePath) {
+      body.push(`    access: ${row.key}Override.${attribute},`);
+    } else {
+      const { lines, names } = serializeAccess(row.access);
+      for (const name of names) presets.add(name);
+      body.push("    access: {", ...lines.map((line) => `      ${line}`), "    },");
+    }
+    if (row.requires.length > 0) body.push(`    requires: ${JSON.stringify(row.requires)},`);
+    body.push("  },");
   }
 
   const lines = [
     GENERATED_HEADER,
     `// ${REGISTRY_FILE}`,
     "//",
-    "// ドメイン名からサービス・表・主キーを引く正式な仕組み（登録表）。ドメインを 1 つ作ると行が増える一覧で、",
-    "// 下流が中身を足す登録口ではない。新しい用途で独自の対応表を作らず、この表を引く（src/wiring/domainRegistry.ts の getService 系）。",
-    "// - 業務ドメイン: pnpm generate domain が登録の entity.json から domainEntry.ts を生成 → この表に載る",
-    "// - core ドメイン・fork が core パスに作るドメイン: domainEntry.ts を手書き",
-    `// - fork が core の access を変える: 隣に ${OVERRIDE_FILE}（fork 所有、access だけ）`,
-    "// サービスは遅延読み込み（この表を import しても各ドメインのサービス・DB 接続は読み込まれない）。",
+    "// 登録名からサービス・表・主キー・権限を引く正式な仕組み(登録表)。登録(entities/<登録名>/entity.json)を 1 つ足すと行が増える一覧で、",
+    "// 下流が中身を足す登録口ではない。新しい用途で独自の対応表を作らず、この表を引く(src/wiring/domainRegistry.ts の getService 系)。",
+    "// - 行 = registered が false でない登録。access は entity.json の apiAccess / useImportExport から(手で持つ登録 generate:false は apiAccess のまま)",
+    `// - fork が core の access を変える: 登録のフォルダに ${OVERRIDE_FILE}(fork 所有、export const ${OVERRIDE_EXPORT} = { apiAccess })`,
+    "// サービスは遅延読み込み(この表を import しても各ドメインのサービス・DB 接続は読み込まれない)。",
     "// 検査: pnpm check registry / 詳細: src/lib/domain/README.md",
     "",
     'import type { DomainRegistry } from "@/lib/domain";',
-    "",
   ];
-  for (const domain of ordered) {
-    lines.push(`import { domainEntries as ${aliases.get(domain)} } from "${domain.importPath}";`);
-  }
-  const overridden = ordered.filter((domain) => domain.overridePath);
-  const attribute = overridden.length > 0 ? overrideAttribute() : null;
+  if (presets.size > 0) lines.push(`import { ${[...presets].sort().join(", ")} } from "${PRESET_MODULE}";`);
   if (overridden.length > 0) {
     lines.push("");
-    for (const domain of overridden) {
-      lines.push(`import { domainEntryOverrides as ${aliases.get(domain)}Overrides } from "${domain.overrideImportPath}";`);
-    }
+    for (const row of overridden) lines.push(`import { ${OVERRIDE_EXPORT} as ${row.key}Override } from "${row.overrideImport}";`);
   }
-  lines.push("", "export const serviceRegistry: DomainRegistry = {");
-  for (const domain of ordered) {
-    const alias = aliases.get(domain);
-    for (const key of domain.keys) {
-      if (domain.overrideKeys.includes(key)) {
-        lines.push(`  ${key}: { service: ${alias}.${key}.service, ${attribute}: ${alias}Overrides.${key} },`);
-      } else {
-        lines.push(`  ${key}: ${alias}.${key},`);
-      }
-    }
-  }
-  lines.push("};", "");
+  lines.push("", "export const serviceRegistry: DomainRegistry = {", ...body, "};", "");
 
-  return { text: lines.join("\n"), errors, keys: [...keyOwners.keys()], domains };
+  return { text: lines.join("\n"), errors, keys, rows };
 }
 
-/** 検査エラーの文面（pnpm generate domain の書く前の検査も同じ文面を出す） */
+/** 検査エラーの文面(pnpm generate domain の書く前の検査も同じ文面を出す) */
 export function formatRegistryErrors(errors) {
   return `${REGISTRY_FILE} を生成できません:\n${errors.map((error) => `  - ${error}`).join("\n")}`;
 }
@@ -203,7 +109,7 @@ export function generateServiceRegistry(repoRoot, { log = console.log } = {}) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, text);
   }
-  log(`${written ? "✓ 生成しました" : "✓ 変更なし"}: ${REGISTRY_FILE}（${keys.length} キー）`);
+  log(`${written ? "✓ 生成しました" : "✓ 変更なし"}: ${REGISTRY_FILE}(${keys.length} キー)`);
   if (existing?.generated) {
     if (added.length > 0) log(`  追加: ${added.join(", ")}`);
     if (removed.length > 0) log(`  除去: ${removed.join(", ")}`);

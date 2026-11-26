@@ -6,7 +6,7 @@
 import type { FeatureGateRule } from "@/featureGate";
 
 export const rule: FeatureGateRule = {
-  // 番号の確認・OTP の検証の API(domainEntry.ts が無いので汎用 API の住所は導かれない)
+  // 番号の確認・OTP の検証の API(登録表に出す登録が無いので汎用 API の住所は導かれない)
   pathPatterns: ["/api/phone-verification"],
   domains: [
     "core/phoneVerification",

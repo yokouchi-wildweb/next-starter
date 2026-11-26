@@ -5,9 +5,9 @@
 // 規則のファイルは字面で読むだけ(import しない = 表定義を proxy の束に載せない)。ドメインの有無・表・汎用 API のキーは地区の地図の読み手
 // src/lib/districtMap の domains の地区(dir・tables・apiKeys)から読む(目録 D1・D2)
 // 一覧の項目は `{ ...rule, name: "<ファイル名>", tables: [...], domainApiPaths: [...] }` になり(型 GatedFeatureRule)、生成一覧は名前の union FeatureName も出す(name は extensions.mjs が付ける)。
-// 汎用 API の住所: domains の各フォルダの services/server/domainEntry.ts の domainEntries のキー(地区の apiKeys)から /api/<key> を導く。
+// 汎用 API の住所: domains の各フォルダの登録表に出す登録(entities/<登録名>/entity.json、registered が false でない)の登録名(地区の apiKeys)から /api/<key> を導く。
 // 住所はドメインに付く(D34 K4): 生成一覧の domains(フォルダ・表・汎用 API の住所・持つ機能)に載り、開閉はドメインの開閉(持つ機能のどれかが開)で決まる。
-// 規則の項目の domainApiPaths は説明用(features list)で、pathPatterns には足さない。domainEntry の無いフォルダは住所を持たない。
+// 規則の項目の domainApiPaths は説明用(features list)で、pathPatterns には足さない。登録表に出す登録の無いフォルダは住所を持たない。
 // cron の門(目録 D10・D34 K4): どれかの規則の domains のフォルダを値で import する task は生成一覧の cronTasks(住所・読むドメイン)に載り、読むドメインが全部開のとき開く。
 // 規則の項目の cronPaths は説明用。
 // 設定の節の住所: 節の feature(規則名)から /admin/settings/<key> を導く(./gateSettingPaths.mjs、L1.17)。生成一覧の settingSections(住所・名指す機能)に載り、
@@ -50,7 +50,7 @@ export function readDomains(text) {
   if (TABLES_FIELD.test(text)) return { problem: "tables を手書きしている(domains: [ドメインのフォルダ] で書く。表名は生成器が導く)" };
   if (HANDWRITTEN_CRON_PATH.test(text)) return { problem: "pathPatterns に cron の住所 /api/cron/… を手書きしている(cron の門は task.ts の import から生成器が導く。消して pnpm generate extensions)" };
   const derivedField = DOMAIN_API_PATHS_FIELD.exec(text)?.[1];
-  if (derivedField) return { problem: `${derivedField} を手書きしている(汎用 API の住所は domains のフォルダの domainEntry.ts、設定の節の住所は節の feature から生成器が導く)` };
+  if (derivedField) return { problem: `${derivedField} を手書きしている(汎用 API の住所は domains のフォルダの登録の entity.json、設定の節の住所は節の feature から生成器が導く)` };
   const match = DOMAINS_FIELD.exec(text);
   if (!match) return /\bdomains\s*:/.test(text) ? { problem: "domains が文字列リテラルの配列でない" } : { domains: [] };
   const domains = [];
@@ -145,8 +145,6 @@ export function createFeatureTables(repoRoot) {
         }
         // 表は 0 でもよい(表を持たないドメインは tables: [] のまま、住所は下で導く)
         tables.push(...district.tables);
-        const entryProblem = map.problems.find((problem) => problem.startsWith(`${district.dir}/services/server/domainEntry.ts: `));
-        if (entryProblem) return { problem: `${label}: ${entryProblem}` };
         const paths = district.apiKeys.map((key) => `/api/${key}`);
         domainApiPaths.push(...paths.filter((path) => !domainApiPaths.includes(path)));
         domains.push({ folder, tables: [...district.tables], apiPaths: paths });

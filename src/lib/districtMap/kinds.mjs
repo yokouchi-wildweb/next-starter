@@ -86,8 +86,6 @@ export const OVERRIDE_FOLDERS = Object.freeze(Object.fromEntries(KINDS.flatMap((
  */
 export const CONTENTS_OVERRIDE_FOLDERS = Object.freeze(Object.fromEntries(KINDS.flatMap((k) => (k.override?.shape === "contents" && k.dir !== null ? [[k.override.folder, k.dir]] : []))));
 
-/** ドメインの登録(汎用 API・表のキーと requires)の置き場(地区の dir からの相対) */
-export const DOMAIN_ENTRY_FILE = "services/server/domainEntry.ts";
 /** 門の規則の置き場(1 ファイル 1 規則、名前 = ファイル名) */
 export const GATE_RULES_DIR = "src/featureGate/rules";
 /** 受け口の宣言のファイル名 */

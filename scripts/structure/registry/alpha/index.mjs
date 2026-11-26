@@ -1,5 +1,6 @@
 // scripts/structure/registry/alpha/index.mjs
-// src/registry の α(schemaRegistry・domainConfigRegistry・storagePurposeRegistry・adminDomains・messageRegistry・recordTargetRegistry)を走査から丸ごと組み立てる(親 D67)。
+// src/registry の α(schemaRegistry・domainConfigRegistry・storagePurposeRegistry・adminDomains・messageRegistry・recordTargetRegistry)と、
+// 各ドメインの表示の写し entities/display.ts・集める入口 entities/<種類>.ts を走査から丸ごと組み立てる(親 D67)。
 // 字面で読むだけ(表の定義・サービスは import しない)。core も業務ドメインも同じ走査で、手書きの区画は無い。
 // serviceRegistry は ../serviceRegistry/。コマンドの入口: ../generate.mjs・../check.mjs / 詳細: ../README.md
 
@@ -11,6 +12,7 @@ import { ENTITIES_DIR, ENTITY_DECLARATION_FILE, listDomains as listDeclaredDomai
 import { toCamelCase, toKebabCase, toSnakeCase } from "../../../../src/lib/stringCase/index.mjs";
 import { FEATURES_DIR, scanFeatureTables } from "../tableScan.mjs";
 import { domainDisplayPath, renderDomainDisplay } from "./domainDisplay.mjs";
+import { renderEntityCollectors } from "./entityCollectors.mjs";
 import { MESSAGE_REGISTRY_FILE, renderMessageRegistry } from "./messageRegistry.mjs";
 import { RECORD_TARGET_REGISTRY_FILE, renderRecordTargetRegistry } from "./recordTargetRegistry.mjs";
 
@@ -175,6 +177,8 @@ export function buildAlphaRegistries(repoRoot) {
       [ADMIN_DOMAINS_FILE]: renderAdminDomains(repoRoot, domains),
       [MESSAGE_REGISTRY_FILE]: messages.text,
       [RECORD_TARGET_REGISTRY_FILE]: recordTargets.text,
+      // 宣言のある全ドメインの集める入口 entities/<種類>.ts(./entityCollectors.mjs)
+      ...renderEntityCollectors(repoRoot, readDeclaredDomains(nodeDomainSource(repoRoot))),
     },
     problems: [...domainProblems, ...schema.problems, ...messages.problems, ...recordTargets.problems],
   };

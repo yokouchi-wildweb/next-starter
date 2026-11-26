@@ -1,16 +1,15 @@
-// 登録表（serviceRegistry.ts）の書く前の検査: これから書く domainEntry.ts を重ねた見え方で検査し、作れなければ何も書かない。
+// 登録表（serviceRegistry.ts）の書く前の検査: これから書くサービス・drizzleBase.ts を重ねた見え方で検査し、作れなければ何も書かない。
 // 実行: pnpm test scripts/structure/domain/tests/registryPrecheck.test.mjs
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { GENERATED_HEADER, createOverlayView, discoverDomainEntries } from "../../registry/serviceRegistry/discover.mjs";
+import { GENERATED_HEADER, createOverlayView, discoverRegistrations } from "../../registry/serviceRegistry/discover.mjs";
 import { createWorkspace } from "../domain/workspace.mjs";
 import { applyOutputs } from "../pipeline/apply.mjs";
 import { overlayFromOutputs, precheckServiceRegistry } from "../pipeline/serviceRegistry.mjs";
 import { file, writeOnce } from "../render/output.mjs";
-import { renderDomainEntry } from "../render/registry/domainEntry.mjs";
-import { copyRegistryBase, makeProject, removeAll } from "./helpers.mjs";
+import { makeProject, removeAll } from "./helpers.mjs";
 
 const cleanup = [];
 after(() => removeAll(cleanup));
@@ -18,8 +17,8 @@ after(() => removeAll(cleanup));
 const API_ACCESS = { read: "public", write: { roleCategories: ["admin"] } };
 
 /** 登録表が空の最小リポ + foo（宣言だけ） */
-async function project() {
-  const root = await copyRegistryBase(makeProject({ configs: { foo: { singular: "foo", plural: "foos", dbEngine: "Neon", apiAccess: API_ACCESS } }, cleanup }));
+function project() {
+  const root = makeProject({ configs: { foo: { singular: "foo", plural: "foos", dbEngine: "Neon", apiAccess: API_ACCESS } }, cleanup });
   fs.mkdirSync(path.join(root, "src", "registry"), { recursive: true });
   fs.writeFileSync(path.join(root, "src", "registry", "serviceRegistry.ts"), `${GENERATED_HEADER}\nexport const serviceRegistry: DomainRegistry = {\n};\n`);
   return root;
@@ -27,46 +26,50 @@ async function project() {
 
 function plannedOutputs(root) {
   const serverDir = path.join(root, "src", "domains", "foo", "services", "server");
-  return [
-    file(path.join(serverDir, "drizzleBase.ts"), "// base\n"),
-    file(path.join(serverDir, "domainEntry.ts"), renderDomainEntry({ camel: "foo", config: { apiAccess: API_ACCESS, plural: "foos" } })),
-    writeOnce(path.join(serverDir, "fooService.ts"), "// service\n"),
-  ];
+  return [file(path.join(serverDir, "drizzleBase.ts"), "// base\n"), writeOnce(path.join(serverDir, "fooService.ts"), "// service\n")];
 }
 
-test("重ねた見え方: これから書く domainEntry.ts のキーが見え、ディスクには何も無い", async () => {
-  const root = await project();
+/** foo の登録のサービスのファイルが無いという誤り */
+const MISSING_SERVICE = /src\/domains\/foo\/entities\/foo\/entity\.json: サービスのファイル src\/domains\/foo\/services\/server\/fooService\.ts が無い/;
+
+test("重ねた見え方: これから書くサービスのファイルが見え、ディスクには何も無い", () => {
+  const root = project();
   const workspace = createWorkspace(root);
   const overlay = overlayFromOutputs(plannedOutputs(root), workspace);
-  const domains = discoverDomainEntries(root, createOverlayView(overlay));
-  const foo = domains.find((d) => d.dir === "foo");
-  assert.deepEqual(foo.keys, ["foo"]);
-  assert.equal(foo.hasBase, true);
+  const { rows, errors } = discoverRegistrations(root, createOverlayView(overlay));
+  assert.deepEqual(errors, []);
+  assert.deepEqual(rows.map((row) => row.key), ["foo"]);
+  assert.equal(rows[0].table, "foos");
   assert.equal(fs.existsSync(path.join(root, "src", "domains", "foo", "services", "server")), false);
+  // ディスクだけの見え方では、まだ無いサービスのファイルを誤りとして出す
+  assert.ok(discoverRegistrations(root).errors.some((error) => MISSING_SERVICE.test(error)));
   // 既存ファイルがある writeOnce は重ねない（既存が残るので見え方も既存）
   fs.mkdirSync(path.join(root, "src", "domains", "foo", "services", "server"), { recursive: true });
   fs.writeFileSync(path.join(root, "src", "domains", "foo", "services", "server", "fooService.ts"), "// hand\n");
   assert.equal(overlayFromOutputs(plannedOutputs(root), workspace).has(path.join(root, "src", "domains", "foo", "services", "server", "fooService.ts")), false);
 });
 
-test("作れる状態なら通り、書いた後に pnpm generate registry が同じ結論になる", async () => {
-  const root = await project();
+test("作れる状態なら通り、書いた後に pnpm generate registry が同じ結論になる", () => {
+  const root = project();
   const workspace = createWorkspace(root);
   const outputs = plannedOutputs(root);
   assert.doesNotThrow(() => precheckServiceRegistry(workspace, outputs));
   applyOutputs(outputs, { log: () => {}, warn: () => {} });
-  assert.deepEqual(discoverDomainEntries(root).find((d) => d.dir === "foo").keys, ["foo"]);
+  const { rows, errors } = discoverRegistrations(root);
+  assert.deepEqual(errors, []);
+  assert.deepEqual(rows.map((row) => row.key), ["foo"]);
 });
 
-test("他のドメインに domainEntry.ts が無ければ、書く前に止まり何も書かない", async () => {
-  const root = await project();
+test("他のドメインに base があるのに登録が無ければ、書く前に止まり何も書かない", () => {
+  const root = project();
   const workspace = createWorkspace(root);
   const barServer = path.join(root, "src", "domains", "bar", "services", "server");
   fs.mkdirSync(barServer, { recursive: true });
   fs.writeFileSync(path.join(barServer, "drizzleBase.ts"), "// bar base\n");
   assert.throws(() => precheckServiceRegistry(workspace, plannedOutputs(root), { errorPrefix: "✗ " }), (err) => {
     assert.match(err.message, /^✗ src\/registry\/serviceRegistry\.ts を生成できません:\n/);
-    assert.match(err.message, /src\/domains\/bar\/services\/server に drizzleBase\.ts \/ firestoreBase\.ts があるのに domainEntry\.ts が無い/);
+    assert.match(err.message, /src\/domains\/bar\/services\/server に drizzleBase\.ts \/ firestoreBase\.ts があるのに登録\(entities\/<登録名>\/entity\.json\)が 1 つも無い/);
+    assert.doesNotMatch(err.message, MISSING_SERVICE, "これから書く foo のサービスは見えている");
     return true;
   });
   assert.equal(fs.existsSync(path.join(root, "src", "domains", "foo", "services", "server")), false, "何も書かれていない");

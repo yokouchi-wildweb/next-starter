@@ -1,4 +1,5 @@
-// pnpm generate domain のレジストリ更新（domainEntry.ts の生成 / schemaRegistry / domainConfigRegistry / objectEntry）の回帰テスト。
+// pnpm generate domain のレジストリ更新（registry カテゴリ / objectEntry）と、登録表の access の組み方・字面への直し方
+// (scripts/structure/registry/serviceRegistry/access.mjs)の回帰テスト。
 // serviceRegistry.ts 自体の生成・検査は scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs（pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs）。
 // 実行: pnpm test scripts/structure/domain/tests/registry.test.mjs
 import { after, test } from "node:test";
@@ -8,14 +9,9 @@ import os from "node:os";
 import path from "node:path";
 import { removeObjectEntry, scanObjectEntries, upsertObjectEntry } from "../text/objectEntry.mjs";
 import { renderRegistry } from "../render/registry/index.mjs";
-import { ACCESS_PRESETS, PRESET_RULES, serializeAccess, serializeRule } from "../render/registry/presetAccess.mjs";
-import { buildDomainEntryAccess, renderDomainEntry, renderDomainEntryOutput } from "../render/registry/domainEntry.mjs";
+import { ACCESS_PRESETS, PRESET_RULES, buildGeneratedAccess, serializeAccess, serializeRule } from "../../registry/serviceRegistry/access.mjs";
 import { domainTableName } from "../domain/names.mjs";
-import { withGeneratedMark } from "../render/output.mjs";
 import { createWorkspace } from "../domain/workspace.mjs";
-import { createDomainContext } from "../domain/context.mjs";
-import { applyOutputs } from "../pipeline/apply.mjs";
-import { writeDeclaration } from "./helpers.mjs";
 
 const SERVICE_REGISTRY = `import { userService } from "@/domains/core/user/services/server/userService";
 import { sampleService } from "@/domains/sample/services/server/sampleService";
@@ -50,17 +46,6 @@ function makeRoot(files) {
     fs.writeFileSync(abs, content);
   }
   return root;
-}
-
-const read = (root, rel) => fs.readFileSync(path.join(root, rel), "utf8");
-const silent = { log: () => {}, warn: () => {} };
-
-/** domainEntry.ts を書く（警告の件数を返す） */
-function writeDomainEntry(root, camel) {
-  const workspace = createWorkspace(root);
-  const warnings = [];
-  applyOutputs([renderDomainEntryOutput(createDomainContext(workspace, camel), (m) => warnings.push(m))], silent);
-  return warnings.length;
 }
 
 const API_ACCESS = { read: "public", write: { roleCategories: ["admin"] } };
@@ -137,7 +122,7 @@ test("removeObjectEntry: 無いキーは何も変えない・末尾カンマ無�
   assert.equal(removeObjectEntry(text, { objectName: "serviceRegistry", key: "b" }).text, "export const serviceRegistry = {\n  a: 1,\n};\n");
 });
 
-test("presetAccess: プリセットの写しが accessPresets.ts と一致する", async () => {
+test("access.mjs: プリセットの写しが accessPresets.ts と一致する", async () => {
   const { tsImport } = await import("tsx/esm/api");
   const config = await tsImport(path.resolve(import.meta.dirname, "../../../../src/lib/domainAccess/index.ts"), import.meta.url);
   for (const [name, value] of Object.entries({ ...ACCESS_PRESETS, ...PRESET_RULES })) {
@@ -151,9 +136,11 @@ test("registry カテゴリはドメインのフォルダの中だけを書く�
   for (const dir of ["src/domains/album", "src/domains/core/album"]) {
     const outputs = renderRegistry({ camel: "album", config, dir: path.join(root, dir), rel: dir }, createWorkspace(root));
     const paths = outputs.map((o) => o.path);
-    assert.ok(paths.length >= 2);
+    assert.ok(paths.length >= 1);
     for (const p of paths) assert.ok(p.startsWith(path.join(root, dir) + path.sep), p);
     assert.ok(paths.some((p) => p.endsWith("services/server/storagePurposes.ts")));
+    // 登録表の行は書かない(src/registry/serviceRegistry.ts は登録の entity.json から pnpm generate registry が作る)
+    for (const p of paths) assert.match(p, /services\/server\/(collections|storagePurposes)\.ts$/, "registry カテゴリは collections.ts / storagePurposes.ts だけ");
   }
 });
 
@@ -173,42 +160,16 @@ test("serializeRule / serializeAccess: 単一ルールは名前、read/write が
   assert.deepEqual(custom.names, []);
 });
 
-test("buildDomainEntryAccess: apiAccess 未宣言は ADMIN_ONLY、truncateAll は管理者、export/import は useImportExport が true のときだけ管理者（書かなければ none）", () => {
-  assert.deepEqual(buildDomainEntryAccess(null), {
+test("buildGeneratedAccess: apiAccess 未宣言は ADMIN_ONLY、truncateAll は管理者、export/import は useImportExport が true のときだけ管理者（書かなければ none）", () => {
+  assert.deepEqual(buildGeneratedAccess(null), {
     ...ACCESS_PRESETS.ADMIN_ONLY,
     operations: { truncateAll: PRESET_RULES.ADMIN_RULE, export: "none", import: "none" },
   });
-  const closed = buildDomainEntryAccess({ apiAccess: API_ACCESS, useImportExport: false });
+  const closed = buildGeneratedAccess({ apiAccess: API_ACCESS, useImportExport: false });
   assert.deepEqual(closed.operations, { truncateAll: PRESET_RULES.ADMIN_RULE, export: "none", import: "none" });
-  const withOps = buildDomainEntryAccess({ apiAccess: { ...API_ACCESS, operations: { update: "authenticated" } }, useImportExport: true });
+  const withOps = buildGeneratedAccess({ apiAccess: { ...API_ACCESS, operations: { update: "authenticated" } }, useImportExport: true });
   assert.equal(withOps.operations.update, "authenticated");
   assert.deepEqual(withOps.operations.export, PRESET_RULES.ADMIN_RULE);
-});
-
-test("renderDomainEntry: 遅延 import のキー付きオブジェクトと、使うプリセットだけの import 行", () => {
-  const text = renderDomainEntry({ camel: "sample", config: { apiAccess: API_ACCESS, useImportExport: false } });
-  assert.match(text, /^import type \{ DomainEntries \} from "@\/lib\/domain";$/m);
-  assert.match(text, /^import \{ ADMIN_RULE, PUBLIC_READ \} from "@\/lib\/domainAccess";$/m);
-  assert.match(text, /service: \(\) => import\("\.\/sampleService"\)\.then\(\(m\) => m\.sampleService\),/);
-  assert.match(text, /\.\.\.PUBLIC_READ,\n\s+operations: \{\n\s+truncateAll: ADMIN_RULE,\n\s+export: "none",\n\s+import: "none",/);
-  assert.match(text, /\} satisfies DomainEntries;\n$/);
-  // 静的 import は許可された 2 モジュールだけ（pnpm check registry が縛る契約）
-  const imports = [...text.matchAll(/^import .* from "([^"]+)";$/gm)].map((m) => m[1]);
-  assert.deepEqual(imports, ["@/lib/domain", "@/lib/domainAccess"]);
-});
-
-test("renderDomainEntry: table / idColumn を service の直後に書く（表名は plural、無ければ snake_case。Firestore は null）", () => {
-  const withPlural = renderDomainEntry({ camel: "sampleCategory", config: { apiAccess: API_ACCESS, plural: "sample_categories", dbEngine: "Neon" } });
-  assert.match(
-    withPlural,
-    /service: \(\) => import\("\.\/sampleCategoryService"\)\.then\(\(m\) => m\.sampleCategoryService\),\n\s+table: "sample_categories",\n\s+idColumn: "id",\n\s+access: \{/,
-  );
-  assert.match(renderDomainEntry({ camel: "blogPost", config: { apiAccess: API_ACCESS, plural: "blogPosts" } }), /table: "blog_posts",/);
-  assert.match(renderDomainEntry({ camel: "blogPost", config: { apiAccess: API_ACCESS } }), /table: "blog_post",/);
-  assert.match(renderDomainEntry({ camel: "blogPost", config: null }), /table: "blog_post",\n\s+idColumn: "id",/);
-  const firestore = renderDomainEntry({ camel: "chatLog", config: { apiAccess: API_ACCESS, dbEngine: "Firestore" } });
-  assert.match(firestore, /table: null,\n\s+idColumn: null,/);
-  assert.doesNotMatch(firestore, /table: "/);
 });
 
 test("domainTableName: 表の定義の生成器と同じ式（plural 優先、snake_case）", () => {
@@ -218,25 +179,11 @@ test("domainTableName: 表の定義の生成器と同じ式（plural 優先、sn
   assert.equal(domainTableName("sample_tag", null), "sample_tag");
 });
 
-test("domainEntry: entity.json から services/server/domainEntry.ts を書き、再実行で差分なし。apiAccess 未宣言は警告", () => {
-  const root = makeRoot({});
-  writeDeclaration(root, "sample", { apiAccess: API_ACCESS, useImportExport: true });
-  writeDeclaration(root, "save", {});
-  assert.equal(writeDomainEntry(root, "sample"), 0);
-  const first = read(root, "src/domains/sample/services/server/domainEntry.ts");
-  // 書いた中身 = 雛形の中身 + 生成物の印(render/output.mjs の file())
-  assert.equal(first, withGeneratedMark("domainEntry.ts", renderDomainEntry({ camel: "sample", config: { apiAccess: API_ACCESS, useImportExport: true } })));
-  assert.equal(writeDomainEntry(root, "sample"), 0);
-  assert.equal(read(root, "src/domains/sample/services/server/domainEntry.ts"), first);
-  assert.equal(writeDomainEntry(root, "save"), 1);
-  assert.match(read(root, "src/domains/save/services/server/domainEntry.ts"), /\.\.\.ADMIN_ONLY,/);
-});
-
-test("domainEntry: apiAccess.commands(データ操作のコマンドの上書き)は書いた時だけ access.commands に出る", () => {
-  const without = buildDomainEntryAccess({ apiAccess: { read: "public", write: { roleCategories: ["admin"] } } });
+test("buildGeneratedAccess / serializeAccess: apiAccess.commands(データ操作のコマンドの上書き)は書いた時だけ access.commands に出る", () => {
+  const without = buildGeneratedAccess({ apiAccess: { read: "public", write: { roleCategories: ["admin"] } } });
   assert.equal("commands" in without, false);
-  const withCommands = buildDomainEntryAccess({ apiAccess: { read: "public", write: { roleCategories: ["admin"] }, commands: { delete: "deny", export: "allow" } } });
+  const withCommands = buildGeneratedAccess({ apiAccess: { read: "public", write: { roleCategories: ["admin"] }, commands: { delete: "deny", export: "allow" } } });
   assert.deepEqual(withCommands.commands, { delete: "deny", export: "allow" });
-  const text = renderDomainEntry({ camel: "sample", config: { apiAccess: { read: "public", write: { roleCategories: ["admin"] }, commands: { delete: "deny" } } } });
-  assert.match(text, /commands: \{\n\s+delete: "deny",\n\s+\},/);
+  const { lines } = serializeAccess(buildGeneratedAccess({ apiAccess: { read: "public", write: { roleCategories: ["admin"] }, commands: { delete: "deny" } } }));
+  assert.deepEqual(lines.slice(-3), ["commands: {", '  delete: "deny",', "},"]);
 });

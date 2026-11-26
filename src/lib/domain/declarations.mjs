@@ -3,4 +3,4 @@
 // (source を渡して読む)ので、地区の地図(src/lib/districtMap)のような node 以外でも読まれる lib からも使える。"./node" はこれと同じ物 + nodeDomainSource
 
 export * from "./definition/declaration.mjs";
-export { findRegistration, isGeneratedRegistration, listDomains, primaryRegistrationOf, readDomain, readDomains } from "./definition/readDomain.mjs";
+export { findRegistration, isGeneratedRegistration, isRegisteredRegistration, listDomains, primaryRegistrationOf, readDomain, readDomains } from "./definition/readDomain.mjs";

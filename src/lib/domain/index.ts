@@ -13,12 +13,11 @@ export type { DomainField, DomainFieldCollection, DomainFieldOption, DomainField
 export type { DomainFieldInfo } from "./types/field";
 export type { JunctionTableInfo } from "./types/junction";
 export type {
-  DomainEntries,
-  DomainEntryOverrides,
   DomainRegistry,
   DomainRegistryEntry,
   DomainService,
   DomainServiceLookup,
+  EntityOverride,
 } from "./types/registry";
 export type { HasManyRelationInfo, RelationInfo, RelationType } from "./types/relation";
 

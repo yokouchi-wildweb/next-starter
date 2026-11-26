@@ -22,33 +22,18 @@ import { DOMAIN_DECLARATION_VERSION, FIELD_TYPES } from "../src/lib/domain/node.
 import { readDistrictMapAt } from "../src/lib/districtMap/node.mjs";
 import { toCamelCase, toKebabCase, toSnakeCase } from "../src/lib/stringCase/index.mjs";
 import { domainTableName } from "../scripts/structure/domain/domain/names.mjs";
-import { buildDomainEntryAccess } from "../scripts/structure/domain/render/registry/domainEntry.mjs";
+import { accessOfDeclaration } from "../scripts/structure/registry/serviceRegistry/access.mjs";
 import { toDomainDisplay } from "../scripts/structure/registry/alpha/domainDisplay.mjs";
 import { diffTableFacts, tableFactsOf } from "../scripts/structure/domain-tables/facts.mjs";
 import { makeTempDir, renderExpected, resolveRepoImport } from "../scripts/structure/domain-tables/tables.mjs";
 import { checkExports, placementInput, planPlacement, planReaders, readerOf, readersOfRemoved } from "./20261126-014453-domain-decl.place.mjs";
 
 const dialect = new PgDialect();
-const ADMIN_RULE = { roleCategories: ["admin"] };
 
 /** SQL の式 → 文字列 */
 function sqlText(value) {
   const query = dialect.sqlToQuery(value);
   return query.params.reduce((text, param, index) => text.replace(`$${index + 1}`, JSON.stringify(param)), query.sql);
-}
-
-/**
- * 宣言の登録の access(登録表に載る値): 手で持つ登録(generate:false)は apiAccess をそのまま(動いている値を全部書く)。
- * 生成する登録は apiAccess の read / write と、operations の既定(truncateAll は管理者、export / import は useImportExport)に
- * apiAccess.operations の書いた鍵を重ねる(今の生成器の buildDomainEntryAccess とは重ねる順だけが違う。生成のドメインは
- * truncateAll・export・import を書かないので同じ値)。宣言から作る登録表(区切りの最後の指令)がこの規則を使う
- */
-export function accessOfDeclaration(entity) {
-  // 手で持つ登録(generate:false)は apiAccess をそのまま登録する(書かなければ生成と同じ fail-closed の既定)
-  if (entity.generate === false && entity.apiAccess) return structuredClone(entity.apiAccess);
-  const generated = buildDomainEntryAccess(entity);
-  const written = entity.apiAccess?.operations ?? {};
-  return { ...generated, operations: { ...generated.operations, ...written } };
 }
 
 /** 登録表の値の比べる形 */

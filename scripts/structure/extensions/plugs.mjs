@@ -1,6 +1,6 @@
 // scripts/structure/extensions/plugs.mjs
 // plugs の点(宣言に plugs: true)の項目を集める: 項目は差す側の自分のフォルダ <ドメイン>/plugs/<点の名前>/<名前>.ts(x)(lib は <lib>/plugs/…、D38・D40)。
-// 差す側 = 地区の地図の domains と lib の地区(src/lib/districtMap の見つけ方)。項目に domain(lib の項目は null)と requires(ドメインの domainEntry の requires)を付け、
+// 差す側 = 地区の地図の domains と lib の地区(src/lib/districtMap の見つけ方)。項目に domain(lib の項目は null)と requires(ドメインの登録の entity.json の requires)を付け、
 // 使う時に門番の gate.plugs が閉じたドメインの項目を外す(D26)。上限 max・順位 order もここで効かせる。書式: ./README.md
 
 import { existsSync, readdirSync } from "node:fs";

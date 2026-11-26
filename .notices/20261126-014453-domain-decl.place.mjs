@@ -24,7 +24,8 @@ import ts from "typescript";
 
 import { nodeDomainSource, readDomains } from "../src/lib/domain/node.mjs";
 import { toPascalCase, toSnakeCase } from "../src/lib/stringCase/index.mjs";
-import { ENTITY_KINDS, moveIntoRegistration, renderEntityCollector } from "../scripts/structure/domain/render/entities/collector.mjs";
+import { ENTITY_KINDS, moveIntoRegistration } from "../scripts/structure/domain/render/entities/collector.mjs";
+import { renderEntityCollector } from "../scripts/structure/registry/alpha/entityCollectors.mjs";
 import { diffTableFacts, tableFactsOf } from "../scripts/structure/domain-tables/facts.mjs";
 import { makeTempDir, resolveRepoImport } from "../scripts/structure/domain-tables/tables.mjs";
 

@@ -2,14 +2,13 @@
 // 登録表(serviceRegistry)の拡張点の宣言(リテラルだけ。読み手 = src/lib/districtMap/declarations.mjs)。書式: scripts/structure/extensions/README.md
 
 export const extensionPoints = {
-  // 上書きの対象: 各ドメインの domainEntry.ts。fork は隣の domainEntry.override.ts(export const domainEntryOverrides = { <キー>: <値> })で
-  // 次の鍵の値を丸ごと差し替える(1 つのファイルで差し替えられる属性は 1 つなので、鍵は 1 つだけ)
-  domainEntries: {
+  // 上書きの対象: 各登録の宣言 entities/<登録名>/entity.json。fork は隣の entity.override.ts(export const entityOverride = { apiAccess })で
+  // 登録表(src/registry/serviceRegistry.ts)のその行の access を丸ごと差し替える(generate:false の登録の apiAccess と同じ意味。生成の既定は重ねない)
+  entities: {
     change: "override",
-    overrides: "src/domains/**/services/server/domainEntry.ts",
-    export: "domainEntryOverrides",
-    keyedBy: "domainEntries",
+    overrides: "src/domains/**/entities/*/entity.json",
+    export: "entityOverride",
     side: "server",
-    overrideOf: ["access"],
+    overrideOf: ["apiAccess"],
   },
 } as const;

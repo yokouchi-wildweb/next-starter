@@ -130,7 +130,7 @@ import { couponIssuerGrantService } from "@/domains/core/couponIssuerGrant/servi
 | `POST` | `/api/me/coupon-issuer/issue` | 当期クーポン発行 → `{ coupon, created, period }` |
 | `GET` | `/api/me/coupon-issuer/coupons?limit` | 自分が発行したクーポン一覧（過去周期・inactive 含む、既定 24 / 上限 100） |
 | `PATCH` | `/api/admin/coupon-issuer-grants/[id]` | `{ action: approve\|reject\|suspend\|reinstate\|update_settings, settings?, adminNote? }` |
-| 汎用 | `/api/couponIssuerGrant/**` | admin の一覧・検索（domainEntry `couponIssuerGrant`、access ADMIN_ONLY） |
+| 汎用 | `/api/couponIssuerGrant/**` | admin の一覧・検索（登録 `couponIssuerGrant`、access ADMIN_ONLY） |
 
 ### 管理用リードモデル（一覧統計・ドリルダウン）
 

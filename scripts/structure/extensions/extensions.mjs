@@ -17,7 +17,7 @@ import { checkRequiresCoverage } from "./derive/gateRequires.mjs";
 import { WHEN_INPUTS_NAME, renderWhenInputs } from "./derive/gateWhen.mjs";
 import { checkSettingRoles } from "./derive/settingRoles.mjs";
 import { checkOverrideKeys } from "./overrideKeys.mjs";
-import { checkOrphans, filesOverrideNamesOf, listSrcFiles, targetOf } from "./orphans.mjs";
+import { checkOrphans, filesOverrideNamesOf, listSrcFiles } from "./orphans.mjs";
 import { checkMessageGuards } from "./derive/messageGuards.mjs";
 import { checkOverrides, isBlankSource } from "./overrides.mjs";
 import { checkPureImports, literalPropOf, overrideKeys } from "./pureImports.mjs";
@@ -491,7 +491,7 @@ export function oldFramePlaceProblems(repoRoot) {
 /** 消した例外の受け口(注文 36、D22・D34)。項目が残っていれば代わりのやり方を出して止める */
 const OLD_EXCEPTION_PLACES = [
   { dir: "src/featureGate/alwaysOnExceptions", message: "常時実行の入口の例外の受け口は無くなった。exception(結線が閉じうるドメインを読む)→ 読みをやめ、ゲートの無い地区が宣言した点の項目としてドメインから受け取る / registry(fork の手書きの登録表)→ 自分のドメインの plugs/<点>/<名前>.ts の項目にする(D22)" },
-  { dir: "src/featureGate/dependencyExceptions", message: "依存の検査の例外の受け口は無くなった。読む側のドメインの domainEntry.ts の requires・gate.enabled(\"<規則>\")・src/featureGate/required/<規則>.ts のどれかで守るか、読みを点の項目にする(D22)" },
+  { dir: "src/featureGate/dependencyExceptions", message: "依存の検査の例外の受け口は無くなった。読む側の登録の entity.json の requires・gate.enabled(\"<規則>\")・src/featureGate/required/<規則>.ts のどれかで守るか、読みを点の項目にする(D22)" },
   { dir: "scripts/proxies/alwaysOnExceptions", message: "常時実行の入口の例外の旧い置き場(受け口そのものも無くなった)。src/featureGate/alwaysOnExceptions と同じく、読みを点の項目にする(D22)" },
 ];
 
@@ -634,7 +634,7 @@ export function planExtensions(repoRoot) {
   const overrideCheck = checkOverrides(repoRoot, { isTier1 });
   // 孤立の検査は 1 つ(.override・.replace、D165)。上書きの対象の点が受けた上書きの鍵は宣言と照らす
   const orphanCheck = checkOrphans(repoRoot, { points: declared, receptacleDirs: allDirs });
-  problems.push(...switchCheck.problems, ...overrideCheck.problems, ...orphanCheck.problems, ...checkOverrideKeys(repoRoot, orphanCheck.overrides, targetOf));
+  problems.push(...switchCheck.problems, ...overrideCheck.problems, ...orphanCheck.problems, ...checkOverrideKeys(repoRoot, orphanCheck.overrides));
   // 止められない連絡(required)の守り: 連絡の定義と上書きを字面で読む(./derive/messageGuards.mjs)
   problems.push(...checkMessageGuards(repoRoot, declared, listSrcFiles(repoRoot)));
   const intakePlan = planIntake(repoRoot, declared, switchCheck.switches);

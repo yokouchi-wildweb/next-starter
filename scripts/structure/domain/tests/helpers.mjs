@@ -7,9 +7,6 @@ import { fileURLToPath } from "node:url";
 import { createDomainContext } from "../domain/context.mjs";
 import { createWorkspace } from "../domain/workspace.mjs";
 import { applyOutputs } from "../pipeline/apply.mjs";
-import { TYPES_MODULE } from "../render/registry/domainEntry.mjs";
-import { PRESET_MODULE } from "../render/registry/presetAccess.mjs";
-import { copyBySpecifiers } from "../../../runner/test/lib.copyByImports.mjs";
 import { DOMAIN_DECLARATION_VERSION } from "../../../../src/lib/domain/node.mjs";
 
 export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
@@ -56,16 +53,6 @@ export function writeDeclaration(root, folder, config) {
 
 /** 主の登録の entity.json の場所(テストが書き換える時) */
 export const entityDeclarationPath = (root, folder) => path.join(root, "src", "domains", folder, "entities", path.basename(folder), "entity.json");
-
-/**
- * 登録表の検査(domainEntry の静的 import の決まり)が読む物を一時プロジェクトへ写す:
- * tsconfig.json(@/ の paths、データ)と、生成される domainEntry.ts が import する先(生成器の定数 TYPES_MODULE・PRESET_MODULE)から
- * import で届くファイル(copyBySpecifiers。置き場が動いても直さずに済む)
- */
-export async function copyRegistryBase(root) {
-  await copyBySpecifiers({ from: repoRoot, to: root, specifiers: [TYPES_MODULE, PRESET_MODULE], data: ["tsconfig.json"] });
-  return root;
-}
 
 /** 一時プロジェクトの workspace と domain context */
 export function contextFor(root, domain) {

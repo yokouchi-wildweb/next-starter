@@ -1,4 +1,4 @@
-// 上書きの型(RoleOverride・CoreRoleOverride・ProfileOverride・CronTaskOverride・DomainEntryOverrides)の鍵は宣言の overrideOf と同じ(L1.38)。
+// 上書きの型(RoleOverride・CoreRoleOverride・ProfileOverride・CronTaskOverride・EntityOverride)の鍵は宣言の overrideOf と同じ(L1.38)。
 // TypeScript のコンパイラで見本のファイルを型検査し、宣言を書き換えた見え方(メモリの中だけ)では型が宣言に付いてくることも見る
 // 実行: pnpm test scripts/structure/extensions/overrideTypes.test.mjs
 import assert from "node:assert/strict";
@@ -39,17 +39,18 @@ const HEAD = `type Eq<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false)
 import type { CoreRoleOverride, RoleOverride } from "@/domains/core/user/types/role";
 import type { ProfileOverride } from "@/domains/core/userProfile/types";
 import type { CronTaskOverride } from "@/lib/cron";
-import type { DomainEntryOverrides } from "@/lib/domain";
+import type { EntityOverride } from "@/lib/domain";
 import type { DomainApiAccessConfig } from "@/lib/domainAccess";
 `;
 
-test("今の型の鍵 = 宣言の鍵(core ロールに enabled・プロフィールに fields は無い)。domainEntry の値は access の型", () => {
+test("今の型の鍵 = 宣言の鍵(core ロールに enabled・プロフィールに fields は無い)。登録の上書きは apiAccess だけで、値は access の型", () => {
   const probe = `${HEAD}
 export const role: Eq<keyof RoleOverride, "label" | "hasProfile" | "enabled"> = true;
 export const coreRole: Eq<keyof CoreRoleOverride, "label" | "hasProfile"> = true;
 export const profile: Eq<keyof ProfileOverride, "tags" | "searchFields" | "audit"> = true;
 export const cron: Eq<keyof CronTaskOverride, "schedule" | "disabled"> = true;
-export const entry: Eq<DomainEntryOverrides[string], DomainApiAccessConfig> = true;
+export const entity: Eq<keyof EntityOverride, "apiAccess"> = true;
+export const entityAccess: Eq<EntityOverride["apiAccess"], DomainApiAccessConfig> = true;
 `;
   assert.deepEqual(diagnose(probe), []);
 });

@@ -423,7 +423,11 @@ test("1 行スイッチ: 組は差替点の宣言から。宣言の無い .defau
 
 // ---- plugs の点(差す側の <ドメイン>/plugs/<点>/ から集める、D38・D40・D41・D53) ----
 
-const ENTRY_REQUIRES = (key, requires) => `export const domainEntries = { ${key}: { service: () => import("./s"), table: null, idColumn: null, requires: ${JSON.stringify(requires)} } };\n`;
+/** ドメインの宣言: domain.json と登録 entities/<登録名>/entity.json(requires は登録の entity.json に書く) */
+const declared = (dir, registration, entity = {}) => ({
+  [`${dir}/domain.json`]: JSON.stringify({ domainConfigVersion: "2.0" }),
+  [`${dir}/entities/${registration}/entity.json`]: JSON.stringify(entity),
+});
 
 test("宣言: plugs は true だけで、dir・ignore と併用不可(上書き・形・導出・常時・files は受ける、注文 25)。itemsOf は同じ宣言の files を持つ plugs の点だけ", () => {
   const read = (body) => readDeclaration("x/extensionPoints.ts", point(body)).problems;
@@ -444,9 +448,9 @@ test("plugs の点: 全ドメイン(core・業務)と lib の plugs/<点>/ を�
   const plan = planExtensions(
     fixture({
       "src/lib/routeFactory/extensionPoints.ts": point(`  routeUsers: { change: "add", plugs: true, export: "plug", type: { from: "@/lib/routeFactory/points", name: "RouteUserPlug" }, side: "server", target: "wiring" },\n  routeLazies: { change: "add", plugs: true, export: "plug", type: { from: "@/lib/routeFactory/points", name: "L" }, side: "server", load: "lazy" },`),
-      "src/domains/core/auth/services/server/domainEntry.ts": ENTRY_REQUIRES("auth", []),
+      ...declared("src/domains/core/auth", "auth", { requires: [] }),
       "src/domains/core/auth/plugs/routeUsers/session.ts": P,
-      "src/domains/acme/services/server/domainEntry.ts": ENTRY_REQUIRES("acme", ["wallet", "coupon"]),
+      ...declared("src/domains/acme", "acme", { requires: ["wallet", "coupon"] }),
       "src/domains/acme/plugs/routeUsers/kiosk/index.ts": P,
       "src/domains/acme/plugs/routeUsers/session.ts": P,
       "src/domains/acme/plugs/routeLazies/late.ts": P,
@@ -474,7 +478,7 @@ test("plugs の点の runtimeGuard(起動時の処理): runtime が nodejs の�
   const plan = planExtensions(
     fixture({
       "src/lib/startup/extensionPoints.ts": point('  startupTasks: { change: "add", plugs: true, export: "task", type: { from: "@/lib/startup/points", name: "StartupTask" }, side: "server", load: "lazy", runtimeGuard: true },'),
-      "src/domains/acme/services/server/domainEntry.ts": ENTRY_REQUIRES("acme", []),
+      ...declared("src/domains/acme", "acme", { requires: [] }),
       "src/domains/acme/plugs/startupTasks/plain.ts": T(null),
       "src/domains/acme/plugs/startupTasks/node.ts": T("nodejs"),
       "src/domains/acme/plugs/startupTasks/edge.ts": T("edge"),
@@ -749,7 +753,7 @@ test("消した例外の受け口(注文 36): src/featureGate/alwaysOnExceptions
 
 test("override: 上流(Tier1)は 1 本も出荷しない(空も)。fork は空も中身ありも通る。cron は task.ts の隣の task.override.ts。素の override.ts は override ではない(孤立は orphans.mjs)", () => {
   const root = fixture({
-    "src/domains/core/user/services/server/domainEntry.ts": "export const domainEntry = {};\n",
+    "src/domains/core/user/entities/user/entity.json": "{}\n",
     "src/domains/core/x/thing.tsx": "export const x = 1;\n",
     "src/domains/core/user/coreRoles/user.role.json": "{}\n",
     "src/domains/core/userProfile/profiles/user.profile.json": "{}\n",
@@ -757,7 +761,7 @@ test("override: 上流(Tier1)は 1 本も出荷しない(空も)。fork は空�
     "src/app/api/cron/wallet-expire/task.override.ts": "export const cronOverride = { disabled: true };\n",
     "src/app/api/cron/other/task.override.ts": "// 親の上書きを外す\n",
     "src/app/api/cron/legacy/override.ts": "export const cronOverride = { disabled: true };\n",
-    "src/domains/core/user/services/server/domainEntry.override.ts": "export const domainEntryOverrides = {};\n",
+    "src/domains/core/user/entities/user/entity.override.ts": "export const entityOverride = {};\n",
     "src/domains/core/x/thing.override.tsx": "export const x = 1;\n",
     "src/domains/core/user/coreRoles/user.role.override.ts": "export const override = {};\n",
     "src/domains/core/userProfile/profiles/user.profile.override.ts": "export const override = {};\n",
@@ -771,7 +775,7 @@ test("override: 上流(Tier1)は 1 本も出荷しない(空も)。fork は空�
       "src/app/api/cron/other/task.override.ts:true",
       "src/app/api/cron/wallet-expire/task.override.ts:false",
       "src/domains/core/user/coreRoles/user.role.override.ts:false",
-      "src/domains/core/user/services/server/domainEntry.override.ts:false",
+      "src/domains/core/user/entities/user/entity.override.ts:false",
       "src/domains/core/userProfile/profiles/user.profile.override.ts:false",
       "src/domains/core/x/thing.override.tsx:false",
     ],
@@ -1226,13 +1230,13 @@ test("when・値の import・住所のパターン: 知らないドメイン・c
 });
 
 test("requires の被覆: 機能のドメインの requires の先が自分・依存先(推移的)・常設のどれにも無ければ止め、直し方(dependsOn に足す機能)を示す", () => {
-  const entry = (requires) => `export const domainEntries = {\n  x: { table: null${requires ? `, requires: ${JSON.stringify(requires)}` : ""} },\n} satisfies DomainEntries;\n`;
+  const entry = (name, requires) => declared(`src/domains/core/${name}`, name, requires ? { requires } : {});
   const domains = {
-    "src/domains/core/wallet/services/server/domainEntry.ts": entry(),
-    "src/domains/core/purchase/services/server/domainEntry.ts": entry(["wallet"]),
-    "src/domains/core/reward/services/server/domainEntry.ts": entry(["wallet"]),
-    "src/domains/core/audit/services/server/domainEntry.ts": entry(),
-    "src/domains/core/log/services/server/domainEntry.ts": entry(["audit"]),
+    ...entry("wallet"),
+    ...entry("purchase", ["wallet"]),
+    ...entry("reward", ["wallet"]),
+    ...entry("audit"),
+    ...entry("log", ["audit"]),
   };
   const r = (body) => gateRule(body);
   const plan = planExtensions(

@@ -81,7 +81,7 @@ export async function investigate(userId: string, recentIp: string) {
 }
 ```
 
-- admin 用の HTTP は `POST /api/admin/device-fingerprint/similar`(userId か compositeHash)と `/compare`(2 ユーザーの比較)を同梱済み。一覧・検索は汎用 `/api/deviceFingerprint`(domainEntry の access `ADMIN_ONLY`)
+- admin 用の HTTP は `POST /api/admin/device-fingerprint/similar`(userId か compositeHash)と `/compare`(2 ユーザーの比較)を同梱済み。一覧・検索は汎用 `/api/deviceFingerprint`(登録の access `ADMIN_ONLY`)
 
 ## API
 

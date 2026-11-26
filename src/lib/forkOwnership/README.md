@@ -240,7 +240,7 @@ pnpm workflow ownership selfKeep --pre=<区間の前> --target=<区間の merge 
 
 - 受け口の行(生成区画 `# === AUTO-GENERATED intake START ===` 〜 `END`)は `pnpm generate extensions` が書き、ずれは `pnpm check extensions` が止める(`scripts/structure/extensions/README.md`「受け口の一覧の生成区画」)。src の下の行は全部ここで、出どころは 4 つの型:
   - 画面の差し替え(型 1): ルートの `page.tsx`(ルートの地図と同じ見つけ方、上流のルートごと)・枠の 1 行スイッチの `layout.tsx` = `edit` / 1 行スイッチ(src の下の `<名前>.default` の隣の素の名前 = `edit`、`<名前>.replace` = `add`。ちょうど 1 つの点の上流の項目のスイッチ(例 `src/domains/core/auth/plugs/frameSession/session.ts`)もこれ)/ `_layout`・`_screen` の隣の `*.replace` と下のリポの枠の宣言 `frame.override.ts` = `add`
-  - 受け口と上書き(型 2・3): 宣言の受け口のフォルダ(`<dir>/*.{ts,tsx}` とフォルダ形 `<dir>/*/**`)= `add` / 上書きの対象の点(宣言の `overrides`)の隣の `.override.ts`(cron の `task.override.ts`・`domainEntry.override.ts`・ロール / core ロール / プロフィール)= `edit`、`addable` の対象(ロール・プロフィールの JSON)= `add`
+  - 受け口と上書き(型 2・3): 宣言の受け口のフォルダ(`<dir>/*.{ts,tsx}` とフォルダ形 `<dir>/*/**`)= `add` / 上書きの対象の点(宣言の `overrides`)の隣の `.override.ts`(cron の `task.override.ts`・登録の `entity.override.ts`・ロール / core ロール / プロフィール)= `edit`、`addable` の対象(ロール・プロフィールの JSON)= `add`
   - 置き場(型 4): 持ち主の `extensionPoints.ts` の placement の点 = `src/config/**`(src/lib/districtMap)・`src/styles/*.css`(src/styles/core)・`src/business/**`(src/lib/business)・`src/app/favicon.ico`(src/app/_layout)・`src/app/**/_components/**`(src/lib/screens)= `edit`、`src/lib/CATALOG.md`(src/lib/folderCatalog)= `append`
   - 生成物と区画: 生成器の `phase.json` の `outputs` = `generated`(registries・`src/wiring/dbAgent.ts`・地区の地図・ルートの地図・mail の色・profiles の entities・`src/**/extensions/**`)、`regions` = `region`(`src/registry/**/*.ts`)。区画の最後に並ぶ(同じファイルなら生成物が効く)
 - 種類は手書きだったときと同じ(`scripts/structure/extensions/intakeFromDeclarations.test.mjs`。生成器の雛形 `src/app/admin/_template/**/page.tsx` はルートでないので行が無い)
@@ -322,7 +322,7 @@ pnpm workflow ownership selfKeep --pre=<区間の前> --target=<区間の merge 
   - `1` 丸ごと置き換え: `<名前>.default.ts(x)` とその隣の素の名前 → `write` = `<名前>.replace.<拡張子>`、`source` = スイッチ
     - 画面の `page.tsx` とその `_screen/**` の部品 → `write` = `<ルート>/_components/`、`source` = `page.tsx`
     - 枠の 1 行スイッチの `layout.tsx` とその `_layout/**` の部品 → `write` = 既定の隣の `<ルート>/_layout/<Layout>.replace.tsx`(`<Layout>` = `layout.tsx` の向け先の名前。向け先が既に `.replace` でも同じファイル。fork の枠の部品はルートの `_components/` に印なしの名前)、`source` = `layout.tsx`
-  - `2` 重ね: 上書きの対象の点(ロール・プロフィール・cron の `task.ts`・`domainEntry.ts`。対象の glob が `<置き場>/*/<決まった名前>` = 1 フォルダ 1 単位の点(cron)だけ、そのフォルダのどのファイルも対象へ。`domainEntry.ts` の隣の `userService.ts` などは対象にしない)と、`overrideOf` を持つ受け口の項目 → `write` = `<対象>.override.ts`、`keys` = 宣言の `overrideOf`。src/app のルートの `frame.ts`(無くても) → `frame.override.ts`(`keys` = layout・page、`source` = 作ったリポの `frame.ts`、無ければ空の基準)
+  - `2` 重ね: 上書きの対象の点(ロール・プロフィール・cron の `task.ts`・登録の `entity.json`。対象の glob が `<置き場>/*/<決まった名前の .ts>` = 1 フォルダ 1 単位の点(cron)だけ。登録の `entity.json` は宣言のデータなので隣の表のファイルは対象にしない、そのフォルダのどのファイルも対象へ。`services/server/` の `userService.ts` などは対象にしない)と、`overrideOf` を持つ受け口の項目 → `write` = `<対象>.override.ts`、`keys` = 宣言の `overrideOf`。src/app のルートの `frame.ts`(無くても) → `frame.override.ts`(`keys` = layout・page、`source` = 作ったリポの `frame.ts`、無ければ空の基準)
   - `3` 足す: 受け口のフォルダ → `write` = そのパス(既にある項目なら `<フォルダ>/<名前>.ts`)
   - `4` 置き場: 地区の `config.ts` / `config.ui.ts` → `src/config/<種類>/<名前>(.ui).config.ts`。placement の点の glob に当たる物 → そのパス。placement の点を宣言したフォルダの物で、直下に同じ名前の物がある → その直下の物(`src/styles/core/palette.css` → `src/styles/palette.css`)
   - `none`: どれでもない → `order` = `/order <直接の親>`

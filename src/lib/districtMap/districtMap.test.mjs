@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { CONTENTS_OVERRIDE_FOLDERS, DISTRICT_KINDS, KINDS, OVERRIDE_FOLDERS, kindOf, overridePathOf, readOverrideLoaders } from "./index.mjs";
-import { pointsFromFiles, readDeclaration, readDistrictMap, readDomainEntry, readFeatureRequirements, readFrameName, readOverrideImports, readRuleDomains, readTableNames, toJsonl } from "./index.mjs";
+import { pointsFromFiles, readDeclaration, readDistrictMap, readFeatureRequirements, readFrameName, readOverrideImports, readRuleDomains, readTableNames, toJsonl } from "./index.mjs";
 
 /**
  * パス → 本文 の表から source を作る(フォルダはパスから導く)
@@ -29,19 +29,23 @@ function memorySource(files) {
   };
 }
 
-const entry = (/** @type {string} */ body) => `import type { DomainEntries } from "@/lib/domain";\nexport const domainEntries = {\n${body}\n} satisfies DomainEntries;\n`;
+/** 登録の宣言 entities/<登録名>/entity.json(登録表に出す登録の登録名 = apiKeys、requires = その entity.json の requires) */
+const entity = (/** @type {Record<string, unknown>} */ body = {}) => JSON.stringify(body);
 const BASE = {
   "src/domains/README.md": "",
   "src/domains/_template/entities/drizzle.ts": `export const t = pgTable("template_rows", {});`,
   "src/domains/sample/entities/drizzle.ts": `// pgTable("not_this", {})\nexport const s = pgTable("samples", {});`,
-  "src/domains/sample/services/server/domainEntry.ts": entry(`  sample: { service: () => import("./s"), table: "samples", idColumn: "id" },`),
+  "src/domains/sample/entities/sample/entity.json": entity({ table: "samples" }),
   "src/domains/sample/extensionPoints.ts": `export const extensionPoints = { adminBulkActions: { change: "add", dir: "adminBulkActions", export: "item", type: { from: "@/x", name: "X" }, side: "client" } };\nexport const alwaysOpen = true;`,
   "src/domains/core/README.md": "",
   "src/domains/core/wallet/entities/drizzle.ts": `export const w = pgTable("wallets", {});\nexport const l = pgTable("wallet_lots", {});`,
   "src/domains/core/wallet/entities/drizzle.test.ts": `pgTable("test_only", {})`,
-  "src/domains/core/wallet/services/server/domainEntry.ts": entry(`  wallet: { service: () => import("./w"), table: "wallets", idColumn: "id" },`),
+  "src/domains/core/wallet/entities/wallet/entity.json": entity({ table: "wallets" }),
   "src/domains/core/wallet/config.ts": `export const WALLET_CONFIG = {};`,
-  "src/domains/core/purchaseRequest/services/server/domainEntry.ts": entry(`  purchaseRequest: { service: () => import("./p"), table: null, idColumn: null, requires: ["wallet", "walletHistory"] },\n  purchaseRequestLog: { service: () => import("./q"), table: null, idColumn: null, requires: ["wallet"] },`),
+  "src/domains/core/purchaseRequest/entities/purchaseRequest/entity.json": entity({ dbEngine: "Firestore", requires: ["wallet", "walletHistory"] }),
+  "src/domains/core/purchaseRequest/entities/purchaseRequestLog/entity.json": entity({ dbEngine: "Firestore", requires: ["wallet"] }),
+  // registered: false の登録は登録表に出ない = apiKeys・requires に入らない
+  "src/domains/core/purchaseRequest/entities/purchaseRequestDraft/entity.json": entity({ registered: false, requires: ["coupon"] }),
   "src/domains/core/purchaseRequest/extensionPoints.ts": "export const alwaysOpen = true;",
   "src/featureGate/rules/wallet.ts": `export const rule: FeatureGateRule = { pathPatterns: ["/wallet"], domains: ["core/wallet"], enabled: () => true };`,
   "src/featureGate/rules/signup.ts": `export const rule: FeatureGateRule = { pathPatterns: ["/signup"], enabled: () => true };`,
@@ -123,24 +127,22 @@ test("名前の一意: core と業務の同名は業務の側を直す文、枠�
   assert.match(problems[1], /枠の名前 user が重なる: .*\(marketing\)\/_layout\/config\.ts.*\(user\)\/_layout\/config\.ts/);
 });
 
-test("問題: frame: の無い枠の config・規則の features の行き先なし・domainEntry のキーの重なり・読めない表名", () => {
+test("問題: frame: の無い枠の config・規則の features の行き先なし・登録名の重なり・読めない表名", () => {
   const files = {
     ...BASE,
     "src/app/(marketing)/_layout/config.ts": `export const c = { title: "x" };`,
     "src/featureGate/rules/ghost.ts": `export const rule = { pathPatterns: [], domains: ["core/ghost"], enabled: () => true };`,
-    "src/domains/sample/services/server/domainEntry.ts": entry(`  wallet: { service: () => import("./s"), table: "samples", idColumn: "id" },`),
+    "src/domains/sample/entities/wallet/entity.json": entity({ table: "sample_wallets" }),
     "src/domains/sample/entities/more.ts": `const n = "x"; export const t = pgTable(n, {});`,
   };
   const { problems } = readDistrictMap(memorySource(files));
   assert.ok(problems.some((p) => /\(marketing\)\/_layout\/config\.ts: 枠の config\.ts に frame: "<枠の名前>" が無い/.test(p)), problems.join("\n"));
   assert.ok(problems.some((p) => /ghost\.ts: domains の core\/ghost に当たる domains の地区が無い/.test(p)));
-  assert.ok(problems.some((p) => /domainEntry のキー wallet が src\/domains\/core\/wallet・src\/domains\/sample で重なる/.test(p)));
+  assert.ok(problems.some((p) => /登録名 wallet が src\/domains\/core\/wallet・src\/domains\/sample で重なる/.test(p)));
   assert.ok(problems.some((p) => /more\.ts: pgTable の表名が文字列リテラルでない/.test(p)));
 });
 
-test("字面の読み手: requires の式・features の式・frame の式は問題、無い物は空", () => {
-  assert.deepEqual(readDomainEntry("e.ts", entry(`  a: { requires: list },`)).problems.length, 1);
-  assert.deepEqual(readDomainEntry("e.ts", "export const other = {};").keys, []);
+test("字面の読み手: features の式・frame の式は問題、無い物は空", () => {
   assert.deepEqual(readRuleDomains("r.ts", "export const rule = { domains: names };").problems.length, 1);
   assert.deepEqual(readRuleDomains("r.ts", "export const rule = { pathPatterns: [] };"), { domains: [], problems: [] });
   assert.deepEqual(readFrameName("c.ts", "export const c = { frame: NAME };").frame, null);

@@ -8,7 +8,7 @@ import { regenerateServiceRegistry } from "../serviceRegistry.mjs";
  */
 export function cleanupRegistries(workspace, io) {
   const failures = [];
-  // serviceRegistry.ts は domainEntry.ts（ドメインのフォルダごと消えた）から丸ごと作り直す
+  // serviceRegistry.ts は残った登録の entity.json（消したドメインのフォルダの登録は無くなった）から丸ごと作り直す
   try {
     regenerateServiceRegistry(workspace);
   } catch (err) {

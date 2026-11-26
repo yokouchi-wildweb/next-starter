@@ -1,5 +1,5 @@
 // scripts/structure/registry/alpha/alpha.test.mjs
-// α 4 本の走査生成(./index.mjs)の回帰テスト。
+// α 4 本と集める入口 entities/<種類>.ts の走査生成(./index.mjs)の回帰テスト。
 // - 実リポ: 生成結果と一致(pnpm check registry と同じ)
 // - fixture: pgTable を持つファイル全部・profile の生成物は一覧を通す・キーは snake_case・管理一覧は画面のあるドメインだけ・
 //   読めない pgTable と JSON・フォルダ名の重なりは problems(宣言は domain.json + entities/<登録名>/entity.json)
@@ -79,6 +79,35 @@ test("生成: 表の入口・ドメイン設定", () => {
   assert.match(config, /import chatRoomConfig from "@\/domains\/core\/chatRoom\/entities\/chatRoom\/entity\.json";/);
   assert.match(config, /import sampleConfig from "@\/domains\/sample\/entities\/sample\/entity\.json";/);
   assert.match(config, /\n  chat_room: chatRoomConfig,\n  sample: sampleConfig,\n  sample_category: sampleCategoryConfig,\n  sample_image: sampleImageConfig,\n\} as const;/);
+});
+
+test("生成: 集める入口 entities/<種類>.ts は宣言のある全ドメインに、その種類を持つ登録を登録のフォルダの並びで書く(generate: false も)", () => {
+  const root = fixture({
+    ...declared("src/domains/shop", '{ "plural": "shops" }'),
+    "src/domains/shop/entities/shop/drizzle.ts": "export const S = 1;\n",
+    "src/domains/shop/entities/shop/schema.ts": "export const s = 1;\n",
+    "src/domains/shop/entities/shopItem/entity.json": '{ "plural": "shopItems", "generate": false }',
+    "src/domains/shop/entities/shopItem/drizzle.ts": "export const I = 1;\n",
+    // domain.json の無いフォルダは宣言の無いドメイン = 入口を書かない
+    "src/domains/loose/entities/loose/drizzle.ts": "export const L = 1;\n",
+  });
+  const { outputs } = buildAlphaRegistries(root);
+  rmSync(root, { recursive: true, force: true });
+  assert.equal(
+    outputs["src/domains/shop/entities/drizzle.ts"],
+    [
+      "// 生成物・編集不可: pnpm generate registry が src/domains/shop/entities/*/drizzle.ts の並びから生成する",
+      "// src/domains/shop/entities/drizzle.ts",
+      "// 登録ごとのフォルダ(entities/<登録名>/drizzle.ts)を集めるだけの入口(import の道を変えないため)。中身は各登録のフォルダに書く",
+      "",
+      'export * from "./shop/drizzle";',
+      'export * from "./shopItem/drizzle";',
+      "",
+    ].join("\n"),
+  );
+  assert.match(outputs["src/domains/shop/entities/schema.ts"], /\nexport \* from "\.\/shop\/schema";\n$/);
+  assert.ok(!("src/domains/shop/entities/form.ts" in outputs), "どの登録も持たない種類は書かない");
+  assert.ok(!Object.keys(outputs).some((file) => file.startsWith("src/domains/loose/")), "宣言の無いドメインには書かない");
 });
 
 test("生成: ファイル用途の一覧は services/server/storagePurposes.ts を path 順に並べる(core も同じ)", () => {

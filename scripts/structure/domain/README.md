@@ -11,7 +11,7 @@
 - core の生成の違い:
   - 生成物は `@/domains/<domain>/...` で import するので、`tsconfig.json` の `paths` に `"@/domains/<domain>/*": ["./src/domains/core/<domain>/*"]` が要る（無ければ何も書かずに止まり、足す 1 行を出す）
   - `src/registry/` の一覧は core も business も `pnpm generate registry` が走査で作る（生成器は serviceRegistry 以外を書かない）
-  - 手で管理の core のファイル用途は `<ドメイン>/plugs/storageObjectPurposes/` に手で。`domainEntry.ts` は書くので `serviceRegistry.ts` には載る（core の手書きの domainEntry.ts と同じ経路）
+  - 手で管理の core のファイル用途は `<ドメイン>/plugs/storageObjectPurposes/` に手で。`serviceRegistry.ts` の行は登録の entity.json から `pnpm generate registry` が組む（core の登録と同じ経路）
 - 今ある core の登録の entity.json はどれも `generate: false`（手で管理。生成器は何も書かない）
 - 宣言（domain.json と entity.json）は手で書く（対話で組み立てる入口は無い）。書き方の規則は生成前の検査（`checks/`）が止める・警告する
 - 生成元テンプレート: `src/domains/_template/`（ドメイン側）、`src/app/admin/_template/`（管理画面ルート）
@@ -60,7 +60,7 @@
 - `generate: true` のドメインは全カテゴリのうち名指しのものだけ。`generate: false` のドメインは名指ししても何も書かない（下の Extension「generate の旗」）。集まりの従属は従属のカテゴリの内だけ
 - 作成済みの write-once（`<domain>Service.ts`・管理画面の `page.tsx`）をわざと作り直すときは、そのファイルを消してから生成する
 - 不明なカテゴリ名は終了コード 1
-- `--only registry` が書くのは `services/server/` の `domainEntry.ts`・`collections.ts`・`storagePurposes.ts`（ドメイン内）。最後に `serviceRegistry.ts` を丸ごと作り直す（`:all` は全ドメインの domainEntry.ts を書いた後に 1 回だけ）。他の `src/registry/` の一覧は `pnpm generate registry`（forge の段）
+- `--only registry` が書くのは `services/server/` の `collections.ts`・`storagePurposes.ts`（ドメイン内）。最後に `serviceRegistry.ts` を丸ごと作り直す（`:all` は全ドメインを書いた後に 1 回だけ）。集める入口 `entities/<種類>.ts` も `pnpm generate registry` が書く。他の `src/registry/` の一覧は `pnpm generate registry`（forge の段）
   - storagePurposes.ts には、画像を含むメディア項目の `metadata`（`storage.metadata`、省略 = `"strip"`）が明示値で入る。`storage.image`（画像の縮小の指定）は書いたときだけ入る（形・keep の項目への指定は生成エラー）。strip の項目の accept にサーバーで描き直せない画像の型（`image/heic` など）があると生成エラー（直し方: [src/domains/README.md](../../../src/domains/README.md)「ファイルの保存（storage）」）
   - private の用途の `read.allow` は `storage.read`（`"public"` も可）、無ければ apiAccess の get の規則。visibility を省いた項目の公開・非公開の導出も同じ規則を使う
 - `.notices` で再生成が要るときは、必要なカテゴリだけを `--only` で指定する（例: レジストリの書き換え → `pnpm generate domain -- --only registry`）。`[user-run]` は付けない
@@ -91,7 +91,7 @@
    - 門番の規則(`src/featureGate/rules/<名前>.ts`)の `domains` がこのドメインのフォルダを持てば、何も消さずに規則の名前を出して止める(終了コード 1)。規則の `domains` から外す(規則ごと要らなければ規則を消す)→ `pnpm generate extensions` → もう一度削除
 4. `-i` のときは今までの対話（名前の再入力 → 追加ディレクトリの選択 → 宣言を消すか → 確認）
 
-削除するもの: `src/domains/<domain>/`（`domainEntry.ts` ごと）、`src/app/admin/(protected)/<domains>/`（`_components/` 含むルートごと）、選んだ追加ディレクトリ。レジストリからは `adminDomains.ts` / `schemaRegistry.ts` / `domainConfigRegistry.ts` の該当行を消し、`serviceRegistry.ts` は残った domainEntry.ts から `pnpm generate registry` で作り直し、地区の地図 `district-map.jsonl` を書き直す。DB のテーブルは消さない。
+削除するもの: `src/domains/<domain>/`（登録の entity.json ごと）、`src/app/admin/(protected)/<domains>/`（`_components/` 含むルートごと）、選んだ追加ディレクトリ。レジストリからは `adminDomains.ts` / `schemaRegistry.ts` / `domainConfigRegistry.ts` の該当行を消し、`serviceRegistry.ts` は残った登録の entity.json から `pnpm generate registry` で作り直し、地区の地図 `district-map.jsonl` を書き直す。DB のテーブルは消さない。
 
 - `domainConfigMap` のエントリは、オブジェクト直下のキーが完全一致するものだけを複数行ごと消す（`text/objectEntry.mjs` の `removeObjectEntry`）
 - レジストリの更新に失敗してもディレクトリ削除は済んでいるため止めず、最後に手で直すファイルを表示して終了コード 1 で終わる
@@ -119,8 +119,8 @@
 登録の `entities/<登録名>/entity.json` の `generate`（省略 = true）が、その登録を生成器が持つか手で持つかを決める。今の生成器はドメインの主の登録 1 つだけを生成するので、実際にはドメイン単位で効く（登録が 2 つ以上のドメインは全部の登録を false にする）。区分ごとの `generateFiles` は廃止（残っていると生成前に止まる）。
 
 - `true`: API.md「生成されるもの」の全カテゴリを毎回作り直す（集まりの従属は entities / serverServices / registry / fieldConstants / presenters だけ。生成器が決める）。手の実装は生成物の外（`wrappers/`、write-once の `<domain>Service.ts`、`formEntities.ts`、`_components/`）に置き、再生成のたびに載せ替わる前提
-- `false`: 手で管理。生成器は何も書かない（`domainEntry.ts` の書き直し・従属の宣言の書き出しも無し。`serviceRegistry.ts` は `domainEntry.ts` から作るので載り続ける）。載せ替えが手間になったドメインをこちらにする
-- `domainEntry.ts` を持たないまま `false` にしたドメイン（旧 `generateFiles.registry: false` から移ったものなど）は登録表に載らず `pnpm check registry` が止まる → `domainEntry.ts` を手書きする（写せる形: [src/lib/domain/README.md](../../../src/lib/domain/README.md)「generate: false の業務ドメイン」）
+- `false`: 手で管理。生成器は何も書かない（従属の宣言の書き出しも無し。`serviceRegistry.ts` の行は entity.json から `pnpm generate registry` が作るので載り続ける）。載せ替えが手間になったドメインをこちらにする
+- `false` の登録の登録表の access は entity.json の `apiAccess` そのもの（生成の既定 truncateAll・export・import を重ねない。開くなら `apiAccess.operations` に書く。[src/lib/domain/README.md](../../../src/lib/domain/README.md)「登録表の行の出どころ」）
 - `false` のドメインはどんな実行でも生成器を通さない: `pnpm generate domain`・forge・1 ドメインの名指し・`--only`・`-i` のどれでも何も書かず、生成前の検査もしない（`[<domain>] generate: false（手で管理）のため何も書きません` の 1 行だけ）。一度だけ作り直すときは `generate` を true に戻して生成し、要る手書きを戻してから false に戻す
 - `false` に切り替えたら `pnpm generate domain -- --unmark <Domain>`(名を省くと generate: false の全部)で、そのドメインのフォルダと管理画面のルートのファイルから生成物の印の行を外す。印が残っていると手で直すファイルを「直さない」と読み違えるので、`pnpm check rules` が止める
 - 一覧: 生成の書き込みの最後と `pnpm generate domain -- --delete` の後に地区の地図 `src/registry/district-map.jsonl` を書き直す(domains の行の `domainJson` = domain.json の有無・`generate` = 生成する登録を 1 つでも持つか、宣言が無ければ null。中身: `src/lib/districtMap/README.md`)。ずれは `pnpm check district-map` が落とす。merge で衝突したら `pnpm generate district-map` で作り直す
@@ -130,7 +130,7 @@
 fork が各ドメインを生成に任せる（true）か手で管理する（false）かを、ファイルごとの証拠で決める道具。fork のリポのルートで回す（何も書かない。写しは一時ディレクトリ）。
 
 - 比べる 3 つ: 今のファイル ／ base（`upstream` の remote との merge-base、無ければ `--base <ref>`）の生成器の出力 ／ 今の生成器の出力。どちらの生成器も主の登録の entity.json を「全部生成する」形にした写しで、ドメインを 1 つずつ回す（古い `generateFiles` の entity.json もそのまま読む）。base が宣言を 1 ファイルの domain.json で持っていた頃の版だと、base の生成器は今の宣言（domain.json + entity.json）を読めないので、base 側の出力は作れない。生成器が扱うファイルは `--dry-run` の一覧で決める。base 側は base のテンプレートと src の部品も使う（`cli/compare/refGenerator.mjs`。pnpm test scripts/structure/domain/tests の旧側と同じ）
-- 欄: 未改変（base の出力と同じ。今の出力と違えば「上流の改良で変わる」）/ 手の変更の見込み（base の出力に行を挿した）/ 古い生成物の見込み（消した・置き換えただけ = base より前の生成器の出力のまま）/ 新しく作られる（管理画面の page.tsx・`_screen/`・`domainEntry.ts` は「新しい入口」）/ 残る（write-once）/ fork のファイル（生成器が作らない。wrappers/ は別に数える）/ 表の定義の書き直し（entities/drizzle.ts が変わる → `db:push:check` 0 を確かめる）
+- 欄: 未改変（base の出力と同じ。今の出力と違えば「上流の改良で変わる」）/ 手の変更の見込み（base の出力に行を挿した）/ 古い生成物の見込み（消した・置き換えただけ = base より前の生成器の出力のまま）/ 新しく作られる（管理画面の page.tsx・`_screen/` は「新しい入口」）/ 残る（write-once）/ fork のファイル（生成器が作らない。wrappers/ は別に数える）/ 表の定義の書き直し（entities/drizzle.ts が変わる → `db:push:check` 0 を確かめる）
 - 見込み: `true にできる`（全部未改変）/ `確かめて true`（新しい入口・表の書き直し・古い生成物の見込みがある）/ `wrappers へ移すか false`（手の変更の見込みがある）/ `直してから`（今の生成器で止まる。理由を出す）
 - 手の変更と古い生成物は中身だけでは区別できない（挿した行 = 手の変更、と見なす）。`--detail` のファイルごとの行数と「最後の commit」の題で確かめてから決める
 - 決め方: 上の欄と見込みを `--detail` で確かめて決める。決めた理由は entity.json ではなく移行の commit の本文に書く（記録は generate の旗だけ）

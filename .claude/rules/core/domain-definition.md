@@ -5,10 +5,10 @@ paths:
   - "src/domains/**/cache.json"
   - "**/*.role.json"
   - "**/*.profile.json"
-  - "src/domains/**/services/server/domainEntry*.ts"
+  - "src/domains/**/entities/*/entity.override.ts"
 ---
 # domain-definition
-> **ROLE**: loaded when writing a domain's declaration (domain.json, entities/\<registration\>/entity.json), cache.json, role / profile JSON or domainEntry.ts | holds the domain-definition rules (commands, roles, field types, config utils; reading domain config from parts → components.md domain_config)
+> **ROLE**: loaded when writing a domain's declaration (domain.json, entities/\<registration\>/entity.json), cache.json, role / profile JSON or entity.override.ts | holds the domain-definition rules (commands, roles, field types, config utils; reading domain config from parts → components.md domain_config)
 > Tier1-owned: forks never edit (gap → /order next-starter)
 
 declaration: one domain = \<domain\>/domain.json (domainConfigVersion "2.0" + label only) + one entities/\<registration\>/entity.json per table (table and registration keys; `generate` lives here, D337) | no table = no registration

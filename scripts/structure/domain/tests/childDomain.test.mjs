@@ -98,7 +98,7 @@ test("権限の写し: 公開読み取りの主 → public、アップロード�
   assert.deepEqual(storageOf(parent({ apiAccess: undefined })), { visibility: "private", upload: ADMIN, read: ADMIN });
 });
 
-test("権限の写し: 閉じた主（none / INTERNAL_ONLY）・custom などの写せない値・手書きの domainEntry → 管理者のみ + 直す対象", () => {
+test("権限の写し: 閉じた主（none / INTERNAL_ONLY）・custom などの写せない値・手で持つ主（generate: false）→ 管理者のみ + 直す対象", () => {
   const closed = buildChildDomainConfig(parent({ apiAccess: { read: "none", write: "none" } }), field());
   assert.deepEqual(closed.uncopied, ["upload", "read"]);
   assert.deepEqual(closed.config.fields[0].storage, { visibility: "private", upload: ADMIN, read: ADMIN });

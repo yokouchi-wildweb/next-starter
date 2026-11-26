@@ -2,7 +2,7 @@
 //
 // dataMigration がドメイン名からサービスを引く口。lib は登録表（serviceRegistry）を import しないので、
 // API ルートが src/wiring/domainRegistry.ts の getService を注入する（ファイル台帳の DataMigrationMediaResolver と同じ形）。
-// 認可（domainEntry.ts の access の export / import）はルートが評価してから呼ぶ。lib は再評価しない。
+// 認可（登録表の access の export / import）はルートが評価してから呼ぶ。lib は再評価しない。
 
 import type { PgTable } from "drizzle-orm/pg-core";
 

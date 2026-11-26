@@ -48,7 +48,7 @@ const READS = {
     entries: ["scripts/structure/extensions/phase-check.mjs", "scripts/structure/extensions/check.mjs"],
     data: ["src/**/extensionPoints.ts", "src/**/*.default.{ts,tsx}", "src/**/*.override.ts", "src/lib/forkOwnership/intake.txt", "src/app/**/_layout/**", "src/domains/**/plugs/messages/*.ts"],
   },
-  // 登録表の走査(domainEntry・pgTable・用途)と storageBindingFor の呼び出し(src 全体)
+  // 登録表の走査(登録の entity.json・上書き entity.override.ts・pgTable・用途)と storageBindingFor の呼び出し(src 全体)
   registry: { entries: ["scripts/structure/registry/check.mjs"], data: ["src/domains/**", "src/registry/*.ts", "src/**/*.{ts,tsx,mts}"] },
   role: {
     entries: ["scripts/structure/role/check.mjs"],

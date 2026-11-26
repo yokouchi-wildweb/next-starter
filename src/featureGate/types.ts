@@ -59,7 +59,7 @@ export type FeatureGateRule = {
 
 /**
  * 生成一覧の要素(src/featureGate/extensions/rules.ts。門番の中で値で読むのは ruleList.ts だけ): 規則 + 生成器が付ける名前(ファイル名)と domains から導いた表名・汎用 API の住所(domains を書かない規則は空)。
- * tables・domainApiPaths(/api/<domains のフォルダの domainEntry のキー>)・settingPaths(/admin/settings/<この規則を feature に持つ設定の節の key>)・
+ * tables・domainApiPaths(/api/<domains のフォルダの登録表に出す登録名>)・settingPaths(/admin/settings/<この規則を feature に持つ設定の節の key>)・
  * cronPaths(/api/cron/<domains のフォルダを値で import する cron の task の名前>)は説明用(pnpm ops features list)で pathPatterns に足さない:
  * 表・汎用 API・cron はドメインに、設定の節の住所は節に付き、開閉は GatedDomain・GatedCronTask・GatedSettingSection で決まる(D34 K4)
  */
@@ -79,7 +79,7 @@ export type GeneratedFeatureRule = FeatureGateRule & {
 
 /**
  * どれかの規則の domains に載るドメイン(生成一覧の domains)。開 = features(持つ機能の名前)のどれかが開(D24)。どの規則にも載らないドメインは載らず常に開。
- * 表(db:push・seed・pnpm ops db clear)と汎用 API の住所(apiPaths = /api/<domainEntry のキー>)はこの開閉で決まる
+ * 表(db:push・seed・pnpm ops db clear)と汎用 API の住所(apiPaths = /api/<登録名>)はこの開閉で決まる
  */
 export type GatedDomain = {
   /** src/domains からの相対("core/wallet"・"sample") */

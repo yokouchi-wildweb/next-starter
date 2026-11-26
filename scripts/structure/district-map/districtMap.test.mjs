@@ -1,6 +1,6 @@
 // scripts/structure/district-map/districtMap.test.mjs — 地区の地図を今の木の正本と突き合わせる + 生成器・検査器の振る舞い
 // 実行: pnpm test scripts/structure/district-map
-// 正本: ドメインの一覧と domainEntry のキー = scripts/structure/registry/serviceRegistry/discover.mjs、表 = tableScan.mjs(schemaRegistry の元)、
+// 正本: ドメインの一覧と登録表の行(登録名・requires) = scripts/structure/registry/serviceRegistry/discover.mjs、表 = tableScan.mjs(schemaRegistry の元)、
 // 門の features = @/featureGate/node の configRules、受け口 = forkOwnership の collectPoints、lib = src/lib 直下のフォルダ
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
@@ -13,7 +13,7 @@ import { DISTRICT_MAP_FILE } from "../../../src/lib/districtMap/index.mjs";
 import { collectPoints, readDistrictMapAt } from "../../../src/lib/districtMap/node.mjs";
 import { assertUpstreamItems, readForkIdentity } from "../../../src/lib/forkOwnership/node.mjs";
 import { scanFeatureTables } from "../registry/tableScan.mjs";
-import { ENTRIES_EXPORT, listDomainDirs, readObjectKeys } from "../registry/serviceRegistry/discover.mjs";
+import { discoverRegistrations, listDomainDirs } from "../registry/serviceRegistry/discover.mjs";
 import { buildDistrictMap, checkDistrictMap, generateDistrictMap, repoRoot } from "./map.mjs";
 
 const { districts, problems } = readDistrictMapAt(repoRoot);
@@ -39,16 +39,12 @@ test("features = src/domains と core の直下の _ でないフォルダ(登�
   );
 });
 
-test("apiKeys = 各ドメインの domainEntry.ts のキー(登録表の生成と同じ読み方)", () => {
+test("apiKeys・requires = 各ドメインの登録表の行の登録名と requires(登録表の生成と同じ読み方、registered: false の登録は載らない)", () => {
+  const { rows } = discoverRegistrations(repoRoot);
   for (const d of features) {
-    let text = null;
-    try {
-      text = readFileSync(join(repoRoot, d.dir, "services/server/domainEntry.ts"), "utf8");
-    } catch {
-      assert.deepEqual(d.apiKeys, [], d.dir);
-      continue;
-    }
-    assert.deepEqual(d.apiKeys, readObjectKeys(text, ENTRIES_EXPORT).keys, d.dir);
+    const own = rows.filter((row) => `src/domains/${row.dir}` === d.dir);
+    assert.deepEqual(d.apiKeys, own.map((row) => row.key), d.dir);
+    assert.deepEqual([...d.requires].sort(), [...new Set(own.flatMap((row) => row.requires))].sort(), d.dir);
   }
 });
 
@@ -60,7 +56,7 @@ test("tables = schemaRegistry の元の表の全部を domains の地区に 1 �
   assert.equal(new Set(mapped).size, mapped.length);
 });
 
-test("requires = domainEntry の requires(上流の core は 4 ドメイン。fork が自分のドメインに足す requires は照合しない)", () => {
+test("requires = 登録の entity.json の requires(上流の core は 4 ドメイン。fork が自分のドメインに足す requires は照合しない)", () => {
   const listed = (core) => features.filter((d) => d.core === core && d.requires.length > 0).map((d) => `${d.name}:${d.requires.join(",")}`);
   // core のドメインは上流の持ち物(fork は編集しない)→ どの層でも同じ並び
   assert.deepEqual(listed(true), ["couponAttributionReward:wallet", "fingerprintChallenge:deviceFingerprint", "purchaseRequest:wallet,walletHistory", "referral:coupon"]);

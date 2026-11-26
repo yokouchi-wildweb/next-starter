@@ -10,7 +10,7 @@
 - `pnpm test scripts/structure/registry/`: 走査の表の集合 = schemaRegistry の全 pgTable、α 4 本の生成の回帰(`alpha/alpha.test.mjs`)。DB 不要
 - `pnpm db:push:check`: schemaRegistry(スキーマゲート適用後)と実 DB を drizzle-kit の push モードで比較し、提案される SQL を表示する。1 文でもあれば exit 1。DB 接続が要る・読み取り専用
 - `pnpm generate registry` / `pnpm check registry`: `src/registry` の α 6 本(α = `alpha/` などの生成器が手書きの区画なしで丸ごと書く一覧)を丸ごと生成・検査する(build の冒頭)。DB 不要。手書きの区画は無い。生成の部品は `alpha/`
-  - `serviceRegistry`: 各ドメインの `domainEntry.ts` から(`serviceRegistry/`、仕組みは `src/lib/domain/README.md`)。`domainEntry.ts` の静的 import は型はどこからでも・値は値だけのファイルからだけ(中身で推移的に判定、`serviceRegistry/discover.mjs` の `checkEntryStaticImports`)
+  - `serviceRegistry`: 全登録の `entities/<登録名>/entity.json` と fork の `entity.override.ts` から(`serviceRegistry/`、仕組みは `src/lib/domain/README.md`)。上書きの静的 import は型はどこからでも・値は値だけのファイルからだけ(中身で推移的に判定、`serviceRegistry/discover.mjs` の `checkOverrideStaticImports`)
   - `schemaRegistry`: `src/domains/**` の pgTable を持つ全ファイル(プロフィールの `entities/profiles/<名前>/drizzle.ts` も)
   - `domainConfigRegistry`: 全ドメインの主の登録の `entities/<登録名>/entity.json`(キーはフォルダ名の snake_case)
   - `storagePurposeRegistry`: 全 `services/server/storagePurposes.ts`

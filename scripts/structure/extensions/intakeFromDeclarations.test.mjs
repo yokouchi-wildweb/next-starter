@@ -83,7 +83,7 @@ test("効く種類(最後に当たった行)は生成区画へ移す前と同じ
   const expected = {
     "src/app/api/cron/storage-sweep/task.override.ts": "edit",
     "src/app/api/cron/storage-sweep/task.ts": null,
-    "src/domains/core/user/services/server/domainEntry.override.ts": "edit",
+    "src/domains/core/user/entities/user/entity.override.ts": "edit",
     "src/domains/core/user/coreRoles/user.role.override.ts": "edit",
     "src/domains/core/user/coreRoles/user.role.json": null,
     "src/domains/core/user/roles/contributor.role.override.ts": "edit",

@@ -1,7 +1,7 @@
 // src/featureGate/checks/dependencies.mjs
 // 依存の検査の判定(D20(b)・L1.12)。閉じられるフォルダ(規則の features)を、そのフォルダの外から値で import するファイルを集め、
 // 次の形のどれでもなければ違反として返す:
-//   (1) import する側のドメインの domainEntry.ts の requires に相手のドメインの名前(フォルダ名、目録 D4)がある
+//   (1) import する側のドメインの登録の entity.json の requires に相手のドメインの名前(フォルダ名、目録 D4)がある
 //       (ドメインの見つけ方・requires・名前は地区の地図の読み手 src/lib/districtMap から)
 //   (2) ファイルが規則の名前で gate.enabled / gate.assert / useGate().enabled を呼ぶ(`.enabled("R")`・`.assert("R")` の字面)。
 //       その規則を dependsOn で(推移的に)たどる規則の名前でもよい(子は親が開の時しか開かない。anyOf は親を決めないので見ない)
@@ -50,7 +50,7 @@ function domainLookup(districts) {
   return {
     /** src/domains の下のファイルが属するドメイン。地区の外なら null */
     of: (rel) => domains.find((d) => rel.startsWith(d.prefix)) ?? null,
-    /** 規則の features のフォルダが名乗る名前(地区の名前 = フォルダ名だけ。domainEntry のキーは資源の名前で名乗りに使わない、目録 D4) */
+    /** 規則の features のフォルダが名乗る名前(地区の名前 = フォルダ名だけ。登録名は資源の名前で名乗りに使わない、目録 D4) */
     nameOf: (folder) => byFolder.get(folder)?.name ?? folder.split("/").pop(),
   };
 }

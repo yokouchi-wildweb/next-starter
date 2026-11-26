@@ -1,5 +1,5 @@
 // src/app/api/data-migration/_shared/domainAccess.ts
-// データ移行のルートが、domainEntry.ts の access（export / import）をドメインごとに評価するための共通処理。
+// データ移行のルートが、登録表の access（export / import、登録の entity.json から）をドメインごとに評価するための共通処理。
 // ルート自体の門（access roleCategories admin）に加えて AND で掛ける。主体は引き直さず、Factory が解いた ctx.user を受け取る。
 // 1 つでも拒否されたドメインがあれば要求全体を拒否する（部分実行しない）。
 

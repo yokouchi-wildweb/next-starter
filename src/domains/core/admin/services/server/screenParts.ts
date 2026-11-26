@@ -50,7 +50,7 @@ type AdminParts<TProps, TKey extends readonly LoaderKeyValue[], TData> = PageLoa
 /** 登録表の entry の access を操作ごとに解く（未登録はモジュール読み込み時に throw = 生成・配線のミスを即座に出す） */
 function domainAccess(domainKey: string, operation: DomainApiOperation, operationType: "read" | "write"): DomainApiAccessRule {
   if (!hasServiceFrom(serviceRegistry, domainKey)) {
-    throw new Error(`管理画面の loader: ドメイン "${domainKey}" が serviceRegistry に無い(登録は services/server/domainEntry.ts)`);
+    throw new Error(`管理画面の loader: ドメイン "${domainKey}" が serviceRegistry に無い(登録は entities/<登録名>/entity.json)`);
   }
   return resolveAccessRule(serviceRegistry[domainKey].access, operation, operationType);
 }
@@ -68,7 +68,7 @@ async function serviceWith<TService>(domainKey: string, method: string): Promise
 function relationTarget(domain: string): AdminRelationTarget {
   const key = toCamelCase(domain);
   if (!hasServiceFrom(serviceRegistry, key)) {
-    throw new Error(`管理画面の関連選択肢: 関連先ドメイン "${domain}" が serviceRegistry に無い(登録は services/server/domainEntry.ts)`);
+    throw new Error(`管理画面の関連選択肢: 関連先ドメイン "${domain}" が serviceRegistry に無い(登録は entities/<登録名>/entity.json)`);
   }
   return {
     access: resolveAccessRule(serviceRegistry[key].access, "list", "read"),

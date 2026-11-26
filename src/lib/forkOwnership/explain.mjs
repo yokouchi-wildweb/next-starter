@@ -254,10 +254,14 @@ function replaceOf(path, view) {
 const receptacleDirOf = (point, dir) => (dir === "." ? point.owner : `${point.owner}/${dir.replace(/^\.\//, "").replace(/\/+$/, "")}`);
 const sourceOf = (/** @type {DeclaredPoint} */ point) => `${point.declaredIn} ${point.name}`;
 
-/** 対象の glob が「1 フォルダ = 1 単位」の形か(最後のフォルダが * 1 つで、ファイル名が決まっている: src/app/api/cron/*\/task.ts) */
+/**
+ * 対象の glob が「1 フォルダ = 1 単位」の形か(最後のフォルダが * 1 つで、ファイル名が決まったコードのファイル: src/app/api/cron/*\/task.ts)。
+ * 宣言のデータ(登録の entities/*\/entity.json)は単位のコードでない: 隣の表のファイル(drizzle.ts など)は上書きで変わらないので当てない
+ */
 const isFolderUnitGlob = (/** @type {string} */ glob) => {
   const parts = glob.split("/");
-  return parts.length >= 3 && parts[parts.length - 2] === "*" && !/[*?[{]/.test(parts[parts.length - 1]);
+  const name = parts[parts.length - 1];
+  return parts.length >= 3 && parts[parts.length - 2] === "*" && !/[*?[{]/.test(name) && /\.tsx?$/.test(name);
 };
 
 /** plugs の点の項目のパス(1 = 差す側の地区、2 = 点の名前) */
@@ -276,7 +280,7 @@ function overlayOf(path, view) {
     if (typeof glob !== "string") continue;
     let target = matchesGlob(path, glob) ? path : null;
     // 1 フォルダ = 1 単位の点(glob が <置き場>/*/<決まった名前>、cron の task.ts): そのフォルダのどのファイルも、その対象を上書きして変える。
-    // 決まった名前でもフォルダが単位でない点(domainEntry.ts の隣の userService.ts など)の隣のファイルは対象にしない
+    // 決まった名前でもフォルダが単位でない点(services/server/ の userService.ts など)の隣のファイルは対象にしない
     if (!target && isFolderUnitGlob(glob)) {
       const candidate = `${dirOf(path)}/${baseName(glob)}`;
       if (matchesGlob(candidate, glob) && view.has(candidate)) target = candidate;

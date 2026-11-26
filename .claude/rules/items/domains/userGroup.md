@@ -22,5 +22,5 @@ using:
 - limits_stop: count / sendTarget return overLimit, never throw → the caller stops with a reason, never truncates
 editing:
 - writer_no_audit: staticMemberWriter writes no audit rows, even for a fork task (the admin API records)
-- internal_only: domainEntry access stays INTERNAL_ONLY
+- internal_only: the userGroup registration's apiAccess stays INTERNAL_ONLY
 read: kinds, limits → Overview | use a group → Usage | evaluator, writer, admin API → src/domains/core/userGroup/API.md API | criteria, config, gate → Extension | tables, recompute → src/domains/core/userGroup/Internals.md Internals

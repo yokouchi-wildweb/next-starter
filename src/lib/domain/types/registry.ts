@@ -1,12 +1,10 @@
 // src/lib/domain/types/registry.ts
 // serviceRegistry（ドメイン名 → サービス・表・主キーを引く正式な仕組み）の型
 //
-// 登録の単位は各ドメインの services/server/domainEntry.ts（1 ドメイン 1 ファイル、キー付きオブジェクト）。
-// src/registry/serviceRegistry.ts は pnpm generate registry が全 domainEntry.ts を走査して生成する。
+// 登録の単位は登録の宣言 src/domains/<d>/entities/<登録名>/entity.json(表 1 つ = 登録 1 件、キー = 登録名、D335・D336)。
+// src/registry/serviceRegistry.ts は pnpm generate registry が全登録の宣言(と fork の entity.override.ts)から生成する。
 // サービスは遅延読み込み（`service: () => import(...)`）なので、登録表を import しても各ドメインの
 // サービス・DB 接続は読み込まれない。詳細: src/lib/domain/README.md
-
-import type { extensionPoints } from "../extensionPoints";
 
 import type { DomainApiAccessConfig } from "@/lib/domainAccess";
 
@@ -60,8 +58,8 @@ export type DomainService = {
 };
 
 /**
- * ドメイン登録エントリ（domainEntry.ts の 1 キー分）。
- * service は遅延読み込み（`() => import("./xService").then((m) => m.xService)`）。
+ * 登録表の 1 行(登録 1 件、生成物)。
+ * service は遅延読み込み(`() => import("@/domains/<d>/services/server/<登録名>Service").then((m) => m.<登録名>Service)`)。
  * access は型必須: 「サービスを登録したが認可ポリシーを宣言し忘れる」ことを構造的に防ぐ
  * （fail-closed by construction）。汎用ルート（createDomainRoute）と管理データ操作のルートは
  * このエントリの access を唯一の実行時ソースとして認可する。
@@ -71,31 +69,28 @@ export type DomainRegistryEntry = {
   access: DomainApiAccessConfig;
   /**
    * 表の物理名（サービスを読み込まずに引くため。サービスの getTableName() と同じ値）。
-   * null は表を持たない Firestore 版のドメインだけ。業務ドメインは pnpm generate domain が書き、core は手書き
+   * null は表を持たない Firestore 版の登録だけ。entity.json の table か snake(plural)
    */
   table: string | null;
   /**
    * 主キー列の物理名（サービスの getIdColumnName() と同じ値。論理名は常に fields/idField.ts の CRUD_ID_FIELD = "id"）。
-   * null は表を持たない Firestore 版のドメインだけ。業務ドメインは pnpm generate domain が書き、core は手書き
+   * null は表を持たない Firestore 版の登録だけ。entity.json の primaryKey の 1 列か id
    */
   idColumn: string | null;
   /**
    * このドメインが前提にする(閉じられる)ドメインの名前。省略可。宣言すると、門番の依存の検査が
    * このドメインのフォルダから相手の閉じられるフォルダを読むことを通す(src/featureGate/Internals.md「依存の検査」)。
-   * 検査はこの欄を字面で読む(文字列リテラルの配列で書く)
+   * 出どころは登録の entity.json の requires
    */
   requires?: readonly string[];
 };
 
-/** domainEntry.ts の export（`export const domainEntries = { ... } satisfies DomainEntries`） */
-export type DomainEntries = Record<string, DomainRegistryEntry>;
-
 /**
- * fork の上書き（domainEntry.override.ts、`export const domainEntryOverrides = { ... } satisfies DomainEntryOverrides`）。
- * キー = 隣の domainEntry.ts のキー、値 = 宣言（../extensionPoints.ts の domainEntries の overrideOf、今は access）の属性の丸ごと置き換え。
+ * fork の上書き(entities/<登録名>/entity.override.ts、`export const entityOverride = { apiAccess: … } satisfies EntityOverride`)。
+ * apiAccess = 登録表のその行の access の丸ごと置き換え(../extensionPoints.ts の entities の overrideOf。生成の既定は重ねない)。
  * 生成器が読んで serviceRegistry に反映する
  */
-export type DomainEntryOverrides = Record<string, DomainRegistryEntry[(typeof extensionPoints.domainEntries.overrideOf)[number]]>;
+export type EntityOverride = { apiAccess: DomainApiAccessConfig };
 
 /** 生成された登録表（src/registry/serviceRegistry.ts の serviceRegistry） */
 export type DomainRegistry = Readonly<Record<string, DomainRegistryEntry>>;

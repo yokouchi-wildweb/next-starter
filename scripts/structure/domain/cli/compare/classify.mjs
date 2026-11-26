@@ -51,7 +51,7 @@ export function diffStats(before, after) {
   return { added, removed, hunks, insertOnly };
 }
 
-const ENTRY = /(\/page\.tsx|\/_screen\/[^/]+|\/domainEntry\.ts)$/;
+const ENTRY = /(\/page\.tsx|\/_screen\/[^/]+)$/;
 
 /**
  * 1 ファイルの分類

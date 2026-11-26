@@ -37,7 +37,7 @@ export function renderChildDomainConfigs(ctx, workspace) {
       const keys = uncopied.map((key) => `storage.${key}`).join(" / ");
       outputs.push(
         log(
-          `  ※ [${ctx.camel}] 主の汎用 API の規則を写せない（閉じている・custom・手書きの domainEntry）ため、従属の ${keys} を管理者のみにしました。` +
+          `  ※ [${ctx.camel}] 主の汎用 API の規則を写せない（閉じている・custom・手で持つ登録 generate:false）ため、従属の ${keys} を管理者のみにしました。` +
             `直す場所: ${childPath} の fields "file" の ${keys}`,
         ),
       );

@@ -234,7 +234,7 @@ test(
   },
 );
 
-// 汎用 API の住所(/api/<domain>)は生成器が features のフォルダの domainEntry.ts から導く(ドメインの表 domains、項目の domainApiPaths は説明用)。
+// 汎用 API の住所(/api/<登録名>)は生成器が domains のフォルダの登録の宣言(entities/<登録名>/entity.json、registered が false でない物)から導く(ドメインの表 domains、項目の domainApiPaths は説明用)。
 // 設定の節の住所(/admin/settings/<key>)も節の feature から導く(settingSections、L1.17)。cron の task の住所は task の import から導く(cronTasks、目録 D10)。
 // どれも規則の pathPatterns には入らない(D34 K4): 規則の pathPatterns = 手書きの住所
 // 規則に同じ住所を手書きすると重なる: 上流の規則は不可、fork の規則は表示だけ
@@ -257,7 +257,7 @@ test(
   },
 );
 
-test("上流の規則の汎用 API の住所(導出の固定。domainEntry のキー・規則の features が変わったら見直す)", { skip: forkAdded.status !== "tier1" ? "Tier1 だけ(fork は自分の規則が足される)" : false }, () => {
+test("上流の規則の汎用 API の住所(導出の固定。登録表に出す登録名・規則の domains が変わったら見直す)", { skip: forkAdded.status !== "tier1" ? "Tier1 だけ(fork は自分の規則が足される)" : false }, () => {
   const derived = Object.fromEntries(featureGateRules.filter((rule) => rule.domainApiPaths.length > 0).map((rule) => [rule.name, rule.domainApiPaths]));
   assert.deepEqual(derived, {
     chatRoom: ["/api/chatRoom"],

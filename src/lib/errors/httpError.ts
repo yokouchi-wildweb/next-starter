@@ -81,7 +81,7 @@ function warnAuthDenialInDev(status: number, url: string | undefined, responseDa
 
   console.warn(
     `[authz] ${status} denied: ${url ?? "(unknown url)"}${domain}${operation}` +
-      " — domainEntry.ts の access とこの画面の利用権限が食い違っていないか確認してください" +
+      " — 登録表の access(登録の entity.json の apiAccess)とこの画面の利用権限が食い違っていないか確認してください" +
       "（src/lib/routeFactory/README.md）",
   );
 }

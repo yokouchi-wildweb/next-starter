@@ -1,11 +1,11 @@
 // scripts/structure/registry/serviceRegistry/discover.mjs
-// src/domains/**/services/server/domainEntry.ts（と fork の domainEntry.override.ts）を走査し、
-// src/registry/serviceRegistry.ts の生成・検査に必要な情報を集める（一覧ファイルは持たない）。
+// 登録の宣言(src/domains/**/entities/<登録名>/entity.json、D335・D336)と fork の上書き entities/<登録名>/entity.override.ts を読み、
+// src/registry/serviceRegistry.ts の生成・検査に必要な行を集める(一覧ファイルは持たない)。
 //
-// 利用者: ./generate.mjs（pnpm generate registry）, ./check.mjs（pnpm check registry）,
-//         ./serviceRegistry.test.mjs（pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs）, scripts/structure/domain（pnpm generate domain / pnpm generate domain -- --delete の最後）
-// TS を実行せずテキストで読む（キーの一覧・import 行）。plain node で動くので pnpm generate domain から直接呼べる。
-// サービスを実際に読み込む検査はテスト側（tsx）。
+// 利用者: ./generate.mjs(pnpm generate registry), ./check.mjs(pnpm check registry),
+//         ./serviceRegistry.test.mjs, scripts/structure/domain(pnpm generate domain / pnpm generate domain -- --delete の最後)
+// 宣言は宣言の読み込みの部品(src/lib/domain の readDomain)だけで読み、上書きは TS を実行せずテキストで読む(キーの一覧・import 行)。
+// plain node で動くので pnpm generate domain から直接呼べる。サービスを実際に読み込む検査はテスト側(tsx)。
 
 import fs from "node:fs";
 import path from "node:path";
@@ -14,37 +14,38 @@ import ts from "typescript";
 
 import { resolveImport } from "../../../../eslint-rules/resolve-import.mjs";
 import { overrideKeysOf, readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
-import { isGeneratedRegistration, nodeDomainSource, readDomain } from "../../../../src/lib/domain/node.mjs";
+import { ENTITIES_DIR, ENTITY_DECLARATION_FILE, isRegisteredRegistration, nodeDomainSource, readDomain } from "../../../../src/lib/domain/node.mjs";
+import { toSnakeCase } from "../../../../src/lib/stringCase/index.mjs";
+import { domainTableName } from "../../domain/domain/names.mjs";
 import { scanObjectEntries } from "../../domain/text/objectEntry.mjs";
-import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
+import { accessOfDeclaration } from "./access.mjs";
 
-export const ENTRY_FILE = "domainEntry.ts";
-export const OVERRIDE_FILE = "domainEntry.override.ts";
-export const ENTRIES_EXPORT = "domainEntries";
-export const OVERRIDES_EXPORT = "domainEntryOverrides";
+/** fork の上書きのファイル(登録のフォルダ entities/<登録名>/ の直下、entity.json の隣) */
+export const OVERRIDE_FILE = "entity.override.ts";
+/** 上書きの点の名前(src/lib/domain/extensionPoints.ts) */
+export const OVERRIDE_POINT = "entities";
+export const OVERRIDE_EXPORT = "entityOverride";
 export const REGISTRY_FILE = "src/registry/serviceRegistry.ts";
-/** 上書きしてよい鍵の宣言(src/lib/domain/extensionPoints.ts の domainEntries) */
+/** 上書きしてよい鍵の宣言(src/lib/domain/extensionPoints.ts の entities) */
 export const OVERRIDE_DECLARATION = "src/lib/domain/extensionPoints.ts";
+/** サービスのファイルの置き場(ドメインのフォルダからの相対) */
+export const SERVICE_DIR = "services/server";
 
 /**
- * domainEntry.override.ts が差し替える属性(宣言の overrideOf)。上書きのファイルは { <キー>: <その属性の値> } なので、宣言の鍵はちょうど 1 つ
+ * entity.override.ts が差し替える鍵(宣言の overrideOf)。登録表の行の access を丸ごと差し替える 1 つだけ(apiAccess)
  * @returns {string}
  */
 export function overrideAttribute() {
-  const keys = overrideKeysOf(OVERRIDE_DECLARATION, "domainEntries");
+  const keys = overrideKeysOf(OVERRIDE_DECLARATION, OVERRIDE_POINT);
   if (keys.length !== 1) {
-    throw new Error(`${OVERRIDE_DECLARATION} の domainEntries の overrideOf は 1 つだけ(${OVERRIDE_FILE} は { <キー>: <値> } で 1 つの属性を差し替える。今: ${keys.join(" / ")})`);
+    throw new Error(`${OVERRIDE_DECLARATION} の ${OVERRIDE_POINT} の overrideOf は 1 つだけ(${OVERRIDE_FILE} は登録表の access を丸ごと差し替える。今: ${keys.join(" / ")})`);
   }
   return keys[0];
 }
-/** 生成物の 1 行目（この行が無いファイル = 移行前の手書き登録表） */
-export const GENERATED_HEADER = "// 生成物・編集不可: pnpm generate registry が src/domains/**/services/server/domainEntry.ts から生成する";
-
-/**
- * drizzleBase.ts / firestoreBase.ts があるのに domainEntry.ts を持たなくてよいドメイン（features 相対のディレクトリ名）。
- * 縮むだけの例外表: 行を足すのは新しいドメインを登録表から意図して外すときだけで、理由を書く。
- */
-export const ENTRY_EXCEPTIONS = {};
+/** 生成物の 1 行目 */
+export const GENERATED_HEADER = "// 生成物・編集不可: pnpm generate registry が src/domains/**/entities/*/entity.json(と fork の entity.override.ts)から生成する";
+/** 生成物の印(前の版の 1 行目も生成物として読む) */
+const GENERATED_PREFIX = "// 生成物・編集不可: pnpm generate registry が ";
 
 /**
  * ドメインのフォルダの一覧(`src/domains` からの相対 `<dir>` か `core/<dir>`、`_` 始まりの雛形は地区でないので含まない)。
@@ -64,9 +65,9 @@ function stripComments(text) {
 }
 
 // ---------------------------------------------------------------------------
-// domainEntry.ts / domainEntry.override.ts の静的 import の決まり(設定の議会 D63・L1.23)
-// 目的: 登録表 serviceRegistry.ts は全ドメインの domainEntry を静的に読むので、domainEntry は軽く副作用なしに保つ
-// (サービスは service: () => import(...) で遅延読み込み)。決まりは置き場や名前でなく中身で見る:
+// fork の上書き entities/<登録名>/entity.override.ts の静的 import の決まり(設定の議会 D63・L1.23)
+// 目的: 登録表 serviceRegistry.ts は上書きを静的に読むので、上書きは軽く副作用なしに保つ
+// (サービスは登録表の service: () => import(...) で遅延読み込み)。決まりは置き場や名前でなく中身で見る:
 // - 型だけの import(`import type`・名前がすべて type)はどこからでも可(実行時に消える)
 // - 値の import は「値だけのファイル」からだけ。値だけのファイル = 文が次だけのファイル:
 //   型だけの import / 値だけのファイルからの値の import と再 export / 型の宣言(type・interface) /
@@ -171,7 +172,7 @@ function resolveSourceFile(specifier, importerAbs, repoRoot, view) {
 
 /**
  * ファイルの静的 import が決まりに合うかを見て、合わない点を返す。
- * entry = true は domainEntry.ts / domainEntry.override.ts 自身(文は自由、import だけ見る)。
+ * entry = true は上書きのファイル自身(文は自由、import だけ見る)。
  * false は値の import の先(中身が値だけのファイルか)。結果は memo に覚え、循環は止まる。
  * @param {string} file repo 相対
  * @param {{ repoRoot: string, view: FileView, memo: Map<string, string[]> }} context
@@ -246,15 +247,15 @@ function staticImportProblems(file, entry, context) {
 }
 
 /**
- * domainEntry.ts / domainEntry.override.ts の静的 import の決まり(上の説明)に合わない点を返す。
+ * 上書き(entity.override.ts)の静的 import の決まり(上の説明)に合わない点を返す。
  * 型だけの import はどこからでも可、値の import は値だけのファイルからだけ(推移的に確かめる)
- * @param {string} file repo 相対(domainEntry.ts か domainEntry.override.ts)
+ * @param {string} file repo 相対(entities/<登録名>/entity.override.ts)
  * @param {string} repoRoot
  * @param {FileView} [view]
  * @param {Map<string, string[]>} [memo] 同じ走査の中で同じファイルを二度読まない
  * @returns {string[]} `<file>: <問題>` の文
  */
-export function checkEntryStaticImports(file, repoRoot, view = diskView, memo = new Map()) {
+export function checkOverrideStaticImports(file, repoRoot, view = diskView, memo = new Map()) {
   return staticImportProblems(file, true, { repoRoot, view, memo }).map((problem) => `${file}: ${problem}`);
 }
 
@@ -269,91 +270,6 @@ export function readObjectKeys(text, exportName) {
     return { keys: null, error: error.message };
   }
 }
-
-/** 登録の table / idColumn に書ける値（PostgreSQL の識別子の上限 63 文字。値の正しさは pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs が実物と比べる） */
-const MAX_IDENTIFIER_LENGTH = 63;
-
-/**
- * 1 キーの値（オブジェクトリテラル）の直下の項目を { name: 値の文字列 } で返す。オブジェクトでなければ null
- * @param {string} valueText `{ service: ..., table: "x", ... }`
- */
-function readEntryFields(valueText) {
-  const trimmed = valueText.trim().replace(/,$/, "");
-  if (!trimmed.startsWith("{")) return null;
-  const text = `const __entry = ${trimmed}`;
-  const fields = {};
-  for (const entry of scanObjectEntries(text, "__entry").entries) {
-    const raw = text.slice(entry.start, entry.end).replace(/,$/, "");
-    fields[entry.key] = raw.slice(raw.indexOf(":") + 1).replace(/^\s*(\/\/[^\n]*\n\s*)*/, "").trim();
-  }
-  return fields;
-}
-
-/** `"x"` / `'x'` → x、`null` → null、それ以外（定数・式・無し）→ undefined */
-function readLiteral(raw) {
-  if (raw === undefined) return undefined;
-  const value = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*$/gm, "").trim();
-  if (value === "null") return null;
-  const match = /^(["'])([^"'\\]*)\1$/.exec(value);
-  return match ? match[2] : undefined;
-}
-
-/**
- * domainEntry.ts の各キーの table / idColumn（D57）を読み、形の誤りを errors に積む。
- * 受け付けるのは文字列リテラルか null だけ（生成器はファイルを文字として読むので、定数・式は読めない）。
- * @returns {{ tables: Record<string, { table: string | null, idColumn: string | null }>, errors: string[] }}
- */
-export function readEntryTables(text, entryPath) {
-  const tables = {};
-  const errors = [];
-  for (const entry of scanObjectEntries(text, ENTRIES_EXPORT).entries) {
-    const raw = text.slice(entry.start, entry.end);
-    const fields = readEntryFields(raw.slice(raw.indexOf(":") + 1));
-    const where = `${entryPath}: キー "${entry.key}"`;
-    if (!fields) {
-      errors.push(`${where} の値がオブジェクトリテラルでない（table / idColumn を読めない）`);
-      continue;
-    }
-    const values = {};
-    for (const name of ["table", "idColumn"]) {
-      if (!(name in fields)) {
-        errors.push(
-          `${where} に ${name} が無い（生成ドメインは pnpm generate domain -- <domain> --yes --only registry、手書きは service の直後に ` +
-            `table: "<表の物理名>", idColumn: "id" を書く。表を持たない Firestore 版は両方 null）`,
-        );
-        continue;
-      }
-      const value = readLiteral(fields[name]);
-      if (value === undefined) {
-        errors.push(`${where} の ${name} は文字列リテラルか null で書く（定数・式は読めない）: ${fields[name]}`);
-        continue;
-      }
-      if (value !== null && (value.length === 0 || value.length > MAX_IDENTIFIER_LENGTH || /[\s"'`]/.test(value))) {
-        errors.push(`${where} の ${name} "${value}" は表・列の物理名の形でない（空でない・${MAX_IDENTIFIER_LENGTH} 文字以内・引用符と空白を含まない）`);
-        continue;
-      }
-      values[name] = value;
-    }
-    if (!("table" in values) || !("idColumn" in values)) continue;
-    if ((values.table === null) !== (values.idColumn === null)) {
-      errors.push(`${where} の table と idColumn は両方 null（表を持たない Firestore 版）か両方文字列にする`);
-      continue;
-    }
-    tables[entry.key] = { table: values.table, idColumn: values.idColumn };
-  }
-  return { tables, errors };
-}
-
-/**
- * 1 ドメイン分の情報
- * @typedef {{
- *   dir: string, camel: string, isCore: boolean,
- *   entryPath: string | null, importPath: string | null, keys: string[], entryErrors: string[],
- *   tables: Record<string, { table: string | null, idColumn: string | null }>,
- *   overridePath: string | null, overrideImportPath: string | null, overrideKeys: string[], overrideErrors: string[],
- *   hasBase: boolean, hasDomainJson: boolean, handManaged: boolean,
- * }} DomainEntryInfo
- */
 
 /**
  * ファイルの見え方。既定はディスクそのまま。pnpm generate domain は「これから書くファイル」を重ねた見え方で、
@@ -376,82 +292,132 @@ export function createOverlayView(overlay) {
   };
 }
 
-/**
- * ドメインの宣言の事実(宣言の読み込みの部品 readDomain だけで読む、D335): 宣言(domain.json)があるか、生成する登録(generate、D337)を 1 つも持たないか
- * @param {string} repoRoot
- * @param {string} name ドメインのフォルダ名
- * @returns {{ hasDomainJson: boolean, handManaged: boolean }}
- */
-export function readDeclarationFacts(repoRoot, name) {
-  const declaration = readDomain(nodeDomainSource(repoRoot), name);
-  if (declaration.domain === null) return { hasDomainJson: false, handManaged: false };
-  return { hasDomainJson: true, handManaged: !declaration.registrations.some(isGeneratedRegistration) };
-}
+
+/** PostgreSQL の識別子の上限(表・列の物理名) */
+const MAX_IDENTIFIER_LENGTH = 63;
+const SERVICE_SOURCES = (base) => [`${base}.ts`, `${base}/index.ts`];
 
 /**
- * domainEntry.ts / override / drizzleBase / firestoreBase の有無とキーを集める
- * @param {string} repoRoot
- * @param {FileView} [view] ファイルの見え方（既定 = ディスク）
+ * 登録表の 1 行(登録 1 件)
+ * @typedef {{
+ *   key: string, dir: string, isCore: boolean, entityPath: string,
+ *   service: { file: string, export: string }, serviceImport: string,
+ *   table: string | null, idColumn: string | null, access: object, requires: string[],
+ *   overridePath: string | null, overrideImport: string | null,
+ * }} RegistryRow
  */
-export function discoverDomainEntries(repoRoot, view = diskView) {
-  /** @type {DomainEntryInfo[]} */
-  const domains = [];
+
+/**
+ * 登録の表の物理名と主キーの列: Firestore は表を持たないので両方 null。表 = entity.table か snake(plural)、主キー = primaryKey の 1 列の物理名か id
+ * @param {string} registration 登録名
+ * @param {Record<string, any>} entity
+ */
+export function tableOfRegistration(registration, entity) {
+  if (entity.dbEngine === "Firestore") return { table: null, idColumn: null };
+  const table = typeof entity.table === "string" ? entity.table : domainTableName(registration, entity);
+  const keyColumns = entity.primaryKey?.columns ?? [];
+  if (keyColumns.length !== 1) return { table, idColumn: "id" };
+  const name = keyColumns[0];
+  const declared = [...(entity.fields ?? []), ...(entity.columns ?? [])].find((item) => item?.name === name);
+  return { table, idColumn: declared?.column?.name ?? toSnakeCase(name) };
+}
+
+/** 登録のサービスの結び付き(entity.json の service か、既定 <登録名>Service) */
+export const serviceOfRegistration = (registration, entity) => entity.service ?? { file: `${registration}Service`, export: `${registration}Service` };
+
+/**
+ * 全ドメインの登録(registered が false でない物)を登録表の行にし、形の誤りを errors に積む。
+ * 検査: 登録名の重なり(登録表のキー = 登録名、全ドメインで一意。registered:false の登録も同じ名前の空間)・表の重なり・
+ * サービスのファイルが無い・表のサービスの土台(drizzleBase.ts / firestoreBase.ts)があるのに登録が 1 つも無い・上書きの形
+ * @param {string} repoRoot
+ * @param {FileView} [view] ファイルの見え方(既定 = ディスク)。pnpm generate domain がこれから書くサービスを重ねて渡す
+ * @returns {{ rows: RegistryRow[], errors: string[] }}
+ */
+export function discoverRegistrations(repoRoot, view = diskView) {
+  const source = nodeDomainSource(repoRoot);
+  /** @type {RegistryRow[]} */
+  const rows = [];
+  const errors = [];
+  /** 登録名 → 宣言のパス(登録表のキーの重なり、目録 D4・cache 議会 D127) */
+  const nameOwners = new Map();
   /** 値の import の先の判定(ファイル → 問題)。全ドメインで共有して同じファイルを二度読まない */
   const importMemo = new Map();
   for (const dir of listDomainDirs(repoRoot)) {
-    const serverDir = path.join(repoRoot, "src", "domains", dir, "services", "server");
-    const entryFile = path.join(serverDir, ENTRY_FILE);
-    const overrideFile = path.join(serverDir, OVERRIDE_FILE);
-    const hasBase = view.exists(path.join(serverDir, "drizzleBase.ts")) || view.exists(path.join(serverDir, "firestoreBase.ts"));
-    const { hasDomainJson, handManaged } = readDeclarationFacts(repoRoot, path.basename(dir));
-    const camel = toCamelCase(path.basename(dir)) || path.basename(dir);
-    const info = {
-      dir,
-      camel,
-      isCore: dir.startsWith("core/"),
-      entryPath: null,
-      importPath: null,
-      keys: [],
-      entryErrors: [],
-      tables: {},
-      overridePath: null,
-      overrideImportPath: null,
-      overrideKeys: [],
-      overrideErrors: [],
-      hasBase,
-      hasDomainJson,
-      handManaged,
-    };
-    const rel = `src/domains/${dir}/services/server`;
-    if (view.exists(entryFile)) {
-      info.entryPath = `${rel}/${ENTRY_FILE}`;
-      info.importPath = `@/domains/${dir}/services/server/domainEntry`;
-      const text = view.read(entryFile);
-      const { keys, error } = readObjectKeys(text, ENTRIES_EXPORT);
-      if (error) info.entryErrors.push(`${info.entryPath}: ${error}`);
-      else {
-        info.keys = keys;
-        const read = readEntryTables(text, info.entryPath);
-        info.tables = read.tables;
-        info.entryErrors.push(...read.errors);
+    const domainRel = `src/domains/${dir}`;
+    const name = path.basename(dir);
+    const declaration = readDomain(source, name);
+    // 業務と core の同じフォルダ名は readDomain が片方しか読めない(登録名も重なる)。もう片方は名指して止める
+    if (declaration.dir !== domainRel) {
+      errors.push(`${domainRel}: フォルダ名 ${name} が ${declaration.dir} と重なる(登録のキーが同じになる。後から足した側の名前を変える)`);
+      continue;
+    }
+    const hasBase = [`${SERVICE_DIR}/drizzleBase.ts`, `${SERVICE_DIR}/firestoreBase.ts`].some((file) => view.exists(path.join(repoRoot, domainRel, file)));
+    if (hasBase && declaration.registrations.length === 0) {
+      errors.push(`${domainRel}/${SERVICE_DIR} に drizzleBase.ts / firestoreBase.ts があるのに登録(${ENTITIES_DIR}/<登録名>/${ENTITY_DECLARATION_FILE})が 1 つも無い(宣言を書く。形: src/domains/README.md)`);
+    }
+    for (const registration of declaration.registrations) {
+      const entityPath = `${registration.dir}/${ENTITY_DECLARATION_FILE}`;
+      const owner = nameOwners.get(registration.name);
+      if (owner) {
+        errors.push(`登録名 "${registration.name}" が重なる: ${owner} と ${entityPath}(登録表のキー = 登録名は全ドメインで一意。後から足した側の登録名を変える)`);
+        continue;
       }
-      info.entryErrors.push(...checkEntryStaticImports(info.entryPath, repoRoot, view, importMemo));
+      nameOwners.set(registration.name, entityPath);
+      const overrideRel = `${registration.dir}/${OVERRIDE_FILE}`;
+      const overrideAbs = path.join(repoRoot, overrideRel);
+      // 空(空白とコメントだけ)の上書きは不在と同じ(多段で下の Tier が親の上書きを空にしてよい、D34 K1)
+      const hasOverride = view.exists(overrideAbs) && !isBlankSource(view.read(overrideAbs));
+      const entity = registration.entity;
+      if (!entity) continue; // 読めない entity.json は宣言の読み込みの部品の問題(pnpm check domain)
+      if (!isRegisteredRegistration(registration)) {
+        if (hasOverride) errors.push(`${overrideRel}: 登録が registered: false なので上書きする登録表の行が無い(上書きを消す)`);
+        continue;
+      }
+      const service = serviceOfRegistration(registration.name, entity);
+      const serviceBase = `${domainRel}/${SERVICE_DIR}/${service.file}`;
+      if (!SERVICE_SOURCES(serviceBase).some((file) => view.exists(path.join(repoRoot, file)))) {
+        errors.push(`${entityPath}: サービスのファイル ${serviceBase}.ts が無い(既定は ${SERVICE_DIR}/<登録名>Service.ts の <登録名>Service。違う時は entity.json の service に { file, export })`);
+      }
+      const { table, idColumn } = tableOfRegistration(registration.name, entity);
+      for (const [label, value] of [["表", table], ["主キーの列", idColumn]]) {
+        if (value !== null && (value.length === 0 || value.length > MAX_IDENTIFIER_LENGTH || /[\s"'`]/.test(value))) {
+          errors.push(`${entityPath}: ${label}の物理名 "${value}" が形でない(空でない・${MAX_IDENTIFIER_LENGTH} 文字以内・引用符と空白を含まない)`);
+        }
+      }
+      const row = {
+        key: registration.name,
+        dir,
+        isCore: dir.startsWith("core/"),
+        entityPath,
+        service,
+        serviceImport: `@/domains/${dir}/${SERVICE_DIR}${service.file === "index" ? "" : `/${service.file}`}`,
+        table,
+        idColumn,
+        access: accessOfDeclaration(entity),
+        requires: Array.isArray(entity.requires) ? [...entity.requires] : [],
+        overridePath: null,
+        overrideImport: null,
+      };
+      if (hasOverride) {
+        const { error } = readObjectKeys(view.read(overrideAbs), OVERRIDE_EXPORT);
+        if (error) errors.push(`${overrideRel}: ${error}`);
+        errors.push(...checkOverrideStaticImports(overrideRel, repoRoot, view, importMemo));
+        // 宣言に無い鍵は pnpm check extensions(鍵の検査 overrideKeys.mjs)
+        row.overridePath = overrideRel;
+        row.overrideImport = `@/${overrideRel.slice("src/".length).replace(/\.ts$/, "")}`;
+      }
+      rows.push(row);
     }
-    // 空(空白とコメントだけ)の上書きは不在と同じ(多段で下の Tier が親の上書きを空にしてよい、D34 K1)
-    if (view.exists(overrideFile) && !isBlankSource(view.read(overrideFile))) {
-      info.overridePath = `${rel}/${OVERRIDE_FILE}`;
-      info.overrideImportPath = `@/domains/${dir}/services/server/domainEntry.override`;
-      const text = view.read(overrideFile);
-      const { keys, error } = readObjectKeys(text, OVERRIDES_EXPORT);
-      if (error) info.overrideErrors.push(`${info.overridePath}: ${error}`);
-      else info.overrideKeys = keys;
-      info.overrideErrors.push(...checkEntryStaticImports(info.overridePath, repoRoot, view, importMemo));
-      // 隣に domainEntry.ts が無い・キーが domainEntry.ts に無いのは pnpm check extensions(孤立の検査 orphans.mjs・鍵の検査 overrideKeys.mjs)。
-      // 対象の無い上書きは登録表に載せない(載せる行は domainEntry.ts のキーから作る)
-    }
-    domains.push(info);
   }
-  return domains;
+  // 1 テーブル 1 登録(D58: 表名 → 登録の逆引きが一意に決まるように)
+  const tableOwners = new Map();
+  for (const row of rows) {
+    if (row.table === null) continue;
+    const owner = tableOwners.get(row.table);
+    if (owner) errors.push(`表 "${row.table}" が 2 つの登録にある: ${owner.entityPath} と ${row.entityPath}(1 つの表は 1 つの登録だけ)`);
+    else tableOwners.set(row.table, row);
+  }
+  return { rows, errors };
 }
 
 /** src/ 配下（*.test.* を除く）の storageBindingFor("<record_type>", ...) の第 1 引数とファイル */
@@ -477,17 +443,13 @@ export function listStorageBindingRecordTypes(repoRoot) {
   return result;
 }
 
-/** 既存の serviceRegistry.ts の情報（無ければ null） */
+
+/** 既存の serviceRegistry.ts の情報(無ければ null)。generated = 生成物の印がある(無い = 手書き) */
 export function readExistingRegistry(repoRoot) {
   const file = path.join(repoRoot, REGISTRY_FILE);
   if (!fs.existsSync(file)) return null;
   const text = fs.readFileSync(file, "utf8");
-  const generated = text.split(/\r?\n/)[0] === GENERATED_HEADER;
+  const generated = text.split(/\r?\n/)[0].startsWith(GENERATED_PREFIX);
   const { keys, error } = readObjectKeys(text, "serviceRegistry");
-  // 旧形式: `import { xService } from "@/domains/.../services/server/xService"` からキー → ドメインを推定（移し先の案内に使う）
-  const serviceImports = new Map();
-  for (const match of text.matchAll(/import\s*\{\s*(\w+)\s*\}\s*from\s*["']@\/domains\/((?:core\/)?[\w-]+)\/services\/server[^"']*["']/g)) {
-    serviceImports.set(match[1], match[2]);
-  }
-  return { text, generated, keys: keys ?? [], error, serviceImports };
+  return { text, generated, keys: keys ?? [], error };
 }

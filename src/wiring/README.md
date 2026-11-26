@@ -18,7 +18,7 @@
 - `business.ts` だけは例外: `@/business` の名前で features・app・proxies・scripts(`await import`)と、上書きファイル(`src/config/lib/{mail,url,metadata}.config.ts` ほか)から読む(データに届かず、`src/business` と `lib/business` だけを読む。lib と utils は読まず値を引数で受ける)
 - features / lib / components / registry からは import しない（`domainConfig.ts` も同じ。features の server は自分の登録の entities/<登録名>/entity.json、client は写し entities/display.ts を読む）。lib がドメイン名からサービスを引きたいときは、呼び手（ルート）が wiring の関数を注入する（例: `src/lib/dataMigration` の `services` オプション、`storageObject` の sweep の `lookupService`）
 
-「データに届く wiring」= services/server を値 import する wiring（判定は registry → domainEntry.ts → 遅延 import の鎖も辿る）。src/app の中で import してよい場所は限る（UI の場所はデータを取らない）:
+「データに届く wiring」= services/server を値 import する wiring（判定は registry → 遅延 import の鎖も辿る）。src/app の中で import してよい場所は限る（UI の場所はデータを取らない）:
 
 - `loader.ts`・`route.ts`・cron の `task.ts`・`src/app/api/**` の補助ファイル（例 `data-migration/_shared/`）
 - `guard.ts` は `@/wiring/pageGuard`（守りの作り手）だけ
@@ -30,7 +30,7 @@
 
 ### 目録（置いてよいファイル）
 
-- `apiRoute.ts`: データに届くか = 届く（serviceRegistry → domainEntry.ts → 遅延 import でサービスに届く）
+- `apiRoute.ts`: データに届くか = 届く（serviceRegistry → 遅延 import でサービスに届く）
   - `lib/routeFactory` の汎用版 + 生成物 `routeFactory.ts` の 3 つの点の項目を門番 `gate.plugs` で絞った物: 利用者の束 `routeFactoryUser`（ちょうど 1 つ、上流は `domains/core/auth`）・レート制限の束 `routeFactoryRateLimit`（ちょうど 1 つ、上流は `domains/core/rateLimit`）・端末の束 `routeFactoryDevice`（0〜1 個、上流は `domains/core/pairedDevice`。閉じて外れたら lib の「端末なし」、テスト `src/lib/routeFactory/noDevice.test.mts`）
   - + 主体の具体の型（一覧の `<点>Map` の型から `@/lib/routeFactory` の取り出しの型で導く。ドメインを読まない）+ `serviceRegistry` → `createApiRoute` / `createDomainRoute` / `createDomainIdRoute` / `createMeRoute` / `createDeviceRoute` / `enforceAccessRule` / `ownerWhere`（API ルートとその補助ファイルはここから import する）
   - + 想定外の失敗(500)の口 `serverError` → 生成物 `serverErrorReport.ts` の `serverErrorReport.report`（scope api、name = operation）
@@ -44,7 +44,7 @@
   - `lib/cron` の `runExpiryRules` + 生成物 `cron.ts` の点 `expiryRules` の項目を門番 `gate.plugs` で絞った物 + 本物の表 `drizzleExpiryStore` → `runExpiryPrune({ checkpoint, budgetMs? })`(締切は既定 240 秒の予算からここで作る。印は task.ts が `@/domains/cronCheckpoint` から渡す。`src/lib/cron/README.md` Internals「期限の削除の 1 本」)
 - `business.ts`: データに届くか = 届かない
   - `src/business/business.ts`(fork の値と印 source)+ `lib/business` の `resolveBusiness` → `business` / `businessSource`(受付係。tsconfig.json の `"@/business"` がここを指し、読み手は `@/business` を読む。sample のときは例の値。`src/lib/business/README.md`)
-- `domainRegistry.ts`: データに届くか = 届く（registry → domainEntry.ts → 遅延 import でサービスに届く）
+- `domainRegistry.ts`: データに届くか = 届く（registry → 遅延 import でサービスに届く）
   - `serviceRegistry` + `domainConfigMap` → `getService` / `getServiceOrThrow` / `hasService` / `lookupDomainService` / `getJunctionTable` / `findDomainByTable` / `getDomainTable` / `getDomainAccess` / `getDomainList` / `getDomainListWithCount` / `withRecordCounts` / `isValidDomainKey` / `getInvalidDomainKeys`
 - `domainConfig.ts`: データに届くか = 届かない
   - 全ドメインの設定 → `getDomainConfig` / `hasDomainConfig`（server 専用）

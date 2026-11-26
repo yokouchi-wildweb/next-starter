@@ -60,7 +60,7 @@ export type FeatureName = "adminDemoUsers" | "analytics" | "bankTransferReview" 
 // name = 規則のファイル名、tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)
 export const rules: GeneratedFeatureRule[] = [
   { ...rules_adminDemoUsers, name: "adminDemoUsers", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["demoLogin"], anyOf: [], when: [] },
-  { ...rules_analytics, name: "analytics", tables: ["user_daily_activities", "analytics_daily_rollups"], domainApiPaths: [], settingPaths: [], cronPaths: ["/api/cron/analytics-rollup-daily"], dependsOn: [], anyOf: [], when: [] },
+  { ...rules_analytics, name: "analytics", tables: ["analytics_daily_rollups", "user_daily_activities"], domainApiPaths: [], settingPaths: [], cronPaths: ["/api/cron/analytics-rollup-daily"], dependsOn: [], anyOf: [], when: [] },
   { ...rules_bankTransferReview, name: "bankTransferReview", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["payment"], anyOf: [], when: ["purchaseRequest.bankTransferInhouseSelectable"] },
   { ...rules_chatRoom, name: "chatRoom", tables: [], domainApiPaths: ["/api/chatRoom"], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
   { ...rules_coupon, name: "coupon", tables: ["coupons", "coupon_histories", "coupon_issuer_grants"], domainApiPaths: ["/api/coupon", "/api/couponHistory", "/api/couponIssuerGrant"], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
@@ -73,7 +73,7 @@ export const rules: GeneratedFeatureRule[] = [
   { ...rules_deviceFingerprint, name: "deviceFingerprint", tables: ["device_fingerprints"], domainApiPaths: ["/api/deviceFingerprint"], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
   { ...rules_deviceFingerprintPageIngest, name: "deviceFingerprintPageIngest", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["deviceFingerprint"], anyOf: [], when: [] },
   { ...rules_fingerprintChallenge, name: "fingerprintChallenge", tables: ["fingerprint_challenges", "fingerprint_challenge_access_events"], domainApiPaths: ["/api/fingerprintChallenge"], settingPaths: [], cronPaths: [], dependsOn: ["deviceFingerprint"], anyOf: [], when: [] },
-  { ...rules_interactionTracking, name: "interactionTracking", tables: ["interaction_events", "interaction_counters", "interaction_daily_counters"], domainApiPaths: ["/api/interactionEvent"], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
+  { ...rules_interactionTracking, name: "interactionTracking", tables: ["interaction_counters", "interaction_daily_counters", "interaction_events"], domainApiPaths: ["/api/interactionEvent"], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
   { ...rules_messagingAnalytics, name: "messagingAnalytics", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["analytics"], anyOf: [], when: [] },
   { ...rules_messagingBroadcast, name: "messagingBroadcast", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["messagingDispatches"], anyOf: [], when: [] },
   { ...rules_messagingDispatches, name: "messagingDispatches", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
@@ -94,7 +94,7 @@ export const rules: GeneratedFeatureRule[] = [
   { ...rules_pageServices, name: "pageServices", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
   { ...rules_pageTerms, name: "pageTerms", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
   { ...rules_pageTradelaw, name: "pageTradelaw", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
-  { ...rules_pairedDevice, name: "pairedDevice", tables: ["paired_devices", "device_pairings"], domainApiPaths: ["/api/pairedDevice"], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
+  { ...rules_pairedDevice, name: "pairedDevice", tables: ["device_pairings", "paired_devices"], domainApiPaths: ["/api/pairedDevice"], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
   { ...rules_pause, name: "pause", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
   { ...rules_payment, name: "payment", tables: ["purchase_requests", "bank_transfer_reviews", "purchase_quota_ledger"], domainApiPaths: ["/api/purchaseRequest", "/api/bankTransferReview"], settingPaths: [], cronPaths: ["/api/cron/expire-pending-purchases"], dependsOn: ["wallet"], anyOf: [], when: [] },
   { ...rules_paymentAnalytics, name: "paymentAnalytics", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["analytics", "payment"], anyOf: [], when: [] },
@@ -114,7 +114,7 @@ export const rules: GeneratedFeatureRule[] = [
 
 // domains = どれかの規則の features に載るドメイン(開 = 持つ機能 features のどれかが開。載らないドメインは常に開)、apiPaths = 汎用 API の住所
 export const domains: GatedDomain[] = [
-  { folder: "core/analytics", tables: ["user_daily_activities", "analytics_daily_rollups"], apiPaths: [], features: ["analytics"] },
+  { folder: "core/analytics", tables: ["analytics_daily_rollups", "user_daily_activities"], apiPaths: [], features: ["analytics"] },
   { folder: "core/bankTransferReview", tables: ["bank_transfer_reviews"], apiPaths: ["/api/bankTransferReview"], features: ["payment"] },
   { folder: "core/chatRoom", tables: [], apiPaths: ["/api/chatRoom"], features: ["chatRoom"] },
   { folder: "core/coupon", tables: ["coupons"], apiPaths: ["/api/coupon"], features: ["coupon"] },
@@ -123,10 +123,10 @@ export const domains: GatedDomain[] = [
   { folder: "core/couponIssuerGrant", tables: ["coupon_issuer_grants"], apiPaths: ["/api/couponIssuerGrant"], features: ["coupon"] },
   { folder: "core/deviceFingerprint", tables: ["device_fingerprints"], apiPaths: ["/api/deviceFingerprint"], features: ["deviceFingerprint"] },
   { folder: "core/fingerprintChallenge", tables: ["fingerprint_challenges", "fingerprint_challenge_access_events"], apiPaths: ["/api/fingerprintChallenge"], features: ["fingerprintChallenge"] },
-  { folder: "core/interactionTracking", tables: ["interaction_events", "interaction_counters", "interaction_daily_counters"], apiPaths: ["/api/interactionEvent"], features: ["interactionTracking"] },
+  { folder: "core/interactionTracking", tables: ["interaction_counters", "interaction_daily_counters", "interaction_events"], apiPaths: ["/api/interactionEvent"], features: ["interactionTracking"] },
   { folder: "core/milestone", tables: ["milestones"], apiPaths: ["/api/milestone"], features: ["milestone"] },
   { folder: "core/outbox", tables: ["outbox_jobs"], apiPaths: [], features: ["outbox"] },
-  { folder: "core/pairedDevice", tables: ["paired_devices", "device_pairings"], apiPaths: ["/api/pairedDevice"], features: ["pairedDevice"] },
+  { folder: "core/pairedDevice", tables: ["device_pairings", "paired_devices"], apiPaths: ["/api/pairedDevice"], features: ["pairedDevice"] },
   { folder: "core/phoneVerification", tables: [], apiPaths: [], features: ["phoneVerification"] },
   { folder: "core/purchaseQuota", tables: ["purchase_quota_ledger"], apiPaths: [], features: ["payment"] },
   { folder: "core/purchaseRequest", tables: ["purchase_requests"], apiPaths: ["/api/purchaseRequest"], features: ["payment"] },

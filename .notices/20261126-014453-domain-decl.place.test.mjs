@@ -25,7 +25,7 @@ test("登録 1 つ: 4 ファイルを登録のフォルダへ移し、相対の 
   assert.match(moved, /from "\.\.\/\.\.\/constants"/);
   assert.match(plan.writes[`${domainRel}/entities/widget/schema.ts`], /from "\.\/drizzle"/, "一緒に移る種類どうしはそのまま");
   assert.match(plan.writes[`${domainRel}/entities/drizzle.ts`], /export \* from "\.\/widget\/drizzle";/);
-  assert.match(plan.writes[`${domainRel}/entities/drizzle.ts`], /AUTO-GENERATED/);
+  assert.match(plan.writes[`${domainRel}/entities/drizzle.ts`], /^\/\/ 生成物・編集不可: pnpm generate registry/);
   assert.deepEqual(checkExports(input, plan), []);
   assert.deepEqual(planPlacement({ ...input, files: { ...files, ...Object.fromEntries(Object.entries(plan.writes).filter(([rel]) => rel.split("/").length === 6).map(([rel, text]) => [rel.split("/").pop(), text])) } }).writes, {}, "置いた後は何もしない");
 });

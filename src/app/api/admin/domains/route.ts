@@ -10,7 +10,7 @@ import { getDomainAccess, getDomainList, withRecordCounts } from "@/wiring/domai
  * 全件削除できるドメインの一覧を取得する（レコード数付き）
  * GET /api/admin/domains
  *
- * 登録表のうち truncateAll 対応で、かつ domainEntry.ts の access（truncateAll）が今の管理者に許可されているものだけを返す
+ * 登録表のうち truncateAll 対応で、かつ 登録表の access（truncateAll、登録の entity.json から）が今の管理者に許可されているものだけを返す
  * （admin の門に加えて AND。INTERNAL_ONLY のドメインは出ない）。
  */
 export const GET = createApiRoute(

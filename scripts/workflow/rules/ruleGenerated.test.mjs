@@ -58,3 +58,12 @@ test("generated の paths に当たらない宣言を挙げる", () => {
   const entries = [{ glob: "src/registry/a.ts" }, { glob: "{dir}/entities/schema.ts" }, { glob: "src/lib/x/generated/y.ts" }];
   assert.deepEqual(outputsOutsidePaths(entries, ["src/registry/**", "src/domains/**"]).map((e) => e.glob), ["src/lib/x/generated/y.ts"]);
 });
+
+test("雛形でない生成器の every-run も、その生成器の計画があれば計画が書くファイルだけ: 登録表の集める入口と同じ名の手書きのファイルは数えない", () => {
+  const gates = [{ gate: "structure/registry", outputs: [{ glob: "src/domains/core/*/entities/model.ts", kind: "every-run" }] }];
+  const files = ["src/domains/core/user/entities/model.ts", "src/domains/core/chatRoom/entities/model.ts"];
+  const plans = { "structure/registry": new Set(["src/domains/core/user/entities/model.ts"]) };
+  assert.deepEqual(outputFiles(gates, files, [], null, plans)[0].files, ["src/domains/core/user/entities/model.ts"]);
+  // 計画の無い生成器 = 宣言の glob のまま
+  assert.deepEqual(outputFiles(gates, files, [], null, {})[0].files, files);
+});

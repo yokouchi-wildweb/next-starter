@@ -58,11 +58,11 @@ export const TABLE_SHAPE_KEYS = new Set(["table", "primaryKey", "foreignKeys", "
 export const ENTITY_TABLE_KEYS = new Set([...TABLE_KEYS, ...TABLE_SHAPE_KEYS]);
 
 /**
- * entity.json の鍵のうち、登録の鍵(今は手書きの domainEntry.ts にしかない事実)
+ * entity.json の鍵のうち、登録の鍵(登録表 src/registry/serviceRegistry.ts の行の出どころ、D336)
  * - generate: 生成器がこの登録の 4 ファイル(schema・form・model・drizzle)と汎用の一式を書くか(省略 = true、手で持つ登録は false、D337)
  * - registered: 汎用の登録(登録表 serviceRegistry)に出すか(省略 = true。false = 表だけを持ち、サービスの名前では引かない)
  * - reason: registered:false の理由、または apiAccess を閉じた・細かくした理由(人が読む 1 文)
- * - requires: 前提の機能(門番の依存の検査が読む、今の domainEntry.ts の requires)
+ * - requires: 前提の機能(門番の依存の検査と登録表の requires)
  * - service: 登録のサービスの結び付き { file, export }(services/server/ からの相対・export 名)。既定 <登録名>Service と違う時だけ
  * - adminList: 汎用の管理一覧の目録(src/registry/adminDomains.ts)に出すか(省略 = true。一覧の画面 /admin/<複数形>/page.tsx がある登録だけが出る)。
  *   false = 一覧の画面があっても目録に出さない(手で作った管理の画面を持ち、今の形の宣言を持たなかった登録。管理の一覧を黙って変えない)

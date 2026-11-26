@@ -34,9 +34,12 @@ export function expandDomainGlob(glob, domains) {
  * @param {Set<string> | null} [domainEveryRun] ドメインの生成器がこの木で実際に毎回書き直すファイル(生成の計画、pipeline/generateAll.mjs everyRunPathsOf)。
  *   ドメインの雛形の every-run の宣言はこれに入るファイルだけを数える: 宣言の glob は条件(例 useDetailModal の時だけの DetailModal)を持たないので、
  *   生成器が書かない同じ名の手書きの部品を生成物と読み違えない。null = 絞らない(宣言の glob のまま)
+ * @param {Record<string, Set<string>>} [gateEveryRun] ドメインの雛形でない生成器ごとの、この木で実際に毎回書くファイル(gate → 生成の計画)。
+ *   その生成器の every-run の宣言はこれに入るファイルだけを数える(例: 登録表の生成器の集める入口 entities/<種類>.ts は、その種類の登録を持つドメインだけに書き、
+ *   同じ名の手書きのファイル(Firestore の entities/model.ts など)は書かない)。無い gate は絞らない
  * @returns {{ gate: string, glob: string, kind: string, domain: boolean, files: string[], problems: string[] }[]}
  */
-export function outputFiles(gates, files, domains, domainEveryRun = null) {
+export function outputFiles(gates, files, domains, domainEveryRun = null, gateEveryRun = {}) {
   const out = [];
   for (const { gate, outputs } of gates) {
     const { entries, problems } = normalizeGateOutputs(outputs);
@@ -44,7 +47,8 @@ export function outputFiles(gates, files, domains, domainEveryRun = null) {
     for (const e of entries) {
       const globs = expandDomainGlob(e.glob, domains);
       const domain = isDomainTemplateGlob(e.glob);
-      const planned = domain && e.kind === "every-run" && domainEveryRun ? (f) => domainEveryRun.has(f) : () => true;
+      const gatePlan = !domain && e.kind === "every-run" ? gateEveryRun[gate] : undefined;
+      const planned = domain && e.kind === "every-run" && domainEveryRun ? (f) => domainEveryRun.has(f) : gatePlan ? (f) => gatePlan.has(f) : () => true;
       out.push({ gate, glob: e.glob, kind: e.kind, domain, files: files.filter((f) => globs.some((g) => matchesLoad(f, g)) && planned(f)), problems: [] });
     }
   }

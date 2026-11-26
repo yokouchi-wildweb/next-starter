@@ -23,7 +23,7 @@
 
 ### access のプリセット(別の閉じた lib `@/lib/domainAccess`、`src/lib/domainAccess/accessPresets.ts`)
 
-- domainAccess の公開の定数(上書きできる設定ではない)。access の型(`DomainApiAccessConfig` ほか)と操作名(`DOMAIN_DATA_OPERATIONS` ほか)も domainAccess。domainEntry.ts が値で読むので値だけのファイルで作る(`src/lib/domainAccess/README.md`)。既定 `DEFAULT_ACCESS_RULE`(admin カテゴリだけ)は access の書き漏れの fail-closed
+- domainAccess の公開の定数(上書きできる設定ではない)。access の型(`DomainApiAccessConfig` ほか)と操作名(`DOMAIN_DATA_OPERATIONS` ほか)も domainAccess。登録表と fork の entity.override.ts が値で読むので値だけのファイルで作る(`src/lib/domainAccess/README.md`)。既定 `DEFAULT_ACCESS_RULE`(admin カテゴリだけ)は access の書き漏れの fail-closed
 
 | 名前 | 意味 |
 |---|---|
@@ -38,7 +38,7 @@
 
 - `resolveDataCommand(access, command, service)` が、そのドメインでコマンドが許されるか・どのサービスの関数を呼ぶかを決める
 - 対応: `export` → 操作 `export` / 関数 `search`、`import` → `import` / `bulkUpsert`、`update` → `bulkUpdate` / `bulkUpdate`、`delete` → `bulkDeleteByIds` / `bulkDeleteByIds`（`DATA_COMMAND_OPERATIONS`）
-- 上書きの欄 `access.commands`（`{ export?, import?, update?, delete? }` = `"allow"` | `"deny"`）: API とコマンドで範囲を変えたいドメインだけ書く。core は `domainEntry.ts`（fork が core を変えるなら `domainEntry.override.ts`）、業務ドメインは登録の entity.json の `apiAccess.commands`（`pnpm generate domain` が `domainEntry.ts` に写す）
+- 上書きの欄 `access.commands`（`{ export?, import?, update?, delete? }` = `"allow"` | `"deny"`）: API とコマンドで範囲を変えたいドメインだけ書く。登録の entity.json の `apiAccess.commands`(`pnpm generate registry` が登録表の access に写す。fork が core を変えるなら `entity.override.ts` の `apiAccess`)
 
 ### 表示用の写しの項目(`entities/display.ts` の `domainDisplay`、型 `DomainDisplay` は `types/display.ts`)
 

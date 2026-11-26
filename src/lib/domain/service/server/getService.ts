@@ -67,7 +67,7 @@ export async function lookupDomainService<T extends DomainService = DomainServic
     return { status: "load_failed", error };
   }
   if (!service || typeof service !== "object") {
-    return { status: "load_failed", error: new Error(`domainEntry "${key}" の service がオブジェクトを返しませんでした`) };
+    return { status: "load_failed", error: new Error(`登録表の "${key}" の service がオブジェクトを返しませんでした`) };
   }
   const missing = (options.require ?? []).filter((name) => typeof service[name] !== "function");
   if (missing.length > 0) return { status: "unsupported", missing };

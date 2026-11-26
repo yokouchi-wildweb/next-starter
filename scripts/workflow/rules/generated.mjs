@@ -1,6 +1,6 @@
 // scripts/workflow/rules/generated.mjs — pnpm check rules の生成物の検査(D135)
 // 止める: 上流の生成器の出力の宣言(各 phase.json の outputs)が .claude/rules/core/generated.md の paths に当たらない /
-//         毎回の出力(every-run、ドメインの生成器は作り直しの対象のドメインで生成の計画が実際に書く分)で、注釈を持てる形式なのに先頭に生成物の印が無い
+//         毎回の出力(every-run、ドメインの生成器と登録表の生成器は生成の計画が実際に書く分)で、注釈を持てる形式なのに先頭に生成物の印が無い
 // 書き場所の一覧の generated の行 = outputs の一致は scripts/structure/extensions/check.mjs が守る(intake.txt の生成区画のずれで止まる)
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -11,6 +11,8 @@ import { nodeDomainSource, primaryRegistrationOf, readDomain } from "../../../sr
 import { planUnmark } from "../../structure/domain/cli/unmark.mjs";
 import { createWorkspace } from "../../structure/domain/domain/workspace.mjs";
 import { everyRunPathsOf, planGenerateAll } from "../../structure/domain/pipeline/generateAll.mjs";
+import { buildAlphaRegistries } from "../../structure/registry/alpha/index.mjs";
+import { REGISTRY_FILE } from "../../structure/registry/serviceRegistry/discover.mjs";
 import { parsePaths } from "./lib.rulePaths.mjs";
 import { CORE_DIR } from "./lib.ruleRepo.mjs";
 
@@ -49,7 +51,16 @@ try {
   fails.push(`ドメインの生成の計画を組めない(生成物の印を判定できない。pnpm generate domain -- --dry-run で確かめて直す): ${error instanceof Error ? error.message : String(error)}`);
 }
 
-const entries = outputFiles(gates, files, domains, planned);
+// 登録表の生成器(pnpm generate registry)がこの木で実際に毎回書くファイル = その計画(書かない)。集める入口 entities/<種類>.ts は
+// その種類の登録を持つドメインだけに書くので、宣言の glob に当たる同じ名の手書きのファイル(Firestore の entities/model.ts など)を生成物と読み違えない
+const gatePlans = {};
+try {
+  gatePlans["structure/registry"] = new Set([...Object.keys(buildAlphaRegistries(root).outputs), REGISTRY_FILE]);
+} catch (error) {
+  fails.push(`登録表の生成の計画を組めない(生成物の印を判定できない。pnpm generate registry で確かめて直す): ${error instanceof Error ? error.message : String(error)}`);
+}
+
+const entries = outputFiles(gates, files, domains, planned, gatePlans);
 const generatedPaths = parsePaths(read(`${CORE_DIR}/generated.md`)) ?? [];
 let domainEveryRun = 0;
 

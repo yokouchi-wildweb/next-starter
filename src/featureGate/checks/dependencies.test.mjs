@@ -1,6 +1,6 @@
 // src/featureGate/checks/dependencies.test.mjs
 // 依存の検査(D20(b)・L1.12): 閉じられるフォルダ(規則の domains)を外から値で import するファイルは、
-// (1) 自分のドメインの domainEntry.ts の requires (2) 規則の名前(dependsOn でその規則にたどり着く規則の名前も)で gate.enabled / gate.assert / useGate().enabled
+// (1) 自分のドメインの登録の entity.json の requires (2) 規則の名前(dependsOn でその規則にたどり着く規則の名前も)で gate.enabled / gate.assert / useGate().enabled
 // (3) その規則で閉じる住所の src/app の下 (4) 同じ規則のフォルダどうし (5) fork の required/<名前>、のどれかでなければ落とす。
 // 判定: ./dependencies.mjs。実行: pnpm test src/featureGate/checks/dependencies.test.mjs
 // - 例外の表も受け口も無い(注文 36、D22。前の受け口 src/featureGate/dependencyExceptions/ は生成器が止めて移し方を案内する)
@@ -31,7 +31,7 @@ test("実リポ: 閉じられるフォルダを外から読むファイルは 5 
   const violations = findDependencyViolations({ root: ROOT, rules });
   enforce(
     violations.map((v) => `${v.file} → ${v.folder}(規則 ${v.rule})`),
-    "閉じられる機能を確かめずに読んでいる。domainEntry.ts の requires・gate.enabled(\"<規則>\")・required/<規則>.ts のどれかで通す(src/featureGate/Internals.md「依存の検査」)",
+    "閉じられる機能を確かめずに読んでいる。登録の entity.json の requires・gate.enabled(\"<規則>\")・required/<規則>.ts のどれかで通す(src/featureGate/Internals.md「依存の検査」)",
   );
 });
 
@@ -56,16 +56,24 @@ const fixtureRules = [
   { name: "coupon", domains: ["core/coupon"], pathPatterns: ["/coupon"] },
 ];
 const IMPORT_WALLET = 'import { walletService } from "@/domains/core/wallet/services/server/walletService";\nexport const x = walletService;\n';
+/** 登録の宣言: domain.json と entities/<登録名>/entity.json(requires はここに書く) */
+const declared = (folder, registration, entity) => ({
+  [`src/domains/${folder}/domain.json`]: JSON.stringify({ domainConfigVersion: "2.0", label: folder }),
+  [`src/domains/${folder}/entities/${registration}/entity.json`]: JSON.stringify(entity),
+});
+const requiresOf = (name) => declared("core/purchase", "purchase", { requires: [name] });
 const run = (files, opts = {}) => findDependencyViolations({ root: fixture(files), rules: fixtureRules, requiredNames: [], ...opts }).map(keyOf);
 
 test("fixture: 確かめずに読むと落ち、6 つの形で通る", () => {
   const caller = "src/domains/core/purchase/services/server/buy.ts";
   assert.deepEqual(run({ [caller]: IMPORT_WALLET }), [`${caller} → core/wallet`]);
   // (1) requires(ドメイン名 = フォルダ名の末尾)
-  assert.deepEqual(run({ [caller]: IMPORT_WALLET, "src/domains/core/purchase/services/server/domainEntry.ts": 'export const domainEntries = {\n  purchase: { requires: ["wallet"] },\n} satisfies X;\n' }), []);
-  // 名乗りはフォルダ名だけ(目録 D4): 相手の domainEntry のキー(資源の名前)で requires を書いても当たらない
-  const walletEntry = { "src/domains/core/wallet/services/server/domainEntry.ts": 'export const domainEntries = {\n  wallet: { table: "wallets" },\n  walletLedger: { table: "ledgers" },\n} satisfies X;\n' };
-  const requiresOf = (name) => ({ "src/domains/core/purchase/services/server/domainEntry.ts": `export const domainEntries = {\n  purchase: { requires: ["${name}"] },\n} satisfies X;\n` });
+  assert.deepEqual(run({ [caller]: IMPORT_WALLET, ...requiresOf("wallet") }), []);
+  // 名乗りはフォルダ名だけ(目録 D4): 相手の登録名(資源の名前)で requires を書いても当たらない
+  const walletEntry = {
+    ...declared("core/wallet", "wallet", { table: "wallets" }),
+    ...declared("core/wallet", "walletLedger", { table: "ledgers" }),
+  };
   assert.deepEqual(run({ [caller]: IMPORT_WALLET, ...walletEntry, ...requiresOf("walletLedger") }), [`${caller} → core/wallet`]);
   assert.deepEqual(run({ [caller]: IMPORT_WALLET, ...walletEntry, ...requiresOf("core/wallet") }), [`${caller} → core/wallet`]);
   assert.deepEqual(run({ [caller]: IMPORT_WALLET, ...walletEntry, ...requiresOf("wallet") }), []);
@@ -111,11 +119,11 @@ test("fixture: pnpm generate extensions の生成物(plugs の点の一覧)は�
 });
 
 test("fixture: 表を持たない閉じられるフォルダ(Firestore 版など)も、表のあるフォルダと同じに数える", () => {
-  // core/chatRoom は pgTable を持たない(domainEntry の table: null)。判定は規則の domains だけを見る
+  // core/chatRoom は pgTable を持たない(登録の entity.json が Firestore 版)。判定は規則の domains だけを見る
   const rules = [...fixtureRules, { name: "chatRoom", domains: ["core/chatRoom"], pathPatterns: ["/chat"] }];
   const tableless = {
     "src/domains/core/chatRoom/services/server/chatRoomService.ts": "export const chatRoomService = {};\n",
-    "src/domains/core/chatRoom/services/server/domainEntry.ts": 'export const domainEntries = {\n  chatRoom: { table: null, idColumn: null },\n} satisfies X;\n',
+    ...declared("core/chatRoom", "chatRoom", { dbEngine: "Firestore" }),
   };
   const IMPORT_CHAT = 'import { chatRoomService } from "@/domains/core/chatRoom/services/server/chatRoomService";\nexport const x = chatRoomService;\n';
   const runChat = (files, opts = {}) => findDependencyViolations({ root: fixture({ ...tableless, ...files }), rules, requiredNames: [], ...opts }).map(keyOf);

@@ -50,7 +50,7 @@ export const POST = createApiRoute(
       );
     }
 
-    // domainEntry.ts の access（import）を評価する（ルートの admin 門に加えて AND）。中間表（junction）はサービスを持たないので対象外
+    // 登録表の access（import）を評価する（ルートの admin 門に加えて AND）。中間表（junction）はサービスを持たないので対象外
     if (domainType !== "junction") {
       const denied = await denyUnlessDomainDataOperationAllowed([domain], "import", admin);
       if (denied) return denied;

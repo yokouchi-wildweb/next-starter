@@ -214,7 +214,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 
 | reason | 意味 | 確かめ方・直し方 |
 |---|---|---|
-| `unregistered` | record_type が serviceRegistry に無い | storageBindingFor の第 1 引数と domainEntry.ts のキーを揃える（`pnpm check registry` が検出する）。ドメインを消した後なら、台帳の行の扱いを決める。messaging の 3 種（`messaging.dispatch` / `messaging.template` / `messaging.override`）は意図して登録表に無い（messaging が行を消す時に自分で外す） |
+| `unregistered` | record_type が serviceRegistry に無い | storageBindingFor の第 1 引数と登録名を揃える（`pnpm check registry` が検出する）。ドメインを消した後なら、台帳の行の扱いを決める。messaging の 3 種（`messaging.dispatch` / `messaging.template` / `messaging.override`）は意図して登録表に無い（messaging が行を消す時に自分で外す） |
 | `load_failed` | サービスの読み込みが失敗した | detail（例外のメッセージ）とサーバーのログ |
 | `unsupported` | サービスが searchWithDeleted を持たない（Firestore 版など） | 照合の対象外。必要ならそのドメインの削除の流れで detach する |
 | `mass_missing` | 1 つの束で、同じ record_type の ID が `massMissingMin` 以上あって 1 件も見つからない | 表の取り違え・誤った全消去・truncate を疑う。`pnpm ops db inspect query` で台帳（`select record_id from storage_objects where status = 'ready' and record_type = '<type>'`）と業務表を突き合わせる。正当（大きな親の削除で子が一度に消えた）と確かめたら、その間だけ `storageObjectConfig.sweep.reconcile.massMissingMin` を上げて通す。解除の作業コマンドは無い |

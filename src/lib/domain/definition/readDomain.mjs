@@ -179,6 +179,12 @@ export function primaryRegistrationOf(declaration) {
 export const isGeneratedRegistration = (registration) => Boolean(registration.entity) && registration.entity.generate !== false;
 
 /**
+ * 汎用の登録表(src/registry/serviceRegistry.ts、キー = 登録名)に出す登録か(entity.json の registered、省略 = true、D336)
+ * @param {DomainRegistration} registration
+ */
+export const isRegisteredRegistration = (registration) => Boolean(registration.entity) && registration.entity.registered !== false;
+
+/**
  * 名前の登録をどのドメインからでも探す(関連の先 relations[].domain は登録名)。ドメイン名と同じ登録を先に、無ければ最初に見つかった物
  * @param {DomainDeclaration[]} declarations
  * @param {string} name

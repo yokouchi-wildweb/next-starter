@@ -10,7 +10,7 @@
 // 3. wiring どうしは読まない、例外なし（D32）: wiring のファイルが読めるのは lib の入口・登録表・生成された一覧だけ。src/wiring の中で読めるのは
 //    生成物（先頭に生成の印 = lib の点の一覧と結び目 src/wiring/<lib>.ts、D31）だけ。手書きの wiring どうしは読まない（共有する物は lib の入口か生成物の側に置く）
 //    src/wiring はフォルダを持たない（受け口のフォルダは無い。lib の点の項目は差す側の <ドメイン か lib>/plugs/<点>/、D38）
-// 4. 「データに届く wiring」= services/server を値 import する wiring。判定は registry → domainEntry.ts → 遅延 import（動的 import も辺に数える）
+// 4. 「データに届く wiring」= services/server を値 import する wiring。判定は registry → 遅延 import（動的 import も辺に数える）
 //    の鎖を辿る。domainRegistry.ts はデータに届く wiring である（鎖が切れたら生成物か検査が壊れている）
 //    一覧の完全一致は Tier1 だけ。fork は受け口の項目でデータに届く wiring が増えてよい（上流の分が残っていることを見る。増えた分も 5 が同じ場所に限る）
 // 5. データに届く wiring を import してよい場所（D73 K6）: src/app の loader.ts・route.ts・cron の task.ts・API の補助ファイル
@@ -198,8 +198,7 @@ function reachesServicesServer(file, { skip = [] } = {}) {
     if (seen.has(current)) continue;
     seen.add(current);
     const rel = toPosix(relative(srcDir, current));
-    // domainEntry.ts と fork の domainEntry.override.ts は services/server に置く登録の宣言（サービス本体ではない）なので、届いた扱いにせず先を辿る
-    if (/\/services\/server\//.test(rel) && !/\/domainEntry(\.override)?\.ts$/.test(rel)) return { reached: true, path: [...path, rel] };
+    if (/\/services\/server\//.test(rel)) return { reached: true, path: [...path, rel] };
     for (const { source } of listImportSources(readFileSync(current, "utf8"))) {
       const target = resolveSource(current, source);
       if (target && !seen.has(target) && !skip.includes(toPosix(relative(srcDir, target)))) stack.push({ file: target, path: [...path, rel] });
@@ -208,12 +207,14 @@ function reachesServicesServer(file, { skip = [] } = {}) {
   return { reached: false, path: [] };
 }
 
-test("データに届く wiring: domainRegistry.ts は registry → domainEntry.ts → 遅延 import の鎖で services/server に届く", () => {
+test("データに届く wiring: domainRegistry.ts は registry → 遅延 import の鎖で services/server に届く", () => {
   // getJunctionTable の遅延 import で表の定義からも届くので、見たい鎖(登録表)だけを辿る
   const result = reachesServicesServer(join(wiringDir, "domainRegistry.ts"), { skip: ["registry/schemaRegistry.ts"] });
-  assert.ok(result.reached, "domainRegistry.ts から services/server に届かない（登録表か domainEntry.ts の形が変わった）");
-  assert.ok(result.path.some((rel) => rel === "registry/serviceRegistry.ts"), `鎖が登録表を通らない: ${result.path.join(" → ")}`);
-  assert.ok(result.path.some((rel) => rel.endsWith("/domainEntry.ts")), `鎖が domainEntry.ts を通らない: ${result.path.join(" → ")}`);
+  assert.ok(result.reached, "domainRegistry.ts から services/server に届かない（登録表の形が変わった）");
+  const at = result.path.indexOf("registry/serviceRegistry.ts");
+  assert.ok(at >= 0, `鎖が登録表を通らない: ${result.path.join(" → ")}`);
+  // 登録表の行の service: () => import("@/domains/<d>/services/server/…") で直に届く(間に登録の宣言のファイルを挟まない)
+  assert.match(result.path[at + 1] ?? "", /\/services\/server\//, `登録表の次が services/server でない: ${result.path.join(" → ")}`);
 });
 
 /** 上流のデータに届く wiring（README の表） */

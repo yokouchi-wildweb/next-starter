@@ -1,6 +1,6 @@
 // scripts/structure/extensions/derive/gateRequires.mjs
 // 機能を閉じる規則の requires の被覆(D24・D27・D34 K5、derive featureTables の一部。生成で止める):
-// 機能 X の features のドメイン d が requires する(domainEntry.ts の requires、地区の地図の読み手 src/lib/districtMap)ドメイン e は、
+// 機能 X の features のドメイン d が requires する(登録の entity.json の requires、地区の地図の読み手 src/lib/districtMap)ドメイン e は、
 // X の features・X の dependsOn の先(推移的)の features・常設(どの規則の features にも載らないドメイン)のどれかに無ければ止める。
 // = X が開なのに e が閉じている組み合わせを作れない(e を読む d が壊れない)。直し方: X の dependsOn に e を持つ機能を足す(か e を X の features に入れる)。
 // 上流の例外は理由つきの縮む表(当たらない行は失敗)

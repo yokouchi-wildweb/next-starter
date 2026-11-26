@@ -1,20 +1,19 @@
 // src/lib/districtMap/read.mjs
 // 地区の地図の読み手(目録 D1・D2・D12)。木を歩いて種類の表(kinds.mjs KINDS、7 種類)の地区を見つけ、各地区の欄を字面で読む。
 // ファイルの読み方は注入する(source.listDir・source.readText)。node:fs で今の木を読む入口は ./node.mjs。
-// 宣言は今の置き場が正本(domain.json・entities/<登録名>/entity.json・domainEntry・extensionPoints・門の規則・frame:・CATALOG.md)。この読み手は写しを持たない。
+// 宣言は今の置き場が正本(domain.json・entities/<登録名>/entity.json・extensionPoints・門の規則・frame:・CATALOG.md)。この読み手は写しを持たない。
 // 載せない物(目録 D8・D12): 値・access・関数・門の pathPatterns と enabled・受け口の項目の一覧・所有(どのリポの物か)。
 
-import { isGeneratedRegistration, readDomain } from "../domain/declarations.mjs";
+import { isGeneratedRegistration, isRegisteredRegistration, readDomain } from "../domain/declarations.mjs";
 import { listLibsFrom } from "../libPackage/index.mjs";
 import { readDeclaration } from "./declarations.mjs";
 import { overrideGlobOf } from "./extensionNames.mjs";
-import { readDomainEntry, readFeatureRequirements, readFrameName, readRuleDomains, readTableNames } from "./fields.mjs";
+import { readFeatureRequirements, readFrameName, readRuleDomains, readTableNames } from "./fields.mjs";
 import {
   APP_ROOT,
   CONFIG_FILE,
   CORE_DIR_NAME,
   DISTRICT_KINDS,
-  DOMAIN_ENTRY_FILE,
   DOMAINS_ROOT,
   GATE_RULES_DIR,
   LAYOUT_DIR_NAME,
@@ -255,15 +254,11 @@ export function readDistrictMap(source) {
       district.domainJson = declaration.domain !== null;
       if (declaration.domain !== null) district.generate = declaration.registrations.some(isGeneratedRegistration);
       problems.push(...declaration.problems.filter((problem) => problem.includes("JSON として読めない")));
-      const entryPath = join(d.dir, DOMAIN_ENTRY_FILE);
-      const entryText = source.readText(entryPath);
-      if (entryText !== null) {
-        const read = readDomainEntry(entryPath, entryText);
-        problems.push(...read.problems);
-        district.apiKeys = read.keys;
-        district.requires = read.requires;
-        for (const key of read.keys) apiKeyOwners.set(key, [...(apiKeyOwners.get(key) ?? []), d.dir]);
-      }
+      // 汎用 API・表の資源の名前 = 登録表に出す登録(registered が false でない)の登録名、requires = その登録の entity.json の requires(D336)
+      const registered = declaration.registrations.filter(isRegisteredRegistration);
+      district.apiKeys = registered.map((registration) => registration.name);
+      district.requires = [...new Set(registered.flatMap((registration) => (Array.isArray(registration.entity.requires) ? registration.entity.requires : [])))];
+      for (const key of district.apiKeys) apiKeyOwners.set(key, [...(apiKeyOwners.get(key) ?? []), d.dir]);
       for (const path of files.filter((f) => SOURCE_FILE.test(f) && !TEST_FILE.test(f)).sort()) {
         const read = readTableNames(path, source.readText(path) ?? "");
         problems.push(...read.problems);
@@ -306,9 +301,9 @@ export function readDistrictMap(source) {
     return district;
   });
 
-  // domainEntry のキーは全 tier で一意(汎用 API・表の資源の名前、目録 D4)
+  // 登録表のキー(登録名)は全 tier で一意(汎用 API・表の資源の名前、目録 D4)
   for (const [key, dirs] of apiKeyOwners) {
-    if (dirs.length > 1) problems.push(`domainEntry のキー ${key} が ${dirs.join("・")} で重なる(汎用 API の名前は一意。後から足した側のキーを変える)`);
+    if (dirs.length > 1) problems.push(`登録名 ${key} が ${dirs.join("・")} で重なる(汎用 API の名前は一意。後から足した側の登録名を変える)`);
   }
   const order = (/** @type {District} */ d) => DISTRICT_KINDS.indexOf(d.kind);
   districts.sort((a, b) => order(a) - order(b) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));

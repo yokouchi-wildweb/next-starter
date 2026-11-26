@@ -1,7 +1,6 @@
 // src/lib/districtMap/fields.mjs
 // 地区の欄を字面で読む部品(ファイルは実行しない)。どれも (パス, 本文) を受けて値か問題を返す純粋な関数。
 // - 表名: pgTable("<名前>", …) の字面(tableScan と同じ読み方。コメントの中は見ない)
-// - domainEntry: domainEntries の直下のキー(汎用 API・表の資源の名前、目録 D4)と、各キーの requires
 // - 門の規則: rule の features(閉じられるフォルダ、"core/<d>" か "<d>")
 // - 枠: _layout/config.ts の export する object の frame: "<名前>"(設定 D75)
 
@@ -98,31 +97,6 @@ function stringArray(node) {
     values.push(value.text);
   }
   return values;
-}
-
-/**
- * domainEntry.ts の domainEntries のキーと requires
- * @param {string} path
- * @param {string} text
- * @returns {{ keys: string[], requires: string[], problems: string[] }}
- */
-export function readDomainEntry(path, text) {
-  const source = parse(path, text);
-  const found = [...exportedConsts(source)].find((c) => c.name === "domainEntries");
-  if (!found || !ts.isObjectLiteralExpression(found.init)) return { keys: [], requires: [], problems: [`${path}: domainEntries が読めない(export const domainEntries = { … } が無い。キーを字面で読む)`] };
-  const keys = [];
-  const requires = [];
-  const problems = [];
-  for (const [key, value] of propertiesOf(found.init)) {
-    keys.push(key);
-    if (!value || !ts.isObjectLiteralExpression(value)) continue;
-    const field = propertiesOf(value);
-    if (!field.has("requires")) continue;
-    const names = stringArray(field.get("requires"));
-    if (names === null) problems.push(`${path}: キー "${key}" の requires は文字列リテラルの配列で書く(字面で読む)`);
-    else requires.push(...names);
-  }
-  return { keys, requires: [...new Set(requires)], problems };
 }
 
 /**

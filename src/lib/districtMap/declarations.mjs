@@ -55,7 +55,7 @@ const WRITERS = ["role:generate"];
 const TARGETS = ["wiring"];
 /** 組み込みの変換(一覧の項目に付け足す値)。fork が足す口は無い */
 export const DERIVES = ["featureTables", "settingSections"];
-const KEYS = ["change", "plugs", "max", "required", "order", "stages", "skeletonStages", "default", "dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn", "literalKeys", "files", "shape", "pureImports", "requireText", "overrideOf", "writer", "overrides", "addable", "placement", "kind", "keyedBy", "itemsOf", "select", "keyPrefix", "overrideRefuse", "runtimeGuard"];
+const KEYS = ["change", "plugs", "max", "required", "order", "stages", "skeletonStages", "default", "dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn", "literalKeys", "files", "shape", "pureImports", "requireText", "overrideOf", "writer", "overrides", "addable", "placement", "kind", "itemsOf", "select", "keyPrefix", "overrideRefuse", "runtimeGuard"];
 /**
  * 点の変え方の型(CHANGE_TYPES 1〜4、地区の議会 D20・D35)。どの点も change を書く(段 2 の宣言の 2 段の 1 段目)。
  * add = 増設点(dir か files の受け口、writer の一覧も fork が項目を足す点)/ override = 上書点(overrides)/ counterpart = 対置点(placement)/
@@ -67,7 +67,7 @@ const ORDERS = ["file", "declared"];
 /** 置き場の点が名乗れる種類(受け口の一覧 intake.txt の行の kind) */
 export const PLACEMENT_KINDS = ["edit", "append"];
 /** 上書きの対象の点(受け口でない)が持てるキー */
-const OVERRIDE_TARGET_KEYS = ["change", "overrides", "side", "overrideOf", "addable", "export", "keyedBy"];
+const OVERRIDE_TARGET_KEYS = ["change", "overrides", "side", "overrideOf", "addable", "export"];
 /** plugs の点が持てないキー(項目のフォルダは差す側の <ドメイン か lib>/plugs/<点>/ に決まる。注文 25 で上書き・形・導出・常時・files を受けた) */
 const PLUGS_DENIED = ["dir", "ignore"];
 /** 差替点が持てるキー */
@@ -160,7 +160,7 @@ function checkPoint(name, value) {
     return problems;
   }
   if (point.kind !== undefined) problems.push(`${name}: kind は placement の点だけ`);
-  // overrides: 受け口でない上書きの対象の点(ロールの JSON・cron の task.ts・domainEntry.ts など)。
+  // overrides: 受け口でない上書きの対象の点(ロールの JSON・cron の task.ts・登録の entity.json など)。
   // 対象のファイルの場所(リポジトリ直下からの glob)と、隣の <対象>.override.ts が書いてよい鍵を持つ。
   // addable: true = fork が同じ場所に対象を足してよい(ロール・プロフィールの JSON。受け口の一覧 intake.txt の add の行になる)
   if (point.overrides !== undefined) {
@@ -170,9 +170,6 @@ function checkPoint(name, value) {
     if (!oneOf(SIDES, point.side)) problems.push(`${name}: side は ${SIDES.join(" | ")}`);
     if (!(Array.isArray(point.overrideOf) && point.overrideOf.length > 0 && point.overrideOf.every(isString))) problems.push(`${name}: overrideOf は上書きしてよい属性の名前の配列(overrides の点では必須)`);
     if (!isString(point.export) || !IDENTIFIER.test(point.export)) problems.push(`${name}: export は上書きのファイルが export する名前(例 override)`);
-    // keyedBy: 上書きが { <対象のキー>: <宣言した 1 つの属性の値> } の形(domainEntry)。値は対象のその export のキーの中だけ
-    if (point.keyedBy !== undefined && (!isString(point.keyedBy) || !IDENTIFIER.test(point.keyedBy))) problems.push(`${name}: keyedBy は対象のファイルが export する名前(キーの集合)`);
-    if (point.keyedBy !== undefined && Array.isArray(point.overrideOf) && point.overrideOf.length !== 1) problems.push(`${name}: keyedBy の点の overrideOf は 1 つ(キーごとに 1 つの属性を差し替える)`);
     if (point.addable !== undefined && point.addable !== true) problems.push(`${name}: addable は true だけ(fork が対象を足してよい点の印。足せない点は書かない)`);
     for (const key of Object.keys(point)) if (KEYS.includes(key) && !OVERRIDE_TARGET_KEYS.includes(key)) problems.push(`${name}: overrides の点に ${key} は書けない(書けるのは ${OVERRIDE_TARGET_KEYS.join(" / ")})`);
     return problems;
@@ -194,7 +191,6 @@ function checkPoint(name, value) {
     for (const key of Object.keys(point)) if (KEYS.includes(key) && !REPLACE_KEYS.includes(key)) problems.push(`${name}: 差替点に ${key} は書けない(書けるのは ${REPLACE_KEYS.join(" / ")})`);
     return problems;
   }
-  if (point.keyedBy !== undefined) problems.push(`${name}: keyedBy は overrides の点だけ`);
   // plugs: 項目を差す側の自分のフォルダ <ドメイン>/plugs/<点の名前>/(lib は <lib>/plugs/…)から集める増設点(D38・D40)。項目のフォルダ dir は持たない
   if (point.plugs !== undefined) {
     if (point.plugs !== true) problems.push(`${name}: plugs は true だけ(差す側の <ドメイン>/plugs/${name}/ から集める増設点の印)`);

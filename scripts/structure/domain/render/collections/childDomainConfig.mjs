@@ -29,7 +29,7 @@ const isCopyableRule = (rule) => rule !== "none" && isValidRule(rule);
  * 写せなければ null（雛形は管理者のみ + 案内にし、組の権限の検査は飛ばす）
  */
 export function parentRule(parentConfig, operation) {
-  if (parentConfig.generate === false) return null; // domainEntry.ts が手書き = apiAccess は正でない
+  if (parentConfig.generate === false) return null; // 手で持つ登録(generate:false)の apiAccess は生成の既定を重ねない登録表の値そのもので、写す規則と形が違う
   const rule = rawRule(parentConfig.apiAccess, operation);
   if (rule === undefined) return ADMIN_RULE;
   return isCopyableRule(rule) ? rule : null;

@@ -46,7 +46,7 @@ export const POST = createApiRoute(
       );
     }
 
-    // domainEntry.ts の access（export）をドメインごとに評価する（ルートの admin 門に加えて AND）。
+    // 登録表の access（export）をドメインごとに評価する（ルートの admin 門に加えて AND）。
     // 関連を含める export は、選んだ hasMany の子ドメインも書き出すので子も評価する（1 つでも拒否なら全体を拒否）
     const denied = await denyUnlessDomainDataOperationAllowed(
       [domain, ...(includeRelations && Array.isArray(selectedHasManyDomains) ? selectedHasManyDomains : [])],

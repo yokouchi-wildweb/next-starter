@@ -11,7 +11,8 @@ import { bigint, check, index, inet, jsonb, pgEnum, pgTable, smallint, text, tim
 
 import { makeTempDir } from "../scripts/structure/domain-tables/tables.mjs";
 import { UserTable } from "../src/domains/core/user/entities/drizzle.ts";
-import { accessOfDeclaration, declareTable } from "./20261126-014453-domain-decl.declare.mjs";
+import { accessOfDeclaration } from "../scripts/structure/registry/serviceRegistry/access.mjs";
+import { declareTable } from "./20261126-014453-domain-decl.declare.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const thisFile = path.relative(repoRoot, fileURLToPath(import.meta.url)).split(path.sep).join("/");

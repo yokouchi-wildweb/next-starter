@@ -1,5 +1,5 @@
 // DB の識別子の決め方（表名・FK 名・enum 名）と PostgreSQL の 63 字制限。
-// 表の定義（render/entities/drizzle）と登録（render/registry/domainEntry の table）が同じ値になるよう、両方がここを使う。
+// 表の定義（render/entities/drizzle）と登録表の行の table（scripts/structure/registry/serviceRegistry/discover.mjs）が同じ値になるよう、両方がここを使う。
 
 import { toPascalCase, toSnakeCase } from "../../../../src/lib/stringCase/index.mjs";
 

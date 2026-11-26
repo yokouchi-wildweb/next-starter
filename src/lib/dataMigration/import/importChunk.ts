@@ -323,7 +323,7 @@ export async function importChunk(
     return importJunctionChunk({ domain, chunkName, csvContent, junctionTables });
   }
 
-  // サービスを取得（登録表のキーは camelCase）。import を許すかは API ルートが domainEntry.ts の access（import）で判定済み
+  // サービスを取得（登録表のキーは camelCase）。import を許すかは API ルートが登録表の access（import）で判定済み
   // （旧: domain.json の useImportExport を lib で見ていた。今は pnpm generate domain が useImportExport を access の export / import に写す）
   const service: any = await services(toCamelCase(domain));
   if (!service) {

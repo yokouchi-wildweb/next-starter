@@ -54,7 +54,7 @@ routeFactoryDevice: { change: "add", plugs: true, export: "plug", type: { from: 
 
 - 項目は差す側の自分のフォルダ `<ドメイン>/plugs/<点の名前>/<名前>.ts(x)`(フォルダ形 `<名前>/index.ts(x)`。lib の項目は `<lib>/plugs/…`)。差す側 = 地区の地図の domains と lib の地区。fork は上流のドメイン・lib の中に足さず、自分のドメインか lib に置く(intake.txt の行は無い)
 - 点の名前はリポ全体で一意(plugs/ の下の点の名前のフォルダで差す先を決める)。plugs/ の直下は点の名前のフォルダだけで、知らない点の名前は止める
-- 一覧は配列で、項目 = `{ domain, name, requires, plug }`(`load: "lazy"` は `plug` の代わりに `load: () => import(…)`)。`domain` = 差したドメインのフォルダ名(lib の項目は null)、`requires` = そのドメインの domainEntry の requires。同じ名前は `<差す側>/<名前>` で区別して許す
+- 一覧は配列で、項目 = `{ domain, name, requires, plug }`(`load: "lazy"` は `plug` の代わりに `load: () => import(…)`)。`domain` = 差したドメインのフォルダ名(lib の項目は null)、`requires` = そのドメインの登録の entity.json の requires。同じ名前は `<差す側>/<名前>` で区別して許す
 - 使う時に門番で閉じたドメインの項目を外す: server・proxy は `gate.plugs(list)`、client は `useGate().plugs(list)`(項目のドメインか requires の相手のどれかが閉じていれば外す、lib の項目は外さない)。生成された登録表には掛けない(D26)
 - `max` を超える項目の数は生成で止める。空の一覧は `[]` で、点の持ち主が自分の既定で動く(例: API の Factory の端末の点 `gate.plugs(routeFactoryDevice)[0]?.plug` が無ければ lib の「端末なし」、D53)
 - ちょうど 1 つの点(`required: true`、`max: 1` と一緒だけ、D53・注文 30): 項目が 0 個なら生成で止める(2 個以上は max が止める)。上流の項目は常設のドメインが差し、1 行スイッチ(`<名前>.ts` → `<名前>.default.ts`)にして項目を差したドメインの extensionPoints.ts に差替点として宣言する。fork は 2 つ目を足さず `<名前>.replace.ts` に向け替える。集める側は素の名前のスイッチを項目にし(export は既定から読む)、`.default`・`.replace` は項目にしない。例: API の Factory の利用者 `routeFactoryUser`・レート制限 `routeFactoryRateLimit`。埋められるのは常設のドメイン(`alwaysOpen`)か lib の項目だけ(閉じうるドメインの項目は生成で止める、注文 35)
@@ -116,7 +116,7 @@ routeFactoryDevice: { change: "add", plugs: true, export: "plug", type: { from: 
 
 型 2(一部を重ねる、Extension「4 つの型」)の仕組み。
 
-- 一部の上書き(丸ごと置き換えは `.replace`)。対象ごとに 1 本: `<対象>.override.ts(x)`(例 `domainEntry.override.ts`・`user.role.override.ts`・`user.profile.override.ts`)、cron は task.ts の隣の `src/app/api/cron/<name>/task.override.ts`(旧名の素の `override.ts` は `scripts/structure/cron/discover.ts` が改名を案内して止める)。Tier 別・fork の名前付きのファイルは作らない
+- 一部の上書き(丸ごと置き換えは `.replace`)。対象ごとに 1 本: `<対象>.override.ts(x)`(例 登録の `entity.override.ts`・`user.role.override.ts`・`user.profile.override.ts`)、cron は task.ts の隣の `src/app/api/cron/<name>/task.override.ts`(旧名の素の `override.ts` は `scripts/structure/cron/discover.ts` が改名を案内して止める)。Tier 別・fork の名前付きのファイルは作らない
 - 上の Tier の物にだけ置ける: fork が足した override の対象が基準に無ければ `pnpm workflow ownership check` の override-own
 - 足した Tier の物。下の Tier は同じファイルを書き換える: 受け継ぐ = 触らない / 既定へ戻す = キーを消すかファイルを消す / 全部を戻す = 空(空白とコメントだけ = 不在と同じ)。合成は git の merge だけ
 - **上流(Tier1)は override を出荷しない**(空のものも)。既定は既定の場所に書く。検査: `pnpm check extensions`(`overrides.mjs`)
@@ -153,14 +153,14 @@ routeFactoryDevice: { change: "add", plugs: true, export: "plug", type: { from: 
   - `alwaysOn: true` … 常に読まれる処理(cron・退会など)から走る点の印。項目が機能を閉じる規則のフォルダを import するなら項目に `enabled` が要る(`FEATURE_GATE_CHECK=all pnpm test src/featureGate scripts/structure/proxies`)
   - `derive: "settingSections"` … 組み込みの検査。項目の `section:` が同じ持ち主の点 `sections` の `key:` にあるかを見る。上書きが権限を広げないか(キー・セクションの `allowRoles` と `ui.section` を字面で読み、重ねる前と後の実効の権限を比べる)も見る(`derive/settingRoles.mjs`)
   - `derive: "featureTables"` … 組み込みの変換。機能を閉じる規則の `domains` のフォルダ(旧名 `features` は止めて案内する)(ドメインの位置 `core/<名前>` か `<名前>`。
-    - 無い・位置でない書き方は止める)から `tables`(表を持たないドメインは空)と汎用 API の住所 `domainApiPaths`(フォルダの `domainEntry.ts` のキー → `/api/<キー>`)と設定の節の住所 `settingPaths`(節の `feature` → `/admin/settings/<key>`、`derive/gateSettingPaths.mjs`)と cron の task の住所 `cronPaths`(`src/app/api/cron/<名>/task.ts`・`task.override.ts` の値の import が `domains` のフォルダに当たる → `/api/cron/<名>`。
+    - 無い・位置でない書き方は止める)から `tables`(表を持たないドメインは空)と汎用 API の住所 `domainApiPaths`(フォルダの登録表に出す登録の登録名 → `/api/<登録名>`)と設定の節の住所 `settingPaths`(節の `feature` → `/admin/settings/<key>`、`derive/gateSettingPaths.mjs`)と cron の task の住所 `cronPaths`(`src/app/api/cron/<名>/task.ts`・`task.override.ts` の値の import が `domains` のフォルダに当たる → `/api/cron/<名>`。
     - 規則に手書きした `/api/cron/` は止める)を導き(`tables`・`domainApiPaths`・`settingPaths`・`cronPaths` は説明用で `pathPatterns` に足さない)、生成一覧にドメインの表 `domains`(フォルダ・表・汎用 API の住所・持つ機能)・cron の task の表 `cronTasks`(住所・読むドメイン)・設定の節の表 `settingSections`(住所・名指す機能)を出し(開閉はドメインの開閉と節自身の判定、`src/featureGate/Internals.md`「ドメインの開閉(表・汎用 API・cron)と設定の節」)、規則の `dependsOn`(機能の名前の文字列リテラルの配列)を字面で読んで `dependsOn` に写し(書かない規則は空。
     - 非リテラル・自分・重複・未知の名前・輪は止める、`derive/gateDependsOn.mjs`)、項目の名前(ファイル名)を `name` に付け、名前の union `export type FeatureName` も出す(`derive/featureTables.mjs`)。fork が変換を足す口は無い
     - 規則の `when`(`"<ドメイン>.<名前>"` の文字列リテラルの配列)を字面で読み項目に写し、指されたドメインの config.ts の最上位の真偽の export を確かめ(知らない名前・真偽でない値は止める)、指された config.ts だけを import する `extensions/whenInputs.ts` を書く。規則のファイルの値の import(import type 以外)と住所のパターンの誤り(`@/lib/pathPattern` の `patternProblem`)も止める(`derive/gateWhen.mjs`、D23・D28)
 - 受け口でない点(一覧はこの生成器が書かない。受け口のフォルダの行も無い。判定 `isListPoint`):
   - `writer: "role:generate"` + `side` … 一覧を別の生成器が書く点(ロール・プロフィール)
   - `placement: "<置き場の glob>"` + `kind: "edit" | "append"` … 置き場の点(型 4)。fork が書いてよい場所(リポジトリ直下から、`src/` 始まり)とその書き方。受け口の一覧の行になるだけ(項目も一覧も無い)
-  - `overrides: "<対象のファイルの glob>"` + `export: "<上書きの export の名前>"` + `side` + `overrideOf: [...]`(+ `keyedBy: "<対象の export>"`)… 上書きの対象の点。glob はリポジトリ直下から(`src/` 始まり、`..` 無し)。対象(ロール・プロフィールの JSON・cron の `task.ts`・`domainEntry.ts`・連絡の定義 `messages/*.ts`)の隣の `.override.ts` が書いてよい鍵を `overrideOf` で名乗る。`addable: true` = fork が同じ場所に対象を足してよい(ロール・プロフィールの JSON)。
+  - `overrides: "<対象のファイルの glob>"` + `export: "<上書きの export の名前>"` + `side` + `overrideOf: [...]` … 上書きの対象の点。glob はリポジトリ直下から(`src/` 始まり、`..` 無し)。対象(ロール・プロフィールの JSON・cron の `task.ts`・登録の `entity.json`・連絡の定義 `messages/*.ts`)の隣の `.override.ts` が書いてよい鍵を `overrideOf` で名乗る。`addable: true` = fork が同じ場所に対象を足してよい(ロール・プロフィールの JSON)。
     - 宣言は `as const` で書き、上書きの型(`RoleOverride` など)は `overrideOf` から引く(`(typeof extensionPoints.<点>.overrideOf)[number]`)。読み手(`scripts/structure/role/overrides.mjs`・`src/lib/cron/discover.ts`・`scripts/structure/registry/serviceRegistry`)は自前の鍵の一覧を持たず `overrideKeysOf`(`src/lib/districtMap/declarations.mjs`)で読み、値の検査だけを持つ。安全の制限(core ロールの `enabled`・プロフィールの `fields`)は「宣言に鍵が無い」で表す
 
 ## Extension
@@ -214,7 +214,7 @@ fork が上流(親の Tier)の物を変える方法はこの 4 つだけ。印�
 - 孤立の検査は 1 つ(`orphans.mjs`、全 Tier): src の下の `<対象>.override.ts(x)` と `<名前>.replace.ts(x)` を 1 回の走査で集めて照らす
   - `.override`: 受け口のフォルダ(`overrideOf` の点。項目と照らすのは `extensions.mjs`)か、上書きの対象の点(宣言の `overrides` の隣の glob)で隣に対象があること。どちらでもなければ「受ける点が無い」、対象が無ければ孤立。空は不在と同じで見ない
   - `.replace`: route の `_layout` / `_screen` の中は、そのルートの page.tsx / layout.tsx の 1 行スイッチの向け先か、隣に `<名前>.default` があること(`src/lib/screens` の `findRouteReplaceProblems`)。隣に印なしの部品があるだけの `.replace` は置き換えの口でない: fork の部品はルートの `_components/` に印なしの名前で置く。それ以外の場所は隣に `<名前>.default`。`_components/` の中は見ない
-  - 宣言に無い鍵(`overrideKeys.mjs`): 上書きの対象の点の上書きの export(宣言の `export`)のキーは `overrideOf` の中だけ。`keyedBy` の点(domainEntry)はキーが隣の対象のその export のキーの中だけ、値は宣言の 1 つの属性。値の検査は各読み手(ロール・cron・tsc)
+  - 宣言に無い鍵(`overrideKeys.mjs`): 上書きの対象の点の上書きの export(宣言の `export`)のキーは `overrideOf` の中だけ。値の検査は各読み手(ロール・cron・tsc)
 - 生成器・検査は空のファイルと不在を同じに扱う(cron の `src/lib/cron/discover.ts`・`scripts/structure/registry/serviceRegistry/discover.mjs`)
 
 ### 枠の表(frame.ts / frame.override.ts の宣言から)

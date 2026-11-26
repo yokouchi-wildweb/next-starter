@@ -1,16 +1,17 @@
-// serviceRegistry（ドメイン名からサービス・表・主キーを引く登録表）の生成・検査と、登録された行の契約のテスト。
-// 実行: pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs (node:test + tsx。登録表と各 domainEntry.ts を実際に読み込むため tsx ランナーを使う)
+// serviceRegistry（登録名からサービス・表・主キーを引く登録表）の生成・検査と、登録された行の契約のテスト。
+// 実行: pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs (node:test + tsx。登録表と各サービスを実際に読み込むため tsx ランナーを使う)
 //
 // 守りたい契約(設計: src/lib/domain/README.md):
-// 1. src/registry/serviceRegistry.ts は domainEntry.ts からの生成結果と一致し、再生成しても変わらない（pnpm check registry と同じ）
-// 2. 静的検査: 手書き行（生成ヘッダの無い旧ファイル）・キーの重複・base があるのに domainEntry.ts が無い・record_type・静的 import の決まり(型はどこからでも、値は値だけのファイルからだけ、推移的)に合わない import を検出する
+// 1. src/registry/serviceRegistry.ts は登録の宣言(entities/<登録名>/entity.json と fork の entity.override.ts)からの生成結果と一致し、再生成しても変わらない（pnpm check registry と同じ）
+// 2. 静的検査: 手書きの登録表(生成物の印の無いファイル)・登録名の重なり・サービスのファイルが無い・base があるのに登録が無い・表の重なりと物理名の形・record_type・
+//    上書きの形と静的 import の決まり(型はどこからでも、値は値だけのファイルからだけ、推移的)に合わない import を検出する
 // 3. 登録された全エントリは service() でオブジェクトを返し、Drizzle 版は getTableName / getIdColumnName を持つ。
-//    登録の table / idColumn（D57）は実物と一致し、null は表を持たない Firestore 版だけ。静的な形と 1 テーブル 1 ドメイン（D58）は pnpm check registry
+//    登録の table / idColumn（D57）は実物と一致し、null は表を持たない Firestore 版だけ。静的な形と 1 テーブル 1 登録（D58）は pnpm check registry
 // 4. 管理データ操作（truncateAll / export / import）は operations に明示したときだけ開く（未指定 = none。read/write/既定に落ちない）
 // 5. core 7 キー（auditLog・auditLogFailed・bankTransferReview・pairedDevice・userLineProfile・userLoginEvent・userXProfile）は
 //    登録されているが、全件削除の一覧・データ移行・汎用 API（/api/<key>）のどれにも出ない
 // 6. useImportExport: false の core（user・coupon・userTag・referral・referralReward・milestone）は import だけ閉じ、export / truncateAll は管理者
-// 5・6 の core の既定値は domainEntry.ts（上書き前）で確かめる。fork が domainEntry.override.ts で access を変えても、このテストは編集せずに通る
+// 5・6 の core の既定値は宣言からの行(discoverRegistrations の access、上書き前)で確かめる。fork が entity.override.ts で access を変えても、このテストは編集せずに通る
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -18,10 +19,9 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { GENERATED_HEADER, REGISTRY_FILE, checkEntryStaticImports, discoverDomainEntries, overrideAttribute, readObjectKeys } from "./discover.mjs";
+import { GENERATED_HEADER, REGISTRY_FILE, SERVICE_DIR, checkOverrideStaticImports, discoverRegistrations, overrideAttribute, readObjectKeys } from "./discover.mjs";
 import { buildServiceRegistry, generateServiceRegistry } from "./generate.mjs";
 import { checkServiceRegistry } from "./check.mjs";
-import { renderDomainEntry } from "../../domain/render/registry/domainEntry.mjs";
 import { serviceRegistry } from "../../../../src/registry/serviceRegistry.ts";
 import { domainConfigMap } from "../../../../src/registry/domainConfigRegistry.ts";
 // 閉じた lib は入口のファイル(domainAccess の "."・domain の "." と "./server")を相対で読む
@@ -31,14 +31,16 @@ import { findDomainByTable, getDomainList, getDomainTable, getService, hasServic
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 
-/** 各 domainEntry.ts の domainEntries（fork の domainEntry.override.ts を当てる前の既定値）をキーで引く */
-async function loadDefaultEntries() {
-  const entries = {};
-  for (const domain of discoverDomainEntries(repoRoot).filter((item) => item.entryPath)) {
-    const mod = await import(path.join(repoRoot, domain.entryPath));
-    Object.assign(entries, mod.domainEntries);
-  }
-  return entries;
+/** 宣言からの登録表の行（fork の entity.override.ts を当てる前の既定値）をキーで引く */
+function loadDefaultEntries() {
+  const { rows } = discoverRegistrations(repoRoot);
+  return Object.fromEntries(rows.map((row) => [row.key, row]));
+}
+
+/** 行のサービスのファイル(repo 相対、<file>.ts か <file>/index.ts) */
+function serviceFileOf(row) {
+  const base = `src/domains/${row.dir}/${SERVICE_DIR}/${row.service.file}`;
+  return [`${base}.ts`, `${base}/index.ts`].find((file) => fs.existsSync(path.join(repoRoot, file)));
 }
 
 const INTERNAL_KEYS = ["auditLog", "auditLogFailed", "bankTransferReview", "pairedDevice", "userLineProfile", "userLoginEvent", "userXProfile"];
@@ -48,7 +50,7 @@ const NO_IMPORT_KEYS = ["user", "coupon", "userTag", "referral", "referralReward
 // 1. 実リポの登録表
 // ---------------------------------------------------------------------------
 
-test("serviceRegistry.ts は domainEntry.ts からの生成結果と一致する（pnpm check registry）", () => {
+test("serviceRegistry.ts は登録の宣言からの生成結果と一致する（pnpm check registry）", () => {
   const { errors } = checkServiceRegistry(repoRoot);
   assert.deepEqual(errors, []);
   const text = fs.readFileSync(path.join(repoRoot, REGISTRY_FILE), "utf8");
@@ -56,15 +58,12 @@ test("serviceRegistry.ts は domainEntry.ts からの生成結果と一致する
   assert.equal(buildServiceRegistry(repoRoot).text, text, "再生成しても差分 0");
 });
 
-test("実リポの domainEntry.ts / override は静的 import の決まりに合い、satisfies DomainEntries を付ける", () => {
-  const domains = discoverDomainEntries(repoRoot).filter((domain) => domain.entryPath);
-  assert.ok(domains.length >= 26);
+test("実リポの entity.override.ts は静的 import の決まりに合う", () => {
+  const { rows } = discoverRegistrations(repoRoot);
+  assert.ok(rows.length >= 30);
   const memo = new Map();
-  for (const domain of domains) {
-    assert.deepEqual(checkEntryStaticImports(domain.entryPath, repoRoot, undefined, memo), [], domain.entryPath);
-    if (domain.overridePath) assert.deepEqual(checkEntryStaticImports(domain.overridePath, repoRoot, undefined, memo), [], domain.overridePath);
-    const text = fs.readFileSync(path.join(repoRoot, domain.entryPath), "utf8");
-    assert.match(text, /satisfies DomainEntries;/, `${domain.entryPath}: satisfies DomainEntries を付ける`);
+  for (const row of rows.filter((item) => item.overridePath)) {
+    assert.deepEqual(checkOverrideStaticImports(row.overridePath, repoRoot, undefined, memo), [], row.overridePath);
   }
 });
 
@@ -89,13 +88,19 @@ test("登録された全エントリは service() でオブジェクトを返し
   }
 });
 
-test("登録表の access は、上書きの無いキーでは domainEntry.ts の既定値そのもの", async () => {
-  const defaults = await loadDefaultEntries();
-  const overridden = new Set(discoverDomainEntries(repoRoot).flatMap((domain) => domain.overrideKeys));
+test("登録表の行は宣言のとおり: キーの集合・service は entity.json の service(か既定)の export・table / idColumn / requires、access は上書きの無いキーでは既定値そのもの", async () => {
+  const defaults = loadDefaultEntries();
   assert.deepEqual(Object.keys(serviceRegistry).sort(), Object.keys(defaults).sort());
   for (const [key, entry] of Object.entries(serviceRegistry)) {
-    assert.equal(entry.service, defaults[key].service, `${key}: service は domainEntry.ts のもの（上書きでも変わらない）`);
-    if (!overridden.has(key)) assert.equal(entry.access, defaults[key].access, `${key}: 上書きが無いのに access が既定値と違う`);
+    const row = defaults[key];
+    const file = serviceFileOf(row);
+    assert.ok(file, `${key}: サービスのファイルが無い`);
+    const mod = await import(path.join(repoRoot, file));
+    assert.equal(await entry.service(), mod[row.service.export], `${key}: service は ${file} の ${row.service.export}（上書きでも変わらない）`);
+    assert.equal(entry.table, row.table, `${key}: table`);
+    assert.equal(entry.idColumn, row.idColumn, `${key}: idColumn`);
+    assert.deepEqual(entry.requires ?? [], row.requires, `${key}: requires`);
+    if (!row.overridePath) assert.deepEqual(entry.access, row.access, `${key}: 上書きが無いのに access が既定値と違う`);
   }
 });
 
@@ -198,15 +203,7 @@ after(() => {
   for (const root of tempRoots) fs.rmSync(root, { recursive: true, force: true });
 });
 
-const ENTRY = (key, service = `${key}Service`, table = `"${key}s", idColumn: "id"`) => `import type { DomainEntries } from "@/lib/domain";
-import { ADMIN_ONLY } from "@/lib/domainAccess";
-
-export const domainEntries = {
-  ${key}: { service: () => import("./${service}").then((m) => m.${service}), table: ${table}, access: ADMIN_ONLY },
-} satisfies DomainEntries;
-`;
-
-/** 一時の木に必ず写す実物: tsconfig(paths で @/ を解く)と、domainEntry が値で読む lib/domainAccess(値だけのファイル)と lib/domain の型 */
+/** 一時の木に必ず写す実物: tsconfig(paths で @/ を解く)と、上書きが値で読む lib/domainAccess(値だけのファイル)と lib/domain の型 */
 function baseFiles() {
   const real = (rel) => fs.readFileSync(path.join(repoRoot, rel), "utf8");
   const copyDir = (dir) =>
@@ -226,211 +223,221 @@ function makeRoot(files) {
 }
 
 /**
- * 一時の木のドメインの宣言: domain.json と主の登録の entities/<フォルダ名>/entity.json(本文 entityText)。
- * 登録の無い domain.json だけでは「生成する登録を持たない = 手で管理」になるので、生成する業務ドメインは entity.json も置く
+ * 一時の木のドメインの宣言: domain.json と登録ごとの entities/<登録名>/entity.json、既定のサービスのファイル services/server/<登録名>Service.ts。
+ * registrations = 登録名 → entity.json の中身。service: false の登録はサービスのファイルを置かない
  */
-function declared(folder, entityText) {
-  const name = folder.split("/").at(-1);
-  return { [`${folder}/domain.json`]: JSON.stringify({ domainConfigVersion: "2.0" }), [`${folder}/entities/${name}/entity.json`]: entityText };
+function declared(folder, registrations = {}, { service = true } = {}) {
+  const files = { [`${folder}/domain.json`]: JSON.stringify({ domainConfigVersion: "2.0", label: folder.split("/").at(-1) }) };
+  for (const [name, entity] of Object.entries(registrations)) {
+    files[`${folder}/entities/${name}/entity.json`] = JSON.stringify(entity);
+    if (service) files[`${folder}/${SERVICE_DIR}/${name}Service.ts`] = `export const ${name}Service = {};\n`;
+  }
+  return files;
 }
 
-test("生成: core → 業務の順に並び、override は access だけ差し替え、2 回目は変更なし", (t) => {
+const OVERRIDE = (imports, value) => `import type { EntityOverride } from "@/lib/domain";
+${imports}
+export const entityOverride = { apiAccess: ${value} } satisfies EntityOverride;
+`;
+
+test("生成: core → 業務の順に並び、上書きは access だけ差し替え、2 回目は変更なし", (t) => {
   t.mock.method(console, "log", () => {});
   const root = makeRoot({
-    "src/domains/core/user/services/server/domainEntry.ts": ENTRY("user"),
+    ...declared("src/domains/core/user", { user: { plural: "users" } }),
     "src/domains/core/user/services/server/drizzleBase.ts": "",
-    "src/domains/core/userTag/services/server/domainEntry.ts": ENTRY("userTag"),
-    "src/domains/core/userTag/services/server/domainEntry.override.ts": `import type { DomainEntryOverrides } from "@/lib/domain";
-import { PUBLIC_READ } from "@/lib/domainAccess";
-export const domainEntryOverrides = { userTag: PUBLIC_READ } satisfies DomainEntryOverrides;
-`,
-    "src/domains/article/services/server/domainEntry.ts": ENTRY("article"),
-    ...declared("src/domains/article", "{}"),
+    ...declared("src/domains/core/userTag", { userTag: { plural: "userTags" } }),
+    "src/domains/core/userTag/entities/userTag/entity.override.ts": OVERRIDE(`import { PUBLIC_READ } from "@/lib/domainAccess";`, "PUBLIC_READ"),
+    ...declared("src/domains/article", { article: { plural: "articles", requires: ["user"] } }),
   });
   const first = generateServiceRegistry(root);
   assert.equal(first.written, true);
   const text = fs.readFileSync(path.join(root, REGISTRY_FILE), "utf8");
   assert.equal(text.split("\n")[0], GENERATED_HEADER);
-  assert.match(text, /import \{ domainEntries as userEntries \} from "@\/domains\/core\/user\/services\/server\/domainEntry";/);
-  assert.match(text, /import \{ domainEntryOverrides as userTagEntriesOverrides \} from "@\/domains\/core\/userTag\/services\/server\/domainEntry.override";/);
-  assert.match(text, /\n  user: userEntries\.user,\n  userTag: \{ service: userTagEntries\.userTag\.service, access: userTagEntriesOverrides\.userTag \},\n  article: articleEntries\.article,\n\};/);
+  assert.match(text, /import \{ entityOverride as userTagOverride \} from "@\/domains\/core\/userTag\/entities\/userTag\/entity\.override";/);
+  assert.match(text, /import \{ ADMIN_ONLY, ADMIN_RULE \} from "@\/lib\/domainAccess";/);
+  assert.match(
+    text,
+    /\n {2}user: \{\n {4}service: \(\) => import\("@\/domains\/core\/user\/services\/server\/userService"\)\.then\(\(m\) => m\.userService\),\n {4}table: "users",\n {4}idColumn: "id",\n {4}access: \{\n {6}\.\.\.ADMIN_ONLY,\n/,
+  );
+  assert.match(text, /\n {2}userTag: \{\n[^}]*table: "user_tags",\n {4}idColumn: "id",\n {4}access: userTagOverride\.apiAccess,\n {2}\},/);
+  assert.match(text, /\n {4}requires: \["user"\],\n {2}\},\n\};\n$/, "requires は entity.json から(最後の業務の行)");
   assert.deepEqual(readObjectKeys(text, "serviceRegistry").keys, ["user", "userTag", "article"]);
   const second = generateServiceRegistry(root);
   assert.equal(second.written, false);
   assert.deepEqual(checkServiceRegistry(root).errors, []);
 });
 
-test("検査: 生成ヘッダの無い旧ファイルの手書き行は失敗し、移し先を出す。生成ヘッダ付きなら pnpm generate domain -- --delete 後の除去として通す", (t) => {
+test("検査: 生成物の印の無い(手書きの)登録表は失敗し、移し先を出す。印付きなら除去として通す", (t) => {
   t.mock.method(console, "log", () => {});
   const root = makeRoot({
-    "src/domains/core/user/services/server/domainEntry.ts": ENTRY("user"),
-    ...declared("src/domains/sample", "{}"),
-    "src/domains/sample/services/server/sampleService.ts": "",
+    ...declared("src/domains/core/user", { user: { plural: "users" } }),
     [REGISTRY_FILE]: `import { userService } from "@/domains/user/services/server/userService";
-import { sampleService } from "@/domains/sample/services/server/sampleService";
-import { legacyService } from "@/domains/legacy/services/server/legacyService";
 export const serviceRegistry = {
   user: { service: userService, access: ADMIN_ONLY },
-  sample: { service: sampleService, access: ADMIN_ONLY },
   legacy: { service: legacyService, access: ADMIN_ONLY },
 };
 `,
   });
   const { errors } = checkServiceRegistry(root);
-  assert.equal(errors.filter((error) => error.includes('手書きの行 "user"')).length, 0, "domainEntry.ts があるキーは手書き扱いしない");
-  assert.match(errors.find((error) => error.includes('手書きの行 "sample"')), /登録の entity\.json の apiAccess に移し、pnpm generate domain -- sample --yes --only registry/);
-  assert.match(errors.find((error) => error.includes('手書きの行 "legacy"')), /対応するドメインが見つからない/);
-  assert.throws(() => generateServiceRegistry(root), /手書きの行 "sample"/);
+  assert.ok(errors.some((error) => /serviceRegistry\.ts: 生成物の印が無い\(手書きの登録表\)。行は登録の entity\.json に移し\(fork が core の access を変えるなら entity\.override\.ts\)/.test(error)), errors.join("\n"));
+  assert.throws(() => generateServiceRegistry(root), /生成物の印が無い/);
 
-  // 生成ヘッダ付き（移行後）なら、domainEntry.ts の無いキーは除去として通る
+  // 生成物の印付きなら、宣言の無いキーは除去として通る
   fs.writeFileSync(path.join(root, REGISTRY_FILE), `${GENERATED_HEADER}\nexport const serviceRegistry = {\n  user: 1,\n  gone: 2,\n};\n`);
   const result = generateServiceRegistry(root);
   assert.deepEqual(result.removed, ["gone"]);
   assert.deepEqual(checkServiceRegistry(root).errors, []);
 });
 
-test("override: 空(空白とコメントだけ)の domainEntry.override.ts は不在と同じ(D34 K1)", (t) => {
+test("override: 空(空白とコメントだけ)の entity.override.ts は不在と同じ(D34 K1)", (t) => {
   t.mock.method(console, "log", () => {});
   const root = makeRoot({
-    "src/domains/core/userTag/services/server/domainEntry.ts": ENTRY("userTag"),
-    "src/domains/core/userTag/services/server/domainEntry.override.ts": "// 親の上書きを外した(下の Tier)\n",
+    ...declared("src/domains/core/userTag", { userTag: {} }),
+    "src/domains/core/userTag/entities/userTag/entity.override.ts": "// 親の上書きを外した(下の Tier)\n",
   });
   generateServiceRegistry(root);
   const text = fs.readFileSync(path.join(root, REGISTRY_FILE), "utf8");
-  assert.doesNotMatch(text, /from "@\/domains\/core\/userTag\/services\/server\/domainEntry\.override"/);
+  assert.doesNotMatch(text, /entity\.override/);
   assert.deepEqual(checkServiceRegistry(root).errors, []);
 });
 
-test("検査: 重複キー・base があるのに domainEntry.ts が無い・record_type・決まりに合わない import・読めない行(対象の無い override は orphans.mjs)", () => {
+test("検査: 登録名の重なり・サービスのファイル無し・base があるのに登録が無い・record_type・決まりに合わない import・読めない上書き・registered: false の上書き", () => {
   const root = makeRoot({
-    "src/domains/core/user/services/server/domainEntry.ts": ENTRY("user"),
-    "src/domains/core/dup/services/server/domainEntry.ts": ENTRY("user"),
+    ...declared("src/domains/core/user", { user: {} }),
+    ...declared("src/domains/core/dup", { user: { plural: "dups" } }),
+    ...declared("src/domains/core/noService", { noService: {} }, { service: false }),
+    ...declared("src/domains/core/orphan"),
     "src/domains/core/orphan/services/server/drizzleBase.ts": "",
     "src/domains/core/orphan/services/server/photo.ts": 'storageBindingFor("orphanPhoto", [])',
     "src/domains/core/orphan/services/server/photo.test.ts": 'storageBindingFor("ignored", [])',
-    "src/domains/core/leak/services/server/domainEntry.ts": `import { leakService } from "./leakService";\nexport const domainEntries = { leak: { service: async () => leakService, access: {} } };\n`,
-    "src/domains/core/lonely/services/server/domainEntry.override.ts": `export const domainEntryOverrides = { nope: {} };\n`,
-    "src/domains/core/broken/services/server/domainEntry.ts": `export const other = {};\n`,
-    ...declared("src/domains/business", "{}"),
-    "src/domains/business/services/server/drizzleBase.ts": "",
+    ...declared("src/domains/core/leak", { leak: {} }),
+    "src/domains/core/leak/entities/leak/entity.override.ts": `import { leakService } from "./leakService";\nexport const entityOverride = { apiAccess: { read: leakService, write: "none" } };\n`,
+    ...declared("src/domains/core/broken", { broken: {} }),
+    "src/domains/core/broken/entities/broken/entity.override.ts": `export const other = {};\n`,
+    ...declared("src/domains/core/hidden", { hidden: { registered: false } }, { service: false }),
+    "src/domains/core/hidden/entities/hidden/entity.override.ts": OVERRIDE("", `{ read: "none", write: "none" }`),
+    // entity.json も表のファイルも無いフォルダは登録でない(孤立した上書きは pnpm check extensions の orphans.mjs)
+    "src/domains/core/user/entities/nope/entity.override.ts": OVERRIDE("", `{ read: "none", write: "none" }`),
+    ...declared("src/domains/business"),
+    "src/domains/business/services/server/firestoreBase.ts": "",
   });
   const { errors } = checkServiceRegistry(root);
   const expect = (pattern) => assert.ok(errors.some((error) => pattern.test(error)), `${pattern} が無い:\n${errors.join("\n")}`);
-  expect(/キー "user" が重複している/);
-  expect(/core\/orphan\/services\/server に drizzleBase.ts .* domainEntry.ts が無い（手書きする/);
-  expect(/core\/business|business\/services\/server に drizzleBase.ts .*pnpm generate domain -- business --yes --only registry/);
+  expect(/登録名 "user" が重なる: src\/domains\/core\/dup\/entities\/user\/entity\.json と src\/domains\/core\/user\/entities\/user\/entity\.json/);
+  expect(/core\/noService\/entities\/noService\/entity\.json: サービスのファイル src\/domains\/core\/noService\/services\/server\/noServiceService\.ts が無い/);
+  assert.ok(!errors.some((error) => error.includes("hidden/entities/hidden/entity.json: サービスのファイル")), "registered: false の登録はサービスを求めない");
+  expect(/src\/domains\/core\/orphan\/services\/server に drizzleBase\.ts \/ firestoreBase\.ts があるのに登録\(entities\/<登録名>\/entity\.json\)が 1 つも無い/);
+  expect(/src\/domains\/business\/services\/server に drizzleBase\.ts \/ firestoreBase\.ts があるのに登録/);
   expect(/storageBindingFor\("orphanPhoto"\) の record_type が登録表のキーに無い/);
   assert.ok(!errors.some((error) => error.includes('"ignored"')), "*.test.* は走査しない");
-  expect(/leak\/services\/server\/domainEntry.ts: "\.\/leakService" を値で import している\(解けない指定子/);
-  assert.ok(!errors.some((error) => error.includes("lonely")), "対象の無い上書きは pnpm check extensions の孤立の検査(登録表には載らない)");
-  expect(/broken\/services\/server\/domainEntry.ts: export const domainEntries が無い/);
+  expect(/leak\/entities\/leak\/entity\.override\.ts: "\.\/leakService" を値で import している\(解けない指定子/);
+  expect(/broken\/entities\/broken\/entity\.override\.ts: export const entityOverride が無い/);
+  expect(/hidden\/entities\/hidden\/entity\.override\.ts: 登録が registered: false なので上書きする登録表の行が無い/);
+  assert.ok(!errors.some((error) => error.includes("entities/nope")), "登録でないフォルダの上書きは登録表の検査に載らない");
   expect(/serviceRegistry.ts が無い → pnpm generate registry/);
 });
 
-test("検査: table / idColumn の欠け・リテラル以外・形式違い・片方だけ null・同じ表が 2 キーは失敗、null / null は通る", () => {
-  const long = "a".repeat(64);
+test("検査: 登録名の重なりは別々のドメインの間でも止め、両方の entity.json を名指す(業務と core)", () => {
   const root = makeRoot({
-    "src/domains/core/missing/services/server/domainEntry.ts": ENTRY("missing", "missingService", `"missings"`).replace(', idColumn: "id"', ""),
-    "src/domains/core/constant/services/server/domainEntry.ts": ENTRY("constant", "constantService", `TABLE, idColumn: "id"`),
-    "src/domains/core/empty/services/server/domainEntry.ts": ENTRY("empty", "emptyService", `"", idColumn: "id"`),
-    "src/domains/core/tooLong/services/server/domainEntry.ts": ENTRY("tooLong", "tooLongService", `"${long}", idColumn: "id"`),
-    "src/domains/core/spaced/services/server/domainEntry.ts": ENTRY("spaced", "spacedService", `"spaced items", idColumn: "id"`),
-    "src/domains/core/half/services/server/domainEntry.ts": ENTRY("half", "halfService", `null, idColumn: "id"`),
-    "src/domains/core/first/services/server/domainEntry.ts": ENTRY("first", "firstService", `"shared_items", idColumn: "id"`),
-    "src/domains/core/second/services/server/domainEntry.ts": ENTRY("second", "secondService", `"shared_items", idColumn: "id"`),
-    "src/domains/core/realtime/services/server/domainEntry.ts": ENTRY("realtime", "realtimeService", `null, idColumn: null`),
-    "src/domains/core/mixedCase/services/server/domainEntry.ts": ENTRY("mixedCase", "mixedCaseService", `"MixedItems", idColumn: "ID"`),
+    ...declared("src/domains/core/catalog", { item: { plural: "catalogItems" } }),
+    ...declared("src/domains/shop", { item: { plural: "shopItems" } }),
   });
-  const { errors } = checkServiceRegistry(root);
-  const expect = (pattern) => assert.ok(errors.some((error) => pattern.test(error)), `${pattern} が無い:\n${errors.join("\n")}`);
-  expect(/キー "missing" に idColumn が無い/);
-  expect(/キー "constant" の table は文字列リテラルか null で書く/);
-  expect(/キー "empty" の table "" は表・列の物理名の形でない/);
-  expect(/キー "tooLong" の table "a{64}" は表・列の物理名の形でない/);
-  expect(/キー "spaced" の table "spaced items" は表・列の物理名の形でない/);
-  expect(/キー "half" の table と idColumn は両方 null/);
-  expect(/表 "shared_items" が 2 つのキーにある: .*core\/first\/.* の "first" と .*core\/second\/.* の "second"/);
-  assert.ok(!errors.some((error) => error.includes('"realtime"')), "null / null（Firestore 版）は通る");
-  assert.ok(!errors.some((error) => error.includes('"mixedCase"')), "大文字を含む名前も形としては通る（正しさは実物との一致で見る）");
+  const { errors } = discoverRegistrations(root);
+  const collisions = errors.filter((error) => error.startsWith('登録名 "item" が重なる: '));
+  assert.equal(collisions.length, 1, errors.join("\n"));
+  assert.ok(collisions[0].includes("src/domains/core/catalog/entities/item/entity.json"), collisions[0]);
+  assert.ok(collisions[0].includes("src/domains/shop/entities/item/entity.json"), collisions[0]);
+  // 登録名は registered: false の登録とも同じ名前の空間
+  const hidden = makeRoot({
+    ...declared("src/domains/core/catalog", { item: { registered: false } }, { service: false }),
+    ...declared("src/domains/shop", { item: {} }),
+  });
+  assert.ok(discoverRegistrations(hidden).errors.some((error) => error.startsWith('登録名 "item" が重なる: ')), "registered: false とも重なる");
 });
 
-test("generate: false の業務ドメイン: domainEntry.ts が無いと手書きを案内し、README の写せる形を置けば検査が通る（生成器の出力と同じ形）", (t) => {
-  t.mock.method(console, "log", () => {});
-  const readme = fs.readFileSync(path.join(repoRoot, "src/lib/domain/README.md"), "utf8");
-  // 節は見出しの深さに依らず探し、同じ深さか浅い次の見出しで閉じる(README の書式で h2〜h4 が動いても読める)
-  const head = /^(#{2,6}) generate: false の業務ドメイン\s*$/m.exec(readme);
-  const rest = head ? readme.slice(head.index + head[0].length) : "";
-  const next = head ? new RegExp(`^#{2,${head[1].length}} `, "m").exec(rest) : null;
-  const section = next ? rest.slice(0, next.index) : rest;
-  const example = /```ts\n([\s\S]*?)```/.exec(section)?.[1];
-  assert.ok(example, "README に「generate: false の業務ドメイン」の ts の例がある");
-
-  const domainJson = JSON.stringify({ singular: "visit", plural: "visits", generate: false });
+test("表と主キー: entity.json の table か snake(plural)、主キー 1 列は列の物理名、形違いと同じ表の 2 登録は失敗、Firestore は null / null", () => {
+  const long = "a".repeat(64);
   const root = makeRoot({
-    ...declared("src/domains/visit", domainJson),
-    "src/domains/visit/services/server/drizzleBase.ts": "",
-    "src/domains/visit/services/server/visitService.ts": "",
-    ...declared("src/domains/order", JSON.stringify({ singular: "order", plural: "orders" })),
-    "src/domains/order/services/server/drizzleBase.ts": "",
+    ...declared("src/domains/core/empty", { empty: { table: "" } }),
+    ...declared("src/domains/core/tooLong", { tooLong: { table: long } }),
+    ...declared("src/domains/core/spaced", { spaced: { table: "spaced items" } }),
+    ...declared("src/domains/core/first", { first: { table: "shared_items" } }),
+    ...declared("src/domains/core/second", { second: { plural: "sharedItems" } }),
+    ...declared("src/domains/core/realtime", { realtime: { dbEngine: "Firestore", plural: "rooms" } }),
+    ...declared("src/domains/core/mixedCase", { mixedCase: { table: "MixedItems" } }),
+    ...declared("src/domains/core/visitLog", {
+      visitLog: { plural: "visitLogs", primaryKey: { columns: ["code"] }, fields: [{ name: "code", column: { name: "visit_code" } }] },
+      visitTag: { primaryKey: { columns: ["visitId", "tagId"] } },
+      visitNote: { primaryKey: { columns: ["noteKey"] } },
+    }),
   });
-  const missing = checkServiceRegistry(root).errors;
-  const visitError = missing.find((error) => error.includes("src/domains/visit/services/server"));
-  assert.match(visitError, /"generate": false なので pnpm generate domain は書かない → 手書きする。形: src\/lib\/domain\/README.md「generate: false の業務ドメイン」/);
-  assert.doesNotMatch(visitError, /--only registry/, "generate: false には書かない命令を案内しない");
-  assert.match(missing.find((error) => error.includes("src/domains/order/services/server")), /pnpm generate domain -- order --yes --only registry/, "generate: true は今までどおり生成を案内する");
+  const { rows, errors } = discoverRegistrations(root);
+  const expect = (pattern) => assert.ok(errors.some((error) => pattern.test(error)), `${pattern} が無い:\n${errors.join("\n")}`);
+  expect(/core\/empty\/entities\/empty\/entity\.json: 表の物理名 "" が形でない/);
+  expect(/core\/tooLong\/entities\/tooLong\/entity\.json: 表の物理名 "a{64}" が形でない/);
+  expect(/core\/spaced\/entities\/spaced\/entity\.json: 表の物理名 "spaced items" が形でない/);
+  expect(/表 "shared_items" が 2 つの登録にある: src\/domains\/core\/first\/entities\/first\/entity\.json と src\/domains\/core\/second\/entities\/second\/entity\.json/);
+  assert.ok(!errors.some((error) => error.includes("realtime")), "Firestore 版（null / null）は通る");
+  assert.ok(!errors.some((error) => error.includes("mixedCase")), "大文字を含む名前も形としては通る（正しさは実物との一致で見る）");
+  const byKey = Object.fromEntries(rows.map((row) => [row.key, row]));
+  assert.deepEqual([byKey.realtime.table, byKey.realtime.idColumn], [null, null]);
+  assert.deepEqual([byKey.visitLog.table, byKey.visitLog.idColumn], ["visit_logs", "visit_code"], "主キー 1 列は宣言の列の物理名");
+  assert.deepEqual([byKey.visitTag.table, byKey.visitTag.idColumn], ["visit_tag", "id"], "plural が無ければ登録名の snake、複合主キーは id");
+  assert.equal(byKey.visitNote.idColumn, "note_key", "列の物理名を書かない主キーは snake");
+});
 
-  // 移行前の手書き行（旧 generateFiles.registry: false のドメイン）の移し先も手書きを案内する
-  fs.mkdirSync(path.join(root, path.dirname(REGISTRY_FILE)), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, REGISTRY_FILE),
-    `import { visitService } from "@/domains/visit/services/server/visitService";\nexport const serviceRegistry = {\n  visit: { service: visitService, access: ADMIN_ONLY },\n};\n`,
-  );
-  const legacy = checkServiceRegistry(root).errors.find((error) => error.includes('手書きの行 "visit"'));
-  assert.match(legacy, /"generate": false なので pnpm generate domain は書かない → src\/domains\/visit\/services\/server\/domainEntry.ts を手書きし/);
-  fs.rmSync(path.join(root, REGISTRY_FILE));
+test("access と service: 生成する登録は既定 + apiAccess.operations、generate: false は apiAccess そのまま、service は entity.json の service か既定、registered: false は行に出ない", (t) => {
+  t.mock.method(console, "log", () => {});
+  const visitAccess = { read: "public", write: "none" };
+  const root = makeRoot({
+    ...declared("src/domains/visit", { visit: { plural: "visitRows", generate: false, apiAccess: visitAccess, service: { file: "visitStore", export: "visitStore" } } }, { service: false }),
+    "src/domains/visit/services/server/visitStore.ts": "export const visitStore = {};\n",
+    ...declared("src/domains/core/audit", { audit: { generate: false, service: { file: "index", export: "auditService" } } }, { service: false }),
+    "src/domains/core/audit/services/server/index.ts": "export const auditService = {};\n",
+    ...declared("src/domains/order", {
+      order: { plural: "orders", useImportExport: true },
+      orderLine: { useImportExport: true, apiAccess: { read: "public", write: { roleCategories: ["admin"] }, operations: { export: "none" } } },
+      orderCache: { registered: false },
+    }),
+  });
+  const { rows, errors } = discoverRegistrations(root);
+  assert.deepEqual(errors, []);
+  const byKey = Object.fromEntries(rows.map((row) => [row.key, row]));
+  assert.deepEqual(Object.keys(byKey).sort(), ["audit", "order", "orderLine", "visit"], "registered: false の登録は行に出ない");
+  assert.deepEqual(byKey.visit.access, visitAccess, "generate: false は apiAccess をそのまま(生成の既定を重ねない)");
+  assert.deepEqual(byKey.audit.access, { ...ADMIN_ONLY, operations: { truncateAll: ADMIN_RULE, export: "none", import: "none" } }, "apiAccess の無い generate: false は fail-closed の既定");
+  assert.deepEqual(byKey.order.access, { ...ADMIN_ONLY, operations: { truncateAll: ADMIN_RULE, export: ADMIN_RULE, import: ADMIN_RULE } }, "useImportExport: true は export / import も管理者");
+  assert.deepEqual(byKey.orderLine.access, { ...PUBLIC_READ, operations: { truncateAll: ADMIN_RULE, export: "none", import: ADMIN_RULE } }, "apiAccess.operations の書いた鍵が勝つ(useImportExport の export より)");
 
-  // README の例をそのまま置く → 登録・検査が通る
-  fs.rmSync(path.join(root, "src/domains/order"), { recursive: true });
-  fs.writeFileSync(path.join(root, "src/domains/visit/services/server/domainEntry.ts"), example);
   generateServiceRegistry(root);
+  const text = fs.readFileSync(path.join(root, REGISTRY_FILE), "utf8");
+  assert.match(text, /service: \(\) => import\("@\/domains\/visit\/services\/server\/visitStore"\)\.then\(\(m\) => m\.visitStore\),\n {4}table: "visit_rows",/);
+  assert.match(text, /service: \(\) => import\("@\/domains\/core\/audit\/services\/server"\)\.then\(\(m\) => m\.auditService\),/, "service の file が index なら services/server を指す");
+  assert.match(text, /\n {2}visit: \{\n[^}]*access: \{\n {6}read: "public",\n {6}write: "none",\n {4}\},/);
+  assert.doesNotMatch(text, /orderCache/);
   assert.deepEqual(checkServiceRegistry(root).errors, []);
-  const [visit] = discoverDomainEntries(root).filter((domain) => domain.camel === "visit");
-  assert.deepEqual(visit.keys, ["visit"]);
-  assert.deepEqual(visit.tables.visit, { table: "visits", idColumn: "id" });
-
-  // README の例 = 生成器が同じ entity.json から書く本文（先頭のコメントを除く）。生成器の形が変われば README も直す
-  const rendered = renderDomainEntry({ camel: "visit", config: JSON.parse(domainJson) });
-  assert.equal(example, rendered.slice(rendered.indexOf("import type")));
 });
 
 // ---------------------------------------------------------------------------
 // 静的 import の決まり(D63・L1.23): 型はどこからでも、値は値だけのファイルからだけ(中身で判定、推移的)
 // ---------------------------------------------------------------------------
 
-/** 一時の木(makeRoot)に domainEntry 1 本と相手のファイルを置く */
-function makeImportRoot(entryImports, files = {}) {
-  return makeRoot({
-    ...files,
-    "src/domains/shop/services/server/domainEntry.ts": `import type { DomainEntries } from "@/lib/domain";
-${entryImports}
-export const domainEntries = {
-  shop: { service: () => import("./shopService").then((m) => m.shopService), table: "shops", idColumn: "id", access: {} },
-} satisfies DomainEntries;
-`,
-  });
+const OVERRIDE_PATH = "src/domains/shop/entities/shop/entity.override.ts";
+
+/** 一時の木(makeRoot)に上書き 1 本と相手のファイルを置く */
+function makeImportRoot(overrideImports, files = {}) {
+  return makeRoot({ ...files, [OVERRIDE_PATH]: OVERRIDE(overrideImports, `{ read: "public", write: "none" }`) });
 }
 
-const ENTRY_PATH = "src/domains/shop/services/server/domainEntry.ts";
-
-test("静的 import の決まり: 通る例(lib/domain の 2 つ・fork の constants/ の定型・型だけの import・推移と循環)", () => {
+test("静的 import の決まり: 通る例(lib/domainAccess の定型・fork の constants/ の定型・型だけの import・推移と循環)", () => {
   const cases = {
-    "lib/domain の定型": `import { ADMIN_ONLY, ADMIN_RULE } from "@/lib/domainAccess";`,
-    "lib/domain/types の値の import(型だけのファイルの再 export)": `import { DOMAIN_DATA_OPERATIONS } from "@/lib/domainAccess";
+    "lib/domainAccess の定型": `import { ADMIN_ONLY, ADMIN_RULE } from "@/lib/domainAccess";`,
+    "lib/domainAccess の値の import(型だけのファイルの再 export)": `import { DOMAIN_DATA_OPERATIONS } from "@/lib/domainAccess";
 `,
     "fork の constants/ の定型(spread・参照・as const・satisfies)": `import { STAFF_ONLY } from "@/domains/shop/constants/access";`,
     "相対の値の import": `import { STAFF_ONLY } from "../../constants/access";`,
     "型だけの import はどこからでも(services・drizzle・パッケージ)": [
-      `import type { ShopService } from "./shopService";`,
+      `import type { ShopService } from "@/domains/shop/services/server/shopService";`,
       `import { type ShopTable } from "@/domains/shop/entities/drizzle";`,
       `import type { NextRequest } from "next/server";`,
     ].join("\n"),
@@ -454,13 +461,14 @@ export default STAFF_ONLY;
   };
   for (const [name, imports] of Object.entries(cases)) {
     const root = makeImportRoot(imports, files);
-    assert.deepEqual(checkEntryStaticImports(ENTRY_PATH, root), [], name);
+    assert.deepEqual(checkOverrideStaticImports(OVERRIDE_PATH, root), [], name);
   }
 });
 
 test("静的 import の決まり: 落ちる例(services・drizzle・entities の値・副作用の import・関数や呼び出し・推移の先・解けない指定子)", () => {
+  const SERVICE = "@/domains/shop/services/server/shopService";
   const cases = [
-    ["services の値", `import { shopService } from "./shopService";`, { "src/domains/shop/services/server/shopService.ts": `import { createCrudService } from "@/lib/crud/server";\nexport const shopService = createCrudService({});\n` }, /"\.\/shopService" → .*shopService\.ts: const shopService が 値の式でない/],
+    ["services の値", `import { shopService } from "${SERVICE}";`, { "src/domains/shop/services/server/shopService.ts": `import { createCrudService } from "@/lib/crud/server";\nexport const shopService = createCrudService({});\n` }, /"@\/domains\/shop\/services\/server\/shopService" → .*shopService\.ts: const shopService が 値の式でない/],
     ["drizzle の値", `import { ShopTable } from "@/domains/shop/entities/drizzle";`, { "src/domains/shop/entities/drizzle.ts": `import { pgTable } from "drizzle-orm/pg-core";\nexport const ShopTable = pgTable("shops", {});\n` }, /"drizzle-orm\/pg-core" を値で import している\(解けない指定子/],
     ["entities の関数", `import { toShop } from "@/domains/shop/entities/model";`, { "src/domains/shop/entities/model.ts": `export function toShop() { return 1; }\n` }, /model\.ts: 値だけのファイルに置けない文がある\(関数/],
     ["副作用の import", `import "@/domains/shop/constants/access";`, { "src/domains/shop/constants/access.ts": `export const A = 1;\n` }, /"@\/domains\/shop\/constants\/access" を副作用の import している/],
@@ -477,34 +485,24 @@ test("静的 import の決まり: 落ちる例(services・drizzle・entities の
     ["パッケージの値", `import { z } from "zod";`, {}, /"zod" を値で import している\(解けない指定子/],
   ];
   for (const [name, imports, files, pattern] of cases) {
-    const errors = checkEntryStaticImports(ENTRY_PATH, makeImportRoot(imports, files));
-    assert.ok(errors.length > 0 && errors.every((error) => error.startsWith(`${ENTRY_PATH}: `)), `${name}: ${errors.join("\n")}`);
+    const errors = checkOverrideStaticImports(OVERRIDE_PATH, makeImportRoot(imports, files));
+    assert.ok(errors.length > 0 && errors.every((error) => error.startsWith(`${OVERRIDE_PATH}: `)), `${name}: ${errors.join("\n")}`);
     assert.ok(errors.some((error) => pattern.test(error)), `${name}: ${pattern} が無い:\n${errors.join("\n")}`);
   }
 });
 
-test("静的 import の決まり: override も同じ決まりで pnpm check registry が見る。生成器の domainEntry の出力も通る", () => {
-  const root = makeImportRoot(`import { ADMIN_ONLY } from "@/lib/domainAccess";`, {
-    "src/domains/shop/services/server/domainEntry.override.ts": `import type { DomainEntryOverrides } from "@/lib/domain";
-import { shopService } from "./shopService";
-export const domainEntryOverrides = { shop: { read: "public", write: "none" } } satisfies DomainEntryOverrides;
-`,
+test("静的 import の決まり: 登録の上書きは pnpm check registry が同じ決まりで見る", () => {
+  const root = makeRoot({
+    ...declared("src/domains/shop", { shop: {} }, { service: false }),
     "src/domains/shop/services/server/shopService.ts": `export const shopService = createThing();\n`,
+    [OVERRIDE_PATH]: OVERRIDE(`import { shopService } from "@/domains/shop/services/server/shopService";`, `{ read: "public", write: "none" }`),
   });
-  const [shop] = discoverDomainEntries(root);
-  assert.ok(shop.overrideErrors.some((error) => /domainEntry\.override\.ts: "\.\/shopService" → .*const shopService が 値の式でない/.test(error)), shop.overrideErrors.join("\n"));
-  assert.deepEqual(shop.entryErrors, []);
-
-  for (const config of [{}, { apiAccess: { read: "public", write: "admin", operations: { export: "admin" } } }]) {
-    const rendered = renderDomainEntry({ camel: "shop", config });
-    const generated = makeImportRoot("", { [ENTRY_PATH]: rendered });
-    fs.writeFileSync(path.join(generated, ENTRY_PATH), rendered);
-    assert.deepEqual(checkEntryStaticImports(ENTRY_PATH, generated), [], JSON.stringify(config));
-  }
+  const { errors } = discoverRegistrations(root);
+  assert.ok(errors.some((error) => /entities\/shop\/entity\.override\.ts: "@\/domains\/shop\/services\/server\/shopService" → .*const shopService が 値の式でない/.test(error)), errors.join("\n"));
 });
 
 // ---------------------------------------------------------------------------
-// 表 ↔ ドメイン（D58）と、サービスを読み込まない全件削除の一覧
+// 表 ↔ 登録（D58）と、サービスを読み込まない全件削除の一覧
 // ---------------------------------------------------------------------------
 
 test("findDomainByTable / getDomainTable: 実リポの登録表で、表を持つ全キーが表名から自分のキーに戻る", () => {
@@ -560,6 +558,6 @@ test("getDomainList: サービスを読み込まずに登録表の table で一�
   assert.deepEqual(real, expected);
 });
 
-test("override が差し替える属性は宣言 src/lib/domain/extensionPoints.ts の domainEntries から(今は access だけ)", () => {
-  assert.equal(overrideAttribute(), "access");
+test("上書きが差し替える鍵は宣言 src/lib/domain/extensionPoints.ts の entities から(今は apiAccess だけ)", () => {
+  assert.equal(overrideAttribute(), "apiAccess");
 });

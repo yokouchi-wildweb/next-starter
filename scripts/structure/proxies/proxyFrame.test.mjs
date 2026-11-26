@@ -110,7 +110,7 @@ test("規則: src/featureGate/rules/ の export const rule をファイル名順
   assert.match(plan.outputs[GATE_RULES], /export const rules: GeneratedFeatureRule\[\] = \[\n  \{ \.\.\.rules_acmeShop, name: "acmeShop", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\], when: \[\] \},\n  \{ \.\.\.rules_alpha, name: "alpha", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\], when: \[\] \},\n  \{ \.\.\.rules_wallet, name: "wallet", tables: \[\], domainApiPaths: \[\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\], when: \[\] \},\n\];/);
 });
 
-test("規則の domains: ドメインのフォルダの pgTable から表(0 でもよい)と汎用 API の住所(domainEntry のキー)を導き(fork が上流のフォルダに足した表も)、失敗の各条件で止まる", () => {
+test("規則の domains: ドメインのフォルダの pgTable から表(0 でもよい)と汎用 API の住所(登録表に出す登録の登録名)を導き(fork が上流のフォルダに足した表も)、失敗の各条件で止まる", () => {
   const rule = (body) => `export const rule: FeatureGateRule = { pathPatterns: ["/x"], ${body} enabled: () => true };\n`;
   const root = fixture({
     "rules/wallet.ts": rule('domains: [\n    "core/wallet",\n    "core/walletHistory",\n  ],'),
@@ -123,7 +123,7 @@ test("規則の domains: ドメインのフォルダの pgTable から表(0 で�
     "rules/nested.ts": rule('domains: ["core/wallet/entities"],'),
     "rules/coreRoot.ts": rule('domains: ["core"],'),
     "rules/handApi.ts": rule('domainApiPaths: ["/api/x"],'),
-    "rules/brokenEntry.ts": rule('domains: ["core/broken"],'),
+    "rules/unregistered.ts": rule('domains: ["core/hidden"],'),
     "rules/noEntry.ts": rule('domains: ["core/quota"],'),
   });
   const feat = (name, tables) => {
@@ -134,31 +134,36 @@ test("規則の domains: ドメインのフォルダの pgTable から表(0 で�
   feat("core/wallet", ["wallets", "wallet_lots"]);
   feat("core/walletHistory", ["wallet_histories"]);
   feat("core/empty", []);
-  feat("core/broken", ["brokens"]);
+  feat("core/hidden", ["hiddens"]);
   feat("core/quota", ["quotas"]);
-  const entry = (name, text) => {
-    const d = join(root, "src/domains", name, "services/server");
+  // 登録の宣言: domain.json と entities/<登録名>/entity.json(登録表に出す登録の登録名 = 汎用 API の住所)
+  const declare = (name, registrations) => {
+    const d = join(root, "src/domains", name);
     mkdirSync(d, { recursive: true });
-    writeFileSync(join(d, "domainEntry.ts"), text);
+    writeFileSync(join(d, "domain.json"), JSON.stringify({ domainConfigVersion: "2.0", label: name }));
+    for (const [registration, entity] of Object.entries(registrations)) {
+      mkdirSync(join(d, "entities", registration), { recursive: true });
+      writeFileSync(join(d, "entities", registration, "entity.json"), JSON.stringify(entity));
+    }
   };
-  // キー 1 つ・複数・壊れた entry(export が無い)。core/quota は entry 無し(住所を足さない)。core/empty は表 0 の Firestore 版(table: null)
-  entry("core/wallet", "export const domainEntries = {\n  wallet: { table: \"wallets\" },\n} satisfies DomainEntries;\n");
-  entry("core/walletHistory", "export const domainEntries = {\n  walletHistory: { table: \"wallet_histories\" },\n  walletLot: { table: \"wallet_lots\" },\n} satisfies DomainEntries;\n");
-  entry("core/broken", "export const somethingElse = {};\n");
-  entry("core/empty", "export const domainEntries = {\n  empty: { table: null },\n} satisfies DomainEntries;\n");
+  // 登録 1 つ・複数・registered: false(登録表に出さない = 住所を足さない)。core/quota は登録無し(住所を足さない)。core/empty は表 0 の Firestore 版
+  declare("core/wallet", { wallet: { table: "wallets" } });
+  declare("core/walletHistory", { walletHistory: { table: "wallet_histories" }, walletLot: { table: "wallet_lots" } });
+  declare("core/hidden", { hidden: { table: "hiddens", registered: false } });
+  declare("core/empty", { empty: { dbEngine: "Firestore" } });
   // fork が上流のフォルダに足した表
   writeFileSync(join(root, "src/domains/core/wallet/entities/forkExtra.ts"), 'export const X = pgTable("wallet_fork_extras", {});\n');
 
   const plan = planExtensions(root);
   assert.deepEqual(
     itemsOf(plan, "src/featureGate", "rules").map((r) => `${r.name}:${r.fields.tables.join("|")}`),
-    ["noEntry:quotas", "plain:", "tableless:", "wallet:wallets|wallet_lots|wallet_fork_extras|wallet_histories"],
+    ["noEntry:quotas", "plain:", "tableless:", "unregistered:hiddens", "wallet:wallets|wallet_lots|wallet_fork_extras|wallet_histories"],
   );
   assert.deepEqual(
     itemsOf(plan, "src/featureGate", "rules").map((r) => `${r.name}:${r.fields.domainApiPaths.join("|")}`),
-    ["noEntry:", "plain:", "tableless:/api/empty", "wallet:/api/wallet|/api/walletHistory|/api/walletLot"],
+    ["noEntry:", "plain:", "tableless:/api/empty", "unregistered:", "wallet:/api/wallet|/api/walletHistory|/api/walletLot"],
   );
-  const reasons = Object.fromEntries(["handWritten", "variable", "notLiteral", "missing", "nested", "coreRoot", "handApi", "brokenEntry"].map((n) => [n, plan.problems.find((p) => p.includes(`/${n}.ts`)) ?? ""]));
+  const reasons = Object.fromEntries(["handWritten", "variable", "notLiteral", "missing", "nested", "coreRoot", "handApi"].map((n) => [n, plan.problems.find((p) => p.includes(`/${n}.ts`)) ?? ""]));
   assert.match(reasons.handWritten, /tables を手書き/);
   assert.match(reasons.variable, /文字列リテラルの配列でない/);
   assert.match(reasons.notLiteral, /文字列リテラルでない/);
@@ -166,8 +171,7 @@ test("規則の domains: ドメインのフォルダの pgTable から表(0 で�
   assert.match(reasons.nested, /"core\/wallet\/entities" はドメインの位置でない/);
   assert.match(reasons.coreRoot, /"core" はドメインの位置でない/);
   assert.match(reasons.handApi, /domainApiPaths を手書き/);
-  assert.match(reasons.brokenEntry, /domainEntries が読めない/);
-  assert.equal(plan.problems.length, 8, plan.problems.join("\n"));
+  assert.equal(plan.problems.length, 7, plan.problems.join("\n"));
   assert.match(
     plan.outputs[GATE_RULES],
     /\{ \.\.\.rules_wallet, name: "wallet", tables: \["wallets", "wallet_lots", "wallet_fork_extras", "wallet_histories"\], domainApiPaths: \["\/api\/wallet", "\/api\/walletHistory", "\/api\/walletLot"\], settingPaths: \[\], cronPaths: \[\], dependsOn: \[\], anyOf: \[\], when: \[\] \},/,
@@ -177,7 +181,7 @@ test("規則の domains: ドメインのフォルダの pgTable から表(0 で�
   // 汎用 API の住所と表はドメインに付く(D34 K4): 規則の pathPatterns に足さず、生成一覧の domains に載る(フォルダの順、持つ機能つき)
   assert.match(
     plan.outputs[GATE_RULES],
-    /export const domains: GatedDomain\[\] = \[\n  \{ folder: "core\/empty", tables: \[\], apiPaths: \["\/api\/empty"\], features: \["tableless"\] \},\n  \{ folder: "core\/quota", tables: \["quotas"\], apiPaths: \[\], features: \["noEntry"\] \},\n  \{ folder: "core\/wallet", tables: \["wallets", "wallet_lots", "wallet_fork_extras"\], apiPaths: \["\/api\/wallet"\], features: \["wallet"\] \},\n  \{ folder: "core\/walletHistory", tables: \["wallet_histories"\], apiPaths: \["\/api\/walletHistory", "\/api\/walletLot"\], features: \["wallet"\] \},\n\];/,
+    /export const domains: GatedDomain\[\] = \[\n  \{ folder: "core\/empty", tables: \[\], apiPaths: \["\/api\/empty"\], features: \["tableless"\] \},\n  \{ folder: "core\/hidden", tables: \["hiddens"\], apiPaths: \[\], features: \["unregistered"\] \},\n  \{ folder: "core\/quota", tables: \["quotas"\], apiPaths: \[\], features: \["noEntry"\] \},\n  \{ folder: "core\/wallet", tables: \["wallets", "wallet_lots", "wallet_fork_extras"\], apiPaths: \["\/api\/wallet"\], features: \["wallet"\] \},\n  \{ folder: "core\/walletHistory", tables: \["wallet_histories"\], apiPaths: \["\/api\/walletHistory", "\/api\/walletLot"\], features: \["wallet"\] \},\n\];/,
   );
   assert.match(plan.outputs[GATE_RULES], /export const cronTasks: GatedCronTask\[\] = \[\];/);
   assert.doesNotMatch(plan.outputs[GATE_RULES], /pathPatterns: \[\.\.\.rules_/, "設定の節の無い fixture では規則の pathPatterns に何も足さない");

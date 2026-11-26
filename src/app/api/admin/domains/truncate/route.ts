@@ -24,7 +24,7 @@ type TruncateResult = {
  * 指定されたドメインの全データを削除する（TRUNCATE CASCADE）
  * POST /api/admin/domains/truncate
  *
- * 門: admin カテゴリ（DB 同期）+ 本人パスワード + domainEntry.ts の access（truncateAll）をドメインごとに評価（AND）。
+ * 門: admin カテゴリ（DB 同期）+ 本人パスワード + 登録表の access（truncateAll）をドメインごとに評価（AND）。
  * 1 つでも拒否されたドメインがあれば要求全体を拒否し、何も消さない（取り消せない操作を部分実行しない）。
  */
 export const POST = createApiRoute(

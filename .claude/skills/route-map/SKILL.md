@@ -42,7 +42,7 @@ run `pnpm check routes -- show <args>` once (another view → run again with oth
 never just paste the output | answer the request, then list any of the following that apply (none → `気になる点なし`, nothing of note):
 - **unexpected public pages**: access=public with page dir (table column) outside `(user)/(public)`, `(marketing)`, `(user)/(auth)`, `(user)/(legal)` (e.g. demo; for entrances like admin/login, setup, add one remark on whether it is intended) | whether public is fine = the human's call
 - **switched-off pages**: gated-off (404 by a feature-gate rule) | restoring the flag publishes them at once → also check the chain is right
-- **registry**: admin screens left to the domain's serviceRegistry access | its breadth is decided by that domain's domainEntry.ts
+- **registry**: admin screens left to the domain's serviceRegistry access | its breadth is decided by that registration's entity.json apiAccess
 - **statuses**: allowStatuses pages that also admit users in states normally rejected
 - range (scope) × loader access: parent and child are AND, so a broadly written loader is never wider than its range | a loader narrower than its range (e.g. role:admin inside the admin range) narrows only that page
 reply: Japanese, short | count pages from the CLI output rows, never guess

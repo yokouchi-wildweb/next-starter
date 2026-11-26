@@ -107,7 +107,7 @@ const factories = createRouteFactories<DevicesByKind, SessionUser, UserStatus, A
 
 /** 全 API ルート共通の Factory（access で認可し、利用者を ctx.user で渡す） */
 export const createApiRoute = factories.createApiRoute;
-/** 汎用 CRUD（/api/[domain]/**）の Factory（domainEntry.ts の access でドメインごとに認可） */
+/** 汎用 CRUD（/api/[domain]/**）の Factory（登録表の access でドメインごとに認可） */
 export const createDomainRoute = factories.createDomainRoute;
 /** 汎用 CRUD の id 付きの Factory */
 export const createDomainIdRoute = factories.createDomainIdRoute;

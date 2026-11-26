@@ -60,6 +60,6 @@
 
 ### 登録
 
-- `services/server/domainEntry.ts`（手書き）: `userGroup` = 表 `user_groups`、access `INTERNAL_ONLY`（管理の API は専用の口）
+- 登録 `entities/userGroup/entity.json`（`generate: false`）: 表 `user_groups`、apiAccess `INTERNAL_ONLY`（管理の API は専用の口）
 - 表は `pnpm generate registry` が schemaRegistry に入れる。表・列・索引を足したら `pnpm db:push` の後に `pnpm db:push:check` = 0
 - サーバーの口は部品（db・部品の一覧・設定・門・時刻）を受けて作り、本物の結びは各フォルダの `index.ts`（門は `gate.enabled("userGroups")`）

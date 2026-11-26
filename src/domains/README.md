@@ -77,7 +77,7 @@
 - フォーム固有の入力（確認用パスワード、一時的に分けた入力欄など）は、そのフォームの隣の `formEntities.ts` に置く。使う範囲が限られるので短い名前でよい: `FormSchema`（resolver に渡す Zod スキーマ。`schema.ts` を拡張して作るのが基本）/ `FormValues`（`useForm` の型）/ `DefaultValues`
 - 同じ構造のフォームが複数要るときは、スキーマではなくフォームコンポーネントを再利用する
 
-生成する登録(`generate` が false でない)の `entities/<登録名>/` と集める入口 `entities/<種類>.ts` は `pnpm generate domain` が生成するので手で編集しない。上の規約は主に core ドメインと `formEntities.ts` を書くときに使う。
+生成する登録(`generate` が false でない)の `entities/<登録名>/` は `pnpm generate domain` が、集める入口 `entities/<種類>.ts` はどのドメインも `pnpm generate registry` が生成するので手で編集しない。上の規約は主に core ドメインと `formEntities.ts` を書くときに使う。
 
 ## API
 
@@ -525,7 +525,7 @@ import { ControlledField } from "@/lib/formSuite";
   - relations = 主への belongsTo（`<主>_id`、必須、onDelete CASCADE）。主の relations には足さない
   - fields = メディア項目 `file`（mediaUploader、images / `image/*`、10MB、slug = 主の項目名の camelCase）と並び列 `sort_order`（hidden、`sortOrderField` と `systemColumns` に宣言）。useSoftDelete false
   - 汎用 API は閉じる（`apiAccess: { read: "none", write: "none" }` = INTERNAL_ONLY）、addToAdminDataMenu false。従属の生成カテゴリは生成器が決める: entities / serverServices / registry / fieldConstants / presenters だけ（管理画面・フック・クライアントは主の画面から使う。entity.json には書かない）
-  - `file` の storage は主の汎用 API の規則から写す: upload = 主の create と update の和、read = 主の get、visibility = read が `"public"` なら public、それ以外は private。写せるのは `"public"` / `"authenticated"` / ロールの規則だけで、主が閉じている（`"none"`）・知らない値・主が `generate: false`（domainEntry.ts が手書き）なら管理者のみを書き、直す場所を出力する
+  - `file` の storage は主の汎用 API の規則から写す: upload = 主の create と update の和、read = 主の get、visibility = read が `"public"` なら public、それ以外は private。写せるのは `"public"` / `"authenticated"` / ロールの規則だけで、主が閉じている（`"none"`）・知らない値・主が `generate: false`（apiAccess が生成の既定を重ねない登録表の値そのもの）なら管理者のみを書き、直す場所を出力する
   - ファイルの条件（preset・accept・上限）は雛形の既定なので、従属の entity.json で直す
 - 従属が守ること（pnpm generate domain が書く前に検査し、1 つでも外れれば全件を並べて何も書かずに止まる。一覧と判定: [scripts/structure/domain/README.md](../../scripts/structure/domain/README.md)「pnpm generate domain」）
   - 主への belongsTo はちょうど 1 本・required・onDelete CASCADE、`useSoftDelete` は false
@@ -672,14 +672,13 @@ core ドメイン (`src/domains/core/<domain>/` の宣言) も pnpm generate dom
 `/api/[domain]/**` の汎用 CRUD ルートに対するロールベースのアクセス制御。
 判定は `createDomainRoute`（`src/lib/routeFactory`）が一元的に行う。
 
-> **実行時ソースは serviceRegistry**: entity.json の `apiAccess` は editing source で、
-> `pnpm generate domain` が `services/server/domainEntry.ts` のエントリの `access` に展開し（`{ service, access, table, idColumn }`、型必須）、
-> `src/registry/serviceRegistry.ts` はそこから生成される。実行時の認可は registry の access を参照する。
-> コアドメインは domainEntry.ts に直接 access を書く。管理データ操作（`truncateAll` / `export` / `import`）は
-> `operations` に明示したときだけ開く（pnpm generate domain が truncateAll = 管理者、export / import = `useImportExport` から書く）。
-> エントリは表の物理名と主キー列名（`table` / `idColumn`、型必須）も持ち、pnpm generate domain が書く（`generate: false` で
-> 手書きしている domainEntry.ts は自分で書く。Firestore は `null`）。
-> 詳細: `src/lib/routeFactory/README.md`「アクセスポリシー（domainEntry.ts の `access`）」、`src/lib/domain/README.md`
+> **実行時ソースは serviceRegistry**: 登録の entity.json の `apiAccess` は editing source で、
+> `pnpm generate registry` が `src/registry/serviceRegistry.ts` のその登録の行の `access` に組む（行 = `{ service, table, idColumn, access, requires? }`）。
+> 実行時の認可は registry の access を参照する。管理データ操作（`truncateAll` / `export` / `import`）は
+> `operations` に明示したときだけ開く（生成する登録は truncateAll = 管理者、export / import = `useImportExport` から既定を組む。
+> 手で持つ登録 `generate: false` は `apiAccess` をそのまま使い、既定を重ねない）。表の物理名と主キー列名（`table` / `idColumn`）も
+> 宣言から組む（Firestore は `null`）。fork が core の access を変えるときは `entities/<登録名>/entity.override.ts`。
+> 詳細: `src/lib/routeFactory/README.md`「`createDomainRoute` / `createDomainIdRoute` - 汎用CRUDファクトリー」、`src/lib/domain/README.md`「登録表の行の出どころ」
 
 | プロパティ | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
@@ -700,11 +699,11 @@ core ドメイン (`src/domains/core/<domain>/` の宣言) も pnpm generate dom
 
 `list` `get` `search` `count` `create` `update` `delete` `upsert` `duplicate` `restore` `hardDelete` `reorder` `searchForSorting` `bulkUpsert` `bulkUpdate` `bulkUpdateByIds` `bulkAddRelation` `bulkRemoveRelation` `bulkDeleteByIds` `bulkDeleteByQuery` `replaceByQuery`
 
-管理データ操作（汎用ルートではなく管理画面の専用ルートが評価する。未指定 = `"none"`）: `truncateAll` `export` `import`。entity.json では書かない（pnpm generate domain が `useImportExport` から domainEntry.ts に書く）
+管理データ操作（汎用ルートではなく管理画面の専用ルートが評価する。未指定 = `"none"`）: `truncateAll` `export` `import`。生成する登録は entity.json に書かなくてよい（`pnpm generate registry` が `useImportExport` から既定を組む。手で持つ登録は `apiAccess.operations` に書く）
 
 #### フォールバック（fail-closed）
 
-- domainEntry.ts の `access` は型必須のため、登録時に宣言を省略できない（書き忘れはコンパイルエラー）
+- 登録表の行の `access` は型必須で、`apiAccess` を書かない登録は fail-closed（ADMIN_ONLY）の既定になる
 - `read` / `write` / `operations` が当該操作をカバーしない（部分宣言・空 `{}`）場合、既定（`src/lib/domainAccess/accessPresets.ts` の `DEFAULT_ACCESS_RULE`、admin カテゴリのみ。上書きできる設定ではない）が適用される
 - **書き忘れても安全側（admin-only）に倒れる**
 
@@ -720,7 +719,7 @@ core ドメイン (`src/domains/core/<domain>/` の宣言) も pnpm generate dom
 
 #### commands(データ操作のコマンドの上書き、省略可)
 
-`pnpm ops data export|import|update|delete <domain>` は、上の規則で何かしらのロールに許した操作を許す(export / import は `useImportExport`)。API とコマンドで範囲を変えたい時だけ `"commands": { "delete": "deny", "export": "allow" }` のように書く(`"allow"` / `"deny"`)。`pnpm generate domain` が `domainEntry.ts` の `access.commands` に写す。詳細: `src/lib/domain/README.md`「データ操作のコマンド(pnpm ops data)の許可」
+`pnpm ops data export|import|update|delete <domain>` は、上の規則で何かしらのロールに許した操作を許す(export / import は `useImportExport`)。API とコマンドで範囲を変えたい時だけ `"commands": { "delete": "deny", "export": "allow" }` のように書く(`"allow"` / `"deny"`)。`pnpm generate registry` が登録表の `access.commands` に写す。詳細: `src/lib/domain/README.md`「データ操作のコマンド(pnpm ops data)の許可」
 
 #### ⚠️ オーナーシップ制御は対象外
 
@@ -733,16 +732,16 @@ core ドメイン (`src/domains/core/<domain>/` の宣言) も pnpm generate dom
 
 ### 生成カテゴリ（generate: true のとき作るもの）
 
-`generate`（登録ごと、既定 true）の登録は、下の全カテゴリを毎回作り直す（集まりの従属は entities / serverServices / registry / fieldConstants / presenters だけ）。`generate: false` は何も書かない（domainEntry.ts の書き直しも無い。serviceRegistry.ts は domainEntry.ts から作るので載り続ける）。`generate: false` のドメインはどんな実行でも生成器を通さない（`--only`・`-i` でも書かず、生成前の検査もしない）。今回だけ一部のカテゴリに絞るときは `--only`（`scripts/structure/domain/README.md`）。
+`generate`（登録ごと、既定 true）の登録は、下の全カテゴリを毎回作り直す（集まりの従属は entities / serverServices / registry / fieldConstants / presenters だけ）。`generate: false` は何も書かない（serviceRegistry.ts の行は `pnpm generate registry` がその entity.json から作るので載り続ける）。`generate: false` のドメインはどんな実行でも生成器を通さない（`--only`・`-i` でも書かず、生成前の検査もしない）。今回だけ一部のカテゴリに絞るときは `--only`（`scripts/structure/domain/README.md`）。
 
 | カテゴリ | - | 説明 |
 |-----------|-----|------|
-| entities | - | エンティティ（Neon: `entities/<登録名>/{schema,form,model,drizzle}.ts` + 集める入口 `entities/<種類>.ts`、Firestore: `entities/{schema,form,model,firestore}.ts`） |
+| entities | - | エンティティ（Neon: `entities/<登録名>/{schema,form,model,drizzle}.ts`（集める入口 `entities/<種類>.ts` は `pnpm generate registry`）、Firestore: `entities/{schema,form,model,firestore}.ts`） |
 | components | - | 管理画面コンポーネント |
 | hooks | - | CRUD フック |
 | clientServices | - | axios クライアント |
 | serverServices | - | サーバーサービス（`drizzleBase.ts` / `firestoreBase.ts` は毎回生成、`<domain>Service.ts` とシードの雛形 `seed.ts`（Drizzle のドメインだけ。書き方 `src/lib/seed/README.md`）は無いときだけ生成） |
 | adminRoutes | - | 管理画面ルート（page.tsx 1 行スイッチ + `_screen/`（Screen と loader.ts）の構造で生成。page.tsx は初回のみ生成、`_screen/` は毎回再生成。詳細: `src/lib/screens/README.md` の Internals「生成される管理画面」） |
-| registry | - | レジストリへの登録（`services/server/domainEntry.ts` の生成を含む。`apiAccess` / `useImportExport` を access に展開し、最後に `pnpm generate registry` が serviceRegistry.ts を作り直す） |
+| registry | - | services/server の collections.ts・storagePurposes.ts。最後に serviceRegistry.ts を作り直す（登録表の行は entity.json から `pnpm generate registry` が組む） |
 | fieldConstants | - | options を持つフィールドの定数/型 |
 | presenters | - | テーブル表示用フォーマッタ |

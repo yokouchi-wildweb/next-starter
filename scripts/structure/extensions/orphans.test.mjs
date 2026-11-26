@@ -29,9 +29,10 @@ function fixture(files) {
   return root;
 }
 const problemsOf = (files) => planExtensions(fixture(files)).problems;
-const ENTRY = 'export const domainEntries = { user: { service: async () => ({}), access: {} } };\n';
+/** 上書きの対象: 登録の宣言 entities/<登録名>/entity.json(点 entities、src/lib/domain/extensionPoints.ts) */
+const ENTITY = "{}\n";
 
-test("通る: fork の今の上書きの形(core ロール・ロール・プロフィール・cron・domainEntry・受け口)と空の上書き", () => {
+test("通る: fork の今の上書きの形(core ロール・ロール・プロフィール・cron・登録の entity.json・受け口)と空の上書き", () => {
   const problems = problemsOf({
     "src/domains/core/user/coreRoles/user.role.json": "{}\n",
     "src/domains/core/user/coreRoles/user.role.override.ts": 'import type { CoreRoleOverride } from "../types";\n\nexport const override: CoreRoleOverride = { hasProfile: true };\n',
@@ -43,31 +44,31 @@ test("通る: fork の今の上書きの形(core ロール・ロール・プロ�
     "src/app/api/cron/wallet-expire-lots/task.override.ts": 'import type { CronTaskOverride } from "@/lib/cron";\n\nexport const cronOverride: CronTaskOverride = {\n  disabled: true,\n};\n',
     "src/app/api/cron/other/task.ts": "export const cronTask = {};\n",
     "src/app/api/cron/other/task.override.ts": "// 親の上書きを外す\n",
-    "src/domains/core/user/services/server/domainEntry.ts": ENTRY,
-    "src/domains/core/user/services/server/domainEntry.override.ts": "export const domainEntryOverrides = { user: PUBLIC_READ } satisfies DomainEntryOverrides;\n",
+    "src/domains/core/user/entities/user/entity.json": ENTITY,
+    "src/domains/core/user/entities/user/entity.override.ts": "export const entityOverride = { apiAccess: PUBLIC_READ } satisfies EntityOverride;\n",
     "src/domains/core/user/plugs/adminMenuItems/usersGeneral.ts": 'export const item = { key: "usersGeneral" };\n',
     "src/domains/core/user/plugs/adminMenuItems/usersGeneral.override.ts": "export const override = { hidden: true };\n",
   });
   assert.deepEqual(problems, []);
 });
 
-test("孤立した .override: 受ける点が無い・点はあるが対象が無い(cron・ロール・domainEntry)", () => {
+test("孤立した .override: 受ける点が無い・点はあるが対象が無い(cron・ロール・登録の entity.json)", () => {
   const problems = problemsOf({
     "src/domains/core/x/thing.tsx": "export const x = 1;\n",
     "src/domains/core/x/thing.override.tsx": "export const override = {};\n",
     "src/app/api/cron/gone/task.override.ts": "export const cronOverride = { disabled: true };\n",
     "src/domains/core/user/roles/user.role.override.ts": "export const override = {};\n",
-    "src/domains/core/lonely/services/server/domainEntry.override.ts": "export const domainEntryOverrides = {};\n",
+    "src/domains/core/lonely/entities/lonely/entity.override.ts": "export const entityOverride = {};\n",
   });
   const of = (path) => problems.find((p) => p.startsWith(`${path}:`)) ?? "";
   assert.match(of("src/domains/core/x/thing.override.tsx"), /この上書きを受ける点が無い/);
   assert.match(of("src/domains/core/user/roles/user.role.override.ts"), /隣に上書きの対象 user\.role\.json が無い/);
-  assert.match(of("src/domains/core/lonely/services/server/domainEntry.override.ts"), /隣に上書きの対象 domainEntry\.ts が無い/);
+  assert.match(of("src/domains/core/lonely/entities/lonely/entity.override.ts"), /隣に上書きの対象 entity\.json が無い/);
   // cron のフォルダに task.ts が無いのはフォルダの形の誤りとして src/lib/cron/discover.ts も止める。孤立の検査は上書きとして止める
   assert.match(of("src/app/api/cron/gone/task.override.ts"), /隣に上書きの対象 task\.ts が無い/);
 });
 
-test("宣言に無い鍵: core ロールの enabled・プロフィールの fields・cron の未知の鍵・domainEntry の無いキー(pnpm check extensions = build でも止まる)", () => {
+test("宣言に無い鍵: core ロールの enabled・プロフィールの fields・cron の未知の鍵・登録の上書きの apiAccess 以外の鍵(pnpm check extensions = build でも止まる)", () => {
   const problems = problemsOf({
     "src/domains/core/user/coreRoles/user.role.json": "{}\n",
     "src/domains/core/user/coreRoles/user.role.override.ts": "export const override = { enabled: false };\n",
@@ -75,14 +76,14 @@ test("宣言に無い鍵: core ロールの enabled・プロフィールの fiel
     "src/domains/core/userProfile/profiles/user.profile.override.ts": "export const override = { fields: [] };\n",
     "src/app/api/cron/a/task.ts": "export const cronTask = {};\n",
     "src/app/api/cron/a/task.override.ts": "export const cronOverride = { run: 1 };\n",
-    "src/domains/core/user/services/server/domainEntry.ts": ENTRY,
-    "src/domains/core/user/services/server/domainEntry.override.ts": "export const domainEntryOverrides = { nope: {} };\n",
+    "src/domains/core/user/entities/user/entity.json": ENTITY,
+    "src/domains/core/user/entities/user/entity.override.ts": "export const entityOverride = { nope: {} };\n",
   });
   const of = (path) => problems.find((p) => p.startsWith(`${path}:`)) ?? "";
   assert.match(of("src/domains/core/user/coreRoles/user.role.override.ts"), /enabled は上書きできない\(できるのは label・hasProfile/);
   assert.match(of("src/domains/core/userProfile/profiles/user.profile.override.ts"), /fields は上書きできない/);
   assert.match(of("src/app/api/cron/a/task.override.ts"), /run は上書きできない\(できるのは schedule・disabled/);
-  assert.match(of("src/domains/core/user/services/server/domainEntry.override.ts"), /キー nope は隣の domainEntry\.ts の domainEntries に無い/);
+  assert.match(of("src/domains/core/user/entities/user/entity.override.ts"), /nope は上書きできない\(できるのは apiAccess。宣言 src\/lib\/domain\/extensionPoints\.ts の entities\)/);
 });
 
 test(".replace: boardgame-site の 5 本の形(枠の中の部品の .replace)は既定の無い所で止まり、スイッチの向け先と .default の隣と 1 行スイッチは通る", () => {

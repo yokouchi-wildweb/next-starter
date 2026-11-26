@@ -23,7 +23,7 @@ export const isDataCommand = (value: string): value is DataCommand => (DATA_COMM
 
 /**
  * データ操作のコマンドを許すか、許すならサービスのどの関数を呼ぶか。
- * @param access そのドメインの access(登録表の domainEntry)
+ * @param access そのドメインの access(登録表の行)
  * @param service そのドメインのサービス(関数を持つかだけ見る。呼ばない)
  */
 export function resolveDataCommand(access: DomainApiAccessConfig, command: DataCommand, service: object | null | undefined): DataCommandResolution {

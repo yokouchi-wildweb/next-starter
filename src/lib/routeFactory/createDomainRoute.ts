@@ -78,7 +78,7 @@ function ensureSupports<TService>(
 /**
  * ドメインCRUD用のファクトリーを作る（利用者の束・登録表・土台を結ぶ）。
  *
- * 認可は URL のドメイン名から登録表の行を引き、domainEntry.ts の access でドメインごとに強制する。
+ * 認可は URL のドメイン名から登録表の行を引き、その行の access(登録の entity.json から生成)でドメインごとに強制する。
  * ctx.user は Factory が解いた利用者（access が "public" の操作では null 可）。
  */
 export function makeDomainRoutes<TUser extends RouteUserBase<TStatus>, TStatus extends string, TCategory extends string = string>(
@@ -109,7 +109,7 @@ export function makeDomainRoutes<TUser extends RouteUserBase<TStatus>, TStatus e
           return new NextResponse("Not Found", { status: 404 });
         }
 
-        // ===== アクセス制御（domainEntry.ts の access 宣言に基づく。登録表 serviceRegistry が実行時ソース） =====
+        // ===== アクセス制御（登録の entity.json の access 宣言に基づく。登録表 serviceRegistry が実行時ソース） =====
         // access が当該操作をカバーしない場合は fail-closed（admin カテゴリのみ）に倒れる。
         // サービスの読み込み（遅延 import）より先に判定し、拒否される要求でサービスを読み込まない。
         const rule = resolveAccessRule(entry.access, crudOp, config.operationType);

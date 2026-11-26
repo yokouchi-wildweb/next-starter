@@ -41,7 +41,7 @@ test("所在: core の宣言は core のフォルダ、一覧は business と co
   assert.throws(() => workspace.listDomains(), /両方にあります/);
 });
 
-test("生成物: core のフォルダに書き、頭のコメントは src/domains/core/<d>、src/registry には書かない（domainEntry.ts は書く）", () => {
+test("生成物: core のフォルダに書き、頭のコメントは src/domains/core/<d>、src/registry にも集める入口 entities/<種類>.ts にも書かない", () => {
   const root = project({ "core/memo": MEMO });
   const workspace = createWorkspace(root);
   const { lines, io } = capture();
@@ -51,11 +51,10 @@ test("生成物: core のフォルダに書き、頭のコメントは src/domai
   const paths = outputs.map((o) => path.relative(root, o.path));
   assert.ok(paths.length > 0);
   assert.ok(paths.every((p) => p.startsWith("src/domains/core/memo/")), paths.join(", "));
-  assert.ok(paths.includes("src/domains/core/memo/services/server/domainEntry.ts"));
   const drizzle = outputs.find((o) => o.path.endsWith("entities/memo/drizzle.ts"));
   assert.match(drizzle.content, /^\/\/ src\/domains\/core\/memo\/entities\/memo\/drizzle\.ts/);
-  assert.match(outputs.find((o) => o.path.endsWith("entities/drizzle.ts")).content, /^\/\/ src\/domains\/core\/memo\/entities\/drizzle\.ts/);
-  assert.match(outputs.find((o) => o.path.endsWith("domainEntry.ts")).content, /^\/\/ src\/domains\/core\/memo\/services\/server\/domainEntry\.ts/);
+  // 集める入口 entities/<種類>.ts と登録表の行は pnpm generate registry が書く(entities/ の直下は索引 index.ts だけ)
+  assert.deepEqual(paths.filter((p) => /^src\/domains\/core\/memo\/entities\/[^/]+$/.test(p)), ["src/domains/core/memo/entities/index.ts"]);
 });
 
 test("core: tsconfig.json に @/domains/<d>/* の別名が無ければ生成前に止める（手で管理なら検査しない）", () => {

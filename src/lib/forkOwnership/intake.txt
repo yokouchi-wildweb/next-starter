@@ -222,9 +222,9 @@ add src/domains/core/purchaseRequest/services/server/payment/sessionEnricher.rep
 add src/domains/core/rateLimit/plugs/routeFactoryRateLimit/ipRate.replace.{ts,tsx}  # 差替点 rateLimitRouteFactoryRateLimit の丸ごと置き換え
 add src/lib/mail/frame/MailFrame.replace.{ts,tsx}  # 差替点 mailFrame の丸ごと置き換え
 edit src/app/api/cron/*/task.override.ts  # 上書き cronTasks(schedule・disabled)
+edit src/domains/**/entities/*/entity.override.ts  # 上書き entities(apiAccess)
 edit src/domains/**/plugs/messages/*.override.ts  # 上書き messages(label・values・extras・enabled・adminEditableOnly・record・throttle・category・channelModes・adminText)
 edit src/domains/**/plugs/recordTargets/*.override.ts  # 上書き recordTargets(messages)
-edit src/domains/**/services/server/domainEntry.override.ts  # 上書き domainEntries(access)
 edit src/domains/core/user/coreRoles/*.role.override.ts  # 上書き coreRoleDefinitions(label・hasProfile)
 edit src/domains/core/user/roles/*.role.override.ts  # 上書き roleDefinitions(label・hasProfile・enabled)
 add src/domains/core/user/roles/*.role.json  # fork が足す roleDefinitions(上流の物の変更は隣の .override.ts)
@@ -245,6 +245,14 @@ generated src/registry/messageRegistry.ts  # 生成器 registry の出力
 generated src/registry/recordTargetRegistry.ts  # 生成器 registry の出力
 generated src/domains/core/*/entities/display.ts  # 生成器 registry の出力
 generated src/domains/*/entities/display.ts  # 生成器 registry の出力
+generated src/domains/core/*/entities/drizzle.ts  # 生成器 registry の出力
+generated src/domains/core/*/entities/form.ts  # 生成器 registry の出力
+generated src/domains/core/*/entities/model.ts  # 生成器 registry の出力
+generated src/domains/core/*/entities/schema.ts  # 生成器 registry の出力
+generated src/domains/*/entities/drizzle.ts  # 生成器 registry の出力
+generated src/domains/*/entities/form.ts  # 生成器 registry の出力
+generated src/domains/*/entities/model.ts  # 生成器 registry の出力
+generated src/domains/*/entities/schema.ts  # 生成器 registry の出力
 generated src/registry/district-map.jsonl  # 生成器 district-map の出力
 generated src/wiring/backends.ts  # 生成器 extensions の出力
 generated src/wiring/cron.ts  # 生成器 extensions の出力
