@@ -14,14 +14,15 @@
 //   - 直す相手が fork の木に無い → 飛ばす(left-out)。後の区間で届く。上流で merge-base から元の commit の親までに名前が
 //     変わった行(git diff -M の R の行で、そのパスを前か今に持つ物の全部)を候補として出す(rename-candidate)。道具は選ばず
 //     書かない: 前の場所に手で当てるか区間で届くのを待つかは /flux のエージェントが決める(D476)
-// 当てた後に fork の木で 4 つの確かめ(lib.hotfixGaps.mjs: 足した・変えたルールの paths: の当たり・notice の手順の pnpm の命令・
-// 名指したパス・当てた・足したコードの相対 import 先と、そこから名前で取る物の export)を回し、足りない物を gap の行で出す(止めない)。
+// 当てた後に fork の木で 5 つの確かめ(lib.hotfixGaps.mjs: 足した・変えたルールの paths: の当たり・notice の手順の pnpm の命令・
+// 名指したパス・当てた・足したコードの相対 import 先と、そこから名前で取る物の export・当てた・足した物が前提にする lib
+// (`@/lib/<名>` の import と lib の package.json の libs))を回し、足りない物を gap の行で出す(止めない)。
 // 通れば 1 commit(元の題 + `(cherry picked from commit <sha>)`)。台帳の行と区間の検査は /flux の手順のまま(この道具は書かない)。
 //
 // 実行: node <上流の先端から出した>/scripts/workflow/notices/hotfixApply.mjs <元の commit> [--upstream=<ref>](fork の checkout で)
 //   --upstream = 直接の親の ref(既定 upstream/main。merge-base を取る)。作業ツリーは綺麗であること
 // 出力(1 行ずつ、タブ区切り): picked <新しい sha> / replaced <path> / merged <path> / added <path> /
-//   left-out <path> / rename-candidate <path> <R の行> / index <path> / gap <rules|scripts|paths|imports> <物> / notes <台帳の notes に写す文>
+//   left-out <path> / rename-candidate <path> <R の行> / index <path> / gap <rules|scripts|paths|imports|libs> <物> / notes <台帳の notes に写す文>
 //   (台帳の notes の語 moved-merged は D476 から出ない。読み手の数えは 0 のまま)
 //   止まった時: conflict <path>(fork が手で変えたファイル)
 //   exit 0 = 取れた | 1 = fork が手で変えたファイルでぶつかった(何も残さない) | 2 = 使い方・作業ツリー・commit の誤り
@@ -30,7 +31,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { findGaps, importGaps } from "./lib.hotfixGaps.mjs";
+import { findGaps, importGaps, libGaps } from "./lib.hotfixGaps.mjs";
 
 /** 道具が上流の先端の版を読むファイルの置き場(緊急修正の先取りの対象にしない) */
 export const TIP_READ = [".claude/skills/flux/"];
@@ -153,7 +154,7 @@ export function plan(repo, orig, base) {
   return r;
 }
 
-/** 当てた後の fork の木(作業ツリー + index)で 4 つの確かめ。[{ kind, item }]。applied = 当てた・足したファイル(無ければ元の commit が変えた物で木にある物) */
+/** 当てた後の fork の木(作業ツリー + index)で 5 つの確かめ。[{ kind, item }]。applied = 当てた・足したファイル(無ければ元の commit が変えた物で木にある物) */
 export function treeGaps(repo, orig, applied) {
   const files = lines(git(repo, ["ls-files"]));
   const changed = lines(git(repo, ["diff-tree", "--no-commit-id", "-r", "--name-only", "--diff-filter=AMR", orig]));
@@ -166,7 +167,11 @@ export function treeGaps(repo, orig, applied) {
   const imports = importGaps({ files, changed: applied ?? changed.filter((f) => files.includes(f)), read }).map((x) =>
     x.all ? { kind: "imports", item: `${x.file}: 先取りしても動かない(import 先が fork に無い: ${x.targets.join(", ")})` } : { kind: "imports", item: `${x.file} -> ${x.target}` },
   );
-  return [...g.rules.map((x) => ({ kind: "rules", item: `${x.file}: ${x.globs.join(", ")}` })), ...g.scripts.map((s) => ({ kind: "scripts", item: s })), ...g.paths.map((p) => ({ kind: "paths", item: p })), ...imports];
+  const libs = libGaps({ files, changed: applied ?? changed.filter((f) => files.includes(f)), read }).map((x) => ({
+    kind: "libs",
+    item: x.via === "libs" ? `${x.file}: libs の ${x.lib} が fork に無い` : `${x.file} -> @/lib/${x.lib}(lib が fork に無い)`,
+  }));
+  return [...g.rules.map((x) => ({ kind: "rules", item: `${x.file}: ${x.globs.join(", ")}` })), ...g.scripts.map((s) => ({ kind: "scripts", item: s })), ...g.paths.map((p) => ({ kind: "paths", item: p })), ...imports, ...libs];
 }
 
 /**

@@ -193,6 +193,26 @@ test("当てた後の確かめ: 足したコードの相対 import 先が fork �
   assert.deepEqual(r.gaps.filter((g) => g.kind === "imports").map((g) => g.item).sort(), ["src/a.ts -> ./none", "src/tool.mjs: 先取りしても動かない(import 先が fork に無い: ./lib.mjs, ./self.mjs)"]);
 });
 
+test("当てた後の確かめ: 当てたコードが読む lib・当てた lib の package.json の libs が fork の木に無ければ gap libs(メサ F50: 先の緊急修正で入る pageLeave)", () => {
+  const { fork, hot } = small({
+    files: { "src/lib/seamlessVideo/package.json": '{ "libs": ["cn"] }\n', "src/lib/seamlessVideo/hooks/useSeamlessReel.ts": "a\n", "src/lib/cn/index.ts": "x\n", "src/components/Dialog.tsx": "d\n" },
+    between: { "src/lib/pageLeave/index.ts": "export const useOnPageLeave = 1;\n" },
+    hot: {
+      "src/lib/seamlessVideo/package.json": '{ "libs": ["cn", "pageLeave"] }\n',
+      "src/lib/seamlessVideo/hooks/useSeamlessReel.ts": 'import { cn } from "@/lib/cn";\nimport { useOnPageLeave } from "@/lib/pageLeave";\n',
+      "src/components/Dialog.tsx": 'import { useOnPageLeave } from "@/lib/pageLeave";\n',
+    },
+  });
+  const r = hotfixApply(fork, hot, "upstream/main");
+  assert.equal(r.status, "picked");
+  assert.deepEqual(r.gaps.filter((g) => g.kind === "libs").map((g) => g.item).sort(), [
+    "src/components/Dialog.tsx -> @/lib/pageLeave(lib が fork に無い)",
+    "src/lib/seamlessVideo/hooks/useSeamlessReel.ts -> @/lib/pageLeave(lib が fork に無い)",
+    "src/lib/seamlessVideo/package.json: libs の pageLeave が fork に無い",
+  ]);
+  assert.match(ledgerNotes(r), /gap: .*pageLeave/);
+});
+
 test("ledgerPickedIds: 台帳の picked: の付いた行の id だけ(HEAD の版)", () => {
   const repo = join(root, `ledger${++n}`);
   mkdirSync(repo);

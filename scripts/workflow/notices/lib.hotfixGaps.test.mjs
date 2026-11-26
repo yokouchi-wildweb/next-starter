@@ -1,7 +1,7 @@
 // scripts/workflow/notices/lib.hotfixGaps.test.mjs — 修正を載せた木で前提が揃うかを見る部品(hotfixApply・pickCheck が使う)。実行: pnpm test scripts/workflow/notices
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { exportedNames, findGaps, hasGaps, importGaps, namedImports, noticePaths, noticeSections, pnpmEntries, pnpmScripts, relativeImports } from "./lib.hotfixGaps.mjs";
+import { exportedNames, findGaps, hasGaps, importGaps, libGaps, libImports, namedImports, noticePaths, noticeSections, pnpmEntries, pnpmScripts, relativeImports } from "./lib.hotfixGaps.mjs";
 
 const NOTICE = `# DOWNSTREAM NOTICE id:x
 change: c
@@ -89,4 +89,24 @@ test("imports: a name imported from a file the tree has but that does not export
   ]);
   texts["a/lib.mjs"] += "export const handoffFile = () => {};\n";
   assert.deepEqual(importGaps({ files, changed: ["a/compactPlan.mjs"], read: (f) => texts[f] ?? null }), []);
+});
+
+test("libs: a lib the tree lacks, read by a code file (@/lib/<name>) or declared in a lib's package.json libs (メサ F50: useSeamlessReel.ts → @/lib/pageLeave)", () => {
+  const files = ["src/lib/seamlessVideo/package.json", "src/lib/seamlessVideo/hooks/useSeamlessReel.ts", "src/lib/cn/index.ts", "src/components/Dialog.tsx"];
+  const texts = {
+    "src/lib/seamlessVideo/package.json": '{ "exports": { ".": "./index.ts" }, "libs": ["cn", "pageLeave"] }\n',
+    "src/lib/seamlessVideo/hooks/useSeamlessReel.ts": 'import { cn } from "@/lib/cn";\nimport { useOnPageLeave } from "@/lib/pageLeave";\nimport type { X } from "@/lib/pageLeave/types";\n',
+    "src/components/Dialog.tsx": 'import { useOnPageLeave } from "@/lib/pageLeave";\nconst m = await import("@/lib/later/x");\nimport { a } from "@/libx/y";\n',
+    "docs/a.md": 'import { q } from "@/lib/none";\n',
+  };
+  assert.deepEqual(libImports(texts["src/components/Dialog.tsx"]).sort(), ["later", "pageLeave"]);
+  const changed = ["src/lib/seamlessVideo/package.json", "src/lib/seamlessVideo/hooks/useSeamlessReel.ts", "src/components/Dialog.tsx", "docs/a.md"];
+  assert.deepEqual(libGaps({ files, changed, read: (f) => texts[f] ?? null }), [
+    { file: "src/lib/seamlessVideo/package.json", lib: "pageLeave", via: "libs" },
+    { file: "src/lib/seamlessVideo/hooks/useSeamlessReel.ts", lib: "pageLeave", via: "import" },
+    { file: "src/components/Dialog.tsx", lib: "pageLeave", via: "import" },
+    { file: "src/components/Dialog.tsx", lib: "later", via: "import" },
+  ]);
+  // the lib in the tree (an earlier pick brought it) → nothing
+  assert.deepEqual(libGaps({ files: [...files, "src/lib/pageLeave/index.ts", "src/lib/later/x.ts"], changed, read: (f) => texts[f] ?? null }), []);
 });

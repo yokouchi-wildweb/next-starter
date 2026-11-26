@@ -6,6 +6,7 @@
 //   3. その notice が名指すリポのパス(`…` と refs:)が、その木にあるか
 //   4. 当てた・足したコードのファイルの相対 import 先が、その木にあるか・名前で取る物をそこが export しているか(importGaps。
 //      全部無い、または名の欠けがあれば先取りしても動かない)
+//   5. 当てた・足したコードが読む lib(`@/lib/<名>` の import)と、当てた・足した lib の package.json の libs が、その木にあるか(libGaps)
 // 使う所: hotfixApply.mjs(fork の木で当てた後に、止めずに報告)・pickCheck.mjs(壊れた地点の木。clean の条件の 1 つ)
 import { parsePaths, unmatchedPaths } from "../rules/lib.rulePaths.mjs";
 
@@ -150,6 +151,45 @@ export function importGaps({ files, changed, read }) {
     if (!missing.length && !lacking.length) continue;
     if (lacking.length || missing.length === specs.length) out.push({ file, all: true, targets: [...missing, ...lacking] });
     else for (const s of missing) out.push({ file, target: s });
+  }
+  return out;
+}
+
+/** コードが読む lib の名(`@/lib/<名>` と `@/lib/<名>/…` の import … from / export … from / import("…") / require("…")) */
+export function libImports(text) {
+  const out = new Set();
+  const re = /(?:\bfrom\s*|\bimport\s*\(\s*|\brequire\s*\(\s*|^\s*import\s+)(["'])@\/lib\/([\w.-]+)(?:\/[^"']*)?\1/gm;
+  for (const m of text.matchAll(re)) out.add(m[2]);
+  return [...out];
+}
+
+const LIB_PACKAGE = /^src\/lib\/[^/]+\/package\.json$/;
+
+/**
+ * 当てた・足したファイルが前提にする lib のうち、その木に無い物(src/lib/<名>/ の下にファイルが 1 つも無い)。
+ * 前提 = コードの `@/lib/<名>` の import と、lib の package.json の libs(その lib が読む lib の宣言)。
+ * 先の緊急修正で入る lib を読む修正を、その lib の無い木に当てても黙って残らないように出す(メサの議会 D100、所見 F50)
+ * @param {{ files: string[], changed: string[], read: (f: string) => string | null }} input  changed = 当てた・足したファイル
+ * @returns {{ file: string, lib: string, via: "import" | "libs" }[]}
+ */
+export function libGaps({ files, changed, read }) {
+  const present = new Set(files.map((f) => f.match(/^src\/lib\/([^/]+)\//)?.[1]).filter(Boolean));
+  const out = [];
+  for (const file of changed) {
+    const text = read(file);
+    if (!text) continue;
+    let libs = [];
+    let via = "import";
+    if (LIB_PACKAGE.test(file)) {
+      try {
+        const v = JSON.parse(text).libs;
+        libs = Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+      } catch {
+        continue;   // 読めない package.json は見ない(形の誤りは lib-package の検査が見る)
+      }
+      via = "libs";
+    } else if (CODE_FILE.test(file)) libs = libImports(text);
+    for (const lib of libs) if (!present.has(lib)) out.push({ file, lib, via });
   }
   return out;
 }
