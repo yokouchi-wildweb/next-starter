@@ -3,5 +3,5 @@
     ".": "./index.ts",
     "./server": "./server/index.ts"
   },
-  "libs": ["cn", "errors", "firebase", "storageCors", "webAudio"]
+  "libs": ["cn", "errors", "firebase", "pageLeave", "storageCors", "webAudio"]
 }

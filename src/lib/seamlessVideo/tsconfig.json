@@ -44,6 +44,12 @@
       "@/lib/firebase/*": [
         "../firebase/*"
       ],
+      "@/lib/pageLeave": [
+        "../pageLeave"
+      ],
+      "@/lib/pageLeave/*": [
+        "../pageLeave/*"
+      ],
       "@/lib/plainObject": [
         "../plainObject"
       ],

@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { FragmentFetcher, ReelFragment, SeamlessFragmentSource } from "../types";
 import { SeamlessReel, type SeamlessReelOptions, type SeamlessReelState } from "../core/SeamlessReel";
+import { useOnPageLeave } from "@/lib/pageLeave";
 import { getSharedAudioEngine } from "@/lib/webAudio";
 
 export type SeamlessReelStatus = "idle" | "loading" | "ready" | "error";
@@ -233,13 +234,10 @@ export function useSeamlessReel(options: UseSeamlessReelOptions = {}): UseSeamle
     await reelRef.current?.playSe(source, opts);
   }, []);
 
-  useEffect(() => {
-    return () => {
-      reelRef.current?.destroy();
-      reelRef.current = null;
-      // 共有 AudioContext はアプリ全体で再利用するため unmount でも close しない
-    };
-  }, []);
+  // 離れた時(unmount・<Activity> に隠された時)に reel を壊し、状態も idle に戻す(reset)。壊した reel の ready・loaded を残すと、
+  // 戻った時に呼び手が読み込み済みと見て壊れた reel を頭出しする。戻った後は呼び手がもう一度 load する
+  // (共有 AudioContext はアプリ全体で再利用するため unmount でも close しない)
+  useOnPageLeave(reset);
 
   return {
     videoRef,

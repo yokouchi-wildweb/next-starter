@@ -1,0 +1,14 @@
+# DOWNSTREAM NOTICE id:20261126-115507-activity-tier1-four-spots
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:qc/kagerou/o/20261126-115056-activity-tier1-four-spots | commit:- (this commit)
+date: 2026-11-26T11:55:07+09:00
+severity: info
+checkpoint: activity-tier1-four-spots
+resolves: 20261126-115020-activity-tier1-four-spots
+hotfix: pages kept in <Activity> (cacheComponents) come back with a dialog stuck in 処理中, a seamless reel that reports ready but was destroyed, or a modal that lost its scroll lock (found by oripa-do); same family as activity-once-init
+change: three upstream parts now survive cacheComponents' <Activity> hide → reshow (same shape as 20261126-113934-activity-once-init, useOnPageLeave from @/lib/pageLeave): (1) Dialog (src/components/Overlays/Dialog.tsx): on leaving, the confirm / extra lock and the 処理中... state are released (an onConfirm Promise that never settles, e.g. one that navigates away, no longer leaves the dialog stuck); a run id keeps an older Promise that settles later from releasing a newer run's lock (2) useSeamlessReel (src/lib/seamlessVideo): on leaving, reset() destroys the reel and returns the state to idle (before, the reel was destroyed but status ready / loaded stayed, so a caller replayed the dead reel); seamlessVideo declares the lib pageLeave (3) useDisableScroll (src/hooks/useDisableScroll.ts): the body lock released while hidden is taken again when the page shows again (isDisabled stays true meanwhile; no scroll on re-lock). The fourth spot of the order, usePurchaseStatusPolling, was already fixed by 20261126-113934-activity-once-init (the effect resets isPollingRef at its start). Callers' behavior and looks are unchanged otherwise.
+why: pages kept in <Activity> came back with a dialog stuck in 処理中, a reel that reported ready but was destroyed, or a modal whose scroll lock was gone (found by oripa-do, Mesa council D104; these parts are Tier1's)
+required_actions: none (take the segment). A fork caller of useSeamlessReel that guards its own load with a "loaded key" ref: reset that ref when status is "idle" again (or with useOnPageLeave), so it loads after a reshow; the lint activity/once-ref-guard (warn in forks) points at such guards
+verify: open a dialog whose onConfirm navigates away, go back: the buttons are usable; on a page with a SeamlessReel, leave and come back: the caller loads again and plays; open a modal using useDisableScroll, leave and come back: the body is still locked until it closes
+manual_steps: -
+refs: src/components/Overlays/Dialog.tsx, src/lib/seamlessVideo/hooks/useSeamlessReel.ts, src/lib/seamlessVideo/README.md, src/hooks/useDisableScroll.ts, src/lib/pageLeave/README.md, .notices/20261126-113934-activity-once-init.md
+notes: shipped as a hotfix on the boss's word (relayed by the caravan's depart only:<id> hotfix); it needs no later notice

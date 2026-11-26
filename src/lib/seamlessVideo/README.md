@@ -97,7 +97,7 @@ await play();                                // gesture 外でも音が鳴る
 
 - `unlock()` は load より前に呼べ、冪等(複数回呼んでも安全)。
 - context は `load()` ごとに作り直さず生存(映像側 MSE/SourceBuffer は load ごとに作り直す)。
-- `reset()` / コンポーネント unmount で context を `close`(リークなし)。
+- `reset()` / ページを離れた時(unmount・cacheComponents の `<Activity>` に隠された時、`useOnPageLeave`)に reel を壊し、状態を `idle` に戻す(共有の AudioContext は close しない)。戻った後は呼び手がもう一度 `load()` する(壊れた reel の `ready` を残さない)。
 - `unlock()` を呼ばない使い方(load → ▶ タップで play)でも、load の中の unlock がタップの中で resume するので音が出る。
 
 ## API

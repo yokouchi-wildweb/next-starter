@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/Button/Button";
 import { type ButtonStyleProps } from "@/components/Button/variants";
 import { cn } from "@/lib/cn";
+import { useOnPageLeave } from "@/lib/pageLeave";
 
 export type TextVariant = "default" | "primary" | "secondary" | "accent" | "sr-only";
 export type TextAlign = "left" | "center" | "right";
@@ -126,6 +127,8 @@ export function Dialog({
   const [loadingAction, setLoadingAction] = useState<"confirm" | "extra" | null>(null);
   const isLoading = loadingAction !== null;
   const lockRef = useRef(false);
+  // 何回目の行動か(離れた時に進める: 前の回の Promise が後で解けても、今の回の lock と「処理中...」を戻さない)
+  const runIdRef = useRef(0);
 
   const runAction = useCallback(
     async (action: (() => void | Promise<void>) | undefined, which: "confirm" | "extra") => {
@@ -135,18 +138,27 @@ export function Dialog({
 
       // Promiseの場合はローディング状態を管理
       if (result instanceof Promise) {
+        const runId = ++runIdRef.current;
         lockRef.current = true;
         setLoadingAction(which);
         try {
           await result;
         } finally {
-          lockRef.current = false;
-          setLoadingAction(null);
+          if (runIdRef.current === runId) {
+            lockRef.current = false;
+            setLoadingAction(null);
+          }
         }
       }
     },
     [],
   );
+  // <Activity> に隠されて戻った時: 解けない Promise(遷移して戻らない onConfirm など)の lock と「処理中...」を残さない
+  useOnPageLeave(() => {
+    runIdRef.current += 1;
+    lockRef.current = false;
+    setLoadingAction(null);
+  });
 
   const footerAlignClass =
     footerAlign === "left"
