@@ -85,7 +85,7 @@ redirect 型の 1〜6 に加えて以下を行う。
 
 追加チェック: `config` に秘密が無い / ローダー登録済み / 確定 route のパス = sdkName / プロバイダ API とコールバックで status 表記が混在するなら正規化ヘルパー（Paidy の `errorMapping.ts`）。
 
-放置対策はコア側で済んでいる: 新規 initiate の直前に `expireStaleClientSdkSessions` が同一ユーザーの client_sdk processing を expired にし、後から confirm で capture される窓を閉じる。
+放置対策はコア側で済んでいる: 新規 initiate の直前(`expireStaleClientSdkSessions`、同一ユーザー)と cron expire-pending-purchases(`settleExpiredClientSdkSessions`、期限を過ぎた行)が client_sdk の processing を `getPaymentStatus` で照らし、払われていれば完了、決まらない物だけ expired にして、後から confirm で capture される窓を閉じる。client_sdk のプロバイダは `getPaymentStatus` を実装する(無いと照らせず、払われた後でも expired になる。後から届く Webhook の決済完了は expired からも完了にする)。
 
 ## API
 

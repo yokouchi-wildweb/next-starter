@@ -9,20 +9,24 @@
 //   1. purchase_request の取得と認可（user_id 一致、payment_provider が "paypal"）
 //   2. status 別の分岐（completed は冪等 return、processing のみ通常パス）
 //   3. PayPal API へ order_id を投げて amount / status を再確認
-//   4. APPROVED なら capture を実行（COMPLETED なら既に確定済みで skip）
+//   4. APPROVED なら capture を実行（COMPLETED なら既に確定済みで skip）。capture の応答が取れなければ
+//      注文を読み直し、COMPLETED なら続ける。決まらなければ行に PAYPAL_CAPTURE_UNCONFIRMED を書いて 502
 //   5. completePurchase 呼び出し（既存の楽観ロックで Webhook 競合を吸収）
 //   6. auditLogger.record で確定イベントを記録
 //
 // 備考: PayPal は order_id が createSession 時点で確定し、initiatePurchase が
 //   payment_session_id に保存済み。よって Paidy と違い payment_session_id の追記更新は不要。
 
+import { and, eq } from "drizzle-orm";
+import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 import { auditLogger } from "@/domains/core/auditLog/services/server";
+import { PurchaseRequestTable } from "@/domains/core/purchaseRequest/entities/drizzle";
 import type { PurchaseRequest } from "@/domains/core/purchaseRequest/entities/model";
 import { completePurchase } from "@/domains/core/purchaseRequest/services/server/wrappers/completePurchase";
 import { failPurchase } from "@/domains/core/purchaseRequest/services/server/wrappers/failPurchase";
 import { base } from "@/domains/core/purchaseRequest/services/server/drizzleBase";
-import { paypalPaymentProvider } from "./paypalProvider";
+import { paypalPaymentProvider, type PayPalOrder } from "./paypalProvider";
 import { PAYPAL_CAPTURE_STATUS, PAYPAL_ORDER_STATUS } from "./errorMapping";
 
 const PAYPAL_PROVIDER_NAME = "paypal" as const;
@@ -53,6 +57,34 @@ function readOrderAmount(value: string | undefined): number | undefined {
   if (value == null) return undefined;
   const n = Number(value);
   return Number.isFinite(n) ? Math.round(n) : undefined;
+}
+
+/** capture を確かめられなかった行の印(completePurchase が完了の時に消す) */
+const CAPTURE_UNCONFIRMED_CODE = "PAYPAL_CAPTURE_UNCONFIRMED";
+
+/** capture の応答が取れなかった時の読み直し: 注文が COMPLETED(capture 済み)ならそれを返し、他は null */
+async function readCapturedOrder(orderId: string): Promise<PayPalOrder | null> {
+  const order = await paypalPaymentProvider.fetchOrder(orderId);
+  return order?.status === PAYPAL_ORDER_STATUS.COMPLETED ? order : null;
+}
+
+/**
+ * capture を確かめられなかったことを行に残す(status は processing のまま。completed / failed は上書きしない)。
+ * 記録の失敗で 502 の応答を変えない(ログのみ)
+ */
+async function recordUnconfirmedCapture(purchaseRequestId: string): Promise<void> {
+  try {
+    await db
+      .update(PurchaseRequestTable)
+      .set({
+        error_code: CAPTURE_UNCONFIRMED_CODE,
+        error_message: "PayPal の capture を確かめられませんでした(応答なし・失敗)。照合で確定または期限切れにします",
+        updatedAt: new Date(),
+      })
+      .where(and(eq(PurchaseRequestTable.id, purchaseRequestId), eq(PurchaseRequestTable.status, "processing")));
+  } catch (error) {
+    console.error(`[confirmPayPalPayment] capture 未確認の記録に失敗: id=${purchaseRequestId}`, error);
+  }
 }
 
 export async function confirmPayPalPayment(
@@ -128,8 +160,14 @@ export async function confirmPayPalPayment(
   }
 
   if (order.status === PAYPAL_ORDER_STATUS.APPROVED) {
-    const captured = await paypalPaymentProvider.captureOrder(providerPaymentId);
+    // capture の応答を受け取れない時(時間切れ・通信の失敗・5xx)も、PayPal 側では capture が済んでいることがある。
+    // 注文を読み直して COMPLETED なら完了へ進む。決まらなければ行に記録して 502(processing のまま = confirm をやり直せる。
+    // 同じ PayPal-Request-Id で capture は冪等。放置された行は settleStaleClientSdkSession が照らしてから閉じる)
+    const captured =
+      (await paypalPaymentProvider.captureOrder(providerPaymentId)) ??
+      (await readCapturedOrder(providerPaymentId));
     if (!captured) {
+      await recordUnconfirmedCapture(purchaseRequest.id);
       throw new DomainError("PayPal の capture に失敗しました", { status: 502 });
     }
     const capture = captured.purchase_units?.[0]?.payments?.captures?.[0];

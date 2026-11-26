@@ -23,15 +23,22 @@ type PurchaseStatus = PurchaseRequest["status"];
  * - pending →  processing（セッション作成成功）/ failed / expired
  * - processing → completed（決済確定）/ failed（決済失敗）/ expired（放置・期限切れ）
  * - failed → completed（Webhook 順序逆転の救済。completePurchase が許可）
- * - completed / expired → 終端（遷移なし）
+ * - expired → completed（こちらの窓が閉じた後に払いが確かめられた物。completePurchase が許可:
+ *   webhook・照合 reconcileWithProvider・銀行振込の管理者承認。払われた物は捨てない）
+ * - completed → 終端（遷移なし）
  */
 export const ALLOWED_TRANSITIONS: Record<PurchaseStatus, readonly PurchaseStatus[]> = {
   pending: ["processing", "failed", "expired"],
   processing: ["completed", "failed", "expired"],
   failed: ["completed"],
   completed: [],
-  expired: [],
+  expired: ["completed"],
 };
+
+/** to へ遷移してよい元の status の一覧(許可表の逆引き。completePurchase の楽観ロックの条件が読む) */
+export function statusesInto(to: PurchaseStatus): PurchaseStatus[] {
+  return (Object.keys(ALLOWED_TRANSITIONS) as PurchaseStatus[]).filter((from) => ALLOWED_TRANSITIONS[from].includes(to));
+}
 
 type TransactionClient = Parameters<Parameters<typeof db.transaction>[0]>[0];
 

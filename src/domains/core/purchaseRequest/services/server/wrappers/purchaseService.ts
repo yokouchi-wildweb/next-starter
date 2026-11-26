@@ -156,16 +156,13 @@ export { cancelPurchase } from "./cancelPurchase";
 export type { CancelPurchaseParams, CancelPurchaseResult } from "./cancelPurchase";
 export { handleWebhook } from "./webhookHandler";
 export { expirePendingRequests } from "./purchaseHelpers";
+export { settleExpiredClientSdkSessions } from "./expireStaleSessions";
+export type { SettleExpiredClientSdkSessionsResult, StaleSessionOutcome } from "./expireStaleSessions";
 
 // ステータス取得（ポーリング用）— 小規模なので inline で維持
 import { base } from "../drizzleBase";
 import type { PurchaseRequest as PR } from "@/domains/core/purchaseRequest/entities/model";
-import {
-  getPaymentProvider,
-  type PaymentProviderName as PPN,
-} from "../payment";
-import { completePurchase } from "./completePurchase";
-import { failPurchase } from "./failPurchase";
+import { reconcileWithProvider } from "./reconcileWithProvider";
 
 /**
  * 購入リクエストのステータスを取得
@@ -177,7 +174,7 @@ export async function getPurchaseStatus(requestId: string): Promise<PR | null> {
 
 /**
  * ユーザーIDとリクエストIDで購入リクエストを取得（認可チェック用）
- * processingステータスの場合、決済プロバイダーにステータスを確認してDBを更新
+ * processing の場合、決済プロバイダの状態と照らして DB を更新する(reconcileWithProvider)
  */
 export async function getPurchaseStatusForUser(
   requestId: string,
@@ -188,57 +185,10 @@ export async function getPurchaseStatusForUser(
     return null;
   }
 
-  // processingの場合、プロバイダーにステータスを確認
-  if (request.status === "processing" && request.payment_provider) {
-    const providerName = request.payment_provider as PPN;
+  // processing の場合、プロバイダの状態と照らす(reconcileWithProvider。未確定ならそのまま返す)
+  if (request.status === "processing") {
     try {
-      const provider = getPaymentProvider(providerName);
-      // getPaymentStatusはオプショナルなので、未実装の場合はスキップ
-      if (!provider.getPaymentStatus) {
-        return request;
-      }
-
-      // API 照会用の識別子を provider 契約（correlationKey）で選択する。
-      // - "order_id"  : provider_order_id（Fincode の `GET /v1/payments/Card/{order_id}` の id 部分）
-      // - "session_id": payment_session_id（多数派の既定）
-      //
-      // この識別子は findByWebhookIdentifier の照合キーとしてもそのまま使われるため、
-      // completePurchase / failPurchase の sessionId にも同じ値を渡す必要がある。
-      const identifier =
-        provider.correlationKey === "order_id"
-          ? request.provider_order_id
-          : request.payment_session_id;
-      if (!identifier) {
-        return request;
-      }
-
-      // payment_method は購入時にユーザーが選択した値。
-      // Fincode の照会 API は pay_type を要求するため、ここから動的に解決する。
-      const providerStatus = await provider.getPaymentStatus(
-        identifier,
-        request.payment_method ?? undefined,
-      );
-
-      if (providerStatus.status === "completed") {
-        // 決済完了 → DB更新
-        const result = await completePurchase({
-          sessionId: identifier,
-          transactionId: providerStatus.transactionId,
-          paidAt: providerStatus.paidAt,
-          providerName,
-        });
-        return result.purchaseRequest;
-      } else if (providerStatus.status === "failed" || providerStatus.status === "expired") {
-        // 決済失敗/期限切れ → DB更新
-        const result = await failPurchase({
-          sessionId: identifier,
-          errorCode: providerStatus.errorCode,
-          errorMessage: providerStatus.errorMessage,
-          providerName,
-        });
-        return result;
-      }
-      // pending/processing の場合はそのまま返す
+      return (await reconcileWithProvider(request)).request;
     } catch (error) {
       console.error("[getPurchaseStatusForUser] Provider status check failed:", error);
       // エラー時は現在のステータスをそのまま返す

@@ -298,11 +298,12 @@ export async function reserveQuota(
 }
 
 /**
- * 仮押さえ (reserved) を確定 (committed) に遷移させる。
+ * 仮押さえ (reserved) を確定 (committed) に遷移させる。購入完了 (completePurchase) の tx から呼ばれる。
  *
- * - 集計上は reserved と committed の両方が含まれるため計算結果は不変
- * - 状態遷移のみ。観測 (現在 reserved/committed) と将来の特殊処理用フックポイント
- * - 該当行が見つからない / 既に released の場合は何もしない (冪等)
+ * - 集計上は reserved と committed の両方が含まれるため、reserved からなら計算結果は不変
+ * - released からも committed にする: 失敗・期限切れで解放した後に払いが確かめられた購入
+ *   (failed / expired からの完了の救済) は、払われた購入として上限に数える
+ * - 該当行が見つからない / 既に committed の場合は何もしない (冪等)
  *
  * tx は省略可。省略時は db を直接使用 (購入完了処理外で単独遷移したい場合用)。
  */
@@ -322,7 +323,7 @@ export async function commitQuota(
           PurchaseQuotaLedgerTable.purchase_request_id,
           purchaseRequestId,
         ),
-        eq(PurchaseQuotaLedgerTable.status, "reserved"),
+        inArray(PurchaseQuotaLedgerTable.status, ["reserved", "released"]),
       ),
     );
 }
