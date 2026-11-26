@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { normalizeDomainJsonConfig } from "@/lib/domain";
 import { buildFormDefaultValues } from "@/lib/formSuite";
 
-import domainConfig from "../domain.json";
+import domainConfig from "./chatRoom/entity.json";
 import { domainDisplay } from "./display";
 
 describe("chatRoom: buildFormDefaultValues は写しを受け取る", () => {

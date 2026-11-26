@@ -2,7 +2,7 @@
 
 import { normalizeDomainJsonConfig } from "@/lib/domain";
 import type { DomainConfigOptionals } from "@/lib/domain";
-import rawConf from "@/domains/milestone/domain.json";
+import rawConf from "@/domains/milestone/entities/milestone/entity.json";
 import { MilestoneTable } from "@/domains/core/milestone/entities/drizzle";
 import { MilestoneCreateSchema, MilestoneUpdateSchema } from "@/domains/core/milestone/entities/schema";
 import { createCrudService } from "@/lib/crud/server";

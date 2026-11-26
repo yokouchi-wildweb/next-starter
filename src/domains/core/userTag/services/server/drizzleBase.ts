@@ -2,7 +2,7 @@
 
 import { normalizeDomainJsonConfig } from "@/lib/domain";
 import type { DomainConfigOptionals } from "@/lib/domain";
-import rawConf from "@/domains/userTag/domain.json";
+import rawConf from "@/domains/userTag/entities/userTag/entity.json";
 import { UserTagTable } from "@/domains/core/userTag/entities/drizzle";
 import { UserTagCreateSchema, UserTagUpdateSchema } from "@/domains/core/userTag/entities/schema";
 import { createCrudService } from "@/lib/crud/server";

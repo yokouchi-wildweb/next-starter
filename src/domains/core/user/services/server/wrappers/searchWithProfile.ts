@@ -10,7 +10,7 @@ import type { SQL } from "drizzle-orm";
 
 import { UserTable } from "@/domains/core/user/entities/drizzle";
 import { normalizeDomainJsonConfig } from "@/lib/domain";
-import rawUserConf from "@/domains/core/user/domain.json";
+import rawUserConf from "@/domains/core/user/entities/user/entity.json";
 import type { BoundedSearchParams, PaginatedResult, WithOptions, WhereExpr } from "@/lib/crud";
 import type { ExtraWhereClause } from "@/lib/crud/server";
 import type { User } from "@/domains/core/user/entities";

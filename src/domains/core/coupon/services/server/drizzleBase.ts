@@ -2,7 +2,7 @@
 
 import { normalizeDomainJsonConfig } from "@/lib/domain";
 import type { DomainConfigOptionals } from "@/lib/domain";
-import rawConf from "@/domains/coupon/domain.json";
+import rawConf from "@/domains/coupon/entities/coupon/entity.json";
 import { CouponTable } from "@/domains/core/coupon/entities/drizzle";
 import { CouponCreateSchema, CouponUpdateSchema } from "@/domains/core/coupon/entities/schema";
 import { storageBindingFor } from "@/domains/core/storageObject/services/server/crudBinding";

@@ -2,7 +2,7 @@
 
 import { normalizeDomainJsonConfig } from "@/lib/domain";
 import type { DomainConfigOptionals } from "@/lib/domain";
-import rawConf from "@/domains/referralReward/domain.json";
+import rawConf from "@/domains/referralReward/entities/referralReward/entity.json";
 import { ReferralRewardTable } from "@/domains/core/referralReward/entities/drizzle";
 import { ReferralRewardCreateSchema, ReferralRewardUpdateSchema } from "@/domains/core/referralReward/entities/schema";
 import { createCrudService } from "@/lib/crud/server";

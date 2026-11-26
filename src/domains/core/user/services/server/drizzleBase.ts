@@ -9,7 +9,7 @@ import { createCrudService } from "@/lib/crud/server";
 import type { CrudServiceOptions } from "@/lib/crud/server";
 import { normalizeDomainJsonConfig } from "@/lib/domain";
 import type { DomainConfigOptionals } from "@/lib/domain";
-import rawConf from "@/domains/user/domain.json";
+import rawConf from "@/domains/user/entities/user/entity.json";
 import type { z } from "zod";
 
 // NOTE: drizzleBase ではスキーマの parse/validation のみに責務を限定すること。
