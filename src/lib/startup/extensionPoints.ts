@@ -13,6 +13,8 @@ export const extensionPoints = {
     side: "server",
     load: "lazy",
     target: "wiring",
+    // runtime が nodejs の項目(既定)は NEXT_RUNTIME が nodejs の時だけ読む(edge の instrumentation の束に入れない)
+    runtimeGuard: true,
   },
 };
 

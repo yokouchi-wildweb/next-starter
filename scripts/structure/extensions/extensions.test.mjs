@@ -469,6 +469,28 @@ test("plugs の点: 全ドメイン(core・業務)と lib の plugs/<点>/ を�
   assert.match(plan.outputs["src/lib/routeFactory/extensions/routeLazies.ts"], /\{ domain: "acme", name: "late", requires: \["coupon", "wallet"\], load: \(\) => import\("@\/domains\/acme\/plugs\/routeLazies\/late"\)\.then\(\(m\) => m\.plug\) \}/);
 });
 
+test("plugs の点の runtimeGuard(起動時の処理): runtime が nodejs の項目(既定)は NEXT_RUNTIME === \"nodejs\" の中で読み、edge / both の項目はそのまま。宣言は lazy の plugs の点で true だけ", () => {
+  const T = (runtime) => `export const task = { name: "t"${runtime ? `, runtime: "${runtime}"` : ""}, run: () => {} };\n`;
+  const plan = planExtensions(
+    fixture({
+      "src/lib/startup/extensionPoints.ts": point('  startupTasks: { change: "add", plugs: true, export: "task", type: { from: "@/lib/startup/points", name: "StartupTask" }, side: "server", load: "lazy", runtimeGuard: true },'),
+      "src/domains/acme/services/server/domainEntry.ts": ENTRY_REQUIRES("acme", []),
+      "src/domains/acme/plugs/startupTasks/plain.ts": T(null),
+      "src/domains/acme/plugs/startupTasks/node.ts": T("nodejs"),
+      "src/domains/acme/plugs/startupTasks/edge.ts": T("edge"),
+      "src/domains/acme/plugs/startupTasks/both.ts": T("both"),
+    }),
+  );
+  assert.deepEqual(plan.problems, []);
+  const rows = plan.outputs["src/lib/startup/extensions/startupTasks.ts"].split("\n").filter((l) => l.startsWith("  { domain"));
+  const guarded = (name) =>
+    `  { domain: "acme", name: "${name}", requires: [], load: async () => { if (process.env.NEXT_RUNTIME === "nodejs") return import("@/domains/acme/plugs/startupTasks/${name}").then((m) => m.task); return { name: "${name}", runtime: "nodejs", run: () => {} }; } },`;
+  const plain = (name) => `  { domain: "acme", name: "${name}", requires: [], load: () => import("@/domains/acme/plugs/startupTasks/${name}").then((m) => m.task) },`;
+  assert.deepEqual(rows, [plain("both"), plain("edge"), guarded("node"), guarded("plain")]);
+  const bad = planExtensions(fixture({ "src/lib/startup/extensionPoints.ts": point('  startupTasks: { change: "add", plugs: true, export: "task", type: { from: "@/lib/startup/points", name: "StartupTask" }, side: "server", runtimeGuard: true },') }));
+  assert.ok(bad.problems.some((p) => /runtimeGuard は load "lazy" の plugs の点で true だけ/.test(p)), bad.problems.join("\n"));
+});
+
 test("plugs の点の keyPrefix district: 鍵の先頭が項目を置いた地区なら通り、違う・点の無い・字面で読めない鍵は止める。宣言は plugs + key と一緒の \"district\" だけ", () => {
   const H = (kind) => `export const handler = { kind: ${kind} };\n`;
   const plan = planExtensions(

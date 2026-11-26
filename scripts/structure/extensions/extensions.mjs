@@ -201,6 +201,11 @@ const aliasOf = (point, item) => `${point.name}_${item.name.replace(/[^A-Za-z0-9
 /** 項目の import 元(@/ からの path、拡張子とフォルダの index を除く) */
 const specifierOf = (path) => `@/${path.slice(`${SEARCH_ROOT}/`.length).replace(/\.tsx?$/, "")}`;
 
+/** 項目の runtime の字面(runtime: "nodejs" | "edge" | "both")。書かない = 既定の nodejs(src/lib/startup の StartupTask) */
+export function runtimeOf(item) {
+  return /\bruntime:\s*["'](nodejs|edge|both)["']/.exec(item.text ?? "")?.[1] ?? "nodejs";
+}
+
 /** 1 つの点の一覧の本体(ヘッダと型の import を除く) */
 function renderPoint(point, items) {
   const { spec } = point;
@@ -271,7 +276,18 @@ function renderPlugsPoint(point, items) {
   }
   if (spec.load === "lazy") {
     // load の字面を持つ行(選ぶ点の起動時の知らせ、./select.mjs)はそのまま、ほかは項目のファイルを読む
-    const list = items.map((item) => `  { ${head(item)}, load: ${item.load ?? `() => import(${JSON.stringify(specifierOf(item.path))}).then((m) => m.${spec.export})`} },`);
+    const importItem = (item) => `import(${JSON.stringify(specifierOf(item.path))}).then((m) => m.${spec.export})`;
+    // runtimeGuard(起動時の処理): runtime が nodejs の項目(字面で "edge" | "both" と書かない物 = 既定)は NEXT_RUNTIME が nodejs の時だけ読む。
+    // 一覧は edge の instrumentation の束にも入るので、条件の外の import は項目の Node 専用の物(node:crypto など)を edge に入れて警告になる。
+    // edge では同じ名前の走らない nodejs の項目を返す(lib/startup が runtime で外す)
+    const loadOf = (item) => {
+      if (item.load) return item.load;
+      if (spec.runtimeGuard && runtimeOf(item) === "nodejs") {
+        return `async () => { if (process.env.NEXT_RUNTIME === "nodejs") return ${importItem(item)}; return { name: ${JSON.stringify(item.name)}, runtime: "nodejs", run: () => {} }; }`;
+      }
+      return `() => ${importItem(item)}`;
+    };
+    const list = items.map((item) => `  { ${head(item)}, load: ${loadOf(item)} },`);
     lines.push(`export const ${point.name}: ${shape(`load: () => Promise<${T}>`)}[] = ${list.length === 0 ? "[]" : `[\n${list.join("\n")}\n]`};`);
     return { imports: [], lines };
   }

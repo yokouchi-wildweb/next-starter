@@ -42,6 +42,7 @@ export const task = {
 ## Internals
 
 - 項目は lazy(生成物の一覧は `{ domain, name, requires, load }`)。register のときに読み、runtime の合う物を `Promise.all` で走らせる
+- `runtime` が nodejs の項目(書かない・`"nodejs"`)は、生成物の load が `process.env.NEXT_RUNTIME === "nodejs"` の中で読む(点の宣言 `runtimeGuard: true`。edge の instrumentation の束に項目の読む物が入らない)。`runtime` は項目の中に字面で書く(生成器が字面を読む。`"edge"` / `"both"` の項目は条件なしで読む)
 - 項目の throw・上限越え・読み込みの失敗 = 1 行 `{ level: "error", scope: "startup", task, phase: "load" | "run", reason }`。ほかの項目は止めない
 
 ## Verification

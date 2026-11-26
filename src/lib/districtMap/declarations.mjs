@@ -55,7 +55,7 @@ const WRITERS = ["role:generate"];
 const TARGETS = ["wiring"];
 /** 組み込みの変換(一覧の項目に付け足す値)。fork が足す口は無い */
 export const DERIVES = ["featureTables", "settingSections"];
-const KEYS = ["change", "plugs", "max", "required", "order", "stages", "skeletonStages", "default", "dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn", "literalKeys", "files", "shape", "pureImports", "requireText", "overrideOf", "writer", "overrides", "addable", "placement", "kind", "keyedBy", "itemsOf", "select", "keyPrefix", "overrideRefuse"];
+const KEYS = ["change", "plugs", "max", "required", "order", "stages", "skeletonStages", "default", "dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn", "literalKeys", "files", "shape", "pureImports", "requireText", "overrideOf", "writer", "overrides", "addable", "placement", "kind", "keyedBy", "itemsOf", "select", "keyPrefix", "overrideRefuse", "runtimeGuard"];
 /**
  * 点の変え方の型(CHANGE_TYPES 1〜4、地区の議会 D20・D35)。どの点も change を書く(段 2 の宣言の 2 段の 1 段目)。
  * add = 増設点(dir か files の受け口、writer の一覧も fork が項目を足す点)/ override = 上書点(overrides)/ counterpart = 対置点(placement)/
@@ -216,6 +216,9 @@ function checkPoint(name, value) {
   if (point.ignore !== undefined && !(Array.isArray(point.ignore) && point.ignore.every(isString))) problems.push(`${name}: ignore はファイル名の配列`);
   if (point.derive !== undefined && !oneOf(DERIVES, point.derive)) problems.push(`${name}: derive は ${DERIVES.join(" | ")}(組み込みの変換だけ)`);
   if (point.literalKeys !== undefined && (point.literalKeys !== true || point.key === undefined)) problems.push(`${name}: literalKeys は key と一緒に true だけ`);
+  // runtimeGuard: Next の instrumentation が読む lazy な plugs の点だけ(起動時の処理)。項目の runtime の字面で nodejs の項目を
+  // process.env.NEXT_RUNTIME === "nodejs" の中で読む(edge の束に Node 専用の物を入れない。scripts/structure/extensions/extensions.mjs)
+  if (point.runtimeGuard !== undefined && (point.runtimeGuard !== true || point.plugs !== true || point.load !== "lazy")) problems.push(`${name}: runtimeGuard は load "lazy" の plugs の点で true だけ`);
   // keyPrefix "district": 項目の key の字面は "<差した地区の名前>.<名前>"(生成が止める、scripts/structure/extensions/plugs.mjs)
   if (point.keyPrefix !== undefined && (point.keyPrefix !== "district" || point.key === undefined || point.plugs !== true)) problems.push(`${name}: keyPrefix は plugs の点で key と一緒に "district" だけ`);
   // overrideRefuse { flag, key, value }: 項目が <flag>: true を字面で持てば、override は <key>: <value> を書けない(例 個人情報の削除を止めない、pii_prune_kept)

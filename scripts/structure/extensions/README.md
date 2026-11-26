@@ -134,6 +134,7 @@ routeFactoryDevice: { change: "add", plugs: true, export: "plug", type: { from: 
   - `literalKeys: true` … `key` と一緒に使い、鍵の文字列を一覧の型に残す(項目の型が鍵を文字列リテラルで持つこと。登録済みの名前の union を型で導く点)
   - `keyPrefix: "district"` … plugs の点で `key` と一緒に使い、項目の鍵の字面を `"<差した地区の名前>.<名前>"` に縛る(先頭が項目を置いた地区でない・字面で読めない鍵は生成で止める、`plugs.mjs`)。例 送り箱の処理の `kind`(`src/domains/core/outbox`)
   - `load: "lazy"` … 項目を import せず `{ name, load: () => import(…) }` の配列にする(必要なときだけ読む。key・derive とは併用不可)
+  - `runtimeGuard: true` … `load: "lazy"` の plugs の点だけ(Next の instrumentation が読む一覧、例 起動時の処理 `src/lib/startup`)。項目の `runtime` の字面が nodejs(書かないも)なら load を `async () => { if (process.env.NEXT_RUNTIME === "nodejs") return import(…).then(…); return { name, runtime: "nodejs", run: () => {} }; }` にする(edge の束に項目の Node 専用の物を入れない)。`"edge"` / `"both"` はそのまま。項目の型は `{ name, runtime?, run }` の形
   - `target: "wiring"` … 一覧を `src/wiring/<持ち主のフォルダ名>.ts` に出す(lib が持ち主の点。同じ lib の点は 1 本にまとめる)
   - lib の結び目 `export const wire = { name, export, side, registers? }`(同じ extensionPoints.ts、点の外に 1 つ、D31): `target: "wiring"` の plugs の点の一覧と一緒に、`src/wiring/<lib>.ts` の末尾に結び目を書く。一覧は門番で閉じたドメインの項目を外してから渡す(D26)
     - `side: "server"` → `export const <export> = <name>({ <点>: gate.plugs(<点>), … })`(`<name>` は lib の入口 `@/lib/<lib>` が出す作り手。例 `serverErrorReport` = `wireServerErrorReport(…)`)
