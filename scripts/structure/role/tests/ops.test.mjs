@@ -9,7 +9,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { copyByImports } from "../../../runner/test/lib.copyByImports.mjs";
-import { ENV, git } from "../../../../src/lib/forkOwnership/testRepos.mjs";
+import { ENV, git } from "../../../../src/lib/forkOwnership/node.mjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "../../../..");
 // 走らせる命令(この入口から import で届くコードは before で足す)
