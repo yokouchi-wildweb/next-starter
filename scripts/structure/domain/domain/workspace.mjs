@@ -9,17 +9,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
-import {
-  DOMAIN_DECLARATION_FILE,
-  ENTITIES_DIR,
-  ENTITY_DECLARATION_FILE,
-  findRegistration,
-  listDomains as listDeclaredDomains,
-  nodeDomainSource,
-  primaryRegistrationOf,
-  readDomain,
-  readDomains,
-} from "../../../../src/lib/domain/node.mjs";
+import { DOMAIN_DECLARATION_FILE, ENTITIES_DIR, ENTITY_DECLARATION_FILE, findRegistration, listDomains as listDeclaredDomains, nodeDomainSource, primaryRegistrationOf, readDomain, readDomains } from "../../../../src/lib/domain/node.mjs";
 import { CACHE_FILE } from "../spec/cache.mjs";
 import { cacheDeclarationOf, configOfDeclaration, generatedRegistrationsOf, registrationConfigOf } from "./declarationOf.mjs";
 
@@ -148,9 +138,7 @@ export function createWorkspace(rootDir = process.cwd()) {
   /** テンプレート（src/domains/_template/...）を読む。無ければ例外 */
   function readTemplate(...segments) {
     const file = path.join(templateDir, ...segments);
-    if (!fs.existsSync(file)) {
-      throw new Error(`テンプレートが見つかりません: ${file}`);
-    }
+    if (!fs.existsSync(file)) throw new Error(`テンプレートが見つかりません: ${file}`);
     return fs.readFileSync(file, "utf8");
   }
 

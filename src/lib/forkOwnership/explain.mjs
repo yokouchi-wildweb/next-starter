@@ -135,6 +135,7 @@ export function explainView({ files, read, intake }) {
         const domains = readDomains(listSource(list, read))
           .filter((declaration) => declaration.domain !== null)
           .flatMap((declaration) => {
+            /** @param {unknown} entity */
             const pluralOf = (entity) => (isRecord(entity) && typeof entity.plural === "string" ? entity.plural : undefined);
             const generated = declaration.registrations.filter(isGeneratedRegistration);
             if (generated.length === 0) return [{ dir: declaration.dir, plural: pluralOf(primaryRegistrationOf(declaration)?.entity), generate: false }];

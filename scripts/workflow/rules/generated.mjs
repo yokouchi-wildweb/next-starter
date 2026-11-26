@@ -7,7 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { loadPhases, scanTargets } from "../../runner/phases/scan.mjs";
 import { hasGeneratedMark, MARKABLE, outputFiles, outputsOutsidePaths } from "./lib.ruleGenerated.mjs";
-import { isGeneratedRegistration, nodeDomainSource, readDomain } from "../../../src/lib/domain/node.mjs";
+import { isGeneratedRegistration, nodeDomainSource, primaryRegistrationOf, readDomain } from "../../../src/lib/domain/node.mjs";
 import { planUnmark } from "../../structure/domain/cli/unmark.mjs";
 import { createWorkspace } from "../../structure/domain/domain/workspace.mjs";
 import { everyRunPathsOf, planGenerateAll } from "../../structure/domain/pipeline/generateAll.mjs";
@@ -30,6 +30,11 @@ const generatedUnitsOf = (name, dir) => {
   const declaration = readDomain(domainSource, name);
   if (declaration.domain === null) return [];
   return declaration.registrations.filter(isGeneratedRegistration).map((registration) => ({ dir, registration: registration.name, plural: registration.entity?.plural }));
+};
+// generate: false のドメインの印の検査(下)は主の登録の plural で管理画面の道を出す
+const primaryPluralOf = (name) => {
+  const declaration = readDomain(domainSource, name);
+  return declaration.domain === null ? undefined : primaryRegistrationOf(declaration)?.entity?.plural;
 };
 const domains = existsSync(join(root, DISTRICT_MAP))
   ? read(DISTRICT_MAP)
