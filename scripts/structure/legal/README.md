@@ -16,7 +16,8 @@ pnpm check legal        # 段階 build
 ## Internals
 
 - 見る物: `src/config/domains/legal.config.ts` の `documents.<kind>`。`{ source: "sample" }`(省略も同じ、上流の例文を表示)の文書が 1 つでもあれば例文のまま
-- 段階が本番(`@/lib/appEnv` の `isProduction`)で例文のままなら exit 1。Tier1(`repo.json` の `tier: root`、`readForkIdentity` の isTier1)は警告だけで exit 0
+- 段階が本番(`@/lib/appEnv` の `isProduction`)で例文のままなら exit 1。Tier1(`repo.json` の `repo_id` が `src/lib/CATALOG.md` の先頭の節。読み手は `readTier1`)は警告だけで exit 0
+- repo の名前の宣言(`repo.json`)に誤りがあれば exit 2(黙って Tier1 でないとは見ない。読み手 `src/lib/forkOwnership` の `readTier1`)
 - 全部 own・開発・staging は通す
 
 ## Related

@@ -41,7 +41,7 @@ pnpm check next-config --phase=build:post  # .next の成果物と殻を見る(�
 ## Internals
 
 - ホスト全体の画像の許可を止める理由: 第三者のファイルの最適化に自分の課金枠を使われる踏み台になる(`next.config.core.ts` の注記)
-- git は読まない: 名前は `repo.json`(`readForkIdentity`)、段階は env。`.git` の無い Vercel の build でも段階 `build` で回る
+- git は読まない: 名前は `repo.json`(`readTier1`。宣言に誤りがあれば exit 2)、段階は env。`.git` の無い Vercel の build でも段階 `build` で回る
 - 段階 `build` は offline(DB・外部の env を空にして回る)。設定を読み込むだけで、外へは届かない
 - 静的に焼き付いた API: request を読む前に返す GET は cacheComponents の build で ○ になり、応答が build の時の値に固まる。route.ts は wiring の Factory(`createApiRoute` 等、cron は `createCronTaskRoute`)で書けば、Factory の芯が最初に `connection()` を待つので焼き付かない(src/lib/routeFactory/README.md)
 - fork の取り込み(/flux)の区間の検査は build をしないので、/flux で効くのは `ship` の段階の設定の判定。成果物の判定は fork の `pnpm build`(Vercel の build も)と /sluice --safe の全部の検査で効く

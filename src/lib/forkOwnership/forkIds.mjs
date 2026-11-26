@@ -314,6 +314,18 @@ export function readForkIdentity(repoRoot) {
 }
 
 /**
+ * Tier1 か(段階の検査が Tier1 だけ緩める所の読み手)。名前の宣言に誤りがあれば problem(黙って Tier1 でないとは見ない。project.md: checks fail, exit 2)。
+ * 段の宣言の誤り(downstreamError)はビルドを止めないので見ない(readForkIdentity の errors と同じ扱い)
+ * @param {string} repoRoot リポジトリ直下
+ * @returns {{ tier1: boolean, problem?: undefined } | { problem: string, tier1?: undefined }}
+ */
+export function readTier1(repoRoot) {
+  const identity = readForkIdentity(repoRoot);
+  if (identity.errors.length > 0) return { problem: identity.errors.join(" / ") };
+  return { tier1: identity.isTier1 };
+}
+
+/**
  * Vercel の契約のプラン(repo.json の vercel.plan)。repo.json・鍵が無い = plan null(Vercel にデプロイしないリポ)、読めない・知らない値 = error
  * @param {string} repoRoot リポジトリ直下
  * @returns {{ plan: "hobby" | "pro" | null, error: string | null }}

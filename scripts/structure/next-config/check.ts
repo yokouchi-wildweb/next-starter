@@ -14,7 +14,7 @@ import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import { defaultConfig } from "next/dist/server/config-shared";
 
 import { getAppEnv } from "@/lib/appEnv";
-import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
+import { readTier1 } from "@/lib/forkOwnership/node.mjs";
 
 import { ROUTE_MAP_FILE, parseRouteMapJsonl } from "../../../src/lib/screens/node.mjs";
 
@@ -57,8 +57,14 @@ async function main() {
   const core = (await import("../../../next.config.core")) as { imageRemotePatterns: Record<string, unknown>[] };
   const config = await resolveConfig(plain.default, { phase: PHASE_PRODUCTION_BUILD, defaultConfig: defaultConfig as Record<string, unknown> });
   const call = async (fn: unknown) => (typeof fn === "function" ? await (fn as () => unknown)() : undefined);
+  // 名前の宣言に誤りがあれば止める(黙って Tier1 でないと見ない。project.md: exit 2)
+  const tier1Read = readTier1(process.cwd());
+  if (tier1Read.problem !== undefined) {
+    console.error(`next の設定の検査: repo の名前の宣言に誤り: ${tier1Read.problem}`);
+    process.exit(2);
+  }
   const problems = checkConfig(config, {
-    tier1: readForkIdentity(process.cwd()).isTier1,
+    tier1: tier1Read.tier1,
     appEnv: getAppEnv(),
     corePatterns: core.imageRemotePatterns,
     rewrites: await call(config.rewrites),

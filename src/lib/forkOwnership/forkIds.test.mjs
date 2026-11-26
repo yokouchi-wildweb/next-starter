@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { formatRepoJson, forkIdOfTexts, parseDownstreamDeclaration, parseForkIdDeclaration, parseRepoIdentity, parseRepoJson, readDeclaredForkIds, readForkIdentity } from "./forkIds.mjs";
+import { formatRepoJson, forkIdOfTexts, parseDownstreamDeclaration, parseForkIdDeclaration, parseRepoIdentity, parseRepoJson, readDeclaredForkIds, readForkIdentity, readTier1 } from "./forkIds.mjs";
 
 test("parseForkIdDeclaration: 行を読み、宣言なし・- ・形違い(大文字・_・. ・-- の連続)は error", () => {
   assert.deepEqual(parseForkIdDeclaration("## TIER\nfork_id: oripa-do\n"), { forkId: "oripa-do", error: null });
@@ -140,4 +140,11 @@ test("forkIdOfTexts: 過去の版は repo.json を先に、無ければ古い形
   assert.equal(forkIdOfTexts({ repoJson: '{"tier":"leaf"}', projectMd: "fork_id: old\n" }).forkId, null);
   // 過去の版の平らな形も名前は読む(平らな形の誤りは数えない)
   assert.deepEqual(forkIdOfTexts({ repoJson: '{"repo_id":"mid","agent.server":"auto"}', projectMd: null }), { forkId: "mid", error: null, source: "repo.json" });
+});
+
+test("readTier1: Tier1 = CATALOG の先頭の節、fork は false、名前の宣言の誤りは problem(黙って false にしない)", () => {
+  assert.deepEqual(readTier1(repo({ forkId: "next-starter", sections: ["next-starter"] })), { tier1: true });
+  assert.deepEqual(readTier1(repo({ forkId: "oripa-do", sections: ["next-starter", "oripa-do"] })), { tier1: false });
+  assert.match(readTier1(repo({ sections: ["next-starter"] })).problem ?? "", /repo\.json が無い/);
+  assert.match(readTier1(repo({ raw: '{ "repo_id": "Bad_Name", "tier": "leaf" }\n', sections: ["next-starter"] })).problem ?? "", /repo\.json/);
 });
