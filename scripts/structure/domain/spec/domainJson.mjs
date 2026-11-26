@@ -12,7 +12,7 @@ import {
   FORM_INPUTS,
   ID_TYPES,
   ON_DELETE_VALUES,
-  RELATION_KEYS,
+  RELATION_KEYS as ENTITY_RELATION_KEYS,
   RELATION_TYPES,
   TABLE_KEYS,
 } from "../../../../src/lib/domain/node.mjs";
@@ -23,7 +23,10 @@ import {
 /** 開発者のメモのキー（JSON Schema の注記と同じ名前）。どの階層にも書け、生成器も client の写しも読まない。値は文字列か文字列の配列 */
 export const COMMENT_KEY = DECLARATION_COMMENT_KEY;
 
-export { COLLECTION_KEYS, DB_ENGINES, FIELD_GROUP_KEYS, ID_TYPES, ON_DELETE_VALUES, RELATION_KEYS, RELATION_TYPES };
+export { COLLECTION_KEYS, DB_ENGINES, FIELD_GROUP_KEYS, ID_TYPES, ON_DELETE_VALUES, RELATION_TYPES };
+
+/** 関連のキー。1 対 1 の unique は新しい形の entity.json だけ */
+export const RELATION_KEYS = new Set([...ENTITY_RELATION_KEYS].filter((key) => key !== "unique"));
 
 /** 今の 1 ファイルの形のトップレベルの鍵 = 表の鍵 + 版・生成の旗・複合ユニーク(新しい形では indexes の unique)・メモ */
 export const TOP_LEVEL_KEYS = new Set([...TABLE_KEYS, "domainConfigVersion", "compositeUniques", "generate", COMMENT_KEY]);

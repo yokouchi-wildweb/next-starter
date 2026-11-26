@@ -1,4 +1,4 @@
-// entities/drizzle.ts の手で持つ表の形(宣言の鍵 table・primaryKey・foreignKeys・checks・enums・fields[].column、
+// entities/drizzle.ts の手で持つ表の形(宣言の鍵 table・primaryKey・foreignKeys・checks・enums・columns・fields[].column、
 // 鍵の正 src/lib/domain/definition/declaration.mjs TABLE_SHAPE_KEYS・COLUMN_KEYS)。鍵の無い config には何も足さない
 // (今の生成物は変わらない)。dbObjects は書かない(SQL のファイルを名指すだけ。在ることは照らしの検査が見る)。
 // 列・索引の項目の名前(columns・fields)は drizzle.ts のプロパティ名(fields[].name、システム列は createdAt 等)
@@ -112,15 +112,28 @@ export function shapedFieldColumn(ctx, field, imports, enumDefs, needs) {
   const identity = column.identity !== undefined ? IDENTITY_SUFFIX[column.identity] : "";
   if (identity === undefined) throw new Error(`エラー: fields "${field.name}" の column.identity "${column.identity}" は always / byDefault のどちらか`);
   const notNull = (column.notNull ?? field.required) ? ".notNull()" : "";
-  let unique = "";
+  let unique = column.unique === true ? ".unique()" : "";
   let uniqueColumnName = null;
-  if (field.unique) {
+  if (field.unique && !unique) {
     if (config.useSoftDelete) uniqueColumnName = columnName;
     else unique = ".unique()";
   }
   const defaultValue = column.default ?? field.defaultValue;
   const defaultSuffix = defaultValue !== undefined ? `.default(${defaultLiteral(defaultValue, needs)})` : "";
   return { line: `  ${field.name}: ${base}${identity}${notNull}${unique}${defaultSuffix},`, uniqueColumnName };
+}
+
+/**
+ * 表だけの列(columns[])の行: 項目でないので fieldType を持たず、column.type か column.enum で列関数を決める
+ * @returns {string[]}
+ */
+export function tableOnlyColumns(ctx, imports, enumDefs, needs) {
+  return (ctx.config.columns ?? []).map((entry) => {
+    if (entry.column?.type === undefined && entry.column?.enum === undefined) {
+      throw new Error(`エラー: columns "${entry.name}" は column.type か column.enum を書く(表だけの列は項目の型を持たない)`);
+    }
+    return shapedFieldColumn(ctx, { name: entry.name, column: entry.column }, imports, enumDefs, needs).line;
+  });
 }
 
 /**

@@ -124,6 +124,32 @@ test("indexes の unique・desc・expression", () => {
   assert.match(output, /index\("sample_tags_name_lower_idx"\)\.on\(sql`lower\(btrim\(name\)\)`\)/);
 });
 
+test("表だけの列 columns・列のユニーク column.unique・関連の 1 対 1 の unique", () => {
+  const relations = (baseConfig.relations ?? []).length > 0 ? baseConfig.relations : [];
+  const { output, error } = generate({
+    fields: [{ name: "name", label: "名前", fieldType: "string", required: true, column: { unique: true } }],
+    columns: [
+      { name: "rank", column: { type: "smallint", notNull: true, default: 0 } },
+      { name: "code", column: { type: "text", unique: true } },
+    ],
+    useSoftDelete: true,
+    relations,
+  });
+  assert.equal(error, null);
+  assert.match(output, /\n  name: text\("name"\)\.notNull\(\)\.unique\(\),/, "ソフトデリートでも列の制約のまま");
+  assert.match(output, /\n  rank: smallint\("rank"\)\.notNull\(\)\.default\(0\),/);
+  assert.match(output, /\n  code: text\("code"\)\.unique\(\),/);
+  assert.doesNotMatch(output, /_unique_active/);
+
+  const files = { "src/domains/core/user/entities/drizzle.ts": 'export const UserTable = pgTable("users", {\n  id: uuid("id"),\n});\n' };
+  const oneToOne = generate({ relations: [{ domain: "user", label: "ユーザー", fieldName: "user_id", fieldType: "uuid", relationType: "belongsTo", required: true, unique: true }] }, { files });
+  assert.equal(oneToOne.error, null);
+  assert.match(oneToOne.output, /\n  user_id: uuid\("user_id"\)\.notNull\(\)\.unique\(\)/);
+
+  const missing = generate({ columns: [{ name: "x", column: { notNull: true } }] });
+  assert.match(missing.error.message, /column\.type か column\.enum を書く/);
+});
+
 test("書けない形はエラーにする", () => {
   const cases = [
     [{ fields: [{ name: "x", fieldType: "string", column: { type: "money" } }] }, /column\.type "money" は書けない型/],

@@ -7,11 +7,12 @@ import { walletConfig, type WalletType } from "@/domains/wallet/config";
 import { PURCHASE_TYPE_KEYS, type PurchaseTypeKey } from "@/domains/purchaseRequest/config";
 
 // walletConfig.currency から動的に walletType の値を取得
-const walletTypes = Object.keys(walletConfig.currency) as [WalletType, ...WalletType[]];
+// pgEnum に渡す値(宣言の enums の valuesFrom が名指すので export。wallet の walletTypes と schemaRegistry の export * でぶつからない名前)
+export const purchaseRequestWalletTypes = Object.keys(walletConfig.currency) as [WalletType, ...WalletType[]];
 // purchaseRequestConfig.type から動的に purchaseType の値を取得
-const purchaseTypes = PURCHASE_TYPE_KEYS as [PurchaseTypeKey, ...PurchaseTypeKey[]];
+export const purchaseTypes = PURCHASE_TYPE_KEYS as [PurchaseTypeKey, ...PurchaseTypeKey[]];
 
-export const PurchaseRequestWalletTypeEnum = pgEnum("purchaseRequest_wallet_type_enum", walletTypes);
+export const PurchaseRequestWalletTypeEnum = pgEnum("purchaseRequest_wallet_type_enum", purchaseRequestWalletTypes);
 export const PurchaseRequestPurchaseTypeEnum = pgEnum("purchaseRequest_purchase_type_enum", purchaseTypes);
 export const PurchaseRequestStatusEnum = pgEnum("purchaseRequest_status_enum", ["pending", "processing", "completed", "failed", "expired"]);
 

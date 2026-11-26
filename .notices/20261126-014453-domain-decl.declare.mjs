@@ -35,14 +35,6 @@ function sqlText(value) {
   return query.params.reduce((text, param, index) => text.replace(`$${index + 1}`, JSON.stringify(param)), query.sql);
 }
 
-/** 今の表の SQL の型 → いちばん近い fieldType(型の表 src/lib/domain/fields/fieldTypes.mjs。合わない型は column.type で書く) */
-const FIELD_TYPE_OF_SQL = {
-  text: "string", uuid: "uuid", integer: "integer", "double precision": "float", bigint: "bigint", "numeric(10, 2)": "numeric(10,2)",
-  boolean: "boolean", date: "date", time: "time", timestamp: "timestamp", "timestamp with time zone": "timestamp With Time Zone",
-  jsonb: "jsonb", "text[]": "array",
-};
-const NUMERIC_SQL = /^(smallint|integer|bigint|real|double precision|numeric)/;
-
 /**
  * 宣言の登録の access(登録表に載る値): 手で持つ登録(generate:false)は apiAccess をそのまま(動いている値を全部書く)。
  * 生成する登録は apiAccess の read / write と、operations の既定(truncateAll は管理者、export / import は useImportExport)に
@@ -106,7 +98,8 @@ function structureOf(table) {
 /** 今の列 → 宣言の column(fieldType の既定と違う所だけを後で残す) */
 function columnFacts(column) {
   const facts = { type: column.getSQLType(), notNull: column.notNull };
-  if (column.hasDefault) {
+  // identity の列も hasDefault を持つ(default は無い)。関数の既定($defaultFn)と取り違えない
+  if (column.hasDefault && !column.generatedIdentity) {
     if (column.default === undefined) return { ...facts, problem: `列 ${column.name} の既定が関数($defaultFn)で宣言に書けない` };
     facts.default = is(column.default, SQL) ? { sql: sqlText(column.default) } : column.default;
   }
@@ -143,15 +136,17 @@ export async function declareTable(input) {
     }
     const lines = diffTableFacts(tableFactsOf(expected), tableFactsOf(actual));
     if (lines.length === 0) {
+      if (entity.fields.length === 0) delete entity.fields;
       const covered = rendered.tables.map((table) => getTableConfig(table).name).filter((name) => name !== tableName);
       return { entity, discrepancies, stops, covered };
     }
     if (pass === 3) return { entity: null, discrepancies, stops: [...stops, ...lines], covered: [] };
     const want = structureOf(expected);
     let changed = false;
-    // 項目は列の名前で引く(1 ファイルの宣言の項目名は snake のことがある = 今の表のプロパティ名と違う。宣言の名前を使い続ける)
+    // 項目(fields)と表だけの列(columns)は列の名前で引く(1 ファイルの宣言の項目名は snake のことがある = 今の表のプロパティ名と
+    // 違う。宣言の名前を使い続ける)。1 つの列はどちらか一方にだけある
     const columnNameOf = (field) => field.column?.name ?? toSnakeCase(field.name);
-    const fieldByColumn = (name) => entity.fields.find((field) => columnNameOf(field) === name);
+    const fieldByColumn = (name) => [...entity.fields, ...(entity.columns ?? [])].find((field) => columnNameOf(field) === name);
     const nameFor = (columnName) => fieldByColumn(columnName)?.name ?? want.props[columnName] ?? now.props[columnName];
 
     // 列: 今だけの列は項目に足し、両方の列は違う所を column に書く
@@ -163,22 +158,33 @@ export async function declareTable(input) {
       const prop = field?.name ?? now.props[name];
       if (!target) {
         if (field) return { entity: null, discrepancies, stops: [`${tableName}: 項目 ${prop} の列が宣言から組んだ表に無い(今 ${name})`], covered: [] };
-        const fieldType = column.enum ? "enum" : (FIELD_TYPE_OF_SQL[facts.type] ?? (NUMERIC_SQL.test(facts.type) ? "integer" : "string"));
-        field = { name: prop, fieldType, column: {} };
+        // 宣言に無かった列は表だけの列(columns)に足す: 画面・フォームの項目にしない(表示の写しを変えない、AMENDMENT 1)
+        field = { name: prop, column: column.enum ? { enum: column.enum.enumName } : { type: facts.type } };
         if (toSnakeCase(prop) !== name) field.column.name = name;
-        entity.fields.push(field);
-        note(`列 ${name} を項目 ${prop} として足した(宣言に無かった)`);
+        entity.columns ??= [];
+        entity.columns.push(field);
+        note(`列 ${name} を表だけの列 ${prop} として足した(宣言に無かった)`);
         changed = true;
       }
       if (!field) {
-        // 生成器が別の鍵(関連・システム列・id)から作る列
+        // 生成器が別の鍵(関連・システム列・id)から作る列。関連の列のユニークは関連の unique(1 対 1)
+        if (column.isUnique && !target.isUnique) {
+          const relation = (entity.relations ?? []).find((rel) => rel.relationType === "belongsTo" && toSnakeCase(rel.fieldName) === name);
+          if (relation) {
+            relation.unique = true;
+            note(`関連 ${relation.fieldName} の列のユニークを今の値で書いた(1 対 1、制約)`);
+            changed = true;
+            continue;
+          }
+        }
         const wantFacts = columnFacts(target);
         if (!isDeepStrictEqual({ ...wantFacts }, { ...facts })) {
           return { entity: null, discrepancies, stops: [`${tableName}: 列 ${name} は関連・システム列・id から作られ、今の形と違う: 宣言 ${JSON.stringify(wantFacts)} / 今 ${JSON.stringify(facts)}`], covered: [] };
         }
         continue;
       }
-      const wantFacts = target ? columnFacts(target) : {};
+      // 足したばかりの列は生成器の既定(NULL 可・既定なし)と比べる(notNull:false のような既定どおりの鍵を書かない)
+      const wantFacts = target ? columnFacts(target) : { notNull: false };
       field.column ??= {};
       if (column.enum) {
         const values = enumSourceOf(repoRoot, input.tableFile, column.enum.enumName);
@@ -211,13 +217,15 @@ export async function declareTable(input) {
         field.column.identity = facts.identity;
         changed = true;
       }
-      if (column.isUnique && !(target?.isUnique) && !entity.useSoftDelete) {
-        field.unique = true;
-        note(`項目 ${prop} のユニークを今の値で書いた(制約)`);
+      // 列のユニークは column.unique(項目の unique はソフトデリートの表で部分索引になるので、列の制約はこちらで書く)
+      if (column.isUnique && !(target?.isUnique)) {
+        field.column.unique = true;
+        note(`${prop} の列のユニークを今の値で書いた(制約)`);
         changed = true;
-      } else if (!column.isUnique && target?.isUnique && field.unique) {
-        delete field.unique;
-        note(`項目 ${prop} の列のユニークを外した(今は列の制約でない。索引のユニークは索引の行)`);
+      } else if (!column.isUnique && target?.isUnique) {
+        if (field.column.unique) delete field.column.unique;
+        else delete field.unique;
+        note(`${prop} の列のユニークを外した(今は列の制約でない。索引のユニークは索引の行)(制約)`);
         changed = true;
       }
       if (Object.keys(field.column).length === 0) delete field.column;

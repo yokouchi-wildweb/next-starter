@@ -127,8 +127,10 @@ export const domainEntries = {
 | `indexes[]` の `unique`・`desc`・`expression` | `unique: true`・`desc: [列]`(降順)・`expression: "<SQL の式>"`(列の代わり) | 名前つき・部分のユニーク(ユニークはこの形だけ、`compositeUniques` は entity.json に無い)・`lower(btrim(name))` |
 | `checks` | `[{ name, sql }]` | check 制約 |
 | `enums` | `[{ name, values }]` か `[{ name, valuesFrom: { file, export } }]` | pgEnum。設定から値を作る物は値を写さず名指す(照らしは読み込んだ値で比べる) |
+| `relations[].unique` | `true` | belongsTo の外部キーの列のユニーク(1 対 1) |
 | `dbObjects` | `[{ kind: "trigger" \| "function", file }]` | drizzle で書けない DB の物を SQL のファイルで名指す |
-| `fields[].column` | `{ name?, type?, enum?, default?, notNull?, identity? }` | `type` = SQL の型の書き方(smallint・numeric・inet・uuid[])、`default` = 値か `{ sql: "now()" }`、`identity` = always・byDefault |
+| `columns` | `[{ name, column }]`(`column.type` か `column.enum` は必ず) | 表だけの列(画面・フォームの項目でない表の事実)。1 つの列は fields と columns のどちらか一方にだけ書く |
+| `fields[].column`・`columns[].column` | `{ name?, type?, enum?, default?, notNull?, identity?, unique? }` | `type` = SQL の型の書き方(smallint・numeric・inet・uuid[])、`default` = 値か `{ sql: "now()" }`、`identity` = always・byDefault、`unique` = 列の制約(ソフトデリートの表でも部分索引にしない) |
 
 ## Extension
 

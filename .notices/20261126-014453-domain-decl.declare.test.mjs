@@ -7,7 +7,7 @@ import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { sql } from "drizzle-orm";
-import { check, index, inet, jsonb, pgEnum, pgTable, smallint, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { bigint, check, index, inet, jsonb, pgEnum, pgTable, smallint, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { makeTempDir } from "../scripts/structure/domain-tables/tables.mjs";
 import { accessOfDeclaration, declareTable } from "./20261126-014453-domain-decl.declare.mjs";
@@ -29,6 +29,8 @@ const widgets = pgTable(
     kind: kind("kind").notNull(),
     parentId: uuid("parent_id"),
     seenAt: timestamp("seen_at", { withTimezone: true }).notNull().defaultNow(),
+    seq: bigint("seq", { mode: "number" }).generatedAlwaysAsIdentity(),
+    code: text("code").unique(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
   (table) => [
@@ -48,16 +50,19 @@ test("手で持つ表(宣言なし)は今の表から起こし、照らしの差
   assert.deepEqual(result.stops, []);
   const entity = result.entity;
   assert.ok(entity);
-  const field = (name) => entity.fields.find((f) => f.name === name);
-  assert.deepEqual(field("rank").column, { type: "smallint", notNull: true, default: 0 });
-  assert.deepEqual(field("ip").column, { type: "inet" });
-  assert.deepEqual(field("meta").column, { notNull: true, default: { sql: "'{}'::jsonb" } });
-  assert.deepEqual(field("kind").column, { enum: "dt_widget_kind", notNull: true });
+  assert.equal(entity.fields, undefined, "宣言の無い表の列は全部 表だけの列(columns)");
+  const column = (name) => entity.columns.find((c) => c.name === name)?.column;
+  assert.deepEqual(column("rank"), { type: "smallint", notNull: true, default: 0 });
+  assert.deepEqual(column("ip"), { type: "inet" });
+  assert.deepEqual(column("meta"), { type: "jsonb", notNull: true, default: { sql: "'{}'::jsonb" } });
+  assert.deepEqual(column("kind"), { enum: "dt_widget_kind", notNull: true });
+  assert.deepEqual(column("seq"), { type: "bigint", identity: "always" }, "identity の列は関数の既定と取り違えない");
+  assert.deepEqual(column("code"), { type: "text", unique: true });
   assert.deepEqual(entity.enums, [{ name: "dt_widget_kind", values: ["a", "b"] }]);
   assert.deepEqual(entity.indexes.find((i) => i.name === "dt_widgets_seen_idx"), { name: "dt_widgets_seen_idx", fields: ["seenAt"], desc: ["seenAt"] });
   assert.ok(entity.indexes.some((i) => i.name === "dt_widgets_name_lower_idx" && /lower/.test(i.expression)));
   assert.deepEqual(entity.checks, [{ name: "dt_widgets_rank_check", sql: "rank >= 0" }]);
-  assert.equal(entity.fields.some((f) => f.name === "createdAt"), false, "システム列は useCreatedAt のまま");
+  assert.equal(entity.columns.some((c) => c.name === "createdAt"), false, "システム列は useCreatedAt のまま");
   assert.deepEqual(result.discrepancies, [], "宣言の無い表は食い違いの行を出さない");
 });
 
@@ -78,8 +83,9 @@ test("1 ファイルの宣言から起こすと、足した列・索引を「動
   );
   const result = await declareTable({ ...input(actual, base, true), registration: "sampleTag", domain: "sampleTag", domainDir: "src/domains/sampleTag" });
   assert.deepEqual(result.stops, []);
-  assert.ok(result.entity.fields.some((f) => f.name === "extra"));
-  assert.deepEqual(result.discrepancies, ["sample_tags: 列 extra を項目 extra として足した(宣言に無かった)", "sample_tags: 索引 sample_tags_extra_idx を今の値で書いた"]);
+  assert.equal(result.entity.fields.some((f) => f.name === "extra"), false, "宣言に無かった列は項目にしない(表示の写しを変えない)");
+  assert.deepEqual(result.entity.columns, [{ name: "extra", column: { type: "text" } }]);
+  assert.deepEqual(result.discrepancies, ["sample_tags: 列 extra を表だけの列 extra として足した(宣言に無かった)", "sample_tags: 索引 sample_tags_extra_idx を今の値で書いた"]);
 });
 
 test("宣言に書けない形(関数の既定)は書かずに止める", async () => {

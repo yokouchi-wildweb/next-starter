@@ -43,9 +43,11 @@ export const TABLE_KEYS = new Set([
  * - checks: check 制約 { name, sql }
  * - enums: pgEnum { name, values } か、設定から値を作る { name, valuesFrom: { file, export } }(照らしは読み込んだ値で比べる)
  * - dbObjects: drizzle で書けない DB の物を SQL のファイルで名指す { kind, file }
+ * - columns: 表だけの列 [{ name, column }](画面・フォームの項目でない表の事実。column.type か column.enum は必ず書く)。
+ *   項目(fields = 画面・フォームが知る物)と列(columns = 表の事実だけ)の 1 つの列はどちらか一方にだけ書く
  * ユニークは indexes[] の unique:true だけで書く(今の形の compositeUniques は entity.json に持たない)
  */
-export const TABLE_SHAPE_KEYS = new Set(["table", "primaryKey", "foreignKeys", "checks", "enums", "dbObjects"]);
+export const TABLE_SHAPE_KEYS = new Set(["table", "primaryKey", "foreignKeys", "checks", "enums", "dbObjects", "columns"]);
 
 /** entity.json の表の鍵の全部 */
 export const ENTITY_TABLE_KEYS = new Set([...TABLE_KEYS, ...TABLE_SHAPE_KEYS]);
@@ -63,8 +65,8 @@ export const ENTITY_REGISTRATION_KEYS = new Set(["generate", "registered", "reas
 /** entity.json の鍵の全部 */
 export const ENTITY_KEYS = new Set([...ENTITY_TABLE_KEYS, ...ENTITY_REGISTRATION_KEYS, DECLARATION_COMMENT_KEY]);
 
-/** 関連(relations[])の鍵 */
-export const RELATION_KEYS = new Set(["domain", "label", "fieldName", "fieldType", "relationType", "required", "onDelete", "includeRelationTable", "labelField", "formInput", DECLARATION_COMMENT_KEY]);
+/** 関連(relations[])の鍵。unique = belongsTo の外部キーの列のユニーク(1 対 1、entity.json だけ) */
+export const RELATION_KEYS = new Set(["domain", "label", "fieldName", "fieldType", "relationType", "required", "onDelete", "includeRelationTable", "labelField", "formInput", "unique", DECLARATION_COMMENT_KEY]);
 export const RELATION_TYPES = new Set(["belongsTo", "hasMany", "hasOne", "belongsToMany"]);
 export const ON_DELETE_VALUES = new Set(["RESTRICT", "CASCADE", "SET_NULL"]);
 
@@ -85,8 +87,11 @@ export const FIELD_GROUP_KEYS = new Set(["key", "label", "fields", "collapsible"
  * 項目の列の形 fields[].column(fieldType の既定と違う時だけ)
  * - name: 列の物理名 / type: SQL の型の書き方(smallint・numeric・inet・uuid[] …、照らしは drizzle の getSQLType と比べる)
  * - enum: enums[] の名前 / default: JSON の値か { sql: "<式>" } / notNull / identity: "always" | "byDefault"
+ * - unique: 列の制約(.unique()。項目の unique と違い、ソフトデリートの表でも部分索引にしない)
  */
-export const COLUMN_KEYS = new Set(["name", "type", "enum", "default", "notNull", "identity", DECLARATION_COMMENT_KEY]);
+export const COLUMN_KEYS = new Set(["name", "type", "enum", "default", "notNull", "identity", "unique", DECLARATION_COMMENT_KEY]);
+/** 表だけの列(columns[])の鍵 */
+export const TABLE_COLUMN_KEYS = new Set(["name", "column", DECLARATION_COMMENT_KEY]);
 export const IDENTITY_VALUES = new Set(["always", "byDefault"]);
 
 /** 索引(indexes[])の鍵: 今の fields・where・name・using・opclass + unique・desc(降順の列)・expression(列の代わりの SQL の式) */
@@ -109,6 +114,7 @@ export const SERVICE_KEYS = new Set(["file", "export", DECLARATION_COMMENT_KEY])
  */
 export const ENTITY_NESTED_KEYS = {
   fields: { keys: FIELD_KEYS, list: true, nested: { collection: { keys: COLLECTION_KEYS, list: false }, column: { keys: COLUMN_KEYS, list: false } } },
+  columns: { keys: TABLE_COLUMN_KEYS, list: true, nested: { column: { keys: COLUMN_KEYS, list: false } } },
   relations: { keys: RELATION_KEYS, list: true },
   fieldGroups: { keys: FIELD_GROUP_KEYS, list: true },
   indexes: { keys: INDEX_KEYS, list: true },

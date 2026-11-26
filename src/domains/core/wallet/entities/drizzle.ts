@@ -6,7 +6,7 @@ import { UserTable } from "@/domains/core/user/entities/drizzle";
 import { walletConfig, type WalletType } from "@/domains/wallet/config";
 
 // walletConfig.currency から動的に walletType の値を取得
-const walletTypes = Object.keys(walletConfig.currency) as [WalletType, ...WalletType[]];
+export const walletTypes = Object.keys(walletConfig.currency) as [WalletType, ...WalletType[]];
 
 export const WalletTypeEnum = pgEnum("wallet_type_enum", walletTypes);
 

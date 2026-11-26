@@ -43,6 +43,8 @@ export function belongsToColumns(ctx, workspace, tableName, imports, relationImp
     const column = buildColumn(colType, columnName, rel.fieldType || config.idType);
     let line = `  ${rel.fieldName}: ${column}`;
     if (rel.required) line += ".notNull()";
+    // 1 対 1 の関連(entity.json の relations[].unique): 外部キーの列のユニーク
+    if (rel.unique === true) line += ".unique()";
 
     const foreignTable = foreignTableName(workspace, rel.domain);
 
