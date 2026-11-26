@@ -1,14 +1,17 @@
 // scripts/workflow/notices/hotfixApply.mjs
 // 緊急修正(hotfix:)の先取りを fork で行う(/flux の HOTFIX、.notices/README.md「緊急修正(hotfix)」)。
-// どの fork でも止まらずに当たること(当たらない部分は飛ばして記録し、後の区間で届く)。止まるのは fork が手で変えたファイルの
-// ぶつかりだけ。/flux・鉄道・艦隊はいつも上流の先端の版のこの道具で当てる(fork の木の版は使わない)。
+// どの fork でも止まらずに当たること(当たらない部分は飛ばして記録し、後の区間で届く)。止まるのは 3 方向のぶつかりだけ
+// (fork の変更を黙って上書きも削除もしない)。/flux・鉄道・艦隊はいつも上流の先端の版のこの道具で当てる(fork の木の版は使わない)。
 // 元の commit が変えたファイルごとに決める(cherry-pick には頼らない)。人には聞かない:
 //   - 道具が上流の先端を読むファイル(TIP_READ: .claude/skills/flux/ の下)→ 外す(left-out)。/flux も鉄道もその手順と
 //     incoming.mjs を上流の先端の版で読むので、fork に先に入れる物ではない
-//   - (c) fork の木に有り、中身が上流のどれかの版(merge-base・元の commit の親・台帳の前の picked: の commit)と同じ
-//     = fork が触っていない → 元の commit の版に置き換える(消す変更なら消す)(replaced)
-//     fork が手で変えた → git merge-file で 3 方向(基 = 元の commit の親の版)。通れば採る(merged)、ぶつかれば全部取り消して止まる
-//   - 足すファイルが fork に無い → 足す(added)
+//   - どのファイルもいつも 3 方向で当てる(D135): 基 = 元の commit の親の版、こちら = fork の HEAD、あちら = 元の commit の版
+//     - fork の版が元の commit の版と同じ → 何もしない
+//     - 変える直し: git merge-file で合わせ、通れば採る(merged)、ぶつかれば全部取り消して止まる
+//     - 消す直し: fork の版が基と同じ時だけ消す(deleted)。違えば止まる(fork の変更を黙って消さない)
+//     - 足す直し: fork に無ければ足す(added)。同じ道に別の中身があれば止まる
+//     fork の版を「上流のどれかの版と同じ」で見分けて元の commit の版に丸ごと置き換える道は持たない: 直しの線が fork の
+//     取り込んだ上流の後の変更を持たない時、置き換えはその変更を消した(pandora の F16)
 //   - 直す相手が fork の木に無い → 飛ばす(left-out)。後の区間で届く。上流で merge-base から元の commit の親までに名前が
 //     変わった行(git diff -M の R の行で、そのパスを前か今に持つ物の全部)を候補として出す(rename-candidate)。道具は選ばず
 //     書かない: 前の場所に手で当てるか区間で届くのを待つかは /flux のエージェントが決める(D476)
@@ -19,11 +22,11 @@
 //
 // 実行: node <上流の先端から出した>/scripts/workflow/notices/hotfixApply.mjs <元の commit> [--upstream=<ref>](fork の checkout で)
 //   --upstream = 直接の親の ref(既定 upstream/main。merge-base を取る)。作業ツリーは綺麗であること
-// 出力(1 行ずつ、タブ区切り): picked <新しい sha> / replaced <path> / merged <path> / added <path> /
+// 出力(1 行ずつ、タブ区切り): picked <新しい sha> / merged <path> / deleted <path> / added <path> /
 //   left-out <path> / rename-candidate <path> <R の行> / gap <rules|scripts|paths|imports|libs> <物> / notes <台帳の notes に写す文>
 //   (台帳の notes の語 moved-merged は D476 から出ない。読み手の数えは 0 のまま)
-//   止まった時: conflict <path>(fork が手で変えたファイル)
-//   exit 0 = 取れた | 1 = fork が手で変えたファイルでぶつかった(何も残さない) | 2 = 使い方・作業ツリー・commit の誤り
+//   止まった時: conflict <path>(3 方向でぶつかった・fork が変えたファイルを消す直し・fork に別の中身がある足す直し)
+//   exit 0 = 取れた | 1 = ぶつかった(何も残さない) | 2 = 使い方・作業ツリー・commit の誤り
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -49,19 +52,6 @@ const blobAt = (repo, rev, path) => {
   return r.ok ? r.out.trim() : null;
 };
 const showAt = (repo, rev, path) => git(repo, ["show", `${rev}:${path}`]);
-
-/** 台帳(.notices/applied/*.md の HEAD の版)の picked: の sha(この木にある commit だけ) */
-export function ledgerPickedShas(repo) {
-  const out = [];
-  for (const f of lines(tryGit(repo, ["ls-tree", "--name-only", "HEAD", ".notices/applied/"]).out)) {
-    const text = tryGit(repo, ["show", `HEAD:${f}`]).out;
-    for (const m of text.matchAll(/^- id:.*\|\s*picked:([0-9a-f]{7,40})\b/gm)) {
-      const c = tryGit(repo, ["rev-parse", "-q", "--verify", `${m[1]}^{commit}`]);
-      if (c.ok && !out.includes(c.out.trim())) out.push(c.out.trim());
-    }
-  }
-  return out;
-}
 
 /** 台帳(.notices/applied/*.md の HEAD の版)で picked: の付いた行の notice id(先取りした緊急修正・先に取った修正) */
 export function ledgerPickedIds(repo) {
@@ -101,13 +91,12 @@ export function renameCandidates(repo, base, to, paths) {
 }
 
 /**
- * 決める(作業ツリーには書かない)。actions = [{ kind, path, from?, text? }]
- * kind: replace(元の commit の版)/ delete / write(text)/ keep
+ * 決める(作業ツリーには書かない)。actions = [{ kind, path, text? }]
+ * kind: add(元の commit の版を足す)/ delete / write(text = 3 方向の結果)
  */
 export function plan(repo, orig, base) {
   const parent = `${orig}^`;
-  const versions = (path) => new Set([base, parent, ...ledgerPickedShas(repo)].map((rev) => blobAt(repo, rev, path)).filter(Boolean));
-  const r = { replaced: [], merged: [], added: [], leftOut: [], renameCandidates: [], conflicts: [], actions: [] };
+  const r = { merged: [], deleted: [], added: [], leftOut: [], renameCandidates: [], conflicts: [], actions: [] };
   for (const l of lines(git(repo, ["diff-tree", "--no-commit-id", "-r", "--no-renames", "--name-status", orig]))) {
     const [st, path] = l.split("\t");
     const status = st[0];
@@ -117,30 +106,28 @@ export function plan(repo, orig, base) {
     }
     const head = blobAt(repo, "HEAD", path);
     const want = status === "D" ? null : blobAt(repo, orig, path);
-    if (head) {
-      if (head === want) continue; // 既に同じ
-      if (versions(path).has(head)) {
-        r.actions.push({ kind: status === "D" ? "delete" : "replace", path });
-        r.replaced.push(path);
-        continue;
-      }
-      // fork が手で変えた: 3 方向(消す変更・基の無い足しは 3 方向にならないので止まる)
-      const baseText = blobAt(repo, parent, path) ? showAt(repo, parent, path) : null;
-      const m = status !== "D" && baseText !== null ? mergeText(showAt(repo, "HEAD", path), baseText, showAt(repo, orig, path)) : { ok: false };
-      if (m.ok) {
-        r.actions.push({ kind: "write", path, text: m.text });
-        r.merged.push(path);
+    if (head === want) continue; // 既に同じ(消す直しで fork にも無い時を含む)
+    if (!head) {
+      if (status === "A") {
+        r.actions.push({ kind: "add", path });
+        r.added.push(path);
+      } else r.leftOut.push(path); // 直す相手が無い: 飛ばす(名前の変わった候補は下で並べるだけ)
+      continue;
+    }
+    if (status === "D") {
+      // 消すのは fork の版が基(元の commit の親)と同じ時だけ
+      if (head === blobAt(repo, parent, path)) {
+        r.actions.push({ kind: "delete", path });
+        r.deleted.push(path);
       } else r.conflicts.push(path);
       continue;
     }
-    if (status === "D") continue; // 消す相手が無い
-    if (status === "A") {
-      r.actions.push({ kind: "replace", path });
-      r.added.push(path);
-      continue;
-    }
-    // 直す相手が無い: 飛ばす(名前の変わった候補は下で並べるだけ)
-    r.leftOut.push(path);
+    // 3 方向(基の無い足しは 3 方向にならないので止まる)
+    const m = status !== "A" && blobAt(repo, parent, path) ? mergeText(showAt(repo, "HEAD", path), showAt(repo, parent, path), showAt(repo, orig, path)) : { ok: false };
+    if (m.ok) {
+      r.actions.push({ kind: "write", path, text: m.text });
+      r.merged.push(path);
+    } else r.conflicts.push(path);
   }
   r.renameCandidates = renameCandidates(repo, base, parent, r.leftOut.filter((x) => !isTipRead(x)));
   return r;
@@ -172,7 +159,7 @@ export function treeGaps(repo, orig, applied) {
  * @param {string} upstream 直接の親の ref
  */
 export function hotfixApply(repo, sha, upstream = "upstream/main") {
-  const empty = { status: "error", replaced: [], merged: [], added: [], leftOut: [], renameCandidates: [], conflicts: [], gaps: [] };
+  const empty = { status: "error", merged: [], deleted: [], added: [], leftOut: [], renameCandidates: [], conflicts: [], gaps: [] };
   const full = tryGit(repo, ["rev-parse", "--verify", `${sha}^{commit}`]);
   if (!full.ok) return { ...empty, message: `commit がありません: ${sha}` };
   const orig = full.out.trim();
@@ -184,14 +171,14 @@ export function hotfixApply(repo, sha, upstream = "upstream/main") {
   delete result.actions;
   if (p.conflicts.length > 0) return { ...result, status: "conflict" };
   for (const a of p.actions) {
-    if (a.kind === "replace") git(repo, ["checkout", orig, "--", a.path]);
+    if (a.kind === "add") git(repo, ["checkout", orig, "--", a.path]);
     else if (a.kind === "delete") git(repo, ["rm", "-q", "--", a.path]);
     else {
       writeFileSync(join(repo, a.path), a.text);
       git(repo, ["add", "--", a.path]);
     }
   }
-  result.gaps = treeGaps(repo, orig, [...p.replaced, ...p.merged, ...p.added]);
+  result.gaps = treeGaps(repo, orig, [...p.merged, ...p.added]);
   const subject = git(repo, ["log", "-1", "--format=%B", orig]).trimEnd();
   const c = tryGit(repo, ["commit", "-q", "--allow-empty", "--no-verify", "-m", `${subject}\n\n(cherry picked from commit ${orig})`]);
   if (!c.ok) {
@@ -204,8 +191,8 @@ export function hotfixApply(repo, sha, upstream = "upstream/main") {
 /** 台帳の notes に写す文 */
 export function ledgerNotes(r) {
   const parts = ["hotfix pick"];
-  if (r.replaced.length) parts.push(`replaced: ${r.replaced.join(",")}`);
   if (r.merged.length) parts.push(`merged: ${r.merged.join(",")}`);
+  if (r.deleted.length) parts.push(`deleted: ${r.deleted.join(",")}`);
   if (r.added.length) parts.push(`added: ${r.added.join(",")}`);
   if (r.leftOut.length) parts.push(`left-out: ${r.leftOut.join(",")}`);
   if (r.gaps.length) parts.push(`gap: ${r.gaps.map((g) => g.item).join(",")}`);
@@ -223,8 +210,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   }
   const repo = git(process.cwd(), ["rev-parse", "--show-toplevel"]).trim();
   const r = hotfixApply(repo, sha, upstream);
-  for (const p of r.replaced) console.log(`replaced\t${p}`);
   for (const p of r.merged) console.log(`merged\t${p}`);
+  for (const p of r.deleted) console.log(`deleted\t${p}`);
   for (const p of r.added) console.log(`added\t${p}`);
   for (const p of r.leftOut) console.log(`left-out\t${p}`);
   for (const c of r.renameCandidates) console.log(`rename-candidate\t${c.path}\t${c.line}`);
@@ -236,7 +223,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   }
   if (r.status === "conflict") {
     for (const p of r.conflicts) console.log(`conflict\t${p}`);
-    console.error("hotfixApply: fork が手で変えたファイルでぶつかりました。何も変えていません(/flux の 3 つの選択へ)");
+    console.error("hotfixApply: 3 方向でぶつかりました。何も変えていません(/flux の 3 つの選択へ)");
     process.exit(1);
   }
   console.error(`hotfixApply: ${r.message}`);

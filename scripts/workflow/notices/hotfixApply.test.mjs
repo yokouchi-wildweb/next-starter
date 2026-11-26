@@ -40,8 +40,8 @@ function setup({ forkEdits = false } = {}) {
   write(up, "src/own.ts", "X\n");
   write(up, ".claude/skills/flux/SKILL.md", "flux 2\n");
   commit(up, "between");
-  // 緊急修正: 同じファイルの同じ所を直す(土台の上ではぶつかる)
-  write(up, "src/core.ts", "A2\nb\nc\n");
+  // 緊急修正: 間の変更と別の行を直す(fork の土台の上でも 3 方向で通る)
+  write(up, "src/core.ts", "A\nb\nC\n");
   if (forkEdits) write(up, "src/own.ts", "X2\n");
   write(up, ".claude/skills/flux/SKILL.md", "flux 3\n");
   write(up, ".notices/20261120-000000-hot.md", "# DOWNSTREAM NOTICE id:20261120-000000-hot\nhotfix: test\n");
@@ -54,21 +54,21 @@ function setup({ forkEdits = false } = {}) {
   return { up, fork, hot };
 }
 
-test("(c) fork が触っていない(上流の版と同じ)ファイルは元の commit の版に置き換え、先端を読むファイルは外し、足すファイルは足す", () => {
+test("fork が触っていないファイルも 3 方向で当て(間の上流の変更は持ち込まない)、先端を読むファイルは外し、足すファイルは足す", () => {
   const { fork, hot } = setup();
   const before = git(fork, "rev-parse", "HEAD").trim();
   const r = hotfixApply(fork, hot, "upstream/main");
   assert.equal(r.status, "picked");
-  assert.deepEqual(r.replaced, ["src/core.ts"]);
+  assert.deepEqual(r.merged, ["src/core.ts"]);
   assert.deepEqual(r.leftOut, [".claude/skills/flux/SKILL.md"]);
-  assert.equal(read(fork, "src/core.ts"), "A2\nb\nc\n");
+  assert.equal(read(fork, "src/core.ts"), "a\nb\nC\n");
   assert.equal(read(fork, ".claude/skills/flux/SKILL.md"), "flux 1\n");
   assert.equal(read(fork, ".notices/20261120-000000-hot.md").split("\n")[0], "# DOWNSTREAM NOTICE id:20261120-000000-hot");
   assert.equal(git(fork, "rev-parse", "HEAD~1").trim(), before);
   assert.match(git(fork, "log", "-1", "--format=%B"), new RegExp(`\\(cherry picked from commit ${hot}\\)`));
   assert.equal(git(fork, "status", "--porcelain").trim(), "");
   assert.deepEqual(r.added, [".notices/20261120-000000-hot.md"]);
-  assert.equal(ledgerNotes(r), "hotfix pick; replaced: src/core.ts; added: .notices/20261120-000000-hot.md; left-out: .claude/skills/flux/SKILL.md");
+  assert.equal(ledgerNotes(r), "hotfix pick; merged: src/core.ts; added: .notices/20261120-000000-hot.md; left-out: .claude/skills/flux/SKILL.md");
 });
 
 test("fork が手で変えたファイルの 3 方向がぶつかったら何も変えずに止まる(枝も作業ツリーも元のまま)", () => {
@@ -141,31 +141,54 @@ test("(b) 直す相手が fork の木に無ければ飛ばして left-out(止め
   const r = hotfixApply(fork, hot, "upstream/main");
   assert.equal(r.status, "picked");
   assert.deepEqual(r.leftOut, ["src/later.ts"]);
-  assert.deepEqual(r.replaced, ["src/a.ts"]);
+  assert.deepEqual(r.merged, ["src/a.ts"]);
   assert.match(ledgerNotes(r), /left-out: src\/later\.ts/);
 });
 
-test("消す変更: 触っていなければ消す、fork が消していれば何もしない", () => {
+test("消す変更: fork の版が基と同じなら消す、fork が消していれば何もしない", () => {
   const { fork, hot } = small({ files: { "src/a.ts": "a\n", "src/b.ts": "b\n" }, hot: { "src/a.ts": null, "src/b.ts": null }, gone: ["src/b.ts"] });
   const r = hotfixApply(fork, hot, "upstream/main");
   assert.equal(r.status, "picked");
-  assert.deepEqual(r.replaced, ["src/a.ts"]);
+  assert.deepEqual(r.deleted, ["src/a.ts"]);
   assert.equal(git(fork, "ls-files", "src").trim(), "");
+  assert.match(ledgerNotes(r), /deleted: src\/a\.ts/);
 });
 
-test("前の先取り(台帳の picked:)の版と同じ中身は触っていないとみなして置き換える", () => {
-  const { up, fork, hot: first } = small({ files: { "src/a.ts": "v0\n" }, between: { "src/a.ts": "v1\n" }, hot: { "src/a.ts": "v2\n" } });
-  // fork は first を先に取った(v2)。次の緊急修正 v3
-  assert.equal(hotfixApply(fork, first, "upstream/main").status, "picked");
-  write(fork, ".notices/applied/f.md", `# APPLIED\n- id:x | date:x | commit:- | upstream:- | picked:${first}\n`);
-  commit(fork, "ledger");
-  write(up, "src/a.ts", "v3\n");
-  const second = commit(up, "fix 2");
+test("消す変更: fork が変えたファイルは消さずに止まる。足す変更: 同じ道に fork の別の中身があれば止まり、同じ中身なら何もしない", () => {
+  const del = small({ files: { "src/a.ts": "a\n" }, hot: { "src/a.ts": null }, forkFiles: { "src/a.ts": "mine\n" } });
+  const r1 = hotfixApply(del.fork, del.hot, "upstream/main");
+  assert.equal(r1.status, "conflict");
+  assert.deepEqual(r1.conflicts, ["src/a.ts"]);
+  assert.equal(read(del.fork, "src/a.ts"), "mine\n");
+  const add = small({ files: { "src/a.ts": "a\n" }, hot: { "src/n.ts": "N\n" }, forkFiles: { "src/n.ts": "mine\n" } });
+  const r2 = hotfixApply(add.fork, add.hot, "upstream/main");
+  assert.equal(r2.status, "conflict");
+  assert.deepEqual(r2.conflicts, ["src/n.ts"]);
+  const same = small({ files: { "src/a.ts": "a\n" }, hot: { "src/n.ts": "N\n" }, forkFiles: { "src/n.ts": "N\n" } });
+  const r3 = hotfixApply(same.fork, same.hot, "upstream/main");
+  assert.equal(r3.status, "picked");
+  assert.deepEqual([r3.added, r3.merged, r3.conflicts], [[], [], []]);
+});
+
+test("F16: 直しの線が fork の取り込んだ上流の後の変更を持たなくても、その変更を消さずに直しを足す(3 方向、D135)", () => {
+  // 上流 A → main B(1 行目)、直し H は A から(8 行目)。fork は B まで取り込んだ
+  const up = join(root, `up${++n}`);
+  const fork = join(root, `fork${n}`);
+  mkdirSync(up);
+  git(up, "init", "-q", "-b", "main");
+  write(up, "src/f.ts", "1\n2\n3\n4\n5\n6\n7\n8\n");
+  const a = commit(up, "A");
+  write(up, "src/f.ts", "ONE\n2\n3\n4\n5\n6\n7\n8\n");
+  commit(up, "B");
+  git(root, "clone", "-q", "-o", "upstream", up, fork);
+  git(up, "checkout", "-q", "-b", "fix", a);
+  write(up, "src/f.ts", "1\n2\n3\n4\n5\n6\n7\nEIGHT\n");
+  const h = commit(up, "H");
   git(fork, "fetch", "-q", "upstream");
-  const r = hotfixApply(fork, second, "upstream/main");
+  const r = hotfixApply(fork, h, "upstream/main");
   assert.equal(r.status, "picked");
-  assert.deepEqual(r.replaced, ["src/a.ts"]);
-  assert.equal(read(fork, "src/a.ts"), "v3\n");
+  assert.deepEqual(r.merged, ["src/f.ts"]);
+  assert.equal(read(fork, "src/f.ts"), "ONE\n2\n3\n4\n5\n6\n7\nEIGHT\n");
 });
 
 test("当てた後の確かめ: 足りない pnpm の命令・名指したパスを gap に出す(止めない)", () => {

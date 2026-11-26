@@ -218,10 +218,11 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 - 台帳: `upstream:` は今の merge-base のまま、`picked:<元の commit>` を足す。記録済みなので後の区間の区切りにならない。後の merge では同じ変更が自動で解決される
 - 先取りの道具: `scripts/workflow/notices/hotfixApply.mjs`(/flux の HOTFIX・鉄道・艦隊が呼ぶ 1 つの部品)。いつも上流の先端の版で走らせる(/flux の TIP TOOLS: `node $TIP/scripts/workflow/notices/hotfixApply.mjs`。fork の木の版は使わない)。どの fork でも止まらずに当たることが目的で、元の commit が変えたファイルごとに人に聞かずに決める:
   - 道具が上流の先端の版を読むファイル(`.claude/skills/flux/` の下)は外す(left-out)
-  - (c) fork の木の中身が上流のどれかの版(merge-base・元の commit の親・台帳の前の `picked:`)と同じ = fork が触っていない → 元の commit の版に置き換える(replaced)。fork が手で変えたファイルは 3 方向で合わせ(merged)、ぶつかった時だけ何も変えずに止まる(手で解く・飛ばす・区間で進める)
+  - どのファイルもいつも 3 方向で当てる(D135: 基 = 元の commit の親、こちら = fork の今、あちら = 元の commit)。通れば採る(merged)、ぶつかった時だけ何も変えずに止まる(手で解く・飛ばす・区間で進める)。消す直しは fork の版が基と同じ時だけ消す(deleted、違えば止まる)。足す直しで同じ道に fork の別の中身があれば止まる
+  - ファイルを元の commit の版に丸ごと置き換える道は無い: 直しの線が fork の取り込んだ上流の後の変更を持たない時、置き換えはその変更を消した(pandora の F16)
   - 足すファイルは足す(added)/ 直す相手が fork の木に無い → 飛ばす(left-out。後の区間で届く)。上流でそのパスの名前が変わった行(git diff -M の R の行の全部)を候補として出す(rename-candidate)。道具は選ばず書かない: 前の場所に手で当てるか区間を待つかは /flux のエージェントが決め、理由を台帳の notes に 1 行(D476)
   - 当てた後に fork の木で 5 つの確かめ(足した・変えたルールの `paths:` の当たり・notice の手順の `pnpm <script>`・名指すパス・当てた・足したコードの相対 import 先・当てた・足した物が読む lib(`@/lib/<名>` の import と lib の package.json の `libs`))を回し、足りない物を gap で報告する(止めない)
-  - 決めた事は台帳の行の `notes:` に `replaced:` / `merged:` / `moved-merged:`(D476 から出ない)/ `added:` / `left-out:` / `gap:` / `rename-candidate:` で残す
+  - 決めた事は台帳の行の `notes:` に `merged:` / `deleted:` / `added:` / `left-out:` / `gap:` / `rename-candidate:` で残す(前の台帳の `replaced:`(D135 から出ない)・`moved-merged:`(D476 から出ない)はそのまま読める)
 - 所有の検査: 中身が基準・基準 + `picked:`・基準から親の先端までのそのパスのどれかの版と同じなら合格(`src/lib/forkOwnership/README.md`「上流の版と同じ中身(緊急修正の pick も)」、D479)。手で解いたファイルや違反になったファイルは 1 ファイル 1 行の一時許可で通し、後の区間がそのファイルに触れたら許可を取り直す
 - 先取りした notice の検査: 台帳に `picked:` のある notice は「本体と同じ 1 commit」の照合(`pnpm check notices`)から外す。fork の木に無い本体は飛ばす(left-out)ので、取った側の commit は notice だけになりうる(`hotfixApply.mjs` ledgerPickedIds)
 - 後の区間の merge: 置き換えたファイルがぶつかったら上流の側(上流の中身しか持たない)

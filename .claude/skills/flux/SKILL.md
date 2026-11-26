@@ -152,14 +152,15 @@ a notice's commit for which upstream declared `hotfix:` is cherry-picked before 
   1. the upstream tip's version of the tool (a lagging fork's own one may lack the fix's handling): `node $TIP/scripts/workflow/notices/hotfixApply.mjs <元の commit> --upstream=<upstream>/<branch>` (TIP TOOLS)
      - in the fork's checkout (the tree must be clean) — every file settled without asking, one commit (`.notices/README.md` `緊急修正(hotfix)`):
      - files the tools read from the upstream tip (`.claude/skills/flux/`) → left out (`left-out`)
-     - a file whose content equals an upstream version (merge-base, the original commit's parent, an earlier `picked:`) = the fork never touched it → the original commit's version (`replaced`; deleted when the fix deletes it)
-     - a file the fork changed by hand → a 3-way merge of the fix (`merged`) | it conflicts → nothing is changed, exit 1 with those files (`conflict`) → stop and give options (`手で解いて続行` / `この緊急修正を飛ばす` / `元の commit まで区間で進める` = resolve by hand and continue / skip this hotfix / advance by segments up to the original commit); STOP
+     - every file the fix changes → a 3-way merge (base = the original commit's parent, ours = the fork's HEAD, theirs = the fix; `merged`): the fork's later upstream changes stay (D135)
+       - the fix deletes a file → deleted only when the fork's version equals the base (`deleted`) | the fix adds a file the fork has with other content → a conflict
+       - any conflict → nothing is changed, exit 1 with those files (`conflict`) → stop and give options (`手で解いて続行` / `この緊急修正を飛ばす` / `元の commit まで区間で進める` = resolve by hand and continue / skip this hotfix / advance by segments up to the original commit); STOP
      - a file the fix adds → added (`added`) | the file to fix is not in the fork's tree → skipped (`left-out`; it arrives with a later segment) — never a stop
        - `rename-candidate <path> <line>` (cue): upstream renamed that path between the merge-base and the fix (git's own rename lines, all of them; the tool chooses none) | apply the fix to the old place by hand, or wait for the segment that brings it: you decide, one line why in the ledger notes
      - `gap <rules|scripts|paths|imports|libs> <物>`: what the fix relies on that the fork's tree lacks (a rule's `paths:` that match nothing, a `pnpm` command of the notice's steps, a path the notice names, a relative import of a file it put in, a lib it reads) → write each in the report and the ledger notes; never a stop
        - `gap imports <file>: 先取りしても動かない(…)` = every import of that file is missing, or a name it imports is not exported by a file the fork has (`./lib.mjs (handoffFile が無い)`): the pick cannot run there until a later segment brings them
        - `gap libs <file> -> @/lib/<名>(lib が fork に無い)` / `gap libs <lib>/package.json: libs の <名> が fork に無い` = a lib the fix reads (an `@/lib/<名>` import, a lib's package.json `libs`) is not in the fork's tree: an earlier hotfix or a later segment brings it, so the pick cannot run there until then
-     - its `notes` line goes into the ledger line's `notes:` as is (`hotfix pick; replaced: …; merged: …; left-out: …; gap: …`)
+     - its `notes` line goes into the ledger line's `notes:` as is (`hotfix pick; merged: …; deleted: …; added: …; left-out: …; gap: …`)
   2. the notice's required_actions (each pick in turn: 1 → 2 → 3, then the next pick)
   3. put the follow-up changes and the ledger in a commit separate from the pick commit (so the tier below can take only the pick commit)
      - ledger line: the ledger tool of step 7a with `--id=<id> --commit=<pick の短 sha> --upstream=<git merge-base HEAD <upstream>/<branch>> --picked=<元の commit> --notes=<…>`
@@ -167,7 +168,7 @@ a notice's commit for which upstream declared `hotfix:` is cherry-picked before 
   4. after the last pick: PRE-PUSH CHECKS once over all of them → one push → report
      - every pick's verify | the picked tree lacks `scripts/runner/phases/` → skip the entry and write it in the report | content equal to an upstream version, base + a pick included, passes the ownership check as `upstream-version`
      - the ownership check: the fork's tree without `src/lib/forkOwnership/intake.txt` → skip it, `所有の検査なし(後の区間で届く)` in the report and the ledger notes
-- **after the pick**: rebuild the segments (ids recorded in the ledger are no checkpoints) | that spot conflicts at a later merge → take the upstream side when the fork has no edit (a replaced file always: it holds only upstream's content)
+- **after the pick**: rebuild the segments (ids recorded in the ledger are no checkpoints) | that spot conflicts at a later merge → take the upstream side when the fork has no edit
 - **picked by hand already**: an unapplied notice in the tree whose adding commit is an ancestor of `<upstream>/<branch>` but not of HEAD (not in the ledger) → apply it in segment 0 and write the ledger line with `--picked` as above (regardless of `hotfix:`) | confirm the original commit with the line of `git log --grep "cherry picked from commit"`
 
 ## FINDINGS FOR UPSTREAM (findings)
