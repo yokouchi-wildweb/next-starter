@@ -8,7 +8,7 @@ role: the one definition of the 3 merge patterns (name, when it applies, what to
 - the conditions below are all required (AND) | `mechanical` = a tool can check it | `reading` = needs the reader's judgment
 
 ## BACKPORT (a check fails on an upstream mistake whose fix comes later on this line)
-applies (mechanical): a check of this segment fails | the cause is in upstream files (the fork's own files are not involved) | a later segment of the same line carries the fix (its notice `fixes:` names this segment's notice or commit, or a later commit edits the same lines)
+applies (mechanical): a check of PRE-PUSH CHECKS (SKILL.md) fails on this segment's change | the cause is in upstream files (the fork's own files are not involved) | a later segment of the same line carries the fix (its notice `fixes:` names this segment's notice or commit, or a later commit edits the same lines)
 do:
 1. try the fix commit on this segment (cherry-pick in a scratch state) | no conflict → take it ahead and pass the real check
 2. conflict → drop the try, close the failed check as deferred (the record names the fix it waits for) and go on | the fork writes nothing into upstream files | the same deferral applies to the check after merging several segments

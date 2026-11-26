@@ -46,7 +46,7 @@ as a middle Tier, decide whether applied upstream notices must be relayed downst
 - **target forks**: forks with `tier` root / middle in `repo.json` (read as SKILL.md OWN FORK IDENTITY AND LEDGER 5; only reader `forkIds.mjs`) | `tier` leaf = a leaf fork, does nothing | declaration missing / wrong → never guess from the text; STOP (same item of SKILL.md)
 - **target notices**: notices applied in the segment whose `from:` is not your origin (grandparent notices and upstream relay notices included) | a covered id is judged as one with its covers side
   - a hotfix pick (SKILL.md HOTFIX) is judged at the pick, not in a segment (case "hotfix pick" below) | an id already in the ledger is not applied by a later segment, so it is never judged twice
-- **judgment** (after verify of the segment's step 6, before step 7; per notice | any one of ①-③ hits → relay needed; none hits → `relay:none`):
+- **judgment** (after applying the segment in step 6, before its commit in step 7; per notice | any one of ①-③ hits → relay needed; none hits → `relay:none`):
   - reference points:
     - `Q` = that notice's checkpoint point (the checkpoint point = `point` of `incoming.mjs`'s output; segment 0 → the adding commit; grandparent notice → the middle Tier's ledger-record commit)
     - `P` = the checkpoint point of the notice right before it in upstream's history (the previous notice's `point`; none → the fork founding point = the output's `forkPoint`)
