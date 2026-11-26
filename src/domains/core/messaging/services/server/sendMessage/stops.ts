@@ -14,7 +14,7 @@ import { createHash } from "node:crypto";
 
 import { kindTraits, type MessageKind } from "@/lib/messaging";
 
-import { MESSAGE_ALL } from "../../../entities/schema";
+import { MESSAGE_ALL } from "../../../constants/domain";
 import { groupRowOfCategory } from "../preferences/groupRows";
 import type { MessageSendDeps } from "./types";
 

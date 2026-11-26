@@ -5,7 +5,7 @@
 
 import { notFound, redirect } from "next/navigation";
 
-import type { SessionDevice } from "@/domains/pairedDevice/entities/model";
+import type { SessionDevice } from "@/domains/pairedDevice/types/domain";
 import type { PairedDeviceKind, PairedDeviceScopeOf } from "@/domains/pairedDevice/types/kinds";
 
 import { getSessionDevice } from "./getSessionDevice";

@@ -1,0 +1,125 @@
+{
+  "plural": "user_login_events",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "apiAccess": {
+    "read": "none",
+    "write": "none"
+  },
+  "service": {
+    "file": "index",
+    "export": "userLoginEventService"
+  },
+  "reason": "ログインイベント。閲覧は専用ルート（/api/admin/user-hub/[id]/login-events）、記録は recordLoginEvent（サーバー内部）。",
+  "columns": [
+    {
+      "name": "userId",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "eventType",
+      "column": {
+        "enum": "user_login_event_type",
+        "notNull": true
+      }
+    },
+    {
+      "name": "ip",
+      "column": {
+        "type": "inet",
+        "notNull": true
+      }
+    },
+    {
+      "name": "userAgent",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "occurredAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "retentionDays",
+      "column": {
+        "type": "integer",
+        "notNull": true
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "enums": [
+    {
+      "name": "user_login_event_type",
+      "values": [
+        "signup",
+        "login",
+        "logout"
+      ]
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "userId"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "user_login_events_user_id_users_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "user_login_events_user_idx",
+      "fields": [
+        "userId",
+        "occurredAt"
+      ]
+    },
+    {
+      "name": "user_login_events_ip_idx",
+      "fields": [
+        "ip",
+        "occurredAt"
+      ]
+    },
+    {
+      "name": "user_login_events_event_type_idx",
+      "fields": [
+        "eventType",
+        "occurredAt"
+      ]
+    },
+    {
+      "name": "user_login_events_created_at_idx",
+      "fields": [
+        "createdAt"
+      ]
+    }
+  ]
+}

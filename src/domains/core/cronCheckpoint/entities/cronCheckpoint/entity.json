@@ -1,0 +1,37 @@
+{
+  "plural": "cron_checkpoints",
+  "dbEngine": "Neon",
+  "generate": false,
+  "primaryKey": {
+    "columns": [
+      "name"
+    ]
+  },
+  "registered": false,
+  "columns": [
+    {
+      "name": "name",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "checkpointAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true
+      }
+    },
+    {
+      "name": "updatedAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ]
+}

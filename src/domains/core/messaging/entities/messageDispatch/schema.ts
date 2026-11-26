@@ -1,0 +1,41 @@
+// src/domains/core/messaging/entities/messageDispatch/schema.ts
+
+import { z } from "zod";
+
+/**
+ * message_dispatches.status の取り得る値（scheduled → processing → completed /
+ * completed_with_failures / cancelled）。
+ * - scheduled: 予約された送信（まだ送っていない）
+ * - processing: 送信前に作成された行。処理中、または処理が異常終了した痕跡
+ *   （processing のまま残っている行は「送信が走ったかもしれない」ことを示す）
+ * - completed: 送信処理が最後まで走り、成功/失敗件数が確定した行
+ * - completed_with_failures: 最後まで走ったが失敗した配達がある行
+ * - cancelled: 1 通も送る前に止めた送信（宛先のグループを固められなかった送信など）。
+ *   管理者の削除は status を変えず deleted_at を残す（D88）
+ */
+export const MESSAGE_DISPATCH_STATUSES = [
+  "scheduled",
+  "processing",
+  "completed",
+  "completed_with_failures",
+  "cancelled",
+] as const;
+/** 送信チャンネル 1 本の数（message_dispatches.channel_counts の値） */
+export const MessageChannelCountSchema = z.object({
+  targeted: z.number().int().nonnegative(),
+  sent: z.number().int().nonnegative(),
+  failed: z.number().int().nonnegative(),
+  skipped_no_address: z.number().int().nonnegative(),
+  skipped_throttled: z.number().int().nonnegative(),
+  suppressed: z.number().int().nonnegative(),
+});
+/** 送信チャンネルごとの数 { <channel>: MessageChannelCount }（送信チャンネルは受け口なので鍵は固定しない） */
+export const MessageChannelCountsSchema = z.record(
+  z.string(),
+  MessageChannelCountSchema,
+);
+/** 送信チャンネルごとの文字列 { <channel>: string }（message_dispatches.headings） */
+export const MessageChannelTextMapSchema = z.record(z.string(), z.string());
+export type MessageChannelCount = z.infer<typeof MessageChannelCountSchema>;
+export type MessageChannelCounts = z.infer<typeof MessageChannelCountsSchema>;
+export type MessageChannelTextMap = z.infer<typeof MessageChannelTextMapSchema>;

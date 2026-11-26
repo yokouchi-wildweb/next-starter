@@ -1,0 +1,93 @@
+{
+  "plural": "user_x_profiles",
+  "dbEngine": "Neon",
+  "generate": false,
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "idType": "uuid",
+  "apiAccess": {
+    "read": "none",
+    "write": "none"
+  },
+  "reason": "X 連携プロフィール。本人・管理の操作は専用ルートだけ（汎用 API・全件削除・データ移行には出さない）。",
+  "columns": [
+    {
+      "name": "userId",
+      "column": {
+        "type": "uuid",
+        "notNull": true,
+        "unique": true
+      }
+    },
+    {
+      "name": "xUserId",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "username",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "displayName",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "accessTokenEncrypted",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "refreshTokenEncrypted",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "tokenExpiresAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true
+      }
+    },
+    {
+      "name": "scopes",
+      "column": {
+        "type": "text[]"
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "userId"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "user_x_profiles_user_id_users_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "user_x_profiles_x_user_id_unique",
+      "fields": [
+        "xUserId"
+      ],
+      "unique": true
+    }
+  ]
+}

@@ -5,7 +5,7 @@ import { and, count, desc, eq, inArray, not, sql } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 
 import { MessageDispatchTable } from "../../../entities/drizzle";
-import { MessageInboxItemTable, MessageInboxReadStateTable, MessageInboxReadTable } from "../../../entities/inbox";
+import { MessageInboxItemTable, MessageInboxReadStateTable, MessageInboxReadTable } from "../../../entities/drizzle";
 import { inboxBeforeSql } from "./cursorSql";
 import { inboxReadSql, inboxSilentSql } from "./readState";
 import type { InboxStore } from "./types";

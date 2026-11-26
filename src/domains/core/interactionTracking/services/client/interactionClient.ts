@@ -4,7 +4,7 @@
 
 import axios from "axios";
 
-import type { InteractionIngestInput } from "@/domains/core/interactionTracking/entities/schema";
+import type { InteractionIngestInput } from "@/domains/core/interactionTracking/types/domain";
 
 const ENDPOINT = "/api/interactions";
 

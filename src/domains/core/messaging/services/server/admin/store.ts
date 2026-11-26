@@ -13,9 +13,9 @@ import { db } from "@/lib/drizzle";
 
 import { UserTable } from "@/domains/core/user/entities/drizzle";
 
-import { MessageDeliveryTable } from "../../../entities/delivery";
+import { MessageDeliveryTable } from "../../../entities/drizzle";
 import { MessageDispatchTable } from "../../../entities/drizzle";
-import { MessageInboxItemTable, MessageInboxReadTable } from "../../../entities/inbox";
+import { MessageInboxItemTable, MessageInboxReadTable } from "../../../entities/drizzle";
 import type { MessageDeliveryStatus } from "../../../entities/model";
 import { isDispatchId } from "../dispatchId";
 import { dispatchSentBySql } from "../dispatchSentBy";

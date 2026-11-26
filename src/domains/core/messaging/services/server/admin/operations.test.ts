@@ -18,7 +18,7 @@ import type { AuditRecordInput } from "@/lib/audit";
 import { DomainError } from "@/lib/errors";
 
 import type { MessageDispatch } from "../../../entities/model";
-import { MESSAGE_EXPAND_DONE } from "../../../entities/schema";
+import { MESSAGE_EXPAND_DONE } from "../../../constants/domain";
 import type { AnyResolvedMessageDefinition } from "../sendMessage/definition";
 import { defineTestMessage } from "../sendMessage/testHelpers";
 import type { SendMessageToManyInput } from "../sendMessage/types";

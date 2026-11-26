@@ -6,11 +6,7 @@ import {
   InteractionCounterTable,
   InteractionEventTable,
 } from "@/domains/core/interactionTracking/entities/drizzle";
-import type {
-  InteractionAudienceEntry,
-  InteractionAudienceOrderBy,
-  InteractionAudienceSummaryMap,
-} from "@/domains/core/interactionTracking/entities/model";
+import type { InteractionAudienceEntry, InteractionAudienceOrderBy, InteractionAudienceSummaryMap } from "@/domains/core/interactionTracking/types/domain";
 import { UserTable } from "@/domains/core/user/entities/drizzle";
 import type { PaginatedResult } from "@/lib/crud";
 import { db } from "@/lib/drizzle";

@@ -1,0 +1,62 @@
+{
+  "plural": "user_daily_counters",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "user_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "counter_key",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "date",
+      "column": {
+        "type": "date",
+        "notNull": true
+      }
+    },
+    {
+      "name": "count",
+      "column": {
+        "type": "integer",
+        "notNull": true,
+        "default": 0
+      }
+    },
+    {
+      "name": "retention_days",
+      "column": {
+        "type": "integer",
+        "notNull": true
+      }
+    }
+  ],
+  "indexes": [
+    {
+      "name": "user_daily_counters_user_key_date_uq",
+      "fields": [
+        "user_id",
+        "counter_key",
+        "date"
+      ],
+      "unique": true
+    },
+    {
+      "name": "user_daily_counters_date_idx",
+      "fields": [
+        "date"
+      ]
+    }
+  ]
+}

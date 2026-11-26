@@ -1,0 +1,198 @@
+{
+  "plural": "storage_objects",
+  "dbEngine": "Neon",
+  "generate": false,
+  "useSoftDelete": true,
+  "primaryKey": {
+    "columns": [
+      "id"
+    ]
+  },
+  "registered": false,
+  "columns": [
+    {
+      "name": "id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "purpose",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "status",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "store",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "key",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "ownerUserId",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "scopeId",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "declaredSize",
+      "column": {
+        "type": "bigint",
+        "notNull": true
+      }
+    },
+    {
+      "name": "size",
+      "column": {
+        "type": "bigint"
+      }
+    },
+    {
+      "name": "contentType",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "generation",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "transferKind",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "sessionUri",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "recordType",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "recordId",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "recordField",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "expiresAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "readyAt",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "objectRemovedAt",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "reason",
+      "column": {
+        "type": "text"
+      }
+    }
+  ],
+  "indexes": [
+    {
+      "name": "storage_objects_store_key_idx",
+      "fields": [
+        "store",
+        "key"
+      ],
+      "unique": true
+    },
+    {
+      "name": "storage_objects_status_expires_idx",
+      "fields": [
+        "status",
+        "expiresAt"
+      ]
+    },
+    {
+      "name": "storage_objects_owner_status_idx",
+      "fields": [
+        "ownerUserId",
+        "status"
+      ]
+    },
+    {
+      "name": "storage_objects_record_idx",
+      "fields": [
+        "recordType",
+        "recordId"
+      ]
+    },
+    {
+      "name": "storage_objects_status_ready_idx",
+      "fields": [
+        "status",
+        "readyAt"
+      ]
+    },
+    {
+      "name": "storage_objects_removal_idx",
+      "fields": [
+        "status",
+        "objectRemovedAt"
+      ]
+    }
+  ]
+}

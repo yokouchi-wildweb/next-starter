@@ -1,0 +1,95 @@
+{
+  "plural": "fingerprint_challenge_access_events",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "challengeId",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "userId",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "ip",
+      "column": {
+        "type": "inet"
+      }
+    },
+    {
+      "name": "userAgent",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "accessedAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "retentionDays",
+      "column": {
+        "type": "integer",
+        "notNull": true
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "challengeId"
+      ],
+      "references": {
+        "table": "fingerprint_challenges",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "fp_challenge_access_events_challenge_fk"
+    },
+    {
+      "columns": [
+        "userId"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "fp_challenge_access_events_user_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "fp_challenge_access_events_challenge_idx",
+      "fields": [
+        "challengeId",
+        "accessedAt"
+      ]
+    },
+    {
+      "name": "fp_challenge_access_events_accessed_at_idx",
+      "fields": [
+        "accessedAt"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "plural": "message_dispatch_recipients",
+  "dbEngine": "Neon",
+  "generate": false,
+  "primaryKey": {
+    "columns": [
+      "dispatch_id",
+      "user_id"
+    ],
+    "name": "message_dispatch_recipients_pk"
+  },
+  "registered": false,
+  "columns": [
+    {
+      "name": "dispatch_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "user_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "dispatch_id"
+      ],
+      "references": {
+        "table": "message_dispatches",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "msg_drecip_dispatch_fk"
+    },
+    {
+      "columns": [
+        "user_id"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "msg_drecip_user_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "msg_drecip_user_idx",
+      "fields": [
+        "user_id"
+      ]
+    }
+  ]
+}

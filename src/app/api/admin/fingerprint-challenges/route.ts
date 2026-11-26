@@ -8,7 +8,7 @@
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
-import { IssueChallengeSchema } from "@/domains/core/fingerprintChallenge/entities/schema";
+import { IssueChallengeSchema } from "@/domains/core/fingerprintChallenge/constants/domain";
 import { issueChallenge } from "@/domains/core/fingerprintChallenge/services/server";
 import { userService } from "@/domains/core/user/services/server/userService";
 

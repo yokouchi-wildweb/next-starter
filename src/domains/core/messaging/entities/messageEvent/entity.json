@@ -1,0 +1,147 @@
+{
+  "plural": "message_events",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "delivery_id",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "seq",
+      "column": {
+        "type": "bigint",
+        "notNull": true,
+        "identity": "always"
+      }
+    },
+    {
+      "name": "dispatch_id",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "message_key",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "channel",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "provider",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "type",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "occurred_at",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true
+      }
+    },
+    {
+      "name": "provider_event_id",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "payload",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "delivery_id"
+      ],
+      "references": {
+        "table": "message_deliveries",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "message_events_delivery_id_message_deliveries_id_fk"
+    },
+    {
+      "columns": [
+        "dispatch_id"
+      ],
+      "references": {
+        "table": "message_dispatches",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "message_events_dispatch_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "uq_message_events_provider_event",
+      "fields": [
+        "provider",
+        "provider_event_id"
+      ],
+      "unique": true
+    },
+    {
+      "name": "idx_message_events_delivery",
+      "fields": [
+        "delivery_id"
+      ]
+    },
+    {
+      "name": "idx_message_events_created_at",
+      "fields": [
+        "createdAt"
+      ]
+    },
+    {
+      "name": "idx_message_events_seq",
+      "fields": [
+        "seq"
+      ]
+    },
+    {
+      "name": "idx_message_events_dispatch",
+      "fields": [
+        "dispatch_id"
+      ]
+    }
+  ]
+}

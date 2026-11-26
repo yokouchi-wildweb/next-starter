@@ -1,0 +1,105 @@
+{
+  "plural": "message_templates",
+  "dbEngine": "Neon",
+  "generate": false,
+  "useUpdatedAt": true,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "key",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "name",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "description",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "category",
+      "column": {
+        "type": "text",
+        "notNull": true,
+        "default": "promotion"
+      }
+    },
+    {
+      "name": "layout",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "layout_version",
+      "column": {
+        "type": "integer",
+        "notNull": true,
+        "default": 1
+      }
+    },
+    {
+      "name": "values",
+      "column": {
+        "type": "jsonb",
+        "notNull": true
+      }
+    },
+    {
+      "name": "vars",
+      "column": {
+        "type": "jsonb",
+        "notNull": true,
+        "default": []
+      }
+    },
+    {
+      "name": "current_version",
+      "column": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "created_by",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "updated_by",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "indexes": [
+    {
+      "name": "uq_message_templates_key",
+      "fields": [
+        "key"
+      ],
+      "unique": true
+    }
+  ]
+}

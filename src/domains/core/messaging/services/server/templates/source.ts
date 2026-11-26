@@ -7,7 +7,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 
 import type { MessageTemplateVersion } from "../../../entities/model";
-import { MessageTemplateTable, MessageTemplateVersionTable } from "../../../entities/template";
+import { MessageTemplateTable, MessageTemplateVersionTable } from "../../../entities/drizzle";
 import type { MessageTemplateSource, MessageTemplateVersionSource } from "../sendMessage/types";
 
 function toSource(key: string, row: MessageTemplateVersion): MessageTemplateVersionSource {

@@ -3,7 +3,7 @@
 import { and, asc, eq, gte, lte, sql } from "drizzle-orm";
 
 import { InteractionDailyCounterTable } from "@/domains/core/interactionTracking/entities/drizzle";
-import type { InteractionDailySeriesPoint } from "@/domains/core/interactionTracking/entities/model";
+import type { InteractionDailySeriesPoint } from "@/domains/core/interactionTracking/types/domain";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 

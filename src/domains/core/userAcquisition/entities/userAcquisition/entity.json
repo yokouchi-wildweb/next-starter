@@ -1,0 +1,154 @@
+{
+  "plural": "user_acquisitions",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "userId",
+      "column": {
+        "type": "uuid",
+        "notNull": true,
+        "unique": true
+      }
+    },
+    {
+      "name": "firstUtmSource",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "firstUtmMedium",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "firstUtmCampaign",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "firstReferrerHost",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "firstLandingPage",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "firstTouchAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true
+      }
+    },
+    {
+      "name": "lastUtmSource",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "lastUtmMedium",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "lastUtmCampaign",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "lastReferrerHost",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "lastLandingPage",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "lastTouchAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true
+      }
+    },
+    {
+      "name": "touchCount",
+      "column": {
+        "type": "integer",
+        "notNull": true
+      }
+    },
+    {
+      "name": "signupAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true
+      }
+    },
+    {
+      "name": "extras",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "updatedAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "userId"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "user_acquisitions_user_id_users_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "user_acquisitions_signup_at_idx",
+      "fields": [
+        "signupAt"
+      ]
+    }
+  ]
+}

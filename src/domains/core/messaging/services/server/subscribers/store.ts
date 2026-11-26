@@ -6,9 +6,9 @@ import { and, asc, eq, gt, inArray, isNotNull, lte, max, min, sql } from "drizzl
 
 import { db } from "@/lib/drizzle";
 
-import { MessageEventTable } from "../../../entities/delivery";
+import { MessageEventTable } from "../../../entities/drizzle";
 import type { MessageEventRow } from "../../../entities/model";
-import { MessageSubscriberCursorTable, MessageSubscriberFailureTable } from "../../../entities/subscriber";
+import { MessageSubscriberCursorTable, MessageSubscriberFailureTable } from "../../../entities/drizzle";
 import type { SubscriberEvent, SubscriberStore } from "./types";
 
 const e = MessageEventTable;

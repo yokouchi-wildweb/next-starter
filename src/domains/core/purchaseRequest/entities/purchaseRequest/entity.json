@@ -1,0 +1,334 @@
+{
+  "plural": "purchase_requests",
+  "dbEngine": "Neon",
+  "generate": false,
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "idType": "uuid",
+  "apiAccess": {
+    "read": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "write": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "operations": {
+      "truncateAll": {
+        "roleCategories": [
+          "admin"
+        ]
+      },
+      "export": {
+        "roleCategories": [
+          "admin"
+        ]
+      },
+      "import": {
+        "roleCategories": [
+          "admin"
+        ]
+      }
+    }
+  },
+  "requires": [
+    "wallet",
+    "walletHistory"
+  ],
+  "reason": "ユーザー所有データ。汎用 API は admin 限定（wallet と同じ）。",
+  "columns": [
+    {
+      "name": "user_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "wallet_history_id",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "idempotency_key",
+      "column": {
+        "type": "uuid",
+        "notNull": true,
+        "unique": true
+      }
+    },
+    {
+      "name": "purchase_type",
+      "column": {
+        "enum": "purchaseRequest_purchase_type_enum",
+        "notNull": true,
+        "default": "wallet_topup"
+      }
+    },
+    {
+      "name": "wallet_type",
+      "column": {
+        "enum": "purchaseRequest_wallet_type_enum"
+      }
+    },
+    {
+      "name": "amount",
+      "column": {
+        "type": "integer",
+        "notNull": true
+      }
+    },
+    {
+      "name": "payment_amount",
+      "column": {
+        "type": "integer",
+        "notNull": true
+      }
+    },
+    {
+      "name": "payment_method",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "status",
+      "column": {
+        "enum": "purchaseRequest_status_enum",
+        "notNull": true
+      }
+    },
+    {
+      "name": "payment_provider",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "payment_session_id",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "provider_order_id",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "transaction_id",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "redirect_url",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "error_code",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "error_message",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "webhook_signature",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "coupon_code",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "discount_amount",
+      "column": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "original_payment_amount",
+      "column": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "coupon_redeem_failed",
+      "column": {
+        "type": "boolean",
+        "default": false
+      }
+    },
+    {
+      "name": "milestone_results",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "metadata",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "completed_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "paid_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "expires_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    }
+  ],
+  "enums": [
+    {
+      "name": "purchaseRequest_purchase_type_enum",
+      "valuesFrom": {
+        "file": "src/domains/core/purchaseRequest/entities/drizzle.ts",
+        "export": "purchaseTypes"
+      }
+    },
+    {
+      "name": "purchaseRequest_wallet_type_enum",
+      "valuesFrom": {
+        "file": "src/domains/core/purchaseRequest/entities/drizzle.ts",
+        "export": "purchaseRequestWalletTypes"
+      }
+    },
+    {
+      "name": "purchaseRequest_status_enum",
+      "values": [
+        "pending",
+        "processing",
+        "completed",
+        "failed",
+        "expired"
+      ]
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "user_id"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "purchase_requests_user_id_users_id_fk"
+    },
+    {
+      "columns": [
+        "wallet_history_id"
+      ],
+      "references": {
+        "table": "wallet_histories",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "purchase_requests_wallet_history_id_wallet_histories_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "purchase_requests_payment_session_id_idx",
+      "fields": [
+        "payment_session_id"
+      ]
+    },
+    {
+      "name": "purchase_requests_provider_order_id_idx",
+      "fields": [
+        "provider_order_id"
+      ]
+    },
+    {
+      "name": "purchase_requests_status_idx",
+      "fields": [
+        "status"
+      ]
+    },
+    {
+      "name": "purchase_requests_user_id_status_idx",
+      "fields": [
+        "user_id",
+        "status"
+      ]
+    },
+    {
+      "name": "purchase_requests_status_completed_at_idx",
+      "fields": [
+        "status",
+        "completed_at"
+      ]
+    },
+    {
+      "name": "purchase_requests_user_completed_at_idx",
+      "fields": [
+        "user_id",
+        "completed_at"
+      ]
+    },
+    {
+      "name": "purchase_requests_wallet_type_completed_at_idx",
+      "fields": [
+        "wallet_type",
+        "completed_at"
+      ]
+    },
+    {
+      "name": "purchase_requests_purchase_type_completed_at_idx",
+      "fields": [
+        "purchase_type",
+        "completed_at"
+      ]
+    },
+    {
+      "name": "purchase_requests_provider_completed_at_idx",
+      "fields": [
+        "payment_provider",
+        "completed_at"
+      ]
+    },
+    {
+      "name": "purchase_requests_status_expires_at_idx",
+      "fields": [
+        "status",
+        "expires_at"
+      ]
+    }
+  ]
+}

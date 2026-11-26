@@ -6,14 +6,8 @@
 // server コードからの利用は専用パスを使う:
 //   import { issueChallenge, submitChallenge } from "@/domains/core/fingerprintChallenge/services/server";
 
-export type {
-  FingerprintChallenge,
-  FingerprintChallengeForUser,
-  FingerprintChallengeAccessEvent,
-  IssueChallengeInput,
-  SubmitChallengeInput,
-  MarkChallengeNotifiedInput,
-} from "./entities";
+export type { FingerprintChallenge, FingerprintChallengeForUser, FingerprintChallengeAccessEvent } from "./entities";
+export type { IssueChallengeInput, SubmitChallengeInput, MarkChallengeNotifiedInput } from "./types/domain";
 export {
   FINGERPRINT_CHALLENGE_STATUSES,
   type FingerprintChallengeStatus,

@@ -1,0 +1,43 @@
+// src/domains/core/auditLog/entities/auditLog/schema.ts
+
+import { AUDIT_ACTOR_TYPES } from "@/domains/core/auditLog/constants";
+import { z } from "zod";
+
+/**
+ * action 名の規約: "<domain>.<entity>.<verb>" 形式。
+ * 例: "user.email.changed", "post.published", "order.refunded"
+ *
+ * 大文字 / ハイフン / 連続ドット / 数字始まりは禁止。
+ */
+const ACTION_NAME_PATTERN = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/;
+export const AuditLogCreateSchema = z.object({
+  targetType: z.string().min(1).max(64),
+  targetId: z.string().min(1).max(256),
+  /**
+   * 操作対象のユーザー ID（"data subject"）。target_type='user' なら targetId と同値、
+   * 関連エンティティの場合はそのユーザー ID、特定不能な場合は null。
+   * actor (実行者) と概念分離するため独立カラム化されている。
+   */
+  subjectUserId: z.string().min(1).max(256).nullable().optional(),
+  actorId: z.string().nullable(),
+  actorType: z.enum(AUDIT_ACTOR_TYPES),
+  action: z
+    .string()
+    .min(3)
+    .max(128)
+    .regex(ACTION_NAME_PATTERN, {
+      message: "action は <domain>.<entity>.<verb> 形式（小文字 / アンダースコア / ドット）で記述してください",
+    }),
+  beforeValue: z.unknown().nullable(),
+  afterValue: z.unknown().nullable(),
+  context: z.unknown().nullable(),
+  metadata: z.unknown().nullable(),
+  reason: z.string().nullable(),
+  retentionDays: z.number().int().positive().max(365 * 50),
+  /**
+   * バッチ記録 (recordMany / recordManyDiff) のグルーピング UUID。
+   * 単件記録時は null / 省略可。
+   */
+  batchId: z.string().uuid().nullable().optional(),
+});
+export type AuditLogCreateInput = z.infer<typeof AuditLogCreateSchema>;

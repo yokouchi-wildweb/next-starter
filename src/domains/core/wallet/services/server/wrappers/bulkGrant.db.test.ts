@@ -43,8 +43,8 @@ describe("bulkGrant(実 DB)", { skip }, () => {
     const { USER_PROVIDER_TYPES } = await import("@/domains/core/user/constants");
     const { WalletTable } = await import("@/domains/core/wallet/entities/drizzle");
     const { WalletHistoryTable } = await import("@/domains/core/walletHistory/entities/drizzle");
-    const { MessageInboxItemTable } = await import("@/domains/core/messaging/entities/inbox");
-    const { MessageDeliveryTable } = await import("@/domains/core/messaging/entities/delivery");
+    const { MessageInboxItemTable } = await import("@/domains/core/messaging/entities/drizzle");
+    const { MessageDeliveryTable } = await import("@/domains/core/messaging/entities/drizzle");
     const { MessageDispatchTable } = await import("@/domains/core/messaging/entities/drizzle");
     makeUser = async (over = {}) => {
       const [row] = await db

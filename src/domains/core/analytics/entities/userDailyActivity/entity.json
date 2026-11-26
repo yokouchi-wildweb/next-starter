@@ -1,0 +1,49 @@
+{
+  "plural": "user_daily_activities",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "userId",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "activityDate",
+      "column": {
+        "type": "date",
+        "notNull": true
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "indexes": [
+    {
+      "name": "user_daily_activities_user_date_idx",
+      "fields": [
+        "userId",
+        "activityDate"
+      ],
+      "unique": true
+    },
+    {
+      "name": "user_daily_activities_activity_date_idx",
+      "fields": [
+        "activityDate"
+      ]
+    }
+  ]
+}

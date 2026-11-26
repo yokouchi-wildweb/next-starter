@@ -9,7 +9,7 @@
 
 import { userAcquisitionConfig } from "@/domains/core/userAcquisition/config";
 import { REFERRAL_MEDIUM } from "@/domains/core/userAcquisition/constants";
-import type { AttributionCookieTouch } from "@/domains/core/userAcquisition/entities/schema";
+import type { AttributionCookieTouch } from "@/domains/core/userAcquisition/types/domain";
 import { userAcquisitionChannels } from "@/domains/core/userAcquisition/extensions/userAcquisitionChannels";
 import { gate } from "@/featureGate";
 import type {

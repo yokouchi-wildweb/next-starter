@@ -9,13 +9,13 @@ import { db } from "@/lib/drizzle";
 import { UserTable } from "@/domains/core/user/entities/drizzle";
 import { availableUserWhere } from "@/domains/core/user/services/server/availableUsers";
 
-import { MessageDeliveryTable, MessageEventTable } from "../../../entities/delivery";
+import { MessageDeliveryTable, MessageEventTable } from "../../../entities/drizzle";
 import { MessageDispatchTable } from "../../../entities/drizzle";
-import { MessageEndpointTable } from "../../../entities/endpoint";
-import { MessageIdempotencyKeyTable } from "../../../entities/idempotencyKey";
-import { MessagePreferenceTable, MessageSuppressionTable } from "../../../entities/preference";
-import { MessageDispatchRecipientTable } from "../../../entities/recipient";
-import { MESSAGE_ALL } from "../../../entities/schema";
+import { MessageEndpointTable } from "../../../entities/drizzle";
+import { MessageIdempotencyKeyTable } from "../../../entities/drizzle";
+import { MessagePreferenceTable, MessageSuppressionTable } from "../../../entities/drizzle";
+import { MessageDispatchRecipientTable } from "../../../entities/drizzle";
+import { MESSAGE_ALL } from "../../../constants/domain";
 import { MessageIdempotencyConflict } from "./errors";
 import type { MessageSendStore } from "./types";
 

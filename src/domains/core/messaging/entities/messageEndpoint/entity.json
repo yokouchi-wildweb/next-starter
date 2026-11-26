@@ -1,0 +1,98 @@
+{
+  "plural": "message_endpoints",
+  "dbEngine": "Neon",
+  "generate": false,
+  "useUpdatedAt": true,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "user_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "channel",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "address",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "kind",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "metadata",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "is_active",
+      "column": {
+        "type": "boolean",
+        "notNull": true,
+        "default": true
+      }
+    },
+    {
+      "name": "last_used_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "user_id"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "message_endpoints_user_id_users_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "uq_message_endpoints_channel_address",
+      "fields": [
+        "channel",
+        "address"
+      ],
+      "unique": true
+    },
+    {
+      "name": "idx_message_endpoints_user",
+      "fields": [
+        "user_id"
+      ]
+    }
+  ]
+}

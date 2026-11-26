@@ -1,0 +1,61 @@
+{
+  "singular": "sample_category",
+  "plural": "sample_categories",
+  "label": "サンプルカテゴリ",
+  "dbEngine": "Neon",
+  "idType": "uuid",
+  "relations": [
+    {
+      "domain": "sample",
+      "label": "サンプル",
+      "fieldName": "sample_category_id",
+      "relationType": "hasMany"
+    }
+  ],
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "fields": [
+    {
+      "name": "name",
+      "label": "カテゴリ名",
+      "fieldType": "string",
+      "formInput": "textInput",
+      "required": true
+    },
+    {
+      "name": "description",
+      "label": "説明文",
+      "fieldType": "string",
+      "formInput": "textarea",
+      "required": false
+    }
+  ],
+  "searchFields": [
+    "name",
+    "description"
+  ],
+  "defaultOrderBy": [
+    [
+      "updatedAt",
+      "DESC"
+    ]
+  ],
+  "tableFields": [
+    "name",
+    "description",
+    "updatedAt"
+  ],
+  "useDetailModal": false,
+  "useDuplicateButton": false,
+  "useImportExport": true,
+  "addToAdminDataMenu": true,
+  "useAutoSave": false,
+  "apiAccess": {
+    "read": "public",
+    "write": {
+      "roleCategories": [
+        "admin"
+      ]
+    }
+  }
+}

@@ -1,0 +1,172 @@
+{
+  "plural": "message_inbox_items",
+  "dbEngine": "Neon",
+  "generate": false,
+  "useUpdatedAt": true,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "dispatch_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "user_id",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "target_roles",
+      "column": {
+        "type": "text[]"
+      }
+    },
+    {
+      "name": "title",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "body",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "link",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "image",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "layout",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "layout_version",
+      "column": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "values",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "metadata",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "published_at",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true
+      }
+    },
+    {
+      "name": "throttle_key",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "collapsed_count",
+      "column": {
+        "type": "integer",
+        "notNull": true,
+        "default": 1
+      }
+    },
+    {
+      "name": "collapsed_dispatch_ids",
+      "column": {
+        "type": "uuid[]"
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "dispatch_id"
+      ],
+      "references": {
+        "table": "message_dispatches",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "message_inbox_items_dispatch_id_message_dispatches_id_fk"
+    },
+    {
+      "columns": [
+        "user_id"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "message_inbox_items_user_id_users_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "idx_message_inbox_items_user_published",
+      "fields": [
+        "user_id",
+        "published_at"
+      ]
+    },
+    {
+      "name": "idx_message_inbox_items_published_id",
+      "fields": [
+        "published_at",
+        "id"
+      ]
+    },
+    {
+      "name": "idx_message_inbox_items_dispatch",
+      "fields": [
+        "dispatch_id"
+      ]
+    },
+    {
+      "name": "idx_message_inbox_items_user_throttle",
+      "fields": [
+        "user_id",
+        "throttle_key"
+      ]
+    }
+  ]
+}

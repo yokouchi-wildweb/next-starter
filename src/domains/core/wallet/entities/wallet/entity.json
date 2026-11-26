@@ -1,0 +1,129 @@
+{
+  "plural": "wallets",
+  "dbEngine": "Neon",
+  "generate": false,
+  "useUpdatedAt": true,
+  "idType": "uuid",
+  "apiAccess": {
+    "read": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "write": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "operations": {
+      "truncateAll": {
+        "roleCategories": [
+          "admin"
+        ]
+      },
+      "export": {
+        "roleCategories": [
+          "admin"
+        ]
+      },
+      "import": {
+        "roleCategories": [
+          "admin"
+        ]
+      }
+    }
+  },
+  "reason": "ユーザー所有データ。オーナーシップ強制の /api/me/ 専用ルートへ移行するまで汎用 API は admin 限定に維持する。",
+  "columns": [
+    {
+      "name": "user_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "type",
+      "column": {
+        "enum": "wallet_type_enum",
+        "notNull": true
+      }
+    },
+    {
+      "name": "balance",
+      "column": {
+        "type": "integer",
+        "notNull": true,
+        "default": 0
+      }
+    },
+    {
+      "name": "locked_balance",
+      "column": {
+        "type": "integer",
+        "notNull": true,
+        "default": 0
+      }
+    }
+  ],
+  "enums": [
+    {
+      "name": "wallet_type_enum",
+      "valuesFrom": {
+        "file": "src/domains/core/wallet/entities/drizzle.ts",
+        "export": "walletTypes"
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "user_id"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "wallets_user_id_users_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "wallets_user_type_idx",
+      "fields": [
+        "user_id",
+        "type"
+      ],
+      "unique": true
+    },
+    {
+      "name": "wallets_type_balance_idx",
+      "fields": [
+        "type",
+        "balance"
+      ],
+      "desc": [
+        "balance"
+      ]
+    },
+    {
+      "name": "wallets_type_locked_balance_idx",
+      "fields": [
+        "type",
+        "locked_balance"
+      ],
+      "desc": [
+        "locked_balance"
+      ]
+    },
+    {
+      "name": "wallets_updated_at_idx",
+      "fields": [
+        "updatedAt"
+      ]
+    }
+  ]
+}

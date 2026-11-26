@@ -1,0 +1,164 @@
+{
+  "plural": "device_pairings",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "flow",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "status",
+      "column": {
+        "type": "text",
+        "notNull": true,
+        "default": "pending"
+      }
+    },
+    {
+      "name": "deviceId",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "codeHash",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "pendingTokenHash",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "expiresAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true
+      }
+    },
+    {
+      "name": "createdBy",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "approvedBy",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "approvedAt",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "completedAt",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "requestIp",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "requestUserAgent",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "deviceId"
+      ],
+      "references": {
+        "table": "paired_devices",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "device_pairings_device_fk"
+    },
+    {
+      "columns": [
+        "createdBy"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "SET_NULL",
+      "name": "device_pairings_created_by_fk"
+    },
+    {
+      "columns": [
+        "approvedBy"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "SET_NULL",
+      "name": "device_pairings_approved_by_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "device_pairings_code_hash_idx",
+      "fields": [
+        "codeHash"
+      ]
+    },
+    {
+      "name": "device_pairings_pending_token_idx",
+      "fields": [
+        "pendingTokenHash"
+      ]
+    },
+    {
+      "name": "device_pairings_device_idx",
+      "fields": [
+        "deviceId",
+        "createdAt"
+      ]
+    },
+    {
+      "name": "device_pairings_expires_at_idx",
+      "fields": [
+        "expiresAt"
+      ]
+    }
+  ]
+}

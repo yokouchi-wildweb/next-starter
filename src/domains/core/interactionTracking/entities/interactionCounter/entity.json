@@ -1,0 +1,78 @@
+{
+  "plural": "interaction_counters",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "targetType",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "targetId",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "action",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "shard",
+      "column": {
+        "type": "smallint",
+        "notNull": true,
+        "default": 0
+      }
+    },
+    {
+      "name": "count",
+      "column": {
+        "type": "bigint",
+        "notNull": true,
+        "default": 0
+      }
+    },
+    {
+      "name": "firstOccurredAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "lastOccurredAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "indexes": [
+    {
+      "name": "interaction_counters_target_action_shard_uq",
+      "fields": [
+        "targetType",
+        "targetId",
+        "action",
+        "shard"
+      ],
+      "unique": true
+    }
+  ]
+}

@@ -4,8 +4,8 @@ import { and, eq } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 
-import { MessagePreferenceTable } from "../../../entities/preference";
-import { MESSAGE_ALL } from "../../../entities/schema";
+import { MessagePreferenceTable } from "../../../entities/drizzle";
+import { MESSAGE_ALL } from "../../../constants/domain";
 import type { MessagePreferenceStore } from "./types";
 
 const P = MessagePreferenceTable;

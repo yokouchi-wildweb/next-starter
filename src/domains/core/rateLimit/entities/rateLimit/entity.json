@@ -1,0 +1,73 @@
+{
+  "generate": false,
+  "singular": "rate_limit",
+  "plural": "rate_limits",
+  "label": "レート制限",
+  "dbEngine": "Neon",
+  "idType": "string",
+  "relations": [],
+  "useCreatedAt": false,
+  "useUpdatedAt": false,
+  "useSoftDelete": false,
+  "fields": [
+    {
+      "name": "count",
+      "label": "カウント",
+      "fieldType": "integer",
+      "formInput": "none",
+      "required": true,
+      "defaultValue": 1
+    },
+    {
+      "name": "window_start",
+      "label": "ウィンドウ開始",
+      "fieldType": "timestamp With Time Zone",
+      "formInput": "none",
+      "required": true
+    },
+    {
+      "name": "expires_at",
+      "label": "有効期限",
+      "fieldType": "timestamp With Time Zone",
+      "formInput": "none",
+      "required": true
+    }
+  ],
+  "searchFields": [],
+  "defaultOrderBy": [
+    [
+      "expires_at",
+      "DESC"
+    ]
+  ],
+  "apiAccess": {
+    "read": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "write": {
+      "roleCategories": [
+        "admin"
+      ]
+    }
+  },
+  "registered": false,
+  "columns": [
+    {
+      "name": "key",
+      "column": {
+        "type": "text"
+      }
+    }
+  ],
+  "indexes": [
+    {
+      "name": "rate_limits_key_window_idx",
+      "fields": [
+        "key",
+        "window_start"
+      ]
+    }
+  ]
+}

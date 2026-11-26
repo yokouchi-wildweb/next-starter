@@ -9,7 +9,7 @@
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
-import { InteractionIngestSchema } from "@/domains/core/interactionTracking/entities/schema";
+import { InteractionIngestSchema } from "@/domains/core/interactionTracking/constants/domain";
 import { record, targetRuleOf } from "@/domains/core/interactionTracking/services/server";
 
 export const POST = createApiRoute(

@@ -1,0 +1,75 @@
+{
+  "plural": "message_inbox_reads",
+  "dbEngine": "Neon",
+  "generate": false,
+  "primaryKey": {
+    "columns": [
+      "item_id",
+      "user_id"
+    ],
+    "name": "message_inbox_reads_item_id_user_id_pk"
+  },
+  "registered": false,
+  "columns": [
+    {
+      "name": "item_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "user_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "read_at",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "item_id"
+      ],
+      "references": {
+        "table": "message_inbox_items",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "message_inbox_reads_item_id_message_inbox_items_id_fk"
+    },
+    {
+      "columns": [
+        "user_id"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "message_inbox_reads_user_id_users_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "idx_message_inbox_reads_user",
+      "fields": [
+        "user_id"
+      ]
+    }
+  ]
+}

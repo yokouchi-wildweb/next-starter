@@ -18,13 +18,8 @@ import { pairedDeviceConfig } from "@/domains/pairedDevice/config";
 import { auditLogger } from "@/domains/core/auditLog/services/server";
 import { DEVICE_PAIRING_AUDIT_TARGET } from "@/domains/pairedDevice/constants";
 import { DevicePairingTable } from "@/domains/pairedDevice/entities/drizzle";
-import type {
-  DevicePairing,
-  DevicePairingRequestForApprover,
-  EffectiveDevicePairingStatus,
-  PairedDevice,
-  SessionDevice,
-} from "@/domains/pairedDevice/entities/model";
+import type { DevicePairing, DevicePairingRequestForApprover, EffectiveDevicePairingStatus, PairedDevice } from "@/domains/pairedDevice/entities/model";
+import type { SessionDevice } from "@/domains/pairedDevice/types/domain";
 import type { ApproveDevicePairingInput } from "@/domains/pairedDevice/entities/schema";
 import {
   formatShortCode,

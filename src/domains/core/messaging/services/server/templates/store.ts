@@ -5,7 +5,7 @@ import { and, desc, eq, ilike, inArray, isNotNull, isNull, lt, or } from "drizzl
 import { db, type TransactionClient } from "@/lib/drizzle";
 
 import { MessageDispatchTable } from "../../../entities/drizzle";
-import { MessageTemplateTable, MessageTemplateVersionTable } from "../../../entities/template";
+import { MessageTemplateTable, MessageTemplateVersionTable } from "../../../entities/drizzle";
 import { ilikeContains, jsonbTextContains } from "../admin/textSearch";
 import type { MessageTemplateStore } from "./types";
 

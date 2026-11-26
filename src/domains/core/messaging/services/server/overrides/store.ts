@@ -6,7 +6,7 @@ import { and, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 
-import { MessageOverrideTable } from "../../../entities/override";
+import { MessageOverrideTable } from "../../../entities/drizzle";
 import type { MessageOverrideRecord, MessageOverrideStore } from "./types";
 
 const columns = {

@@ -5,7 +5,7 @@
 
 import { sql, type SQL } from "drizzle-orm";
 
-import { MessageInboxItemTable } from "../../../entities/inbox";
+import { MessageInboxItemTable } from "../../../entities/drizzle";
 
 /** (published_at, id) が印より前(新しい順の続き) */
 export function inboxBeforeSql(before: { publishedAt: Date; id: string }): SQL {

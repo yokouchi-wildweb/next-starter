@@ -1,0 +1,101 @@
+{
+  "plural": "message_template_versions",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "template_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "version",
+      "column": {
+        "type": "integer",
+        "notNull": true
+      }
+    },
+    {
+      "name": "layout",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "layout_version",
+      "column": {
+        "type": "integer",
+        "notNull": true,
+        "default": 1
+      }
+    },
+    {
+      "name": "values",
+      "column": {
+        "type": "jsonb",
+        "notNull": true
+      }
+    },
+    {
+      "name": "vars",
+      "column": {
+        "type": "jsonb",
+        "notNull": true,
+        "default": []
+      }
+    },
+    {
+      "name": "category",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "edited_by",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "template_id"
+      ],
+      "references": {
+        "table": "message_templates",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "message_template_versions_template_id_message_templates_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "uq_message_template_versions_version",
+      "fields": [
+        "template_id",
+        "version"
+      ],
+      "unique": true
+    }
+  ]
+}

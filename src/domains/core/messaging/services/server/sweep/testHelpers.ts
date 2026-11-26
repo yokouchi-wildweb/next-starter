@@ -3,7 +3,7 @@
 // 掃き出し・保持の単体テストの部品: 送る口のメモリの store に、掃き出しと保持の操作を足す(SQL と同じ規則)。テストだけが読む。
 
 import type { MessageDispatch, MessageDeliveryInsert, MessageInboxItemInsert } from "../../../entities/model";
-import { MESSAGE_EXPAND_DONE } from "../../../entities/schema";
+import { MESSAGE_EXPAND_DONE } from "../../../constants/domain";
 import { createDeps, createMemoryStore, type MemoryStore } from "../sendMessage/testHelpers";
 import { boundInboxImageRefs } from "../inbox/imageBinding";
 import type { MessageSendDeps } from "../sendMessage/types";

@@ -1,0 +1,137 @@
+{
+  "plural": "interaction_events",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "apiAccess": {
+    "read": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "write": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "operations": {
+      "truncateAll": {
+        "roleCategories": [
+          "admin"
+        ]
+      },
+      "export": {
+        "roleCategories": [
+          "admin"
+        ]
+      },
+      "import": {
+        "roleCategories": [
+          "admin"
+        ]
+      }
+    }
+  },
+  "service": {
+    "file": "interactionService",
+    "export": "interactionService"
+  },
+  "reason": "汎用インタラクション計測。書き込み主経路は公開 ingest (POST /api/interactions) + interactionService.record（サーバ内部）。汎用 API は admin のイベント明細 調査・閲覧のみに限定（fail-closed）。汎用 CRUD での直接挿入はカウンタを加算しない。",
+  "columns": [
+    {
+      "name": "targetType",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "targetId",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "action",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "source",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "userId",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "metadata",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "retentionDays",
+      "column": {
+        "type": "integer",
+        "notNull": true
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "userId"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "SET_NULL",
+      "name": "interaction_events_user_id_users_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "interaction_events_target_idx",
+      "fields": [
+        "targetType",
+        "targetId",
+        "action",
+        "createdAt"
+      ]
+    },
+    {
+      "name": "interaction_events_user_idx",
+      "fields": [
+        "userId",
+        "createdAt"
+      ]
+    },
+    {
+      "name": "interaction_events_created_at_idx",
+      "fields": [
+        "createdAt"
+      ]
+    }
+  ]
+}

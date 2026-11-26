@@ -18,9 +18,9 @@ import { kindTraits, kindsWhere } from "@/lib/messaging";
 import { UserTable } from "@/domains/core/user/entities/drizzle";
 
 import { MessageDispatchTable } from "../../../entities/drizzle";
-import { MessageInboxItemTable } from "../../../entities/inbox";
-import { MessagePreferenceTable } from "../../../entities/preference";
-import { MESSAGE_ALL } from "../../../entities/schema";
+import { MessageInboxItemTable } from "../../../entities/drizzle";
+import { MessagePreferenceTable } from "../../../entities/drizzle";
+import { MESSAGE_ALL } from "../../../constants/domain";
 import { categories } from "../lists";
 import { groupRowOfCategory } from "../preferences/groupRows";
 

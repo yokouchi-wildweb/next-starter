@@ -1,0 +1,28 @@
+{
+  "plural": "settings",
+  "dbEngine": "Neon",
+  "generate": false,
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "idType": "string",
+  "apiAccess": {
+    "read": "none",
+    "write": "none",
+    "operations": {
+      "export": {
+        "roleCategories": [
+          "admin"
+        ]
+      }
+    }
+  },
+  "columns": [
+    {
+      "name": "extended",
+      "column": {
+        "type": "jsonb",
+        "default": {}
+      }
+    }
+  ]
+}

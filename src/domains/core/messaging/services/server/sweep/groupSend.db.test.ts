@@ -43,8 +43,8 @@ describe("グループ宛ての送信の固定(実 DB、書いた行は消す)",
     const { userGroupConfigDef } = await import("@/domains/core/userGroup/config");
     const { createUserGroupEvaluator } = await import("@/domains/core/userGroup/services/server/evaluation/evaluator");
     const { MessageDispatchTable } = await import("../../../entities/drizzle");
-    const { MessageDeliveryTable } = await import("../../../entities/delivery");
-    const { MessageDispatchRecipientTable } = await import("../../../entities/recipient");
+    const { MessageDeliveryTable } = await import("../../../entities/drizzle");
+    const { MessageDispatchRecipientTable } = await import("../../../entities/drizzle");
     const { MESSAGE_EXPAND_DONE } = await import("../../../entities/schema");
     const { sendMessageDeps } = await import("../sendMessage");
     const { drizzleMessageSendStore } = await import("../sendMessage/store");

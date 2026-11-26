@@ -8,9 +8,9 @@ import { and, eq, inArray, isNotNull, isNull, lt, notInArray, or, sql } from "dr
 
 import { db, type TransactionClient } from "@/lib/drizzle";
 
-import { MessageDeliveryTable } from "../../../entities/delivery";
+import { MessageDeliveryTable } from "../../../entities/drizzle";
 import { MessageDispatchTable } from "../../../entities/drizzle";
-import { MessageInboxItemTable } from "../../../entities/inbox";
+import { MessageInboxItemTable } from "../../../entities/drizzle";
 import type { MessageDeliveryTarget } from "../../../entities/schema";
 import { isDispatchId } from "../dispatchId";
 import type { FailedDeliveryRow, MessageOperationsStore } from "./operationsTypes";

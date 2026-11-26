@@ -1,0 +1,42 @@
+{
+  "plural": "message_inbox_read_states",
+  "dbEngine": "Neon",
+  "generate": false,
+  "useUpdatedAt": true,
+  "primaryKey": {
+    "columns": [
+      "user_id"
+    ]
+  },
+  "registered": false,
+  "columns": [
+    {
+      "name": "user_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "read_watermark_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "user_id"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "message_inbox_read_states_user_id_users_id_fk"
+    }
+  ]
+}

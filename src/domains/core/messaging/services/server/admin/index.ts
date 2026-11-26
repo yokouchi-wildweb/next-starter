@@ -18,7 +18,7 @@ import { USER_GROUP_KIND_LABELS } from "@/domains/core/userGroup/services/server
 
 import { messagingConfig } from "../../../config";
 import type { MessageDispatch } from "../../../entities/model";
-import { MessageTemplateTable, MessageTemplateVersionTable } from "../../../entities/template";
+import { MessageTemplateTable, MessageTemplateVersionTable } from "../../../entities/drizzle";
 import { messageRegistry } from "@/registry/messageRegistry";
 import { recordTargetRegistry } from "@/registry/recordTargetRegistry";
 

@@ -1,0 +1,60 @@
+{
+  "plural": "user_group_definitions",
+  "dbEngine": "Neon",
+  "generate": false,
+  "primaryKey": {
+    "columns": [
+      "group_id"
+    ]
+  },
+  "registered": false,
+  "columns": [
+    {
+      "name": "group_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "tree",
+      "column": {
+        "type": "jsonb",
+        "notNull": true
+      }
+    },
+    {
+      "name": "has_heavy",
+      "column": {
+        "type": "boolean",
+        "notNull": true,
+        "default": false
+      }
+    },
+    {
+      "name": "updatedAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "group_id"
+      ],
+      "references": {
+        "table": "user_groups",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "user_group_defs_group_fk"
+    }
+  ]
+}

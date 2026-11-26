@@ -1,0 +1,275 @@
+{
+  "plural": "message_dispatches",
+  "dbEngine": "Neon",
+  "generate": false,
+  "useUpdatedAt": true,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "status",
+      "column": {
+        "type": "text",
+        "notNull": true,
+        "default": "completed"
+      }
+    },
+    {
+      "name": "idempotency_key",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "channels",
+      "column": {
+        "type": "text[]",
+        "notNull": true
+      }
+    },
+    {
+      "name": "recipient_count",
+      "column": {
+        "type": "integer",
+        "notNull": true
+      }
+    },
+    {
+      "name": "source",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "actor_id",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "actor_type",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "reason",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "metadata",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "completed_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "message_key",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "template_id",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "template_version",
+      "column": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "template_edited",
+      "column": {
+        "type": "boolean",
+        "notNull": true,
+        "default": false
+      }
+    },
+    {
+      "name": "edited_fields",
+      "column": {
+        "type": "text[]"
+      }
+    },
+    {
+      "name": "layout",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "layout_version",
+      "column": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "values",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "kind",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "category",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "target",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "tags",
+      "column": {
+        "type": "text[]"
+      }
+    },
+    {
+      "name": "scheduled_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "channel_counts",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "headings",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "vars",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "rendered",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "record",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "show_to_later_signups",
+      "column": {
+        "type": "boolean",
+        "notNull": true,
+        "default": false
+      }
+    },
+    {
+      "name": "deleted_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "expand_cursor",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "is_test",
+      "column": {
+        "type": "boolean",
+        "notNull": true,
+        "default": false
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "template_id"
+      ],
+      "references": {
+        "table": "message_templates",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "SET_NULL",
+      "name": "message_dispatches_template_id_message_templates_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "idx_message_dispatches_created_at",
+      "fields": [
+        "createdAt"
+      ],
+      "desc": [
+        "createdAt"
+      ]
+    },
+    {
+      "name": "idx_message_dispatches_actor",
+      "fields": [
+        "actor_id"
+      ]
+    },
+    {
+      "name": "idx_message_dispatches_source",
+      "fields": [
+        "source"
+      ]
+    },
+    {
+      "name": "uq_message_dispatches_idempotency_key",
+      "fields": [
+        "idempotency_key"
+      ],
+      "unique": true
+    },
+    {
+      "name": "idx_message_dispatches_status_scheduled",
+      "fields": [
+        "status",
+        "scheduled_at"
+      ]
+    }
+  ]
+}

@@ -7,7 +7,7 @@
 
 import { useEffect, useRef } from "react";
 
-import type { SessionDevice } from "@/domains/pairedDevice/entities/model";
+import type { SessionDevice } from "@/domains/pairedDevice/types/domain";
 import { claimPairingCode } from "@/domains/pairedDevice/services/client/pairedDeviceClient";
 import { getPairedDeviceErrorReason } from "@/domains/pairedDevice/utils/errorReason";
 import { useDomainMutation } from "@/lib/crud";

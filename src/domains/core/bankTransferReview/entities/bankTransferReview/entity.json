@@ -1,0 +1,190 @@
+{
+  "plural": "bank_transfer_reviews",
+  "dbEngine": "Neon",
+  "generate": false,
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "idType": "uuid",
+  "apiAccess": {
+    "read": "none",
+    "write": "none"
+  },
+  "reason": "銀行振込の確認。操作は専用ルート（/api/admin/bank-transfer-reviews）だけ。登録表に載せるのはサーバー内部でドメイン名から表を引くため。",
+  "columns": [
+    {
+      "name": "purchase_request_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true,
+        "unique": true
+      }
+    },
+    {
+      "name": "user_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "status",
+      "column": {
+        "enum": "bank_transfer_review_status_enum",
+        "notNull": true,
+        "default": "pending_review"
+      }
+    },
+    {
+      "name": "mode",
+      "column": {
+        "enum": "bank_transfer_review_mode_enum",
+        "notNull": true
+      }
+    },
+    {
+      "name": "proof_image_url",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "submitted_at",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "reviewed_by",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "reviewed_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "approval_source",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "reject_reason",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "admin_memo",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "needs_check_reason",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "needs_check_context",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "metadata",
+      "column": {
+        "type": "jsonb"
+      }
+    }
+  ],
+  "enums": [
+    {
+      "name": "bank_transfer_review_status_enum",
+      "values": [
+        "pending_review",
+        "needs_check",
+        "investigating",
+        "confirmed",
+        "rejected"
+      ]
+    },
+    {
+      "name": "bank_transfer_review_mode_enum",
+      "values": [
+        "immediate",
+        "approval_required"
+      ]
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "user_id"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "bank_transfer_reviews_user_id_users_id_fk"
+    },
+    {
+      "columns": [
+        "reviewed_by"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "SET_NULL",
+      "name": "bank_transfer_reviews_reviewed_by_users_id_fk"
+    },
+    {
+      "columns": [
+        "purchase_request_id"
+      ],
+      "references": {
+        "table": "purchase_requests",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "bank_transfer_reviews_purchase_request_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "bank_transfer_reviews_status_idx",
+      "fields": [
+        "status"
+      ]
+    },
+    {
+      "name": "bank_transfer_reviews_user_id_idx",
+      "fields": [
+        "user_id"
+      ]
+    },
+    {
+      "name": "bank_transfer_reviews_submitted_at_idx",
+      "fields": [
+        "submitted_at"
+      ]
+    }
+  ]
+}

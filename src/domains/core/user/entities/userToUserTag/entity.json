@@ -1,0 +1,65 @@
+{
+  "plural": "user_to_user_tag",
+  "dbEngine": "Neon",
+  "generate": false,
+  "primaryKey": {
+    "columns": [
+      "userId",
+      "userTagId"
+    ],
+    "name": "user_to_user_tag_user_id_user_tag_id_pk"
+  },
+  "registered": false,
+  "columns": [
+    {
+      "name": "userId",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "userTagId",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "userId"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "user_to_user_tag_user_id_users_id_fk"
+    },
+    {
+      "columns": [
+        "userTagId"
+      ],
+      "references": {
+        "table": "user_tags",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "user_to_user_tag_user_tag_id_user_tags_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "user_to_user_tag_tag_idx",
+      "fields": [
+        "userTagId"
+      ]
+    }
+  ]
+}

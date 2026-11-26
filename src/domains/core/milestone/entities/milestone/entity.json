@@ -1,0 +1,98 @@
+{
+  "generate": false,
+  "singular": "milestone",
+  "plural": "milestones",
+  "label": "マイルストーン",
+  "dbEngine": "Neon",
+  "idType": "uuid",
+  "relations": [],
+  "useCreatedAt": true,
+  "useUpdatedAt": false,
+  "useSoftDelete": false,
+  "fields": [
+    {
+      "name": "user_id",
+      "label": "ユーザーID",
+      "fieldType": "uuid",
+      "formInput": "hidden",
+      "required": true
+    },
+    {
+      "name": "milestone_key",
+      "label": "マイルストーンキー",
+      "fieldType": "string",
+      "formInput": "hidden",
+      "required": true
+    },
+    {
+      "name": "achieved_at",
+      "label": "達成日時",
+      "fieldType": "timestamp With Time Zone",
+      "formInput": "hidden",
+      "required": true
+    },
+    {
+      "name": "metadata",
+      "label": "メタデータ",
+      "fieldType": "jsonb",
+      "formInput": "hidden",
+      "required": false
+    }
+  ],
+  "searchFields": [
+    "user_id",
+    "milestone_key"
+  ],
+  "defaultOrderBy": [
+    [
+      "achieved_at",
+      "DESC"
+    ]
+  ],
+  "tableFields": [
+    "user_id",
+    "milestone_key",
+    "achieved_at",
+    "createdAt"
+  ],
+  "useDetailModal": false,
+  "addToAdminDataMenu": false,
+  "useDuplicateButton": false,
+  "useImportExport": false,
+  "apiAccess": {
+    "read": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "write": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "operations": {
+      "truncateAll": {
+        "roleCategories": [
+          "admin"
+        ]
+      },
+      "export": {
+        "roleCategories": [
+          "admin"
+        ]
+      },
+      "import": "none"
+    }
+  },
+  "indexes": [
+    {
+      "fields": [
+        "user_id",
+        "milestone_key"
+      ],
+      "unique": true,
+      "name": "milestones_composite_unique_0"
+    }
+  ],
+  "reason": "import は閉じる（domain.json の useImportExport: false。今までの挙動と同じ）。export / 全件削除は管理者"
+}

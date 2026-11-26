@@ -1,0 +1,88 @@
+{
+  "plural": "message_subscriber_failures",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "subscriber_key",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "event_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "attempts",
+      "column": {
+        "type": "integer",
+        "notNull": true,
+        "default": 0
+      }
+    },
+    {
+      "name": "last_error",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "quarantined_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "updatedAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "event_id"
+      ],
+      "references": {
+        "table": "message_events",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "message_subscriber_failures_event_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "uq_message_subscriber_failures_key_event",
+      "fields": [
+        "subscriber_key",
+        "event_id"
+      ],
+      "unique": true
+    }
+  ]
+}

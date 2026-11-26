@@ -1,0 +1,94 @@
+{
+  "plural": "batch_job_items",
+  "dbEngine": "Neon",
+  "generate": false,
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "job_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "item_key",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "status",
+      "column": {
+        "enum": "batch_job_item_status",
+        "notNull": true,
+        "default": "pending"
+      }
+    },
+    {
+      "name": "retry_count",
+      "column": {
+        "type": "integer",
+        "notNull": true,
+        "default": 0
+      }
+    },
+    {
+      "name": "error_message",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "processed_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    }
+  ],
+  "enums": [
+    {
+      "name": "batch_job_item_status",
+      "valuesFrom": {
+        "file": "src/domains/core/batchJob/types/index.ts",
+        "export": "BATCH_JOB_ITEM_STATUSES"
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "job_id"
+      ],
+      "references": {
+        "table": "batch_jobs",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "batch_job_items_job_id_batch_jobs_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "batch_job_items_job_id_item_key_idx",
+      "fields": [
+        "job_id",
+        "item_key"
+      ],
+      "unique": true
+    },
+    {
+      "name": "batch_job_items_job_id_status_idx",
+      "fields": [
+        "job_id",
+        "status"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "plural": "message_suppressions",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "channel",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "address_hash",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "reason",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "scope",
+      "column": {
+        "type": "text",
+        "notNull": true,
+        "default": "*"
+      }
+    },
+    {
+      "name": "source",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "provider_event_id",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "source_message_key",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "source_dispatch_id",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "indexes": [
+    {
+      "name": "uq_message_suppressions_channel_hash_scope",
+      "fields": [
+        "channel",
+        "address_hash",
+        "scope"
+      ],
+      "unique": true
+    }
+  ]
+}

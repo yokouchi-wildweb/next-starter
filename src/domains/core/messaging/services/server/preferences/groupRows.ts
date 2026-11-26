@@ -8,7 +8,7 @@
 
 import type { MessageCategory } from "@/lib/messaging";
 
-import { MESSAGE_ALL } from "../../../entities/schema";
+import { MESSAGE_ALL } from "../../../constants/domain";
 
 /** グループの行の category の頭 */
 export const GROUP_ROW_PREFIX = "group:";

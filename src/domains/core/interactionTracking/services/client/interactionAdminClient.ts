@@ -5,11 +5,7 @@
 
 import axios from "axios";
 
-import type {
-  InteractionAudienceEntry,
-  InteractionAudienceOrderBy,
-  InteractionAudienceSummaryMap,
-} from "@/domains/core/interactionTracking/entities/model";
+import type { InteractionAudienceEntry, InteractionAudienceOrderBy, InteractionAudienceSummaryMap } from "@/domains/core/interactionTracking/types/domain";
 import type { PaginatedResult } from "@/lib/crud";
 import { normalizeHttpError } from "@/lib/errors";
 

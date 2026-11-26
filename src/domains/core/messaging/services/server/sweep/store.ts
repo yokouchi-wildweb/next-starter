@@ -12,13 +12,13 @@ import { db, type TransactionClient } from "@/lib/drizzle";
 import { UserTable } from "@/domains/core/user/entities/drizzle";
 import { availableUserWhere } from "@/domains/core/user/services/server/availableUsers";
 
-import { MessageDeliveryTable, MessageEventTable } from "../../../entities/delivery";
+import { MessageDeliveryTable, MessageEventTable } from "../../../entities/drizzle";
 import { MessageDispatchTable } from "../../../entities/drizzle";
-import { MessageIdempotencyKeyTable } from "../../../entities/idempotencyKey";
-import { MessageInboxItemTable } from "../../../entities/inbox";
+import { MessageIdempotencyKeyTable } from "../../../entities/drizzle";
+import { MessageInboxItemTable } from "../../../entities/drizzle";
 import type { MessageDispatchInsert } from "../../../entities/model";
-import { MessageDispatchRecipientTable } from "../../../entities/recipient";
-import { MESSAGE_EXPAND_DONE } from "../../../entities/schema";
+import { MessageDispatchRecipientTable } from "../../../entities/drizzle";
+import { MESSAGE_EXPAND_DONE } from "../../../constants/domain";
 import { isDispatchId } from "../dispatchId";
 import { boundInboxImageRefs } from "../inbox/imageBinding";
 import { cleanupDetachedInboxImages, detachInboxImages, storageInboxImageLedger } from "../inbox/imageBindingLedger";

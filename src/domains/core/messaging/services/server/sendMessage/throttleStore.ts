@@ -8,9 +8,9 @@ import { and, desc, eq, gt, inArray, isNotNull, isNull, ne, or, sql } from "driz
 
 import { db, type TransactionClient } from "@/lib/drizzle";
 
-import { MessageDeliveryTable, MessageEventTable } from "../../../entities/delivery";
+import { MessageDeliveryTable, MessageEventTable } from "../../../entities/drizzle";
 import { MessageDispatchTable } from "../../../entities/drizzle";
-import { MessageInboxItemTable } from "../../../entities/inbox";
+import { MessageInboxItemTable } from "../../../entities/drizzle";
 import type { MessageInboxItemInsert } from "../../../entities/model";
 import { bindInboxImages, inboxItemImageRefs, withBoundInboxImages } from "../inbox/imageBinding";
 import { storageInboxImageLedger } from "../inbox/imageBindingLedger";

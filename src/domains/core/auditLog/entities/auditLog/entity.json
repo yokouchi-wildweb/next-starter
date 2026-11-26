@@ -1,0 +1,169 @@
+{
+  "plural": "audit_logs",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "apiAccess": {
+    "read": "none",
+    "write": "none"
+  },
+  "service": {
+    "file": "index",
+    "export": "auditLogService"
+  },
+  "reason": "監査ログ（コンプライアンス記録）。汎用 API・全件削除・データ移行には出さない（INTERNAL_ONLY）。 横断検索は専用ルート（/api/admin/audit-logs）から searchByTarget / searchBySubjectUser を使う。 auditLogFailed = 記録に失敗した監査ログの退避表（復旧は cron audit-log-recover-dead-letter）。",
+  "columns": [
+    {
+      "name": "targetType",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "targetId",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "subjectUserId",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "actorId",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "actorType",
+      "column": {
+        "enum": "audit_actor_type",
+        "notNull": true
+      }
+    },
+    {
+      "name": "action",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "beforeValue",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "afterValue",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "context",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "metadata",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "reason",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "retentionDays",
+      "column": {
+        "type": "integer",
+        "notNull": true
+      }
+    },
+    {
+      "name": "batchId",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "enums": [
+    {
+      "name": "audit_actor_type",
+      "values": [
+        "system",
+        "admin",
+        "user",
+        "api_key",
+        "webhook",
+        "device"
+      ]
+    }
+  ],
+  "indexes": [
+    {
+      "name": "audit_logs_target_idx",
+      "fields": [
+        "targetType",
+        "targetId",
+        "createdAt"
+      ]
+    },
+    {
+      "name": "audit_logs_actor_idx",
+      "fields": [
+        "actorId",
+        "createdAt"
+      ]
+    },
+    {
+      "name": "audit_logs_subject_user_id_idx",
+      "fields": [
+        "subjectUserId",
+        "createdAt"
+      ],
+      "where": "subject_user_id IS NOT NULL"
+    },
+    {
+      "name": "audit_logs_action_idx",
+      "fields": [
+        "action",
+        "createdAt"
+      ]
+    },
+    {
+      "name": "audit_logs_created_at_idx",
+      "fields": [
+        "createdAt"
+      ]
+    },
+    {
+      "name": "audit_logs_batch_id_idx",
+      "fields": [
+        "batchId",
+        "createdAt"
+      ],
+      "where": "batch_id IS NOT NULL"
+    }
+  ]
+}

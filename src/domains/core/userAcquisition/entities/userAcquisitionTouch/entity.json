@@ -1,0 +1,106 @@
+{
+  "plural": "user_acquisition_touches",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "userId",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "touchIndex",
+      "column": {
+        "type": "smallint",
+        "notNull": true
+      }
+    },
+    {
+      "name": "occurredAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true
+      }
+    },
+    {
+      "name": "utmSource",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "utmMedium",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "utmCampaign",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "referrerHost",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "landingPage",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "extras",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "userId"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "user_acquisition_touches_user_id_users_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "user_acquisition_touches_user_idx",
+      "fields": [
+        "userId",
+        "touchIndex"
+      ]
+    },
+    {
+      "name": "user_acquisition_touches_occurred_at_idx",
+      "fields": [
+        "occurredAt"
+      ]
+    }
+  ]
+}

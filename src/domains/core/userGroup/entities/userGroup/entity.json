@@ -1,0 +1,109 @@
+{
+  "plural": "user_groups",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "apiAccess": {
+    "read": "none",
+    "write": "none"
+  },
+  "reason": "ユーザーグループ（D103）。汎用 API には出さない（管理画面と API は専用の口 /api/admin/user-groups、次の指令）。門 userGroups が閉ならドメインごと閉じる",
+  "columns": [
+    {
+      "name": "name",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "description",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "kind",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "owner_group_id",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "status",
+      "column": {
+        "type": "text",
+        "notNull": true,
+        "default": "active"
+      }
+    },
+    {
+      "name": "current_version",
+      "column": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "recompute_interval_minutes",
+      "column": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "updatedAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "owner_group_id"
+      ],
+      "references": {
+        "table": "user_groups",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "user_groups_owner_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "user_groups_owner_idx",
+      "fields": [
+        "owner_group_id"
+      ]
+    },
+    {
+      "name": "user_groups_kind_status_idx",
+      "fields": [
+        "kind",
+        "status"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "plural": "message_preferences",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "user_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "category",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "channel",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "kind",
+      "column": {
+        "type": "text",
+        "notNull": true,
+        "default": "*"
+      }
+    },
+    {
+      "name": "opted_out_at",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "source",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "source_message_key",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "source_dispatch_id",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "user_id"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "message_preferences_user_id_users_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "uq_message_preferences_user_category_channel_kind",
+      "fields": [
+        "user_id",
+        "category",
+        "channel",
+        "kind"
+      ],
+      "unique": true
+    }
+  ]
+}

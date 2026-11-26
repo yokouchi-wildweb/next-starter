@@ -18,11 +18,8 @@ import { fingerprintChallengeConfig } from "@/domains/fingerprintChallenge/confi
 
 import { recordDeviceFingerprint } from "@/domains/core/deviceFingerprint/services/server";
 import { FingerprintChallengeTable } from "@/domains/core/fingerprintChallenge/entities/drizzle";
-import {
-  SubmitChallengeSchema,
-  type IssueChallengeInput,
-  type MarkChallengeNotifiedInput,
-} from "@/domains/core/fingerprintChallenge/entities/schema";
+import { SubmitChallengeSchema } from "@/domains/core/fingerprintChallenge/constants/domain";
+import { type IssueChallengeInput, type MarkChallengeNotifiedInput } from "@/domains/core/fingerprintChallenge/types/domain";
 import type {
   FingerprintChallenge,
   FingerprintChallengeForUser,

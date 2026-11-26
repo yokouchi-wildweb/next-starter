@@ -12,10 +12,8 @@ import {
   ACQUISITION_COOKIE_MAX_BYTES,
   ACQUISITION_COOKIE_VERSION,
 } from "@/domains/core/userAcquisition/constants";
-import {
-  AttributionCookiePayloadSchema,
-  type AttributionCookieTouch,
-} from "@/domains/core/userAcquisition/entities/schema";
+import { AttributionCookiePayloadSchema } from "@/domains/core/userAcquisition/constants/domain";
+import { type AttributionCookieTouch } from "@/domains/core/userAcquisition/types/domain";
 import type { AcquisitionTouch } from "@/domains/core/userAcquisition/entities/model";
 
 /**

@@ -1,0 +1,270 @@
+{
+  "plural": "fingerprint_challenges",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "apiAccess": {
+    "read": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "write": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "operations": {
+      "truncateAll": {
+        "roleCategories": [
+          "admin"
+        ]
+      },
+      "export": {
+        "roleCategories": [
+          "admin"
+        ]
+      },
+      "import": {
+        "roleCategories": [
+          "admin"
+        ]
+      }
+    }
+  },
+  "requires": [
+    "deviceFingerprint"
+  ],
+  "service": {
+    "file": "index",
+    "export": "fingerprintChallengeService"
+  },
+  "reason": "回答チャレンジ。発行 / 状態遷移は /api/admin/fingerprint-challenges (専用アクション)、 本人の回答は /api/me/fingerprint-challenges/[token]。汎用 API は admin の一覧・検索のみ。",
+  "columns": [
+    {
+      "name": "userId",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "tokenHash",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "status",
+      "column": {
+        "enum": "fingerprint_challenge_status",
+        "notNull": true,
+        "default": "pending"
+      }
+    },
+    {
+      "name": "prompt",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "answers",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "behavior",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "fingerprintId",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "issuedBy",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "expiresAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true
+      }
+    },
+    {
+      "name": "submittedAt",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "reviewedAt",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "reviewedBy",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "reviewNote",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "notifiedAt",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "notifiedChannels",
+      "column": {
+        "type": "text[]",
+        "notNull": true,
+        "default": []
+      }
+    },
+    {
+      "name": "firstViewedAt",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "lastViewedAt",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "viewCount",
+      "column": {
+        "type": "integer",
+        "notNull": true,
+        "default": 0
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "updatedAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "enums": [
+    {
+      "name": "fingerprint_challenge_status",
+      "values": [
+        "pending",
+        "submitted",
+        "reviewed",
+        "canceled"
+      ]
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "userId"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "fingerprint_challenges_user_id_users_id_fk"
+    },
+    {
+      "columns": [
+        "fingerprintId"
+      ],
+      "references": {
+        "table": "device_fingerprints",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "SET_NULL",
+      "name": "fp_challenges_fingerprint_fk"
+    },
+    {
+      "columns": [
+        "issuedBy"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "SET_NULL",
+      "name": "fp_challenges_issued_by_fk"
+    },
+    {
+      "columns": [
+        "reviewedBy"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "SET_NULL",
+      "name": "fp_challenges_reviewed_by_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "fingerprint_challenges_token_hash_idx",
+      "fields": [
+        "tokenHash"
+      ],
+      "unique": true
+    },
+    {
+      "name": "fingerprint_challenges_user_idx",
+      "fields": [
+        "userId",
+        "createdAt"
+      ]
+    },
+    {
+      "name": "fingerprint_challenges_status_idx",
+      "fields": [
+        "status",
+        "createdAt"
+      ]
+    }
+  ]
+}

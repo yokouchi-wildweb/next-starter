@@ -10,7 +10,7 @@ import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
-import { MarkChallengeNotifiedSchema } from "@/domains/core/fingerprintChallenge/entities/schema";
+import { MarkChallengeNotifiedSchema } from "@/domains/core/fingerprintChallenge/constants/domain";
 import {
   cancelChallenge,
   markChallengeNotified,

@@ -12,7 +12,7 @@ import type {
   FingerprintChallenge,
   FingerprintChallengeAccessEvent,
 } from "@/domains/core/fingerprintChallenge/entities/model";
-import type { MarkChallengeNotifiedInput } from "@/domains/core/fingerprintChallenge/entities/schema";
+import type { MarkChallengeNotifiedInput } from "@/domains/core/fingerprintChallenge/types/domain";
 
 const BASE = "/api/admin/fingerprint-challenges";
 

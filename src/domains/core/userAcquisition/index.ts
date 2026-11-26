@@ -12,14 +12,8 @@
 // proxy / route から cookie を扱う場合は edge-safe な lib を使う:
 //   import { parseAttributionCookie, ... } from "@/domains/core/userAcquisition/lib/attributionCookie";
 
-export type {
-  AcquisitionExtras,
-  AcquisitionTouch,
-  UserAcquisition,
-  UserAcquisitionTouch,
-  AttributionCookieTouch,
-  AttributionCookiePayload,
-} from "./entities";
+export type { AcquisitionExtras, AcquisitionTouch, UserAcquisition, UserAcquisitionTouch } from "./entities";
+export type { AttributionCookieTouch, AttributionCookiePayload } from "./types/domain";
 export {
   ACQUISITION_COOKIE_NAME,
   ACQUISITION_COOKIE_VERSION,

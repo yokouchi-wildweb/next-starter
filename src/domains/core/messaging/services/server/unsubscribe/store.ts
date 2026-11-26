@@ -6,8 +6,8 @@ import { db } from "@/lib/drizzle";
 
 import { UserTable } from "@/domains/core/user/entities/drizzle";
 
-import { MessagePreferenceTable, MessageSuppressionTable } from "../../../entities/preference";
-import { MESSAGE_ALL } from "../../../entities/schema";
+import { MessagePreferenceTable, MessageSuppressionTable } from "../../../entities/drizzle";
+import { MESSAGE_ALL } from "../../../constants/domain";
 import { MESSAGE_PREFERENCE_CONFLICT_TARGET } from "../preferences/store";
 import type { OneClickStore } from "./recordOneClick";
 

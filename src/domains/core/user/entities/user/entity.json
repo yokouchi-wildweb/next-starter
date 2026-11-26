@@ -1,0 +1,414 @@
+{
+  "generate": false,
+  "singular": "user",
+  "plural": "users",
+  "label": "ユーザー",
+  "dbEngine": "Neon",
+  "idType": "uuid",
+  "relations": [
+    {
+      "domain": "user_tag",
+      "label": "ユーザータグ",
+      "fieldName": "user_tag_ids",
+      "fieldType": "uuid",
+      "relationType": "belongsToMany",
+      "required": false,
+      "includeRelationTable": false
+    }
+  ],
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "useSoftDelete": true,
+  "fields": [
+    {
+      "name": "provider_type",
+      "label": "認証方法",
+      "fieldType": "enum",
+      "formInput": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "email",
+          "label": "メール"
+        },
+        {
+          "value": "local",
+          "label": "ローカル"
+        },
+        {
+          "value": "google.com",
+          "label": "Google"
+        },
+        {
+          "value": "yahoo.com",
+          "label": "Yahoo"
+        },
+        {
+          "value": "github",
+          "label": "GitHub"
+        },
+        {
+          "value": "apple",
+          "label": "Apple"
+        },
+        {
+          "value": "microsoft",
+          "label": "Microsoft"
+        },
+        {
+          "value": "facebook.com",
+          "label": "Facebook"
+        },
+        {
+          "value": "twitter.com",
+          "label": "Twitter"
+        },
+        {
+          "value": "line",
+          "label": "LINE"
+        },
+        {
+          "value": "oidc",
+          "label": "OIDC"
+        },
+        {
+          "value": "saml",
+          "label": "SAML"
+        },
+        {
+          "value": "custom",
+          "label": "カスタム"
+        }
+      ],
+      "column": {
+        "enum": "user_provider_type"
+      }
+    },
+    {
+      "name": "provider_uid",
+      "label": "プロバイダーUID",
+      "fieldType": "string",
+      "formInput": "textInput",
+      "required": true
+    },
+    {
+      "name": "email",
+      "label": "メールアドレス",
+      "fieldType": "email",
+      "formInput": "emailInput",
+      "required": false
+    },
+    {
+      "name": "name",
+      "label": "表示名",
+      "fieldType": "string",
+      "formInput": "textInput",
+      "required": false
+    },
+    {
+      "name": "role",
+      "label": "ロール",
+      "fieldType": "enum",
+      "formInput": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "admin",
+          "label": "管理者"
+        },
+        {
+          "value": "user",
+          "label": "一般ユーザー"
+        }
+      ],
+      "column": {
+        "enum": "user_role"
+      }
+    },
+    {
+      "name": "local_password",
+      "label": "ローカルパスワード",
+      "fieldType": "password",
+      "formInput": "passwordInput",
+      "required": false
+    },
+    {
+      "name": "status",
+      "label": "ステータス",
+      "fieldType": "enum",
+      "formInput": "select",
+      "required": true,
+      "defaultValue": "pending",
+      "options": [
+        {
+          "value": "pending",
+          "label": "仮登録"
+        },
+        {
+          "value": "active",
+          "label": "有効"
+        },
+        {
+          "value": "inactive",
+          "label": "休会中"
+        },
+        {
+          "value": "suspended",
+          "label": "処分保留"
+        },
+        {
+          "value": "banned",
+          "label": "永久追放"
+        },
+        {
+          "value": "security_locked",
+          "label": "セキュリティロック"
+        },
+        {
+          "value": "withdrawn",
+          "label": "退会済み"
+        }
+      ],
+      "column": {
+        "enum": "user_status"
+      }
+    },
+    {
+      "name": "is_demo",
+      "label": "デモユーザー",
+      "fieldType": "boolean",
+      "formInput": "switchInput",
+      "required": true,
+      "defaultValue": false
+    },
+    {
+      "name": "last_authenticated_at",
+      "label": "最終認証日時",
+      "fieldType": "timestamp With Time Zone",
+      "formInput": "none",
+      "required": false
+    },
+    {
+      "name": "avatar_url",
+      "label": "アバター画像URL",
+      "fieldType": "string",
+      "formInput": "none",
+      "required": false
+    },
+    {
+      "name": "metadata",
+      "label": "メタデータ",
+      "fieldType": "jsonb",
+      "formInput": "none",
+      "required": false,
+      "defaultValue": {},
+      "column": {
+        "notNull": true
+      }
+    }
+  ],
+  "searchFields": [
+    "name",
+    "email",
+    "phoneNumber",
+    "signupIp"
+  ],
+  "defaultOrderBy": [
+    [
+      "createdAt",
+      "DESC"
+    ]
+  ],
+  "tableFields": [
+    "status",
+    "role",
+    "name",
+    "email",
+    "provider_type",
+    "createdAt"
+  ],
+  "useDetailModal": false,
+  "addToAdminDataMenu": false,
+  "useDuplicateButton": false,
+  "useImportExport": false,
+  "apiAccess": {
+    "read": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "write": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "operations": {
+      "truncateAll": {
+        "roleCategories": [
+          "admin"
+        ]
+      },
+      "export": {
+        "roleCategories": [
+          "admin"
+        ]
+      },
+      "import": "none"
+    }
+  },
+  "hiddenColumns": [
+    "localPassword"
+  ],
+  "indexes": [
+    {
+      "name": "users_provider_type_uid_idx",
+      "fields": [
+        "provider_type",
+        "provider_uid"
+      ],
+      "unique": true
+    },
+    {
+      "name": "users_role_idx",
+      "fields": [
+        "role"
+      ]
+    },
+    {
+      "name": "users_is_demo_idx",
+      "fields": [
+        "is_demo"
+      ]
+    },
+    {
+      "name": "users_status_idx",
+      "fields": [
+        "status"
+      ]
+    },
+    {
+      "name": "users_deleted_at_idx",
+      "fields": [
+        "deletedAt"
+      ]
+    },
+    {
+      "name": "users_last_authenticated_at_idx",
+      "fields": [
+        "last_authenticated_at"
+      ]
+    },
+    {
+      "name": "users_created_at_idx",
+      "fields": [
+        "createdAt"
+      ]
+    },
+    {
+      "name": "users_updated_at_idx",
+      "fields": [
+        "updatedAt"
+      ]
+    },
+    {
+      "name": "users_name_norm_idx",
+      "expression": "lower(btrim(\"users\".\"name\"))"
+    }
+  ],
+  "reason": "ユーザー所有データ（wallet / walletHistory / purchaseRequest）と同じく、汎用 API は admin 限定（本人用は /api/me/**）。 import は閉じる（domain.json の useImportExport: false。今までの挙動と同じ）。export / 全件削除は管理者",
+  "enums": [
+    {
+      "name": "user_provider_type",
+      "values": [
+        "email",
+        "local",
+        "google.com",
+        "yahoo.com",
+        "github",
+        "apple",
+        "microsoft",
+        "facebook.com",
+        "twitter.com",
+        "line",
+        "oidc",
+        "saml",
+        "custom"
+      ]
+    },
+    {
+      "name": "user_role",
+      "values": [
+        "admin",
+        "user",
+        "editor",
+        "debugger",
+        "contributor"
+      ]
+    },
+    {
+      "name": "user_status",
+      "values": [
+        "pending",
+        "active",
+        "inactive",
+        "suspended",
+        "banned",
+        "security_locked",
+        "withdrawn"
+      ]
+    }
+  ],
+  "columns": [
+    {
+      "name": "phoneNumber",
+      "column": {
+        "type": "text",
+        "unique": true
+      }
+    },
+    {
+      "name": "phoneVerifiedAt",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "signupIp",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "adminMemo",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "failedLoginCount",
+      "column": {
+        "type": "integer",
+        "notNull": true,
+        "default": 0
+      }
+    },
+    {
+      "name": "lockedUntil",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "lastFailedLoginAt",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "sessionsInvalidatedAt",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    }
+  ]
+}

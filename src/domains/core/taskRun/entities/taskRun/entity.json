@@ -1,0 +1,157 @@
+{
+  "plural": "task_runs",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "apiAccess": {
+    "read": "none",
+    "write": "none"
+  },
+  "service": {
+    "file": "drizzleBase",
+    "export": "taskRunBase"
+  },
+  "reason": "pnpm task の実行の記録。書き手はタスクのランナーだけで、HTTP・管理画面には出さない。登録表に載せるのはサーバー内部でドメイン名から表を引くため。",
+  "columns": [
+    {
+      "name": "name",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "kind",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "args",
+      "column": {
+        "type": "jsonb",
+        "notNull": true
+      }
+    },
+    {
+      "name": "dryRun",
+      "column": {
+        "type": "boolean",
+        "notNull": true
+      }
+    },
+    {
+      "name": "status",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "stopKeys",
+      "column": {
+        "type": "text[]",
+        "notNull": true,
+        "default": []
+      }
+    },
+    {
+      "name": "result",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "error",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "gitSha",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "gitDirty",
+      "column": {
+        "type": "boolean"
+      }
+    },
+    {
+      "name": "actor",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "stage",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "dbTarget",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "fileHash",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "source",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "startedAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "finishedAt",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "resolvedAt",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    }
+  ],
+  "indexes": [
+    {
+      "name": "task_runs_name_started_idx",
+      "fields": [
+        "name",
+        "startedAt"
+      ],
+      "desc": [
+        "startedAt"
+      ]
+    },
+    {
+      "name": "task_runs_stop_keys_idx",
+      "fields": [
+        "stopKeys"
+      ],
+      "using": "gin"
+    }
+  ]
+}

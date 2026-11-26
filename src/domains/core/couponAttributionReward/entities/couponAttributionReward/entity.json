@@ -1,0 +1,185 @@
+{
+  "plural": "coupon_attribution_rewards",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "apiAccess": {
+    "read": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "write": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "operations": {
+      "truncateAll": {
+        "roleCategories": [
+          "admin"
+        ]
+      },
+      "export": {
+        "roleCategories": [
+          "admin"
+        ]
+      },
+      "import": {
+        "roleCategories": [
+          "admin"
+        ]
+      }
+    }
+  },
+  "requires": [
+    "wallet"
+  ],
+  "service": {
+    "file": "index",
+    "export": "couponAttributionRewardService"
+  },
+  "reason": "クーポン帰属報酬台帳。付与は grant()（ハンドラー onRedeemed から tx 付き）のみ。 本人の閲覧は /api/me/coupon-attribution-rewards。汎用 API は admin の一覧・検索・補正。",
+  "columns": [
+    {
+      "name": "coupon_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "coupon_history_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "recipient_user_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "redeemer_user_id",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "wallet_type",
+      "column": {
+        "enum": "wallet_type_enum",
+        "notNull": true
+      }
+    },
+    {
+      "name": "amount",
+      "column": {
+        "type": "integer",
+        "notNull": true
+      }
+    },
+    {
+      "name": "status",
+      "column": {
+        "enum": "coupon_attribution_reward_status",
+        "notNull": true,
+        "default": "pending"
+      }
+    },
+    {
+      "name": "wallet_history_id",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "fulfilled_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "failure_reason",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "metadata",
+      "column": {
+        "type": "jsonb",
+        "notNull": true,
+        "default": {}
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "updatedAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "enums": [
+    {
+      "name": "wallet_type_enum",
+      "values": [
+        "regular_coin",
+        "regular_point"
+      ]
+    },
+    {
+      "name": "coupon_attribution_reward_status",
+      "valuesFrom": {
+        "file": "src/domains/core/couponAttributionReward/constants/index.ts",
+        "export": "COUPON_ATTRIBUTION_REWARD_STATUSES"
+      }
+    }
+  ],
+  "indexes": [
+    {
+      "name": "coupon_attr_rewards_history_uniq",
+      "fields": [
+        "coupon_history_id"
+      ],
+      "unique": true
+    },
+    {
+      "name": "coupon_attr_rewards_recipient_created_idx",
+      "fields": [
+        "recipient_user_id",
+        "createdAt"
+      ]
+    },
+    {
+      "name": "coupon_attr_rewards_status_fulfilled_idx",
+      "fields": [
+        "status",
+        "fulfilled_at"
+      ]
+    },
+    {
+      "name": "coupon_attr_rewards_coupon_idx",
+      "fields": [
+        "coupon_id"
+      ]
+    }
+  ]
+}

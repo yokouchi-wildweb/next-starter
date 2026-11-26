@@ -6,7 +6,7 @@
 
 import type { RateLimitCategory } from "@/domains/rateLimit/config";
 
-import type { SessionDevice } from "../../entities/model";
+import type { SessionDevice } from "../../types/domain";
 import type { AuthenticatedDevice } from "../../services/server/deviceToken";
 import { checkPairedDeviceRateLimit, pairedDeviceErrorResponse } from "../../services/server/http";
 import { authenticateRequestDevice, syncPairedDeviceCookie, type SessionDeviceOf } from "../../services/server/session";

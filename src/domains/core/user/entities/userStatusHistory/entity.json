@@ -1,0 +1,91 @@
+{
+  "plural": "user_status_histories",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "userId",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "fromStatus",
+      "column": {
+        "enum": "user_status"
+      }
+    },
+    {
+      "name": "toStatus",
+      "column": {
+        "enum": "user_status",
+        "notNull": true
+      }
+    },
+    {
+      "name": "trigger",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "changedAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "enums": [
+    {
+      "name": "user_status",
+      "values": [
+        "pending",
+        "active",
+        "inactive",
+        "suspended",
+        "banned",
+        "security_locked",
+        "withdrawn"
+      ]
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "userId"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "user_status_histories_user_id_users_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "user_status_histories_user_id_idx",
+      "fields": [
+        "userId",
+        "changedAt"
+      ]
+    },
+    {
+      "name": "user_status_histories_to_status_idx",
+      "fields": [
+        "toStatus",
+        "changedAt"
+      ]
+    }
+  ]
+}

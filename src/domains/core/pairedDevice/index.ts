@@ -5,24 +5,8 @@
 //   import { getSessionDevice } from "@/domains/pairedDevice/services/server/session";
 //   import { issuePairingCode } from "@/domains/pairedDevice/services/server";
 
-export type {
-  PairedDevice,
-  PairedDeviceForAdmin,
-  PairedDeviceForAdminDto,
-  PairedDeviceState,
-  SessionDevice,
-  DevicePairing,
-  DevicePairingRequestForApprover,
-  DevicePairingRequestForApproverDto,
-  DevicePairingDto,
-  Jsonified,
-  EffectiveDevicePairingStatus,
-  CreatePairedDeviceInput,
-  UpdatePairedDeviceInput,
-  ListPairedDevicesInput,
-  ClaimPairingCodeInput,
-  ApproveDevicePairingInput,
-} from "./entities";
+export type { PairedDevice, PairedDeviceForAdmin, PairedDeviceForAdminDto, PairedDeviceState, DevicePairing, DevicePairingRequestForApprover, DevicePairingRequestForApproverDto, DevicePairingDto, Jsonified, EffectiveDevicePairingStatus, CreatePairedDeviceInput, UpdatePairedDeviceInput, ListPairedDevicesInput, ClaimPairingCodeInput, ApproveDevicePairingInput } from "./entities";
+export type { SessionDevice } from "./types/domain";
 export {
   DEVICE_PAIRING_FLOWS,
   DEVICE_PAIRING_STATUSES,

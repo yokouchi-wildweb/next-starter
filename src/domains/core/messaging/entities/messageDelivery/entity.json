@@ -1,0 +1,256 @@
+{
+  "plural": "message_deliveries",
+  "dbEngine": "Neon",
+  "generate": false,
+  "useUpdatedAt": true,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "dispatch_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "recipient_key",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "user_id",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "address",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "channel",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "status",
+      "column": {
+        "type": "text",
+        "notNull": true,
+        "default": "queued"
+      }
+    },
+    {
+      "name": "reason",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "attempts",
+      "column": {
+        "type": "integer",
+        "notNull": true,
+        "default": 0
+      }
+    },
+    {
+      "name": "next_attempt_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "locked_until",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "lock_token",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "last_error",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "provider",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "provider_message_id",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "targets",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "vars",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "body",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "sent_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "delivered_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "failed_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "opened_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "clicked_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "complained_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "throttle_key",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "dispatch_id"
+      ],
+      "references": {
+        "table": "message_dispatches",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "message_deliveries_dispatch_id_message_dispatches_id_fk"
+    },
+    {
+      "columns": [
+        "user_id"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "SET_NULL",
+      "name": "message_deliveries_user_id_users_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "uq_message_deliveries_recipient",
+      "fields": [
+        "dispatch_id",
+        "channel",
+        "recipient_key"
+      ],
+      "unique": true
+    },
+    {
+      "name": "idx_message_deliveries_status_next",
+      "fields": [
+        "status",
+        "next_attempt_at"
+      ]
+    },
+    {
+      "name": "idx_message_deliveries_provider_msg",
+      "fields": [
+        "provider",
+        "provider_message_id"
+      ]
+    },
+    {
+      "name": "idx_message_deliveries_user_created",
+      "fields": [
+        "user_id",
+        "createdAt",
+        "id"
+      ],
+      "desc": [
+        "createdAt",
+        "id"
+      ]
+    },
+    {
+      "name": "idx_message_deliveries_created_at",
+      "fields": [
+        "createdAt"
+      ]
+    },
+    {
+      "name": "idx_message_deliveries_content_created",
+      "fields": [
+        "createdAt"
+      ],
+      "where": "body IS NOT NULL OR vars IS NOT NULL"
+    },
+    {
+      "name": "idx_message_deliveries_throttle_sent",
+      "fields": [
+        "throttle_key",
+        "sent_at"
+      ]
+    }
+  ]
+}

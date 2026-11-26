@@ -8,7 +8,7 @@ import { inArray } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 
-import { MessageTemplateTable } from "../../../entities/template";
+import { MessageTemplateTable } from "../../../entities/drizzle";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

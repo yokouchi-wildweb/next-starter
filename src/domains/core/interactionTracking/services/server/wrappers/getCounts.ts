@@ -3,10 +3,7 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { InteractionCounterTable } from "@/domains/core/interactionTracking/entities/drizzle";
-import type {
-  InteractionCounts,
-  InteractionCountsBulk,
-} from "@/domains/core/interactionTracking/entities/model";
+import type { InteractionCounts, InteractionCountsBulk } from "@/domains/core/interactionTracking/types/domain";
 import { db } from "@/lib/drizzle";
 
 /**

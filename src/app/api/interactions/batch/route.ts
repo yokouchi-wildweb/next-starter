@@ -12,7 +12,7 @@
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
-import { InteractionBatchIngestSchema } from "@/domains/core/interactionTracking/entities/schema";
+import { InteractionBatchIngestSchema } from "@/domains/core/interactionTracking/constants/domain";
 import { recordBatch, targetRuleOf, type RecordBatchEntry } from "@/domains/core/interactionTracking/services/server";
 
 export const POST = createApiRoute(

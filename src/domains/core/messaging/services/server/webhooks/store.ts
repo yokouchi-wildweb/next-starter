@@ -4,10 +4,10 @@ import { and, eq } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 
-import { MessageDeliveryTable, MessageEventTable } from "../../../entities/delivery";
+import { MessageDeliveryTable, MessageEventTable } from "../../../entities/drizzle";
 import { MessageDispatchTable } from "../../../entities/drizzle";
-import { MessageSuppressionTable } from "../../../entities/preference";
-import { MESSAGE_ALL } from "../../../entities/schema";
+import { MessageSuppressionTable } from "../../../entities/drizzle";
+import { MESSAGE_ALL } from "../../../constants/domain";
 import type { WebhookDeliveryRow, WebhookStore } from "./applyEvents";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

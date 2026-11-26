@@ -4,7 +4,7 @@
 
 import useSWR, { type SWRConfiguration } from "swr";
 
-import type { SessionDevice } from "@/domains/pairedDevice/entities/model";
+import type { SessionDevice } from "@/domains/pairedDevice/types/domain";
 import { fetchSessionDevice } from "@/domains/pairedDevice/services/client/pairedDeviceClient";
 
 import { SESSION_DEVICE_KEY } from "./keys";

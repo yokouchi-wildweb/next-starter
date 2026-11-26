@@ -6,7 +6,7 @@
 
 import { sql, type SQL } from "drizzle-orm";
 
-import { MessageInboxItemTable, MessageInboxReadStateTable, MessageInboxReadTable } from "../../../entities/inbox";
+import { MessageInboxItemTable, MessageInboxReadStateTable, MessageInboxReadTable } from "../../../entities/drizzle";
 
 /** 既読か(boolean の式) */
 export function inboxReadSql(userId: string): SQL<boolean> {

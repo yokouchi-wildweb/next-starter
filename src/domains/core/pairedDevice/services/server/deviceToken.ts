@@ -9,7 +9,7 @@ import { auditLogger } from "@/domains/core/auditLog/services/server";
 import { getAuditContext } from "@/lib/audit/server";
 import { PAIRED_DEVICE_AUDIT_TARGET } from "@/domains/pairedDevice/constants";
 import { PairedDeviceTable } from "@/domains/pairedDevice/entities/drizzle";
-import type { SessionDevice } from "@/domains/pairedDevice/entities/model";
+import type { SessionDevice } from "@/domains/pairedDevice/types/domain";
 import type { PairedDeviceKindDefinition } from "@/domains/pairedDevice/types/kind";
 import type { DbTransaction } from "@/lib/crud/server";
 import { generateSecretToken, hashSecretToken } from "@/lib/crypto";

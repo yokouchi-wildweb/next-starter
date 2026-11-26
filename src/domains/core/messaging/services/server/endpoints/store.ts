@@ -4,7 +4,7 @@ import { and, desc, eq } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 
-import { MessageEndpointTable } from "../../../entities/endpoint";
+import { MessageEndpointTable } from "../../../entities/drizzle";
 import type { MessageEndpointStore } from "./types";
 
 export const drizzleMessageEndpointStore: MessageEndpointStore = {

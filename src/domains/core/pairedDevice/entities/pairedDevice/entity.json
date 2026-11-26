@@ -1,0 +1,157 @@
+{
+  "plural": "paired_devices",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "apiAccess": {
+    "read": "none",
+    "write": "none"
+  },
+  "service": {
+    "file": "drizzleBase",
+    "export": "pairedDeviceBase"
+  },
+  "reason": "登録端末（kiosk 等）。操作は createDeviceRoute / 専用ルートだけ。登録表に載せるのはサーバー内部でドメイン名から表を引くため。 サービスのオブジェクトは無い（deviceService.ts は関数の集まり）ので createCrudService の戻り値 pairedDeviceBase を載せる。",
+  "columns": [
+    {
+      "name": "label",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "kind",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "scope",
+      "column": {
+        "type": "jsonb",
+        "notNull": true,
+        "default": {}
+      }
+    },
+    {
+      "name": "tokenHash",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "tokenExpiresAt",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "pairedAt",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "pairedUserAgent",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "lastSeenAt",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "lastSeenIp",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "createdBy",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "revokedAt",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "revokedBy",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "updatedAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "createdBy"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "SET_NULL",
+      "name": "paired_devices_created_by_fk"
+    },
+    {
+      "columns": [
+        "revokedBy"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "SET_NULL",
+      "name": "paired_devices_revoked_by_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "paired_devices_token_hash_idx",
+      "fields": [
+        "tokenHash"
+      ],
+      "unique": true
+    },
+    {
+      "name": "paired_devices_kind_idx",
+      "fields": [
+        "kind",
+        "createdAt"
+      ]
+    }
+  ]
+}

@@ -26,7 +26,8 @@ import type {
   MessageDeliveryStatus,
   MessageDispatchStatus,
 } from "../../../entities/model";
-import { MESSAGE_EXPAND_DONE, type MessageChannelCounts } from "../../../entities/schema";
+import { type MessageChannelCounts } from "../../../entities/schema";
+import { MESSAGE_EXPAND_DONE } from "../../../constants/domain";
 import { buildContent, buildContents, buildRowContent } from "./content";
 import { buildRecipientValues, checkRecipientVars, parseRecordVars, parseVars, toVariableMap } from "./context";
 import {

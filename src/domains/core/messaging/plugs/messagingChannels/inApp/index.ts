@@ -6,9 +6,9 @@ import { and, eq, inArray, or } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 
-import { MessageDeliveryTable } from "@/domains/core/messaging/entities/delivery";
+import { MessageDeliveryTable } from "@/domains/core/messaging/entities/drizzle";
 import { MessageDispatchTable } from "@/domains/core/messaging/entities/drizzle";
-import { MessageInboxItemTable } from "@/domains/core/messaging/entities/inbox";
+import { MessageInboxItemTable } from "@/domains/core/messaging/entities/drizzle";
 import { bindInboxImages, boundInboxImageRefs, INBOX_IMAGES_METADATA_KEY } from "@/domains/core/messaging/services/server/inbox/imageBinding";
 import {
   cleanupDetachedInboxImages,

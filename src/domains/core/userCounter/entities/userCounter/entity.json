@@ -1,0 +1,94 @@
+{
+  "plural": "user_counters",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "apiAccess": {
+    "read": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "write": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "operations": {
+      "truncateAll": {
+        "roleCategories": [
+          "admin"
+        ]
+      },
+      "export": {
+        "roleCategories": [
+          "admin"
+        ]
+      },
+      "import": {
+        "roleCategories": [
+          "admin"
+        ]
+      }
+    }
+  },
+  "service": {
+    "file": "counterService",
+    "export": "counterService"
+  },
+  "reason": "汎用 per-user カウンタ。書き込み主経路は counterService.bump（サーバ内部専用）。 汎用 API は admin 閲覧・手動補正のみに限定（fail-closed）。ユーザ向け read は 各ドメインが /api/me/<feature> を薄く生やして提供する（README 参照）。",
+  "columns": [
+    {
+      "name": "user_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "counter_key",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "count",
+      "column": {
+        "type": "integer",
+        "notNull": true,
+        "default": 0
+      }
+    },
+    {
+      "name": "first_occurred_at",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "last_occurred_at",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "indexes": [
+    {
+      "name": "user_counters_user_key_unique",
+      "fields": [
+        "user_id",
+        "counter_key"
+      ],
+      "unique": true
+    }
+  ]
+}

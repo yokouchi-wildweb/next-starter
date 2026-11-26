@@ -21,7 +21,7 @@ import { DomainError } from "@/lib/errors";
 import type { MessageChannel } from "@/lib/messaging";
 
 import type { MessageDispatch } from "../../../entities/model";
-import { MESSAGE_EXPAND_DONE } from "../../../entities/schema";
+import { MESSAGE_EXPAND_DONE } from "../../../constants/domain";
 import type { AnyResolvedMessageDefinition } from "../sendMessage/definition";
 import { recordPolicyOf } from "../sendMessage/record";
 import type { MessageDispatchTemplateSource, MessageRecipient, SendMessageResult, SendMessageToManyInput } from "../sendMessage/types";

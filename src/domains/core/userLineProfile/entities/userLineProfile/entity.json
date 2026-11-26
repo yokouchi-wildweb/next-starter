@@ -1,0 +1,62 @@
+{
+  "generate": false,
+  "singular": "user_line_profile",
+  "plural": "user_line_profiles",
+  "label": "LINE連携プロフィール",
+  "dbEngine": "Neon",
+  "idType": "uuid",
+  "relations": [
+    {
+      "domain": "user",
+      "label": "ユーザー",
+      "fieldName": "user_id",
+      "fieldType": "uuid",
+      "relationType": "belongsTo",
+      "required": true,
+      "onDelete": "CASCADE",
+      "unique": true
+    }
+  ],
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "fields": [
+    {
+      "name": "line_user_id",
+      "label": "LINE ユーザーID",
+      "fieldType": "string",
+      "formInput": "none",
+      "required": true
+    },
+    {
+      "name": "display_name",
+      "label": "LINE表示名",
+      "fieldType": "string",
+      "formInput": "none",
+      "required": false
+    }
+  ],
+  "defaultOrderBy": [
+    [
+      "createdAt",
+      "DESC"
+    ]
+  ],
+  "useDetailModal": false,
+  "addToAdminDataMenu": false,
+  "useDuplicateButton": false,
+  "useImportExport": false,
+  "apiAccess": {
+    "read": "none",
+    "write": "none"
+  },
+  "reason": "LINE 連携プロフィール。本人・管理の操作は専用ルートだけ（汎用 API・全件削除・データ移行には出さない）。",
+  "indexes": [
+    {
+      "name": "user_line_profiles_line_user_id_unique",
+      "fields": [
+        "line_user_id"
+      ],
+      "unique": true
+    }
+  ]
+}

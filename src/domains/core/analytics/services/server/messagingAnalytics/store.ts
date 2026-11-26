@@ -14,15 +14,15 @@ import { inArray, sql, type SQL } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 import { UserTable } from "@/domains/core/user/entities/drizzle";
-import { MessageDeliveryTable } from "@/domains/core/messaging/entities/delivery";
+import { MessageDeliveryTable } from "@/domains/core/messaging/entities/drizzle";
 import { MessageDispatchTable } from "@/domains/core/messaging/entities/drizzle";
 import {
   MessageInboxItemTable,
   MessageInboxReadStateTable,
   MessageInboxReadTable,
-} from "@/domains/core/messaging/entities/inbox";
-import { MessagePreferenceTable, MessageSuppressionTable } from "@/domains/core/messaging/entities/preference";
-import { MessageTemplateTable } from "@/domains/core/messaging/entities/template";
+} from "@/domains/core/messaging/entities/drizzle";
+import { MessagePreferenceTable, MessageSuppressionTable } from "@/domains/core/messaging/entities/drizzle";
+import { MessageTemplateTable } from "@/domains/core/messaging/entities/drizzle";
 import { messagingConfig } from "@/domains/core/messaging/config";
 import { PREFERENCE_SIGNUP_SOURCE } from "@/domains/core/messaging/constants/preferences";
 

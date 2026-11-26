@@ -1,0 +1,260 @@
+{
+  "plural": "device_fingerprints",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "apiAccess": {
+    "read": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "write": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "operations": {
+      "truncateAll": {
+        "roleCategories": [
+          "admin"
+        ]
+      },
+      "export": {
+        "roleCategories": [
+          "admin"
+        ]
+      },
+      "import": {
+        "roleCategories": [
+          "admin"
+        ]
+      }
+    }
+  },
+  "service": {
+    "file": "index",
+    "export": "deviceFingerprintService"
+  },
+  "reason": "デバイスフィンガープリント。書き込み主経路は POST /api/me/fingerprint (本人 ingest) + recordDeviceFingerprint (サーバ内部)。汎用 API は admin の閲覧・調査のみに限定 (fail-closed)。 類似照合は /api/admin/device-fingerprint/similar・compare を使う。",
+  "columns": [
+    {
+      "name": "userId",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "source",
+      "column": {
+        "enum": "device_fingerprint_source",
+        "notNull": true
+      }
+    },
+    {
+      "name": "compositeHash",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "canvasHash",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "webglHash",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "audioHash",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "fontsHash",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "screenKey",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "timezone",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "languages",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "platform",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "hardwareKey",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "webglRenderer",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "componentHashes",
+      "column": {
+        "type": "jsonb",
+        "notNull": true
+      }
+    },
+    {
+      "name": "rawSignals",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "ip",
+      "column": {
+        "type": "inet"
+      }
+    },
+    {
+      "name": "userAgent",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "seenCount",
+      "column": {
+        "type": "integer",
+        "notNull": true,
+        "default": 1
+      }
+    },
+    {
+      "name": "lastSeenAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "retentionDays",
+      "column": {
+        "type": "integer",
+        "notNull": true
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "enums": [
+    {
+      "name": "device_fingerprint_source",
+      "values": [
+        "page",
+        "challenge"
+      ]
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "userId"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "device_fingerprints_user_id_users_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "device_fingerprints_user_composite_idx",
+      "fields": [
+        "userId",
+        "compositeHash"
+      ],
+      "unique": true
+    },
+    {
+      "name": "device_fingerprints_composite_idx",
+      "fields": [
+        "compositeHash"
+      ]
+    },
+    {
+      "name": "device_fingerprints_canvas_idx",
+      "fields": [
+        "canvasHash"
+      ]
+    },
+    {
+      "name": "device_fingerprints_audio_idx",
+      "fields": [
+        "audioHash"
+      ]
+    },
+    {
+      "name": "device_fingerprints_webgl_idx",
+      "fields": [
+        "webglHash"
+      ]
+    },
+    {
+      "name": "device_fingerprints_fonts_idx",
+      "fields": [
+        "fontsHash"
+      ]
+    },
+    {
+      "name": "device_fingerprints_user_idx",
+      "fields": [
+        "userId",
+        "lastSeenAt"
+      ]
+    },
+    {
+      "name": "device_fingerprints_created_at_idx",
+      "fields": [
+        "createdAt"
+      ]
+    }
+  ]
+}

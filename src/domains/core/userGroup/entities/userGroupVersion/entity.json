@@ -1,0 +1,90 @@
+{
+  "plural": "user_group_versions",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "group_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "version",
+      "column": {
+        "type": "integer",
+        "notNull": true
+      }
+    },
+    {
+      "name": "status",
+      "column": {
+        "type": "text",
+        "notNull": true,
+        "default": "computing"
+      }
+    },
+    {
+      "name": "startedAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "computedAt",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "error",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "member_count",
+      "column": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "resume_after",
+      "column": {
+        "type": "uuid"
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "group_id"
+      ],
+      "references": {
+        "table": "user_groups",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "user_group_versions_group_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "user_group_versions_group_version_uniq",
+      "fields": [
+        "group_id",
+        "version"
+      ],
+      "unique": true
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "plural": "message_idempotency_keys",
+  "dbEngine": "Neon",
+  "generate": false,
+  "primaryKey": {
+    "columns": [
+      "idempotency_key"
+    ]
+  },
+  "registered": false,
+  "columns": [
+    {
+      "name": "idempotency_key",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "dispatch_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ]
+}

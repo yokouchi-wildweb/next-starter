@@ -1,0 +1,124 @@
+{
+  "plural": "outbox_jobs",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "kind",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "payload",
+      "column": {
+        "type": "jsonb",
+        "notNull": true
+      }
+    },
+    {
+      "name": "idempotency_key",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "status",
+      "column": {
+        "type": "text",
+        "notNull": true,
+        "default": "pending"
+      }
+    },
+    {
+      "name": "attempts",
+      "column": {
+        "type": "integer",
+        "notNull": true,
+        "default": 0
+      }
+    },
+    {
+      "name": "next_attempt_at",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "lease_until",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "last_error",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "created_at",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "updated_at",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "done_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "quarantined_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    }
+  ],
+  "indexes": [
+    {
+      "name": "outbox_jobs_kind_key_unique",
+      "fields": [
+        "kind",
+        "idempotency_key"
+      ],
+      "unique": true
+    },
+    {
+      "name": "outbox_jobs_status_next_idx",
+      "fields": [
+        "status",
+        "next_attempt_at"
+      ]
+    },
+    {
+      "name": "outbox_jobs_kind_status_idx",
+      "fields": [
+        "kind",
+        "status"
+      ]
+    }
+  ]
+}

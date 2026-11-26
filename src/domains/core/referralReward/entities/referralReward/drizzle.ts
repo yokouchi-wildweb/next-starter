@@ -1,0 +1,24 @@
+// src/domains/core/referralReward/entities/referralReward/drizzle.ts
+
+import { index, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+
+export const ReferralRewardStatusEnum = pgEnum("referralReward_status_enum", ["pending", "fulfilled", "failed"]);
+
+export const ReferralRewardTable = pgTable("referral_rewards", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  referral_id: uuid("referral_id").notNull(),
+  reward_key: text("reward_key").notNull(),
+  recipient_user_id: uuid("recipient_user_id").notNull(),
+  status: ReferralRewardStatusEnum("status").notNull().default("pending"),
+  fulfilled_at: timestamp("fulfilled_at", { withTimezone: true }),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+}, (table) => [
+  // 複合ユニーク制約 0: [referral_id, reward_key]
+  uniqueIndex("referral_rewards_composite_unique_0").on(table.referral_id, table.reward_key),
+  // インデックス: [status, fulfilled_at]
+  index("referral_rewards_status_fulfilled_at_idx").on(table.status, table.fulfilled_at),
+  // インデックス: [recipient_user_id, status]（受け取り手を 1 人に絞った報酬の集計用）
+  index("referral_rewards_recipient_user_id_status_idx").on(table.recipient_user_id, table.status)
+]);

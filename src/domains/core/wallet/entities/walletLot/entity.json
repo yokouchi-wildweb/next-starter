@@ -1,0 +1,70 @@
+{
+  "plural": "wallet_lots",
+  "dbEngine": "Neon",
+  "generate": false,
+  "useCreatedAt": true,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "wallet_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "granted_amount",
+      "column": {
+        "type": "integer",
+        "notNull": true
+      }
+    },
+    {
+      "name": "remaining",
+      "column": {
+        "type": "integer",
+        "notNull": true
+      }
+    },
+    {
+      "name": "expires_at",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "wallet_id"
+      ],
+      "references": {
+        "table": "wallets",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "wallet_lots_wallet_id_wallets_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "wallet_lots_wallet_expires_idx",
+      "fields": [
+        "wallet_id",
+        "expires_at"
+      ],
+      "where": "\"wallet_lots\".\"remaining\" > 0"
+    },
+    {
+      "name": "wallet_lots_expires_idx",
+      "fields": [
+        "expires_at"
+      ],
+      "where": "\"wallet_lots\".\"remaining\" > 0"
+    }
+  ]
+}

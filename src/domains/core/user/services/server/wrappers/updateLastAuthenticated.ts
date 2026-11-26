@@ -3,7 +3,7 @@
 import { eq } from "drizzle-orm";
 
 import { UserTable } from "@/domains/core/user/entities/drizzle";
-import { MAX_LOGIN_HISTORY } from "@/domains/core/user/entities/model";
+import { MAX_LOGIN_HISTORY } from "@/domains/core/user/constants/domain";
 import type { UserMetadata, UserLoginRecord } from "@/domains/core/user/entities/model";
 import { db } from "@/lib/drizzle";
 import { recordLoginEvent } from "@/domains/userLoginEvent/services/server";

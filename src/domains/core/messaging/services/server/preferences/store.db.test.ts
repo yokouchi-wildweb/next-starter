@@ -28,7 +28,7 @@ describe("message_preferences の一意と衝突の先(実 DB、戻す)", { skip
     const { db } = await import("@/lib/drizzle");
     const { and, eq } = await import("drizzle-orm");
     const { UserTable } = await import("@/domains/core/user/entities/drizzle");
-    const { MessagePreferenceTable: P } = await import("../../../entities/preference");
+    const { MessagePreferenceTable: P } = await import("../../../entities/drizzle");
     const { MESSAGE_PREFERENCE_CONFLICT_TARGET } = await import("./store");
 
     const [user] = await db.select({ id: UserTable.id }).from(UserTable).limit(1);

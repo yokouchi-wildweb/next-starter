@@ -4,7 +4,7 @@ import { and, asc, eq, gte, lte, sql } from "drizzle-orm";
 
 import { userCounterConfig } from "@/domains/userCounter/config";
 import { UserDailyCounterTable } from "@/domains/core/userCounter/entities/drizzle";
-import type { UserDailySeriesPoint } from "@/domains/core/userCounter/entities/model";
+import type { UserDailySeriesPoint } from "@/domains/core/userCounter/types/domain";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 

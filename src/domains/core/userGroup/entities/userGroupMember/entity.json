@@ -1,0 +1,75 @@
+{
+  "plural": "user_group_members",
+  "dbEngine": "Neon",
+  "generate": false,
+  "primaryKey": {
+    "columns": [
+      "group_id",
+      "user_id"
+    ],
+    "name": "user_group_members_pk"
+  },
+  "registered": false,
+  "columns": [
+    {
+      "name": "group_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "user_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "group_id"
+      ],
+      "references": {
+        "table": "user_groups",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "user_group_members_group_fk"
+    },
+    {
+      "columns": [
+        "user_id"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "user_group_members_user_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "user_group_members_user_idx",
+      "fields": [
+        "user_id"
+      ]
+    }
+  ]
+}

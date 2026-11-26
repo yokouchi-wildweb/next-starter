@@ -1,0 +1,129 @@
+{
+  "plural": "batch_jobs",
+  "dbEngine": "Neon",
+  "generate": false,
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "job_type",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "job_key",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "status",
+      "column": {
+        "enum": "batch_job_status",
+        "notNull": true,
+        "default": "pending"
+      }
+    },
+    {
+      "name": "total_count",
+      "column": {
+        "type": "integer",
+        "notNull": true
+      }
+    },
+    {
+      "name": "processed_count",
+      "column": {
+        "type": "integer",
+        "notNull": true,
+        "default": 0
+      }
+    },
+    {
+      "name": "failed_count",
+      "column": {
+        "type": "integer",
+        "notNull": true,
+        "default": 0
+      }
+    },
+    {
+      "name": "skipped_count",
+      "column": {
+        "type": "integer",
+        "notNull": true,
+        "default": 0
+      }
+    },
+    {
+      "name": "batch_size",
+      "column": {
+        "type": "integer",
+        "notNull": true,
+        "default": 100
+      }
+    },
+    {
+      "name": "max_retry_count",
+      "column": {
+        "type": "integer",
+        "notNull": true,
+        "default": 2
+      }
+    },
+    {
+      "name": "params",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "target_query",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "error_summary",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "started_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    },
+    {
+      "name": "completed_at",
+      "column": {
+        "type": "timestamp with time zone"
+      }
+    }
+  ],
+  "enums": [
+    {
+      "name": "batch_job_status",
+      "valuesFrom": {
+        "file": "src/domains/core/batchJob/types/index.ts",
+        "export": "BATCH_JOB_STATUSES"
+      }
+    }
+  ],
+  "indexes": [
+    {
+      "name": "batch_jobs_job_type_job_key_idx",
+      "fields": [
+        "job_type",
+        "job_key"
+      ],
+      "unique": true
+    }
+  ]
+}

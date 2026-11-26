@@ -1,0 +1,61 @@
+{
+  "plural": "analytics_daily_rollups",
+  "dbEngine": "Neon",
+  "generate": false,
+  "primaryKey": {
+    "columns": [
+      "metricKey",
+      "bucketDate",
+      "dimsKey"
+    ],
+    "name": "analytics_daily_rollups_pk"
+  },
+  "registered": false,
+  "columns": [
+    {
+      "name": "metricKey",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "bucketDate",
+      "column": {
+        "type": "date",
+        "notNull": true
+      }
+    },
+    {
+      "name": "dimsKey",
+      "column": {
+        "type": "text",
+        "notNull": true,
+        "default": ""
+      }
+    },
+    {
+      "name": "dims",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "value",
+      "column": {
+        "type": "numeric",
+        "notNull": true
+      }
+    },
+    {
+      "name": "computedAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ]
+}

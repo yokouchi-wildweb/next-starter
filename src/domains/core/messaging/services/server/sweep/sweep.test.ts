@@ -18,7 +18,7 @@ import { z } from "zod";
 import { defineMessage, type ChannelSendResult, type MessageLayout, type MessageRegistry } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
-import { MESSAGE_EXPAND_DONE } from "../../../entities/schema";
+import { MESSAGE_EXPAND_DONE } from "../../../constants/domain";
 import { createMessageSender } from "../sendMessage/sender";
 import { TEST_LAYOUTS, createTestChannel, testConfig } from "../sendMessage/testHelpers";
 import { pruneMessaging } from "./retention";

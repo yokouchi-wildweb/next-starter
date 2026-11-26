@@ -1,0 +1,38 @@
+{
+  "plural": "message_subscriber_cursors",
+  "dbEngine": "Neon",
+  "generate": false,
+  "primaryKey": {
+    "columns": [
+      "subscriber_key"
+    ]
+  },
+  "registered": false,
+  "columns": [
+    {
+      "name": "subscriber_key",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "last_seq",
+      "column": {
+        "type": "bigint",
+        "notNull": true,
+        "default": 0
+      }
+    },
+    {
+      "name": "updatedAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ]
+}

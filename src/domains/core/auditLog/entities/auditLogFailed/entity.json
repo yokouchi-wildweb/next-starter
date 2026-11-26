@@ -1,0 +1,53 @@
+{
+  "plural": "audit_logs_failed",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "apiAccess": {
+    "read": "none",
+    "write": "none"
+  },
+  "service": {
+    "file": "drizzleBase",
+    "export": "auditLogFailedBase"
+  },
+  "columns": [
+    {
+      "name": "payload",
+      "column": {
+        "type": "jsonb",
+        "notNull": true
+      }
+    },
+    {
+      "name": "errorMessage",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "errorStack",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "indexes": [
+    {
+      "name": "audit_logs_failed_created_at_idx",
+      "fields": [
+        "createdAt"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "plural": "message_overrides",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "message_key",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "field_path",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "layout_version",
+      "column": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "value",
+      "column": {
+        "type": "jsonb",
+        "notNull": true
+      }
+    },
+    {
+      "name": "code_value",
+      "column": {
+        "type": "jsonb"
+      }
+    },
+    {
+      "name": "updated_by",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "createdAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    },
+    {
+      "name": "updatedAt",
+      "column": {
+        "type": "timestamp with time zone",
+        "notNull": true,
+        "default": {
+          "sql": "now()"
+        }
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "updated_by"
+      ],
+      "references": {
+        "table": "users",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "SET_NULL",
+      "name": "message_overrides_updated_by_users_id_fk"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "uq_message_overrides_key_path",
+      "fields": [
+        "message_key",
+        "field_path"
+      ],
+      "unique": true
+    }
+  ]
+}

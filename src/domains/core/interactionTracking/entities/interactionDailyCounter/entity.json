@@ -1,0 +1,83 @@
+{
+  "plural": "interaction_daily_counters",
+  "dbEngine": "Neon",
+  "generate": false,
+  "idType": "uuid",
+  "registered": false,
+  "columns": [
+    {
+      "name": "date",
+      "column": {
+        "type": "date",
+        "notNull": true
+      }
+    },
+    {
+      "name": "targetType",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "targetId",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "action",
+      "column": {
+        "type": "text",
+        "notNull": true
+      }
+    },
+    {
+      "name": "source",
+      "column": {
+        "type": "text",
+        "notNull": true,
+        "default": ""
+      }
+    },
+    {
+      "name": "shard",
+      "column": {
+        "type": "smallint",
+        "notNull": true,
+        "default": 0
+      }
+    },
+    {
+      "name": "count",
+      "column": {
+        "type": "bigint",
+        "notNull": true,
+        "default": 0
+      }
+    }
+  ],
+  "indexes": [
+    {
+      "name": "interaction_daily_counters_uq",
+      "fields": [
+        "date",
+        "targetType",
+        "targetId",
+        "action",
+        "source",
+        "shard"
+      ],
+      "unique": true
+    },
+    {
+      "name": "interaction_daily_counters_target_idx",
+      "fields": [
+        "targetType",
+        "targetId",
+        "date"
+      ]
+    }
+  ]
+}

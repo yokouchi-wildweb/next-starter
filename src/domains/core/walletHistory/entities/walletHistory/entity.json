@@ -1,0 +1,199 @@
+{
+  "plural": "wallet_histories",
+  "dbEngine": "Neon",
+  "generate": false,
+  "useCreatedAt": true,
+  "idType": "uuid",
+  "apiAccess": {
+    "read": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "write": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "operations": {
+      "truncateAll": {
+        "roleCategories": [
+          "admin"
+        ]
+      },
+      "export": {
+        "roleCategories": [
+          "admin"
+        ]
+      },
+      "import": {
+        "roleCategories": [
+          "admin"
+        ]
+      }
+    }
+  },
+  "reason": "ユーザー所有データ。汎用 API は admin 限定（wallet と同じ）。",
+  "columns": [
+    {
+      "name": "user_id",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "type",
+      "column": {
+        "enum": "wallet_type_enum",
+        "notNull": true
+      }
+    },
+    {
+      "name": "change_method",
+      "column": {
+        "enum": "wallet_change_method",
+        "notNull": true
+      }
+    },
+    {
+      "name": "points_delta",
+      "column": {
+        "type": "integer",
+        "notNull": true
+      }
+    },
+    {
+      "name": "balance_before",
+      "column": {
+        "type": "integer",
+        "notNull": true
+      }
+    },
+    {
+      "name": "balance_after",
+      "column": {
+        "type": "integer",
+        "notNull": true
+      }
+    },
+    {
+      "name": "source_type",
+      "column": {
+        "enum": "wallet_history_source_type",
+        "notNull": true
+      }
+    },
+    {
+      "name": "request_batch_id",
+      "column": {
+        "type": "uuid"
+      }
+    },
+    {
+      "name": "reason",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "reason_category",
+      "column": {
+        "type": "text",
+        "notNull": true,
+        "default": "other"
+      }
+    },
+    {
+      "name": "reason_key",
+      "column": {
+        "type": "text"
+      }
+    },
+    {
+      "name": "meta",
+      "column": {
+        "type": "jsonb",
+        "default": {}
+      }
+    }
+  ],
+  "enums": [
+    {
+      "name": "wallet_type_enum",
+      "values": [
+        "regular_coin",
+        "regular_point"
+      ]
+    },
+    {
+      "name": "wallet_change_method",
+      "values": [
+        "INCREMENT",
+        "DECREMENT",
+        "SET"
+      ]
+    },
+    {
+      "name": "wallet_history_source_type",
+      "values": [
+        "user_action",
+        "admin_action",
+        "system"
+      ]
+    }
+  ],
+  "indexes": [
+    {
+      "name": "wallet_histories_user_id_idx",
+      "fields": [
+        "user_id"
+      ]
+    },
+    {
+      "name": "wallet_histories_user_id_created_at_idx",
+      "fields": [
+        "user_id",
+        "createdAt"
+      ]
+    },
+    {
+      "name": "wallet_histories_user_type_created_idx",
+      "fields": [
+        "user_id",
+        "type",
+        "createdAt"
+      ]
+    },
+    {
+      "name": "wallet_histories_reason_category_idx",
+      "fields": [
+        "reason_category"
+      ]
+    },
+    {
+      "name": "wallet_histories_reason_category_created_at_idx",
+      "fields": [
+        "reason_category",
+        "createdAt"
+      ]
+    },
+    {
+      "name": "wallet_histories_type_created_at_idx",
+      "fields": [
+        "type",
+        "createdAt"
+      ]
+    },
+    {
+      "name": "wallet_histories_user_created_desc_idx",
+      "fields": [
+        "user_id",
+        "createdAt"
+      ],
+      "desc": [
+        "createdAt"
+      ]
+    }
+  ]
+}

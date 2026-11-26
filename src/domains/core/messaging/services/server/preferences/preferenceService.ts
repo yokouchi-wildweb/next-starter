@@ -25,7 +25,7 @@ import {
 } from "@/lib/messaging";
 import { DomainError } from "@/lib/errors";
 
-import { MESSAGE_ALL } from "../../../entities/schema";
+import { MESSAGE_ALL } from "../../../constants/domain";
 import { activeChannel } from "../sendMessage/expand";
 import { groupRowCategory } from "./groupRows";
 import type {
