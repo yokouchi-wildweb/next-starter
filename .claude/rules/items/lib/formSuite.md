@@ -22,7 +22,7 @@ editing:
 - fs_no_client_entry: index.ts never starts with "use client" | the mark stays on the files that need it
 - fs_controlled_names: a Controlled input is exported as Controlled + the shelf unit's name (ControlledTextInput) | its props type ControlledXxxProps
 - helper_text: the field frame draws the description, not the input part
-- fs_field_config: FieldConfig = DomainField (@/lib/domain) widened with screen-only keys (purpose, onMetadataChange, async*) and narrowed formInput / options / mediaTypePreset / validationRule | a new domain.json key goes to DomainField, never here
+- fs_field_config: FieldConfig = DomainField (@/lib/domain) widened with screen-only keys (purpose, onMetadataChange, async*) and narrowed formInput / options / mediaTypePreset / validationRule | a new entity.json field key goes to DomainField, never here
 - field_types: fieldType / formInput names come from @/lib/domain (fieldTypeNames.ts, derived from the tables) | never a name list in this lib
 - fs_relation_options: useRelationOptions decides nothing itself | which relations, prefetch and SWR keys stay in @/lib/domain relationOptions.mjs
 - input_a11y_row: a new shelf input or builtin formInput gets a row in a11yContract.test.tsx (UNITS / BUILTIN, or the skip / NOT_INPUTS reason)

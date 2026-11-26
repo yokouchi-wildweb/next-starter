@@ -25,7 +25,7 @@ export type { HasManyRelationInfo, RelationInfo, RelationType } from "./types/re
 // definition: domain.json の読み方・権限の解決・データ操作のコマンド
 export { isDomainDataOperation, isGenericApiClosed, resolveAccessRule } from "./definition/apiAccess";
 export { DATA_COMMAND_OPERATIONS, isDataCommand, resolveDataCommand, type DataCommandResolution } from "./definition/dataCommand";
-export { normalizeDomainJsonConfig } from "./definition/normalizeDomainJsonConfig";
+export { normalizeEntityDeclaration } from "./definition/normalizeEntityDeclaration";
 export { createDomainConfigLookup } from "./definition/createDomainConfigLookup";
 
 // relations: リレーション情報と関連の選択肢の決まり(relationOptions.mjs は "./node" からも出る)

@@ -1,6 +1,6 @@
 // src/domains/referralReward/services/server/drizzleBase.ts
 
-import { normalizeDomainJsonConfig } from "@/lib/domain";
+import { normalizeEntityDeclaration } from "@/lib/domain";
 import type { DomainConfigOptionals } from "@/lib/domain";
 import rawConf from "@/domains/referralReward/entities/referralReward/entity.json";
 import { ReferralRewardTable } from "@/domains/core/referralReward/entities/drizzle";
@@ -11,7 +11,7 @@ import type { IdStrategy, OrderBySpec } from "@/lib/crud";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { z } from "zod";
 
-const conf = normalizeDomainJsonConfig(rawConf) as typeof rawConf & DomainConfigOptionals;
+const conf = normalizeEntityDeclaration(rawConf) as typeof rawConf & DomainConfigOptionals;
 
 // sortOrderField が設定されている場合、対応するカラムを取得
 const sortOrderColumn = conf.sortOrderField

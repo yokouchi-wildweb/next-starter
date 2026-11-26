@@ -13,7 +13,7 @@ using:
 - entry_key_name: an entry's file name = its `key` (camelCase), an override targets it
 - order_between: a fork's entry takes an order between the upstream values
 - allow_roles_narrow: an override's allowRoles only narrows (empty = widening)
-- data_menu_off: keep a domain out of the data menu by addToAdminDataMenu: false in domain.json, never on the menu side
+- data_menu_off: keep a domain out of the data menu by addToAdminDataMenu: false in its registration's entity.json, never on the menu side | out of the admin list index (adminDomains) by adminList: false there
 - section_fetch_in_load: a dashboard section fetches only in its `load`; its Section gets the result as `data`
 - section_list_server: a Client Component never imports the section list or plugs/adminDashboardSections/
 - dashboard_config_scope: adminConfig.dashboard switches serve the upstream sections only, never a fork's section

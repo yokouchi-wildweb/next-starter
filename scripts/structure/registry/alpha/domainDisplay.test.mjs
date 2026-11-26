@@ -167,7 +167,7 @@ test("hiddenColumns の列は列名のキーのどれにも出ない", () => {
   assert.deepEqual(display.relations.map((r) => r.domain), ["c"]);
 });
 
-test("実物 chatRoom: 写しの列名は normalizeDomainJsonConfig の結果と同じ", () => {
+test("実物 chatRoom: 写しの列名は normalizeEntityDeclaration の結果と同じ", () => {
   const { outputs } = buildAlphaRegistries(process.cwd());
   const display = JSON.parse(/: DomainDisplay = (\{[\s\S]*\});/.exec(outputs["src/domains/core/chatRoom/entities/display.ts"])[1]);
   const config = JSON.parse(readFileSync("src/domains/core/chatRoom/entities/chatRoom/entity.json", "utf8"));

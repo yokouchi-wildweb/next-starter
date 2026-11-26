@@ -43,7 +43,7 @@ read when step 5 (commit.md) writes a notice, or a caller writes a notice from a
    - split only what cannot be automated into `manual_steps` (fail-auto)
    - **a change that acts on the whole admin** (changing admin shared parts, the admin layout / guard / loader set, the Screen-building API, etc.): never end its notice with regenerating the generated admin (`pnpm generate domain`)
      - forks have hand-written admin pages of domains with `"adminRoutes": false` and `_components/` copied from the generated ones | write the following into required_actions as is:
-     - (a) list domains with hand-written admin pages: `git grep -l '"adminRoutes": *false' -- 'src/domains/**/domain.json'`
+     - (a) list domains with hand-written admin pages: `git grep -l '"adminRoutes": *false' -- 'src/domains/**/entities/*/entity.json'`
      - (b) list admin files using the changed API: `git grep -l -E '<変えた API の名前>' -- 'src/app/admin/**'` | drop those whose head says `このファイルは pnpm generate domain が生成する` (regeneration fixes them) and those equal to upstream (`git diff --quiet <upstream>/<branch> -- <file>` shows no diff = merge fixes them); the rest = the fork's hand-written ones
      - (c) the steps to align each remaining file to the new form | verify holds `pnpm typecheck` and "the rest of (b) is 0 files, or all aligned"
    - **a notice that has forks add config keys also writes the steps for when the fork already has the same key**: the steps to drop the fork's part and align to upstream's line, and the `git grep` to find it | when fork and upstream add at different spots, git takes both without conflict, so "on conflict" / "add if missing" is not enough (`.notices/README.md`)

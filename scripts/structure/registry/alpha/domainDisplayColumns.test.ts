@@ -6,7 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { buildDomainColumns, type DomainColumnDateFormatter, type DomainColumnTruncate } from "@/lib/crud";
-import { normalizeDomainJsonConfig } from "@/lib/domain";
+import { normalizeEntityDeclaration } from "@/lib/domain";
 import sampleConfig from "@/domains/sample/entities/sample/entity.json";
 import couponConfig from "@/domains/core/coupon/entities/coupon/entity.json";
 import chatRoomConfig from "@/domains/core/chatRoom/entities/chatRoom/entity.json";
@@ -36,6 +36,6 @@ for (const [name, display, config] of cases) {
   test(`${name}: 列の見出しと並び替えキーが entity.json と同じ`, () => {
     const columns = shape(display);
     assert.ok(columns.length > 0);
-    assert.deepEqual(columns, shape(normalizeDomainJsonConfig(config as Record<string, unknown>) as Config));
+    assert.deepEqual(columns, shape(normalizeEntityDeclaration(config as Record<string, unknown>) as Config));
   });
 }

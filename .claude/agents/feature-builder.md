@@ -51,10 +51,10 @@ docs/!must-read/設計思想とアーキテクチャ.md
 
 **ビジネスドメイン（domains/ 配下）の場合:**
 
-1. まず `domain.json` のみを手で書く（スキーマと例: src/domains/README.md、src/domains/sample/domain.json）
-2. `pnpm forge` を実行する（検査 → 生成 → 事後検査。検査で止まったら文のとおりに domain.json を直してもう一度）
+1. まず宣言だけを手で書く: `domain.json`（ドメインの表示名）と表ごとの `entities/<登録名>/entity.json`（スキーマと例: src/domains/README.md、src/domains/sample/domain.json と src/domains/sample/entities/sample/entity.json）
+2. `pnpm forge` を実行する（検査 → 生成 → 事後検査。検査で止まったら文のとおりに宣言を直してもう一度）
 3. 表が変わったら、ユーザーに `pnpm db:push` を依頼する（forge が最後に案内する。エージェントは実行しない）
-4. 自動生成完了後、必要に応じてカスタマイズを行う。手で書くのは `wrappers/` に足すファイル、`formEntities.ts`、自分で足したファイルだけ。`presenters.ts`・`constants/field.ts` などの生成物は再生成で上書きされるので、生成物に手を入れるならそのドメインを `"generate": false` にする（CLAUDE.md DIRECTORY_STRUCTURE code_generation）
+4. 自動生成完了後、必要に応じてカスタマイズを行う。手で書くのは `wrappers/` に足すファイル、`formEntities.ts`、自分で足したファイルだけ。`presenters.ts`・`constants/field.ts` などの生成物は再生成で上書きされるので、生成物に手を入れるならその登録の entity.json を `"generate": false` にする（CLAUDE.md DIRECTORY_STRUCTURE code_generation）
 
 **重要:** ビジネスドメインでは entities/, services/, hooks/, components/Admin*/ は自動生成されるため、手動で作成しない。
 

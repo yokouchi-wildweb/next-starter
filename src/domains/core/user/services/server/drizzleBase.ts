@@ -7,7 +7,7 @@ import { auditLogger } from "@/domains/core/auditLog/services/server";
 import { storageBindingFor } from "@/domains/core/storageObject/services/server/crudBinding";
 import { createCrudService } from "@/lib/crud/server";
 import type { CrudServiceOptions } from "@/lib/crud/server";
-import { normalizeDomainJsonConfig } from "@/lib/domain";
+import { normalizeEntityDeclaration } from "@/lib/domain";
 import type { DomainConfigOptionals } from "@/lib/domain";
 import rawConf from "@/domains/user/entities/user/entity.json";
 import type { z } from "zod";
@@ -16,7 +16,7 @@ import type { z } from "zod";
 // ドメイン固有のロジック（外部サービス連携や判定処理など）は
 // src/domains/user/services/server/wrappers/ 以下にラップを作成して差し替えること。
 
-const conf = normalizeDomainJsonConfig(rawConf) as typeof rawConf & DomainConfigOptionals;
+const conf = normalizeEntityDeclaration(rawConf) as typeof rawConf & DomainConfigOptionals;
 
 export const baseOptions = {
   idType: "uuid",

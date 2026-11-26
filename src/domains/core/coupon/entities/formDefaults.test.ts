@@ -6,7 +6,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 
-import { normalizeDomainJsonConfig } from "@/lib/domain";
+import { normalizeEntityDeclaration } from "@/lib/domain";
 import { buildFormDefaultValues } from "@/lib/formSuite";
 
 import domainConfig from "./coupon/entity.json";
@@ -14,7 +14,7 @@ import { domainDisplay } from "./display";
 import { CouponCreateSchema } from "./schema";
 
 describe("coupon: buildFormDefaultValues は写しを受け取る", () => {
-  const normalized = normalizeDomainJsonConfig(domainConfig as Record<string, unknown>) as Parameters<typeof buildFormDefaultValues>[0];
+  const normalized = normalizeEntityDeclaration(domainConfig as Record<string, unknown>) as Parameters<typeof buildFormDefaultValues>[0];
 
   test("作成の既定値が domain.json と同じ", () => {
     assert.deepEqual(buildFormDefaultValues(domainDisplay), buildFormDefaultValues(normalized));

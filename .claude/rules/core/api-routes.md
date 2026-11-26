@@ -7,12 +7,13 @@ paths:
   - "src/wiring/*Route*"
   - "src/lib/domainAccess/**"
   - "src/domains/**/domain.json"
+  - "src/domains/**/entities/*/entity.json"
 ---
 # api-routes
 > **ROLE**: loaded when writing API routes or the route factory | holds API_ROUTES detail
 > Tier1-owned: forks never edit (gap → /order next-starter)
 
-generic: /api/[domain]/** exposes the CRUD operations (list: src/app/api/[domain]/) | access = the domain's services/server/domainEntry.ts entry { service: () => import(...), access } (TYPE-REQUIRED; a generated domain: domain.json apiAccess → pnpm generate domain; a generate:false or hand-written domain (every core domain today): hand-written; fork override = domainEntry.override.ts)
+generic: /api/[domain]/** exposes the CRUD operations (list: src/app/api/[domain]/) | access = the domain's services/server/domainEntry.ts entry { service: () => import(...), access } (TYPE-REQUIRED; a generated registration: entity.json apiAccess → pnpm generate domain; a generate:false or hand-written domain (every core domain today): hand-written; fork override = domainEntry.override.ts)
 - serviceRegistry.ts = generated from them (pnpm generate registry), the runtime source
 - data_operations: truncateAll / export / import open only when access.operations names them (unset = none, never falls back to read/write/admin) | admin routes (domains list / truncate / data-migration) gate on their own guard AND this rule, any denied domain → whole request denied | INTERNAL_ONLY = registered for getService, closed everywhere
 - lookup: domain name ↔ service / table / id column = serviceRegistry only (never a new per-domain map) | server callers import src/wiring/domainRegistry.ts (getService / lookupDomainService / findDomainByTable / getDomainTable; allowed from src/app, src/proxies, src/proxy.ts, cron task.ts only)

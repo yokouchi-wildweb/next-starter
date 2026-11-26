@@ -64,7 +64,7 @@
 - 入口は 3 つ(`package.json`): `.` = `@/lib/domain`(client でも server でも読める: 型・写しを受ける関数・定義の読み方・型の表と入力種別の表と表示の答え・主キーの論理名 `CRUD_ID_FIELD`・日時の schema・値の表示 `format*` と `FieldPresenter`・中間表の名前・管理画面のパス `getAdminPaths` / `AdminPaths`。React の値・hooks・HTTP の client は無い)、`./server` = `@/lib/domain/server`(登録表から引く関数・`getJunctionTable`)、`./node` = `node.mjs`(Next の外のプログラムが読む `.mjs` 5 つ: `fieldTypes`・`fieldFormInputs`・`formInputs`・`presenterFor`・`relationOptions`。scripts・eslint-rules からは相対で `src/lib/domain/node.mjs`)
 - 外から下の中のファイルは読まない(lint `entry/only-entries`)。下はフォルダの中の置き場
 
-- `definition/`: `createDomainConfigLookup`、`normalizeDomainJsonConfig`、`resolveAccessRule`
+- `definition/`: `createDomainConfigLookup`、`normalizeEntityDeclaration`、`resolveAccessRule`
 - `relations/`: 写しを受ける関数、関連選択肢（`relationOptions.mjs`）
 - `fields/`: `extractFields` / `extractImageFields`、型（fieldType）の表 `fieldTypes.mjs`、主キーの論理名 `idField.ts`、日時の schema `datetimeSchema.ts`、値の表示 `formatters.ts`(生成した presenters.ts が読む。`FieldPresenter` の戻りの型だけ react を型で読む)
 - `routes/`: 管理画面のパス `getAdminPaths(slugPlural)` → `AdminPaths`(list / new / detail(id) / edit(id))

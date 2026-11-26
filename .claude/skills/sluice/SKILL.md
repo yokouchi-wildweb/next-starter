@@ -40,11 +40,11 @@ args: $ARGUMENTS | `order:<id>` = shipping that came from an order | `no-push` =
    - by where you changed (run every one that applies; a check `pnpm check --phase=ship` above already ran, as its output lists, is not run again):
      - `pnpm test` skips the tests a phase runs unless named (D389)
      - adding / deleting under `src/lib/`, `src/lib/CATALOG.md` → `pnpm test src/lib/folderCatalog/catalog.test.mjs`
-     - `domainEntry.ts`, `domain.json` → registry drift → `pnpm generate registry`
+     - `domainEntry.ts`, `domain.json`, `entities/*/entity.json` → registry drift → `pnpm generate registry`
      - `entities/drizzle.ts`, `src/registry/schemaRegistry.ts` → `pnpm test scripts/structure/registry/` | an index changed → write the explanation of the diff `pnpm db:push:check` prints in the report (db:push itself is the dev DB's: repo.json `agent.db_push` decides who runs it, not this step)
      - `src/featureGate/rules/`, items of `src/proxies/*.ts`, cron `task.ts` → `pnpm check extensions` (drift → `pnpm generate extensions`) and `FEATURE_GATE_CHECK=all pnpm test src/featureGate scripts/structure/proxies`
      - adding / deleting / moving pages or routes, changing loaders or guard.ts → rebuild the map (`src/app/route-map.jsonl`) with `pnpm generate routes` and include it in the range, `pnpm test 'src/lib/screens/routeMap*.test.mjs'` (check --phase=ship also checks the map matches)
-     - `domain.json`, role definitions (`*.role.json`), `*.profile.json` → `pnpm forge` (generation and post-checks in one go; include the generated files, the district map `src/registry/district-map.jsonl` and route-map changes in the range; write table-change guidance in the report)
+     - `domain.json`, `entities/*/entity.json`, role definitions (`*.role.json`), `*.profile.json` → `pnpm forge` (generation and post-checks in one go; include the generated files, the district map `src/registry/district-map.jsonl` and route-map changes in the range; write table-change guidance in the report)
      - `.claude/skills/` → the `*.test.mjs` beside the changed skill (`node --test <file>`) | a skill deleted or renamed → confirm with `git grep -n "/<旧名>"` that no reference remains (`.notices/` and `docs/journal/` are records, excluded)
      - scripts of `package.json` → run each added / changed script once and see it pass (one that needs a DB, external service or dev server → do not run it, report `未実行: 理由`)
      - none of the above: `pnpm test --changed` (tests reached by import from the range + tests in the same folder; a test printed as `依存を辿れなかった` was picked by the same-folder rule; DB tests are not run: changed `*.db.test.*` → `pnpm test --changed --db`; `scripts/runner/test/README.md`)

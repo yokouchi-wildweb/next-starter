@@ -6,7 +6,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 
-import { normalizeDomainJsonConfig } from "@/lib/domain";
+import { normalizeEntityDeclaration } from "@/lib/domain";
 import { buildFormDefaultValues } from "@/lib/formSuite";
 
 import domainConfig from "./sample/entity.json";
@@ -14,7 +14,7 @@ import { domainDisplay } from "./display";
 import { SampleCreateSchema } from "./schema";
 
 describe("sample: buildFormDefaultValues は写しを受け取る", () => {
-  const normalized = normalizeDomainJsonConfig(domainConfig as Record<string, unknown>) as Parameters<typeof buildFormDefaultValues>[0];
+  const normalized = normalizeEntityDeclaration(domainConfig as Record<string, unknown>) as Parameters<typeof buildFormDefaultValues>[0];
 
   test("作成の既定値が domain.json と同じ", () => {
     assert.deepEqual(buildFormDefaultValues(domainDisplay), buildFormDefaultValues(normalized));
@@ -28,7 +28,7 @@ describe("sample: buildFormDefaultValues は写しを受け取る", () => {
 
 describe("sample: 作成フォームの既定値が schema を通る", () => {
   test("画像の集まり（mediaCollection）が空でも通る", () => {
-    const values = buildFormDefaultValues(normalizeDomainJsonConfig(domainConfig));
+    const values = buildFormDefaultValues(normalizeEntityDeclaration(domainConfig));
     const result = SampleCreateSchema.safeParse({ ...values, name: "テスト" });
     assert.equal(result.success, true, JSON.stringify(result.error?.issues));
     assert.deepEqual(result.data?.images, []);

@@ -9,7 +9,7 @@ import { and, ilike, or, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 
 import { UserTable } from "@/domains/core/user/entities/drizzle";
-import { normalizeDomainJsonConfig } from "@/lib/domain";
+import { normalizeEntityDeclaration } from "@/lib/domain";
 import rawUserConf from "@/domains/core/user/entities/user/entity.json";
 import type { BoundedSearchParams, PaginatedResult, WithOptions, WhereExpr } from "@/lib/crud";
 import type { ExtraWhereClause } from "@/lib/crud/server";
@@ -92,7 +92,7 @@ export async function searchWithProfile(
     const pattern = `%${searchQuery}%`;
 
     // ユーザー側の検索条件（domain.json の searchFields）
-    const userSearchFields: string[] = normalizeDomainJsonConfig(rawUserConf).searchFields ?? [];
+    const userSearchFields: string[] = normalizeEntityDeclaration(rawUserConf).searchFields ?? [];
     const userConds = userSearchFields
       .map((field) => {
         const column = (UserTable as any)[field];
