@@ -10,6 +10,8 @@ change: add → <your domain or lib>/plugs/backendCapabilities/<name>.ts `export
 rules:
 using:
 - select_point: a port is chosen through a selecting point (`select` on a plugs point, owner = a lib or an always-open domain) | the owner imports `adapter` from its generated <owner>/extensions/<point>.ts, never an item directly
+- requires_features: an implementation that works only while a feature is open lists it in its declaration's optional `requiresFeatures: ["<feature>", …]` (gate rule names, literal) | selecting it while that feature is closed, unknown or unreadable stops pnpm generate extensions and the check (fix: pnpm ops features set <feature> on, or select another implementation)
+  - never expressed as a capability name or a gate dependsOn | lib/backends holds only the name's type and reads neither the gate nor a domain
 - literal_only: a declaration, a compat and a capabilities item are literals only (generators read them by AST, never run them)
 - is_configured_pure: adapter.isConfigured is sync, no network, no SDK init | it returns env / setting names, never values
 - reserved_names: none and fake are never an item's name | fake is never written in the selection table | tests put fake in through the port owner's override slot (createBackendOverride)

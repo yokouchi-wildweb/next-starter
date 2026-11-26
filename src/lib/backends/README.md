@@ -69,7 +69,8 @@ const report = await mailContract.run(fakeMailAdapter);
 
 ## API
 
-- `BackendDeclaration` = `{ provides: CapabilityName[], requires: CapabilityName[], billing: BillingScale[], env: { required: string[], optional?: string[] } }`(字面だけ。`env` は名前だけで、手引きと報告用)
+- `BackendDeclaration` = `{ provides: CapabilityName[], requires: CapabilityName[], billing: BillingScale[], env: { required: string[], optional?: string[] }, requiresFeatures?: FeatureName[] }`(字面だけ。`env` は名前だけで、手引きと報告用。`requiresFeatures` = この実装を選んだときに開いていなければならない機能の名前(門番の規則の名前)、省略 = 無い。閉・知らない名前・開閉が読めなければ選択表の検査が止める)
+- `FeatureName` = 機能の名前の字面の型(`string`)。lib/backends は門番もドメインも読まない(照らすのは `scripts/structure/extensions/select.mjs`)
 - `CapabilityName` = `"<口>.<語>"`。語は口の持ち主の選ぶ点の宣言と増設点 `backendCapabilities` が持つ
 - `BillingScale` = `{ kind: "none" | "fixed" | "mau" | "perRecipient" | "egress" | "usage", unit?, priceKey? }`。`"usage"` は `unit` が必須(message・request・gbMonth・sms 等)、`priceKey` は単価の表の行の鍵。`"none"` は配列の中で単独だけ
 - `BackendAdapter` = `{ isConfigured(): IsConfiguredResult }`(同期、通信しない、SDK を初期化しない)。口ごとの操作は口の持ち主の型が広げる
