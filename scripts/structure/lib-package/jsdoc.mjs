@@ -9,7 +9,9 @@
 // - 空の配列から推した never[] を含む直しは書かずに一覧に出す(never[] は何も入らない配列 = 本当の型でない。人が書く)
 // - 書式(FORMAT)を codefix に渡す: 渡さないと複数行の JSDoc の字下げが落ちる
 // - 緩めない: 単体用 tsconfig の形は変えない(閉じた .mjs の lib は JSDoc で strict の型検査を通す。README「lib の tsconfig.json」)
-// - exit 0(書いた・書く物が無い)/ 2 = 引数の誤り・知らない lib
+// - 祖先の lib(目録 src/lib/CATALOG.md の自分以外の節の lib)の中は書かない(core/lib.md: never edit internals): --lib なしは自分の lib だけ、
+//   --lib で祖先の lib を名指せば何もせず exit 2。Tier1 は目録の先頭の節 = 自分なので全部
+// - exit 0(書いた・書く物が無い)/ 2 = 引数の誤り・知らない lib・祖先の lib
 
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -17,6 +19,7 @@ import path from "node:path";
 import ts from "typescript";
 
 import { LIB_DIR } from "../../../src/lib/libPackage/index.mjs";
+import { loadCatalogOwnership } from "../../../src/lib/folderCatalog/node.mjs";
 import { listDeclaredLibs, readLibPackage } from "../../../src/lib/libPackage/node.mjs";
 import { compareTsconfig, hasJsFiles } from "./standalone.mjs";
 
@@ -196,7 +199,13 @@ export function runJsdoc(root, argv = [], { stdout = process.stdout } = {}) {
     stdout.write(`lib-package jsdoc: package.json を持つ lib にない名前 ${unknown.join(", ")}(${USAGE})\n`);
     return 2;
   }
-  const targets = (wanted.length > 0 ? wanted : declared).filter((lib) => hasJsFiles(root, lib) && (readLibPackage(root, lib)?.problems.length ?? 1) === 0);
+  const ancestors = new Set(loadCatalogOwnership({ repoRoot: root, folder: LIB_DIR }).upstreamPaths.map((p) => path.basename(p)));
+  const ancestral = wanted.filter((lib) => ancestors.has(lib));
+  if (ancestral.length > 0) {
+    stdout.write(`lib-package jsdoc: 祖先の lib ${ancestral.join(", ")} の中は書きません(直すなら /order <直接の親>)\n`);
+    return 2;
+  }
+  const targets = (wanted.length > 0 ? wanted : declared.filter((lib) => !ancestors.has(lib))).filter((lib) => hasJsFiles(root, lib) && (readLibPackage(root, lib)?.problems.length ?? 1) === 0);
   const skipped = [];
   const plans = [];
   for (const lib of targets) {

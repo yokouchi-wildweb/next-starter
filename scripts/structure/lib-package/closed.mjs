@@ -31,7 +31,7 @@ const SOURCE_RE = /\.(ts|tsx|mts|mjs|js|jsx|cjs)$/;
 const TEST_RE = /(\.test\.|\.spec\.|\.d\.ts$|(^|\/)__tests__\/)/;
 /**
  * lint が見ない所(eslint.config.mjs の ignores に合わせる)と、出荷済みの notice の道具(.notices/<id>.*.mjs とそのテスト)。
- * 道具は自分の区切りの時点の木に対して走り、出荷後は書き換えない(D267): 中を読む数にも codemod の書き換えにも入れない
+ * 道具は自分の区切りの時点の木に対して走り、出荷後は書き換えない(D267): 中を読む数に入れない
  * (lint entry/only-entries も .notices/*.mjs を外す)
  */
 const SCAN_SKIP = [/(^|\/)node_modules\//, /^\.next\//, /^\.firebase\//, /^src\/_stash\//, /^\.claude\/worktrees\//, /^\.notices\//];

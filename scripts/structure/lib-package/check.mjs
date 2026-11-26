@@ -16,8 +16,6 @@
 //   pnpm check lib-package -- --list       lib ごとの表(外から中を読む import の数も)
 //   pnpm check lib-package -- --json       同じものを JSON で(指令 27・クエスト向け)
 // 動き(action。-- の後の最初の語。scripts/structure/routes の -- show と同じ形):
-//   pnpm check lib-package -- codemod [引数]  閉じた lib の中を読む import を入口へ書き換える(codemod.mjs。-- codemod --help)
-//   pnpm check lib-package -- moved --base <rev> [--head <rev>] [--json]  notice の moved: と imports: の表(moved.mjs)
 //   pnpm check lib-package -- jsdoc [--lib <名前>]... [--apply] [--json]  JS の lib の暗黙の any に推した型を JSDoc で書く(jsdoc.mjs)
 //   pnpm check lib-package -- declare [<名前>]... [--apply] [--json]  自分の節の宣言の無い lib に package.json と tsconfig.json を書く(declare.mjs)
 //   pnpm check lib-package -- help          使い方
@@ -107,8 +105,6 @@ function formatTable({ rows, summary }) {
 export const USAGE = [
   "pnpm check lib-package                         閉じたかの検査(段階 build・ship)",
   "pnpm check lib-package -- --list | --json      lib ごとの状態の表 / JSON",
-  "pnpm check lib-package -- codemod [引数]        閉じた lib の中を読む import を入口へ書き換える(既定 dry-run。-- codemod --help)",
-  "pnpm check lib-package -- moved --base <rev> [--head <rev>] [--json]  notice の moved:(ファイル)と imports:(指定子)の表",
   "pnpm check lib-package -- jsdoc [--lib <名前>]... [--apply] [--json]  JS の lib の暗黙の any に推した型を JSDoc で書く(既定 dry-run、{any} の所を一覧に出す)",
   "pnpm check lib-package -- declare [<名前>]... [--apply] [--json]  自分の節(src/lib/CATALOG.md)の宣言の無い lib に package.json と tsconfig.json を書く(既定 dry-run、決めきれない所を一覧に出す。祖先の lib は拒む)",
 ].join("\n");
@@ -123,10 +119,6 @@ async function main() {
     console.log(USAGE);
     return 0;
   }
-  if (action === "codemod") {
-    const { runCodemod } = await import("./codemod.mjs");
-    return runCodemod(root, args.slice(1));
-  }
   if (action === "jsdoc") {
     const { runJsdoc } = await import("./jsdoc.mjs");
     return runJsdoc(root, args.slice(1));
@@ -134,10 +126,6 @@ async function main() {
   if (action === "declare") {
     const { runDeclare } = await import("./declare.mjs");
     return runDeclare(root, args.slice(1));
-  }
-  if (action === "moved") {
-    const { runMoved } = await import("./moved.mjs");
-    return runMoved(root, args.slice(1));
   }
   const unknown = args.filter((a) => a !== "--list" && a !== "--json");
   if (unknown.length > 0) {

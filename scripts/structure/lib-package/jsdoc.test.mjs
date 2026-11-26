@@ -102,3 +102,22 @@ test("tsconfig.json が無い・食い違う lib は飛ばして名前を出す�
     assert.equal(runJsdoc(root, ["--what"], out()), 2);
   });
 });
+
+test("祖先の lib(目録の自分以外の節)の中は書かない: --lib なしは自分の lib だけ、--lib で祖先を名指せば書かずに exit 2", () => {
+  const LIB_B = { "src/lib/b/package.json": { exports: { ".": "./index.mjs" } }, "src/lib/b/index.mjs": LIB_CODE };
+  const files = {
+    ...LIB_A,
+    ...LIB_B,
+    "repo.json": '{\n  "repo_id": "child",\n  "tier": "leaf"\n}\n',
+    "src/lib/CATALOG.md": "# 目録\n\n## parent\n- src/lib/a — 親の lib\n\n## child\n- src/lib/b — 自分の lib\n",
+  };
+  withRepo(files, { tsconfig: ["a", "b"] }, (root) => {
+    const before = readFileSync(path.join(root, "src/lib/a/index.mjs"), "utf8");
+    const refused = out();
+    assert.equal(runJsdoc(root, ["--lib", "a", "--apply"], refused), 2);
+    assert.match(refused.text(), /祖先の lib a/);
+    assert.equal(runJsdoc(root, ["--apply"], out()), 0);
+    assert.equal(readFileSync(path.join(root, "src/lib/a/index.mjs"), "utf8"), before);
+    assert.match(readFileSync(path.join(root, "src/lib/b/index.mjs"), "utf8"), /@param \{string\} name/);
+  });
+});

@@ -51,11 +51,11 @@ lib 1 本を「閉じた lib」(package.json の入口だけを外から読み�
    - 上流の空の上書き `src/config/lib/<name>.config.ts`(描画専用は `<name>.ui.config.ts`)を置く。lib が自前の合成(`defineXxxConfig` など)を持っていたら `defineConfig` に置き換えて消す
    - 上書きの値が効くテストを足す(toast の `config.test.ts` の形: 設定を受けて作る関数に `compose({...})` を渡す)。形: Extension「設定の届け方」・[defineConfig/README.md](./defineConfig/README.md)
    - 確かめ: `git grep -n "@lib-config/" -- src/lib/<name>`(自分の `<name>` / `<name>.ui` だけ)・`git ls-files "src/config/lib/<name>.*"`(持ち主の config ごとに上書きが 1 つ)
-7. **呼び手を入口へ**: 外から lib の中のファイルを読む import(`@/lib/<name>/<中のファイル>`)を入口に直す(書き換えの codemod: `pnpm check lib-package -- codemod`、既定 dry-run。`-- codemod --help`)
+7. **呼び手を入口へ**: 外から lib の中のファイルを読む import(`@/lib/<name>/<中のファイル>`)を入口に直す(`pnpm lint` の `entry/only-entries` が 1 つずつ名指す。`pnpm check lib-package -- declare` の `inner` の候補も読み手の場所から入口を添える)
    - 確かめ: `git grep -n "@/lib/<name>/" -- src scripts` が 0(入口のファイル名まで書く JS の入口 `@/lib/<name>/index.mjs` などは除く)
 8. **sideEffects**: 既定は書かない。読み込んだだけで動く物(store を作る・登録を呼ぶ・CSS を読む)がある lib に `false` を置くと検査が止める。書くのは読み込み量を測って増えた所だけ
 9. **moved: の行を書く**: 消えた・動いた古い指定子ごとに `moved: <古い指定子> -> <新しい入口>` を、コミットの本文と、依頼で行ったならその RESOLUTION の notes: に書く(fork への notice の材料)。名前を消した・変えたときはその名前と代わりも書く
-    - 下書き: `pnpm check lib-package -- moved --base <閉じる前の rev>`(notice に貼れる moved: と imports: の塊)
+    - 下書き: `git diff -M --name-status --diff-filter=R <閉じる前の rev> HEAD -- src/lib/<name>`(ファイルの移動)と、`git grep -n "@/lib/<name>/" <閉じる前の rev> -- src scripts`(消えた指定子)
     - 例: `moved: @/hooks/useIsClient -> @/lib/isClient` | `moved: @/lib/toast/useToast -> @/lib/toast` | `moved: TOAST_DEFAULT_DURATION(@/lib/toast/constants) -> src/config/lib/toast.config.ts の duration`
 
 落とし穴:

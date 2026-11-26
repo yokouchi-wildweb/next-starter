@@ -7,7 +7,7 @@
 // - 決めきれない所は一覧に出す(書く物は変えない): 外から入口でない中のファイルを読む import(読み手の場所から入口の候補を添える)、
 //   lib が読めない所(features・app・hooks・utils・@/config など)を読む import、入口のファイルが 1 つも無い
 // - 祖先の lib(自分の節に無い lib)と宣言済みの lib は拒む(触らない)
-// 既定は dry-run(書かない)、--apply で書く。書いた後は codemod(中を読む import を入口へ)→ pnpm check lib-package の順
+// 既定は dry-run(書かない)、--apply で書く。書いた後は外から中を読む import を入口へ直し(pnpm lint の entry/only-entries が名指す)→ pnpm check lib-package の順
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -19,9 +19,22 @@ import { loadCatalogOwnership } from "../../../src/lib/folderCatalog/node.mjs";
 import { ENTRY_NAMES, LIB_DIR, PEER_DIRS, findEntry, libOfPath } from "../../../src/lib/libPackage/index.mjs";
 import { clearLibPackageCache, hasLibPackage, listLibs } from "../../../src/lib/libPackage/node.mjs";
 import { scanFiles } from "./closed.mjs";
-import { probeFile } from "./codemod.mjs";
 import { LIB_CONFIG_PREFIX } from "./configSlots.mjs";
 import { expectedTsconfig } from "./standalone.mjs";
+
+const EXTENSIONS = ["ts", "tsx", "mts", "mjs", "js", "jsx", "cjs"];
+const EXT_RE = /\.(ts|tsx|mts|mjs|js|jsx|cjs)$/;
+
+/** 解いたパス(拡張子・index の有無を問わない)を実在するファイル(repo 相対)に。無ければ null */
+function probeFile(root, resolved) {
+  if (!resolved) return null;
+  const candidates = EXT_RE.test(resolved) ? [resolved] : [];
+  for (const ext of EXTENSIONS) candidates.push(`${resolved}.${ext}`);
+  for (const ext of EXTENSIONS) candidates.push(`${resolved}/index.${ext}`);
+  // "./x.js" と書いて x.ts を指す書き方
+  if (EXT_RE.test(resolved)) for (const ext of EXTENSIONS) candidates.push(resolved.replace(EXT_RE, `.${ext}`));
+  return candidates.find((c) => !c.endsWith("/") && existsSync(path.join(root, c))) ?? null;
+}
 
 const SOURCE_RE = /\.(ts|tsx|mts|mjs|js|jsx|cjs)$/;
 const ENTRY_EXT = ["ts", "tsx", "mts", "mjs", "js"];
@@ -133,7 +146,7 @@ export function planDeclare(root, lib, { ownerId, files } = {}) {
         kind: "inner",
         file,
         specifier: spec,
-        detail: `入口でない ${probeFile(root, resolved) ?? resolved} を読みます。読む名前を入口(候補 ${suggest}${exportsMap[suggest] ? "" : "。そのファイルはまだ無い"})から出し、codemod で直す`,
+        detail: `入口でない ${probeFile(root, resolved) ?? resolved} を読みます。読む名前を入口(候補 ${suggest}${exportsMap[suggest] ? "" : "。そのファイルはまだ無い"})から出し、呼び手をその入口に直す(lint entry/only-entries が名指す)`,
       });
     }
   }
@@ -203,7 +216,7 @@ export function runDeclare(root, argv = [], { stdout = process.stdout } = {}) {
   }
   stdout.write(
     `lib-package declare: ${apply ? "書いた" : "dry-run(書くのは --apply)"} ${plans.filter((p) => p.status === "plan").length} lib・拒む ${plans.filter((p) => p.status === "refused").length}・決めきれない ${plans.reduce((n, p) => n + (p.unresolved?.length ?? 0), 0)}` +
-      `(次: pnpm check lib-package -- codemod --apply → pnpm check lib-package)\n`,
+      `(次: 外から中を読む import を入口へ(pnpm lint が名指す)→ pnpm check lib-package)\n`,
   );
   return bad ? 1 : 0;
 }
