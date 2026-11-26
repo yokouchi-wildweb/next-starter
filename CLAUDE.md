@@ -17,9 +17,9 @@ use: every rule below follows from these three laws | a question no rule covers 
 > **HEART**: CLAUDE.md and core/ are the heart of this framework: every session starts from them → change a rule only with care, through the authoring ladder (core/design.md)
 > - each rule item here (pointers aside) restates the same key of its source (a core file, or a card for an item rule) → change the source first, then the matching CLAUDE.md line in the same commit
 > - a design rule needed before any file is opened that no core file or card holds (the layers, placement, docs) has CLAUDE.md as its source
-> **WRITING**: writing CLAUDE.md, a rule file or a card → core/design.md (format, size lines, window, usual path) | terms → core/terms.md (generated from scripts/workflow/terms/terms.json)
+> **WRITING**: writing CLAUDE.md, a rule file or a card → core/design.md (format, size lines, approval, usual path) | terms → core/terms.md (generated from scripts/workflow/terms/terms.json)
 > **ROLE**: CLAUDE.md = the entrance to the contract this framework shares with every downstream repo = the essence of core/ (core/ + Tier1 item cards = the canon) | NEVER edit it downstream (gap → /order next-starter) | "fork" = any repo with a parent, middle tiers included
-> - words: Tier1 = the top repo (next-starter) | upstream = the direct parent (a rule that means only the top repo says Tier1) | window = an order to next-starter for a contract change, straight from any tier (core/design.md authoring)
+> - words: Tier1 = the top repo (next-starter) | upstream = the direct parent (a rule that means only the top repo says Tier1) | approval item = an important contract change the human approves before it is made (core/design.md authoring approval)
 > **CORE**: core = what Tier1 ships and owns, one meaning everywhere = the paths of CORE_FILES core | a fork never edits it; it changes it only through CHANGE_TYPES or /order <direct parent> (with a temporary permit while it waits)
 > **PRIORITY**: a context line marked `(priority)` (with the lines indented under it) wins over an unmarked line it contradicts | both marked → the nearer file wins, neither → the wider | reading only: never changes checks, ownership, settings or permissions | → core/design.md priority
 
@@ -53,7 +53,7 @@ git_shape: main's first-parent is one line (unit-of-work merges may stay, never 
 take_in: /flux (recommended, not required: segment checks, ownership check and notice steps together)
 relay: a mid tier's /flux judges per segment whether each applied upstream notice needs relaying | its unjudged-relay report ≠ 0 = flux not done | → core/notices.md relay
 orders: /order \<to\> files a one-off order into that repo's inbox | a parent's code (missing intake point, its lib, an upstream bug) → the direct parent + a temporary permit meanwhile
-- to: a contract change or gap (CLAUDE.md, a core file, a Tier1 card, the window) → next-starter, straight from any tier | a middle tier's own rule → that repo | inbox place and steps → core/notices.md orders
+- to: a contract change or gap (CLAUDE.md, a core file, a Tier1 card, an approval item) → next-starter, straight from any tier | a middle tier's own rule → that repo | inbox place and steps → core/notices.md orders
 - contract_gap: while waiting, a provisional rule in your own rules (outside core) ending with `(order: <id>)`
 resolves (MANDATORY when shipping an order a downstream repo filed): `resolves: <order id>` in the notice → the fork's temporary permit and its `(order: <id>)` provisional rules end (/flux asks) | → core/notices.md resolves
 fork_bootstrap: /fork-init right after clone | spec: docs/setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md
@@ -74,7 +74,7 @@ types: 1 replace = switch \<name\>.ts → \<name\>.default, fork \<name\>.replac
 - 5 self: your own version, or the parent's as is | take-in: always keep yours, port the parent's diff by hand in a separate commit, only what fits (vercel.json: then only its crons are rebuilt) | a take-in that drops your lines → /flux asks | → core/change.md 5 self
 upstream_side: a repo makes its own thing changeable below only by declaring it: 1 a \<name\>.default beside a plain 1-line switch | 2 the keys an override may set (overrideOf / overrides) | 3 a receptacle in its extensionPoints.ts | 4 a counterpart for values | two levels, one reader → core/receptacles.md
 - 5 self: nothing to declare, the list of self files is closed and only Tier1 extends it | a new repo.json key gets a reader default, a required one ships a notice + migration tool
-design_check: before building a new lib, domain, mechanism, config or file place (any tier) → name the change type (1-5) or upstream-only of every place a repo below writes or changes in it, declared as upstream_side says | none fits → do not build it: change the design, or a new type through the window
+design_check: before building a new lib, domain, mechanism, config or file place (any tier) → name the change type (1-5) or upstream-only of every place a repo below writes or changes in it, declared as upstream_side says | none fits → do not build it: change the design, or a new type as an approval item
 - never a place named after a repo: repo-named records are not a model (→ core/ownership.md repo_records)
 order: 1 a public means is enough → use it | 2 one of the five types at a declared point | 3 none → /order <direct parent> + temporary permit | never invent another way (fork-name marks, keep-own merge settings, edits outside intake points without a permit)
 

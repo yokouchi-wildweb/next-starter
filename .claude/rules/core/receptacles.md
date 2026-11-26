@@ -11,7 +11,7 @@ paths:
 
 receptacle limits (upstream):
 - only for a request with a capability that really uses it, whatever the fork count
-- order: existing means → value or part split → new receptacle | existing point forms only | a new form goes through the window only when it brings a check or MANDATORY rule binding forks (core/design.md authoring), else the usual path
+- order: existing means → value or part split → new receptacle | existing point forms only | a new form is an approval item only when it brings a check or MANDATORY rule binding forks (core/design.md authoring), else the usual path
 - must not bypass a guard | named ReactNode stays banned in core
 - same commit: README (timing, tx, on failure) + test + intake line
 extension_points (declaring side): two levels, one reader: a district's own points in its extensionPoints.ts, each with its type (replace / override / add / counterpart), + the points of its kind in src/lib/districtMap/kinds.mjs (KINDS) | src/registry = generated lists, not an extension point | ref: scripts/structure/extensions/README.md, src/registry/README.md

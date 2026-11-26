@@ -2,7 +2,7 @@
 // 上流のファイル(Tier1 では追跡中の全部、fork では基準の版にある物)と書き場所の一覧(intake.txt)の各行が、どれかの上流の core のファイルか上流の札の paths に当たること。
 // 決まりの要らない場所は .claude/rules/core/uncovered.txt で外す。当たらない物があれば Tier1 は exit 1、fork は知らせだけ(D223)。
 // 照合は Claude Code の実際の読み込みと同じ(lib.rulePaths の matchesLoad、D225)
-// (塞ぎ方: その場所の決まりを持つ core のファイルの paths を広げる。広げるのは窓口の例外 = core/design.md authoring)。
+// (塞ぎ方: その場所の決まりを持つ core のファイルの paths を広げる。広げるのは人の承認の項目 = core/design.md authoring approval)。
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";

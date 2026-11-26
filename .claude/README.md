@@ -4,7 +4,7 @@
 
 - `.claude/rules/` には、フォーク先のプロジェクト固有の指示を置く。そこの `.md` は(`paths` フロントマターが無ければ)毎セッション無条件でロードされるので、1 行ごとにコンテキスト費用を毎回払う
 - この説明書は自動ロードされないよう `.claude/rules/` の外(`.claude/README.md`)に置く。`.claude/rules/` には README などの説明の文書を置かない
-- 何をどこに書くか・書式・大きさ・窓口の正は `.claude/rules/core/design.md`(places・format・size・authoring)
+- 何をどこに書くか・書式・大きさ・承認の項目の正は `.claude/rules/core/design.md`(places・format・size・authoring)
 
 ### ファイルの持ち主
 
