@@ -20,11 +20,8 @@ import { guardEntry } from "../../runner/guard";
 // 共通の守り: 向き先(既定は開発、本番は --env production と確認)・段階の印。メールを実際に送るので書く入口
 guardEntry({ write: true, what: "pnpm ops mail test-send" });
 
-// 環境変数の確認
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-
-// メールの差出人は事業の素性(@/business)から読む。@/business は src/wiring の結びなので道具からは import() で読む(lint scripts-no-static-wiring)
+// 送るのは lib/mail の send() 1 つ(本番と同じ選択表の実装・設定 defaultFrom / defaultFromName の差出人)。
+// この道具は lint mail-send-via-messaging の読める所(接続と見た目の確認。利用者への連絡は messagingService)
 
 // テンプレート定義
 type TemplateConfig = {
@@ -114,8 +111,7 @@ async function messageTemplates(): Promise<TemplateConfig[]> {
 /**
  * シンプルテストメール（接続確認用）
  */
-async function renderSimpleTestEmail(provider: string): Promise<{ html: string; subject: string }> {
-  const providerName = provider === "sendgrid" ? "SendGrid" : "Resend";
+async function renderSimpleTestEmail(providerName: string): Promise<{ html: string; subject: string }> {
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
       <h1 style="color: #2563eb;">メール送信テスト</h1>
@@ -141,7 +137,7 @@ async function getTemplateConfigs(provider: string): Promise<TemplateConfig[]> {
     {
       key: "simple",
       name: "シンプルテストメール",
-      description: `${provider === "sendgrid" ? "SendGrid" : "Resend"}接続確認用のシンプルなテストメール`,
+      description: `${provider} 接続確認用のシンプルなテストメール`,
       render: () => renderSimpleTestEmail(provider),
     },
     ...(await messageTemplates()),
@@ -149,80 +145,11 @@ async function getTemplateConfigs(provider: string): Promise<TemplateConfig[]> {
 }
 
 /**
- * 送信元アドレスをフォーマット
+ * lib/mail の send() で送る(選択表の実装・設定の差出人。失敗は MailSendError)
  */
-async function readMailFrom(): Promise<{ address: string; name: string }> {
-  const { business } = await import("@/business");
-  return { address: business.mail.defaultFrom, name: business.mail.defaultFromName };
-}
-
-async function formatFromAddress(): Promise<string> {
-  const { address, name } = await readMailFrom();
-  return name ? `${name} <${address}>` : address;
-}
-
-/**
- * Resendでメール送信
- */
-async function sendWithResend(
-  to: string,
-  subject: string,
-  html: string,
-  from: string,
-): Promise<void> {
-  const { Resend } = await import("resend");
-  const resend = new Resend(RESEND_API_KEY);
-
-  const { error } = await resend.emails.send({
-    from,
-    to,
-    subject,
-    html,
-  });
-
-  if (error) {
-    throw new Error(`Resend送信エラー: ${JSON.stringify(error)}`);
-  }
-}
-
-/**
- * SendGridでメール送信
- */
-async function sendWithSendGrid(
-  to: string,
-  subject: string,
-  html: string,
-  fromAddress: string,
-  fromName?: string,
-): Promise<void> {
-  const sgMail = (await import("@sendgrid/mail")).default;
-  sgMail.setApiKey(SENDGRID_API_KEY!);
-
-  await sgMail.send({
-    to,
-    from: fromName ? { email: fromAddress, name: fromName } : fromAddress,
-    subject,
-    html,
-  });
-}
-
-/**
- * プロバイダーに応じてメール送信
- */
-async function sendEmail(
-  provider: string,
-  to: string,
-  subject: string,
-  html: string,
-): Promise<void> {
-  const fromAddress = await formatFromAddress();
-
-  if (provider === "sendgrid") {
-    const from = await readMailFrom();
-    await sendWithSendGrid(to, subject, html, from.address, from.name);
-  } else {
-    await sendWithResend(to, subject, html, fromAddress);
-  }
+async function sendEmail(to: string, subject: string, html: string): Promise<void> {
+  const { send } = await import("@/lib/mail");
+  await send({ to, subject, html });
 }
 
 /** --<名前>=<値> の引数 */
@@ -244,6 +171,10 @@ async function selectedProvider(): Promise<string> {
     console.error(`エラー: ${error.message}`);
     process.exit(1);
   }
+  if (!mailBackendStatus.isConfigured) {
+    console.error(`エラー: 選んだ実装 ${mailBackendStatus.selected} の鍵(env)が設定されていません(src/lib/mail/README.md「プロバイダーの切り替え」)`);
+    process.exit(1);
+  }
   return mailBackendStatus.selected;
 }
 
@@ -252,22 +183,9 @@ async function main() {
   console.log("📧 メール テスト送信");
   console.log("");
 
-  // 送る実装(選択表)と環境変数チェック
+  // 送る実装(選択表)と鍵の有無(mailBackendStatus.isConfigured)
   const provider = await selectedProvider();
-  const providerName = provider === "sendgrid" ? "SendGrid" : "Resend";
-  console.log(`使用プロバイダー: ${providerName}`);
-
-  if (provider === "sendgrid") {
-    if (!SENDGRID_API_KEY) {
-      console.error("エラー: SENDGRID_API_KEY が設定されていません");
-      process.exit(1);
-    }
-  } else {
-    if (!RESEND_API_KEY) {
-      console.error("エラー: RESEND_API_KEY が設定されていません");
-      process.exit(1);
-    }
-  }
+  console.log(`使用プロバイダー: ${provider}`);
 
   // テンプレート一覧を取得（自動検出）
   console.log("連絡の一覧を読み込み中...");
@@ -289,7 +207,7 @@ async function main() {
       process.exit(1);
     }
     const rendered = await chosen.render();
-    await sendEmail(provider, flagTo, rendered.subject, rendered.html);
+    await sendEmail(flagTo, rendered.subject, rendered.html);
     console.log(`✅ 送信完了! (${chosen.key} → ${flagTo})`);
     return;
   }
@@ -322,12 +240,11 @@ async function main() {
   ]);
 
   const selectedTemplate = templates[templateIndex];
-  const fromAddress = await formatFromAddress();
 
   console.log("");
   console.log("=== 送信情報 ===");
-  console.log(`プロバイダー: ${providerName}`);
-  console.log(`送信元: ${fromAddress}`);
+  console.log(`プロバイダー: ${provider}`);
+  console.log("送信元: mail の設定 defaultFrom / defaultFromName(src/config/lib/mail.config.ts)");
   console.log(`送信先: ${toEmail}`);
   console.log(`テンプレート: ${selectedTemplate.name}`);
   console.log("");
@@ -356,7 +273,7 @@ async function main() {
   console.log("送信中...");
 
   try {
-    await sendEmail(provider, toEmail, subject, html);
+    await sendEmail(toEmail, subject, html);
 
     console.log("");
     console.log("✅ 送信完了!");

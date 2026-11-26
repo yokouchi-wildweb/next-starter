@@ -16,7 +16,7 @@
 
 届かないとき: コンソールでドメインが Verified か・迷惑メールのフォルダ・コンソールの Emails の誤りを見る。DNS の伝播は 24〜48 時間かかることがあり、直後は Verified と Pending を行き来する。
 
-テスト送信: `pnpm ops mail test-send`（対話式。接続確認のメールか、連絡の一覧 messageRegistry のメールの欄を持つ連絡を見本の値で描いて送る。対話なし: `-- --to=<アドレス> --message=<連絡の鍵 | simple>`。送る口は通さない）
+テスト送信: `pnpm ops mail test-send`（対話式。接続確認のメールか、連絡の一覧 messageRegistry のメールの欄を持つ連絡を見本の値で描いて送る。対話なし: `-- --to=<アドレス> --message=<連絡の鍵 | simple>`。送る口は通さない。送るのは `send()`: 実装は選択表、差出人は設定 `defaultFrom` / `defaultFromName`、lint mail-send-via-messaging の読める所）
 
 ### webhook を受ける
 

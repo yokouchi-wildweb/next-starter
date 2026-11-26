@@ -104,7 +104,8 @@
 // 強さは Tier で切り替える: 上流(目録の先頭の節)= error、fork = warn(eslint.config.mjs)。
 //
 // ── mail-send-via-messaging(当議会 D133) ──
-// @/lib/mail の send(値)を読めるのは src/lib/mail 自身と messaging の送り口 src/domains/core/messaging/plugs/messagingChannels/email/** だけ。
+// @/lib/mail の send(値)を読めるのは src/lib/mail 自身と messaging の送り口 src/domains/core/messaging/plugs/messagingChannels/email/** と、
+// 接続と見た目の確認の道具 scripts/operations/mail/test-send.ts(書く入口の守りつき、利用者への連絡でない)だけ。
 // 利用者への連絡は messagingService.sendMessage / sendMessageToMany(記録と配信停止を通す)。
 // テンプレートの部品(Mail*)・型・MAIL_THEME_COLORS・MailSendError・webhook の関数は誰でも可。名前を問わない形(namespace・
 // 動的 import・export *)は send を含みうるので止める(動的 import を `const { 名前 } = await import(…)` で受ける形は名前で見る)。強さ: 全 Tier error(必須の規則の一覧)。
@@ -173,6 +174,8 @@ export function classifyCronFactoryImport(importerRel, resolved, typeOnly, speci
 const MAIL_LIB = "src/lib/mail";
 const MAIL_SEND_POINT = "src/domains/core/messaging/plugs/messagingChannels/email";
 const MAIL_SEND_NAMES = ["send"];
+/** 送り口の外で send を読める確認の道具(接続と見た目の確認。利用者への連絡は messagingService) */
+const MAIL_TEST_TOOL = "scripts/operations/mail/test-send.ts";
 const CLIENT_SERVICE_DIR = /(^|\/)services\/client(\/|$)/;
 
 /** axios の値 import を HTTP の層の外で行うか(source = 書かれた指定子) */
@@ -188,7 +191,7 @@ export function classifyAxiosImport(importerRel, source, typeOnly) {
  */
 export function classifyMailSendImport(importerRel, resolved, typeOnly, specifiers) {
   if (typeOnly || !isUnder(resolved, MAIL_LIB)) return null;
-  if (isUnder(importerRel, MAIL_LIB) || isUnder(importerRel, MAIL_SEND_POINT)) return null;
+  if (isUnder(importerRel, MAIL_LIB) || isUnder(importerRel, MAIL_SEND_POINT) || importerRel === MAIL_TEST_TOOL) return null;
   if (!Array.isArray(specifiers)) return "*";
   const hit = specifiers.find((sp) => !sp.typeOnly && MAIL_SEND_NAMES.includes(sp.name));
   return hit ? hit.name : null;
@@ -881,10 +884,10 @@ const axiosInClientLayer = {
 const mailSendViaMessaging = {
   meta: {
     type: "problem",
-    docs: { description: "lib/mail の send を読めるのは messaging の送り口(channels/email)と lib/mail 自身だけ" },
+    docs: { description: "lib/mail の send を読めるのは messaging の送り口(channels/email)・確認の道具 pnpm ops mail test-send・lib/mail 自身だけ" },
     messages: {
       mailSend:
-        '"{{source}}" の {{name}} は送信の本体です。利用者への連絡は messagingService.sendMessage / sendMessageToMany(@/domains/messaging/services/server、plugs/messages/<名前>.ts の定義)を使います。send を読めるのは messaging の送り口 src/domains/core/messaging/plugs/messagingChannels/email/** だけ(テンプレートの部品・型・MAIL_THEME_COLORS は可。詳細: src/domains/core/messaging/README.md)',
+        '"{{source}}" の {{name}} は送信の本体です。利用者への連絡は messagingService.sendMessage / sendMessageToMany(@/domains/messaging/services/server、plugs/messages/<名前>.ts の定義)を使います。send を読めるのは messaging の送り口 src/domains/core/messaging/plugs/messagingChannels/email/** と確認の道具 scripts/operations/mail/test-send.ts だけ(テンプレートの部品・型・MAIL_THEME_COLORS は可。詳細: src/domains/core/messaging/README.md)',
     },
     schema: [],
   },

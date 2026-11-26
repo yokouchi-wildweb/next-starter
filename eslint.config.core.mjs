@@ -322,7 +322,7 @@ const config = [
   // 当議会 D133 の検査(詳細: eslint-rules/import-boundaries.mjs の各節、eslint-rules/asset-paths.mjs):
   // - axios-in-client-layer: axios は src/lib/** と **/services/client/** だけ。上流 error / fork warn(テストは対象外)
   // - asset-paths/no-literal-asset-path: 資産のパスは src/utils/assets.ts の関数で組む。上流 error / fork warn(組み立て役とテストは対象外)
-  // - mail-send-via-messaging: lib/mail の send は messaging の送り口だけ。全 Tier error(必須の規則の一覧)
+  // - mail-send-via-messaging: lib/mail の send は messaging の送り口と確認の道具 pnpm ops mail test-send だけ。全 Tier error(必須の規則の一覧)
   {
     files: ["src/**/*.{ts,tsx}"],
     ignores: ["src/**/*.test.{ts,tsx}"],

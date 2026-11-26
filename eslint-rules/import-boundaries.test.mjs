@@ -640,6 +640,8 @@ test("classify: lib/mail の send は送り口と lib/mail 自身だけ、部品
   assert.equal(classifyMailSendImport("src/domains/foo/x.ts", mail, false, named("MailFrame", "send")), "send");
   assert.equal(classifyMailSendImport("src/domains/foo/x.ts", mail, false, null), "*");
   assert.equal(classifyMailSendImport("src/domains/foo/x.ts", "src/lib/other", false, null), null);
+  assert.equal(classifyMailSendImport("scripts/operations/mail/test-send.ts", mail, false, named("send")), null, "確認の道具 pnpm ops mail test-send は読める");
+  assert.equal(classifyMailSendImport("scripts/operations/mail/other.ts", mail, false, named("send")), "send", "同じフォルダの別の道具は読めない");
 });
 
 test("rule axios-in-client-layer / mail-send-via-messaging: 実際の書き方で止め、許す形は通す", () => {
