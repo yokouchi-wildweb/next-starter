@@ -5,7 +5,7 @@
 // - 項目: declaration の D29 の鍵・billing(none の同居・usage の unit)・env・adapter の有無・知らない語・語の再定義・予約名・置き場
 // - 選択表: 無い・鍵の欠け・余り・知らない値・fake・任意でない口の none・口のどれかの点に項目が無い・requires ↔ provides・開いているドメインの要る能力
 // - 生成: 選んだ 1 項目の adapter だけの re-export、none は createNoneAdapter。選ぶ点が 0 個なら選択表を読まない
-// - 起動時の知らせ: startup.ts の一覧に選ぶ点ごとの 1 行(持ち主の公開の入口の <点>BackendStatus、D49)
+// - 起動時の知らせ: startup.ts の一覧に選ぶ点ごとの 1 行(持ち主の公開の入口の <点>BackendStatus を NEXT_RUNTIME が nodejs の時だけ読む、D49)
 // - 選択に問題がある時: ほかの一覧は書き、選ぶ点の生成物は残し、検査は古いと数えない(写しの通しの F2・F3)
 // 実行: pnpm test scripts/structure/extensions/select.test.mjs
 
@@ -274,11 +274,14 @@ test("起動時の知らせ(D49): 点 startupTasks が在れば選ぶ点ごと�
   const startup = out.outputs["src/wiring/startup.ts"];
   assert.ok(
     startup.includes(
-      '{ domain: null, name: "mailersBackendStatus", requires: [], load: async () => { const { createBackendStatusTask } = await import("@/lib/backends"); const { mailersBackendStatus } = await import("@/lib/kit"); return createBackendStatusTask(mailersBackendStatus); } },',
+      '{ domain: null, name: "mailersBackendStatus", requires: [], load: async () => { if (process.env.NEXT_RUNTIME === "nodejs") { const { createBackendStatusTask } = await import("@/lib/backends"); const { mailersBackendStatus } = await import("@/lib/kit"); return createBackendStatusTask(mailersBackendStatus); } return { name: "backends.mail", runtime: "nodejs", run: () => {} }; } },',
     ),
     startup,
   );
   assert.ok(!/\.then\(/.test(startup.split("\n").find((l) => l.includes("mailersBackendStatus")) ?? ""), "名前つきの dynamic import だけ(mail-send-via-messaging)");
+  // 持ち主の入口は nodejs の条件の中だけで読む(edge の束に送る処理・node:* を入れない、注文 20261125-195321)
+  const line = startup.split("\n").find((l) => l.includes("mailersBackendStatus")) ?? "";
+  assert.ok(line.indexOf('process.env.NEXT_RUNTIME === "nodejs"') < line.indexOf('import("@/lib/kit")'), line);
   // lib が "./server" を宣言していればそちらから読む
   const server = withEnv({ PHASE: undefined, MAIL_PROVIDER: undefined }, () =>
     plan({ ...STARTUP, "src/lib/kit/index.ts": "export {};\n", "src/lib/kit/server.ts": "export const mailersBackendStatus = {};\n", "src/lib/kit/package.json": '{ "exports": { ".": "./index.ts", "./server": "./server.ts" } }\n' }),

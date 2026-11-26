@@ -10,6 +10,9 @@
 // - 点 startupTasks が在れば、選ぶ点ごとに起動時の知らせの 1 行を一覧 src/wiring/startup.ts に足す(項目のファイルは作らない、D49):
 //   load = @/lib/backends の createBackendStatusTask と持ち主の公開の入口の <点>BackendStatus({ port, selected, isConfigured })を
 //   名前つきの dynamic import で読み、createBackendStatusTask(<点>BackendStatus)。送れる adapter は出さない。入口に無ければ止める
+//   読みは process.env.NEXT_RUNTIME === "nodejs" の中だけ(Next の instrumentation の決まった形): 一覧は edge の束にも入るので、
+//   条件の外で読むと持ち主の入口(mail なら webhook の node:crypto)が edge に入り Edge Runtime の警告になる(注文 20261125-195321)。
+//   edge では同じ名前の nodejs の項目を返す(走らない: lib/startup が runtime で外す)
 // - 選ぶ点が 0 個なら選択表を読まず、何も書かず、止めない
 // 書式: ./README.md「選ぶ点」
 
@@ -182,7 +185,7 @@ export function planSelection(input) {
         problems.push(`${p.declaredIn}: 選ぶ点 ${p.name} の持ち主の公開の入口 ${entry.specifier}(${entry.file ?? "無い"})が ${name} を出さない(起動時の知らせが読む口の状態 { port, selected, isConfigured }。@/lib/backends の BackendStatus、D49)`);
         continue;
       }
-      const load = `async () => { const { createBackendStatusTask } = await import("@/lib/backends"); const { ${name} } = await import(${JSON.stringify(entry.specifier)}); return createBackendStatusTask(${name}); }`;
+      const load = `async () => { if (process.env.NEXT_RUNTIME === "nodejs") { const { createBackendStatusTask } = await import("@/lib/backends"); const { ${name} } = await import(${JSON.stringify(entry.specifier)}); return createBackendStatusTask(${name}); } return { name: ${JSON.stringify(`backends.${p.spec.select.port}`)}, runtime: "nodejs", run: () => {} }; }`;
       statusEntries.push({ name, port: p.spec.select.port, path: entry.file, load });
     }
   }

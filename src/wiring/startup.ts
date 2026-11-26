@@ -8,7 +8,7 @@ import { wireStartup } from "@/lib/startup";
 import type { StartupTask } from "@/lib/startup/points";
 
 export const startupTasks: { domain: string | null; name: string; requires: readonly string[]; load: () => Promise<StartupTask> }[] = [
-  { domain: null, name: "mailBackendStatus", requires: [], load: async () => { const { createBackendStatusTask } = await import("@/lib/backends"); const { mailBackendStatus } = await import("@/lib/mail"); return createBackendStatusTask(mailBackendStatus); } },
+  { domain: null, name: "mailBackendStatus", requires: [], load: async () => { if (process.env.NEXT_RUNTIME === "nodejs") { const { createBackendStatusTask } = await import("@/lib/backends"); const { mailBackendStatus } = await import("@/lib/mail"); return createBackendStatusTask(mailBackendStatus); } return { name: "backends.mail", runtime: "nodejs", run: () => {} }; } },
 ];
 
 export const startup = wireStartup({ startupTasks: gate.plugs(startupTasks) });
