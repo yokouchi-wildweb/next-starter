@@ -638,7 +638,7 @@ test("plugs の点: 空の一覧は [](空なら点の持ち主の既定で動�
   assert.match(plan.outputs["src/lib/routeFactory/extensions/routeFactoryDevice.ts"], /export const routeFactoryDevice: .*\[\] = \[\];/);
   assert.ok(!plan.intake.content.includes("routeFactoryDevice"));
   const lib = readDistrictMapAt(root).districts.find((d) => d.kind === "lib" && d.name === "routeFactory");
-  assert.deepEqual(lib?.forkCan.find((f) => f.point === "routeFactoryDevice"), { point: "routeFactoryDevice", change: "add", where: "src/domains/<自分のドメイン>/plugs/routeFactoryDevice/*" });
+  assert.deepEqual(lib?.forkCan.find((f) => f.point === "routeFactoryDevice"), { point: "routeFactoryDevice", change: "add", where: "<自分のドメインか lib>/plugs/routeFactoryDevice/*" });
 });
 
 test("plugs の点の required(ちょうど 1 つ、D53・注文 30・35): 0 個は止める・埋めるのは常設のドメインか lib だけ。上流の項目は 1 行スイッチ(<名前>.ts → <名前>.default.ts)で、export は既定から読み、.default・.replace は項目にしない。required は plugs の max: 1 だけ", () => {

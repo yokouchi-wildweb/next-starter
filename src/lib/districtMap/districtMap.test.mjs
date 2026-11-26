@@ -266,6 +266,16 @@ test("forkCan: 種類の点(config.ts がある地区の config の対置点)→
   assert.deepEqual(districts.find((d) => d.kind === "featureGate")?.forkCan, [{ point: "config", change: "counterpart", where: "src/config/featureGate/*.config.ts" }]);
 });
 
+test("forkCan: plugs の点の where は自分のドメインか lib の plugs/<点>/(差す側 = domains と lib の地区)", () => {
+  const { districts } = readDistrictMap(memorySource({
+    ...BASE,
+    "src/domains/core/wallet/extensionPoints.ts": `export const extensionPoints = {
+  walletPlugs: { change: "add", plugs: true, export: "plug", type: { from: "@/x", name: "P" }, side: "server", shape: "object" },
+};`,
+  }));
+  assert.deepEqual(districts.find((d) => d.name === "wallet")?.forkCan.find((f) => f.point === "walletPlugs"), { point: "walletPlugs", change: "add", where: "<自分のドメインか lib>/plugs/walletPlugs/*" });
+});
+
 test("forkCan: 枠の種類の点 layout(差替点)は _layout の隣の layout.tsx が ./_layout/ を指す 1 行スイッチの枠だけ。枠の宣言の差替点は src/app の下の既定も載る", () => {
   const { districts } = readDistrictMap(memorySource({
     ...BASE,

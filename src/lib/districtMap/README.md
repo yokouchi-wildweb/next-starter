@@ -18,6 +18,7 @@
 
 - ゲートを持つのはドメインだけ。ゲートの無い地区はドメインを読まず渡してもらいます(地区の議会 D22)。readsSet の種類は生成された一覧(地区の集合)を読みます
 - forkMay は今の CHANGE_TYPES の名前。点の宣言は 2 段(D35): 地区だけの点は各地区の `extensionPoints.ts`(各点に `change`)、種類の地区が全部持つ点は `kindPointsOf`(config.ts ↔ src/config・config.ui.ts ↔ .ui.config.ts の対置点、枠の `layout` = _layout の隣の layout.tsx の 1 行スイッチの差替点)。1 行スイッチ(`.default`)の差替点は持ち主の地区の宣言に書き、`replacePointsOf` が読む(スイッチの検査・受け口の一覧・地図が使う)。受け口の一覧(intake.txt)の生成区画の行は `intakeRowsOf`(./intakeRows.mjs、宣言の点・差替点のスイッチ・ルートの画面と枠のスイッチ・生成器を入力に取る純関数)。ルートの page.tsx の 1 行スイッチは地区と 1 対 1 でないので種類の点にせず、読み手の入力のルートの一覧で満たす。地図の各地区の `forkCan` = 2 段を合わせた `{ point, change, where }`(where = fork が書くファイルの glob。writer の一覧は除く: fork は隣の addable の上書きの点で JSON を足す)
+- forkCan の `where` = fork が書くファイルの glob(リポ相対)。plugs の点は `<自分のドメインか lib>/plugs/<点>/*`(項目は自分の地区のフォルダ `src/domains/<名前>` か `src/lib/<名前>` に置く。上流の地区の中には足さない)
 
 見つけ方:
 

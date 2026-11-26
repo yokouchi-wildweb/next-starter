@@ -333,8 +333,8 @@ function forkWhereOf(owner, name, spec) {
   if (typeof spec.placement === "string") return spec.placement;
   if (typeof spec.overrides === "string") return overrideGlobOf(spec.overrides);
   if (typeof spec.default === "string") return spec.default.replace(/\.default\.(tsx?)$/, ".replace.$1");
-  // plugs の点: fork は自分のドメイン(か lib)の plugs/<点>/ に項目を置く(D38・D40)
-  if (spec.plugs === true) return `src/domains/<自分のドメイン>/plugs/${name}/*`;
+  // plugs の点: fork は自分のドメインか lib の plugs/<点>/ に項目を置く(差す側 = domains と lib の地区、D38・D40、scripts/structure/extensions/plugs.mjs)
+  if (spec.plugs === true) return `<自分のドメインか lib>/plugs/${name}/*`;
   const base = spec.dir === "." || spec.dir === undefined ? owner : join(owner, String(spec.dir));
   return typeof spec.files === "string" ? `${base}/${spec.files}` : `${base}/*`;
 }
