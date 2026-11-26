@@ -136,12 +136,6 @@ export function readCategories(repoRoot, points, files) {
   return categories;
 }
 
-/** 点 messagingCategories の項目の鍵(書き出しのコマンドが使う) */
-export function readCategoryKeys(repoRoot, points, files) {
-  const categories = readCategories(repoRoot, points, files);
-  return categories ? [...categories.keys()].sort() : null;
-}
-
 /** カテゴリーのグループの鍵(点が無ければ空) */
 function readGroupKeys(repoRoot, points, files) {
   const point = points.find((p) => p.owner === CATEGORY_GROUP_POINT.owner && p.name === CATEGORY_GROUP_POINT.name);

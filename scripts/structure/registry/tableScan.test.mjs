@@ -14,7 +14,7 @@ import { test } from "node:test";
 import { getTableName, is } from "drizzle-orm";
 import { PgTable } from "drizzle-orm/pg-core";
 
-import { scanFeatureTables, tablesOfFolder } from "./tableScan.mjs";
+import { scanFeatureTables } from "./tableScan.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../../..");
 // schemaRegistry は `export *` の再 export だけなので require で全 export を得る(db:push と同じ)
@@ -58,8 +58,12 @@ test("走査: 改行をはさむ呼び出し・フォルダの下の全ファイ
   writeFileSync(join(root, "src/domains/core/fooBar/drizzle.ts"), 'export const F = pgTable("foo_bars", {});\n');
 
   const { tables, problems } = scanFeatureTables(root);
-  assert.deepEqual(tablesOfFolder(tables, "core/foo").sort(), ["foo_items", "foo_x", "foos"]);
-  assert.deepEqual(tablesOfFolder(tables, "core/fooBar"), ["foo_bars"], "前方一致はフォルダの区切りで(core/foo は core/fooBar を含まない)");
+  assert.deepEqual(tables, [
+    { name: "foos", file: "src/domains/core/foo/entities/drizzle.ts" },
+    { name: "foo_items", file: "src/domains/core/foo/entities/drizzle.ts" },
+    { name: "foo_x", file: "src/domains/core/foo/generated/x/drizzle.ts" },
+    { name: "foo_bars", file: "src/domains/core/fooBar/drizzle.ts" },
+  ]);
   assert.equal(problems.length, 1);
   assert.match(problems[0], /bad\.ts/);
 });

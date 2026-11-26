@@ -1,5 +1,5 @@
 // scripts/structure/registry/tableScan.mjs
-// src/domains の地区(ドメイン)の pgTable の表名 → 定義ファイルと、機能のフォルダ → 表名の対応を返す。
+// src/domains の地区(ドメイン)の pgTable の表名 → 定義ファイルを返す。
 // 走査と字面の読み方は地区の地図の読み手 src/lib/districtMap(地区の発見と readTableNames)が持ち、ここはその利用者(目録 D1・D13)。
 // 表の定義ファイルは import しない(drizzle・DB の依存を読み込まない)。
 //
@@ -25,15 +25,4 @@ export const FEATURES_DIR = "src/domains";
 export function scanFeatureTables(repoRoot) {
   const { tableFiles, tableProblems } = readDistrictMapAt(repoRoot);
   return { tables: tableFiles.map(({ name, file }) => ({ name, file })), problems: tableProblems };
-}
-
-/**
- * 機能のフォルダ(src/domains からの相対、例 "core/wallet"・"sample")の表名を返す。フォルダの下の全ファイルが対象
- * @param {{ name: string, file: string }[]} tables scanFeatureTables の結果
- * @param {string} folder
- * @returns {string[]} 表名(定義ファイル → 出現順)
- */
-export function tablesOfFolder(tables, folder) {
-  const prefix = `${FEATURES_DIR}/${folder.replace(/\/+$/, "")}/`;
-  return tables.filter((table) => table.file.startsWith(prefix)).map((table) => table.name);
 }

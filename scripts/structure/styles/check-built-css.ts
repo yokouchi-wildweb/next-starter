@@ -6,8 +6,6 @@
 //
 // 使い方:
 //   pnpm check styles                       # .next/static を検査
-//   pnpm check styles -- --dir <出力dir>     # 出力ディレクトリを指定
-//   pnpm check styles -- --verbose          # ファイルごとの宣言数を表示
 //
 // 背景・判定・限界は builtCss.ts 冒頭と src/styles/README.md「デプロイ後の確認(Vercel ビルドキャッシュ)」。
 
@@ -20,10 +18,7 @@ import { listSpacingClasses } from "./spacingClasses";
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const ENTRY = "src/styles/global.css";
 
-const args = process.argv.slice(2);
-const verbose = args.includes("--verbose");
-const dirIndex = args.indexOf("--dir");
-const outDir = path.resolve(repoRoot, dirIndex !== -1 && args[dirIndex + 1] ? args[dirIndex + 1] : ".next/static");
+const outDir = path.resolve(repoRoot, ".next/static");
 
 const sources = resolveImportGraph(path.resolve(repoRoot, ENTRY), repoRoot);
 const cssFiles = findCssFiles(outDir);
@@ -36,13 +31,6 @@ if (cssFiles.length === 0) {
 
 const builtCss = cssFiles.map((f) => readFileSync(f, "utf8")).join("\n");
 const report = checkBuiltCss(sources, builtCss);
-
-if (verbose) {
-  for (const s of sources) {
-    console.log(`  ${s.file}: ${s.names.length} 変数`);
-  }
-  console.log(`  出力: ${cssFiles.map((f) => path.relative(repoRoot, f)).join(", ")}`);
-}
 
 for (const file of report.unverifiable) {
   console.warn(
