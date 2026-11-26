@@ -1,0 +1,12 @@
+{
+  "singular": "catalogItem",
+  "label": "カタログ",
+  "fields": [
+    { "name": "title", "label": "題", "fieldType": "string" },
+    { "name": "title_ja", "label": "題(日本語)", "fieldType": "string" }
+  ],
+  "indexes": [
+    { "name": "catalog_items_title_trgm_idx", "fields": ["title"], "using": "gin", "opclass": { "title": "gin_trgm_ops" } },
+    { "name": "catalog_items_title_ja_trgm_idx", "fields": ["title_ja"], "using": "gin", "opclass": { "title_ja": "gin_trgm_ops" } }
+  ]
+}

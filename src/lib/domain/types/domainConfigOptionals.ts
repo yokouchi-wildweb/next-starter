@@ -40,8 +40,9 @@ export type DomainConfigOptionals = {
     name?: string;
     // インデックス方式（gin / gist など）。省略 = btree
     using?: string;
-    // 列ごとの演算子クラス（例: { title: "gin_trgm_ops" }）
-    opclass?: Record<string, string>;
+    // 列ごとの演算子クラス（例: { title: "gin_trgm_ops" }）。Partial なのは、索引ごとに鍵の違う entity.json を JSON の import で読むと、
+    // TypeScript が他の索引の鍵を `?: undefined` で足すため(metadataBinding と同じ)
+    opclass?: Readonly<Partial<Record<string, string>>>;
     // ユニークの索引（ユニークは索引だけで書く）
     unique?: boolean;
     // 降順の列（fields のうち）
