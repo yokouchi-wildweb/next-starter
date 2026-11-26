@@ -419,6 +419,26 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     assert.equal(explain("src/domains/core/user/new.ts", "missing", false).type, "none");
   });
 
+  test("中間 Tier の物でも祖先の既定(*.default.*)と .claude/rules/service/ は own と答えない(CLAUDE.md multi-tier)", () => {
+    assert.equal(explain("src/domains/core/demo/services/server/onDemoUserCreated.default.ts", "middle").type, "1");
+    assert.equal(explain(".claude/rules/service/biz.md", "middle").type, "none");
+    assert.equal(explain("src/domains/hand/entities/drizzle.ts", "middle").type, "own", "ほかの中間 Tier の物は今どおり");
+  });
+
+  test("上流のドメインの plugs への新しいパスは、自分の plugs に足すと答える(core/change.md add items)", () => {
+    const r = explain("src/domains/core/user/plugs/adminMenuItems/newItem.ts", "missing", true);
+    assert.equal(r.type, "3");
+    assert.equal(r.write, "<自分のドメイン か lib>/plugs/adminMenuItems/<名前>.ts");
+  });
+
+  test("generated の行の注記は読まない(生成器の宣言に無い生成物も同じ how)", () => {
+    const small = { "src/lib/forkOwnership/intake.txt": "generated src/x/old.json  # 古い手書き: pnpm foo で作る\n", "src/x/old.json": "{}\n" };
+    const v = explainView({ files: Object.keys(small), read: (path) => small[path] ?? null, intake: parseIntake(small["src/lib/forkOwnership/intake.txt"]).rules });
+    const r = explainPath("src/x/old.json", v, { tier: "tier1", addable: false, parent: "parent" });
+    assert.equal(r.type, "generated");
+    assert.equal(r.how, "手で直さない。生成器で作り直す");
+  });
+
   // このリポの木そのものの答え = Tier1 だけ(fork の status は tier1 にならない。仕組みは上の作り物の木で確かめる)
   test("このリポ(Tier1、HEAD の木)の代表のパス", (t) => {
     if (!readForkIdentity(REPO_ROOT).isTier1) {

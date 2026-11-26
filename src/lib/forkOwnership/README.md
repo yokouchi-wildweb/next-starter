@@ -300,7 +300,7 @@ pnpm workflow ownership selfKeep --pre=<区間の前> --target=<区間の merge 
 - override: Tier1 は override を出荷しない(`pnpm check extensions` が検査)ので、親の override は中間 Tier の物。下の Tier は消しても空(空白とコメントだけ = 不在と同じ)にしてもよい
 - 多段にするのはファイルを足す型(setting のキーとセクション・extensions の項目・wiring と proxy の fork が足したファイル・featureGateRules・override・`.replace`・fork の Provider(根の枠の点 rootProviders の項目))だけで、並べ替えの仕組みは無い
 - `/flux` は下の Tier が中間 Tier の物を消した・書き換えた後の取り込みの衝突を、下の Tier の判断を保って解き、報告と台帳の `notes:` に残す
-- 中間 Tier の既定の削除・rename はまだ `middle-tier`(合格)
+- 中間 Tier の既定(`*.default.*`)の削除・rename は祖先の物として違反のまま(`middle-tier` に付け替えない。CLAUDE.md multi-tier の例外)
 
 ### 中間層の規則(lineage.mjs)
 

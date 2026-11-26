@@ -725,3 +725,14 @@ test("多段: 上流の単位の中への追加は、その単位のフォルダ
   assert.deepEqual(entries.map((e) => e.reason), ["inside-unit-add", "middle-tier", "inside-unit-add", "middle-tier"]);
   assert.equal(moved.length, 2);
 });
+
+test("多段: 中間 Tier の既定(*.default.*)の削除・名前の変更は祖先の物として違反のまま(中間 Tier のほかのファイルは middle-tier)", () => {
+  const entries = [
+    { status: "D", path: "src/domains/mid/services/server/hook.default.ts", kind: null, reason: "deleted", verdict: "violation" },
+    { status: "R", path: "src/domains/mid/services/server/renamed.ts", from: "src/domains/mid/services/server/other.default.ts", kind: null, reason: "renamed", verdict: "violation" },
+    { status: "D", path: "src/domains/mid/services/server/plain.ts", kind: null, reason: "deleted", verdict: "violation" },
+  ];
+  const moved = reassignMiddleTier(entries, new Set());
+  assert.deepEqual(entries.map((e) => e.reason), ["deleted", "renamed", "middle-tier"]);
+  assert.equal(moved.length, 1);
+});

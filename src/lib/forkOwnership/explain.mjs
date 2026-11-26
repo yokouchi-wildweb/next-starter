@@ -11,6 +11,7 @@ import { pointsFromFiles, isListPoint, isPlugsPoint, PLUGS_DIR_NAME, FRAME_FILE,
 import { DOMAIN_OUTPUTS_FILE, intakeOutputGlobs, matchDomainOutput, normalizeGateOutputs, parseDomainOutputs } from "../districtMap/node.mjs";
 import { parseSwitchLayout, LAYOUT_FILE_RE, PAGE_FILE_RE, discoverRoutes } from "../screens/node.mjs";
 import { matchIntake } from "./intake.mjs";
+import { isDefaultName } from "./judge.mjs";
 
 /**
  * @import { SwitchTarget } from "../screens/node.mjs"
@@ -75,6 +76,8 @@ export function explainView({ files, read, intake }) {
   const list = [...fileSet].sort();
   return {
     has: (/** @type {string} */ path) => fileSet.has(path),
+    /** そのフォルダの下にファイルがあるか(上流のドメイン・lib か) */
+    hasDir: (/** @type {string} */ dir) => list.some((file) => file.startsWith(`${dir}/`)),
     read,
     intake,
     /** @type {() => DeclaredPoint[]} */
@@ -157,8 +160,8 @@ function generatedOf(path, view) {
   if (rule?.kind === "generated" || rule?.kind === "region") {
     const generator = view.generators().find((g) => g.globs.includes(rule.glob));
     const command = generator ? `pnpm generate ${generator.name}` : null;
-    // 生成器の宣言に無い生成物(区間の木の古い手書きの行など)は行の理由が作り方を言う
-    const how = rule.kind === "region" ? "fork の区画(fork entries の対)の中だけ書き、外は生成器が書く" : command || !rule.note ? "手で直さない。生成器で作り直す" : `手で直さない。${rule.note}`;
+    // 受け口の一覧の行の注記は読まない(README「型の答え」)
+    const how = rule.kind === "region" ? "fork の区画(fork entries の対)の中だけ書き、外は生成器が書く" : "手で直さない。生成器で作り直す";
     const generated = generator && command ? { generator: generator.name, command, part: null, region: rule.kind === "region" } : null;
     return answer("generated", { source: command, how, generated });
   }
@@ -274,7 +277,8 @@ function overlayOf(path, view) {
     if (dirOf(path) === dir && view.has(path) && plugsPoint.spec.overrideOf) {
       return answer("2", { keys: stringsOf(plugsPoint.spec.overrideOf), write: overridePathOfTarget(path), source: sourceOf(plugsPoint) });
     }
-    return answer("3", { write: view.has(path) ? `<自分のドメイン か lib>/${PLUGS_DIR_NAME}/${plugged[2]}/<名前>.ts` : path, source: sourceOf(plugsPoint), how: "差す側の自分の plugs/<点>/ に項目を足す(印なしの名前、D38)" });
+    // 上流のドメイン・lib(基準の木にある)の plugs には足さない(core/change.md add items): 新しいパスでも自分の plugs を答える
+    return answer("3", { write: view.has(path) || view.hasDir(plugged[1]) ? `<自分のドメイン か lib>/${PLUGS_DIR_NAME}/${plugged[2]}/<名前>.ts` : path, source: sourceOf(plugsPoint), how: "差す側の自分の plugs/<点>/ に項目を足す(印なしの名前、D38)" });
   }
   for (const point of points) {
     if (!isListPoint(point.spec) || typeof point.spec.dir !== "string") continue;
@@ -342,7 +346,9 @@ export function explainPath(path, view, { tier, addable, parent }) {
       : "自分の版を書く(取り込みは自分の版を残し、親の差分は /flux が区切りごとに見せる。合う所だけ別のコミットで自分で写す)";
     return answer("5", { write: path, how, generated });
   }
-  if (tier === "fork" || tier === "middle") return answer("own", { write: path, how: tier === "fork" ? "この fork の物: そのまま書き換える" : "中間 Tier の物: そのまま書き換える" });
+  // 中間 Tier の物は書き換えてよい。ただし祖先の既定(*.default.*)と .claude/rules/service/ は除く(CLAUDE.md multi-tier)→ 下の型の答え
+  const middleOwnable = tier === "middle" && !isDefaultName(path) && !path.startsWith(".claude/rules/service/");
+  if (tier === "fork" || middleOwnable) return answer("own", { write: path, how: tier === "fork" ? "この fork の物: そのまま書き換える" : "中間 Tier の物: そのまま書き換える" });
   const typed = replaceOf(path, view) ?? overlayOf(path, view) ?? placementOf(path, view);
   if (typed) return typed;
   if (tier === "missing" && addable) return answer("own", { write: path, how: "足してよい(足したファイルはこの fork の物)" });

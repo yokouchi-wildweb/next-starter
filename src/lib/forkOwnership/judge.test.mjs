@@ -357,6 +357,21 @@ describe("judge", () => {
     assert.deepEqual([entry.kind, entry.reason, entry.verdict], ["self", "self", "ok"]);
   });
 
+  test("A: 受け口の add / edit の行に当たる追加は上流の単位の中でも inside-unit-add にしない(core/ownership.md: outside a declared place だけ)", () => {
+    const { rules } = parseIntake("add src/lib/crud/plugs/hooks/*.ts  # r");
+    const one = (/** @type {string} */ path) => judge({ changes: [{ status: "A", path }], baseText: () => null, headText: () => "x", baseLibs: ["crud"], intake: rules }).entries[0];
+    assert.equal(one("src/lib/crud/plugs/hooks/mine.ts").reason, "added");
+    assert.equal(one("src/lib/crud/extra.ts").reason, "inside-unit-add", "行の外は今どおり");
+  });
+
+  test("A: 足しの判定の順は README の通り(unit-clash が default-add より先)", () => {
+    const baseFiles = ["src/app/(user)/_layout/Header.default.ts"];
+    const places = unitPlaces(baseFiles, () => null);
+    const baseUnits = unitIndex(baseFiles);
+    const entry = judge({ changes: [{ status: "A", path: "src/app/(user)/_layout/Header.default.tsx" }], baseText: () => null, headText: () => "x", baseLibs: [], intake, places, baseUnits }).entries[0];
+    assert.equal(entry.reason, "unit-clash");
+  });
+
   test("add: 足すのは added、基準にあるファイルの書き換えは outside-intake", () => {
     const { rules } = parseIntake("add src/domains/core/user/roles/*.role.json  # r");
     const path = "src/domains/core/user/roles/x.role.json";

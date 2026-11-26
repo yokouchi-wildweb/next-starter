@@ -8,7 +8,7 @@ import { join } from "node:path";
 
 import { forkIdOfTexts, PROJECT_RULES_FILE, readForkIdentity, REPO_JSON_FILE } from "./forkIds.mjs";
 import { matchIntake, parseIntake } from "./intake.mjs";
-import { judge } from "./judge.mjs";
+import { isDefaultName, judge } from "./judge.mjs";
 import { checkLineageStructure, LINEAGE_FILE, parseLineage } from "./lineage.mjs";
 import { unitIndex, unitPlaces } from "./unitNames.mjs";
 import { checkPermits, fingerprint, parsePermits, permitsPath } from "./permits.mjs";
@@ -549,6 +549,8 @@ export function reassignMiddleTier(entries, tier1Files) {
     const folder = entry.reason === "inside-unit-add" ? (entry.unitFolder ?? /^src\/lib\/[^/]+(?=\/)/.exec(target)?.[0] ?? null) : null;
     // 業務の全体像 .claude/rules/service/ は中間 Tier が足した物も下流で直せない(D117: このフォルダだけ中間 Tier の付け替えをしない)
     if (target.startsWith(SERVICE_PREFIX)) continue;
+    // 祖先の既定(*.default.*)の削除・名前の変更: 中間 Tier の既定も親の物(CLAUDE.md multi-tier の例外 an ancestor's .default)
+    if ((entry.reason === "deleted" || entry.reason === "renamed") && isDefaultName(target)) continue;
     // core・門番・決まりの core への追加: どれも Tier1 の物(足したファイルは Tier1 の版に無いが、中間 Tier の物にしない)
     const tier1Prefix = TIER1_ADD_PREFIXES[entry.reason];
     const tier1Owned =

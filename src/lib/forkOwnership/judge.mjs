@@ -218,7 +218,7 @@ const isFramePlain = (/** @type {string} */ path) => path.startsWith("src/app/")
 /** 基準にそのフォルダのルート(page / layout)か枠の宣言があるか */
 const baseHasRoute = (/** @type {Map<string, string>} */ baseUnits, /** @type {string} */ dir) => ["page", "layout", "frame", "frame.default"].some((name) => baseUnits.has(`${dir}/${name}`));
 /** <名前>.default.<拡張子>(既定。D173: そこを作ったリポだけが書く) */
-const isDefaultName = (/** @type {string} */ path) => classifyDottedName(path.slice(path.lastIndexOf("/") + 1)).kind === "default";
+export const isDefaultName = (/** @type {string} */ path) => classifyDottedName(path.slice(path.lastIndexOf("/") + 1)).kind === "default";
 
 /**
  * @param {{
@@ -258,15 +258,15 @@ export function judge({ changes, baseText, headText, baseLibs, baseHasCore = fal
       const shelfUnit = places ? shelfUnitOf(change.path, places) : null;
       const target = overrideTargetUnit(change.path);
       const folder = places ? unitFolderOf(change.path, places) : null;
-      if (folder !== null || (lib !== null && libs.has(lib))) {
+      // 受け口の add / edit の行に当たる追加は宣言された場所(core/ownership.md fork_ownership: outside a declared place だけが違反)
+      const declared = rule !== null && (rule.kind === "add" || rule.kind === "edit");
+      if (!declared && (folder !== null || (lib !== null && libs.has(lib)))) {
         reason = "inside-unit-add";
         unitFolder = folder ?? `src/lib/${lib}`;
       }
       else if (baseHasCore && change.path.startsWith(CORE_PREFIX) && (rule === null || rule.kind === "debt")) reason = "core-add";
       else if (baseHasGate && change.path.startsWith(GATE_PREFIX) && (rule === null || rule.kind === "debt")) reason = "gate-add";
       else if (baseHasRulesCore && change.path.startsWith(RULES_CORE_PREFIX)) reason = "rules-core-add";
-      else if (places && isDefaultName(change.path) && baseDirs.has(dirOf(change.path))) reason = "default-add";
-      else if (places && isFramePlain(change.path) && baseHasRoute(baseUnits, dirOf(change.path))) reason = "frame-plain";
       else if (unit !== null && baseUnits.has(unit)) {
         reason = "unit-clash";
         clash = baseUnits.get(unit);
@@ -275,6 +275,9 @@ export function judge({ changes, baseText, headText, baseLibs, baseHasCore = fal
         reason = "unit-clash";
         clash = baseUnits.get(shelfUnit) ?? `${shelfUnit}/`;
       } else if (places && target !== null && (isFrameOverride(change.path) ? !baseHasRoute(baseUnits, dirOf(change.path)) : !baseUnits.has(target))) reason = "override-own";
+      // README「判定」の順: unit-clash → override-own → default-add → frame-plain
+      else if (places && isDefaultName(change.path) && baseDirs.has(dirOf(change.path))) reason = "default-add";
+      else if (places && isFramePlain(change.path) && baseHasRoute(baseUnits, dirOf(change.path))) reason = "frame-plain";
       else reason = "added";
     } else if (status === "D") {
       reason = "deleted";
