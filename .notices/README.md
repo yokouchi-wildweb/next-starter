@@ -127,6 +127,7 @@ notice の発見と区切りの判定には、今のツリーに残っている�
 - `20261121-141602-priority-mark.priority-mark` — lineage の上書きの書式をやめる: project.md と自分の節の `overrides: <owner>.<key> = <value> | why: <reason>` を `- <key> (priority): <value> (why: <reason>)` へ、自分の節の `(default)` を外す(祖先の節は触らない)
 - `20261121-153726-cc-prep.force-dynamic` — src/app の page・layout・route から `export const dynamic = "force-dynamic";` の行を消す(別の値・dynamicParams・fetchCache・revalidate・runtime は消さずに止めた一覧へ)
 - `20261125-174936-cc-screen-maker.screen-maker` — page.tsx が指す Screen を画面の作り手 createScreen(`@/wiring/screen`)の形へ、Screen の静的な metadata を作り手へ、page.tsx の metadata の再 export を generateMetadata へ(形の違う物は直し方 1 行の止まる一覧)
+- `20261126-091213-cc-global-loader.global-loader` — useGlobalLoader の呼び手を showLoader の戻り値(終わりの関数)を finally で呼ぶ形へ、分割代入から hideLoader を外す(形の違う物は直し方 1 行の止まる一覧)
 
 共有の棚の道具の順番(notice の区切りごとに、その区切りの道具を取り込みの後に走らせる。前の区切りの道具を先に):
 
