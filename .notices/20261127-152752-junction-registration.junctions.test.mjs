@@ -190,7 +190,7 @@ export const UserToSampleTable = pgTable(
   assert.match(plan.writes["src/domains/core/user/entities/userToSample/drizzle.ts"], /export const UserToSampleTable = pgTable\(/);
   const rest = plan.writes[ownerFile];
   assert.doesNotMatch(rest, /UserToSampleTagTable|UserToSampleTable/, "持つ側のファイルに 2 本とも残さない");
-  assert.doesNotMatch(rest, /SampleTagTable|SampleTable|primaryKey/, "両方で使わなくなった import を外す");
+  assert.doesNotMatch(rest, /SampleTagTable|SampleTable|import \{[^}]*primaryKey/, "両方で使わなくなった import を外す(UserTable の .primaryKey() は別物)");
   assert.match(rest, /import \{ pgTable, text, uuid \} from "drizzle-orm\/pg-core";/);
   assert.match(rest, /export const UserTable = pgTable/);
   assert.deepEqual(JSON.parse(plan.writes["src/domains/core/user/entities/user/entity.json"]).relations.map((relation) => relation.through), ["userToSampleTag", "userToSample"]);
