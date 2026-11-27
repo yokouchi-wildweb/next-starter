@@ -128,7 +128,7 @@ export function scanRecordTargets(repoRoot) {
   for (const entry of entries) {
     for (const messageKey of entry.messages) {
       const definition = definitions.get(messageKey);
-      if (!definition) problems.push(`${entry.messagesFrom}: messages の ${messageKey} は連絡定義に無い(<ドメイン>/messages/<名前>.ts の鍵を書く。項目 ${entry.key})`);
+      if (!definition) problems.push(`${entry.messagesFrom}: messages の ${messageKey} は連絡定義に無い(<ドメイン>/plugs/messages/<名前>.ts の鍵を書く。項目 ${entry.key})`);
       else if (definition.problem) problems.push(`${definition.definition}: ${definition.problem}(項目 ${entry.key} の messages が名指す)`);
       else if (!definition.value.includes("records"))
         problems.push(`${entry.messagesFrom}: messages の ${messageKey} は adminTargets に "records" が無い(${definition.definition}。項目 ${entry.key})`);
