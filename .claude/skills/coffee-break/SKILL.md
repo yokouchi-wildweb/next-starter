@@ -10,9 +10,9 @@ when: only on the user's words, the user's ok to your proposal, or the cue typed
 no_other_work: this turn does only the steps below
 
 ## STEPS
-1. run `pnpm workflow agent-terminal compactPlan` | exit 3 → tell the user the one line it printed and stop
+1. run `pnpm workflow agent-terminal compactPlan`
 2. each `prepare:` line → do it as written (none → skip) | `context: ignored` → tell the user that line, go on
-3. write the handoff with Write to the `handoff:` path (overwrite), English, terse:
+3. write the handoff with Write to the `handoff:` path (overwrite; `handoff: none` → skip this step), English, terse:
    - state: where the work stands | decisions: what the user agreed (absolute dates) | next: the next step and its end condition | files: the files in progress
    - only what nothing reloaded after the compact carries (CLAUDE.md, rules and files on disk come back by themselves)
 4. run the `next:` line: `--then` = the `then:` value, another only when the user (or `extra`) says it for this compact | the quoted line = what to re-read first

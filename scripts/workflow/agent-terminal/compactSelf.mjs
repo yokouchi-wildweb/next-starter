@@ -72,8 +72,9 @@ export function runCompactSelf(args, env = process.env, deps = defaultDeps) {
     return 1;
   }
   const file = handoffFile(sessionOf(env), env);
-  if (file) stampHandoff(file, parsed.then);
   const plan = planCompactSelf(env, focus, file);
+  // --then は /compact を打てる時(待つ役・頼み先)だけ。打てない時は人が /compact を打つので既定の続き(README「compactSelf」)
+  if (file) stampHandoff(file, plan.mode === "fallback" ? "continue" : parsed.then);
   if (plan.mode === "handoff") {
     const name = [plan.cmd, ...plan.args].join(" ");
     const r = deps.run(plan.cmd, plan.args, { ...env, ...plan.env, [COMPACT_THEN_ENV]: parsed.then });

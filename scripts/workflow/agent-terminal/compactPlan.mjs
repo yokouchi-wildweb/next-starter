@@ -5,7 +5,7 @@
 //   - 足す手順・続きの既定 = 会話を束ねる道具が渡す AGENT_COMPACT_CONTEXT(無ければ足す手順なし・続きは continue)
 //   - 一時ファイル = 記録の置き場の handoff/<CLAUDE_CODE_SESSION_ID>.md(圧縮の後の SessionStart が読み戻して消す)
 //   - 打つ者 = 頼み先(AGENT_COMPACT_CMD)/ このペインの待つ役 / ユーザー(compactSelf と同じ判断)
-// 終了コード: 0 / 3 = 会話の id が分からない(一時ファイルの場所が決まらない)。説明: scripts/workflow/agent-terminal/README.md
+// 終了コード: 0(会話の id が分からない時も handoff: none で続ける)。説明: scripts/workflow/agent-terminal/README.md
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,13 +22,10 @@ const TYPED_BY = {
 export function runCompactPlan(env = process.env, print = console.log) {
   const session = sessionOf(env);
   const file = handoffFile(session, env);
-  if (!file) {
-    print("compactPlan: 会話の id(CLAUDE_CODE_SESSION_ID)が分からないので、引き継ぎの一時ファイルの場所が決まりません");
-    return 3;
-  }
   const ctx = readCompactContext(env);
   const then = ctx.then ?? "continue";
-  const lines = [`handoff: ${file}`];
+  // 会話の id が分からなくても止めない: 引き継ぎを書かないだけで、compactSelf は handoff 無しで圧縮できる(README「compactSelf」)
+  const lines = [file ? `handoff: ${file}` : "handoff: none(会話の id CLAUDE_CODE_SESSION_ID が分からないので引き継ぎは書かない。圧縮はできる)"];
   if (ctx.error) lines.push(`context: ignored — ${ctx.error}`);
   lines.push(...(ctx.prepare.length > 0 ? ctx.prepare.map((p) => `prepare: ${p}`) : ["prepare: none"]));
   lines.push(`then: ${then}`);

@@ -371,14 +371,18 @@ test("readCompactContext: 値なし = 足す手順なし。v=1 の prepare(繰�
   assert.ok(readCompactContext({ AGENT_COMPACT_CONTEXT: "/nonexistent/ctx" }).error);
 });
 
-test("pnpm workflow agent-terminal compactPlan: 一時ファイルの場所・足す手順・続き・打つ者・次の 1 行。会話の id が無ければ exit 3", () => {
+test("pnpm workflow agent-terminal compactPlan: 一時ファイルの場所・足す手順・続き・打つ者・次の 1 行。会話の id が無くても止めず handoff: none", () => {
   const out = (env) => {
     const printed = [];
     const code = runCompactPlan(env, (l) => printed.push(l));
     return { code, text: printed.join("\n") };
   };
-  assert.equal(out(tmuxEnv()).code, 3);
-  assert.equal(out(tmuxEnv({ CLAUDE_CODE_SESSION_ID: "../x" })).code, 3);
+  for (const noId of [tmuxEnv(), tmuxEnv({ CLAUDE_CODE_SESSION_ID: "../x" })]) {
+    const r = out(noId);
+    assert.equal(r.code, 0);
+    assert.match(r.text, /^handoff: none\(/m);
+    assert.match(r.text, /^next: pnpm workflow agent-terminal compactSelf /m);
+  }
 
   const env = tmuxEnv({ CLAUDE_CODE_SESSION_ID: "s-9", AGENT_TERMINAL: "none" });
   const plain = out(env);
@@ -429,6 +433,17 @@ test("pnpm workflow agent-terminal compactSelf: 一時ファイルの頭に続�
   // 頭は 1 行だけ(書き直すたびに置き換わる)
   const text = readFileSync(file, "utf8");
   assert.match(text, /^<!-- agent-terminal handoff: then=wait at=\d+ -->\nstate: a\n$/);
+});
+
+test("pnpm workflow agent-terminal compactSelf 打てないとき(人が /compact を打つ): 一時ファイルの頭は --then でなく既定の continue", () => {
+  const env = tmuxEnv({ CLAUDE_CODE_SESSION_ID: "s-4", AGENT_TERMINAL: "none" });
+  const file = handoffFile("s-4", env);
+  mkdirSync(path.dirname(file), { recursive: true });
+  writeFileSync(file, "state: a\n");
+  const { deps } = recorder();
+  assert.equal(planCompactSelf(env, "x", file).mode, "fallback");
+  assert.equal(runCompactSelf(["--then", "wait", "x"], env, deps), 0);
+  assert.match(readFileSync(file, "utf8"), /^<!-- agent-terminal handoff: then=continue at=\d+ -->\nstate: a\n$/);
 });
 
 test("引き継ぎの一時ファイル: 一度きりの読み戻し(読んだら消す)。空・古い物は読まない。頭が無ければ continue。掃除は 14 日", () => {

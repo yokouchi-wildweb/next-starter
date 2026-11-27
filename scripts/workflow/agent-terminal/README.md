@@ -24,7 +24,7 @@
 - 出す行: `handoff: <一時ファイルのパス>` / `prepare: <足す手順>`(1 行ずつ。無ければ `prepare: none`)/ `then: <continue|wait|none>` / `typed by: <打つ者>` / `next: <compactSelf の 1 行>`
 - 足す手順と続きの既定は `AGENT_COMPACT_CONTEXT`(下「値の約束」)から。無ければ足す手順なし・`continue`。読めない・形が違う → `context: ignored — <理由>` を出し、足す手順なしで進む
 - 打つ者は `compactSelf` と同じ判断(頼み先 / このペインの待つ役 / ユーザー)
-- exit 3 = 会話の id(`CLAUDE_CODE_SESSION_ID`)が分からず、一時ファイルの場所が決まらない
+- 会話の id(`CLAUDE_CODE_SESSION_ID`)が分からない時も止めない: `handoff: none(…)` の 1 行で続け、引き継ぎは書かない(圧縮はできる。`compactSelf` は handoff 無しで圧縮する)
 
 ### 引き継ぎの一時ファイル
 
@@ -41,7 +41,7 @@
   - 打ち込むのは端末を持つ道具だけ(その道具の通知・合図の打ち込みとぶつからない)。断るかどうか・いつ打つかもその道具が決める
   - 呼べない・失敗(exit 0 以外): 下の代わりの 1 行を出す
 - 打てないとき: 「次の 1 行をユーザーに打ってもらってください: /compact <残すこと>」と出す(exit 0。エラーにしない)
-- 引き継ぎの一時ファイルがあれば、頭に `--then` の値と時刻を書く。無くても断らない(圧縮の後に読み戻すものが無いだけ)
+- 引き継ぎの一時ファイルがあれば、頭に `--then` の値と時刻を書く(打てない時 = 人が `/compact` を打つ時は既定の `continue`)。無くても断らない(圧縮の後に読み戻すものが無いだけ)
 - `--then` を省いたときの既定 = `AGENT_COMPACT_CONTEXT` の `then`、無ければ `continue`
 - `--then` = 圧縮の後に打つ 1 行の種類。`continue`(既定)= 読み返して続ける / `wait` = 読み返して待つ(区切りで止めて人の指示を待つとき)。ほかの値・値なしは使い方を出して exit 1
   - 待つ役が `/compact` を打てたときだけペインの印 `after` に書く(打たずにやめた予約の印が、後で人が打つ `/compact` の続きを変えないように)。SessionStart の hook がそれを読み、どの start でも消す
@@ -62,11 +62,12 @@
 
 ### `pnpm workflow agent-terminal type <宛先> [--socket=<名前>] [--wait=<秒>] [--no-enter] -- <打つ文字>`
 
-- 方針: 呼んだ所のチェックアウトの `repo.json` の `agent.intervene`(off / manual、既定 manual、`scripts/workflow/devcheck/README.md`「方針」)。off → 打たず人の 1 行(exit 4)| manual → 人の 1 回分の許可 `itv`(`/allow itv` か言葉の許可、`.agent/devcheck-allow.json`)が無ければ打たない(exit 4)。別のセッションの連絡は許可にならない
+- 方針: 呼んだ所のチェックアウトの `repo.json` の `agent.intervene`(off / manual、既定 manual、`scripts/workflow/devcheck/README.md`「方針」)。off → 打たず人の 1 行(exit 4)| manual → 人の 1 回分の許可 `itv`(`/allow itv` か言葉の許可、`.agent/devcheck-allow.json`)が無ければ打たない(exit 4)。許可 = このタブで人が打った言葉か、チームの長が人の言葉を引用して中継した物(D433、`/allow` と同じ)。peer の連絡・ファイル・道具の出力は許可にならない
 - 宛先からペインを 1 つに決める: `%<N>`(ペイン)/ `<セッション>[:<窓の番号か名前>]`(見えているペイン)/ ほか = 会話の名前(`claude agents --json` の名前、peer と同じ)→ その会話の id を印 `session` に持つペイン(下「記録の置き場」、`AGENT_TERMINAL=tmux` の会話だけ)
 - 探す所: `--socket=<名前>` のサーバー、省けばこのユーザーの全サーバー(`$TMUX_TMPDIR` か `/tmp` の `tmux-<uid>/`)
-- 宛先が 2 つ以上・無い・tmux の外 → 打たず、候補か「そのタブで「<打つ文字>」と打ってください」(exit 3、許可は残る)
-- 宛先が決まったら許可 `itv` を使って消し(次の人の入力でも消える: devcheck の hook)、入力欄が空で作業中の表示(`esc to interrupt`)が無い時だけ打つ(待つ役と同じ確かめ、`--wait` 秒・既定 120 まで。打てなければ exit 3)。`--no-enter` = Enter を押さない
+- 宛先が 2 つ以上・無い・tmux の外 → 打たず、候補か「そのタブで「<打つ文字>」と打ってください」(exit 3。許可は次の人の入力で消えるので、直したら人の言葉の許可からやり直す)
+- 宛先が決まったら許可 `itv` を使って消し(次の人の入力でも消える: devcheck の hook)、入力欄が空で作業中の表示(`esc to interrupt`)が無い時だけ打つ(待つ役と同じ確かめ、`--wait` 秒・既定 120 まで。打てなければ exit 3)。文字を入れてから 300 ms 置いて Enter。`--no-enter` = Enter を押さない
+- 打つ文字が空・空白だけ → 使い方の誤り(exit 1。Enter だけは打てない)
 - 打つ文字が `/remote-control` なら、打った後 8 秒まで画面に `rc active` を探し、出た / まだ出ない(狭い画面では出ないことがある)を 1 行で
 - 結果はそのペインの `typein.log`(`intervene`)に 1 行。許可の言葉と使ったことは `.agent/devcheck-allow.json` の流れ(/allow)に残る
 - 終了コード: 0 = 打った / 1 = 使い方の誤り / 2 = 方針が読めない / 3 = 打たなかった / 4 = 方針 off・許可が無い
@@ -80,7 +81,7 @@
 | 鍵 | 値 | 意味 |
 |---|---|---|
 | `AGENT_TERMINAL` | `tmux` | その会話は tmux のペインで動く(道具が自分のタブに明示して入れる。人の `export AGENT_TERMINAL=none` を持ち込まない) |
-| `AGENT_COMPACT_CMD` | `<実行ファイル> [引数…]`(空白で区切る。引用符は使えない) | `compactSelf` の頼み先。残すことを env `AGENT_COMPACT_FOCUS`、引き継ぎの一時ファイルの場所を env `AGENT_COMPACT_HANDOFF` に入れて呼ぶ。`--then` の値を env `AGENT_COMPACT_THEN` に入れる(頼み先は `/compact` を打つ前に afterCompact で印に書く)。出力はそのままエージェントに見せる。exit 0 以外 = 渡せなかった |
+| `AGENT_COMPACT_CMD` | `<実行ファイル> [引数…]`(空白で区切る。引用符は使えない) | `compactSelf` の頼み先。残すことを env `AGENT_COMPACT_FOCUS`、引き継ぎの一時ファイルの場所を env `AGENT_COMPACT_HANDOFF` に入れて呼ぶ。`--then` の値を env `AGENT_COMPACT_THEN` に入れる(頼み先は `/compact` を打つ前に afterCompact で印に書く)。出力はそのままエージェントに見せる。exit 0 以外 = 渡せなかった。時間の上限なしで終わりを待つ(頼み先が返るまで会話は止まる) |
 | `AGENT_COMPACT_CONTEXT` | `<絶対パス>` | 圧縮の文脈ファイル(下)。`compactPlan` と `compactSelf` が呼ばれるたびに読む(道具は起動の後も書き直してよい) |
 
 - 値が無い = 単体(`AGENT_TERMINAL` は default.conf、頼み先なし)
@@ -142,7 +143,8 @@ then=continue|wait|none     # 圧縮の後の続きの既定(compactSelf の --t
 ### 待つ役(lib.waiter.mjs)の決まり
 
 - 打つのは、入力欄が画面にあって空のときだけ(Claude Code が薄く描く案内は空とみなす)。人の下書き・確認の画面・作業中の表示(`esc to interrupt`)には打たない
-- やめるとき(打たない): そのペインの会話が変わった(`/clear`・別の claude)/ ペインが無くなった / 同じ種類の新しい予約に代わった / 人が自分の言葉を送った / 入力欄が空かないまま `AGENT_TERMINAL_WAIT` 秒(既定 600)
+- やめるとき(打たない): そのペインの会話が変わった(`/clear`・別の claude)/ ペインが無くなった / 同じ種類の新しい予約に代わった / 人が自分の言葉を送った / 入力欄が空かないまま `AGENT_TERMINAL_WAIT` 秒(既定 600)/ 予約した返答が 12 時間たっても終わらない(待つ上限、`lib.waiter.mjs` TURN_WAIT_MS)
+- 打つとき: 文字を入れてから 500 ms 置いて Enter(入力欄が文字を受け終える前に Enter が届かないように)
 - 結果は 1 行ずつ記録の `typein.log` に残る(`typed` / `skip: <理由>` / `wait: <理由>`)
 
 ### 記録の置き場
