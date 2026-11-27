@@ -1,6 +1,7 @@
 // src/config/domains/user.config.ts
 // 利用者の設定の上書き(持ち主 src/domains/core/user/config.ts だけが読む)。値はリテラルで書く。キーと既定: 持ち主の config.ts
 // 値を変える: `export default { enableUserMemo: true, name: { unique: { enabled: true } } } satisfies UserOverride<Extra>;`
+// ロールの一覧の並び(= DB の enum user_role の並び、生成器がこのファイルを構文木で読む): `roleOrder: ["admin", "user", …]` をリテラルで書く
 // 自分の鍵を足す: 下の Extra に `<鍵>: <型>` を足し、値を書く(userConfig.<鍵> で読める)
 import type { UserOverride } from "@/domains/user/config";
 

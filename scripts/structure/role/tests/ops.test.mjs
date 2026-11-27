@@ -1,4 +1,4 @@
-// pnpm generate role -- --order・pnpm generate role -- --delete・pnpm generate role -- --delete-profile・pnpm generate role -- --toggle・pnpm generate role -- --profile の引数と止まり方の契約テスト（既定は対話なし、-i のときだけ対話）。
+// ロールの一覧の並び(設定 user の roleOrder)・pnpm generate role -- --delete・pnpm generate role -- --delete-profile・pnpm generate role -- --toggle・pnpm generate role -- --profile の引数と止まり方の契約テスト（既定は対話なし、-i のときだけ対話）。
 // コマンドはスクリプトの置き場からリポジトリのルートを決めるので、一時ディレクトリに要るものを写して、そこで実行する。
 // 標準入力は空にして、対話が出ない（待たない）ことも見る。実行: pnpm test scripts/structure/role/tests/ops.test.mjs
 // 写すコードは走らせる命令から import で届くファイル(copyByImports)、手書きの一覧は命令が読むデータと命令の置き場だけ。
@@ -27,6 +27,8 @@ const COPY = [
   // 持ち主の判定(rolePaths.mjs の parentOwns)が読む名前の宣言。repo.json は写した後に Tier1 の物へ書き直す(writeTier1RepoJson)
   "repo.json",
   "src/lib/CATALOG.md",
+  // 一覧の並びの元(設定 user の roleOrder、roleOrder.mjs が構文木で読む)
+  "src/config/domains/user.config.ts",
 ];
 /**
  * 写した先を Tier1 にする: repo_id = 写した CATALOG.md の先頭の節(Tier1 の名前)、tier root。
@@ -189,47 +191,60 @@ test("上書き: pnpm generate role が重ね、JSON は変えない。不正は
   assert.equal(fs.existsSync(profileOverride), false);
 });
 
-test("ロールの一覧の並び(= enum user_role): 今あるロールの作り直しは場所のまま、新しいロールは末尾、--order はその並びに書き直し、知らない ID・重複・抜けは書かずに 2", () => {
+test("ロールの一覧の並び(= enum user_role): 設定 user の roleOrder → 今の一覧 → 新しいロールは末尾。取り込みで上流の一覧になっても作り直しで設定の並びに戻る。重複は書かずに止まる", () => {
   const rolesFile = path.join(root, "src/domains/core/user/extensions/roles.ts");
+  const configFile = path.join(root, "src/config/domains/user.config.ts");
+  const configBefore = fs.readFileSync(configFile, "utf8");
+  const setOrder = (ids) => fs.writeFileSync(configFile, `export default { roleOrder: ${JSON.stringify(ids)} };\n`);
   const order = () => [...fs.readFileSync(rolesFile, "utf8").matchAll(/^import \w+Role from "@\/domains\/core\/user\/(?:coreRoles|roles)\/([\w-]+)\.role\.json";$/gm)].map(([, id]) => id);
   const before = order();
   assert.ok(before.length >= 3);
 
-  // 今あるロールの作り直し(先頭と真ん中)で並びは変わらない
+  // 設定が空: 今あるロールの作り直し(先頭と真ん中)で並びは変わらない、新しいロールは末尾
   for (const id of [before[0], before[1]]) {
     const regenerated = run("generate.mjs", id);
     assert.equal(regenerated.status, 0, regenerated.stderr);
     assert.deepEqual(order(), before);
   }
-
-  // 新しいロールは末尾
   fs.writeFileSync(rolePath("zeta.role.json"), JSON.stringify({ id: "zeta", label: "ゼータ", category: "user", hasProfile: false }));
   assert.equal(run("generate.mjs", "zeta").status, 0);
   assert.deepEqual(order(), [...before, "zeta"]);
 
-  // --order: その並びに書き直して全部を作り直す
-  const reversed = [...before, "zeta"].reverse();
-  const reordered = run("generate.mjs", "--order", reversed.join(","));
-  assert.equal(reordered.status, 0, reordered.stderr);
-  assert.deepEqual(order(), reversed);
+  // 設定の並び: 全部を作り直すと設定の並び、書いていないロールは今の一覧の並びで後ろ
+  const reversed = [...before].reverse();
+  setOrder(reversed);
+  const all = run("generate.mjs", "--all");
+  assert.equal(all.status, 0, all.stderr);
+  assert.deepEqual(order(), [...reversed, "zeta"]);
 
-  // 知らない ID・重複・抜けは止まり、何も書かない
+  // 取り込みで一覧が上流の版(上流の並び、fork のロールの無い一覧)になっても、全部の作り直し(pnpm forge)で設定の並びに戻る
+  setOrder(before);
+  assert.equal(run("generate.mjs", "--all").status, 0);
+  const upstreamList = fs.readFileSync(rolesFile, "utf8").split("\n").filter((l) => !l.includes("zetaRole")).join("\n");
+  setOrder([...reversed, "zeta"]);
+  fs.writeFileSync(rolesFile, upstreamList);
+  assert.deepEqual(order(), before);
+  assert.equal(run("generate.mjs", "--all").status, 0);
+  assert.deepEqual(order(), [...reversed, "zeta"]);
+
+  // 重複は止まり何も書かない、ロールの無い ID は飛ばして知らせる
   const content = fs.readFileSync(rolesFile, "utf8");
-  for (const [ids, message] of [
-    [[...reversed, "nobody"], /ロール設定の無い ID: nobody/],
-    [[...reversed, reversed[0]], /2 回以上ある ID/],
-    [reversed.slice(1), /並びに無いロール/],
-  ]) {
-    const refused = run("generate.mjs", "--order", ids.join(","));
-    assert.equal(refused.status, 2, ids.join(","));
-    assert.match(refused.stderr, message);
-    assert.equal(fs.readFileSync(rolesFile, "utf8"), content);
-  }
-  assert.equal(run("generate.mjs", "--order").status, 2);
+  setOrder([...reversed, reversed[0]]);
+  const refused = run("generate.mjs", "--all");
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr, /2 回以上ある ID/);
+  assert.equal(fs.readFileSync(rolesFile, "utf8"), content);
+  setOrder([...reversed, "nobody", "zeta"]);
+  const skipped = run("generate.mjs", "--all");
+  assert.equal(skipped.status, 0, skipped.stderr);
+  assert.match(skipped.stderr, /roleOrder の nobody はロールが無いので飛ばしました/);
+  assert.deepEqual(order(), [...reversed, "zeta"]);
 
   // 元に戻す
-  assert.equal(run("generate.mjs", "--order", [...before, "zeta"].join(",")).status, 0);
+  setOrder([...before, "zeta"]);
+  assert.equal(run("generate.mjs", "--all").status, 0);
   assert.equal(run("deleteRole.mjs", "zeta", "--confirm", "zeta", "--remove-json").status, 0);
+  fs.writeFileSync(configFile, configBefore);
   assert.deepEqual(order(), before);
 });
 

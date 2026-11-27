@@ -59,8 +59,9 @@
 
 ロールの一覧（`user/extensions/roles.ts`）の並びは DB の enum `user_role` の値の並び。今ある値を動かすと drizzle-kit が `DROP TYPE` と users などの列の書き直しを出す（本番の表の書き直し）。足すだけなら `ALTER TYPE ... ADD VALUE` で済む。
 
-- 生成は並びを守る: 今あるロールを作り直しても一覧の場所のまま、新しいロールだけ末尾に足す
-- 一覧が DB の並びとずれた時（取り込みで上流の一覧になった、など）: DB の並びを `pnpm ops db inspect query "SELECT unnest(enum_range(NULL::user_role))"` で読み、`pnpm generate role -- --order <id>,<id>,…`（全ロールを 1 回ずつ）で一覧をその並びにして作り直す。`pnpm db:push:check` が 0 件なら合っている。roles.ts は生成物なので手で並べ替えない
+- 並びの元は設定 `roleOrder`（`src/config/domains/user.config.ts`、生成器が構文木で読む）。生成は設定の並び → 設定に無いロールは今の一覧の場所 → 新しいロールは末尾。上流は並びを持たない（既定 `[]` = 今の一覧のまま）
+- fork は自分の DB の並びを `roleOrder` に書く: 取り込みで上流の roles.ts を取っても、作り直しで自分の並びに戻る（enum の値が動かない）
+- 一覧が DB の並びとずれた時: DB の並びを `pnpm ops db inspect query "SELECT unnest(enum_range(NULL::user_role))"` で読んで `roleOrder` に書き、`pnpm forge`。`pnpm db:push:check` が 0 件なら合っている。roles.ts は生成物なので手で並べ替えない
 
 fork がロールを変える上書き（core ロールは `label`・`hasProfile`、足したロールは `label`・`hasProfile`・`enabled`）は、JSON の隣の `<JSON の名前>.override.ts`（`src/domains/core/userProfile/README.md`「fork の上書き」）。
 

@@ -395,7 +395,7 @@ function readRoleEntries() {
   return [...content.matchAll(/^import \w+Role from "@\/domains\/core\/user\/(?:coreRoles|roles)\/([\w-]+)\.role\.json";$/gm)].map(([, id]) => ({ id }));
 }
 
-/** 一覧のファイルの ID の並び（generate --all が使う） */
+/** 一覧のファイルの ID の並び(並び方の入力の 1 つ。roleOrder.mjs) */
 export const registeredRoleIds = () => readRoleEntries().map((entry) => entry.id);
 
 function writeRoles(entries) {
@@ -419,16 +419,10 @@ function writeRoles(entries) {
 }
 
 /**
- * ロールを一覧に載せる。載っていればその場所のまま書き直し、無ければ末尾に足す。
- * 一覧の並びは DB の enum の並び: 今ある値を動かすと drizzle-kit が DROP TYPE と列の書き直しを出す（足すだけなら ADD VALUE）
+ * 一覧をこの並びで書く(並びは roleOrder.mjs の orderRoles が決める: 設定の roleOrder → 今の一覧 → 末尾)。
+ * 一覧の並びは DB の enum の並び: 今ある値を動かすと drizzle-kit が DROP TYPE と列の書き直しを出す(足すだけなら ADD VALUE)
  */
-export function addRoleToList(roleConfig) {
-  const entries = readRoleEntries();
-  writeRoles(entries.some((e) => e.id === roleConfig.id) ? entries : [...entries, { id: roleConfig.id }]);
-}
-
-/** 一覧をこの並びで書き直す（pnpm generate role -- --order。DB の enum の並びに合わせる唯一の道。検査は呼ぶ側） */
-export function writeRoleOrder(roleIds) {
+export function writeRoleList(roleIds) {
   writeRoles(roleIds.map((id) => ({ id })));
 }
 

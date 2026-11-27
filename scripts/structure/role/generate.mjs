@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 // scripts/structure/role/generate.mjs
 // ロール設定からファイルを生成するスクリプト
-// 使い方: node generate.mjs <roleId> | node generate.mjs --all（coreRoles/・roles/ の全 *.role.json）| node generate.mjs --order <id,…>（一覧をその並びにして全部を作り直す）
+// 使い方: node generate.mjs <roleId> | node generate.mjs --all（coreRoles/・roles/ の全 *.role.json）
+// 一覧の並び = 設定 user の roleOrder → 今の一覧 → 新しいロールは末尾（roleOrder.mjs）
 // 書く前に checks/ の検査を通す（問題は全件並べて止める。警告は表示して進む）
 
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
-import { addRoleToList, registeredRoleIds, writeProfileLists, writeRoleOrder } from "./generator/writeLists.mjs";
+import { registeredRoleIds, writeProfileLists, writeRoleList } from "./generator/writeLists.mjs";
 import { cleanupProfile } from "./generator/cleanupProfile.mjs";
 import { cleanupRole } from "./generator/cleanupRole.mjs";
 // 新しいジェネレーター
@@ -23,6 +24,7 @@ import { readRegisteredFormInputs } from "../domain/domain/formInputNames.mjs";
 import { createWorkspace } from "../domain/domain/workspace.mjs";
 import { assertRoleConfig, orphanProfileIssues, roleConfigIssues, roleConfigWarnings, roleFolderIssues } from "./checks/index.mjs";
 import { readProfileOverride, readRoleOverride } from "./overrides.mjs";
+import { orderRoles, readRoleOrderSetting } from "./roleOrder.mjs";
 import { addedRoleFileNames, coreRoleFileNames, findRoleFile, listRoleFiles, roleFileOf } from "./rolePaths.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -101,7 +103,7 @@ export default async function generate(roleId, options = {}) {
 
     // 2. ロールの一覧を更新
     console.log("\n[2/4] user/extensions/roles.ts を更新中...");
-    addRoleToList(roleConfig);
+    writeRoleList(roleListOrder([...new Set([...registeredRoleIds(), roleConfig.id])]));
     console.log("✓ user/extensions/roles.ts を更新しました");
   } else {
     console.log("\n[1/4] user/extensions/roles.ts の更新をスキップ（プロフィールのみモード）");
@@ -179,59 +181,41 @@ export function checkAllRoles(roleIds = roleIdsOnDisk()) {
   const placement = placementIssues();
   // 置き場が違うと読めないので、先にそれだけ返す
   if (placement.length > 0) return placement;
+  const setting = readRoleOrderSetting(ROOT_DIR);
+  const orderIssues = setting.problem !== undefined ? [setting.problem] : orderRoles({ setting: setting.order, listed: [], ids: roleIds, isCore: () => false }).problems;
   return [
+    ...orderIssues,
     ...roleIds.flatMap((roleId) => roleConfigIssues(loadCheckInput(roleId))),
     ...orphanProfileIssues(roleIds, profileIds()),
   ];
 }
 
 /**
+ * 一覧に載せるロールの並び(設定 user の roleOrder → 今の一覧 → 末尾)。設定の誤りは投げる、設定にあってロールの無い ID は 1 行で知らせて飛ばす
+ * @param {string[]} ids 載せるロール
+ */
+function roleListOrder(ids) {
+  const setting = readRoleOrderSetting(ROOT_DIR);
+  if (setting.problem !== undefined) throw new Error(setting.problem);
+  const { order, problems, skipped } = orderRoles({ setting: setting.order, listed: registeredRoleIds(), ids, isCore: (id) => roleFileOf(id).isCore });
+  if (problems.length > 0) throw new Error(problems.join("\n"));
+  if (skipped.length > 0) console.warn(`⚠ 設定の roleOrder の ${skipped.join(", ")} はロールが無いので飛ばしました（消したロールなら roleOrder からも外す）`);
+  return order;
+}
+
+/**
  * 全ロールを生成する。先に全ロールを検査し、どれか 1 つでも問題があれば何も書かずに止める。
- * 順は user/extensions/roles.ts の今の並び → 未登録のロール（ID 順）
+ * 順 = 設定 user の roleOrder → 今の一覧 → 未登録のロール（コア先・ID 順）。一覧は先に 1 回その並びで書く
  */
 export async function generateAll() {
   const placement = placementIssues();
   if (placement.length > 0) throw new Error(placement.join("\n"));
-  const fileIds = roleIdsOnDisk();
-  const order = registeredRoleIds();
-  const rank = (id) => {
-    const index = order.indexOf(id);
-    return index === -1 ? order.length : index;
-  };
-  // 一覧に無いロールはコアロールを先に（一覧が無い初回でも _admin・_user が先頭）
-  const coreFirst = (id) => (roleFileOf(id).isCore ? 0 : 1);
-  const roleIds = [...fileIds].sort((a, b) => rank(a) - rank(b) || coreFirst(a) - coreFirst(b) || a.localeCompare(b));
+  const roleIds = roleListOrder(roleIdsOnDisk());
   const issues = checkAllRoles(roleIds);
   if (issues.length > 0) throw new Error(issues.join("\n"));
+  writeRoleList(roleIds);
   for (const roleId of roleIds) await generate(roleId);
   console.log(`=== 全 ${roleIds.length} ロールの生成完了 ===`);
-}
-
-/**
- * --order の並びの問題（空なら無し）: ディスクの全ロールをちょうど 1 回ずつ
- * @param {string[]} ids 指定の並び
- * @param {string[]} [onDisk] ディスクのロール
- */
-export function roleOrderIssues(ids, onDisk = roleIdsOnDisk()) {
-  const unknown = ids.filter((id) => !onDisk.includes(id));
-  const duplicated = ids.filter((id, index) => ids.indexOf(id) !== index);
-  const missing = onDisk.filter((id) => !ids.includes(id));
-  return [
-    ...(unknown.length ? [`ロール設定の無い ID: ${unknown.join(", ")}`] : []),
-    ...(duplicated.length ? [`2 回以上ある ID: ${[...new Set(duplicated)].join(", ")}`] : []),
-    ...(missing.length ? [`並びに無いロール: ${missing.join(", ")}（全ロールを 1 回ずつ並べる）`] : []),
-  ];
-}
-
-/**
- * ロールの一覧をこの並びにして全ロールを作り直す（DB の enum user_role の並びに合わせる。並びは pnpm ops db inspect で読む）。
- * 並びに問題があれば何も書かずに止める
- */
-export async function generateInOrder(ids) {
-  const issues = [...roleOrderIssues(ids), ...checkAllRoles()];
-  if (issues.length > 0) throw Object.assign(new Error(issues.join("\n")), { exitCode: 2 });
-  writeRoleOrder(ids);
-  await generateAll();
 }
 
 // 直接実行された場合
@@ -239,17 +223,12 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const arg = process.argv[2];
 
   if (!arg) {
-    console.error("使用方法: node generate.mjs <roleId> | node generate.mjs --all | node generate.mjs --order <id,…>");
+    console.error("使用方法: node generate.mjs <roleId> | node generate.mjs --all");
     console.error("例: node generate.mjs reviewer");
     process.exit(1);
   }
 
-  const orderArg = arg === "--order" ? process.argv[3] : undefined;
-  if (arg === "--order" && !orderArg) {
-    console.error("使用方法: node generate.mjs --order <id,id,…>（全ロールを 1 回ずつ、DB の enum の並びで）");
-    process.exit(2);
-  }
-  const run = arg === "--order" ? generateInOrder(orderArg.split(",").map((id) => id.trim()).filter(Boolean)) : arg === "--all" ? generateAll() : generate(arg);
+  const run = arg === "--all" ? generateAll() : generate(arg);
   run.catch((err) => {
     console.error("エラー:", err.message);
     process.exit(err.exitCode ?? 1);

@@ -120,6 +120,12 @@ export type UserConfig = {
      */
     editableItems: readonly AccountEditableItem[];
   };
+  /**
+   * ロールの一覧(user/extensions/roles.ts)の並び = DB の enum user_role の値の並び。生成器(pnpm generate role・pnpm forge)だけが
+   * 構文木で読む(実行時には読まない)。書いたロールをこの並びで、書いていないロールは今の一覧の場所、新しいロールは末尾に置く。
+   * 上流は並びを持たない(既定 [] = 今の一覧のまま)。fork は自分の DB の並びを書く(取り込みで上流の roles.ts を取っても並びが動かない)
+   */
+  roleOrder: readonly string[];
 };
 
 const defaults: UserConfig = {
@@ -158,6 +164,7 @@ const defaults: UserConfig = {
   account: {
     editableItems: ["email", "password", "profile"],
   },
+  roleOrder: [],
 };
 
 export const userConfigDef = defineConfig(defaults, { label: "user" });
