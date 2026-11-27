@@ -65,7 +65,7 @@ test("他のドメインに base があるのに登録が無ければ、書く�
   const workspace = createWorkspace(root);
   const barServer = path.join(root, "src", "domains", "bar", "services", "server");
   fs.mkdirSync(barServer, { recursive: true });
-  fs.writeFileSync(path.join(barServer, "barBase.ts"), "// bar base\n");
+  fs.writeFileSync(path.join(barServer, "barBase.ts"), "// bar base\nexport const barBase = createCrudService(BarTable, {});\n");
   assert.throws(() => precheckServiceRegistry(workspace, plannedOutputs(root), { errorPrefix: "✗ " }), (err) => {
     assert.match(err.message, /^✗ src\/registry\/serviceRegistry\.ts を生成できません:\n/);
     assert.match(err.message, /src\/domains\/bar\/services\/server\/barBase\.ts の登録\(entities\/bar\/entity\.json\)が無い/);

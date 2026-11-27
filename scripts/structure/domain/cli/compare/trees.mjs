@@ -35,6 +35,7 @@ export function generateAllConfig(config, { legacy, categories }) {
 /**
  * 片方の作業ツリーを作る
  * @param {{ repoRoot: string, scriptsDir: string, partsRoot?: string, parts?: string[], domains: { name: string, configPath: string }[], categories: string[], prefix: string }} options
+ *   domains = 全部生成する形に書き換える宣言(1 ドメインに登録の数だけ、run.mjs の compareConfigsOf)
  *   scriptsDir = 載せる生成器（scripts/）、parts = partsRoot から重ねる src のフォルダ（base 側）
  */
 export function buildTree({ repoRoot, scriptsDir, partsRoot, parts = [], domains, categories, prefix }) {

@@ -1,4 +1,4 @@
-// pnpm generate domain -- --delete を止める判定: 他のドメインの登録の entity.json から関連で指されているドメインの削除と、
+// pnpm generate domain -- --delete を止める判定: 他のドメインの登録(主でない登録も)の entity.json から関連で指されているドメイン(フォルダ名か、その登録の名前)の削除と、
 // 消さずに残るコード（src 配下）から import されているドメインの削除を止める。集まりの従属は主のドメインの中の登録(D334)なので、ドメインと一緒に消える。
 // 読むだけで何も消さない。消すドメイン自身の関連（外向き）は数えない。指されたまま消すと、参照元の生成物が消えたドメインを import し続け、後で tsc / db:push が離れた場所で落ちる
 // 見えないもの: 外部キーを張らない素の id 列（宣言にもコードにも参照が出ない）、文字列でドメイン名を渡す参照（serviceRegistry 経由など）、src の外（servers/ など）
@@ -13,17 +13,21 @@ const REFERENCE_TYPES = new Set(["belongsTo", "belongsToMany", "hasMany", "hasOn
 
 /**
  * ドメインを指している関連の一覧（自己参照は除く）。ファイルを読まない純関数
- * @param {Map<string, object | null>} configs フォルダ名 → 主の登録の entity.json の中身（読めなければ null）
+ * @param {Map<string, (object | null)[]>} configs フォルダ名 → そのドメインの全ての登録の entity.json の中身（主でない登録も。読めなければ null）
  * @param {string} folder 消すドメインのフォルダ名（camelCase）
+ * @param {string[]} [targets] 指されると止まる名前（camelCase）: 消すドメインのフォルダ名と、その全ての登録の名前（relations[].domain は登録名でも書く）
  * @returns {{ domain: string, fieldName: string | undefined, relationType: string }[]}
  */
-export function inboundReferences(configs, folder) {
+export function inboundReferences(configs, folder, targets = [folder]) {
+  const names = new Set(targets);
   const references = [];
-  for (const [domain, config] of configs) {
+  for (const [domain, list] of configs) {
     if (domain === folder) continue;
-    for (const relation of config?.relations ?? []) {
-      if (!REFERENCE_TYPES.has(relation?.relationType) || toCamelCase(relation.domain) !== folder) continue;
-      references.push({ domain, fieldName: relation.fieldName, relationType: relation.relationType });
+    for (const config of list) {
+      for (const relation of config?.relations ?? []) {
+        if (!REFERENCE_TYPES.has(relation?.relationType) || !names.has(toCamelCase(relation.domain))) continue;
+        references.push({ domain, fieldName: relation.fieldName, relationType: relation.relationType });
+      }
     }
   }
   return references;
@@ -124,8 +128,14 @@ export function codeReferenceStopMessage(workspace, domainDir, excludedDirs = []
  * @returns {string | null} 止める理由（null = 止めない）
  */
 export function deleteStopMessage(workspace, folder) {
-  const configs = new Map(workspace.listDomains().map((domain) => [domain, workspace.readConfigLenient(domain)]));
-  const references = inboundReferences(configs, folder);
+  // 全ての登録を読む(主でない登録の関連も参照。宣言の形でないドメインは主の写しだけ)
+  const configsOf = (domain) => {
+    const registrations = workspace.registrationsOf(domain);
+    return registrations.length > 0 ? registrations.map((registration) => registration.config) : [workspace.readConfigLenient(domain)];
+  };
+  const configs = new Map(workspace.listDomains().map((domain) => [domain, configsOf(domain)]));
+  const targets = [folder, ...workspace.registrationsOf(folder).map((registration) => registration.name)];
+  const references = inboundReferences(configs, folder, targets);
   const lines = [];
   if (references.length > 0) {
     lines.push(

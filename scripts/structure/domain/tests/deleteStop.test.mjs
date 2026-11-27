@@ -68,14 +68,14 @@ test("止まらない: 従属がまだ書き出されていない主・組も参
 
 test("inboundReferences: どの種類の関連で指されても domain と fieldName を返す。snake_case の名前も camelCase のフォルダと照合する", () => {
   const configs = new Map([
-    ["album", base("album")],
-    ["comment", base("comment", [], { relations: [relation("album", "belongsTo", "album_id")] })],
-    ["tag", base("tag", [], { relations: [relation("album", "belongsToMany", "album_ids")] })],
-    ["inverse", base("inverse", [], { relations: [relation("album", "belongsToMany", "album_ids", { includeRelationTable: false })] })],
-    ["shelf", base("shelf", [], { relations: [relation("album", "hasMany", "album_id")] })],
-    ["cover", base("cover", [], { relations: [relation("album", "hasOne", "album_id")] })],
-    ["other", base("other", [], { relations: [relation("note", "belongsTo", "note_id")] })],
-    ["broken", null],
+    ["album", [base("album")]],
+    ["comment", [base("comment", [], { relations: [relation("album", "belongsTo", "album_id")] })]],
+    ["tag", [base("tag", [], { relations: [relation("album", "belongsToMany", "album_ids")] })]],
+    ["inverse", [base("inverse", [], { relations: [relation("album", "belongsToMany", "album_ids", { includeRelationTable: false })] })]],
+    ["shelf", [base("shelf", [], { relations: [relation("album", "hasMany", "album_id")] })]],
+    ["cover", [base("cover", [], { relations: [relation("album", "hasOne", "album_id")] })]],
+    ["other", [base("other", [], { relations: [relation("note", "belongsTo", "note_id")] })]],
+    ["broken", [null]],
   ]);
   assert.deepEqual(inboundReferences(configs, "album"), [
     { domain: "comment", fieldName: "album_id", relationType: "belongsTo" },
@@ -84,14 +84,24 @@ test("inboundReferences: どの種類の関連で指されても domain と fiel
     { domain: "shelf", fieldName: "album_id", relationType: "hasMany" },
     { domain: "cover", fieldName: "album_id", relationType: "hasOne" },
   ]);
-  const snake = new Map([["comment", base("comment", [], { relations: [relation("album_photo", "belongsTo", "album_photo_id")] })]]);
+  const snake = new Map([["comment", [base("comment", [], { relations: [relation("album_photo", "belongsTo", "album_photo_id")] })]]]);
   assert.deepEqual(inboundReferences(snake, "albumPhoto"), [{ domain: "comment", fieldName: "album_photo_id", relationType: "belongsTo" }]);
+});
+
+test("inboundReferences: 主でない登録の関連も数え、消すドメインの中の登録の名前で指す関連でも止める", () => {
+  const configs = new Map([
+    ["album", [base("album"), base("albumPhoto")]],
+    // 参照元の主でない登録(shelfItem)が、消すドメインの主でない登録(album_photo)を登録名で指す
+    ["shelf", [base("shelf"), base("shelfItem", [], { relations: [relation("album_photo", "belongsTo", "album_photo_id")] })]],
+  ]);
+  assert.deepEqual(inboundReferences(configs, "album"), [], "登録名を渡さなければフォルダ名だけを見る");
+  assert.deepEqual(inboundReferences(configs, "album", ["album", "albumPhoto"]), [{ domain: "shelf", fieldName: "album_photo_id", relationType: "belongsTo" }]);
 });
 
 test("inboundReferences: 自己参照と、消すドメイン自身が持つ外向きの関連は数えない", () => {
   const configs = new Map([
-    ["node", base("node", [], { relations: [relation("node", "belongsTo", "parent_id"), relation("album", "belongsTo", "album_id")] })],
-    ["album", base("album")],
+    ["node", [base("node", [], { relations: [relation("node", "belongsTo", "parent_id"), relation("album", "belongsTo", "album_id")] })]],
+    ["album", [base("album")]],
   ]);
   assert.deepEqual(inboundReferences(configs, "node"), []);
 });
@@ -122,6 +132,11 @@ test("主の停止: 他のドメインの参照元は出し、ドメインの中
   const message = deleteStopMessage(workspace, "album");
   assert.match(message, /comment: album_id（belongsTo）/);
   assert.doesNotMatch(message, /albumPhoto/);
+});
+test("主でない登録の関連: 他のドメインの主でない登録が消すドメインの主でない登録を指していれば止まる", () => {
+  const shelfItem = base("shelfItem", [], { relations: [relation("album_photo", "belongsTo", "album_photo_id")] });
+  const workspace = createWorkspace(makeProject({ configs: { album, shelf: base("shelf") }, registrations: { "album/albumPhoto": albumPhoto, "shelf/shelfItem": shelfItem }, cleanup }));
+  assert.match(deleteStopMessage(workspace, "album"), /shelf: album_photo_id（belongsTo）/);
 });
 test("--confirm: 無い・違うなら消すものの一覧と打てるコマンドを出して止まり、何も消さない。一致なら消し、宣言(domain.json と entities/<d>/entity.json)は --remove-config のときだけ消す", async () => {
   const note = base("note");

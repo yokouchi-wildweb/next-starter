@@ -140,6 +140,17 @@ test("全ドメインの検査: entity.json の cache・cache.json・両方・�
     write("src/domains/broken/cache.json", "{ nope");
     write("src/domains/bad/cache.json", { mode: "tagged", life: "default" });
     writeDeclaration(root, "plain", config);
+    // 主の登録の無い(登録は 2 つの)ドメイン: cache は domain.json に。cache.json は断る。主のあるドメインの domain.json の cache も断る
+    const multiDomain = (folder, domainJson) => {
+      write(`src/domains/${folder}/domain.json`, { domainConfigVersion: "2.0", ...domainJson });
+      write(`src/domains/${folder}/entities/${folder}A/entity.json`, config);
+      write(`src/domains/${folder}/entities/${folder}B/entity.json`, config);
+    };
+    multiDomain("multi", { cache: { mode: "tagged", life: "days" } });
+    multiDomain("multiFile", {});
+    write("src/domains/multiFile/cache.json", { mode: "tagged", life: "days" });
+    writeDeclaration(root, "primaryDomainJson", config);
+    write("src/domains/primaryDomainJson/domain.json", { domainConfigVersion: "2.0", cache: { mode: "tagged", life: "days" } });
     const rows = [
       { kind: "domains", name: "post", dir: "src/domains/post", domainJson: true },
       { kind: "domains", name: "user", dir: "src/domains/core/user", domainJson: false },
@@ -148,15 +159,20 @@ test("全ドメインの検査: entity.json の cache・cache.json・両方・�
       { kind: "domains", name: "broken", dir: "src/domains/broken", domainJson: false },
       { kind: "domains", name: "bad", dir: "src/domains/bad", domainJson: false },
       { kind: "domains", name: "plain", dir: "src/domains/plain", domainJson: true },
+      { kind: "domains", name: "multi", dir: "src/domains/multi", domainJson: true },
+      { kind: "domains", name: "multiFile", dir: "src/domains/multiFile", domainJson: true },
+      { kind: "domains", name: "primaryDomainJson", dir: "src/domains/primaryDomainJson", domainJson: true },
     ];
     const { issues, declared } = cacheDeclarationIssues(readCacheDeclarations(root, rows));
-    assert.deepEqual(declared, ["post", "user", "bad"]);
+    assert.deepEqual(declared, ["post", "user", "bad", "multi"]);
     const text = issues.join("\n");
     assert.match(text, /\[both\] .*どちらか 1 つ/);
-    assert.match(text, /\[misplaced\] 宣言のある登録は cache\.json でなく src\/domains\/misplaced\/entities\/misplaced\/entity\.json/);
+    assert.match(text, /\[misplaced\] 登録のあるドメインは cache\.json でなく src\/domains\/misplaced\/entities\/misplaced\/entity\.json/);
+    assert.match(text, /\[multiFile\] 登録のあるドメインは cache\.json でなく src\/domains\/multiFile\/domain\.json の "cache"/);
+    assert.match(text, /\[primaryDomainJson\] 主の登録のあるドメインの cache は src\/domains\/primaryDomainJson\/domain\.json でなく/);
     assert.match(text, /\[broken\] cache\.json が JSON として読めません/);
     assert.match(text, /\[bad\] cache\.life に "default" は書けません/);
-    assert.equal(issues.length, 4);
+    assert.equal(issues.length, 6);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

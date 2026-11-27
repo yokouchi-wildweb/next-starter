@@ -64,7 +64,7 @@ test("手で持つ表(宣言なし)は今の表から起こし、照らしの差
   assert.deepEqual(column("code"), { type: "text", unique: true });
   assert.deepEqual(entity.enums, [{ name: "dt_widget_kind", values: ["a", "b"] }]);
   assert.deepEqual(entity.indexes.find((i) => i.name === "dt_widgets_seen_idx"), { name: "dt_widgets_seen_idx", fields: ["seenAt"], desc: ["seenAt"] });
-  assert.ok(entity.indexes.some((i) => i.name === "dt_widgets_name_lower_idx" && /lower/.test(i.expression)));
+  assert.ok(entity.indexes.some((i) => i.name === "dt_widgets_name_lower_idx" && i.expressions.length === 1 && /lower/.test(i.expressions[0])));
   assert.deepEqual(entity.indexes.find((i) => i.name === "dt_widgets_meta_parts_uq"), {
     name: "dt_widgets_meta_parts_uq", expressions: ["(meta->>'a')", "(meta->>'b')", "lower(name)"], unique: true, where: "parent_id IS NULL",
   });

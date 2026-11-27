@@ -48,11 +48,15 @@ export function buildGeneratedAccess(entity) {
 /**
  * 登録の access(登録表に載る値): 手で持つ登録(generate:false)は apiAccess をそのまま(動いている値を全部書く)。
  * 生成する登録は buildGeneratedAccess の既定に、apiAccess.operations の書いた鍵を重ねる(書いた鍵が勝つ)。
- * apiAccess の無い手で持つ登録は生成する登録と同じ fail-closed の既定
+ * apiAccess の無い手で持つ登録は閉じた既定: read / write は ADMIN_ONLY、管理データ操作(truncateAll / export / import)は全部 "none"
+ * (生成の既定は重ねない。開くなら apiAccess.operations に書く、src/lib/domain/README.md の access)
  * @param {Record<string, any>} entity 登録の entity.json
  */
 export function accessOfDeclaration(entity) {
-  if (entity.generate === false && entity.apiAccess) return structuredClone(entity.apiAccess);
+  if (entity.generate === false) {
+    if (entity.apiAccess) return structuredClone(entity.apiAccess);
+    return { ...structuredClone(FAIL_CLOSED_ACCESS), operations: { truncateAll: "none", export: "none", import: "none" } };
+  }
   const generated = buildGeneratedAccess(entity);
   const written = entity.apiAccess?.operations ?? {};
   return { ...generated, operations: { ...generated.operations, ...written } };

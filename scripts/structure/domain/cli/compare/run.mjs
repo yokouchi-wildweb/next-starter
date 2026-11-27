@@ -62,6 +62,21 @@ const listFiles = (dir, base = dir, out = []) => {
 /** 宣言のファイル(domain.json・entities/<登録名>/entity.json)。生成物でも fork の手のファイルでもない */
 const isDeclarationFile = (file) => file.endsWith(`/${DOMAIN_DECLARATION_FILE}`) || file.endsWith(`/${ENTITY_DECLARATION_FILE}`);
 
+/**
+ * 写しの木で「全部生成する」形に書き換える宣言: 各ドメインの全ての登録の entity.json(主でない手で持つ登録も比べる、D338)。
+ * 宣言の形でないドメインは主の登録の道
+ * @param {import("../../domain/workspace.mjs").Workspace} workspace
+ * @param {string[]} names ドメインのフォルダ名
+ * @returns {{ name: string, configPath: string }[]}
+ */
+export function compareConfigsOf(workspace, names) {
+  return names.flatMap((name) => {
+    const registrations = workspace.registrationsOf(name).filter((registration) => registration.config !== null);
+    if (registrations.length === 0) return [{ name, configPath: workspace.configPath(name) }];
+    return registrations.map((registration) => ({ name, configPath: workspace.registrationConfigPath(name, registration.name) }));
+  });
+}
+
 /** @param {string[]} argv getCliArgs の結果 */
 export async function runCompare(argv, { repoRoot = process.cwd(), io = console } = {}) {
   const value = (name) => {
@@ -75,7 +90,7 @@ export async function runCompare(argv, { repoRoot = process.cwd(), io = console 
   const all = workspace.listDomains().filter((name) => workspace.locateDomain(name).kind === "business");
   const domains = named.length ? all.filter((name) => named.includes(name)) : all;
   if (named.length && domains.length !== named.length) throw new Error(`宣言(domain.json と主の登録)の無いドメイン: ${named.filter((n) => !all.includes(n)).join(", ")}`);
-  const configs = all.map((name) => ({ name, configPath: workspace.configPath(name) }));
+  const configs = compareConfigsOf(workspace, all);
 
   const ref = await extractGeneratorAt(repoRoot, base, "dc-compare-ref-");
   const { GENERATE_CATEGORIES } = await import(pathToFileURL(path.join(ref.scripts, domainDirIn(ref.scripts), "spec", "categories.mjs")).href);

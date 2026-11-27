@@ -3,7 +3,7 @@
 // - registrationConfigOf / generatedRegistrationsOf: 登録ごとの一式(D336)の config と、生成する登録の並び(主が先、あとはフォルダの順)
 // - cacheDeclarationOf: 共有の読みのキャッシュの宣言(主の登録の entity.json の "cache" か <domain>/cache.json のどちらか 1 つ)
 
-import { ENTITY_DECLARATION_FILE, isGeneratedRegistration, primaryRegistrationOf } from "../../../../src/lib/domain/node.mjs";
+import { DOMAIN_DECLARATION_FILE, ENTITY_DECLARATION_FILE, isGeneratedRegistration, primaryRegistrationOf } from "../../../../src/lib/domain/node.mjs";
 import { CACHE_FILE } from "../spec/cache.mjs";
 
 /** 壊れた宣言(JSON として読めない・オブジェクトでない)は例外 */
@@ -53,11 +53,19 @@ export function generatedRegistrationsOf(declaration) {
 export function cacheDeclarationOf({ row, declaration, hasCacheFile, readCacheFile }) {
   const registration = declaration ? primaryRegistrationOf(declaration) : null;
   const config = registration?.entity ?? null;
-  const at = registration ? `${registration.dir}/${ENTITY_DECLARATION_FILE}` : null;
+  const hasRegistrations = (declaration?.registrations ?? []).length > 0;
+  // 置き場(core/domain-definition.md cache_declaration): 主の登録の entity.json の "cache" / 主の登録の無い(登録はある)ドメインは domain.json の "cache" /
+  // 登録の無いドメインは cache.json。1 ドメイン 1 か所
+  const domainJson = `${row.dir}/${DOMAIN_DECLARATION_FILE}`;
+  const inDomainJson = declaration?.domain?.cache !== undefined;
+  const at = registration ? `${registration.dir}/${ENTITY_DECLARATION_FILE}` : hasRegistrations ? domainJson : null;
   const inJson = Boolean(config) && config.cache !== undefined;
   const none = { row, config, cache: null, source: null };
-  if (inJson && hasCacheFile) return { ...none, problem: `cache は ${at} の "cache" か ${CACHE_FILE} のどちらか 1 つに書いてください(両方ある)` };
-  if (config && hasCacheFile) return { ...none, problem: `宣言のある登録は ${CACHE_FILE} でなく ${at} の "cache" に書いてください` };
+  if (!hasRegistrations && inDomainJson) return { ...none, problem: `登録の無いドメインの cache は ${domainJson} でなく ${CACHE_FILE} に書いてください` };
+  if (registration && inDomainJson) return { ...none, problem: `主の登録のあるドメインの cache は ${domainJson} でなく ${at} の "cache" に書いてください` };
+  if ((inJson || inDomainJson) && hasCacheFile) return { ...none, problem: `cache は ${at} の "cache" か ${CACHE_FILE} のどちらか 1 つに書いてください(両方ある)` };
+  if (hasRegistrations && hasCacheFile) return { ...none, problem: `登録のあるドメインは ${CACHE_FILE} でなく ${at} の "cache" に書いてください` };
+  if (inDomainJson) return { row, config, cache: declaration.domain.cache, source: domainJson, problem: null };
   if (!inJson && !hasCacheFile) return { ...none, problem: null };
   if (inJson) return { row, config, cache: config.cache, source: at, problem: null };
   try {

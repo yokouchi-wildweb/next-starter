@@ -2,7 +2,7 @@
 // collectionFields（createCrudService の collections オプション）が一致するかを比べる。
 // 手書きの <登録名>Base.ts（generate: false のドメイン）に collections を渡し忘れた主を、生成の後で見つける
 
-import { nodeDomainSource, readDomains } from "../../../../src/lib/domain/node.mjs";
+import { isCollectionFieldType, nodeDomainSource, readDomains } from "../../../../src/lib/domain/node.mjs";
 
 /**
  * 登録の宣言 entity.json の集まりの項目名（Neon の項目名は宣言に書いたまま = レコードのキー）。読むのは宣言の読み込みの部品 readDomain だけ
@@ -13,7 +13,7 @@ export function declaredCollections(repoRoot) {
   const declared = new Map();
   for (const declaration of readDomains(nodeDomainSource(repoRoot))) {
     for (const registration of declaration.registrations) {
-      const names = (registration.entity?.fields ?? []).filter((field) => field.fieldType === "mediaCollection").map((field) => field.name);
+      const names = (registration.entity?.fields ?? []).filter((field) => isCollectionFieldType(field.fieldType)).map((field) => field.name);
       if (names.length) declared.set(registration.name, names);
     }
   }

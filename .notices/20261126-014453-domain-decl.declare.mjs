@@ -318,8 +318,7 @@ export async function declareTable(input) {
       const c = index.config;
       if (wantIndexes.has(c.name)) continue;
       const declared = { name: c.name };
-      if (c.columns.length === 1 && is(c.columns[0], SQL)) declared.expression = sqlText(c.columns[0]);
-      else if (c.columns.every((part) => is(part, SQL))) declared.expressions = c.columns.map((part) => sqlText(part));
+      if (c.columns.every((part) => is(part, SQL))) declared.expressions = c.columns.map((part) => sqlText(part));
       else if (c.columns.every((part) => !is(part, SQL))) {
         declared.fields = c.columns.map((part) => nameFor(part.name));
         const desc = c.columns.filter((part) => part.indexConfig?.order === "desc").map((part) => nameFor(part.name));

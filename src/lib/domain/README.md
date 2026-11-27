@@ -32,7 +32,7 @@
 | `access` | 下の決まり |
 | `requires` | entity.json の `requires`(門番の依存の検査も読む) |
 
-- `access`: 生成する登録 = `apiAccess` の read / write(無ければ ADMIN_ONLY)+ `truncateAll` は管理者 + `export` / `import` は `useImportExport: true` のときだけ管理者、それ以外は `"none"`、その上に `apiAccess.operations` の書いた鍵(書いた鍵が勝つ)。手で持つ登録(`"generate": false`)= `apiAccess` をそのまま(生成の既定を重ねない。管理データ操作を開くなら `apiAccess.operations` に書く)。組み方は `scripts/structure/registry/serviceRegistry/access.mjs` の `accessOfDeclaration`
+- `access`: 生成する登録 = `apiAccess` の read / write(無ければ ADMIN_ONLY)+ `truncateAll` は管理者 + `export` / `import` は `useImportExport: true` のときだけ管理者、それ以外は `"none"`、その上に `apiAccess.operations` の書いた鍵(書いた鍵が勝つ)。手で持つ登録(`"generate": false`)= `apiAccess` をそのまま(生成の既定を重ねない。管理データ操作を開くなら `apiAccess.operations` に書く)、`apiAccess` が無ければ ADMIN_ONLY + 管理データ操作は全部 `"none"`。組み方は `scripts/structure/registry/serviceRegistry/access.mjs` の `accessOfDeclaration`
 - `service` は CRUD の全メソッドを持つサービスを返す(通常は `<登録名>Service` = base + wrappers)。`pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs` が Drizzle 版の全行に `getTableName` / `getIdColumnName` / `truncateAll` / `searchWithDeleted` を求める
   - **base の一部だけを見せる入口のサービス(読み取り専用など)は通らないので、`service` は base を指す**(auditLogFailed の `{ "file": "auditLogFailedBase", "export": "auditLogFailedBase" }`)
   - base を指すと、登録表を通る全経路(汎用 API `/api/<key>/**`・全件削除・データ移行・サーバー内の `getService`)が base 全体を使い、入口の絞り込みは効かない → `access` は `INTERNAL_ONLY` にするか、base 全体に許してよい操作だけを開く。入口のサービスはそのドメイン専用のルートから使い続ける
@@ -43,7 +43,7 @@
 - client: 写し（上の節）を読む。宣言（domain.json と entities/<登録名>/entity.json）は import しない（lint `import-boundaries/client-no-domain-json`、全 Tier error。import()・export from・型も）。client = `"use client"` のファイルか `components/`・`hooks/`・`_components/` の下のファイル。`_components/` の下で `"use client"` の無い `*Screen.tsx` と `loader.ts` は server の差し替えなので対象外。写しに無いキーが本当に要るときは理由を書いて eslint-disable。
   - 手持ちの部品の移行は `node .notices/20261101-121000-domain-display-client.domain-json-client-display.mjs`（確かめられないファイルは書き換えず一覧に出す）。`getRelationsOf` / `getBelongsToRelationsOf` / `getBelongsToManyRelationsOf` / `getHasManyRelationsOf` / `hasRelationsOf` は写しを受ける。文字列のドメイン名を受ける関数は無い
 - server、自分のドメインだけ: 自分の登録の `entities/<登録名>/entity.json` を import し `normalizeEntityDeclaration` を通す（<登録名>Base の形。client は写しが変換済みなので呼ばない）
-- server、全ドメイン: `src/wiring/domainConfig.ts` の `getDomainConfig` / `hasDomainConfig`(全ドメインの主の登録の entity.json)。`domainConfigRegistry` は server-only で、client から届くと build が止まる。lib は `createDomainConfigLookup(表)` の汎用版だけを持ち、登録表を import しない
+- server、全ドメイン: `src/wiring/domainConfig.ts` の `getDomainConfig` / `hasDomainConfig`(全ての登録の entity.json。キー = 主の登録はフォルダ名、ほかの登録は登録名の snake_case。書いていない鍵の既定 = `singular` は登録名の snake_case、`label` は主の登録が domain.json の label・ほかの登録が登録名、`fields` は [])。`domainConfigRegistry` は server-only で、client から届くと build が止まる。lib は `createDomainConfigLookup(表)` の汎用版だけを持ち、登録表を import しない
 
 ### 型(fieldType)を足す・廃止する
 
@@ -56,7 +56,7 @@
 
 ### 宣言の形(D335、作り直しの途中)
 
-- ドメイン 1 つ = `src/domains/<d>/domain.json`(ドメインそのものの短い宣言: `domainConfigVersion` "2.0"・`label`)+ 表 1 つ = 登録 1 件ごとの `entities/<登録名>/entity.json`(表の鍵と登録の鍵)。表なしのドメインは登録 0、表 1 つのドメインは登録名 = ドメイン名
+- ドメイン 1 つ = `src/domains/<d>/domain.json`(ドメインそのものの短い宣言: `domainConfigVersion` "2.0"・`label`、主の登録の無い(登録はある)ドメインだけ `cache`)+ 表 1 つ = 登録 1 件ごとの `entities/<登録名>/entity.json`(表の鍵と登録の鍵)。表なしのドメインは登録 0、表 1 つのドメインは登録名 = ドメイン名
 - 登録の一覧は `entities/` の下のフォルダの並びで、どこにも手で書かない。生成するかの旗 `generate` は登録ごと(entity.json、D337)
 - 鍵の集合の正は `definition/declaration.mjs`、読むのは読み込みの部品 `definition/readDomain.mjs` だけ(入口 "./node")。無い・壊れた・知らない鍵は `problems` に入り、推測で埋めない
 - entities/ の下のフォルダのうち entity.json か表のファイル(`ENTITY_FILE_KINDS`)を持つ物だけが登録(役割の表 profiles/ などは登録でない)
@@ -75,7 +75,7 @@
 | `table` | string(省略 = snake(plural)) | `"users"` |
 | `primaryKey` | `{ columns, name? }`(省略 = idType の id 列) | 複合の主キー・名前の主キー |
 | `foreignKeys` | `[{ columns, references: { table, columns }, onDelete?, onUpdate?, name? }]` | relations で言えない FK(名前つき・同じ相手への 2 本目・自己参照) |
-| `indexes[]` の `unique`・`desc`・`expression`・`expressions` | `unique: true`・`desc: [列]`(降順)・`expression: "<SQL の式>"`(列の代わり)・`expressions: ["<式>", …]`(2 つ以上の式の部分、`fields`・`expression` と並べない) | 名前つき・部分のユニーク(ユニークはこの形だけ、`compositeUniques` は entity.json に無い)・`lower(btrim(name))`・`(a->>'x')`, `(b)::date` |
+| `indexes[]` の `unique`・`desc`・`expressions` | `unique: true`・`desc: [列]`(降順)・`expressions: ["<SQL の式>", …]`(列の代わりの式、部分ごとに 1 つ。式 1 つの索引も並び 1 つで書く、`fields` と並べない) | 名前つき・部分のユニーク(ユニークはこの形だけ、`compositeUniques` は entity.json に無い)・`lower(btrim(name))`・`(a->>'x')`, `(b)::date` |
 | `checks` | `[{ name, sql }]` | check 制約 |
 | `enums` | `[{ name, values }]` か `[{ name, valuesFrom: { file, export } }]` | pgEnum。設定から値を作る物は値を写さず名指す(照らしは読み込んだ値で比べる) |
 | `relations[].unique` | `true` | belongsTo の外部キーの列のユニーク(1 対 1) |
@@ -108,7 +108,7 @@
 `pnpm check registry` が失敗する条件と直し方（メッセージにも出る）:
 
 - 生成物の印の無い(手書きの)serviceRegistry.ts → 行を登録の entity.json(fork が core の access を変えるなら entity.override.ts)へ移し、消してから `pnpm generate registry`
-- 登録名の重なり(全ドメインで一意、`registered: false` の登録も同じ名前の空間。両方の entity.json を出す)/ 同じ表が 2 つの登録にある / サービスのファイルが無い / 登録の無い `services/server/<名前>Base.ts`(`<名前>` の登録が無い) / `storageBindingFor` の第 1 引数(record_type)がキーに無い / 上書きが読めない・許可外の静的 import・`registered: false` の登録の上書き
+- 登録名の重なり(全ドメインで一意、`registered: false` の登録も同じ名前の空間。両方の entity.json を出す)/ 同じ表が 2 つの登録にある / サービスのファイルが無い / 登録の無い土台 `services/server/<名前>Base.ts`(`<名前>` の登録が無く、中身が表のサービスを作る `createCrudService` / `createFirestoreCrudService` を呼ぶ物。その名の手の助けは数えない) / `storageBindingFor` の第 1 引数(record_type)がキーに無い / 上書きが読めない・許可外の静的 import・`registered: false` の登録の上書き
 - 表・主キーの物理名の形(空・63 文字超・引用符や空白入り)。値が実物と同じかは `pnpm check registry` では見ない(`pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs`)
 
 生成器: `scripts/structure/registry/serviceRegistry/{discover,generate,check}.mjs`（plain node。cron の generate / check と同じ 3 分割）。

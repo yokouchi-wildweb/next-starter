@@ -160,7 +160,7 @@ test("手で持つ表の形の鍵は entity.json に書ける", () => {
     foreignKeys: [{ columns: ["owner_group_id"], references: { table: "user_groups", columns: ["id"] }, onDelete: "SET NULL", name: "user_groups_owner_fk" }],
     indexes: [
       { fields: ["created_at"], desc: ["created_at"] },
-      { expression: "lower(btrim(name))", name: "users_name_lower_idx" },
+      { expressions: ["lower(btrim(name))"], name: "users_name_lower_idx" },
       { fields: ["provider_type", "provider_uid"], unique: true, where: "deleted_at IS NULL", name: "users_provider_uq" },
     ],
     checks: [{ name: "amount_positive", sql: "amount > 0" }],

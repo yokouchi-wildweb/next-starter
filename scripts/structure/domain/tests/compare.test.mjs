@@ -9,13 +9,32 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { classifyFile, diffStats, summarizeDomain } from "../cli/compare/classify.mjs";
 import { generateAllConfig } from "../cli/compare/trees.mjs";
-import { runCompare } from "../cli/compare/run.mjs";
+import { compareConfigsOf, runCompare } from "../cli/compare/run.mjs";
+import { createWorkspace } from "../domain/workspace.mjs";
 import { entityDeclarationPath, repoRoot, writeDeclaration } from "./helpers.mjs";
 import { copyByImports } from "../../../runner/test/lib.copyByImports.mjs";
 
 const cleanup = [];
 after(() => cleanup.forEach((dir) => fs.rmSync(dir, { recursive: true, force: true })));
 const SILENT = { log: () => {}, warn: () => {} };
+
+test("compareConfigsOf: 登録が 2 つのドメインは両方の entity.json を全部生成する形に書き換える(主でない手で持つ登録も比べる、D338)", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "dc-compare-configs-"));
+  try {
+    const write = (rel, value) => {
+      fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
+      fs.writeFileSync(path.join(root, rel), JSON.stringify(value));
+    };
+    write("src/domains/shop/domain.json", { domainConfigVersion: "2.0", label: "店" });
+    write("src/domains/shop/entities/shop/entity.json", { singular: "shop", dbEngine: "Neon", fields: [] });
+    write("src/domains/shop/entities/shopItem/entity.json", { singular: "shop_item", dbEngine: "Neon", generate: false, fields: [] });
+    const configs = compareConfigsOf(createWorkspace(root), ["shop"]);
+    assert.deepEqual(configs.map((c) => path.relative(root, c.configPath).split(path.sep).join("/")).sort(), ["src/domains/shop/entities/shop/entity.json", "src/domains/shop/entities/shopItem/entity.json"]);
+    assert.ok(configs.every((c) => c.name === "shop"));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
 
 test("diffStats: 足した・消した行、かたまりの数、挿しただけのかたまり", () => {
   assert.deepEqual(diffStats("a\nb\nc", "a\nb\nc"), { added: 0, removed: 0, hunks: 0, insertOnly: 0 });

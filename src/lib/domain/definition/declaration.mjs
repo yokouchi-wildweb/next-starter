@@ -30,8 +30,9 @@ export const ID_TYPES = new Set(["uuid", "string", "number"]);
  * domain.json の鍵(ドメインそのもの。表の事実は持たない)
  * - domainConfigVersion: この形の版(DOMAIN_DECLARATION_VERSION)
  * - label: ドメインの表示名(管理の一覧・データ操作の一覧)
+ * - cache: 共有の読みのキャッシュの宣言。主の登録の無いドメインだけ(主の登録があればその entity.json の "cache"、登録の無いドメインは cache.json)
  */
-export const DOMAIN_KEYS = new Set(["domainConfigVersion", "label", DECLARATION_COMMENT_KEY]);
+export const DOMAIN_KEYS = new Set(["domainConfigVersion", "label", "cache", DECLARATION_COMMENT_KEY]);
 
 /** 表と汎用の一式の鍵のうち、今の 1 ファイルの domain.json と同じ意味で持つ物(今の形の語彙もこれから組む) */
 export const TABLE_KEYS = new Set([
@@ -105,8 +106,8 @@ export const COLUMN_KEYS = new Set(["name", "type", "enum", "default", "notNull"
 export const TABLE_COLUMN_KEYS = new Set(["name", "column", DECLARATION_COMMENT_KEY]);
 export const IDENTITY_VALUES = new Set(["always", "byDefault"]);
 
-/** 索引(indexes[])の鍵: 今の fields・where・name・using・opclass + unique・desc(降順の列)・expression(列の代わりの SQL の式)・expressions(部分ごとの SQL の式の並び) */
-export const INDEX_KEYS = new Set(["fields", "where", "name", "using", "opclass", "unique", "desc", "expression", "expressions", DECLARATION_COMMENT_KEY]);
+/** 索引(indexes[])の鍵: 今の fields・where・name・using・opclass + unique・desc(降順の列)・expressions(列の代わりの SQL の式の並び、部分ごとに 1 つ) */
+export const INDEX_KEYS = new Set(["fields", "where", "name", "using", "opclass", "unique", "desc", "expressions", DECLARATION_COMMENT_KEY]);
 
 export const PRIMARY_KEY_KEYS = new Set(["columns", "name", DECLARATION_COMMENT_KEY]);
 export const FOREIGN_KEY_KEYS = new Set(["columns", "references", "onDelete", "onUpdate", "name", DECLARATION_COMMENT_KEY]);

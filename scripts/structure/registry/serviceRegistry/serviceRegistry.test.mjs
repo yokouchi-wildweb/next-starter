@@ -308,7 +308,9 @@ test("検査: 登録名の重なり・サービスのファイル無し・base �
     ...declared("src/domains/core/dup", { user: { plural: "dups" } }),
     ...declared("src/domains/core/noService", { noService: {} }, { service: false }),
     ...declared("src/domains/core/orphan"),
-    "src/domains/core/orphan/services/server/orphanBase.ts": "",
+    "src/domains/core/orphan/services/server/orphanBase.ts": "export const orphanBase = createCrudService(OrphanTable, {});\n",
+    // 土台かは中身で見る: 表のサービスを作らない …Base.ts は手の助け(数えない)
+    "src/domains/core/orphan/services/server/knowledgeBase.ts": "export const knowledgeBase = { answer: () => 42 };\n",
     "src/domains/core/orphan/services/server/photo.ts": 'storageBindingFor("orphanPhoto", [])',
     "src/domains/core/orphan/services/server/photo.test.ts": 'storageBindingFor("ignored", [])',
     ...declared("src/domains/core/leak", { leak: {} }),
@@ -320,7 +322,7 @@ test("検査: 登録名の重なり・サービスのファイル無し・base �
     // entity.json も表のファイルも無いフォルダは登録でない(孤立した上書きは pnpm check extensions の orphans.mjs)
     "src/domains/core/user/entities/nope/entity.override.ts": OVERRIDE("", `{ read: "none", write: "none" }`),
     ...declared("src/domains/business"),
-    "src/domains/business/services/server/businessBase.ts": "",
+    "src/domains/business/services/server/businessBase.ts": "export const businessBase = createFirestoreCrudService<Business>(\"businesses\");\n",
   });
   const { errors } = checkServiceRegistry(root);
   const expect = (pattern) => assert.ok(errors.some((error) => pattern.test(error)), `${pattern} が無い:\n${errors.join("\n")}`);
@@ -329,6 +331,7 @@ test("検査: 登録名の重なり・サービスのファイル無し・base �
   assert.ok(!errors.some((error) => error.includes("hidden/entities/hidden/entity.json: サービスのファイル")), "registered: false の登録はサービスを求めない");
   expect(/src\/domains\/core\/orphan\/services\/server\/orphanBase\.ts の登録\(entities\/orphan\/entity\.json\)が無い/);
   expect(/src\/domains\/business\/services\/server\/businessBase\.ts の登録\(entities\/business\/entity\.json\)が無い/);
+  assert.ok(!errors.some((error) => error.includes("knowledgeBase.ts")), "表のサービスを作らない …Base.ts は登録の無い土台に数えない");
   expect(/storageBindingFor\("orphanPhoto"\) の record_type が登録表のキーに無い/);
   assert.ok(!errors.some((error) => error.includes('"ignored"')), "*.test.* は走査しない");
   expect(/leak\/entities\/leak\/entity\.override\.ts: "\.\/leakService" を値で import している\(解けない指定子/);
@@ -406,7 +409,7 @@ test("access と service: 生成する登録は既定 + apiAccess.operations、g
   const byKey = Object.fromEntries(rows.map((row) => [row.key, row]));
   assert.deepEqual(Object.keys(byKey).sort(), ["audit", "order", "orderLine", "visit"], "registered: false の登録は行に出ない");
   assert.deepEqual(byKey.visit.access, visitAccess, "generate: false は apiAccess をそのまま(生成の既定を重ねない)");
-  assert.deepEqual(byKey.audit.access, { ...ADMIN_ONLY, operations: { truncateAll: ADMIN_RULE, export: "none", import: "none" } }, "apiAccess の無い generate: false は fail-closed の既定");
+  assert.deepEqual(byKey.audit.access, { ...ADMIN_ONLY, operations: { truncateAll: "none", export: "none", import: "none" } }, "apiAccess の無い generate: false は閉じた既定(生成の既定の truncateAll を重ねない)");
   assert.deepEqual(byKey.order.access, { ...ADMIN_ONLY, operations: { truncateAll: ADMIN_RULE, export: ADMIN_RULE, import: ADMIN_RULE } }, "useImportExport: true は export / import も管理者");
   assert.deepEqual(byKey.orderLine.access, { ...PUBLIC_READ, operations: { truncateAll: ADMIN_RULE, export: "none", import: ADMIN_RULE } }, "apiAccess.operations の書いた鍵が勝つ(useImportExport の export より)");
 

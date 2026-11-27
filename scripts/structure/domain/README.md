@@ -3,7 +3,7 @@
 ## Overview
 
 - 手で書いたドメインの宣言から、ドメイン一式（entities / services / hooks / 管理画面 / レジストリ登録）を生成する CLI のリファレンスです。
-- 宣言は 2 種類のファイル: `src/domains/<domain>/domain.json`（ドメインそのものの短い宣言 = `domainConfigVersion` `"2.0"` と `label` だけ）と、表 1 つ = 登録 1 件ごとの `src/domains/<domain>/entities/<登録名>/entity.json`（表・項目・関連・権限・生成の旗 `generate` などの鍵）。表 1 つのドメインは登録名 = ドメイン名（例: `src/domains/sample/entities/sample/entity.json`）
+- 宣言は 2 種類のファイル: `src/domains/<domain>/domain.json`（ドメインそのものの短い宣言 = `domainConfigVersion` `"2.0"` と `label` だけ。主の登録の無い(登録はある)ドメインだけ `cache` も）と、表 1 つ = 登録 1 件ごとの `src/domains/<domain>/entities/<登録名>/entity.json`（表・項目・関連・権限・生成の旗 `generate` などの鍵）。表 1 つのドメインは登録名 = ドメイン名（例: `src/domains/sample/entities/sample/entity.json`）
 - entity.json のスキーマ（キー・型・リレーション・`generate` 等）は [`src/domains/README.md`](../../../src/domains/README.md)、宣言の形と読み込みの部品 `readDomain` は [`src/lib/domain/README.md`](../../../src/lib/domain/README.md)「宣言の形」が正です。生成器も宣言を `readDomain` だけで読む
 - 生成の単位 = ドメインの中の登録 1 件（D336）。生成する登録（`generate` が false でない）ごとに（主の登録が先）、その登録の entity.json を config にして一式を書く。名前は登録の物（`<登録名>Base.ts`・`<登録名>Presenters.ts`・`use<Registration>List` など）、置き場はドメインのフォルダ（雛形の import の道は印 `__folder__`）。ドメインに 1 つの物（`seed.ts`）は最初の単位だけが書く。Firestore の登録も Neon と同じく登録のフォルダに書く（登録の多いドメインでも）
 - 普段はこれを直接打たず、`pnpm forge`（[`scripts/structure/forge/README.md`](../forge/README.md)。検査 → ロールとドメインの生成 → ルートの地図 → 事後検査）で回す。
@@ -78,7 +78,7 @@
 0. 他のドメインから参照されているドメインの削除と、残るコードから import されているドメインの削除は、エラーで止まり何も消さない（`pipeline/remove/deleteStop.mjs`。`--force` は無い。他のドメインの宣言は書き換えない）
    - 集まりの従属は主のドメインの中の登録なので、ドメインと一緒に消える（組で止めない）
    - 参照: 他のドメインの登録の entity.json の `relations` が belongsTo / belongsToMany（`includeRelationTable: false` の逆側を含む）/ hasMany / hasOne で指していれば止まり、参照元のドメインと fieldName を全部出す。先に参照元の関連を外すか、参照元を `--remove-config` 付きで消す
-   - 判定は登録の entity.json の宣言だけを見る: 宣言を残した削除（既定）の参照元は宣言が残るので止まり続ける。自己参照と、消すドメイン自身が持つ関連は数えない。主の登録の entity.json の無いドメイン・読めない entity.json は見えない
+   - 判定は登録の entity.json の宣言だけを見る（全ての登録: 主でない登録の関連も数え、`relations[].domain` が消すドメインのフォルダ名か、その中のどの登録の名前でも止める）: 宣言を残した削除（既定）の参照元は宣言が残るので止まり続ける。自己参照と、消すドメイン自身が持つ関連は数えない。読めない entity.json は見えない
    - import: `src` 配下の消さずに残るコード（`.ts` / `.tsx` / `.mts` / `.mjs` など）が消すドメインのフォルダを import していれば止まり、参照元のファイルと from 先を全部出す（`codeReferences`、純関数）。`@/domains/<d>/…`・`@/domains/core/<d>/…`（core は `core/` を省いた書き方も）・解決するとフォルダに入る相対パス・動的 `import()`・`require()` を数える。コメントの中は数えない
      - 数えないもの: 消すフォルダの中、管理画面ルート（一緒に消す）、`--extra` で選んだディレクトリ、閉じられるドメインの門番の規則と上書き（下の 3 の後始末）、`src/registry/`（生成物。消した後に `pnpm generate registry` で作り直す）
      - 追加ディレクトリの候補の中の import は、確認（`--confirm`）の前は数えず、選ばなかった候補だけを確認の後に数えて止める
@@ -102,7 +102,7 @@
   - 生成は止まらないが、未知の `fieldType` は列名としてそのまま出力され、未知の `formInput` はフォームに出ないので直す
   - 知らないキーは同じキーをドメインごとに 1 行（件数と最初の 3 か所）にまとめ、他の警告の後ろに並べる
   - 開発者のメモは `"$comment"`（どの階層でも通り、生成物にも写しにも出ない。`src/domains/README.md`「開発者のメモ（$comment）」）
-- `cache の宣言: 問題 <n> 件` で `pnpm check domain` が落ちる → 全ドメイン（`generate: false`・登録の無いドメインも）の cache の宣言（主の登録の entity.json の `"cache"` か、登録の無いドメインの `<domain>/cache.json`）の誤り（読み `domain/workspace.mjs`、検査 `checks/cacheDeclarations.mjs`・`checks/cache.mjs`）。文のとおりに直す（規則: [src/domains/README.md](../../../src/domains/README.md)「cache（共有の読みのキャッシュの宣言）」）
+- `cache の宣言: 問題 <n> 件` で `pnpm check domain` が落ちる → 全ドメイン（`generate: false`・登録の無いドメインも）の cache の宣言（主の登録の entity.json の `"cache"`、主の登録の無いドメインの `domain.json` の `"cache"`、登録の無いドメインの `<domain>/cache.json`）の誤り（読み `domain/workspace.mjs`、検査 `checks/cacheDeclarations.mjs`・`checks/cache.mjs`）。文のとおりに直す（規則: [src/domains/README.md](../../../src/domains/README.md)「cache（共有の読みのキャッシュの宣言）」）
 - 宣言（domain.json・entity.json）が壊れている（JSON として読めない）・知らない鍵がある → `readDomain` の問題の文のとおりに直してから再実行
 - `テンプレートのトークンが置換されていません` → 管理画面テンプレートに未対応のトークンが残っている。テンプレートを直す
 - `src/registry/district-map.jsonl` が `pnpm check district-map` で落ちる → `pnpm generate district-map`（または forge）で作り直してコミット
@@ -128,7 +128,7 @@
 
 fork が各ドメインを生成に任せる（true）か手で管理する（false）かを、ファイルごとの証拠で決める道具。fork のリポのルートで回す（何も書かない。写しは一時ディレクトリ）。
 
-- 比べる 3 つ: 今のファイル ／ base（`upstream` の remote との merge-base、無ければ `--base <ref>`）の生成器の出力 ／ 今の生成器の出力。どちらの生成器も主の登録の entity.json を「全部生成する」形にした写しで、ドメインを 1 つずつ回す（古い `generateFiles` の entity.json もそのまま読む）。base が宣言を 1 ファイルの domain.json で持っていた頃の版だと、base の生成器は今の宣言（domain.json + entity.json）を読めないので、base 側の出力は作れない。生成器が扱うファイルは `--dry-run` の一覧で決める。base 側は base のテンプレートと src の部品も使う（`cli/compare/refGenerator.mjs`。pnpm test scripts/structure/domain/tests の旧側と同じ）
+- 比べる 3 つ: 今のファイル ／ base（`upstream` の remote との merge-base、無ければ `--base <ref>`）の生成器の出力 ／ 今の生成器の出力。どちらの生成器もドメインの全ての登録の entity.json(主でない手で持つ登録も、D338)を「全部生成する」形にした写しで、ドメインを 1 つずつ回す（古い `generateFiles` の entity.json もそのまま読む）。base が宣言を 1 ファイルの domain.json で持っていた頃の版だと、base の生成器は今の宣言（domain.json + entity.json）を読めないので、base 側の出力は作れない。生成器が扱うファイルは `--dry-run` の一覧で決める。base 側は base のテンプレートと src の部品も使う（`cli/compare/refGenerator.mjs`。pnpm test scripts/structure/domain/tests の旧側と同じ）
 - 欄: 未改変（base の出力と同じ。今の出力と違えば「上流の改良で変わる」）/ 手の変更の見込み（base の出力に行を挿した）/ 古い生成物の見込み（消した・置き換えただけ = base より前の生成器の出力のまま）/ 新しく作られる（管理画面の page.tsx・`_screen/` は「新しい入口」）/ 残る（write-once）/ fork のファイル（生成器が作らない。wrappers/ は別に数える）/ 表の定義の書き直し（entities/drizzle.ts が変わる → `db:push:check` 0 を確かめる）
 - 見込み: `true にできる`（全部未改変）/ `確かめて true`（新しい入口・表の書き直し・古い生成物の見込みがある）/ `wrappers へ移すか false`（手の変更の見込みがある）/ `直してから`（今の生成器で止まる。理由を出す）
 - 手の変更と古い生成物は中身だけでは区別できない（挿した行 = 手の変更、と見なす）。`--detail` のファイルごとの行数と「最後の commit」の題で確かめてから決める

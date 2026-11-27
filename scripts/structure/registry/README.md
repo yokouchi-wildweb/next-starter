@@ -12,7 +12,8 @@
 - `pnpm generate registry` / `pnpm check registry`: `src/registry` の α 6 本(α = `alpha/` などの生成器が手書きの区画なしで丸ごと書く一覧)を丸ごと生成・検査する(build の冒頭)。DB 不要。手書きの区画は無い。生成の部品は `alpha/`
   - `serviceRegistry`: 全登録の `entities/<登録名>/entity.json` と fork の `entity.override.ts` から(`serviceRegistry/`、仕組みは `src/lib/domain/README.md`)。上書きの静的 import は型はどこからでも・値は値だけのファイルからだけ(中身で推移的に判定、`serviceRegistry/discover.mjs` の `checkOverrideStaticImports`)
   - `schemaRegistry`: `src/domains/**` の pgTable を持つ全ファイル(プロフィールの `entities/profiles/<名前>/drizzle.ts` も)
-  - `domainConfigRegistry`: 全ドメインの主の登録の `entities/<登録名>/entity.json`(キーはフォルダ名の snake_case)
+  - `domainConfigRegistry`: 全ての登録の `entities/<登録名>/entity.json`(汎用の単位 = 登録 1 件、D348。キー = 主の登録はフォルダ名、ほかの登録は登録名の snake_case)と、core の登録の一覧 `coreRegistrations`(core の印は置き場 src/domains/core/ から)
+    - 書いていない鍵の既定(写し display.ts も同じ): `singular` = 登録名の snake_case、`label` = 主の登録は domain.json の label・ほかの登録は登録名、`fields` = [](画面の項目なし)。手で持つ登録の entity.json は表の事実だけを持ち、名前と項目の鍵を書かないことがある
   - `storagePurposeRegistry`: 全 `services/server/<登録名>StoragePurposes.ts`
   - `adminDomains`: 管理一覧の画面 `src/app/admin/(protected)/<kebab 複数形>/page.tsx` を持つ全ドメイン(`generate: false` も。登録の entity.json が `adminList: false` の物は出さない)。キー = フォルダ名 → 題名・住所・`addToAdminDataMenu`。管理メニューの項目 `domain:` と出どころ `dataMenu` が読む(`src/domains/core/admin/menu/`)。管理メニューの行は受け口 `src/domains/core/admin/menu/`、ドメインを「データ管理」から外す = 登録の entity.json の `addToAdminDataMenu: false`
   - `messageRegistry`: 全ドメインの `plugs/messages/<名前>.ts` の連絡の定義(鍵 = `<フォルダ名>.<ファイル名>` → 定義・隣の `.override.ts`・`views/<名前>.tsx` の遅延 import。key のずれ・重なり・定義の無い描き方は止める。`alpha/messageRegistry.mjs`、決まりは `src/lib/messaging/README.md`)

@@ -2,7 +2,7 @@
 
 ## Overview
 
-- `pnpm generate cache` = cache を宣言した全ドメイン(主の登録の `entities/<登録名>/entity.json` の `"cache"`、登録の無いドメインは `<domain>/cache.json`。`generate: false` のドメインも)に `<domain>/services/server/cachedReads.ts` を書く。宣言が消えたドメインの生成物(印のある物)は消す
+- `pnpm generate cache` = cache を宣言した全ドメイン(主の登録の `entities/<登録名>/entity.json` の `"cache"`、登録はあるが主の登録の無いドメインは `domain.json` の `"cache"`、登録の無いドメインは `<domain>/cache.json`。`generate: false` のドメインも)に `<domain>/services/server/cachedReads.ts` を書く。宣言が消えたドメインの生成物(印のある物)は消す
 - `pnpm check cache` = 書かずに、生成物が宣言どおりかを見る(段階 build・ship・forge:post)
 - 宣言の形・寿命の上限・検査の正は `src/domains/README.md`「cache（共有の読みのキャッシュの宣言）」と `scripts/structure/domain`(`checks/cache.mjs`・`spec/cache.mjs`)。宣言に問題があれば何も書かずに止まる
 

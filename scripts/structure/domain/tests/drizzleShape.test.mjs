@@ -1,5 +1,5 @@
 // pnpm generate domain の entities/drizzle.ts: 手で持つ表の形の鍵(table・primaryKey・foreignKeys・checks・enums・fields[].column、
-// indexes の unique・desc・expression。render/entities/drizzle/shape.mjs・indexes.mjs)の出力と、鍵の無い時に今の出力のままか。
+// indexes の unique・desc・expressions。render/entities/drizzle/shape.mjs・indexes.mjs)の出力と、鍵の無い時に今の出力のままか。
 // 実行: pnpm test scripts/structure/domain/tests/drizzleShape.test.mjs
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
@@ -113,12 +113,12 @@ test("foreignKeys(自己参照・別の表)と checks を第 3 引数に書く",
   assert.match(output, /check\("sample_tags_name_check", sql`char_length\(name\) > 0`\)/);
 });
 
-test("indexes の unique・desc・expression", () => {
+test("indexes の unique・desc・expressions", () => {
   const { output, error } = generate({
     indexes: [
       { fields: ["name", "createdAt"], desc: ["createdAt"] },
       { fields: ["name"], unique: true, where: "deleted_at IS NULL", name: "sample_tags_name_uq" },
-      { expression: "lower(btrim(name))", name: "sample_tags_name_lower_idx" },
+      { expressions: ["lower(btrim(name))"], name: "sample_tags_name_lower_idx" },
       { expressions: ["(meta->>'a')", "(meta->>'b')", "lower(name)"], unique: true, where: "deleted_at IS NULL", name: "sample_tags_meta_parts_uq" },
       { expressions: ["to_tsvector('simple', name)", "to_tsvector('simple', code)"], using: "gin", name: "sample_tags_search_idx" },
     ],
@@ -173,12 +173,11 @@ test("書けない形はエラーにする", () => {
     [{ fields: [{ name: "x", fieldType: "string", column: { enum: "none" } }] }, /column\.enum "none" が enums にありません/],
     [{ fields: [{ name: "x", fieldType: "string", defaultValue: "a", column: { default: "b" } }] }, /defaultValue と column\.default の両方/],
     [{ enums: [{ name: "e" }] }, /values\(空でない配列\)か valuesFrom/],
-    [{ indexes: [{ expression: "lower(name)" }] }, /式の索引には name が要ります/],
+    [{ indexes: [{ expressions: ["lower(name)"] }] }, /式の索引には name が要ります/],
+    [{ indexes: [{ expression: "lower(name)", name: "x" }] }, /expression は expressions: \["<式>"\] に書いてください/],
     [{ indexes: [{ expressions: ["a", "b"] }] }, /式の索引には name が要ります/],
     [{ indexes: [{ expressions: ["a", "b"], fields: ["name"], name: "x" }] }, /expressions と fields の両方を持てません/],
-    [{ indexes: [{ expressions: ["a", "b"], expression: "c", name: "x" }] }, /expression と expressions の両方を持てません/],
-    [{ indexes: [{ expressions: [], name: "x" }] }, /expressions は 2 つ以上の SQL の式の並び/],
-    [{ indexes: [{ expressions: ["a"], name: "x" }] }, /expressions は 2 つ以上の SQL の式の並び/],
+    [{ indexes: [{ expressions: [], name: "x" }] }, /expressions は SQL の式の並び\(1 つ以上\)/],
     [{ indexes: [{ expressions: ["a", 1], name: "x" }] }, /expressions は空でない SQL の式/],
     [{ indexes: [{ fields: ["name"], desc: ["other"] }] }, /desc "other" が fields にありません/],
     [{ foreignKeys: [{ columns: ["name"], references: { table: "nowhere", columns: ["id"] } }] }, /references\.table "nowhere" の表がどのドメインにもありません/],
