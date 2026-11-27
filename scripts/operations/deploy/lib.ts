@@ -36,13 +36,10 @@ export function checkCron(): void {
   }
 }
 
-/**
- * ルームサーバー(servers/room)。中身は pnpm ops room deploy(enabled=false なら skip = exit 0)。
- * args はそのまま渡す(例: --allow-default-name)
- */
-export function deployRoom(args: readonly string[] = []): void {
+/** ルームサーバー(servers/room)。中身は pnpm ops room deploy(enabled=false なら skip = exit 0) */
+export function deployRoom(): void {
   // 同じプロセスの中で出す(子の pnpm ops room deploy にしない: 確認と許可は呼び手の守りで済んでいる)
-  if (roomDeployReady()) deployRoomWorker(args);
+  if (roomDeployReady()) deployRoomWorker();
 }
 
 /**

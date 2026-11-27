@@ -49,9 +49,9 @@ pnpm ops room init   # wrangler.toml 生成 + 依存インストール + チェ�
 以降は init が表示するチェックリスト通り:
 
 1. Cloudflare アカウント登録 (無料で開始可。本番規模の WebSocket 接続数は Workers Paid ~$5/月)
-2. **Worker 名の確認**: pnpm ops room init は `room-server-<package名>` を wrangler.toml に書き込む。
-   既定名 `room-server` のままのデプロイは pnpm ops room deploy が拒否する (同一アカウント同居時、
-   wrangler deploy は同名 Worker を**無言で置換**するため)
+2. **Worker の名前**: `room-server-<repo_id>` (repo.json の repo_id から、`scripts/operations/room/workerName.mjs`)。
+   deploy と secret は `--name` でこの名前を渡し、wrangler.toml の `name` は使わない (init は同じ名前を書くだけ)。
+   repo_id は祖先と同じにできないので、親の wrangler.toml を受け継いでも親の Worker を置き換えない
 3. **workers.dev サブドメインを先に登録する** (ダッシュボード → Workers & Pages → 右カラム。アカウントごとに1回だけ)。
    この時点で Worker URL は `https://<Worker名>.<サブドメイン>.workers.dev` と機械的に確定する。
    初回デプロイの対話プロンプトに任せないこと (CI では対話できず失敗する / env を先に揃えられる)
@@ -67,8 +67,7 @@ pnpm ops room init   # wrangler.toml 生成 + 依存インストール + チェ�
    (初回は workers.dev の伝播待ちで最大 60 秒リトライする。最低限なら `curl https://<Worker URL>/version`)
 
 補足:
-- 1つの Cloudflare アカウントに複数プロジェクトを同居させる場合、サブドメインは共通なので
-  wrangler.toml の `name` をプロジェクト固有名 (例: `room-server-myapp`) に変えて URL を分岐させる
+- 1つの Cloudflare アカウントに複数プロジェクトを同居させても、Worker の名前は repo_id ごとに分かれる (URL も分かれる)
   (原則は 1 プロジェクト = 1 アカウントを推奨: 課金・権限・事故の分離)
 - 本番で独自ドメインを使う場合は Worker に Custom Domain を割り当て、`REALTIME_ROOM_URL` を差し替えるだけでよい
 - **dev から本番 Worker を共有しない**: ルーム状態は ns/roomId 単位で共有されるため、dev と本番が
@@ -117,7 +116,7 @@ Worker 側の変更が無い回でも deploy は無害 (冪等)。「今回 serv
 - `src/core/` + `src/index.ts`: **上流所有 (CORE_FILES)**。変更は上流への提案経由
 - `src/registry.ts` + `wrangler.toml`: **下流編集点**
 - **wrangler.toml は有効化したフォークがコミットする** (vercel.json と同じ方式。secret は含まれず、
-  Worker 名や vars のみなのでコミットして安全)。アップストリームは `.example` のみを出荷する
+  vars などのみなのでコミットして安全。`name` は deploy・secret では使わない)。アップストリームは `.example` のみを出荷する
 - ルームロジック本体: `src/domains/<domain>/room/` (ドメインに帰属、純度制約付き)
 - 境界: `servers/room → src` の import は `@/lib/realtimeRoom/node`(共有プロトコル)と `domains/*/room` のみ。
   `src → servers` の import は全面禁止
@@ -127,13 +126,13 @@ Worker 側の変更が無い回でも deploy は無害 (冪等)。「今回 serv
 
 有効化コミット (`enabled: true` + wrangler.toml) は**下流フォークにもそのまま伝播する**。下流側では:
 
-- wrangler.toml ごと引いたフォークは、**中間層の Worker 名のまま自アカウントへデプロイ**してしまう
-  (pnpm ops room deploy の既定名ガードは固有名に変更済みの名前を検知できない)
+- wrangler.toml ごと引いたフォークも、自分の repo_id の Worker (`room-server-<repo_id>`) として出す (中間層の Worker は置き換えない)。
+  ただし Next 側の `REALTIME_ROOM_URL`・`REALTIME_ROOM_AUTH_SECRET` は自分の Worker の物に付け替える
 - `enabled: true` だけ引いて wrangler.toml が無いフォークは、`pnpm live:all` が明示エラーで止まる
   (fail-closed としては正しいが、下流にとっては突然の変化)
 
 対処: 中間層で有効化をコミットしたら、**ロールアウト時に下流へ DOWNSTREAM NOTICE を出す**(`/sluice` で出荷すると判定と起票まで行う)こと。
-内容は「wrangler.toml の name を自プロジェクト固有名へ変更 + 自アカウントでセットアップ (pnpm ops room init 手順) or
+内容は「自アカウントでセットアップ (pnpm ops room init 手順、URL と鍵は自分の Worker の物) or
 使わないなら `enabled: false` へ戻す」の二択を明示する。
 
 ## Internals

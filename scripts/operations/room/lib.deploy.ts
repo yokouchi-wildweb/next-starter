@@ -4,7 +4,7 @@
 // セーフポイントの位置を出した後に、同じプロセスの中で呼ぶ(子の命令にしない: 守りの 1 回分の許可は親が使って消すので、子がもう一度
 // 確認を求めると非対話では通らない。D420)。
 //   roomDeployReady: enabled=false → skip(false を返す。使わないフォークで実行しても無害)/ wrangler.toml 無 → 明示エラー
-//   deployRoomWorker: Worker 名が既定 "room-server" → 明示エラー(--allow-default-name で強行可)→ 依存 → 認証 → wrangler deploy
+//   deployRoomWorker: Worker の名前(room-server-<repo_id>、workerName.mjs)→ 依存 → 認証 → wrangler deploy --name <名前>
 // どれも失敗は理由を出して exit 1
 
 import { execSync } from "node:child_process";
@@ -12,6 +12,8 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { realtimeRoomConfig } from "@/lib/realtimeRoom";
+
+import { roomWorkerName, tomlWorkerName } from "./workerName.mjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const roomDir = path.join(repoRoot, "servers/room");
@@ -31,19 +33,21 @@ export function roomDeployReady(): boolean {
   return true;
 }
 
-/** Worker を出す(守りとセーフポイントの知らせは呼び手が済ませた後)。args = 入口の引数(--allow-default-name を見る) */
-export function deployRoomWorker(args: readonly string[]): void {
-  // 既定名ガード: wrangler deploy は同名 Worker を無言で置換するため、テンプレート既定名
-  // "room-server" のままのデプロイは拒否する (同一アカウント同居の他プロジェクトを上書きする事故防止)
-  const workerName = /^name\s*=\s*"([^"]+)"/m.exec(readFileSync(path.join(roomDir, "wrangler.toml"), "utf8"))?.[1];
-  if (workerName === "room-server" && !args.includes("--allow-default-name")) {
-    console.error(`✗ Worker 名がテンプレート既定の "room-server" のままです。
-  同一 Cloudflare アカウントに複数プロジェクトが同居した場合、wrangler deploy は同名 Worker を
-  無言で置換するため、既定名のままのデプロイは拒否します。
-  対処: servers/room/wrangler.toml の name をプロジェクト固有名 (例: "room-server-<プロジェクト名>")
-  に変更してください (name を変えると Worker URL も変わるため REALTIME_ROOM_URL の更新も忘れずに)。
-  この名前が自分のものだと確信できる場合のみ: pnpm ops room deploy --allow-default-name`);
+/**
+ * Worker を出す(守りとセーフポイントの知らせは呼び手が済ませた後)。名前は repo.json の repo_id から作り --name で渡す
+ * (wrangler.toml の name は親から受け継ぐ値なので使わない: その名前のまま出すと親の本番の Worker を黙って置き換える。D490)
+ */
+export function deployRoomWorker(): void {
+  const worker = roomWorkerName(repoRoot);
+  if (worker.error !== undefined) {
+    console.error(`✗ ${worker.error}`);
     process.exit(1);
+  }
+  const workerName = worker.name;
+  console.log(`→ Worker: ${workerName}(repo.json の repo_id から)`);
+  const tomlName = tomlWorkerName(readFileSync(path.join(roomDir, "wrangler.toml"), "utf8"));
+  if (tomlName !== null && tomlName !== workerName) {
+    console.log(`  servers/room/wrangler.toml の name "${tomlName}" は使いません(REALTIME_ROOM_URL が ${workerName} の URL を指しているか確かめる)`);
   }
 
   if (!existsSync(path.join(roomDir, "node_modules"))) {
@@ -74,7 +78,7 @@ export function deployRoomWorker(args: readonly string[]): void {
 
   console.log("→ wrangler deploy を実行します...\n");
   try {
-    execSync(`${wranglerBin} deploy`, { cwd: roomDir, stdio: "inherit" });
+    execSync(`${wranglerBin} deploy --name ${workerName}`, { cwd: roomDir, stdio: "inherit" });
   } catch {
     // wrangler が直前に詳細エラーを表示済み。ここではスタックを出さず終了コードのみ返す
     console.error("\n✗ wrangler deploy が失敗しました (上記エラーを参照)");

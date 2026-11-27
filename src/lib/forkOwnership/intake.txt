@@ -279,7 +279,7 @@ generated src/domains/*/services/server/*CachedReads.ts  # 生成器 cache の�
 
 # 登録(fork entries の対の中だけ)
 region servers/room/src/registry.ts  # ルーム定義の登録点(【下流編集点】)
-edit servers/room/wrangler.toml  # pnpm ops room init が作る fork の Worker の設定(upstream には無い。.example だけ)
+edit servers/room/wrangler.toml  # pnpm ops room init が作る fork の Worker の設定(upstream には無い。.example だけ。name は使わない: deploy・secret は repo_id から --name)
 
 # 自分の版(型 5 self: 規則・名前・直下のコードの設定)、札、業務の全体像
 self .claude/rules/project.md  # このリポの概要と段だけの情報(型 5)

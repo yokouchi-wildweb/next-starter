@@ -18,6 +18,7 @@ import { existsSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { guardDeploy } from "../../runner/guard";
+import { roomWorkerName } from "./workerName.mjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const roomDir = path.join(repoRoot, "servers/room");
@@ -38,6 +39,14 @@ if (!existsSync(wranglerBin)) {
   console.error("✗ servers/room の依存が未インストールです。先に pnpm ops room init を実行してください");
   process.exit(1);
 }
+// 鍵は deploy と同じ名前の Worker に置く(room-server-<repo_id>、wrangler.toml の name は使わない。workerName.mjs)
+const worker = roomWorkerName(repoRoot);
+if (worker.error !== undefined) {
+  console.error(`✗ ${worker.error}`);
+  process.exit(1);
+}
+const workerName = worker.name;
+console.log(`→ Worker: ${workerName}(repo.json の repo_id から)`);
 
 // 認証プリフライト (pnpm ops room deploy と同方式。whoami は未認証でも exit 0 のため出力文字列で判定)
 if (!process.env.CLOUDFLARE_API_TOKEN) {
@@ -59,7 +68,7 @@ if (!process.env.CLOUDFLARE_API_TOKEN) {
 // 落ちるため、secret list の失敗をもって明示拒否する (「デプロイが先」ルールのツール化)
 let secretListOut = "";
 try {
-  secretListOut = execSync(`${wranglerBin} secret list`, { cwd: roomDir, stdio: "pipe" }).toString();
+  secretListOut = execSync(`${wranglerBin} secret list --name ${workerName}`, { cwd: roomDir, stdio: "pipe" }).toString();
 } catch (error) {
   const detail = error instanceof Error && "stderr" in error ? String((error as { stderr?: unknown }).stderr ?? "") : "";
   console.error(`✗ Worker の secret 一覧を取得できません。Worker が未デプロイの可能性が高いです。
@@ -81,9 +90,9 @@ const secretValue = randomBytes(32).toString("base64");
 const tmpFile = path.join(roomDir, ".room-secret.tmp.json");
 try {
   writeFileSync(tmpFile, JSON.stringify({ [SECRET_NAME]: secretValue }), { mode: 0o600 });
-  execSync(`${wranglerBin} secret bulk ${JSON.stringify(tmpFile)}`, { cwd: roomDir, stdio: "pipe" });
+  execSync(`${wranglerBin} secret bulk ${JSON.stringify(tmpFile)} --name ${workerName}`, { cwd: roomDir, stdio: "pipe" });
 } catch {
-  console.error("✗ wrangler secret bulk が失敗しました。認証・Worker 名 (wrangler.toml) を確認してください");
+  console.error(`✗ wrangler secret bulk が失敗しました。認証・Worker ${workerName} を確認してください`);
   process.exit(1);
 } finally {
   rmSync(tmpFile, { force: true });

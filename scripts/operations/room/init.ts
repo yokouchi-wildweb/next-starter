@@ -5,56 +5,37 @@
 //
 // やること:
 //   1. servers/room/wrangler.toml.example → wrangler.toml のコピー (未存在時のみ)。
-//      Worker 名はプロジェクト固有名 "room-server-<package名>" に書き換える。
-//      既定名 "room-server" のままだと、同一 Cloudflare アカウントに複数プロジェクトが
-//      同居した場合に wrangler deploy が同名 Worker を無言で置換する事故が起きるため
-//      (deploy 側にも既定名ガードあり)
+//      name は Worker の名前 room-server-<repo_id> (workerName.mjs、deploy・secret が --name で渡すのと同じ。
+//      wrangler.toml の name は deploy・secret では使わない: 下の段へ受け継がれても親の Worker を置き換えない。D490)
 //   2. servers/room の依存インストール
 //   3. 残りの手動ステップ (env / secret / config) のチェックリスト表示
 
 import { execSync } from "node:child_process";
-import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+
+import { roomWorkerName } from "./workerName.mjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const roomDir = path.join(repoRoot, "servers/room");
 const tomlExample = path.join(roomDir, "wrangler.toml.example");
 const toml = path.join(roomDir, "wrangler.toml");
 
-/** root package.json の name から Worker 名を導出する (Cloudflare 制約: 小文字英数とハイフン) */
-const deriveWorkerName = (): { name: string; fromTemplateDefault: boolean } => {
-  const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as { name?: string };
-  const raw = (pkg.name ?? "app").toLowerCase();
-  const sanitized = raw.replace(/[^a-z0-9-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
-  return {
-    name: `room-server-${sanitized}`.slice(0, 63).replace(/-$/, ""),
-    // テンプレート既定の package 名のままだと、同様に未リネームの別フォークと導出名が再衝突し得る
-    fromTemplateDefault: raw === "nextjs-app-template",
-  };
-};
-
 console.log("=== realtime room: init ===\n");
 
 // 1. wrangler.toml
-const derived = deriveWorkerName();
+const worker = roomWorkerName(repoRoot);
+if (worker.error !== undefined) {
+  console.error(`✗ ${worker.error}`);
+  process.exit(1);
+}
 if (existsSync(toml)) {
   console.log("✓ servers/room/wrangler.toml は既に存在します (上書きしません)");
-  const currentName = /^name\s*=\s*"([^"]+)"/m.exec(readFileSync(toml, "utf8"))?.[1];
-  if (currentName === "room-server") {
-    console.warn(`⚠ Worker 名が既定の "room-server" のままです。同一アカウント同居時に他プロジェクトの
-  Worker を無言で上書きする危険があるため、wrangler.toml の name をプロジェクト固有名
-  (例: "${derived.name}") に変更してください (pnpm ops room deploy は既定名を拒否します)`);
-  }
 } else {
-  const content = readFileSync(tomlExample, "utf8").replace(/^name\s*=\s*"room-server"/m, `name = "${derived.name}"`);
-  writeFileSync(toml, content);
-  console.log(`✓ servers/room/wrangler.toml を作成しました (Worker 名: "${derived.name}")`);
-  if (derived.fromTemplateDefault) {
-    console.warn(`⚠ package.json の name がテンプレート既定のままのため、導出した Worker 名も他の未リネーム
-  フォークと衝突し得ます。package.json name をプロジェクト名に変えて再実行するか、
-  wrangler.toml の name を直接固有名に編集してください`);
-  }
+  writeFileSync(toml, readFileSync(tomlExample, "utf8").replace(/^name\s*=\s*"room-server"/m, `name = "${worker.name}"`));
+  console.log("✓ servers/room/wrangler.toml を作成しました");
 }
+console.log(`  Worker の名前: ${worker.name} (repo.json の repo_id から。deploy・secret はこの名前で出す)`);
 
 // 2. 依存インストール (servers/room は pnpm workspace 外の独立パッケージ)
 console.log("\n→ servers/room の依存をインストールします...");
@@ -66,10 +47,8 @@ console.log("✓ 依存インストール完了");
 console.log(`
 === 残りの手動ステップ ===
 
-1. Worker 名を確認する (上記で wrangler.toml に書き込み済み):
-   同一 Cloudflare アカウントに複数プロジェクトが同居する場合、wrangler deploy は
-   同名 Worker を無言で置換するため、名前の一意性は必ず確認すること
-   (既定名 "room-server" のままのデプロイは pnpm ops room deploy が拒否する)
+1. Worker の名前は ${worker.name} (repo.json の repo_id から。deploy・secret が --name で渡す):
+   同じ Cloudflare アカウントに同じ repo_id の別のリポを置かないこと (wrangler deploy は同じ名前の Worker を黙って置き換える)
 
 2. workers.dev サブドメインを登録する (アカウントごとに1回だけ):
      Cloudflare ダッシュボード → Workers & Pages → 右カラム「workers.dev サブドメイン」
