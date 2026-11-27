@@ -4,6 +4,7 @@
 // pnpm workflow tmux-launch setup --check    入り具合を出すだけ(全部そろっていれば exit 0、足りなければ 1)
 // pnpm workflow tmux-launch setup --remove   外す
 //
+// このリポより新しい版が入っていれば、setup は 1 行で知らせて何も書かない(古い版で上書きしない)
 // 入れるもの: 中身 = <XDG_DATA_HOME|~/.local/share>/next-starter/claude-tmux.sh / シェルの設定(~/.bashrc か ~/.zshrc)の 1 行 /
 // ~/.tmux.conf の塊。どれも印で囲む。終了コード 2 = tmux が無い(何も入れない)
 // 説明: scripts/workflow/tmux-launch/README.md
@@ -26,7 +27,7 @@ const mark = (ok, text) => (ok ? "済" : hasBlock(text) ? "古い" : "未");
 
 if (arg === "--check") {
   console.log(`tmux: ${state.tmux ? "あり" : "なし"}`);
-  console.log(`中身: ${state.installedVersion === null ? "未" : `版 ${state.installedVersion}`}(リポの版 ${state.sourceVersion})${state.installedVersion !== null && !state.upToDate ? " → 古い" : ""} ${state.installed}`);
+  console.log(`中身: ${state.installedVersion === null ? "未" : `版 ${state.installedVersion}`}(リポの版 ${state.sourceVersion})${state.newer ? " → このリポより新しい" : state.installedVersion !== null && !state.upToDate ? " → 古い" : ""} ${state.installed}`);
   console.log(`シェルの設定: ${mark(state.rcOk, read(state.rc))} ${state.rc}`);
   console.log(`tmux の設定: ${mark(state.tmuxConfOk, read(state.tmuxConf))} ${state.tmuxConf}`);
   console.log(state.ok ? "→ 入っています" : "→ 足りません: pnpm workflow tmux-launch setup");
@@ -54,6 +55,11 @@ if (!state.tmux) {
   console.error("tmux がありません。入れてからもう一度:");
   console.error("  Debian/Ubuntu/WSL: sudo apt install tmux  |  macOS: brew install tmux");
   process.exit(2);
+}
+
+if (state.newer) {
+  console.log(`このマシンにはこのリポより新しい版 ${state.installedVersion} が入っています(リポの版 ${state.sourceVersion})。上書きしません。入れ直すなら新しい版のリポで pnpm workflow tmux-launch setup`);
+  process.exit(0);
 }
 
 mkdirSync(path.dirname(state.installed), { recursive: true });

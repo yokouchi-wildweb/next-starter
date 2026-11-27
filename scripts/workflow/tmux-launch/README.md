@@ -38,7 +38,10 @@ tmux が無ければ何も入れずに止まる(exit 2)。先に入れる: Debia
 
 ### 版
 
-`claude-tmux.sh` の `NEXT_STARTER_CLAUDE_TMUX_VERSION` を、中身を直したら 1 上げる。マシンに置いた写しが古いと hook が知らせ、`pnpm workflow tmux-launch setup` で合わせ直す。
+`claude-tmux.sh` の `NEXT_STARTER_CLAUDE_TMUX_VERSION` は、中身と 2 つの塊(シェルの 1 行・`~/.tmux.conf`)の全部を覆う。どれかを直したら 1 上げる。マシンに置いた写しが古いと hook が知らせ、`pnpm workflow tmux-launch setup` で合わせ直す。
+
+- このリポより新しい版が入っているとき(同じマシンの別のリポが先に新しい版を入れた): 塊は新しい版の物として中身を比べず、hook は何も言わない。`setup` は 1 行で知らせて何も書かない(古い版で上書きしない)。`--check` は「このリポより新しい」と出す
+- 塊の中身を変えるときの注意: この比べ方を持たない古い版のリポは、新しい版の塊を「古い」と読み、setup を勧めて塊を下げる。塊を変える版はそのことを notice に書く
 
 ## Internals
 

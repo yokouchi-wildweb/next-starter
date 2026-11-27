@@ -8,7 +8,7 @@
 # ターミナルを閉じるとセッションごと終わり、中の claude も Dev タブのサーバーも止まる(裏に残らない)
 # 正本: next-starter の scripts/workflow/tmux-launch/claude-tmux.sh(ここを直したら版を上げる)。説明: scripts/workflow/tmux-launch/README.md
 
-NEXT_STARTER_CLAUDE_TMUX_VERSION=3
+NEXT_STARTER_CLAUDE_TMUX_VERSION=4
 
 # ---- 2. タブの中で動くとき ------------------------------------------------------------
 if [ "${1:-}" = "run" ] && [ -n "${2:-}" ]; then
@@ -22,12 +22,7 @@ if [ "${1:-}" = "run" ] && [ -n "${2:-}" ]; then
   __ct_others="$(tmux list-windows -t "$__ct_session" -F '#{@claude-tmux}' 2>/dev/null | grep -c '^1$')"
   if [ "${__ct_others:-0}" = 0 ] && [ -f "$__ct_root/.agent/dev-tab.json" ] &&
     grep -q "\"session\": \"$__ct_session\"" "$__ct_root/.agent/dev-tab.json" 2>/dev/null; then
-    # 呼び方: 新しい入口(pnpm workflow dev-tab run)。package.json に dev:tab がある古い版のリポ(このマシンの別のリポ)は旧い名前で
-    if grep -q '"dev:tab"' "$__ct_root/package.json" 2>/dev/null; then
-      (cd "$__ct_root" && pnpm -s dev:tab stop)
-    else
-      (cd "$__ct_root" && pnpm -s workflow dev-tab run stop)
-    fi
+    (cd "$__ct_root" && pnpm -s workflow dev-tab run stop)
   fi
   exit "$__ct_rc"
 fi

@@ -85,6 +85,21 @@ test("setup の通し: 入れる → --check が通る → もう一度でも重
   assert.doesNotMatch(readFileSync(confPath, "utf8"), /set -g allow-passthrough on/);
   assert.equal(setup("--check").status, 0);
 
+  // このリポより新しい版が入っている(別のリポが先に入れた): 塊の中身は比べず --check は 0、setup は 1 行で何も書かない
+  const installedPath = path.join(home, ".local/share/next-starter/claude-tmux.sh");
+  const newerCopy = readFileSync(installedPath, "utf8").replace(/^NEXT_STARTER_CLAUDE_TMUX_VERSION=\d+/m, "NEXT_STARTER_CLAUDE_TMUX_VERSION=99");
+  writeFileSync(installedPath, newerCopy);
+  writeFileSync(confPath, upsertBlock("", "set -gq mouse on"));
+  const before = [readFileSync(path.join(home, ".bashrc"), "utf8"), readFileSync(confPath, "utf8")];
+  const newerCheck = setup("--check");
+  assert.equal(newerCheck.status, 0, newerCheck.stdout);
+  assert.match(newerCheck.stdout, /版 99.*このリポより新しい/);
+  const kept = setup();
+  assert.equal(kept.status, 0);
+  assert.match(kept.stdout, /このリポより新しい版 99 が入っています.*上書きしません/);
+  assert.deepEqual([readFileSync(path.join(home, ".bashrc"), "utf8"), readFileSync(confPath, "utf8")], before);
+  assert.equal(readFileSync(installedPath, "utf8"), newerCopy);
+
   assert.equal(setup("--remove").status, 0);
   assert.equal(readFileSync(path.join(home, ".bashrc"), "utf8"), "# mine\n");
   assert.equal(readFileSync(path.join(home, ".tmux.conf"), "utf8"), "");
@@ -178,16 +193,6 @@ test("タブの中(run): claude が終わり、ほかに claude のタブが無�
     const text = await waitForLog(/^pnpm .*stop$/m, "pnpm … stop");
     assert.match(text, /^claude --continue$/m);
     assert.match(text, /^pnpm -s workflow dev-tab run stop$/m);
-    // 古い版のリポ(package.json に dev:tab がある)では旧い名前で止める
-    writeFileSync(path.join(repo, "package.json"), JSON.stringify({ scripts: { "dev:tab": "x" } }));
-    writeFileSync(log, "");
-    tmuxCmd("kill-server");
-    // kill-server の直後は前のサーバーが終わりきっておらず、負荷が高いと次のセッションが走らないことがある → 消えるまで待つ
-    for (const deadline = Date.now() + 10_000; Date.now() < deadline && tmuxCmd("list-sessions").status === 0; ) {
-      await new Promise((r) => setTimeout(r, 50));
-    }
-    startSession(`bash ${shim} run ${repo}; sleep 5`);
-    assert.match(await waitForLog(/^pnpm .*stop$/m, "pnpm … stop"), /^pnpm -s dev:tab stop$/m);
   } finally {
     tmuxCmd("kill-server");
   }

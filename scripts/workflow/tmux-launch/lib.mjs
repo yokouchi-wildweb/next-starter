@@ -127,12 +127,15 @@ export const inspect = (env = process.env) => {
   const installedVersion = parseVersion(read(p.installed));
   const rcText = read(p.rc);
   const confText = read(p.tmuxConf);
-  const rcOk = blockMatches(rcText, rcBody(p.installed));
-  const tmuxConfOk = blockMatches(confText, tmuxConfBody());
+  // このリポより新しい版が入っている: 印の塊も新しい版の物なので中身を比べない(あれば良い)。古い版のリポが新しい塊を
+  // 「古い」と読み、setup で下げないため。版は中身と 2 つの塊の全部を覆う(README「版」)
+  const newer = installedVersion !== null && sourceVersion !== null && installedVersion > sourceVersion;
+  const rcOk = newer ? hasBlock(rcText) : blockMatches(rcText, rcBody(p.installed));
+  const tmuxConfOk = newer ? hasBlock(confText) : blockMatches(confText, tmuxConfBody());
   // 入ってはいるが中身が古い(どれかが古ければ「古い」と案内する)
   const stale = (installedVersion !== null && installedVersion < (sourceVersion ?? 0)) ||
     (hasBlock(rcText) && !rcOk) || (hasBlock(confText) && !tmuxConfOk);
   const tmux = hasTmux();
   const upToDate = installedVersion !== null && installedVersion >= (sourceVersion ?? 0);
-  return { ...p, tmux, sourceVersion, installedVersion, rcOk, tmuxConfOk, upToDate, stale, ok: tmux && rcOk && tmuxConfOk && upToDate };
+  return { ...p, tmux, sourceVersion, installedVersion, newer, rcOk, tmuxConfOk, upToDate, stale, ok: tmux && rcOk && tmuxConfOk && upToDate };
 };
