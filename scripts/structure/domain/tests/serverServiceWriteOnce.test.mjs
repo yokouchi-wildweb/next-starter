@@ -46,7 +46,8 @@ test("既存の <domain>Service.ts は上書きせず、<登録名>Base.ts は�
 });
 
 test("既存の <domain>Service.ts が旧 wrappers/duplicate を組み込んでいれば外すよう警告し、ラッパーは生成しない", () => {
-  const root = project(["sample"]);
+  // sampleTag も写す: sample の多対多の結び sampleToSampleTag は外部キーの表の名前で相手の登録を引く(D354)
+  const root = project(["sample", "sampleTag"]);
   const dir = serverDir(root, "sample");
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(

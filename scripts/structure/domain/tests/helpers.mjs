@@ -14,7 +14,8 @@ export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)
 /**
  * 一時プロジェクトを作る
  * @param {{ templates?: string[], domains?: string[], configs?: Record<string, object>, cleanup: string[] }} options
- *   templates = リポジトリの src/domains/_template からコピーする相対パス、domains = リポジトリの宣言(domain.json と主の登録の entity.json)をコピーするドメイン、
+ *   templates = リポジトリの src/domains/_template からコピーする相対パス、domains = リポジトリの宣言(domain.json と主の登録の entity.json、
+ *   主の関係が through で名指す結びの登録の entity.json、D354)をコピーするドメイン、
  *   configs = 直接書く宣言（フォルダ名 → 主の登録の entity.json の内容。writeDeclaration）、cleanup = 作った一時ディレクトリを積む配列（after で消す）
  */
 export function makeProject({ templates = [], domains = [], configs = {}, registrations = {}, cleanup }) {
@@ -24,12 +25,16 @@ export function makeProject({ templates = [], domains = [], configs = {}, regist
     fs.cpSync(path.join(repoRoot, "src", "domains", "_template", rel), path.join(root, "src", "domains", "_template", rel), { recursive: true });
   }
   for (const domain of domains) {
-    // リポジトリの宣言(domain.json と主の登録 entities/<domain>/entity.json)を写す
+    // リポジトリの宣言(domain.json と主の登録 entities/<domain>/entity.json、主の関係が through で名指す結びの登録)を写す
     const from = path.join(repoRoot, "src", "domains", domain);
     const to = path.join(root, "src", "domains", domain);
-    fs.mkdirSync(path.join(to, "entities", domain), { recursive: true });
-    fs.copyFileSync(path.join(from, "domain.json"), path.join(to, "domain.json"));
-    fs.copyFileSync(path.join(from, "entities", domain, "entity.json"), path.join(to, "entities", domain, "entity.json"));
+    fs.copyFileSync(path.join(from, "domain.json"), (fs.mkdirSync(to, { recursive: true }), path.join(to, "domain.json")));
+    const primary = JSON.parse(fs.readFileSync(path.join(from, "entities", domain, "entity.json"), "utf8"));
+    const junctions = (primary.relations ?? []).filter((relation) => relation?.relationType === "belongsToMany" && typeof relation.through === "string").map((relation) => relation.through);
+    for (const registration of [domain, ...junctions]) {
+      fs.mkdirSync(path.join(to, "entities", registration), { recursive: true });
+      fs.copyFileSync(path.join(from, "entities", registration, "entity.json"), path.join(to, "entities", registration, "entity.json"));
+    }
   }
   for (const [folder, config] of Object.entries(configs)) writeDeclaration(root, folder, config);
   for (const [at, config] of Object.entries(registrations)) writeRegistration(root, path.dirname(at), path.basename(at), config);
