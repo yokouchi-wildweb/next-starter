@@ -75,7 +75,7 @@ function formatAllRelationsLiteral(relations) {
  */
 export function composeServiceOptions(workspace, config, pascal, camel) {
   const relations = {
-    belongsToMany: buildBelongsToManySnippets(config, pascal, camel),
+    belongsToMany: buildBelongsToManySnippets(workspace, config, camel),
     belongsToRelations: buildBelongsToRelationsSnippets(workspace, config, pascal, camel),
     belongsToManyObjectRelations: buildBelongsToManyObjectRelationsSnippets(workspace, config, pascal, camel),
     countableRelations: buildCountableRelationsSnippets(workspace, config, pascal, camel),

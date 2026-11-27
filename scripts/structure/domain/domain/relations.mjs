@@ -1,17 +1,45 @@
 // 登録の entity.json の relations の分類と、リレーション先ドメインの参照。
 
-import { toCamelCase, toSnakeCase } from "../../../../src/lib/stringCase/index.mjs";
+import { toCamelCase, toPascalCase, toSnakeCase } from "../../../../src/lib/stringCase/index.mjs";
 
 /** belongsTo（外部キーを持つ側） */
 export function belongsToRelations(config) {
   return (config?.relations || []).filter((rel) => rel.relationType === "belongsTo");
 }
 
-/** belongsToMany のうち中間テーブルを自分が持つもの（includeRelationTable !== false） */
+/** belongsToMany のうち結びの登録を持つ側(through を書いた関係、D354)。through の無い関係は相手の結びを読むだけの参照 */
 export function belongsToManyRelations(config) {
-  return (config?.relations || []).filter(
-    (rel) => rel.relationType === "belongsToMany" && rel.includeRelationTable !== false,
-  );
+  return (config?.relations || []).filter((rel) => rel.relationType === "belongsToMany" && rel.through !== undefined);
+}
+
+/**
+ * 関係の結びの登録(through)の表と、持つ側・相手を指す列の TS 名(結びの登録の belongsTo の fieldName、手の表の形なら foreignKeys の列)
+ * @param {import("./workspace.mjs").Workspace} workspace
+ * @param {string} owner 持つ側の登録名(camelCase)
+ * @param {object} relation through を書いた belongsToMany
+ * @returns {{ registration: string, tableVar: string, sourceProperty: string, targetProperty: string }}
+ */
+export function junctionOf(workspace, owner, relation) {
+  const registration = toCamelCase(relation.through);
+  const config = workspace.readRegistration(registration);
+  if (!config) throw new Error(`エラー: ${owner} の belongsToMany "${relation.domain}" の through ${relation.through} の登録(entities/${registration}/entity.json)がありません`);
+  const target = toCamelCase(relation.domain);
+  const tableOf = (name) => (name === owner || name === target ? domainTableNameOf(workspace, name) : null);
+  const links = [
+    ...(config.relations ?? []).filter((rel) => rel.relationType === "belongsTo").map((rel) => ({ column: rel.fieldName, target: toCamelCase(rel.domain) })),
+    ...(config.foreignKeys ?? []).filter((fk) => (fk.columns ?? []).length === 1).map((fk) => ({ column: fk.columns[0], target: [owner, target].find((name) => tableOf(name) === fk.references?.table) ?? null })),
+  ];
+  const source = links.find((link) => link.target === owner);
+  const other = links.find((link) => link !== source && link.target === target);
+  if (!source || !other) throw new Error(`エラー: 結びの登録 ${registration} が ${owner} と ${target} を指す 2 本を持ちません(pnpm check domain)`);
+  return { registration, tableVar: `${toPascalCase(registration)}Table`, sourceProperty: source.column, targetProperty: other.column };
+}
+
+/** 登録の物理の表の名前(entity.json の table か snake(plural)) */
+function domainTableNameOf(workspace, name) {
+  const config = workspace.readRegistration(name);
+  if (!config) return null;
+  return typeof config.table === "string" ? config.table : toSnakeCase(config.plural || name);
 }
 
 /** hasMany（子の表が自分を参照する） */

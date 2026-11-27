@@ -8,7 +8,7 @@ import path from "node:path";
 
 import { toCamelCase } from "../../../../../src/lib/stringCase/index.mjs";
 
-/** 指されていれば止める関連の種類。belongsToMany は includeRelationTable: false の逆側も含む（生成物が相手を import する） */
+/** 指されていれば止める関連の種類。belongsToMany は through の無い反対側も含む（生成物が相手を import する） */
 const REFERENCE_TYPES = new Set(["belongsTo", "belongsToMany", "hasMany", "hasOne"]);
 
 /**

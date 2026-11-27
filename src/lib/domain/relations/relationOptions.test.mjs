@@ -12,8 +12,8 @@ import {
 const config = {
   relations: [
     { domain: "sample_category", relationType: "belongsTo" },
-    { domain: "sample_tag", relationType: "belongsToMany", includeRelationTable: true, formInput: "asyncMultiSelect" },
-    { domain: "prize_item", relationType: "belongsToMany", includeRelationTable: false },
+    { domain: "sample_tag", relationType: "belongsToMany", through: "sampleToSampleTag", formInput: "asyncMultiSelect" },
+    { domain: "prize_item", relationType: "belongsToMany" },
     { domain: "user", relationType: "belongsTo", formInput: "asyncCombobox" },
     { domain: "color", relationType: "belongsTo", formInput: "custom" },
     { domain: "owner", relationType: "belongsTo", formInput: "combobox" },

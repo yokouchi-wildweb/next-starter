@@ -24,17 +24,20 @@ export const ALL_GENERATE_OPTIONS = Object.fromEntries(GENERATE_CATEGORIES.map((
 /** 集まりの従属（主の mediaCollection が持つ子）が生成するカテゴリ。管理画面・hooks・client は作らない（主の画面から扱う） */
 export const COLLECTION_CHILD_CATEGORIES = ["entities", "serverServices", "fieldConstants", "registry", "presenters"];
 
+/** 多対多の結びの登録(関係の through が名指す登録、D354)が生成するカテゴリ。表のファイルだけ(汎用の口・画面・サービスを持たない) */
+export const JUNCTION_CATEGORIES = ["entities"];
+
 /** 手で管理（登録の entity.json の generate: false）。生成器を一切通さない @param {object | null | undefined} config */
 export const isHandManaged = (config) => config?.generate === false;
 
 /**
  * 登録の entity.json の generate から、そのドメインで生成するカテゴリを決める
  * @param {object} config 登録の entity.json
- * @param {{ child?: boolean }} [options] child = 集まりの従属か
+ * @param {{ child?: boolean, junction?: boolean }} [options] child = 集まりの従属か、junction = 多対多の結びの登録か
  * @returns {Record<string, boolean>}
  */
-export function generateTargets(config, { child = false } = {}) {
-  const on = config?.generate === false ? [] : child ? COLLECTION_CHILD_CATEGORIES : GENERATE_CATEGORIES;
+export function generateTargets(config, { child = false, junction = false } = {}) {
+  const on = config?.generate === false ? [] : junction ? JUNCTION_CATEGORIES : child ? COLLECTION_CHILD_CATEGORIES : GENERATE_CATEGORIES;
   return Object.fromEntries(GENERATE_CATEGORIES.map((category) => [category, on.includes(category)]));
 }
 

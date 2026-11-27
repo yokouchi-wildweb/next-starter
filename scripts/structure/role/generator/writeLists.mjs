@@ -10,6 +10,7 @@ import { toPlural } from "../../domain/domain/plural.mjs";
 import { AUDIT_LOGGER_IMPORT, auditLiteral, isAuditActive } from "../../domain/spec/audit.mjs";
 import { readProfileOverride, readRoleOverride, requireOverride } from "../overrides.mjs";
 import { isCoreRole, roleFileOf } from "../rolePaths.mjs";
+import { assertNoProfileJunction } from "./generateProfileDrizzle.mjs";
 import { generatedHeader } from "./header.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -120,33 +121,6 @@ function renderProfileConfigs(profiles) {
 // profileBases.ts 生成 — リレーション対応
 // ============================================================
 
-/**
- * belongsToMany リレーション設定のリテラルを生成
- */
-function buildBelongsToManyLiteral(roleId, rel) {
-  const rolePascal = toPascalCase(roleId);
-  const relationPascal = toPascalCase(rel.domain);
-  const relationCamel = toCamelCase(rel.domain);
-  const junctionTableVar = `${rolePascal}ProfileTo${relationPascal}Table`;
-  const sourceProp = `${toCamelCase(roleId)}ProfileId`;
-  const targetProp = `${relationCamel}Id`;
-
-  return {
-    junctionTableVar,
-    relationDomain: relationCamel,
-    relationTableVar: `${relationPascal}Table`,
-    literal: [
-      "      {",
-      `        fieldName: "${rel.fieldName}",`,
-      `        throughTable: ${junctionTableVar},`,
-      `        sourceColumn: ${junctionTableVar}.${sourceProp},`,
-      `        targetColumn: ${junctionTableVar}.${targetProp},`,
-      `        sourceProperty: "${sourceProp}",`,
-      `        targetProperty: "${targetProp}",`,
-      "      }",
-    ].join("\n"),
-  };
-}
 
 /**
  * belongsTo リレーション設定のリテラルを生成
@@ -168,55 +142,7 @@ function buildBelongsToLiteral(rel) {
   };
 }
 
-/**
- * belongsToMany オブジェクト展開設定のリテラルを生成
- */
-function buildBelongsToManyObjectLiteral(roleId, rel) {
-  const rolePascal = toPascalCase(roleId);
-  const relationPascal = toPascalCase(rel.domain);
-  const relationCamel = toCamelCase(rel.domain);
-  const junctionTableVar = `${rolePascal}ProfileTo${relationPascal}Table`;
-  const sourceProp = `${toCamelCase(roleId)}ProfileId`;
-  const targetProp = `${relationCamel}Id`;
-  const field = toPlural(rel.domain);
 
-  return {
-    junctionTableVar,
-    relationDomain: relationCamel,
-    relationTableVar: `${relationPascal}Table`,
-    literal: [
-      "      {",
-      `        field: "${field}",`,
-      `        targetTable: ${relationPascal}Table,`,
-      `        throughTable: ${junctionTableVar},`,
-      `        sourceColumn: ${junctionTableVar}.${sourceProp},`,
-      `        targetColumn: ${junctionTableVar}.${targetProp},`,
-      "      }",
-    ].join("\n"),
-  };
-}
-
-/**
- * countable リレーション設定のリテラルを生成
- */
-function buildCountableLiteral(roleId, rel) {
-  const rolePascal = toPascalCase(roleId);
-  const relationPascal = toPascalCase(rel.domain);
-  const junctionTableVar = `${rolePascal}ProfileTo${relationPascal}Table`;
-  const sourceProp = `${toCamelCase(roleId)}ProfileId`;
-  const field = toPlural(rel.domain);
-
-  return {
-    junctionTableVar,
-    literal: [
-      "      {",
-      `        field: "${field}",`,
-      `        throughTable: ${junctionTableVar},`,
-      `        foreignKey: "${sourceProp}",`,
-      "      }",
-    ].join("\n"),
-  };
-}
 
 /** defaultSearchFields の式（上書きがあればその値、無ければ JSON） */
 const searchFieldsExpression = (roleId, override) =>
@@ -228,9 +154,8 @@ const searchFieldsExpression = (roleId, override) =>
 function buildRelationOptions(roleId, config, override) {
   const relations = config.relations || [];
   const belongsToRels = relations.filter((r) => r.relationType === "belongsTo");
-  const m2mRels = relations.filter(
-    (r) => r.relationType === "belongsToMany" && r.includeRelationTable !== false
-  );
+  // 多対多はまだ書けない(generateProfileDrizzle.mjs の PROFILE_JUNCTION_STOP)
+  assertNoProfileJunction(relations);
 
   // import する必要があるテーブル変数を収集
   const tableImports = new Map(); // domain → Set<tableVar>
@@ -242,20 +167,6 @@ function buildRelationOptions(roleId, config, override) {
     `      defaultSearchFields: ${searchFieldsExpression(roleId, override)},`
   );
   if (isAuditActive(config.audit)) optionParts.push(`      audit: ${auditLiteral(config.audit)},`);
-
-  // belongsToManyRelations
-  if (m2mRels.length > 0) {
-    const items = m2mRels.map((rel) => {
-      const item = buildBelongsToManyLiteral(roleId, rel);
-      // import 追加
-      const domain = item.relationDomain;
-      if (!tableImports.has(domain)) tableImports.set(domain, new Set());
-      tableImports.get(domain).add(item.relationTableVar);
-      // 中間テーブルは生成ファイルから import
-      return item;
-    });
-    optionParts.push(`      belongsToManyRelations: [\n${items.map((i) => i.literal).join(",\n")}\n      ],`);
-  }
 
   // belongsToRelations
   if (belongsToRels.length > 0) {
@@ -269,31 +180,7 @@ function buildRelationOptions(roleId, config, override) {
     optionParts.push(`      belongsToRelations: [\n${items.map((i) => i.literal).join(",\n")}\n      ],`);
   }
 
-  // belongsToManyObjectRelations
-  if (m2mRels.length > 0) {
-    const items = m2mRels.map((rel) => {
-      const item = buildBelongsToManyObjectLiteral(roleId, rel);
-      const domain = item.relationDomain;
-      if (!tableImports.has(domain)) tableImports.set(domain, new Set());
-      tableImports.get(domain).add(item.relationTableVar);
-      return item;
-    });
-    optionParts.push(`      belongsToManyObjectRelations: [\n${items.map((i) => i.literal).join(",\n")}\n      ],`);
-  }
-
-  // countableRelations
-  if (m2mRels.length > 0) {
-    const items = m2mRels.map((rel) => buildCountableLiteral(roleId, rel));
-    optionParts.push(`      countableRelations: [\n${items.map((i) => i.literal).join(",\n")}\n      ],`);
-  }
-
-  // 中間テーブルの import リスト
-  const junctionTableVars = m2mRels.map((rel) => {
-    const relationPascal = toPascalCase(rel.domain);
-    return `${toPascalCase(roleId)}ProfileTo${relationPascal}Table`;
-  });
-
-  return { optionParts, tableImports, junctionTableVars };
+  return { optionParts, tableImports };
 }
 
 /** userProfile/extensions/profileBases.ts: ロール → プロフィールベース（ヘルパーは userProfile/utils/profileBaseHelpers） */
@@ -305,7 +192,6 @@ function renderProfileBases(profiles) {
   // リレーション先テーブルの import を収集（domain → Set<tableVar>）
   const allRelationTableImports = new Map();
   // 中間テーブルの import を収集（roleId → [tableVar]）
-  const allJunctionImports = new Map();
 
   for (const { roleId, config, override } of profiles) {
     const tableVar = `${toPascalCase(roleId)}ProfileTable`;
@@ -322,7 +208,7 @@ function renderProfileBases(profiles) {
     }
 
     if (hasRelations(config)) {
-      const { optionParts, tableImports, junctionTableVars } = buildRelationOptions(roleId, config, override);
+      const { optionParts, tableImports } = buildRelationOptions(roleId, config, override);
 
       // リレーション先テーブル import をマージ
       for (const [domain, vars] of tableImports) {
@@ -332,11 +218,6 @@ function renderProfileBases(profiles) {
         for (const v of vars) {
           allRelationTableImports.get(domain).add(v);
         }
-      }
-
-      // 中間テーブル import
-      if (junctionTableVars.length > 0) {
-        allJunctionImports.set(roleId, junctionTableVars);
       }
 
       // エントリ（複数行オプション付き）
@@ -359,15 +240,7 @@ function renderProfileBases(profiles) {
     );
   }
 
-  // 中間テーブルの import 文（生成済みdrizzleから）
-  const junctionImportLines = [];
-  for (const [roleId, tableVars] of allJunctionImports) {
-    junctionImportLines.push(
-      `import { ${tableVars.join(", ")} } from "${PROFILE_ENTITIES}/${roleId}/drizzle";`
-    );
-  }
-
-  const extraImports = [...relationImportLines, ...junctionImportLines];
+  const extraImports = relationImportLines;
   const extraImportBlock = extraImports.length > 0 ? `\n${extraImports.join("\n")}` : "";
 
   return [

@@ -4,6 +4,7 @@
 // 組の前提の誤り（従属の名前が無い・従属を所有する主が 2 つ以上・従属が主と別のドメインにある）と、組ごとの書く前の検査（checks/pairs.mjs）の誤りを
 // 全件集め、何も書く前に止める（assertPairs）。知らせるだけのものは notices（printPairNotices）
 
+import { junctionIssues } from "../checks/junctions.mjs";
 import { pairIssues } from "../checks/pairs.mjs";
 import { domainTableName } from "../domain/names.mjs";
 import { loadRoleCategories } from "../domain/roles.mjs";
@@ -89,7 +90,9 @@ export function resolvePairs(workspace) {
   }
   // 関わる登録が全部手で管理（generate: false）の誤り・知らせは出さない（生成器を通さないので検査もしない）
   const involvesGenerated = (entry) => entry.registrations.some((name) => !isHandManaged(pending.get(name) ?? registrations.get(name)?.config));
-  return { ownerOf, childrenOf, fieldOf, domainOf, pending, errors: errors.filter(involvesGenerated), notices: notices.filter(involvesGenerated) };
+  // 多対多の結びの登録(D354)。手で持つ結びも宣言の形は同じなので、生成するかに関わらず止める
+  const junctions = junctionIssues(registrations);
+  return { ownerOf, childrenOf, fieldOf, domainOf, pending, junctions: junctions.junctions, errors: [...errors.filter(involvesGenerated), ...junctions.errors], notices: notices.filter(involvesGenerated) };
 }
 
 /** この実行で書き出す、ドメインの中の従属の登録名（主の項目の順） */

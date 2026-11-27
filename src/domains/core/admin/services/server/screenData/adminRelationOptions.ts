@@ -17,7 +17,7 @@ export type AdminRelationOptionsConfig = {
     domain: string;
     relationType: string;
     formInput?: string;
-    includeRelationTable?: boolean;
+    through?: string;
   }>;
 };
 

@@ -148,54 +148,13 @@ function generateBelongsToColumns(relations, profileTableName) {
   return { lines, imports, relationImports };
 }
 
-/**
- * belongsToMany リレーションの中間テーブル定義を生成
- */
-function generateBelongsToManyTables(relations, roleId, rolePascal, profileTableVar) {
-  const blocks = [];
-  const relationImports = [];
+/** プロフィールの多対多の止め(D354 で中間の表はいつも自分の登録。プロフィールの結びの登録の置き場が決まるまで書けない) */
+export const PROFILE_JUNCTION_STOP =
+  "プロフィールの belongsToMany はまだ書けません: 多対多の中間の表はいつも自分の登録(D354)ですが、プロフィールの表は core の userProfile にあり、fork がそこへ結びの登録を足せないため置き場が決まっていません(上流・fork とも使っている所は無い)";
 
-  const m2mRels = (relations || []).filter(
-    (r) => r.relationType === "belongsToMany" && r.includeRelationTable !== false
-  );
-  if (m2mRels.length === 0) return { blocks, relationImports, needsPrimaryKey: false };
-
-  for (const rel of m2mRels) {
-    const relationPascal = toPascalCase(rel.domain);
-    const relationCamel = toCamelCase(rel.domain);
-    const junctionPascal = `${rolePascal}ProfileTo${relationPascal}`;
-    const junctionTableVar = `${junctionPascal}Table`;
-    const junctionTableName = toSnakeCase(junctionPascal);
-    const sourceCol = `${toSnakeCase(roleId)}_profile_id`;
-    const targetCol = `${toSnakeCase(rel.domain)}_id`;
-    const sourceProp = `${toCamelCase(roleId)}ProfileId`;
-    const targetProp = `${relationCamel}Id`;
-
-    const block = `
-export const ${junctionTableVar} = pgTable(
-  "${junctionTableName}",
-  {
-    ${sourceProp}: uuid("${sourceCol}")
-      .notNull()
-      .references(() => ${profileTableVar}.id, { onDelete: "cascade" }),
-    ${targetProp}: uuid("${targetCol}")
-      .notNull()
-      .references(() => ${relationPascal}Table.id, { onDelete: "cascade" }),
-  },
-  (table) => ({
-    pk: primaryKey({ columns: [table.${sourceProp}, table.${targetProp}] }),
-  }),
-);`;
-
-    blocks.push(block);
-
-    relationImports.push({
-      domain: relationCamel,
-      tableVar: `${relationPascal}Table`,
-    });
-  }
-
-  return { blocks, relationImports, needsPrimaryKey: m2mRels.length > 0 };
+/** プロフィールに belongsToMany があれば止める(中間の表は書かない) */
+export function assertNoProfileJunction(relations) {
+  if ((relations || []).some((r) => r.relationType === "belongsToMany")) throw new Error(PROFILE_JUNCTION_STOP);
 }
 
 /**
@@ -214,24 +173,16 @@ export function generateProfileDrizzle(roleConfig, profileConfig) {
     profileConfig.relations,
     tableName
   );
-  const m2m = generateBelongsToManyTables(
-    profileConfig.relations,
-    roleId,
-    rolePascal,
-    tableVar
-  );
+  assertNoProfileJunction(profileConfig.relations);
 
   // belongsTo の imports をマージ
   for (const imp of belongsTo.imports) {
     imports.add(imp);
   }
-  if (m2m.needsPrimaryKey) {
-    imports.add("primaryKey");
-  }
 
   // リレーション先テーブルの import 文を収集（重複排除）
   const allRelationImports = new Map();
-  for (const ri of [...belongsTo.relationImports, ...m2m.relationImports]) {
+  for (const ri of belongsTo.relationImports) {
     allRelationImports.set(ri.domain, ri.tableVar);
   }
 
@@ -253,7 +204,6 @@ ${belongsTo.lines.join("\n")}\n`
       : "";
 
   // 中間テーブルブロック
-  const m2mBlock = m2m.blocks.join("\n");
 
   const content = `${profileFileHeader(roleId)}
 // src/domains/core/userProfile/entities/profiles/${roleId}/drizzle.ts
@@ -300,7 +250,6 @@ ${fieldLines.join("\n")}
  */
 export type ${rolePascal}Profile = typeof ${tableVar}.$inferSelect;
 export type ${rolePascal}ProfileInsert = typeof ${tableVar}.$inferInsert;
-${m2mBlock}
 `;
 
   // entities/profiles/{roleId}/ フォルダを作成

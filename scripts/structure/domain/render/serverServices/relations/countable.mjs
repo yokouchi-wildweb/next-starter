@@ -2,7 +2,7 @@
 
 import { toCamelCase, toPascalCase } from "../../../../../../src/lib/stringCase/index.mjs";
 import { toPlural } from "../../../domain/plural.mjs";
-import { belongsToManyRelations } from "../../../domain/relations.mjs";
+import { belongsToManyRelations, junctionOf } from "../../../domain/relations.mjs";
 
 /**
  * @returns {Array<{ literal: string, relationDomain: string | null, tableImport: string | null }>}
@@ -15,7 +15,7 @@ export function buildCountableRelationsSnippets(workspace, config, pascal, camel
   return belongsToManyRelations(config).map((relation) => {
     const relationPascal = toPascalCase(relation.domain);
     const relationCamel = toCamelCase(relation.domain);
-    const throughTableVar = `${pascal}To${relationPascal}Table`;
+    const { tableVar: throughTableVar, sourceProperty, targetProperty } = junctionOf(workspace, camel, relation);
     const targetTableImport = `${relationPascal}Table`;
     const targetConfig = workspace.readRegistration(relationCamel);
     const targetUseSoftDelete = Boolean(targetConfig && targetConfig.useSoftDelete);
@@ -24,11 +24,11 @@ export function buildCountableRelationsSnippets(workspace, config, pascal, camel
       "    {",
       `      field: "${toPlural(relation.domain)}",`,
       `      throughTable: ${throughTableVar},`,
-      `      foreignKey: "${camel}Id",`,
+      `      foreignKey: "${sourceProperty}",`,
     ];
     if (targetUseSoftDelete) {
       lines.push(`      targetTable: ${targetTableImport},`);
-      lines.push(`      targetColumn: ${throughTableVar}.${relationCamel}Id,`);
+      lines.push(`      targetColumn: ${throughTableVar}.${targetProperty},`);
       lines.push(`      useSoftDelete: true,`);
       lines.push(`      deletedAtColumn: ${targetTableImport}.deletedAt,`);
     }

@@ -19,7 +19,7 @@ export const RELATION_OPTIONS_KEY_PREFIX = "relationOptions";
  * @property {string} domain 関連先ドメイン名(entity.json の表記、通常 snake_case)
  * @property {string} relationType "belongsTo" | "belongsToMany" | "hasMany" | "hasOne"
  * @property {string} [formInput] フォーム入力種別(省略時 belongsTo→select, belongsToMany→checkbox)
- * @property {boolean} [includeRelationTable] belongsToMany で中間テーブルを持つ側か(false = 逆側、フォームに出ない)
+ * @property {string} [through] belongsToMany の結びの登録名(持つ側だけ。無い = 反対側の読むだけの参照、フォームに出ない、D354)
  */
 
 /**
@@ -39,14 +39,14 @@ export function isCustomRelationFormInput(formInput) {
 
 /**
  * フォームに入力欄として出る関連: belongsTo と、中間テーブルを持つ側の belongsToMany。
- * hasMany / hasOne と、includeRelationTable: false の belongsToMany(逆側)は出ない。
+ * hasMany / hasOne と、through の無い belongsToMany(反対側の読むだけの参照)は出ない。
  * @param {RelationOptionsConfig} config
  * @returns {RelationOptionsRelation[]}
  */
 export function getFormRelations(config) {
   return (config?.relations ?? []).filter((rel) => {
     if (rel.relationType === "belongsTo") return true;
-    if (rel.relationType === "belongsToMany") return rel.includeRelationTable !== false;
+    if (rel.relationType === "belongsToMany") return rel.through !== undefined;
     return false;
   });
 }

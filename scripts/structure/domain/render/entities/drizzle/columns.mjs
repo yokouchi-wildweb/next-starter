@@ -1,4 +1,4 @@
-// entities/drizzle.ts の列定義（id と fields）。belongsTo の外部キー列は foreignKeys.mjs、中間テーブルは junction.mjs。
+// entities/drizzle.ts の列定義（id と fields）。belongsTo の外部キー列は foreignKeys.mjs、多対多の中間の表は結びの登録(D354)が自分の表として書く。
 // 型 → 列関数と第 2 引数の対応は spec/fieldTypes.mjs の表（配列・enum だけここで形を変える）
 
 import { toSnakeCase } from "../../../../../../src/lib/stringCase/index.mjs";

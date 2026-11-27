@@ -20,6 +20,11 @@ export function relationIssues(config) {
   (config.relations ?? []).forEach((relation, index) => {
     const where = `relations[${index}] "${relation?.domain ?? "?"}"`;
     const type = relation?.relationType;
+    // 廃止した鍵(D354): 中間の表はいつも自分の登録で、関係は through で名指すだけ
+    if (relation && Object.hasOwn(relation, "includeRelationTable")) {
+      issues.push(`${where}: includeRelationTable は廃止しました(D354)。持つ側の関係に through: <結びの登録名>(entities/<結びの登録名>/entity.json、同じドメイン)を書き、反対側は何も書かない(読むだけの参照)`);
+    }
+    if (relation?.through !== undefined && type !== "belongsToMany") issues.push(`${where}: through は belongsToMany にだけ書けます`);
     if (config.dbEngine === "Firestore" && FIRESTORE_UNSUPPORTED.has(type)) {
       issues.push(`${where}: Firestore のドメインでは ${type} を使えません（生成器が何も出しません）`);
       return;

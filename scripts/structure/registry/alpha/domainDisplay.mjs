@@ -9,7 +9,7 @@ import { isAsyncRelationFormInput } from "../../../../src/lib/domain/node.mjs";
 import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
 
 const FIELD_KEYS = ["name", "label", "fieldType", "formInput", "options", "required", "readonly", "defaultValue", "displayType", "placeholder", "accept", "validationRule", "reorderable", "helperText"];
-const RELATION_KEYS = ["domain", "label", "fieldName", "fieldType", "relationType", "required", "formInput", "labelField", "includeRelationTable"];
+const RELATION_KEYS = ["domain", "label", "fieldName", "fieldType", "relationType", "required", "formInput", "labelField", "through"];
 const FIELD_GROUP_KEYS = ["key", "label", "fields", "collapsible", "defaultCollapsed", "bgColor"];
 
 const pick = (source, keys) => Object.fromEntries(keys.filter((key) => source[key] !== undefined).map((key) => [key, source[key]]));

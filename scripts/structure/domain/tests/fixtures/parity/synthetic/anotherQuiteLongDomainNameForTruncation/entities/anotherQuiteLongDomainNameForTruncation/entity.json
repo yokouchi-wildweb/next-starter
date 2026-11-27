@@ -1,5 +1,5 @@
 {"singular":"another_quite_long_domain_name_for_truncation","plural":"another_quite_long_domain_names_for_truncation","label":"相手","dbEngine":"Neon","idType":"uuid",
- "relations":[{"domain":"very_long_domain_name_for_foreign_key_truncation","label":"長い","fieldName":"very_long_domain_name_for_foreign_key_truncation_ids","fieldType":"uuid","relationType":"belongsToMany","required":false,"includeRelationTable":true}],
+ "relations":[{"domain":"very_long_domain_name_for_foreign_key_truncation","label":"長い","fieldName":"very_long_domain_name_for_foreign_key_truncation_ids","fieldType":"uuid","relationType":"belongsToMany","required":false,"through":"longPair"}],
  "useCreatedAt":true,"useUpdatedAt":true,"useSoftDelete":true,
  "fields":[{"name":"name","label":"名前","fieldType":"string","formInput":"textInput","required":false}],
  "searchFields":["name"],"defaultOrderBy":[],"tableFields":["name"],"useDetailModal":false,"useDuplicateButton":true,"useImportExport":false,"addToAdminDataMenu":false,

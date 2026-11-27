@@ -9,7 +9,7 @@ import { createDomainContext } from "../domain/context.mjs";
 import { DISTRICT_MAP_FILE, toJsonl } from "../../../../src/lib/districtMap/index.mjs";
 import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
 import { file } from "../render/output.mjs";
-import { generateTargets, isHandManaged, narrowGenerateTargets } from "../spec/categories.mjs";
+import { JUNCTION_CATEGORIES, generateTargets, isHandManaged, narrowGenerateTargets } from "../spec/categories.mjs";
 import { applyOutputs } from "./apply.mjs";
 import { reportDryRun, summarizeDryRun } from "./dryRun.mjs";
 import { assertPairs, collectionChildrenOf, groupOf, pairSummary, printPairNotices, resolvePairs } from "./pairs.mjs";
@@ -56,13 +56,15 @@ export function loadDomainForGenerate(workspace, domainInput, io = console, over
  * 生成カテゴリを `--only` で絞り、絞られて生成しないカテゴリを知らせる
  * @param {Record<string, boolean>} gen generateTargets または手動選択
  * @param {string[] | null} only
+ * @param {{ junction?: boolean }} [options] junction = 多対多の結びの登録(手動選択でも表のファイルだけ、D354)
  */
-export function narrowTargets(ctx, gen, only, io = console) {
+export function narrowTargets(ctx, gen, only, io = console, { junction = false } = {}) {
   if (isHandManaged(ctx.config)) {
     io.log(`[${ctx.camel}] generate: false（手で管理）のため何も書きません（作り直すときは generate を true に戻す）`);
     return generateTargets(ctx.config);
   }
-  const { gen: narrowed, skipped } = narrowGenerateTargets(gen, only ?? null);
+  const limited = junction ? Object.fromEntries(Object.entries(gen).map(([category, on]) => [category, on && JUNCTION_CATEGORIES.includes(category)])) : gen;
+  const { gen: narrowed, skipped } = narrowGenerateTargets(limited, only ?? null);
   if (skipped.length > 0) {
     io.log(`[${ctx.camel}] このドメインでは生成しないカテゴリのためスキップ: ${skipped.join(", ")}`);
   }
@@ -74,7 +76,8 @@ export function narrowTargets(ctx, gen, only, io = console) {
  * @param {import("./pairs.mjs").PairIndex} pairs
  */
 export function configTargets(ctx, pairs, only, io = console) {
-  return narrowTargets(ctx, generateTargets(ctx.config, { child: pairs.ownerOf.has(ctx.camel) }), only, io);
+  const junction = pairs.junctions?.has(ctx.camel) ?? false;
+  return narrowTargets(ctx, generateTargets(ctx.config, { child: pairs.ownerOf.has(ctx.camel), junction }), only, io, { junction });
 }
 
 /**

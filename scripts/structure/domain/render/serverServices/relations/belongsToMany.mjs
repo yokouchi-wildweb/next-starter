@@ -1,22 +1,17 @@
-// <登録名>Base.ts の belongsToManyRelations（中間テーブル経由の id 配列の同期）
+// <登録名>Base.ts の belongsToManyRelations（結びの登録 through の表を経由した id 配列の同期、D354）
 
-import { toCamelCase, toPascalCase } from "../../../../../../src/lib/stringCase/index.mjs";
-import { belongsToManyRelations } from "../../../domain/relations.mjs";
+import { belongsToManyRelations, junctionOf } from "../../../domain/relations.mjs";
 
 /**
  * @returns {Array<{ tableVar: string, literal: string, lines: string[] }>}
  *   literal = オプションリテラル内（インデント付き）、lines = テンプレートの __belongsToManyRelations__ 用（インデント無し）
  */
-export function buildBelongsToManySnippets(config, pascal, camel) {
+export function buildBelongsToManySnippets(workspace, config, camel) {
   if (!Array.isArray(config.relations)) return [];
   if (config.dbEngine !== "Neon") return [];
 
   return belongsToManyRelations(config).map((relation) => {
-    const relationPascal = toPascalCase(relation.domain);
-    const relationCamel = toCamelCase(relation.domain);
-    const relationTableVar = `${pascal}To${relationPascal}Table`;
-    const sourceProperty = `${camel}Id`;
-    const targetProperty = `${relationCamel}Id`;
+    const { tableVar: relationTableVar, sourceProperty, targetProperty } = junctionOf(workspace, camel, relation);
     const body = [
       `fieldName: "${relation.fieldName}",`,
       `throughTable: ${relationTableVar},`,

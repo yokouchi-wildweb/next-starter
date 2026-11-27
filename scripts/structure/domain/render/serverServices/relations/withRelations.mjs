@@ -4,7 +4,7 @@
 
 import { toCamelCase, toPascalCase } from "../../../../../../src/lib/stringCase/index.mjs";
 import { toPlural } from "../../../domain/plural.mjs";
-import { belongsToManyRelations, belongsToRelations, hasManyRelations } from "../../../domain/relations.mjs";
+import { belongsToManyRelations, belongsToRelations, hasManyRelations, junctionOf } from "../../../domain/relations.mjs";
 
 const EMPTY_NESTED = { lines: [], imports: { belongsTo: [], belongsToMany: [] } };
 
@@ -93,15 +93,15 @@ export function buildBelongsToManyObjectRelationsSnippets(workspace, config, own
     const relationPascal = toPascalCase(relation.domain);
     const relationCamel = toCamelCase(relation.domain);
     const targetTableImport = `${relationPascal}Table`;
-    const throughTableVar = `${ownerPascal}To${relationPascal}Table`;
+    const { tableVar: throughTableVar, sourceProperty, targetProperty } = junctionOf(workspace, ownerCamel, relation);
     return relationEntry(workspace, relation, visitedDomains, depth, {
       head: [
         `      field: "${toPlural(relation.domain)}",`,
         `      idField: "${relation.fieldName}",`,
         `      targetTable: ${targetTableImport},`,
         `      throughTable: ${throughTableVar},`,
-        `      sourceColumn: ${throughTableVar}.${ownerCamel}Id,`,
-        `      targetColumn: ${throughTableVar}.${relationCamel}Id,`,
+        `      sourceColumn: ${throughTableVar}.${sourceProperty},`,
+        `      targetColumn: ${throughTableVar}.${targetProperty},`,
       ],
       tableImport: targetTableImport,
       extra: { targetTableImport, throughTableVar, ownerDomain: toCamelCase(config.singular) },

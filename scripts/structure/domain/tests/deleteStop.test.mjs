@@ -71,7 +71,7 @@ test("inboundReferences: どの種類の関連で指されても domain と fiel
     ["album", [base("album")]],
     ["comment", [base("comment", [], { relations: [relation("album", "belongsTo", "album_id")] })]],
     ["tag", [base("tag", [], { relations: [relation("album", "belongsToMany", "album_ids")] })]],
-    ["inverse", [base("inverse", [], { relations: [relation("album", "belongsToMany", "album_ids", { includeRelationTable: false })] })]],
+    ["inverse", [base("inverse", [], { relations: [relation("album", "belongsToMany", "album_ids")] })]],
     ["shelf", [base("shelf", [], { relations: [relation("album", "hasMany", "album_id")] })]],
     ["cover", [base("cover", [], { relations: [relation("album", "hasOne", "album_id")] })]],
     ["other", [base("other", [], { relations: [relation("note", "belongsTo", "note_id")] })]],

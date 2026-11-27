@@ -1,11 +1,11 @@
-// entities/drizzle.ts（表の定義）を組み立てる。列 → 外部キー → 中間テーブル → インデックス → 秘匿カラム → 集まりの登録 の順に部品を集め、最後に文字列にする
+// entities/drizzle.ts（表の定義）を組み立てる。列 → 外部キー → インデックス → 秘匿カラム → 集まりの登録 の順に部品を集め、最後に文字列にする。
+// 多対多の中間の表は自分の登録(through が名指す entities/<結びの登録名>/、D354)がその登録の表として書く(主の表のファイルには書かない)
 // 手で持つ表の形の鍵(table・primaryKey・foreignKeys・checks・enums・fields[].column)は ./shape.mjs。鍵の無い config の出力は変わらない
 
 import { domainTableName } from "../../../domain/names.mjs";
 import { isCollectionFieldType } from "../../../spec/fieldTypes.mjs";
 import { fieldColumns, idColumn, systemColumns } from "./columns.mjs";
 import { belongsToColumns, renderDeferredForeignKeys } from "./foreignKeys.mjs";
-import { collectJunctionTables, renderJunctionTables } from "./junction.mjs";
 import { extraIndexes, extraIndexesHaveExpression, extraIndexesHaveUnique, extraIndexesHaveWhere, uniqueActiveIndexes } from "./indexes.mjs";
 import { hiddenColumnsOf, renderHiddenColumnsDeclaration, validateHiddenColumns } from "./hiddenColumns.mjs";
 import { declaredEnums, shapedFieldColumn, tableOnlyColumns } from "./shape.mjs";
@@ -36,8 +36,6 @@ export function renderDrizzleEntity(ctx, workspace) {
   const shape = tableShapeEntries(config, tableName, workspace.tableFileOf, selfFile, imports, needs);
   const columnLines = tableOnlyColumns(ctx, imports, enumDefs, needs);
   fields.push(...markColumnPrimaryKey(config, [...fieldLines, ...columnLines]), ...systemColumns(config, imports));
-
-  const junctionTables = collectJunctionTables(ctx, workspace, tableName, imports, relationImports);
 
   // インデックス関連の import 判定（import 行は本文より先に確定させる）
   const needsPartialIndex = config.useSoftDelete && uniqueFields.length > 0;
@@ -105,6 +103,5 @@ export function renderDrizzleEntity(ctx, workspace) {
       `\n// 主の集まりの項目（従属の登録の行の並び）。他ドメインの withRelations で埋め込まれた行にも載せるため表に登録する\n` +
       `defineTableCollections(${pascal}Table, () => import("${importRootFor(ctx)}/services/server/${camel}Collections").then((m) => m.collections));\n`;
   }
-  content += renderJunctionTables(ctx, junctionTables);
   return content;
 }

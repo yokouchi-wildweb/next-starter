@@ -50,7 +50,7 @@ export function planGenerateAll(workspace, selectedDomains, manualGenerate, only
     const pendingConfig = registration ? pairs.pending.get(registration) : undefined;
     const overrides = registration ? { registration, firstUnit, ...(pendingConfig ? { config: pendingConfig } : {}) } : {};
     const ctx = loadDomainForGenerate(workspace, domain, buffer, overrides);
-    const gen = manualGenerate ? narrowTargets(ctx, manualGenerate, only, buffer) : configTargets(ctx, pairs, only, buffer);
+    const gen = manualGenerate ? narrowTargets(ctx, manualGenerate, only, buffer, { junction: pairs.junctions.has(ctx.camel) }) : configTargets(ctx, pairs, only, buffer);
     ctx.collectionChildren = collectionChildrenOf(workspace, pairs, ctx.camel);
     return { domain: registration ? `${domain}/${registration}` : domain, ctx, gen, outputs: planDomain(ctx, workspace, gen), flush };
   });

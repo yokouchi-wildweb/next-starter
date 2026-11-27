@@ -16,7 +16,8 @@ export type DomainConfigRelation = {
   onDelete?: string;
   formInput?: string;
   labelField?: string;
-  includeRelationTable?: boolean;
+  /** belongsToMany の結びの登録名(持つ側だけが書く。反対側は書かない読むだけの参照、D354) */
+  through?: string;
 };
 
 export type DomainConfig = DomainConfigOptionals & {

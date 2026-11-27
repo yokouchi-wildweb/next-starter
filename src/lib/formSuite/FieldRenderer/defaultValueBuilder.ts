@@ -8,7 +8,7 @@ type DefaultValueField = Readonly<Pick<DomainField, "name" | "formInput" | "defa
   readonly fieldType?: DomainField["fieldType"];
 };
 
-type DefaultValueRelation = Pick<DomainDisplayRelation, "relationType" | "fieldName" | "includeRelationTable">;
+type DefaultValueRelation = Pick<DomainDisplayRelation, "relationType" | "fieldName" | "through">;
 
 type DomainConfig = {
   fields?: readonly DefaultValueField[];
@@ -53,7 +53,7 @@ export function buildFormDefaultValues<T extends Record<string, unknown>>(
     if (rel.relationType === "belongsTo") {
       result[rel.fieldName] = entity?.[rel.fieldName] ?? "";
     }
-    if (rel.relationType === "belongsToMany" && rel.includeRelationTable !== false) {
+    if (rel.relationType === "belongsToMany" && rel.through !== undefined) {
       result[rel.fieldName] = entity?.[rel.fieldName] ?? [];
     }
   }

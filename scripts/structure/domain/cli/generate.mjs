@@ -17,10 +17,12 @@ async function resolveGenerateTargets(ctx, pairs, options) {
   const { mode, interactive = true, manualGenerate } = options;
   const only = options.only ?? null;
   const fromConfig = () => configTargets(ctx, pairs, only);
+  // 多対多の結びの登録は手動選択でも表のファイルだけ(D354)
+  const limit = { junction: pairs.junctions.has(ctx.camel) };
 
   if (mode === "config") return fromConfig();
-  if (mode === "all") return narrowTargets(ctx, ALL_GENERATE_OPTIONS, only);
-  if (mode === "manual" && manualGenerate) return narrowTargets(ctx, manualGenerate, only);
+  if (mode === "all") return narrowTargets(ctx, ALL_GENERATE_OPTIONS, only, console, limit);
+  if (mode === "manual" && manualGenerate) return narrowTargets(ctx, manualGenerate, only, console, limit);
   if (!interactive) return fromConfig();
 
   const { mode: resolvedMode } = await prompt({
@@ -35,9 +37,9 @@ async function resolveGenerateTargets(ctx, pairs, options) {
     default: "config",
   });
   if (resolvedMode === "config") return fromConfig();
-  if (resolvedMode === "all") return narrowTargets(ctx, ALL_GENERATE_OPTIONS, only);
+  if (resolvedMode === "all") return narrowTargets(ctx, ALL_GENERATE_OPTIONS, only, console, limit);
 
-  return narrowTargets(ctx, await pickCategories(), only);
+  return narrowTargets(ctx, await pickCategories(), only, console, limit);
 }
 
 /**
