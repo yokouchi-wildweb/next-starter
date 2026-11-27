@@ -40,17 +40,19 @@ import type { CoreRoleOverride, RoleOverride } from "@/domains/core/user/types/r
 import type { ProfileOverride } from "@/domains/core/userProfile/types";
 import type { CronTaskOverride } from "@/lib/cron";
 import type { EntityOverride } from "@/lib/domain";
+import type { DomainCacheDeclaration } from "@/lib/domain/types/cache";
 import type { DomainApiAccessConfig } from "@/lib/domainAccess";
 `;
 
-test("今の型の鍵 = 宣言の鍵(core ロールに enabled・プロフィールに fields は無い)。登録の上書きは apiAccess だけで、値は access の型", () => {
+test("今の型の鍵 = 宣言の鍵(core ロールに enabled・プロフィールに fields は無い)。登録の上書きは apiAccess と cache(D353)で、値は access の型と cache の宣言の型", () => {
   const probe = `${HEAD}
 export const role: Eq<keyof RoleOverride, "label" | "hasProfile" | "enabled"> = true;
 export const coreRole: Eq<keyof CoreRoleOverride, "label" | "hasProfile"> = true;
 export const profile: Eq<keyof ProfileOverride, "tags" | "searchFields" | "audit"> = true;
 export const cron: Eq<keyof CronTaskOverride, "schedule" | "disabled"> = true;
-export const entity: Eq<keyof EntityOverride, "apiAccess"> = true;
-export const entityAccess: Eq<EntityOverride["apiAccess"], DomainApiAccessConfig> = true;
+export const entity: Eq<keyof EntityOverride, "apiAccess" | "cache"> = true;
+export const entityAccess: Eq<NonNullable<EntityOverride["apiAccess"]>, DomainApiAccessConfig> = true;
+export const entityCache: Eq<NonNullable<EntityOverride["cache"]>, DomainCacheDeclaration> = true;
 `;
   assert.deepEqual(diagnose(probe), []);
 });
