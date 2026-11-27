@@ -16,7 +16,7 @@ after(() => removeAll(cleanup));
 
 const SILENT = { log() {}, warn() {} };
 const shop = { label: "店", singular: "shop", plural: "shops", dbEngine: "Neon", idType: "uuid", useCreatedAt: true, useUpdatedAt: true, fields: [{ name: "name", label: "名前", fieldType: "string", formInput: "textInput" }] };
-const shopItem = { singular: "shop_item", plural: "shop_items", dbEngine: "Neon", idType: "uuid", useCreatedAt: true, useUpdatedAt: true, fields: [{ name: "title", label: "題", fieldType: "string", formInput: "textInput" }] };
+const shopItem = { label: "品", singular: "shop_item", plural: "shop_items", dbEngine: "Neon", idType: "uuid", useCreatedAt: true, useUpdatedAt: true, fields: [{ name: "title", label: "題", fieldType: "string", formInput: "textInput" }] };
 
 function project() {
   const root = makeProject({ templates: ["."], configs: { shop }, cleanup });
@@ -78,7 +78,7 @@ test("生成しない登録(generate: false)には何も書かない", () => {
 });
 
 test("Firestore の登録も登録のフォルダに書き、ドメインの物でない登録も生成でき、コレクションの道は <登録名>CollectionPath", () => {
-  const room = { singular: "room", plural: "rooms", dbEngine: "Firestore", idType: "uuid", useCreatedAt: true, useUpdatedAt: true, fields: [{ name: "name", label: "名前", fieldType: "string", formInput: "textInput" }] };
+  const room = { label: "部屋", singular: "room", plural: "rooms", dbEngine: "Firestore", idType: "uuid", useCreatedAt: true, useUpdatedAt: true, fields: [{ name: "name", label: "名前", fieldType: "string", formInput: "textInput" }] };
   const root = makeProject({ templates: ["."], configs: { room }, registrations: { "room/roomNote": { ...room, singular: "room_note", plural: "room_notes" } }, cleanup });
   const workspace = createWorkspace(root);
   const { plans } = planGenerateAll(workspace, ["room"], { ...GEN, adminRoutes: false }, null, SILENT);
