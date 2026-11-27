@@ -55,12 +55,6 @@ export function resolveName(rows, name, selfId) {
   return { kind: "none", candidates: (near.length ? near : live).sort(newestFirst).map(describe) };
 }
 
-/** セッション id で生きている行を引く(返事の前の生存の確認)。無い = null */
-export function findLive(rows, sessionId) {
-  const row = liveSessions(rows).find((r) => r.sessionId === sessionId);
-  return row ? describe(row) : null;
-}
-
 /** 自分の行(名前を from に入れる)。名前・status が無くても引く */
 export function findSelf(rows, sessionId) {
   const row = (rows ?? []).find((r) => r && r.sessionId === sessionId);

@@ -3,7 +3,7 @@
 // 普通のセッション同士の連絡(peer)の受け箱。利用者ごとに 1 か所、リポの外(~/.team・~/.claude・リポの中には置かない)。
 //   <root>/boxes/<セッション id>/<連絡 id>.json  — 会話の受け箱(呼び鈴のフックが見張るのは今の会話の箱と、受け持つ箱だけ)
 //   <root>/boxes/<種類>/<ID>/<連絡 id>.json      — インスタンス ID の箱(PEER_BOXES で受け持つ。種類は開いた名前)
-//   <root>/tmp/                                   — 書きかけ。ここに書いてから受け箱へ rename(見張りには add が 1 回だけ届く)
+//   <root>/tmp/                                   — 書きかけ。ここに書いてから受け箱へ link で置く(同じ名前があれば置かない = 上書きしない。見張りには add が 1 回だけ届く)
 //   <root>/state/<箱の鍵>/<連絡 id>.json          — 読んだ・返事した(箱の外に置き、印を付けても呼び鈴が鳴らない)
 //   <root>/marks/<セッション id>.json             — 印 = フックが書く自分の記録(pid・procStart が今のプロセスと合う時だけ有効)
 // ファイルはどれも版 `v` を持つ。説明: scripts/workflow/peer/README.md
@@ -94,20 +94,17 @@ function writeAtomic(root, dir, name, data) {
 }
 
 /**
- * 連絡を箱に置く(上書きしない)。tmp/ に書いてから link で置き、同じ名前があれば:
- *   id を渡していない → 新しい id を振り直して置く / id を渡した(送り直し・移し)→ 置かずに result "exists"
- * message = { from, senderMode, about, replyTo, body }(id・sentAt・v はここで付ける)
- * 戻り値 { message, result: "placed" | "exists" }
+ * 連絡を箱に置く(上書きしない)。tmp/ に書いてから link で置き、同じ連絡 id があれば id を振り直して置く(16 回まで、尽きたら throw)
+ * message = { from, senderMode, about, replyTo, body }(id・sentAt・v はここで付ける)。戻り値 = 置いた連絡
  */
-export function deliver(root, key, message, now = new Date(), { id } = {}) {
-  if (id !== undefined && !isMessageId(id)) throw new Error(`peer: 連絡 id に使えない名前です: ${id}`);
+export function deliver(root, key, message, now = new Date()) {
   const dir = boxDir(root, key);
   mkdirSync(dir, { recursive: true });
   mkdirSync(tmpDir(root), { recursive: true });
   for (let tries = 0; tries < 16; tries += 1) {
     const full = {
       v: FORMAT_VERSION,
-      id: id ?? newMessageId(now),
+      id: newMessageId(now),
       from: message.from,
       senderMode: message.senderMode ?? "unknown",
       about: message.about ?? "",
@@ -119,19 +116,15 @@ export function deliver(root, key, message, now = new Date(), { id } = {}) {
     writeFileSync(tmp, `${JSON.stringify(full, null, 2)}\n`);
     try {
       linkSync(tmp, path.join(dir, `${full.id}.json`));
-      return { message: full, result: "placed" };
+      return full;
     } catch (e) {
       if (e?.code !== "EEXIST") throw e;
-      if (id !== undefined) return { message: getMessage(root, key, id) ?? full, result: "exists" };
     } finally {
       rmSync(tmp, { force: true });
     }
   }
   throw new Error("peer: 連絡 id を取り直しても空きが見つかりませんでした");
 }
-
-/** deliver の連絡だけを返す形(id を渡さない置き方) */
-export const putMessage = (root, key, message, now = new Date()) => deliver(root, key, message, now).message;
 
 /**
  * 連絡として読める形か: 版 1、id が連絡 id でファイル名と同じ、body が文字列。ほか(JSON でない・別の版・id の欠け / 違い・
@@ -208,13 +201,9 @@ export function procStartOf(pid) {
   }
 }
 
-/**
- * 印が今も有効か: 印があり、その pid のプロセスが同じ起動の時刻で生きている(pid の使い回しを除く)。
- * livePid を渡すと(claude agents --json の行の pid)、それとも合うことを求める
- */
-export function markIsValid(mark, { livePid, procStart = procStartOf } = {}) {
+/** 印が今も有効か: 印があり、その pid のプロセスが同じ起動の時刻で生きている(pid の使い回しを除く) */
+export function markIsValid(mark, { procStart = procStartOf } = {}) {
   if (!mark || !mark.pid || !mark.procStart) return false;
-  if (livePid !== undefined && Number(livePid) !== Number(mark.pid)) return false;
   return String(procStart(mark.pid)) === String(mark.procStart);
 }
 

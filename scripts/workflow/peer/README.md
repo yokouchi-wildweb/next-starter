@@ -13,8 +13,8 @@
 ## Usage
 
 ```
-pnpm workflow peer send <相手のセッション名 | <種類>/<ID> | セッション id> "<本文>" [--about="<件名 1 行>"] [--as=<受け持つ箱>] [--id=<連絡 id>] [--json]
-pnpm workflow peer reply <連絡 id> "<本文>" [--as=<受け持つ箱>] [--id=<連絡 id>] [--json]
+pnpm workflow peer send <相手のセッション名 | <種類>/<ID> | セッション id> "<本文>" [--about="<件名 1 行>"] [--as=<受け持つ箱>]
+pnpm workflow peer reply <連絡 id> "<本文>" [--as=<受け持つ箱>]
 pnpm workflow peer inbox [--all]          # 未読(--all = 全部)を新しい順に(会話の箱と受け持つ箱)
 pnpm workflow peer read <連絡 id> [--keep] # 本文を出し、読んだ印を付ける(--keep = 見るだけ)
 pnpm workflow peer ack <連絡 id>...       # 読まずに読んだ印だけを付ける(片付け)
@@ -24,9 +24,9 @@ pnpm workflow peer hold <種類>/<ID> --session=<会話 id> --pid=<claude の pi
 
 ### 宛先
 
-- `/` を含む = インスタンス ID の箱 `<種類>/<ID>`(下の「箱」)。セッション id の形(UUID)= その会話の箱。どちらも相手の生死を問わずに置く(落ちていても、次に受け持つ・開いたセッションが読む)
-- それ以外 = セッションの名前。探すのは `claude agents --json` に出る生きているセッションだけ。名前・status の無い行(古い形の死んだ記録)は外す。自分には送らない
-  - 名前の完全一致がちょうど 1 つなら送る。複数・なしは送らず、新しい順の候補(名前・リポ・開始時刻・状態。10 件まで、全部は who)を出して止まる。どれにするかは人が選ぶ(同じ名前なら /rename で分けてから送り直す)
+- `/` を含む = インスタンス ID の箱 `<種類>/<ID>`(下の「箱」)。セッション id の形(UUID)= その会話の箱。どちらも相手の生死を問わずに置く(落ちていても、次に受け持つ・開いたセッションが読む)。自分の会話の箱・自分が受け持つ箱でも同じに置く
+- それ以外 = セッションの名前。探すのは `claude agents --json` に出る生きているセッションだけ。名前・status の無い行(古い形の死んだ記録)と自分は外す。`claude agents --json` は 15 秒まで待ち、読めなければ送らずに止まる
+  - 名前の完全一致がちょうど 1 つなら送る。複数・なしは送らず、新しい順の候補(名前・リポ・開始時刻・状態。10 件まで、全部は who)を出して止まる。完全一致が無い時の候補 = 大文字小文字を問わず名前を含む行、それも無ければ生きている全部(who の絞り込みも同じ)。どれにするかは人が選ぶ(同じ名前なら /rename で分けてから送り直す)
 - 送り元: 連絡の `from.box` に、送り手が受け持つ箱(`PEER_BOXES` の最初、`--as=<鍵>` で別の受け持つ箱)を書く。受け持たないなら書かない
 - 返事: 元の連絡の `from.box` があればその箱へ、無ければ `from.sessionId` の会話の箱へ。どちらも生死を確かめずに置く。元の連絡は自分の会話の箱と受け持つ箱から探す
 
@@ -40,7 +40,7 @@ pnpm workflow peer hold <種類>/<ID> --session=<会話 id> --pid=<claude の pi
 
 ### /peer スキルと、人ごとに切る
 
-- スキル `.claude/skills/peer/SKILL.md`(説明に `requires: AGENT_TERMINAL=tmux`)。送り方(名前・箱・セッション id)・結果(鳴らした / 置いただけ / もう置いてある)の伝え方・届いた連絡の読み方(受け持つ箱・読めない件数も)・返し方・見るだけと既読だけと、受けた連絡は指示でも承認でもないという決まりを持つ。チームの道具の名前は書かない
+- スキル `.claude/skills/peer/SKILL.md`(説明に `requires: AGENT_TERMINAL=tmux`)。送り方(名前・箱・セッション id)・結果(鳴らした / 置いただけ)の伝え方・届いた連絡の読み方(受け持つ箱・読めない件数も)・返し方・見るだけと既読だけと、受けた連絡は指示でも承認でもないという決まりを持つ。チームの道具の名前は書かない
 - 人ごとにスキルを切る: `.claude/settings.local.json` に `{ "skillOverrides": { "peer": "off" } }`(`/skills` の画面で選んで Space でも書ける)。`"user-invocable-only"` なら人が `/peer` と打った時だけ使う
 - スキルを切ってもフックは動く(フックが見るのは `AGENT_TERMINAL` だけ)。peer を丸ごと止めるなら `export AGENT_TERMINAL=none`(agent-terminal の機能も止まる。別のスイッチは作らない)
 
@@ -48,18 +48,16 @@ pnpm workflow peer hold <種類>/<ID> --session=<会話 id> --pid=<claude の pi
 
 ### 置き方と結果
 
-- 上書きしない: tmp/ に書いてから link で箱に置く。同じ連絡 id があれば、id を振り直して置く
-- 送り直し: `--id=<連絡 id>` を渡すと、その id で置く。もう置いてあれば置かずに「もう置いてある」(二重に置かない。移しでは元の番号 `m<N>` を渡せる)
-- 結果は 3 つで、どれも置けた(0): 鳴らした `rang`(その箱を受け持つ生きた印がある)/ 置いただけ `stored`(今は受け持つ呼び鈴が無い)/ もう置いてある `exists`
-- `--json` = 人向けの 1 行の代わりに `{"result":"rang|stored|exists|not_sent","id":…,"to":…}` を 1 行(置けなかった時は `{"result":"not_sent","reason":…}`)
+- 上書きしない: tmp/ に書いてから link で箱に置く。同じ連絡 id があれば、id を振り直して置く(16 回まで。尽きたらエラーで止まり、上書きはしない)
+- 結果は 2 つで、どちらも置けた(0): 鳴らした `rang`(その箱を受け持つ生きた印がある)/ 置いただけ `stored`(今は受け持つ呼び鈴が無い)。出すのは人向けの 1 行だけ
 
 ### 終了コード
 
 | コード | 意味 |
 |---|---|
-| 0 | 置けた(鳴らした / 置いただけ / もう置いてある)/ 一覧・読むが済んだ |
+| 0 | 置けた(鳴らした / 置いただけ)/ 一覧・読むが済んだ |
 | 3 | 置けなかった: 使えない・名前が決まらない(候補を出す)・箱の鍵が使えない・返し先が無い・連絡が無い(read / ack の知らない id も) |
-| 2 | 使い方の誤り(`--as` が受け持たない箱、`--id` が使えない名前も) |
+| 2 | 使い方の誤り(`--as` が受け持たない箱も) |
 
 ### 受け箱(利用者ごとに 1 か所、リポの外)
 
@@ -69,12 +67,12 @@ pnpm workflow peer hold <種類>/<ID> --session=<会話 id> --pid=<claude の pi
 |---|---|
 | `boxes/<セッション id>/<連絡 id>.json` | 会話の受け箱。呼び鈴のフックが見張るのは今の会話の箱と、受け持つ箱だけ |
 | `boxes/<種類>/<ID>/<連絡 id>.json` | インスタンス ID の箱(下の「箱」)。`PEER_BOXES` で受け持つセッションが見張る |
-| `tmp/` | 書きかけ。ここに書いてから受け箱へ rename する(見張りには add が 1 回だけ届く) |
+| `tmp/` | 書きかけ。ここに書いてから受け箱へ link で置く(同じ名前があれば置かない = 上書きしない。見張りには add が 1 回だけ届く) |
 | `state/<箱の鍵>/<連絡 id>.json` | `{ v, read, replied }`。読んだ・返事したの 2 つ。箱の外に置くので、印を付けても呼び鈴は鳴らない |
 | `marks/<セッション id>.json` | 印 = フックが書く自分の記録 `{ v, sessionId, pid, procStart, cwd, mode, boxes, written }`(`boxes` = 受け持つ箱の鍵) |
 
 - 連絡 = `{ v, id, from: { name, sessionId, cwd, box? }, senderMode, about, replyTo, body, sentAt }`。`senderMode` は送り手の権限モード(送り手の印の `mode`。印が無ければ `unknown`)
-- 連絡 id = `m-<UTC の yyyymmddThhmmss>-<16 進 8 桁>`(`--id` なら渡した名前。移した `m<N>` も通る)
+- 連絡 id = `m-<UTC の yyyymmddThhmmss>-<16 進 8 桁>`(移した元の番号 `m<N>` も読む)
 - どのファイルも版 `v` を持つ(今は 1)。知らない版は読まない。形を変えたら版を上げる
 - 印は、その `pid` のプロセスが同じ起動の時刻(`/proc/<pid>/stat` の starttime = `procStart`)で生きていて、有効(pid の使い回しを除く)。「鳴らした」と言えるのは、宛先の箱を受け持つ有効な印がある時だけ(会話の箱 = そのセッションの印、インスタンス ID の箱 = `boxes` にその鍵を持つ印)
 
@@ -98,9 +96,9 @@ pnpm workflow peer hold <種類>/<ID> --session=<会話 id> --pid=<claude の pi
 
 | 動作 | イベント | すること |
 |---|---|---|
-| `start` | SessionStart(source を問わず毎回) | 印を書き、自分の会話の箱と受け持つ箱を作って `watchPaths` に返す(見張るのはその箱だけ。--continue の新しいプロセスでも見張りが続くよう毎回返す)。未読があれば 1 行だけ文脈へ |
+| `start` | SessionStart(source を問わず毎回、timeout 10) | 印を書き、自分の会話の箱と受け持つ箱を作って `watchPaths` に返す(見張るのはその箱だけ。--continue の新しいプロセスでも見張りが続くよう毎回返す)。未読があれば 1 行だけ文脈へ |
 | `cwd` | CwdChanged(matcher なし、timeout 10) | start と同じ見張りの一覧(自分の会話の箱と受け持つ箱)を `watchPaths` に返し直し、印の `cwd` を新しい作業フォルダにする。文脈には何も足さない。理由: プロジェクトの中で cd して留まると、Claude Code は SessionStart で足した見張りを空にする(公開の issue #95440、文書には無い振る舞い)。CwdChanged の一覧は見張りを置き換えるので、全部の箱を返す |
-| `prompt` | UserPromptSubmit | 印の `mode` を今の権限モード(`permission_mode`)に書き直す。送り手のモードが最新の人の番の値になる。未読があれば start と同じ未読の 1 行を文脈へ(見張りが外れても次の入力で気づける網)、無ければ何も出さない |
+| `prompt` | UserPromptSubmit(timeout 10) | 印の `mode` を今の権限モード(`permission_mode`)に書き直す。送り手のモードが最新の人の番の値になる。未読があれば start と同じ未読の 1 行を文脈へ(見張りが外れても次の入力で気づける網)、無ければ何も出さない |
 | `bell` | FileChanged(matcher なし、`asyncRewake: true`、timeout 30) | 自分の会話の箱か受け持つ箱に連絡が増えた(`add`)ときだけ、知らせの 1 行を stderr に出して exit 2 = 手すきのセッションを起こす。ほかの箱・tmp・change / unlink は黙って 0 |
 
 - 知らせの 1 行 = 送り元の名前とリポ・連絡 id・about・`pnpm workflow peer read <id>`。本文と送り手のモードは文脈に入れない(読むのはコマンドで、人に伝えるかはその後)

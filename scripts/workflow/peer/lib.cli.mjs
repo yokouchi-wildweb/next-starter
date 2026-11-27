@@ -1,19 +1,19 @@
 // scripts/workflow/peer/lib.cli.mjs
 //
 // pnpm workflow peer <send|reply|inbox|read|ack|who|hold> の本体。動作のファイル(send.mjs など)はこれを呼ぶだけ。
-// 終了コード: 0 = 置けた(鳴らした rang / 置いただけ stored / もう置いてある exists)・済んだ / 3 = 置けなかった(使えない・
+// 終了コード: 0 = 置けた(鳴らした rang / 置いただけ stored)・済んだ / 3 = 置けなかった(使えない・
 // 宛先が決まらない・鍵が使えない・連絡が無い)/ 2 = 使い方の誤り。
-// 出す文はどれも 1 行で「何が起きたか・次にどうするか」が分かる形にする。--json = 機械向けの 1 行。説明: scripts/workflow/peer/README.md
+// 出す文はどれも 1 行で「何が起きたか・次にどうするか」が分かる形にする。説明: scripts/workflow/peer/README.md
 
 import { findSelf, readAgents, resolveName } from "./lib.agents.mjs";
 import { checkGate, heldBoxes } from "./lib.gate.mjs";
-import { deliver, getMessage, holderOf, isBoxKey, isInstanceBox, isMessageId, listBox, procStartOf, readMark, setState, stateRoot, writeMark } from "./lib.store.mjs";
+import { deliver, getMessage, holderOf, isBoxKey, isInstanceBox, listBox, procStartOf, readMark, setState, stateRoot, writeMark } from "./lib.store.mjs";
 
 export const EXIT = { done: 0, usage: 2, notSent: 3 };
 
 const USAGE = {
-  send: 'pnpm workflow peer send <相手のセッション名 | <種類>/<ID> | セッション id> "<本文>" [--about="<件名 1 行>"] [--as=<受け持つ箱>] [--id=<連絡 id>] [--json]',
-  reply: 'pnpm workflow peer reply <連絡 id> "<本文>" [--as=<受け持つ箱>] [--id=<連絡 id>] [--json]',
+  send: 'pnpm workflow peer send <相手のセッション名 | <種類>/<ID> | セッション id> "<本文>" [--about="<件名 1 行>"] [--as=<受け持つ箱>]',
+  reply: 'pnpm workflow peer reply <連絡 id> "<本文>" [--as=<受け持つ箱>]',
   inbox: "pnpm workflow peer inbox [--all]",
   read: "pnpm workflow peer read <連絡 id> [--keep]",
   ack: "pnpm workflow peer ack <連絡 id>...",
@@ -73,18 +73,10 @@ function prepare(deps) {
   return { selfId: gate.selfId, rows };
 }
 
-/** 結果を出す: --json なら機械向けの 1 行だけ、そうでなければ人向けの 1 行 */
-function report(deps, json, data, line) {
-  deps.print(json ? JSON.stringify(data) : line);
-}
-
-/** 置けなかった: 人向けの 1 行(と候補)、--json なら { result: "not_sent", reason } */
-function notSent(deps, json, reason, line, candidates) {
-  if (json) deps.print(JSON.stringify({ result: "not_sent", reason }));
-  else {
-    deps.print(line);
-    if (candidates) printCandidates(deps.print, candidates, CANDIDATE_LIMIT);
-  }
+/** 置けなかった: 人向けの 1 行(と候補) */
+function notSent(deps, line, candidates) {
+  deps.print(line);
+  if (candidates) printCandidates(deps.print, candidates, CANDIDATE_LIMIT);
   return EXIT.notSent;
 }
 
@@ -107,36 +99,23 @@ function sender(root, selfId, rows, env, as) {
 /** 宛先の見え方(行に出す名前) */
 const targetLabel = (t) => (t.repo ? `${t.name}(repo:${t.repo})` : t.name);
 
-/** 置いた後: rang(受け持つ生きた印がある)/ stored / exists を出して 0 */
-function delivered(deps, json, root, target, placed, verb) {
-  const { message, result } = placed;
-  const base = { id: message.id, to: target.key, ...(target.name !== target.key ? { name: target.name } : {}) };
-  if (result === "exists") {
-    report(deps, json, { result: "exists", ...base }, `peer: ${targetLabel(target)}には ${message.id} がもう置いてあるので、置き直していません(同じ連絡 id の送り直し)`);
+/** 置いた後: rang(受け持つ生きた印がある)/ stored を出して 0 */
+function delivered(deps, root, target, message, verb) {
+  if (holderOf(root, target.key, { procStart: deps.procStart })) {
+    deps.print(`peer: ${targetLabel(target)}に ${message.id} を${verb}。受け持つ生きた印があるので、その呼び鈴に任せました。返事はこのセッションに届きます`);
     return EXIT.done;
   }
-  const holder = holderOf(root, target.key, { procStart: deps.procStart });
-  if (holder) {
-    report(deps, json, { result: "rang", ...base }, `peer: ${targetLabel(target)}に ${message.id} を${verb}。受け持つ生きた印があるので、その呼び鈴に任せました。返事はこのセッションに届きます`);
-    return EXIT.done;
-  }
-  report(
-    deps,
-    json,
-    { result: "stored", ...base },
-    `peer: ${targetLabel(target)}に ${message.id} を置きました(今その箱を受け持つ呼び鈴が無いので、次に受け持つセッションが開いた時か、自分で inbox を見た時に読まれます)。急ぐなら人に伝えてください`,
-  );
+  deps.print(`peer: ${targetLabel(target)}に ${message.id} を置きました(今その箱を受け持つ呼び鈴が無いので、次に受け持つセッションが開いた時か、自分で inbox を見た時に読まれます)。急ぐなら人に伝えてください`);
   return EXIT.done;
 }
 
-/** 宛先を決める: <種類>/<ID> = 箱 / セッション id の形 = その会話の箱(どちらも生死を問わない)/ ほか = 生きているセッションの名前 */
+/** 宛先を決める: <種類>/<ID> = 箱 / セッション id の形 = その会話の箱(どちらも生死を問わない。自分の箱も同じ)/ ほか = 生きているセッションの名前(自分を除く) */
 function resolveTarget(arg, selfId, deps) {
   if (arg.includes("/")) {
     if (!isInstanceBox(arg)) return { error: "bad_key", line: `peer: 「${arg}」は箱の鍵(<種類>/<ID>)として使えないので送っていません` };
     return { target: { key: arg, name: arg } };
   }
   if (SESSION_ID_FORM.test(arg)) {
-    if (arg === selfId) return { error: "self", line: "peer: 自分の会話の箱には送りません" };
     return { target: { key: arg, name: `session ${arg.slice(0, 8)}` } };
   }
   const rows = deps.agents();
@@ -153,23 +132,18 @@ function resolveTarget(arg, selfId, deps) {
   };
 }
 
-/** --id の値(渡していない = undefined、使えない = null) */
-const idFlag = (flags) => (flags.id === undefined ? undefined : isMessageId(flags.id) ? flags.id : null);
-
 export function runSend(argv, deps = defaultDeps()) {
   const { positional, flags } = parseArgs(argv);
   const [to, ...words] = positional;
   const body = words.join(" ").trim();
-  const id = idFlag(flags);
-  if (!to || !body || id === null) {
+  if (!to || !body) {
     deps.print(`使い方: ${USAGE.send}`);
     return EXIT.usage;
   }
-  const json = flags.json === true;
   const gate = checkGate(deps.env);
-  if (!gate.ok) return notSent(deps, json, "gate", gate.reason);
+  if (!gate.ok) return notSent(deps, gate.reason);
   const found = resolveTarget(to, gate.selfId, deps);
-  if (found.error) return notSent(deps, json, found.error, found.line, found.candidates);
+  if (found.error) return notSent(deps, found.line, found.candidates);
   const root = stateRoot(deps.env);
   const me = sender(root, gate.selfId, found.rows ?? deps.agents() ?? [], deps.env, flags.as);
   if (!me) {
@@ -177,40 +151,38 @@ export function runSend(argv, deps = defaultDeps()) {
     return EXIT.usage;
   }
   const about = typeof flags.about === "string" ? flags.about : "";
-  const placed = deliver(root, found.target.key, { ...me, about, replyTo: null, body }, deps.now(), { id });
-  return delivered(deps, json, root, found.target, placed, "送りました");
+  const message = deliver(root, found.target.key, { ...me, about, replyTo: null, body }, deps.now());
+  return delivered(deps, root, found.target, message, "送りました");
 }
 
 export function runReply(argv, deps = defaultDeps()) {
   const { positional, flags } = parseArgs(argv);
   const [orig, ...words] = positional;
   const body = words.join(" ").trim();
-  const id = idFlag(flags);
-  if (!orig || !body || id === null) {
+  if (!orig || !body) {
     deps.print(`使い方: ${USAGE.reply}`);
     return EXIT.usage;
   }
-  const json = flags.json === true;
   const gate = checkGate(deps.env);
-  if (!gate.ok) return notSent(deps, json, "gate", gate.reason);
+  if (!gate.ok) return notSent(deps, gate.reason);
   const root = stateRoot(deps.env);
   const found = findInBoxes(root, gate.selfId, deps.env, orig);
   if (!found) {
-    return notSent(deps, json, "no_message", `peer: このセッションの受け箱(受け持つ箱も)に ${orig} はありません。何も送っていません(pnpm workflow peer inbox --all で id を確かめる)`);
+    return notSent(deps, `peer: このセッションの受け箱(受け持つ箱も)に ${orig} はありません。何も送っていません(pnpm workflow peer inbox --all で id を確かめる)`);
   }
   const original = found.message;
   // 返し先: 送り元が受け持つ箱(生死を問わず)、無ければ送り元の会話の箱(生死を問わず)
   const key = isInstanceBox(original.from?.box) ? original.from.box : original.from?.sessionId;
-  if (!isBoxKey(key)) return notSent(deps, json, "no_return_box", `peer: ${orig} には返し先(送り元の箱・会話)が書かれていないので返していません。用件は人に伝えてください`);
+  if (!isBoxKey(key)) return notSent(deps, `peer: ${orig} には返し先(送り元の箱・会話)が書かれていないので返していません。用件は人に伝えてください`);
   const me = sender(root, gate.selfId, deps.agents() ?? [], deps.env, flags.as);
   if (!me) {
     deps.print(`使い方: --as は PEER_BOXES で受け持つ箱のどれか(${USAGE.reply})`);
     return EXIT.usage;
   }
   const about = original.about ? `re: ${original.about}` : "re:";
-  const placed = deliver(root, key, { ...me, about, replyTo: original.id, body }, deps.now(), { id });
+  const message = deliver(root, key, { ...me, about, replyTo: original.id, body }, deps.now());
   setState(root, found.key, original.id, "replied", deps.now());
-  return delivered(deps, json, root, { key, name: original.from?.name && original.from.name !== "-" ? original.from.name : key }, placed, "返しました");
+  return delivered(deps, root, { key, name: original.from?.name && original.from.name !== "-" ? original.from.name : key }, message, "返しました");
 }
 
 /** このセッションが読む箱: 自分の会話の箱 + 受け持つ箱 */

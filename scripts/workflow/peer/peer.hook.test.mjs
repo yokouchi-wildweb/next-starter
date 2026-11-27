@@ -17,7 +17,7 @@ import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { bellLine, runHook } from "./lib.hook.mjs";
-import { boxDir, claudePid, putMessage, readMark, setState } from "./lib.store.mjs";
+import { boxDir, claudePid, deliver, readMark, setState } from "./lib.store.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.join(here, "../../..");
@@ -62,8 +62,8 @@ test("start: 印と受け箱を作り、watchPaths に自分の箱だけを返�
 
 test("start: どの source でも毎回 watchPaths を返す。未読があれば 1 行だけ", () => {
   const root = temp();
-  const a = putMessage(root, SELF, { from, body: "x" });
-  const b = putMessage(root, SELF, { from, body: "y" });
+  const a = deliver(root, SELF, { from, body: "x" });
+  const b = deliver(root, SELF, { from, body: "y" });
   setState(root, SELF, a.id, "read");
   for (const source of ["startup", "resume", "clear", "compact", "fork"]) {
     const out = JSON.parse(runHook("start", { source }, depsFor(root)).stdout).hookSpecificOutput;
@@ -93,7 +93,7 @@ test("prompt: 印の mode を今の権限モードに書き直し、何も出さ
 
 test("bell: 自分の受け箱への add だけ 1 行 + exit 2。本文・送り手のモードは入れない", () => {
   const root = temp();
-  const m = putMessage(root, SELF, { from, senderMode: "bypassPermissions", about: "棚", body: "ひみつの本文" });
+  const m = deliver(root, SELF, { from, senderMode: "bypassPermissions", about: "棚", body: "ひみつの本文" });
   const file = path.join(boxDir(root, SELF), `${m.id}.json`);
   const r = runHook("bell", { hook_event_name: "FileChanged", file_path: file, event: "add" }, depsFor(root));
   assert.equal(r.code, 2);
@@ -103,15 +103,15 @@ test("bell: 自分の受け箱への add だけ 1 行 + exit 2。本文・送り
   assert.equal(r.stderr.includes("ひみつの本文"), false);
   assert.equal(r.stderr.includes("bypassPermissions"), false);
   assert.equal(r.stderr.trim().includes("\n"), false);
-  const reply = putMessage(root, SELF, { from, replyTo: m.id, body: "z" });
+  const reply = deliver(root, SELF, { from, replyTo: m.id, body: "z" });
   assert.match(bellLine(reply), new RegExp(`返事\\(${m.id} への\\)`));
 });
 
 test("bell: 他人の箱・tmp・change / unlink・連絡でないファイル・読めない連絡 → 黙って 0", () => {
   const root = temp();
-  const m = putMessage(root, SELF, { from, body: "x" });
+  const m = deliver(root, SELF, { from, body: "x" });
   const own = path.join(boxDir(root, SELF), `${m.id}.json`);
-  const other = putMessage(root, "other-2222", { from, body: "x" });
+  const other = deliver(root, "other-2222", { from, body: "x" });
   const cases = [
     { file_path: own, event: "change" },
     { file_path: own, event: "unlink" },
@@ -203,11 +203,11 @@ test("PEER_BOXES: start は受け持つ箱も作って見張り、印に書く�
 test("bell: 受け持つ箱への add でも鳴り、行は箱を名指す。受け持たない箱は黙る", () => {
   const root = temp();
   const env = { PEER_BOXES: "council/r1" };
-  const m = putMessage(root, "council/r1", { from, about: "件", body: "x" });
+  const m = deliver(root, "council/r1", { from, about: "件", body: "x" });
   const r = runHook("bell", { event: "add", file_path: path.join(boxDir(root, "council/r1"), `${m.id}.json`) }, depsFor(root, env));
   assert.equal(r.code, 2);
   assert.match(r.stderr, /連絡\(受け持つ箱 council\/r1 宛て\) m-/);
-  const o = putMessage(root, "council/q9", { from, body: "x" });
+  const o = deliver(root, "council/q9", { from, body: "x" });
   assert.equal(runHook("bell", { event: "add", file_path: path.join(boxDir(root, "council/q9"), `${o.id}.json`) }, depsFor(root, env)).code, 0);
   assert.equal(runHook("bell", { event: "add", file_path: path.join(boxDir(root, "council/r1"), `${m.id}.json`) }, depsFor(root)).code, 0);
 });
@@ -251,7 +251,7 @@ test("bell: 元の番号 m<N> の連絡でも鳴る。読めない連絡では�
 test("cwd: start と同じ見張りの一覧(受け持つ箱も)を CwdChanged で返し直し、印の cwd を新しい値にする。文脈には何も足さない", () => {
   const root = temp();
   const env = { PEER_BOXES: "council/r1" };
-  putMessage(root, SELF, { from, body: "未読があっても cwd は 1 行を出さない" });
+  deliver(root, SELF, { from, body: "未読があっても cwd は 1 行を出さない" });
   const start = JSON.parse(runHook("start", { cwd: "/w/repo" }, depsFor(root, env)).stdout).hookSpecificOutput;
   rmSync(boxDir(root, "council/r1"), { recursive: true, force: true });
   const r = runHook("cwd", { cwd: "/w/repo/sub", old_cwd: "/w/repo", new_cwd: "/w/repo/sub" }, depsFor(root, env));
@@ -271,7 +271,7 @@ test("prompt: 未読があれば start と同じ未読の 1 行(受け持つ箱�
   const root = temp();
   const env = { PEER_BOXES: "council/r1" };
   runHook("start", {}, depsFor(root, env));
-  const a = putMessage(root, "council/r1", { from, body: "x" });
+  const a = deliver(root, "council/r1", { from, body: "x" });
   mkdirSync(boxDir(root, SELF), { recursive: true });
   writeFileSync(path.join(boxDir(root, SELF), "x.json"), "{ not json");
   const r = runHook("prompt", { permission_mode: "default" }, depsFor(root, env));
