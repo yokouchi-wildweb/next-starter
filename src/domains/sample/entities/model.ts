@@ -4,4 +4,3 @@
 
 export * from "./sample/model";
 export * from "./sampleImage/model";
-export * from "./sampleToSampleTag/model";

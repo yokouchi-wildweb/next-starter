@@ -1,8 +1,9 @@
 // 生成カテゴリ entities: 登録のフォルダ entities/<登録名>/{model,form,schema}.ts と、Neon は drizzle.ts・Firestore は firestore.ts(D335・D336)、
-// ドメインの entities/index.ts。集める入口 entities/<種類>.ts は pnpm generate registry が全ドメインに書く
+// ドメインの entities/index.ts。多対多の結びの登録(through で名指される、D354)は表のファイル drizzle.ts だけ(画面・フォームの型を持たない)。集める入口 entities/<種類>.ts は pnpm generate registry が全ドメインに書く
 
 import path from "node:path";
 import { domainRel, requireConfig } from "../../domain/context.mjs";
+import { isJunctionRegistration } from "../../domain/relations.mjs";
 import { file } from "../output.mjs";
 import { entityKindsOf, moveIntoRegistration } from "./collector.mjs";
 import { renderDrizzleEntity } from "./drizzle/index.mjs";
@@ -25,8 +26,9 @@ export function renderEntities(ctx, workspace) {
   // Neon も Firestore も登録のフォルダ entities/<登録名>/ に書く(登録の多いドメインでも同じ形)。集める入口 entities/<種類>.ts は pnpm generate registry
   const rel = domainRel(ctx);
   const registration = ctx.camel;
-  const kinds = entityKindsOf(ctx.dbEngine);
-  const texts = { model: renderModel(ctx), form: renderFormEntity(ctx), schema: renderSchema(ctx) };
+  const junction = isJunctionRegistration(workspace, registration);
+  const kinds = junction ? ["drizzle"] : entityKindsOf(ctx.dbEngine);
+  const texts = junction ? {} : { model: renderModel(ctx), form: renderFormEntity(ctx), schema: renderSchema(ctx) };
   if (kinds.includes("drizzle")) texts.drizzle = renderDrizzleEntity(ctx, workspace);
   if (kinds.includes("firestore")) texts.firestore = renderFirestoreEntity(ctx);
   const labels = { model: "モデルエンティティ", form: "フォームエンティティ", drizzle: "Drizzle エンティティ", firestore: "Firestore エンティティ", schema: "スキーマ" };

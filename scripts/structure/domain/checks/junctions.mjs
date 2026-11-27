@@ -4,23 +4,12 @@
 // 結びの登録の形: 両側(through を書いた登録と関係の相手)を指す結び 2 本(belongsTo、手の表の形なら foreignKeys)・その 2 列の合成の主キー・registered:false。
 // onDelete・FK の名前は宣言のまま(今動いている表の値を正にする、D354)。読むだけ(ファイルを読まない純関数)。規則の正: src/domains/README.md「Relation」
 
+import { junctionLinksOf } from "../../../../src/lib/domain/node.mjs";
 import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
 import { domainTableName } from "../domain/names.mjs";
 
-/** 結びの登録が両側を指す列: belongsTo の fieldName か、手の表の形の foreignKeys の 1 列 → 指す登録名 */
-function linksOf(junction, registrationOfTable) {
-  const links = [];
-  for (const relation of junction.config?.relations ?? []) {
-    if (relation?.relationType !== "belongsTo") continue;
-    links.push({ column: relation.fieldName, target: toCamelCase(relation.domain ?? ""), required: relation.required === true });
-  }
-  for (const foreignKey of junction.config?.foreignKeys ?? []) {
-    const columns = foreignKey?.columns ?? [];
-    if (columns.length !== 1) continue;
-    links.push({ column: columns[0], target: registrationOfTable.get(foreignKey.references?.table) ?? null, required: true });
-  }
-  return links;
-}
+/** 結びの登録が両側を指す列(読み方は src/lib/domain/junction/links.mjs の 1 つ: データの移しと同じ) */
+const linksOf = (junction, registrationOfTable) => junctionLinksOf(junction.config, (table) => registrationOfTable.get(table) ?? null);
 
 /**
  * @param {Map<string, { domain: string, config: object | null }>} registrations 全ドメインの登録名 → ドメインと entity.json

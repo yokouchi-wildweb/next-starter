@@ -381,15 +381,6 @@ roles/
       "required": false,
       "onDelete": "RESTRICT",
       "formInput": "asyncCombobox"
-    },
-    {
-      "domain": "contributor_tag",
-      "label": "タグ",
-      "fieldName": "contributor_tag_ids",
-      "fieldType": "uuid",
-      "relationType": "belongsToMany",
-      "includeRelationTable": true,
-      "formInput": "asyncMultiSelect"
     }
   ]
 }
@@ -397,15 +388,15 @@ roles/
 
 **対応するリレーションタイプ:**
 - `belongsTo`: 外部キーカラムを生成。`onDelete` で削除時の挙動を指定
-- `belongsToMany`: 中間テーブルを自動生成（`{RoleId}ProfileTo{Relation}Table`）
+- `belongsToMany`: 今は書けない（生成が止まる）。多対多の結びはいつも自分の登録（D354）で、core の userProfile の表の横に fork の結びの登録を置く場所がまだ無い（使うリポは無い）
 
 **自動生成される内容:**
-- `drizzle.ts`: FK カラム（belongsTo）、中間テーブル（belongsToMany）
+- `drizzle.ts`: FK カラム（belongsTo）
 - `schema.ts`: FK フィールドの Zod バリデーション
 - `model.ts`: FK フィールドの型定義
 - `extensions/profileBases.ts`: `createProfileBase` に `belongsToManyRelations`, `belongsToRelations`, `belongsToManyObjectRelations`, `countableRelations` を渡す
 
-**書き方:** role.json・profile.json は手で書き（対話で組み立てるコマンドは無い）、`pnpm forge` で生成する。リレーションの決まり（belongsTo / belongsToMany だけ、fieldName 必須、fieldType は省略か uuid、SET_NULL は required と両立しない、formInput）は生成前の検査が止める（下の「pnpm generate role」）。
+**書き方:** role.json・profile.json は手で書き（対話で組み立てるコマンドは無い）、`pnpm forge` で生成する。リレーションの決まり（belongsTo だけ、fieldName 必須、fieldType は省略か uuid、SET_NULL は required と両立しない、formInput）は生成前の検査が止める（下の「pnpm generate role」）。
 
 ### fork の上書き
 
@@ -478,12 +469,12 @@ pnpm generate role -- --all      # 全 *.role.json（user/extensions/roles.ts �
 書く前に検査する（`scripts/structure/role/checks/`、テスト `pnpm test scripts/structure/role/tests/checks.test.mjs`）。問題は全件並べて何も書かずに終了コード 1、`--all` は全ロールを先に検査する:
 - 止める（ロール）: ロール ID の形（英小文字で始まる英小文字・数字・_）、ファイル名（`<id>.role.json`）、`isCore` のキー、core ロールの置き場（`roles/` に core の ID、`coreRoles/` に 3 つ以外）、category（user / admin）、hasProfile（boolean、true ならプロフィール設定が要る）
 - 止める（プロフィール）: ロール設定の無いプロフィール設定（`--all` のとき）、項目 0 件、メディア型（mediaUploader / mediaCollection）、enum の選択肢・既定値の型（ドメインの検査と同じ）、知らないタグ・tags の無い名前、型の表に無い fieldType（`hasProfile: true` のとき）、項目のキー `default`（既定値は `defaultValue`）
-- 止める（リレーション・上書き・監査）: relationType（belongsTo / belongsToMany）・fieldName・fieldType（省略か uuid）・onDelete の値・SET_NULL × required・formInput、上書きの問題（「fork の上書き」）、audit の形（auditLog の README「A」）
+- 止める（リレーション・上書き・監査）: relationType（belongsTo だけ。belongsToMany は結びの置き場が無いので止める）・fieldName・fieldType（省略か uuid）・onDelete の値・SET_NULL × required・formInput、上書きの問題（「fork の上書き」）、audit の形（auditLog の README「A」）
 - 警告だけ: hasProfile: false なのにプロフィール設定がある（プロフィールの生成物は消さずに残す。消すのは `pnpm generate role -- --delete-profile`）、型と入力欄の組が表（`src/lib/domain/fields/fieldFormInputs.mjs` の Neon）に無い、選択肢の要る入力欄に options が無い
 
 実行内容:
 1. user/extensions/roles.ts 更新
-2. entities/profiles/{roleId}/ 配下のファイル生成（relations があれば FK カラム・中間テーブルも生成）
+2. entities/profiles/{roleId}/ 配下のファイル生成（relations があれば FK カラムも生成）
 3. extensions/ の 4 本を全件再生成（searchFields・リレーション設定・audit を反映）
 
 #### 操作コマンド

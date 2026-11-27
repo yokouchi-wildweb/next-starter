@@ -81,7 +81,7 @@
 lib は登録表を import しない。API ルートが `src/wiring/domainRegistry.ts`・`src/wiring/domainConfig.ts` の登録表を引く関数を渡す。DataMigrationButton は表示用の写し（`entities/display.ts` の `domainDisplay`）を受ける。
 
 - `services`: ドメイン名からサービスを引く(`getService`)
-- `junctionTables`: 中間表の名前から表を引く(`getJunctionTable`)
+- `junctionTables`: 多対多の結びの表を物理の表の名前から引く(`getJunctionTable`)。書き出す結びは `through` を書いた持つ側の関係だけで、表・列は結びの登録の宣言から読む(`junctionColumnsOf`、D354。反対側は結びを出さない)
 - `domainConfigs`: export で関連を含めるときにドメイン名から設定を引く(`getDomainConfig`)
 - `media`: ファイル台帳の操作
 

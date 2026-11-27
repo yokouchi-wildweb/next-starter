@@ -77,7 +77,7 @@
 
 0. 他のドメインから参照されているドメインの削除と、残るコードから import されているドメインの削除は、エラーで止まり何も消さない（`pipeline/remove/deleteStop.mjs`。`--force` は無い。他のドメインの宣言は書き換えない）
    - 集まりの従属は主のドメインの中の登録なので、ドメインと一緒に消える（組で止めない）
-   - 参照: 他のドメインの登録の entity.json の `relations` が belongsTo / belongsToMany（`includeRelationTable: false` の逆側を含む）/ hasMany / hasOne で指していれば止まり、参照元のドメインと fieldName を全部出す。先に参照元の関連を外すか、参照元を `--remove-config` 付きで消す
+   - 参照: 他のドメインの登録の entity.json の `relations` が belongsTo / belongsToMany（`through` の無い反対側を含む）/ hasMany / hasOne で指していれば止まり、参照元のドメインと fieldName を全部出す。先に参照元の関連を外すか、参照元を `--remove-config` 付きで消す
    - 判定は登録の entity.json の宣言だけを見る（全ての登録: 主でない登録の関連も数え、`relations[].domain` が消すドメインのフォルダ名か、その中のどの登録の名前でも止める）: 宣言を残した削除（既定）の参照元は宣言が残るので止まり続ける。自己参照と、消すドメイン自身が持つ関連は数えない。読めない entity.json は見えない
    - import: `src` 配下の消さずに残るコード（`.ts` / `.tsx` / `.mts` / `.mjs` など）が消すドメインのフォルダを import していれば止まり、参照元のファイルと from 先を全部出す（`codeReferences`、純関数）。`@/domains/<d>/…`・`@/domains/core/<d>/…`（core は `core/` を省いた書き方も）・解決するとフォルダに入る相対パス・動的 `import()`・`require()` を数える。コメントの中は数えない
      - 数えないもの: 消すフォルダの中、管理画面ルート（一緒に消す）、設定値のファイル `src/config/domains/<フォルダ>.config.ts`・`<フォルダ>.<名前>.config.ts`（持ち主の config.ts だけが読む。一緒に消す）、`--extra` で選んだディレクトリ、`src/registry/`（生成物。消した後に `pnpm generate registry` で作り直す）。門番の規則はドメインを import しない（止めは下の 3）

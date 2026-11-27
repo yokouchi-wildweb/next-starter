@@ -18,6 +18,8 @@ export type RelationInfo = {
   relationType: RelationType;
   /** 必須フラグ */
   required: boolean;
+  /** belongsToMany の持つ側が名指す結びの登録名(D354)。反対側(読むだけの参照)と belongsTo は無し */
+  through?: string;
 };
 
 /** hasMany リレーション情報 */

@@ -44,7 +44,7 @@
 
 - top: singular・plural・label・fields・relations・searchFields・useCreatedAt・useUpdatedAt・useSoftDelete・useImportExport・sortOrderField・fieldGroups（key・label・fields・collapsible・defaultCollapsed・bgColor）・tableFields
 - field: name・label・fieldType・formInput・options・required・readonly・defaultValue・displayType・placeholder・accept・validationRule・reorderable・helperText
-- relation: domain・label・fieldName・fieldType・relationType・required・formInput・labelField・includeRelationTable。非同期検索の関連には関連先の searchFields
+- relation: domain・label・fieldName・fieldType・relationType・required・formInput・labelField・through(多対多の持つ側の結びの登録名、D354)。非同期検索の関連には関連先の searchFields
 - 写さない: defaultOrderBy・metadataBinding・uploadPath・field の description・apiAccess・dbEngine・generateFiles・storage ほか一覧の外。entity.json にキーを足しても client には出ない（fork だけのキーも同じ）
 - 列名を持つ項目（fields・searchFields・tableFields・sortOrderField・fieldGroups[].fields・relations.fieldName）は、Firestore なら camelCase にし、hiddenColumns の列を除く。隠し列を指す関連は写さない
 
@@ -61,14 +61,14 @@
 
 ### 入口と関数のありか
 
-- 入口は 3 つ(`package.json`): `.` = `@/lib/domain`(client でも server でも読める: 型・写しを受ける関数・定義の読み方・型の表と入力種別の表と表示の答え・主キーの論理名 `CRUD_ID_FIELD`・日時の schema・値の表示 `format*` と `FieldPresenter`・中間表の名前・管理画面のパス `getAdminPaths` / `AdminPaths`。React の値・hooks・HTTP の client は無い)、`./server` = `@/lib/domain/server`(登録表から引く関数・`getJunctionTable`)、`./node` = `node.mjs`(Next の外のプログラムが読む `.mjs` 5 つ: `fieldTypes`・`fieldFormInputs`・`formInputs`・`presenterFor`・`relationOptions`。scripts・eslint-rules からは相対で `src/lib/domain/node.mjs`)
+- 入口は 3 つ(`package.json`): `.` = `@/lib/domain`(client でも server でも読める: 型・写しを受ける関数・定義の読み方・型の表と入力種別の表と表示の答え・主キーの論理名 `CRUD_ID_FIELD`・日時の schema・値の表示 `format*` と `FieldPresenter`・多対多の結びの読み方(`junctionColumnsOf` / `junctionLinksOf` / `registrationTableName`)・管理画面のパス `getAdminPaths` / `AdminPaths`。React の値・hooks・HTTP の client は無い)、`./server` = `@/lib/domain/server`(登録表から引く関数・`getJunctionTable`)、`./node` = `node.mjs`(Next の外のプログラムが読む `.mjs` 6 つ: `fieldTypes`・`fieldFormInputs`・`formInputs`・`presenterFor`・`relationOptions`・`junction/links`。scripts・eslint-rules からは相対で `src/lib/domain/node.mjs`)
 - 外から下の中のファイルは読まない(lint `entry/only-entries`)。下はフォルダの中の置き場
 
 - `definition/`: `createDomainConfigLookup`、`normalizeEntityDeclaration`、`resolveAccessRule`
 - `relations/`: 写しを受ける関数、関連選択肢（`relationOptions.mjs`）
 - `fields/`: `extractFields` / `extractImageFields`、型（fieldType）の表 `fieldTypes.mjs`、主キーの論理名 `idField.ts`、日時の schema `datetimeSchema.ts`、値の表示 `formatters.ts`(生成した <登録名>Presenters.ts が読む。`FieldPresenter` の戻りの型だけ react を型で読む)
 - `routes/`: 管理画面のパス `getAdminPaths(slugPlural)` → `AdminPaths`(list / new / detail(id) / edit(id))
-- `junction/`: 中間表の名前解決（utils は client 可、`getJunctionTable(tables, name)` は server-only で表の一覧を引数で受ける。結んだ版は `src/wiring/domainRegistry.ts` の `getJunctionTable(name)`）
+- `junction/`: 多対多の結びの登録(D354)の読み方。`links.mjs`(client 可・`./node` からも)= 結びの登録の 2 本の結びから持つ側・相手の列(`junctionColumnsOf`)、名前を組み立てない。`getJunctionTable(tables, tableName)` は server-only で、表の一覧から物理の表の名前で引く(const 名を組み立てない)。結んだ版は `src/wiring/domainRegistry.ts` の `getJunctionTable(tableName)`
 
 ### 型(fieldType)の表: `fields/fieldTypes.mjs`
 

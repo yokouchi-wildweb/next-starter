@@ -30,7 +30,7 @@ import type { DomainApiAccessConfig } from "@/lib/domainAccess";
 import { coreRegistrations, domainConfigMap } from "@/registry/domainConfigRegistry";
 import { serviceRegistry } from "@/registry/serviceRegistry";
 
-/** 中間表の名前（snake_case）から表を引く。表の定義は呼ばれたときに読む（このファイルの import を軽く保つ） */
+/** 多対多の結びの表を物理の表の名前（sample_to_sample_tag）で引く。表の定義は呼ばれたときに読む（このファイルの import を軽く保つ） */
 export const getJunctionTable = async (tableName: string): Promise<PgTable | undefined> =>
   getJunctionTableFrom(await import("@/registry/schemaRegistry"), tableName);
 

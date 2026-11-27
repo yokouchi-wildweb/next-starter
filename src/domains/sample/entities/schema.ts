@@ -4,4 +4,3 @@
 
 export * from "./sample/schema";
 export * from "./sampleImage/schema";
-export * from "./sampleToSampleTag/schema";

@@ -11,7 +11,6 @@ export type { DomainConfig, DomainConfigRelation } from "./types/domainConfig";
 export type { DomainConfigOptionals } from "./types/domainConfigOptionals";
 export type { DomainField, DomainFieldCollection, DomainFieldOption, DomainFieldOptionValue } from "./types/domainField";
 export type { DomainFieldInfo } from "./types/field";
-export type { JunctionTableInfo } from "./types/junction";
 export type {
   DomainRegistry,
   DomainRegistryEntry,
@@ -92,14 +91,8 @@ export {
   type FieldPresenterParams,
 } from "./fields/formatters";
 
-// junction: 中間テーブルの名前の決まり(表そのものを引く getJunctionTable は "./server")
-export {
-  getJunctionTableInfo,
-  isJunctionTableName,
-  parseJunctionTableName,
-  resolveJunctionFieldName,
-  resolveJunctionTableName,
-} from "./junction/utils";
+// junction: 多対多の結びの登録の結びの読み方(D354。名前を組み立てない。"./node" からも出る。表そのものを引く getJunctionTable は "./server")
+export { junctionColumnsOf, junctionLinksOf, registrationTableName } from "./junction/links.mjs";
 
 // routes: ドメインの管理画面のパス
 export { getAdminPaths, type AdminPaths } from "./routes/adminPaths";

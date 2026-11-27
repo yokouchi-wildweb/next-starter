@@ -1,37 +1,31 @@
 // src/lib/domain/junction/getTable.ts
-// 中間テーブルの Drizzle テーブルを取得するユーティリティ（server-only）。
-// 表の一覧は引数で受ける（lib は登録表を import しない。結ぶのは src/wiring/domainRegistry.ts）
+// 多対多の結びの表(D354: 結びの登録の表)を物理の表の名前で引く(server-only)。名前を組み立てない(表の定義の名前を読む)。
+// 表の一覧は引数で受ける(lib は登録表を import しない。結ぶのは src/wiring/domainRegistry.ts)
 
 import "server-only";
-import { toPascalCase } from "@/lib/stringCase/index.mjs";
-import type { PgTable } from "drizzle-orm/pg-core";
+import { is } from "drizzle-orm";
+import { getTableConfig, PgTable } from "drizzle-orm/pg-core";
 
 /** 表の const 名 → 表の一覧（schemaRegistry の形） */
 export type JunctionTables = Readonly<Record<string, unknown>>;
 
 /**
- * 中間テーブル名から Drizzle テーブルを取得
+ * 物理の表の名前から Drizzle テーブルを取得
  *
  * @param tables - 表の一覧
- * @param tableName - 中間テーブル名（snake_case: sample_to_sample_tag）
+ * @param tableName - 結びの表の物理名（sample_to_sample_tag。データの移しの書き出しのドメイン名 = 結びの登録の表）
  * @returns Drizzle テーブル。見つからない場合は undefined
- *
- * @example
- * const table = getJunctionTable(tables, "sample_to_sample_tag");
- * // SampleToSampleTagTable
  */
 export function getJunctionTable(tables: JunctionTables, tableName: string): PgTable | undefined {
-  // sample_to_sample_tag -> SampleToSampleTagTable
-  const tableConstName = `${toPascalCase(tableName)}Table`;
-  return tables[tableConstName] as PgTable | undefined;
+  for (const value of Object.values(tables)) {
+    if (is(value, PgTable) && getTableConfig(value).name === tableName) return value;
+  }
+  return undefined;
 }
 
 /**
- * 中間テーブル名から Drizzle テーブルを取得（存在しない場合はエラー）
+ * 物理の表の名前から Drizzle テーブルを取得（存在しない場合はエラー）
  *
- * @param tables - 表の一覧
- * @param tableName - 中間テーブル名（snake_case）
- * @returns Drizzle テーブル
  * @throws テーブルが存在しない場合
  */
 export function getJunctionTableOrThrow(tables: JunctionTables, tableName: string): PgTable {

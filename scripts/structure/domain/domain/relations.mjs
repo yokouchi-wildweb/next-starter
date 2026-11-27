@@ -1,5 +1,6 @@
 // 登録の entity.json の relations の分類と、リレーション先ドメインの参照。
 
+import { junctionColumnsOf, registrationTableName } from "../../../../src/lib/domain/node.mjs";
 import { toCamelCase, toPascalCase, toSnakeCase } from "../../../../src/lib/stringCase/index.mjs";
 
 /** belongsTo（外部キーを持つ側） */
@@ -24,22 +25,27 @@ export function junctionOf(workspace, owner, relation) {
   const config = workspace.readRegistration(registration);
   if (!config) throw new Error(`エラー: ${owner} の belongsToMany "${relation.domain}" の through ${relation.through} の登録(entities/${registration}/entity.json)がありません`);
   const target = toCamelCase(relation.domain);
-  const tableOf = (name) => (name === owner || name === target ? domainTableNameOf(workspace, name) : null);
-  const links = [
-    ...(config.relations ?? []).filter((rel) => rel.relationType === "belongsTo").map((rel) => ({ column: rel.fieldName, target: toCamelCase(rel.domain) })),
-    ...(config.foreignKeys ?? []).filter((fk) => (fk.columns ?? []).length === 1).map((fk) => ({ column: fk.columns[0], target: [owner, target].find((name) => tableOf(name) === fk.references?.table) ?? null })),
-  ];
-  const source = links.find((link) => link.target === owner);
-  const other = links.find((link) => link !== source && link.target === target);
-  if (!source || !other) throw new Error(`エラー: 結びの登録 ${registration} が ${owner} と ${target} を指す 2 本を持ちません(pnpm check domain)`);
-  return { registration, tableVar: `${toPascalCase(registration)}Table`, sourceProperty: source.column, targetProperty: other.column };
+  const registrationOfTable = (table) => [owner, target].find((name) => domainTableNameOf(workspace, name) === table) ?? null;
+  const columns = junctionColumnsOf(config, owner, target, registrationOfTable);
+  if (!columns) throw new Error(`エラー: 結びの登録 ${registration} が ${owner} と ${target} を指す 2 本を持ちません(pnpm check domain)`);
+  return { registration, tableVar: `${toPascalCase(registration)}Table`, sourceProperty: columns.sourceColumn, targetProperty: columns.targetColumn };
 }
 
-/** 登録の物理の表の名前(entity.json の table か snake(plural)) */
+/**
+ * 多対多の結びの登録か(どこかの登録の belongsToMany が through で名指している、D354)
+ * @param {import("./workspace.mjs").Workspace} workspace
+ * @param {string} name 登録名(camelCase)
+ */
+export function isJunctionRegistration(workspace, name) {
+  return workspace.listDomains().some((domain) =>
+    workspace.registrationsOf(domain).some(({ config }) => belongsToManyRelations(config).some((relation) => toCamelCase(relation.through) === name)),
+  );
+}
+
+/** 登録の物理の表の名前(src/lib/domain/junction/links.mjs の registrationTableName。宣言が無ければ null) */
 function domainTableNameOf(workspace, name) {
   const config = workspace.readRegistration(name);
-  if (!config) return null;
-  return typeof config.table === "string" ? config.table : toSnakeCase(config.plural || name);
+  return config ? registrationTableName(name, config) : null;
 }
 
 /** hasMany（子の表が自分を参照する） */

@@ -8,6 +8,7 @@ import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
 
 import { getJunctionTable, getJunctionTableOrThrow } from "@/lib/domain/server";
+import { pgTable, uuid } from "drizzle-orm/pg-core";
 
 import { assertNoCollectionFields } from "./collectionFields";
 import { createZip, downloadChunkMedia } from "./export/createZip";
@@ -417,9 +418,9 @@ describe("集まりの項目（collections）: 取り込みは DB を変える�
 });
 
 describe("中間表の注入", () => {
-  test("getJunctionTable は渡された一覧から名前で引く", () => {
-    const table = { marker: "table" };
-    const tables = { SampleToSampleTagTable: table };
+  test("getJunctionTable は渡された一覧から物理の表の名前で引く(const 名を組み立てない)", () => {
+    const table = pgTable("sample_to_sample_tag", { sampleId: uuid("sample_id") });
+    const tables = { AnyNameTable: table, marker: { marker: "not a table" } };
     assert.equal(getJunctionTable(tables, "sample_to_sample_tag"), table);
     assert.equal(getJunctionTable(tables, "nope_to_nope"), undefined);
     assert.equal(getJunctionTableOrThrow(tables, "sample_to_sample_tag"), table);

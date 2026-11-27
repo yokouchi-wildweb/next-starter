@@ -23,6 +23,7 @@ export function getRelationsOf(config: Pick<DomainDisplay, "relations">): Relati
         fieldType: relation.fieldType,
         relationType: relation.relationType as RelationType,
         required: "required" in relation ? relation.required || false : false,
+        ...("through" in relation && typeof relation.through === "string" ? { through: relation.through } : {}),
       });
     }
   }

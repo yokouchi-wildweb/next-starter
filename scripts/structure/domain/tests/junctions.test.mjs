@@ -113,8 +113,9 @@ test("生成: 結びは自分の登録のフォルダに今の sample_to_sample_
   assert.match(junctionDrizzle, /sample_tag_id: uuid\("sample_tag_id"\)\.notNull\(\)\s*\.references\(\(\) => SampleTagTable\.id, \{ onDelete: "cascade" \}\)/);
   assert.match(junctionDrizzle, /primaryKey\(\{ columns: \[table\.sample_id, table\.sample_tag_id\] \}\)/);
   assert.doesNotMatch(junctionDrizzle, /\bid: uuid\("id"\)|created_at/);
-  // 結びは表のファイルだけ(サービス・画面・hooks を持たない)
+  // 結びは表のファイルだけ(サービス・画面・hooks も、model・form・schema の型も持たない)
   assert.equal([...files.keys()].some((file) => /sampleToSampleTag(Base|Service|Client)|useSampleToSampleTag/.test(file)), false);
+  assert.deepEqual([...files.keys()].filter((file) => file.startsWith("src/domains/sample/entities/sampleToSampleTag/")), ["src/domains/sample/entities/sampleToSampleTag/drizzle.ts"]);
   assert.doesNotMatch(files.get("src/domains/sample/entities/sample/drizzle.ts"), /SampleToSampleTag|sample_to_sample_tag/, "主の表のファイルに結びを書かない");
   const ownerBase = files.get("src/domains/sample/services/server/sampleBase.ts");
   assert.match(ownerBase, /throughTable: SampleToSampleTagTable,\s*sourceColumn: SampleToSampleTagTable\.sample_id,\s*targetColumn: SampleToSampleTagTable\.sample_tag_id,\s*sourceProperty: "sample_id",\s*targetProperty: "sample_tag_id",/);
