@@ -6,6 +6,7 @@
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
 import { ENTITIES_DIR, ENTITY_DECLARATION_FILE, listDomains as listDeclaredDomains, nodeDomainSource, primaryRegistrationOf, readDomains as readDeclaredDomains } from "../../../../src/lib/domain/node.mjs";
@@ -211,6 +212,50 @@ export function buildAlphaRegistries(repoRoot) {
     },
     problems: [...domainProblems, ...schema.problems, ...messages.problems, ...recordTargets.problems],
   };
+}
+
+/** 生成物の印(このファイルの物も、ドメインの入口・表示の写しの物も同じ頭): 消してよいのはこの印で始まる物だけ */
+export const REGISTRY_MARK = "// 生成物・編集不可: pnpm generate registry が ";
+const PHASE_FILE = fileURLToPath(new URL("../phase.json", import.meta.url));
+
+/** phase.json の every-run の出力のうち、ドメインのフォルダの下の glob(集める入口・表示の写し。1 段の * だけ) */
+function domainOutputGlobs() {
+  const { outputs = [] } = JSON.parse(readFileSync(PHASE_FILE, "utf8"));
+  return outputs.filter((output) => output.kind === "every-run" && output.glob.startsWith("src/domains/")).map((output) => output.glob);
+}
+
+/** glob(段ごとの * だけ)に当たるリポジトリ相対のファイル */
+function expandGlob(repoRoot, glob) {
+  let paths = [""];
+  for (const part of glob.split("/")) {
+    const next = [];
+    for (const base of paths) {
+      if (!part.includes("*")) {
+        next.push(base ? `${base}/${part}` : part);
+        continue;
+      }
+      const dir = join(repoRoot, base);
+      if (!existsSync(dir)) continue;
+      const pattern = new RegExp(`^${part.split("*").map((piece) => piece.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join("[^/]*")}$`);
+      for (const name of readdirSync(dir)) if (pattern.test(name)) next.push(base ? `${base}/${name}` : name);
+    }
+    paths = next;
+  }
+  return paths.filter((file) => existsSync(join(repoRoot, file)));
+}
+
+/**
+ * もう書かない出力(phase.json の宣言の glob に当たり、この印で始まり、今回の出力に無いファイル)。印の無い手のファイルは数えない
+ * 例: 登録のフォルダからその種類のファイルが無くなったドメインの集める入口 entities/<種類>.ts
+ * @param {string} repoRoot
+ * @param {Record<string, string>} outputs buildAlphaRegistries の outputs
+ * @returns {string[]}
+ */
+export function removedAlphaOutputs(repoRoot, outputs) {
+  const written = new Set(Object.keys(outputs));
+  return [...new Set(domainOutputGlobs().flatMap((glob) => expandGlob(repoRoot, glob)))]
+    .filter((file) => !written.has(file) && readFileSync(join(repoRoot, file), "utf8").startsWith(REGISTRY_MARK))
+    .sort(byString);
 }
 
 /** 生成結果と今のファイルのずれ(空 = 一致) */

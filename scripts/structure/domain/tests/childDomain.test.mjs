@@ -103,7 +103,7 @@ test("権限の写し: 公開読み取りの主 → public、アップロード�
   assert.deepEqual(storageOf(parent({ apiAccess: undefined })), { visibility: "private", upload: ADMIN, read: ADMIN });
 });
 
-test("権限の写し: 閉じた主（none / INTERNAL_ONLY）・custom などの写せない値・手で持つ主（generate: false）→ 管理者のみ + 直す対象", () => {
+test("権限の写し: 閉じた主（none / INTERNAL_ONLY）・custom などの写せない値 → 管理者のみ + 直す対象", () => {
   const closed = buildChildDomainConfig(parent({ apiAccess: { read: "none", write: "none" } }), field());
   assert.deepEqual(closed.uncopied, ["upload", "read"]);
   assert.deepEqual(closed.config.fields[0].storage, { visibility: "private", upload: ADMIN, read: ADMIN });
@@ -116,8 +116,20 @@ test("権限の写し: 閉じた主（none / INTERNAL_ONLY）・custom などの
   assert.deepEqual(closedCreate.uncopied, ["upload"]);
   assert.equal(closedCreate.config.fields[0].storage.read, "public");
 
-  const handWritten = buildChildDomainConfig(parent({ generate: false }), field());
-  assert.deepEqual(handWritten.uncopied, ["upload", "read"]);
+});
+
+test("権限の写し: 手で持つ主（generate: false）も登録表の行の値から写す（apiAccess のまま、無ければ fail-closed の管理者のみ）", () => {
+  // 主の parent() の apiAccess(公開読み取り)は手で持つ主でもそのまま登録表の値
+  assert.deepEqual(storageOf(parent({ generate: false })), { visibility: "public", upload: ADMIN, read: "public" });
+  assert.deepEqual(buildChildDomainConfig(parent({ generate: false }), field()).uncopied, []);
+  assert.deepEqual(
+    storageOf(parent({ generate: false, apiAccess: { read: "authenticated", write: "authenticated", operations: { truncateAll: "none" } } })),
+    { visibility: "private", upload: "authenticated", read: "authenticated" },
+  );
+  // apiAccess の無い手で持つ主 = 登録表は ADMIN_ONLY(閉じた既定)、写すのはそれ
+  assert.deepEqual(storageOf(parent({ generate: false, apiAccess: undefined })), { visibility: "private", upload: ADMIN, read: ADMIN });
+  // 手で持つ主の閉じた API は写せない
+  assert.deepEqual(buildChildDomainConfig(parent({ generate: false, apiAccess: { read: "none", write: "none" } }), field()).uncopied, ["upload", "read"]);
 });
 
 // ---- 書き出し（write-once） ----

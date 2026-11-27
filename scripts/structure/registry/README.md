@@ -18,6 +18,7 @@
   - `adminDomains`: 管理一覧の画面 `src/app/admin/(protected)/<kebab 複数形>/page.tsx` を持つ全ドメイン(`generate: false` も。登録の entity.json が `adminList: false` の物は出さない)。キー = フォルダ名 → 題名・住所・`addToAdminDataMenu`。管理メニューの項目 `domain:` と出どころ `dataMenu` が読む(`src/domains/core/admin/menu/`)。管理メニューの行は受け口 `src/domains/core/admin/menu/`、ドメインを「データ管理」から外す = 登録の entity.json の `addToAdminDataMenu: false`
   - `messageRegistry`: 全ドメインの `plugs/messages/<名前>.ts` の連絡の定義(鍵 = `<フォルダ名>.<ファイル名>` → 定義・隣の `.override.ts` の遅延 import。key のずれ・重なりは止める。連絡ごとの描き方 `plugs/messages/views/` は使わない（置けば止める。描き方はレイアウト `messaging/plugs/messagingLayouts/<名前>/` に置き、定義の `layout` で選ぶ）。`alpha/messageRegistry.mjs`、決まりは `src/lib/messaging/README.md`)
   - `recordTargetRegistry`: 全ドメインの `plugs/recordTargets/<名前>.ts` の記録の宛先(鍵 = `<フォルダ名>.<ファイル名>` → ドメイン・項目の遅延 import。絞らない = 閉じたドメインは使う時に門番 `recordTargetOpen` が落とす。key のずれ・重なりは止める。`alpha/recordTargetRegistry.mjs`、決まりは `src/lib/messaging/README.md`「記録の宛先」)
+  - ドメインの表示の写し `entities/display.ts` と集める入口 `entities/<種類>.ts`(宣言のある全ドメイン、`generate: false` も。頭の印は registry の物): もう書かない物(phase.json の出力の glob に当たり、この印で始まり、今回書かない物。例: その種類の登録のファイルが無くなった入口)は `pnpm generate registry` が消し、`pnpm check registry` はずれとして出す。印の無い手のファイルには触らない
 
 ## Usage
 

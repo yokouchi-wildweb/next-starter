@@ -7,7 +7,7 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { buildAlphaRegistries, staleAlphaRegistries } from "./alpha/index.mjs";
+import { buildAlphaRegistries, removedAlphaOutputs, staleAlphaRegistries } from "./alpha/index.mjs";
 import { checkDrizzleKitPin } from "./drizzleKitPin.mjs";
 import { checkServiceRegistry } from "./serviceRegistry/check.mjs";
 
@@ -15,7 +15,8 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const { errors, keys } = checkServiceRegistry(repoRoot);
 const { outputs, problems } = buildAlphaRegistries(repoRoot);
 const stale = problems.length > 0 ? [] : staleAlphaRegistries(repoRoot, outputs);
-const all = [...errors, ...problems, ...checkDrizzleKitPin(repoRoot), ...stale.map((path) => `${path} が走査の生成結果と一致しない → pnpm generate registry`)];
+const removed = problems.length > 0 ? [] : removedAlphaOutputs(repoRoot, outputs);
+const all = [...errors, ...problems, ...checkDrizzleKitPin(repoRoot), ...stale.map((path) => `${path} が走査の生成結果と一致しない → pnpm generate registry`), ...removed.map((path) => `${path} はもう書かない生成物(生成の印あり)→ pnpm generate registry が消す`)];
 if (all.length > 0) {
   console.error(`✗ src/registry の検査に失敗しました(${all.length} 件):\n${all.map((e) => `  - ${e}`).join("\n")}`);
   process.exit(1);

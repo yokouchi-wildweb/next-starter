@@ -1,12 +1,13 @@
 // 主の集まりの項目（fieldType mediaCollection）から、従属の登録の宣言(domain.json と登録の entity.json)の中身を組む純関数。
 // 従属 = 主に belongsTo（必須・CASCADE）するメディア 1 枚ずつの行。汎用 API と管理画面は閉じて生まれ、主の画面から読み書きする。
-// ファイルの権限は主の汎用 API の規則から写す（写せるのは public / authenticated / ロールの規則だけ。それ以外は管理者のみ + 直す場所の案内）
+// ファイルの権限は主の登録表の行の規則から写す（写せるのは public / authenticated / ロールの規則だけ。それ以外は管理者のみ + 直す場所の案内）
 
 import { defaultChildName } from "../../spec/collectionField.mjs";
 import { foreignKeyFieldTypeOfIdType } from "../../spec/fieldTypes.mjs";
 import { toCamelCase, toSnakeCase } from "../../../../../src/lib/stringCase/index.mjs";
 import { toPlural } from "../../domain/plural.mjs";
 import { ADMIN_RULE, isValidRule, unionUploadRules } from "../registry/storagePurpose/rules.mjs";
+import { accessOfDeclaration } from "../../../registry/serviceRegistry/access.mjs";
 
 const READ_OPERATIONS = new Set(["get"]);
 const SORT_FIELD = "sort_order";
@@ -24,12 +25,11 @@ function rawRule(apiAccess, operation) {
 const isCopyableRule = (rule) => rule !== "none" && isValidRule(rule);
 
 /**
- * 主の操作の規則を写す。宣言が無ければ fail-closed の既定（管理者のみ）がそのまま本当の規則なので写す。
- * 写せなければ null（雛形は管理者のみ + 案内にし、組の権限の検査は飛ばす）
+ * 主の操作の規則を、主の登録表の行の access(accessOfDeclaration: 生成する登録は既定を重ねた値、手で持つ登録は apiAccess のまま、
+ * どちらも宣言が無ければ fail-closed の管理者のみ)から写す。写せなければ null（雛形は管理者のみ + 案内にし、組の権限の検査は飛ばす）
  */
 export function parentRule(parentConfig, operation) {
-  if (parentConfig.generate === false) return null; // 手で持つ登録(generate:false)の apiAccess は生成の既定を重ねない登録表の値そのもので、写す規則と形が違う
-  const rule = rawRule(parentConfig.apiAccess, operation);
+  const rule = rawRule(accessOfDeclaration(parentConfig), operation);
   if (rule === undefined) return ADMIN_RULE;
   return isCopyableRule(rule) ? rule : null;
 }
