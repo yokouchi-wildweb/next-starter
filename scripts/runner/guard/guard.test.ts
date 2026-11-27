@@ -111,6 +111,22 @@ test("本番: 開発と同じ DB は注意の 1 行で通る(D433)、本番の D
   assert.doesNotThrow(() => resolveTarget(["--env", "production", "--confirm=production"], { write: true, what: "メール" }, io(empty)));
 });
 
+test("開発を指して DB に書く: 本番の DATABASE_URL と同じ DB なら注意の 1 行で通る(D490)、別の DB・本番の値が無い・読むだけ・DB でない入口は出さない", () => {
+  const same = { ".env.development": DEV, ".env.production": "APP_ENV=production\nDATABASE_URL=postgres://other:pw@dev.example/app\n" };
+  const said = (files: Record<string, string>, options: Parameters<typeof resolveTarget>[1]) => {
+    const sink = io(files);
+    assert.doesNotThrow(() => resolveTarget([], options, sink));
+    return sink.said.filter((l) => /開発の作業が本番の DB/.test(l));
+  };
+  assert.deepEqual(said(same, W), ["注意: 開発の作業が本番の DB(dev.example/app)に書きます(.env.production の DATABASE_URL と同じ) — 分けるなら Neon のブランチ"]);
+  const local = { ".env.development": DEV, ".env.production": PROD, ".env.production.local": "DATABASE_URL=postgres://x:y@dev.example/app\n" };
+  assert.equal(said(local, W).length, 1, ".env.production.local を重ねた値で比べる");
+  assert.deepEqual(said({ ".env.development": DEV, ".env.production": PROD }, W), []);
+  assert.deepEqual(said({ ".env.development": DEV }, W), []);
+  assert.deepEqual(said(same, { write: false, db: true, what: "読む" }), []);
+  assert.deepEqual(said(same, { write: true, what: "メール" }), []);
+});
+
 test("本番に書く: 非対話は門(方針と許可)で決まる、TTY は production と打てば通る、読むだけは確認なし", () => {
   const files = { ".env.development": DEV, ".env.production": PROD };
   const none = gate("manual", false);

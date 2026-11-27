@@ -8,6 +8,7 @@
 //   シェルから継いだ DATABASE_URL が向き先のファイルの DATABASE_URL と別の DB(host と DB 名)を指す(値は上書きしないので、
 //   止めないと検査はファイルの DB、実際の接続は継いだ DB になる)。
 // 注意の 1 行だけ(止めない、D433): 本番を指して本番と開発が同じ DB(host と DB 名)。人が許した本番の書き込みを止めない。
+//   開発を指して DB に書く入口で、繋ぐ DB が本番の DATABASE_URL(.env.production + .local、値がある時だけ)と同じ(D490 (1))。
 // ホストの env(本番ホストで env ファイルを置かず環境変数を直接渡す): ファイルが無く、環境変数の APP_ENV が向き先と同じ時だけ、その値で進む
 //   (本番は --env production の明示と確認が要る。例 Vercel 以外のスケジューラ = pnpm task --due --env production)。
 // 本番に書く: 手で打つ(TTY)なら「production」と打たせる(--confirm=production は人の省略)。非対話(TTY なし・CI・エージェント)は
@@ -204,6 +205,13 @@ export function resolveTarget(argv: readonly string[], options: ResolveOptions, 
     const devDb = dbIdentity(dev?.DATABASE_URL);
     // 止めない(D433: 守る物は本番の確認とデータの消える文の問いが持つ)。開発の作業も本番の DB に書くことを知らせる
     if (prodDb !== null && devDb !== null && prodDb === devDb) io.say(`注意: 本番と開発が同じ DB(${prodDb})を指しています — 開発の作業もこの DB に書きます。分けるなら Neon のブランチ`);
+  }
+  if (stage === "development" && options.db && options.write) {
+    // 開発を指して DB に書く入口でも同じ事実を知らせる(止めない、D433・D490 (1))。本番の値が無い(リリース前)なら何も出さない
+    const devDb = dbIdentity(dbUrl);
+    const prod = readValues(io, ".env.production");
+    const prodDb = prod === null ? null : dbIdentity({ ...prod, ...(readValues(io, ".env.production.local") ?? {}) }.DATABASE_URL);
+    if (devDb !== null && prodDb !== null && devDb === prodDb) io.say(`注意: 開発の作業が本番の DB(${devDb})に書きます(.env.production の DATABASE_URL と同じ) — 分けるなら Neon のブランチ`);
   }
   if (options.write && stage === "production") confirmProduction(flags, io, options.what, options.kind ?? "deploy");
   else if (flags.confirm !== null && flags.confirm !== stage) mismatch(`--confirm=${flags.confirm} は向き先(${stage})と違います`);
