@@ -3,6 +3,7 @@
 // ファイルの権限は主の汎用 API の規則から写す（写せるのは public / authenticated / ロールの規則だけ。それ以外は管理者のみ + 直す場所の案内）
 
 import { defaultChildName } from "../../spec/collectionField.mjs";
+import { foreignKeyFieldTypeOfIdType } from "../../spec/fieldTypes.mjs";
 import { toCamelCase, toSnakeCase } from "../../../../../src/lib/stringCase/index.mjs";
 import { toPlural } from "../../domain/plural.mjs";
 import { ADMIN_RULE, isValidRule, unionUploadRules } from "../registry/storagePurpose/rules.mjs";
@@ -11,8 +12,6 @@ const READ_OPERATIONS = new Set(["get"]);
 const SORT_FIELD = "sort_order";
 const DEFAULT_MAX_SIZE_BYTES = 10 * 1024 * 1024;
 
-/** 主の idType → belongsTo の外部キーの型（数値の ID は integer 列） */
-const FOREIGN_KEY_TYPES = { uuid: "uuid", string: "string", number: "integer" };
 
 /** 主の 1 操作の規則を、汎用 API と同じ順（operations → read / write）で生のまま取る。どこにも無ければ undefined */
 function rawRule(apiAccess, operation) {
@@ -82,7 +81,8 @@ export function buildChildDomainConfig(parentConfig, field) {
         domain: parentSnake,
         label: parentConfig.label ?? parentSnake,
         fieldName: `${parentSnake}_id`,
-        fieldType: FOREIGN_KEY_TYPES[parentConfig.idType] ?? "uuid",
+        // 主の idType → belongsTo の外部キーの型（型の表の idTypeOf。数値の ID は integer 列。idType は生成前の検査が必須にする）
+        fieldType: foreignKeyFieldTypeOfIdType(parentConfig.idType ?? "uuid"),
         relationType: "belongsTo",
         required: true,
         onDelete: "CASCADE",

@@ -1,7 +1,7 @@
 // 検査: 名前の形（singular・plural・項目名・リレーション先・従属の登録名は snake_case）。
 // テーブル名・列名・フォルダ名・import のパスは全部この名前から組み立てるので、形が崩れた名前で生成を進めない。
-// singular・plural・リレーション先は生成器が snake_case に直して扱う（camelCase でも動く）ので警告だけ（nameWarnings）。
-// 項目名・従属の登録名はそのまま列名・singular になるので止める（nameIssues）
+// 全部止める（nameIssues）: 項目名・従属の登録名はそのまま列名・singular になる。singular・plural・リレーション先は
+// 生成器が snake_case に直して読むが、決まりは snake_case（README「API」:90・:91・:168）なので書き方を 1 つにする
 // 規則の正: src/domains/README.md「API」（singular / plural / Field の name / Relation の domain）
 
 import { isSnakeCaseName } from "../spec/collectionField.mjs";
@@ -25,27 +25,14 @@ export function nameIssues(config) {
       issues.push(snakeIssue(`fields "${field.name}" の collection.registration`, childDomain));
     }
   });
+  if (typeof config.singular === "string" && config.singular.length > 0 && !isSnakeCaseName(config.singular)) issues.push(snakeIssue("singular", config.singular));
+  if (typeof config.plural === "string" && config.plural.length > 0 && !isSnakeCaseName(config.plural)) issues.push(snakeIssue("plural", config.plural));
   (config.relations ?? []).forEach((relation, index) => {
     if (typeof relation?.domain !== "string" || relation.domain.length === 0) {
       issues.push(`relations[${index}]: domain（リレーション先の singular）を書いてください`);
+    } else if (!isSnakeCaseName(relation.domain)) {
+      issues.push(snakeIssue(`relations[${index}] の domain`, relation.domain));
     }
   });
   return issues;
-}
-
-/**
- * 止めない警告: singular・plural・リレーション先の名前が snake_case でない
- * @param {object} config 登録の entity.json
- * @returns {string[]}
- */
-export function nameWarnings(config) {
-  const warnings = [];
-  if (config.singular !== undefined && !isSnakeCaseName(config.singular)) warnings.push(snakeIssue("singular", config.singular));
-  if (config.plural !== undefined && !isSnakeCaseName(config.plural)) warnings.push(snakeIssue("plural", config.plural));
-  (config.relations ?? []).forEach((relation, index) => {
-    if (typeof relation?.domain === "string" && relation.domain.length > 0 && !isSnakeCaseName(relation.domain)) {
-      warnings.push(snakeIssue(`relations[${index}] の domain`, relation.domain));
-    }
-  });
-  return warnings;
 }

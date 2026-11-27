@@ -27,6 +27,8 @@
 //   noDefault entity.json の defaultValue を持てない（生成前の検査 checks/fields.mjs が止める）
 //   collection 主の集まり（列を持たない。従属の登録の行の並びを lib の collections で読み書きする。項目の collection キーで宣言）
 //   retired   廃止した型: 生成前の検査（checks/retiredFieldTypes.mjs）が移り先の案内文で止める。実行時は見ない
+//   foreignKey 関連（belongsTo・belongsToMany）の外部キーに使える DB（"Neon" / "Firestore" の並び。生成前の検査 checks/relations.mjs）
+//   idTypeOf  主キーの型 idType のこの値の外部キーはこの型（従属ドメインの belongsTo の列、render/collections/childDomainConfig.mjs）
 // 意味の属性（生成器と実行時の両方が読む）:
 //   datetime  日時の型: Zod は required で requiredDatetime / nullableDatetime、編集フォームでは値を Date にする
 //   formDefault  フォームの初期値（entity.json の defaultValue が無いとき）。全行に書く（undefined も値）。配列は呼ぶたびに複製して返す
@@ -37,13 +39,13 @@
 //                無ければそのまま（配列は array 属性で別に扱う）
 
 export const FIELD_TYPES = {
-  string: { column: "text", zod: "z.string()", ts: "string", text: true, formDefault: "" },
+  string: { column: "text", zod: "z.string()", ts: "string", text: true, foreignKey: ["Neon", "Firestore"], idTypeOf: "string", formDefault: "" },
   email: { column: "text", zod: "z.string()", ts: "string", text: true, emailFormat: true, formDefault: "" },
   password: { column: "text", zod: "z.string()", ts: "string", text: true, hashOnWrite: true, formDefault: "" },
-  uuid: { column: "uuid", zod: "z.string()", ts: "string", text: true, formDefault: "" },
+  uuid: { column: "uuid", zod: "z.string()", ts: "string", text: true, foreignKey: ["Neon"], idTypeOf: "uuid", formDefault: "" },
   mediaUploader: { column: "text", zod: "z.string()", ts: "string", text: true, media: true, noDefault: true, formDefault: "" },
-  integer: { importValue: "number", column: "integer", zod: "z.coerce.number().int()", ts: "number", numeric: true, presenter: "number", formDefault: undefined },
-  number: { importValue: "number", zod: "z.coerce.number().int()", ts: "number", numeric: true, presenter: "number", formDefault: undefined },
+  integer: { importValue: "number", column: "integer", zod: "z.coerce.number().int()", ts: "number", numeric: true, presenter: "number", foreignKey: ["Neon"], idTypeOf: "number", formDefault: undefined },
+  number: { importValue: "number", zod: "z.coerce.number().int()", ts: "number", numeric: true, presenter: "number", foreignKey: ["Firestore"], formDefault: undefined },
   float: { importValue: "number", column: "doublePrecision", zod: "z.coerce.number()", ts: "number", numeric: true, presenter: "number", formDefault: undefined },
   bigint: { importValue: "number", column: "bigint", columnOptions: { mode: "number" }, zod: "z.coerce.number().int()", ts: "number", numeric: true, formDefault: undefined },
   "numeric(10,2)": { importValue: "number", column: "numeric", columnOptions: { precision: 10, scale: 2, mode: "number" }, zod: "z.coerce.number()", ts: "number", numeric: true, formDefault: undefined },
@@ -62,7 +64,7 @@ export const FIELD_TYPES = {
   Point: { formDefault: "" },
   map: { formDefault: undefined },
   geopoint: { formDefault: "" },
-  reference: { formDefault: "" },
+  reference: { foreignKey: ["Firestore"], formDefault: "" },
   null: { formDefault: "" },
   // 廃止。生成器は止める。まだ列を持つ fork のために実行時の初期値は残す
   mediaUploaderMulti: {
@@ -91,6 +93,8 @@ export const FIELD_TYPES = {
  *   noDefault?: boolean,
  *   collection?: boolean,
  *   retired?: string,
+ *   foreignKey?: readonly ("Neon" | "Firestore")[],
+ *   idTypeOf?: "uuid" | "string" | "number",
  *   datetime?: boolean,
  *   formDefault?: unknown,
  *   formDefaultWithChoices?: unknown,
@@ -209,6 +213,24 @@ export function formDefaultFor(field) {
   else if (Object.hasOwn(row, "formDefault")) value = row.formDefault;
   // 表の配列を共有すると別のフォーム同士で値が混ざるので、呼ぶたびに新しい配列にする
   return Array.isArray(value) ? [...value] : value;
+}
+
+/**
+ * 関連の外部キーに使える型（foreignKey 属性）
+ * @param {string} dbEngine "Neon" | "Firestore"
+ * @returns {Set<string>}
+ */
+export function foreignKeyFieldTypes(dbEngine) {
+  return new Set(Object.keys(FIELD_TYPES).filter((t) => (fieldTypeSpec(t).foreignKey ?? []).includes(dbEngine)));
+}
+
+/**
+ * 主キーの型 idType の値を外部キーに持つ時の型（idTypeOf 属性）。知らない idType は undefined
+ * @param {string | undefined} idType
+ * @returns {string | undefined}
+ */
+export function foreignKeyFieldTypeOfIdType(idType) {
+  return Object.keys(FIELD_TYPES).find((t) => idType !== undefined && fieldTypeSpec(t).idTypeOf === idType);
 }
 
 /** メディア列（ファイル台帳との連動 = createCrudService の storage binding を持つ列。binding は Drizzle 専用） */

@@ -1,5 +1,6 @@
-// 検査: 必須のキーと、決まった値の集合を持つキー（singular・plural・dbEngine・idType・useCreatedAt / useUpdatedAt・generate）。
-// どれも書き忘れると生成器が黙って別の既定（plural の推定・dbEngine ""・作成日時なし）で進むので、生成前に止める。
+// 検査: 必須のキーと、決まった値の集合を持つキー（singular・plural・label・dbEngine・idType・useCreatedAt / useUpdatedAt・generate）。
+// どれも書き忘れると生成器が黙って別の既定（plural の推定・表示名 = PascalCase の名前・dbEngine ""・id が text の列・作成日時なし）で進むので、生成前に止める。
+// relations・fields は省略 = []（生成器がどこでも空として読む）なので止めない
 // 区分ごとの generateFiles は廃止（generate の旗 1 つ）。残っていれば止める（読み替えると手で直したファイルを上書きしかねない）
 // 規則の正: src/domains/README.md「API」（🟢 = 必須）
 
@@ -16,8 +17,13 @@ export function requiredIssues(config) {
   if (!isNonEmptyString(config.singular)) issues.push("singular を書いてください");
   if (!isNonEmptyString(config.plural)) issues.push("plural を書いてください（テーブル名・ルートになります）");
   if (!DB_ENGINES.has(config.dbEngine)) issues.push(`dbEngine は ${[...DB_ENGINES].join(" / ")} のどちらかにしてください`);
-  if (config.idType !== undefined && !ID_TYPES.has(config.idType)) {
-    issues.push(`idType "${config.idType}" は使えません（${[...ID_TYPES].join(" / ")}）`);
+  if (!isNonEmptyString(config.label)) issues.push("label を書いてください（管理画面の表示名。無いと PascalCase の名前が出ます）");
+  if (!ID_TYPES.has(config.idType)) {
+    issues.push(
+      config.idType === undefined
+        ? `idType を ${[...ID_TYPES].join(" / ")} のどれかで書いてください（無いと id が text の列になり、従属ドメインの外部キーは uuid になります）`
+        : `idType "${config.idType}" は使えません（${[...ID_TYPES].join(" / ")}）`,
+    );
   }
   for (const key of ["useCreatedAt", "useUpdatedAt"]) {
     if (typeof config[key] !== "boolean") issues.push(`${key} を true か false で書いてください（書かないと列が作られません）`);

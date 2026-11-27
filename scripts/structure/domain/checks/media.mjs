@@ -1,4 +1,4 @@
-// 検査: メディア項目（accept・mediaTypePreset・metadataBinding）。
+// 検査: メディア項目（slug・accept・mediaTypePreset・metadataBinding。slug と mediaTypePreset は必須、README「MediaUploader フィールド追加プロパティ」）。
 // accept が空だと生成（ファイル用途の登録）が止まり、lib は「何でも受ける」"*/*" を受けない。preset の綴り違いは
 // 黙って "all" の上限になり、metadataBinding の綴り違いや書き先の無い項目は黙って捨てられるので、生成前に止める。
 // 規則の正: src/domains/README.md「MediaUploader フィールド追加プロパティ」・「ファイルの保存（storage）」
@@ -24,8 +24,15 @@ export function mediaIssues(config) {
     if (contentTypes.length === 0) {
       issues.push(`${where}: accept に受け付ける型を書いてください（例: "image/*"。制限なしでも型を列挙する）`);
     }
-    if (field.mediaTypePreset !== undefined && !PRESETS.has(field.mediaTypePreset)) {
-      issues.push(`${where}: mediaTypePreset "${field.mediaTypePreset}" は ${[...PRESETS].join(" / ")} のどれでもありません`);
+    if (typeof field.slug !== "string" || !/^[a-z][A-Za-z0-9]*$/.test(field.slug)) {
+      issues.push(`${where}: slug にハンドラの識別子を camelCase で書いてください（例: "mainImage"）`);
+    }
+    if (!PRESETS.has(field.mediaTypePreset)) {
+      issues.push(
+        field.mediaTypePreset === undefined
+          ? `${where}: mediaTypePreset を ${[...PRESETS].join(" / ")} のどれかで書いてください`
+          : `${where}: mediaTypePreset "${field.mediaTypePreset}" は ${[...PRESETS].join(" / ")} のどれでもありません`,
+      );
     }
     const binding = field.metadataBinding;
     if (binding === undefined) continue;

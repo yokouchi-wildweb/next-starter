@@ -85,19 +85,21 @@
 
 ドメインの `domain.json` は `domainConfigVersion`(`"2.0"`)・`label`・`$comment` だけを持つ。下は登録の entity.json の鍵。
 
+必須（🟢）は生成する登録（`generate` が false でない）の鍵で、無ければ `pnpm generate domain` の前の検査が止める。`generate: false` の登録は手で持つので省いてよい（読み手 `normalizeEntityDeclaration` の既定）。
+
 | プロパティ | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
 | singular | string | 🟢 Yes | ドメイン名単数形（snake_case、例: `sample_category`）。ドメインフォルダ名はこの camelCase（例: `sampleCategory/`）でなければならず、ずれていると pnpm generate domain が止まる |
 | plural | string | 🟢 Yes | ドメイン名複数形（snake_case、例: `sample_categories`）。テーブル名とルートになる。無いと pnpm generate domain が止まる |
-| label | string | 🟢 Yes | 管理画面での表示名（日本語可） |
+| label | string | 🟢 Yes | 管理画面での表示名（日本語可）。無いと検査が止める（PascalCase の名前のまま出るので） |
 | dbEngine | `"Neon"` \| `"Firestore"` | 🟢 Yes | 使用するDB。原則 `"Neon"`。`"Firestore"` はリアルタイム配信が本質要件のドメインのみ（`docs/!must-read/バックエンド構成ドクトリン.md`） |
-| idType | `"uuid"` \| `"string"` \| `"number"` | 🟢 Yes | 主キーの型 |
-| relations | Relation[] | 🟢 Yes | リレーション定義（空配列可） |
+| idType | `"uuid"` \| `"string"` \| `"number"` | 🟢 Yes | 主キーの型。無いと検査が止める（id が text の列になるので） |
+| relations | Relation[] | ⚪ No | リレーション定義（省略 = `[]`） |
 | useCreatedAt | boolean | 🟢 Yes | createdAt カラムの有無 |
 | useUpdatedAt | boolean | 🟢 Yes | updatedAt カラムの有無 |
 | useSoftDelete | boolean | ⚪ No | 論理削除の有無（deletedAt カラム） |
 | sortOrderField | string | ⚪ No | 並び順の列（fractional の鍵を入れる text の列）のフィールド名。fields に同名の項目（`fieldType: "string"`、`formInput: "hidden"`）を置く。管理画面の並べ替え（sort/）と reorder / searchForSorting のフックを生成する |
-| fields | Field[] | 🟢 Yes | フィールド定義 |
+| fields | Field[] | ⚪ No | フィールド定義（省略 = `[]`。リレーションだけの表など） |
 | fieldGroups | FieldGroup[] | ⚪ No | 管理画面フォームのセクション分け（後述） |
 | searchFields | string[] | ⚪ No | 検索対象フィールド名の配列 |
 | searchRank | `{ fields: (string \| { field: string; weight?: number })[] }` | ⚪ No | 関連度ランキング（`searchRank: true` 時のフィールド重み、Neon のみ）。未宣言なら `searchFields` 等重みで「完全 > 前置 > 語頭 > 部分」一致順になる。例: `{ "fields": [{ "field": "name", "weight": 3 }, "email"] }`。詳細: `src/lib/crud/README.md` の searchRank 節 |

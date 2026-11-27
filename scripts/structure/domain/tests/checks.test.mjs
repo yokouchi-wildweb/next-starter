@@ -8,7 +8,7 @@ import { configIssues, preflightIssues, preflightWarnings } from "../checks/inde
 import { auditIssues } from "../checks/audit.mjs";
 import { fieldsIssues, fieldsWarnings } from "../checks/fields.mjs";
 import { mediaIssues } from "../checks/media.mjs";
-import { nameIssues, nameWarnings } from "../checks/names.mjs";
+import { nameIssues } from "../checks/names.mjs";
 import { relationIssues } from "../checks/relations.mjs";
 import { requiredIssues } from "../checks/required.mjs";
 import { viewConfigIssues, viewConfigWarnings } from "../checks/viewConfig.mjs";
@@ -18,6 +18,7 @@ import { viewConfigIssues, viewConfigWarnings } from "../checks/viewConfig.mjs";
 const good = (extra = {}) => ({
   singular: "sample_tag",
   plural: "sample_tags",
+  label: "サンプルタグ",
   dbEngine: "Neon",
   idType: "uuid",
   useCreatedAt: true,
@@ -28,7 +29,7 @@ const good = (extra = {}) => ({
     { name: "color", fieldType: "string", formInput: "colorInput" },
     { name: "level", fieldType: "integer", formInput: "radio", options: [{ value: 1, label: "低" }], defaultValue: 1 },
     { name: "kind", fieldType: "enum", formInput: "select", options: [{ value: "a", label: "A" }], defaultValue: "a" },
-    { name: "image", fieldType: "mediaUploader", formInput: "mediaUploader", accept: "image/*", mediaTypePreset: "images", metadataBinding: { width: "image_width" } },
+    { name: "image", fieldType: "mediaUploader", formInput: "mediaUploader", slug: "image", accept: "image/*", mediaTypePreset: "images", metadataBinding: { width: "image_width" } },
     { name: "image_width", fieldType: "integer", formInput: "hidden" },
   ],
   searchFields: ["name", "sample_category_id"],
@@ -45,17 +46,20 @@ test("良い例: どの検査も止めず、警告も出さない", () => {
   assert.deepEqual(preflightWarnings({ camel: "sampleTag", config: good() }), []);
 });
 
-test("必須: singular・plural・dbEngine・useCreatedAt / useUpdatedAt、idType の値（db は廃止）、generate は boolean、generateFiles は廃止で止める", () => {
+test("必須: singular・plural・label・dbEngine・idType・useCreatedAt / useUpdatedAt、idType の値（db は廃止）、generate は boolean、generateFiles は廃止で止める。relations・fields は省略 = []", () => {
   const issues = joined(requiredIssues({}));
-  for (const word of ["singular", "plural", "dbEngine", "useCreatedAt", "useUpdatedAt"]) assert.match(issues, new RegExp(word));
-  assert.doesNotMatch(issues, /generate/);
+  for (const word of ["singular", "plural", "label", "dbEngine", "idType", "useCreatedAt", "useUpdatedAt"]) assert.match(issues, new RegExp(word));
+  assert.doesNotMatch(issues, /generate|relations|fields/);
+  const { relations, fields, ...withoutLists } = good();
+  assert.ok(relations && fields);
+  assert.deepEqual(requiredIssues(withoutLists), []);
   assert.match(joined(requiredIssues(good({ idType: "db" }))), /idType "db" は使えません/);
   assert.match(joined(requiredIssues(good({ generate: "no" }))), /generate は true か false/);
   assert.deepEqual(requiredIssues(good({ generate: false })), []);
   assert.match(joined(requiredIssues(good({ generateFiles: { entities: true } }))), /generateFiles は廃止しました/);
 });
 
-test("名前: 項目名・従属名は snake_case で止め、singular・plural・リレーション先は警告だけ", () => {
+test("名前: 項目名・従属名・singular・plural・リレーション先は snake_case でなければ止める", () => {
   const config = good({
     singular: "sampleTag",
     plural: "sampleTags",
@@ -65,11 +69,10 @@ test("名前: 項目名・従属名は snake_case で止め、singular・plural�
   const issues = joined(nameIssues(config));
   assert.match(issues, /fields\[0\] の name "galleryImages"/);
   assert.match(issues, /collection\.registration "productImage"/);
-  assert.doesNotMatch(issues, /singular|plural|relations/);
-  const warnings = joined(nameWarnings(config));
-  assert.match(warnings, /singular "sampleTag"/);
-  assert.match(warnings, /plural "sampleTags"/);
-  assert.match(warnings, /relations\[0\] の domain "sampleCategory"/);
+  assert.match(issues, /singular "sampleTag"/);
+  assert.match(issues, /plural "sampleTags"/);
+  assert.match(issues, /relations\[0\] の domain "sampleCategory"/);
+  assert.deepEqual(nameIssues(good()), []);
 });
 
 test("リレーション: Firestore の hasMany / belongsToMany、fieldName の無い外部キー、使えない外部キーの型（number・主の idType number）", () => {
@@ -145,14 +148,18 @@ test("表に無い型は項目の検査の対象外（語彙の警告だけ）",
   assert.deepEqual(fieldsWarnings(config), []);
 });
 
-test("メディア: accept の型が無い（制限なしでも列挙）、preset の綴り、metadataBinding のキーと書き先。Firestore の集まりは止める", () => {
+test("メディア: slug（camelCase）と mediaTypePreset は必須、accept の型が無い（制限なしでも列挙）、preset の綴り、metadataBinding のキーと書き先。Firestore の集まりは止める", () => {
   const issues = joined(
     mediaIssues({
       fields: [
         { name: "a", fieldType: "mediaUploader", accept: "", mediaTypePreset: "imagesOnly", metadataBinding: { size: "a_size", width: "missing" } },
+        { name: "b", fieldType: "mediaUploader", slug: "b_image", accept: "image/*" },
       ],
     }),
   );
+  assert.match(issues, /"a": slug にハンドラの識別子/);
+  assert.match(issues, /"b": slug にハンドラの識別子/);
+  assert.match(issues, /"b": mediaTypePreset を/);
   assert.match(issues, /accept に受け付ける型/);
   assert.match(issues, /mediaTypePreset "imagesOnly"/);
   assert.match(issues, /キー "size"/);

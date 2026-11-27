@@ -13,7 +13,7 @@ import { fieldsIssues, fieldsWarnings } from "./fields.mjs";
 import { formInputNameIssues } from "./formInputNames.mjs";
 import { mediaIssues } from "./media.mjs";
 import { checkMediaFieldsEngine } from "./mediaEngine.mjs";
-import { nameIssues, nameWarnings } from "./names.mjs";
+import { nameIssues } from "./names.mjs";
 import { relationIssues } from "./relations.mjs";
 import { requiredIssues } from "./required.mjs";
 import { checkRetiredFieldTypes } from "./retiredFieldTypes.mjs";
@@ -66,7 +66,6 @@ export function preflightWarnings(ctx, registeredInputs = new Set()) {
   const vocabulary = vocabularyReport(ctx.config, registeredInputs);
   return [
     ...vocabulary.warnings,
-    ...nameWarnings(ctx.config),
     ...fieldsWarnings(ctx.config, registeredInputs),
     ...viewConfigWarnings(ctx.config),
     ...vocabulary.unknownKeys,
