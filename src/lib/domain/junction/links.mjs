@@ -6,6 +6,14 @@
 import { toCamelCase, toSnakeCase } from "../../stringCase/index.mjs";
 
 /**
+ * 結びの登録の宣言のうち、ここが読む鍵
+ * @typedef {{
+ *   relations?: { relationType?: string, fieldName?: string, domain?: string, required?: boolean }[],
+ *   foreignKeys?: { columns?: string[], references?: { table?: string } }[],
+ * }} JunctionDeclaration
+ */
+
+/**
  * 登録の物理の表の名前(entity.json の table、無ければ snake(plural)、無ければ snake(登録名))
  * @param {string} name 登録名
  * @param {{ table?: unknown, plural?: unknown } | null | undefined} config
@@ -18,27 +26,28 @@ export function registrationTableName(name, config) {
 
 /**
  * 結びの登録が持つ結び
- * @param {{ relations?: unknown[], foreignKeys?: unknown[] } | null | undefined} junction 結びの登録の entity.json
+ * @param {object | null | undefined} junction 結びの登録の entity.json(読む鍵は JunctionDeclaration)
  * @param {(table: string) => string | null} registrationOfTable 物理の表の名前 → 登録名(camelCase。知らなければ null)
  * @returns {{ column: string, target: string | null, required: boolean }[]} target = 指す登録名(camelCase)
  */
 export function junctionLinksOf(junction, registrationOfTable) {
+  const declaration = /** @type {JunctionDeclaration} */ (junction ?? {});
   const links = [];
-  for (const relation of junction?.relations ?? []) {
+  for (const relation of declaration.relations ?? []) {
     if (relation?.relationType !== "belongsTo") continue;
-    links.push({ column: relation.fieldName, target: toCamelCase(relation.domain ?? ""), required: relation.required === true });
+    links.push({ column: relation.fieldName ?? "", target: toCamelCase(relation.domain ?? ""), required: relation.required === true });
   }
-  for (const foreignKey of junction?.foreignKeys ?? []) {
+  for (const foreignKey of declaration.foreignKeys ?? []) {
     const columns = foreignKey?.columns ?? [];
     if (columns.length !== 1) continue;
-    links.push({ column: columns[0], target: registrationOfTable(foreignKey.references?.table) ?? null, required: true });
+    links.push({ column: columns[0], target: registrationOfTable(foreignKey.references?.table ?? "") ?? null, required: true });
   }
   return links;
 }
 
 /**
  * 持つ側と相手を指す列(結びの表の TS の名前)。自分自身への多対多は 1 本目が持つ側、2 本目が相手
- * @param {object | null | undefined} junction 結びの登録の entity.json
+ * @param {object | null | undefined} junction 結びの登録の entity.json(読む鍵は JunctionDeclaration)
  * @param {string} owner 持つ側の登録名(camelCase)
  * @param {string} target 相手の登録名(camelCase)
  * @param {(table: string) => string | null} registrationOfTable

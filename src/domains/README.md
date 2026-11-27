@@ -174,7 +174,7 @@
 | relationType | RelationType | 🟢 Yes | リレーション種別 |
 | required | boolean | ⚪ No | 必須かどうか（belongsTo のみ有効） |
 | onDelete | `"RESTRICT"` \| `"CASCADE"` \| `"SET_NULL"` | ⚪ No | 削除時の挙動（belongsTo のみ） |
-| through | string | 条件付き | 多対多の結びの登録名（belongsToMany の持つ側だけ。反対側は書かない。下の「多対多の結び」） |
+| through | string | 条件付き | 多対多の結びの登録名（持つ側だけ。結び: `src/lib/domain/junction/README.md`） |
 | labelField | string | ⚪ No | セレクトボックスのラベルに使うフィールド（デフォルト: `name`） |
 | formInput | RelationFormInput | ⚪ No | フォーム入力種別（省略時はデフォルト値） |
 
@@ -197,36 +197,6 @@
 
 > ⚠️ **hasMany の FK 生成ルール**: 子テーブル側の外部キーカラム名は `親のsingular + "_id"` で自動決定される。例: 親が `gacha_machine` なら子テーブルの FK は `gacha_machine_id`。fieldName の値は直接使われない。
 
-#### 多対多の結び（through、D354）
-
-多対多の中間の表はいつも自分の登録 `entities/<結びの登録名>/entity.json`（結びの登録）。関係の宣言は `through: <結びの登録名>` で名指すだけで、列や FK を書かない。
-
-- 置き場: `through` を書いた側（持つ側）のドメイン。1 つの結びを `through` で名指せる関係は 1 つだけ。反対側の belongsToMany は `through` を書かない読むだけの参照
-- 結びの登録の形: 両側を指す結び 2 本（`belongsTo` で `required: true`、または手の表の形の 1 列の `foreignKeys`。FK の名前・onDelete も書ける）、その 2 列の合成の `primaryKey`、`registered: false`（汎用の口と登録表に出ない）。索引・足した列もここに書く
-- 生成: `generate: true` の結びは `pnpm generate domain` が `entities/<結びの登録名>/drizzle.ts` だけを書く（サービス・画面・model / form / schema の型は持たない）。持つ側の base は結びの登録の表と列を読む
-- 読み方は 1 つ: `src/lib/domain/junction/links.mjs`（`junctionColumnsOf`。生成器・検査・データの移しが同じ物を読む。名前を組み立てない）
-- 検査: `pnpm check domain`（`scripts/structure/domain/checks/junctions.mjs`）。`includeRelationTable` は廃止（書くと止まり、書き直し方を出す）
-
-```json
-// sample/entities/sample/entity.json の relations の 1 つ（持つ側）
-{ "domain": "sample_tag", "label": "サンプルタグ", "fieldName": "sample_tag_ids", "fieldType": "uuid", "relationType": "belongsToMany", "through": "sampleToSampleTag" }
-
-// sample/entities/sampleToSampleTag/entity.json（結びの登録。今動いている表の名前のまま）
-{
-  "label": "サンプルとサンプルタグ", "singular": "sample_to_sample_tag", "plural": "sample_to_sample_tag",
-  "idType": "uuid", "useCreatedAt": false, "useUpdatedAt": false, "dbEngine": "Neon", "registered": false,
-  "primaryKey": { "columns": ["sampleId", "sampleTagId"], "name": "sample_to_sample_tag_sample_id_sample_tag_id_pk" },
-  "columns": [
-    { "name": "sampleId", "column": { "type": "uuid", "notNull": true } },
-    { "name": "sampleTagId", "column": { "type": "uuid", "notNull": true } }
-  ],
-  "foreignKeys": [
-    { "columns": ["sampleId"], "references": { "table": "samples", "columns": ["id"] }, "onDelete": "CASCADE", "name": "sample_to_sample_tag_sample_id_samples_id_fk" },
-    { "columns": ["sampleTagId"], "references": { "table": "sample_tags", "columns": ["id"] }, "onDelete": "CASCADE", "name": "sample_to_sample_tag_sample_tag_id_sample_tags_id_fk" }
-  ]
-}
-```
-
 #### onDelete（削除時の挙動）
 
 belongsTo の外部キーに付く参照先削除時の挙動。`pnpm generate domain` が `entities/drizzle.ts` の `.references()` 第2引数（FK 名が 63 文字を超える場合は短縮名の `foreignKey(...).onDelete()`）に出力する（`scripts/structure/domain/domain/relations.mjs` の `getOnDeleteBehavior` / `buildOnDeleteOption`、出力は `render/entities/drizzle/foreignKeys.mjs`）。
@@ -237,7 +207,7 @@ belongsTo の外部キーに付く参照先削除時の挙動。`pnpm generate d
 | `CASCADE` | このレコードも削除 | `onDelete: "cascade"` |
 | `SET_NULL` | 外部キーを NULL にする | `onDelete: "set null"` |
 
-- 適用対象は belongsTo のみ（FK が自テーブルにあるため）。hasOne / hasMany は FK が相手側なので設定しない。belongsToMany の結びの onDelete は結びの登録の結び 2 本に書く（上の「多対多の結び」）
+- 適用対象は belongsTo のみ（FK が自テーブルにあるため）。hasOne / hasMany は FK が相手側なので設定しない。belongsToMany の結びの onDelete は結びの登録に書く
 - 解決順: `onDelete` があればそれ → 旧形式 `onDeleteCascade: true` なら CASCADE → それ以外（`onDeleteCascade: false` / 未指定）は RESTRICT
 - 既定を RESTRICT にしているのは、意図しない連鎖削除を防ぎ、CASCADE / SET_NULL を明示的な選択にするため
 - `SET_NULL` と `required: true` は矛盾する（NOT NULL 列を NULL にできない）ため、`pnpm generate domain` がエラー終了する
