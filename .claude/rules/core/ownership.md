@@ -18,7 +18,7 @@ downstream_owned (upstream never edits after creation): root src/styles/*.css (e
 - not downstream-owned: a generated admin route's hand-owned _components/ = the domain owner's (core/generated.md)
 root_files: the repo root holds only files a tool reads there by name and the repo-wide entry documents (the rest goes in folders) | untracked local files (.env.development …) are outside this rule
 - 3 forms a fork changes a root file by: code configs (next.config.ts, eslint.config.mjs, playwright.config.ts) = type 5 self reading the core body | JSON (package.json, .mcp.json, firebase.json) = add keys only (intake append) | line files (.gitignore, .env.example) = below the `fork entries below` marker
-  - JSON exceptions: package.json name and the version ranges of upstream deps in dependencies / devDependencies / optionalDependencies / peerDependencies (keys stay) | a machine-specific MCP setting → ~/.claude.json, never .mcp.json
+  - JSON exceptions: package.json name and the version ranges of upstream deps in dependencies / devDependencies / optionalDependencies / peerDependencies (keys stay) | a version CLAUDE.md STACK pins (drizzle-kit) stays upstream's | a machine-specific MCP setting → ~/.claude.json, never .mcp.json
   - root self files (type 5) beside the code configs: repo.json, vercel.json, backend-selection.json
   - pnpm-lock.yaml = generated (conflict → pnpm install) | README.md and every root file with no intake row = upstream only
 - a new root file: pick its form, and in the same commit its intake row (when one is needed) and its cover line (a rule's paths or core/uncovered.txt)

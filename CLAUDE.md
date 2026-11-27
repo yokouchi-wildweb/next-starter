@@ -15,11 +15,12 @@ use: every rule below follows from these three laws | a question no rule covers 
 
 ## THIS_FILE
 > **HEART**: CLAUDE.md and core/ are the heart of this framework: every session starts from them → change a rule only with care, through the authoring ladder (core/design.md)
+> - CLAUDE.md and core/ change only after the human approves, every character (a typo included) | without approval: cards, READMEs, service files (core/design.md authoring)
 > - each rule item here (pointers aside) restates the same key of its source (a core file, or a card for an item rule) → change the source first, then the matching CLAUDE.md line in the same commit
 > - a design rule needed before any file is opened that no core file or card holds (the layers, placement, docs) has CLAUDE.md as its source
 > **WRITING**: writing CLAUDE.md, a rule file or a card → core/design.md (format, size lines, approval, usual path) | terms → core/terms.md (generated from scripts/workflow/terms/terms.json)
 > **ROLE**: CLAUDE.md = the entrance to the contract this framework shares with every downstream repo = the essence of core/ (core/ + Tier1 item cards = the canon) | NEVER edit it downstream (gap → /order next-starter) | "fork" = any repo with a parent, middle tiers included
-> - words: Tier1 = the top repo (next-starter) | upstream = the direct parent (a rule that means only the top repo says Tier1) | approval item = an important contract change the human approves before it is made (core/design.md authoring approval)
+> - words: Tier1 = the top repo (next-starter) | upstream = the direct parent (a rule that means only the top repo says Tier1) | approval item = a change the human approves before it is made: every CLAUDE.md or core/ change, and the items of core/design.md authoring approval
 > **CORE**: core = what Tier1 ships and owns, one meaning everywhere = the paths of CORE_FILES core | a fork never edits it; it changes it only through CHANGE_TYPES or /order <direct parent> (with a temporary permit while it waits)
 > **PRIORITY**: a context line marked `(priority)` (with the lines indented under it) wins over an unmarked line it contradicts | both marked → the nearer file wins, neither → the wider | reading only: never changes checks, ownership, settings or permissions | → core/design.md priority
 
@@ -80,6 +81,7 @@ order: 1 a public means is enough → use it | 2 one of the five types at a decl
 
 ## STACK
 next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, radix | auth: firebase-auth + jwt | storage: gcs signed direct upload + image metadata strip (lib/storage) | http: axios (client), fetch (server)
+- drizzle_kit: pinned 0.31.8 with patches/drizzle-kit@0.31.8.patch (pnpm.patchedDependencies) = this project's architecture until drizzle 1.0 is GA, then consider moving | forks never change its version (pnpm check registry)
 - next: its APIs, config and recommendations → node_modules/next/dist/docs/ (the installed version's docs), not memory | follow its deprecation notices
 
 ## CODE_PLACEMENT (3-tier)
@@ -135,7 +137,8 @@ servers: standalone programs outside Next/Vercel live in servers/\<name\>/ (own 
 ## CORE_FILES (ownership: who edits what)
 core (= CORE, approval required): CLAUDE.md, core/, root \<tool\>.config.core.\<ext\>, src/domains/core/ (core domains, core roles), src/styles/core/, src/components/, src/proxy.ts, src/proxies/, src/featureGate/, src/wiring/, upstream routes' _screen / _layout, libs in the Tier1 section of src/lib/CATALOG.md | files the fork added = fork-owned | per path → pnpm workflow ownership who
 - full list → core/ownership.md
-root_files: the root holds only files a tool reads there by name and repo-wide entry docs | a fork changes one by 3 forms: code configs = type 5 self | JSON = add keys only (exceptions: package.json name, upstream dep versions) | line files = below the marker | pnpm-lock.yaml generated (pnpm install) | README.md and rowless root files = upstream only | → core/ownership.md root_files
+root_files: the root holds only files a tool reads there by name and repo-wide entry docs | a fork changes one by 3 forms: code configs = type 5 self | JSON = add keys only (exceptions: package.json name, upstream dep versions except one STACK pins) | line files = below the marker
+- pnpm-lock.yaml generated (pnpm install) | README.md and rowless root files = upstream only | → core/ownership.md root_files
 - a new root file: its form, intake row and cover line in the same commit
 downstream_owned (upstream never edits after creation): root src/styles/*.css, page.tsx / frame layout.tsx of switched routes, _components/** and \<name\>.replace files of upstream routes, \<target\>.override.ts | exceptions → core/ownership.md
 intake: every place a fork may write in parent files = src/lib/forkOwnership/intake.txt (kinds: edit / add / region / marker / append / generated / debt / self) | src/config/** too (both sides edit it: config below)
