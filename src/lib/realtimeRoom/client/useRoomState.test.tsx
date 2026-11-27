@@ -1,4 +1,5 @@
 // useRoomState の再接続の検査(接続トークンの期限で Worker が閉じたら、待たずに新しいトークンで再接続する)。
+// 接続の途中の片付け(unmount・部屋の替わり)の後に開かない・二重に開かない(D153)。
 // 実行: pnpm test src/lib/realtimeRoom/client/useRoomState.test.tsx(tsx + node:test のモジュールモック + jsdom。WebSocket は偽物)
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, beforeEach, mock, test } from "node:test";
@@ -45,6 +46,8 @@ const sockets: FakeSocket[] = [];
 g.WebSocket = FakeSocket;
 
 let sessions = 0;
+/** 接続情報の取得を止めておく(片付けの後に返る形を作る) */
+let hold: Promise<void> | null = null;
 mock.module("../config", {
   namedExports: {
     realtimeRoomConfig: { enabled: true, clientTokenTtlSeconds: 60, serviceTokenTtlSeconds: 60, reconnectBaseDelayMs: 1_000, reconnectMaxDelayMs: 15_000 },
@@ -53,9 +56,11 @@ mock.module("../config", {
 mock.module("./roomSessionClient", {
   namedExports: {
     roomSessionClient: {
-      getSession: async () => {
+      getSession: async (_ns: string, roomId: string) => {
         sessions += 1;
-        return { token: `t${sessions}`, wsUrl: "wss://room.example/ns/r1/ws", protocolVersion: 1 };
+        const n = sessions;
+        if (hold) await hold;
+        return { token: `t${n}`, wsUrl: `wss://room.example/ns/${roomId}/ws`, protocolVersion: 1 };
       },
     },
   },
@@ -75,26 +80,31 @@ after(() => dom.window.close());
 beforeEach(() => {
   sockets.length = 0;
   sessions = 0;
+  hold = null;
 });
 
 const flush = (ms = 0) => act(async () => new Promise((resolve) => setTimeout(resolve, ms)));
 
-const mount = async () => {
+const mount = async (roomId = "r1") => {
   const latest: { status?: string } = {};
   const report = (status: string) => {
     latest.status = status;
   };
   // 描画中に外の変数を書き換えない(effect で外へ渡す)
-  const Probe = () => {
-    const { status } = useRoomState("ns", "r1");
+  const Probe = ({ room }: { room: string }) => {
+    const { status } = useRoomState("ns", room);
     useEffect(() => report(status), [status]);
     return null;
   };
   const container = document.createElement("div");
   const root = createRoot(container);
-  await act(async () => root.render(createElement(Probe)));
+  await act(async () => root.render(createElement(Probe, { room: roomId })));
   await flush();
-  return { latest, unmount: () => act(async () => root.unmount()) };
+  return {
+    latest,
+    unmount: () => act(async () => root.unmount()),
+    switchRoom: (room: string) => act(async () => root.render(createElement(Probe, { room }))),
+  };
 };
 
 test("トークンの期限で閉じたら、待たずに新しいトークンで再接続する", async () => {
@@ -122,4 +132,28 @@ test("それ以外の切断はバックオフ(既定 1 秒)を待ってから再
   assert.equal(sockets.length, 1, "すぐには繋ぎ直さない");
   assert.equal(view.latest.status, "connecting");
   await view.unmount();
+});
+
+test("接続情報の取得の途中で片付けたら、後で返っても接続を開かない", async () => {
+  let release!: () => void;
+  hold = new Promise((resolve) => (release = resolve));
+  const view = await mount();
+  assert.equal(sockets.length, 0);
+  await view.unmount();
+  await act(async () => release());
+  await flush();
+  assert.equal(sockets.length, 0, "片付けの後に開かない");
+});
+
+test("接続の途中で部屋が替わったら、前の部屋は開かず接続は 1 本", async () => {
+  let release!: () => void;
+  hold = new Promise((resolve) => (release = resolve));
+  const view = await mount("r1");
+  await view.switchRoom("r2");
+  await act(async () => release());
+  await flush();
+  assert.equal(sockets.length, 1, "二重に開かない");
+  assert.match(sockets[0].url, /\/r2\/ws\?/);
+  await view.unmount();
+  assert.equal(sockets[0].readyState, 3, "片付けで閉じる");
 });

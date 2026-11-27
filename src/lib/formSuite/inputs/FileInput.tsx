@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState, type ChangeEvent } from "react";
 import type { ControllerRenderProps, FieldPath, FieldValues } from "react-hook-form";
 
 import { FileInput as ManualFileInput, type FileInputProps as ManualFileInputProps } from "@/components/Input/FileInput";
@@ -56,12 +56,15 @@ export const ControlledFileInput = <
     [field, onChange, onFileSelect],
   );
 
+  // initialUrl を field に入れるのは initialUrl が替わった時だけ(D153): field は親の描き直しで作り直されるので、
+  // field を依存に入れると走り直して、選んだファイルを initialUrl で上書きした。field.onChange は最新を読む
+  const applyInitialUrl = useEffectEvent((url: string) => {
+    field.onChange(url);
+    previousValueRef.current = null;
+  });
   useEffect(() => {
-    if (initialUrl) {
-      field.onChange(initialUrl);
-      previousValueRef.current = null;
-    }
-  }, [initialUrl, field]);
+    if (initialUrl) applyInitialUrl(initialUrl);
+  }, [initialUrl]);
 
   const derivedName =
     typeof field.value === "object" &&

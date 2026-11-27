@@ -61,6 +61,11 @@ export function useUnsavedGuard(when: boolean, options?: { readonly reason?: Uns
 export function useUnsavedTasks(options?: { readonly when?: boolean; readonly reason?: UnsavedReason }): UnsavedTasks {
   const source = useUnsavedSource(options?.reason);
   const tracker = useMemo(() => createTaskTracker(source), [source]);
+  // 外れた後に終わった仕事が警告を立て直さない(D153)。付け直し(StrictMode)で戻る
+  useEffect(() => {
+    tracker.attach();
+    return () => tracker.detach();
+  }, [tracker]);
   const when = options?.when ?? true;
   useEffect(() => {
     tracker.setEnabled(when);

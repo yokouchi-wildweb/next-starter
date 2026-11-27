@@ -2,6 +2,7 @@
 // - サーバーがトークンを出さない(null)・クライアントの Firebase が未設定: signInWithCustomToken を呼ばず、ログインは進む
 // - 両方そろう: 今まで通り Firebase Auth にもサインインする
 // - signInWithCustomToken が呼んだ時点で投げても、ログインは進む
+// - 移りはページの読み直し(reloadTo、D139)
 // 実行: pnpm test src/domains/core/auth/hooks/useAdminLogin.test.tsx
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await 不可 → before() で import)
 import { after, before, beforeEach, mock, test } from "node:test";
@@ -44,8 +45,8 @@ mock.module("@/domains/core/auth/services/client/localLogin", {
 mock.module("@/domains/core/auth/hooks/useAuthSession", {
   namedExports: { useAuthSession: () => ({ refreshSession: async () => {} }) },
 });
-mock.module("@/lib/unsavedGuard", {
-  namedExports: { useRouter: () => ({ push: (path: string) => pushed.push(path) }) },
+mock.module("@/lib/url", {
+  namedExports: { reloadTo: (path: string) => pushed.push(path) },
 });
 
 let act: typeof import("react").act;

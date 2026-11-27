@@ -106,6 +106,7 @@ export type RegistrationSubmitDeps<TValues extends RegistrationFormValuesBase> =
   getRecaptchaToken: () => Promise<string | undefined>;
   register: (payload: RegistrationInput, options?: RegistrationOptions) => Promise<unknown>;
   refreshSession: () => Promise<unknown>;
+  /** 登録の完了で移る(利用者が替わる: ページの読み直し reloadTo、D139) */
   navigate: (path: string) => void;
   isV2ChallengeRequired: (error: unknown) => boolean;
   /** v2 保留 payload を作るときの form の値（送信時ではなく、その時点の値を取り直す） */

@@ -289,6 +289,40 @@ test("終わるまで守る仕事: 外す設定(guardUnsaved = false)の間は�
   assert.equal(guard.isDirty(), false);
 });
 
+test("終わるまで守る仕事: 使い手が外れた(detach)後に終わった仕事は今の画面に警告を立てない、付け直し(attach)で戻る(D153)", async () => {
+  const { guard } = setup(true);
+  const source = guard.createSource("inProgress");
+  const tracker = createTaskTracker(source);
+  let resolveA!: () => void;
+  let resolveB!: () => void;
+  const a = tracker.track(new Promise<void>((r) => (resolveA = r)));
+  const b = tracker.track(new Promise<void>((r) => (resolveB = r)));
+  assert.equal(guard.isDirty(), true);
+  tracker.detach();
+  source.dispose();
+  assert.equal(guard.isDirty(), false, "外れたら守らない");
+  resolveA();
+  await a;
+  await tick();
+  assert.equal(guard.isDirty(), false, "残りが 1 つあっても立て直さない");
+  resolveB();
+  await b;
+  await tick();
+  assert.equal(guard.isDirty(), false);
+  // 付け直し(StrictMode): 残りの仕事で守る
+  const again = createTaskTracker(guard.createSource());
+  let resolveC!: () => void;
+  const c = again.track(new Promise<void>((r) => (resolveC = r)));
+  again.detach();
+  assert.equal(guard.isDirty(), false);
+  again.attach();
+  assert.equal(guard.isDirty(), true);
+  resolveC();
+  await c;
+  await tick();
+  assert.equal(guard.isDirty(), false);
+});
+
 test("離れずに外れた(保存・元に戻した): 確認を出さずに自分の番兵を 1 つ戻って外し、着いたら popstate も外す", async () => {
   const { guard, fake, asked } = setup(true);
   const source = guard.createSource();

@@ -4,6 +4,7 @@
 
 import axios from "axios";
 
+import type { LoginAnnouncement } from "@/domains/core/auth/constants/loginAnnouncement";
 import type { SessionUser } from "@/domains/core/auth/entities/session";
 import type { UserProviderType } from "@/domains/core/user/types";
 import { normalizeHttpError } from "@/lib/errors";
@@ -14,6 +15,8 @@ export type FirebaseSessionPayload = {
   providerType: UserProviderType;
   providerUid: string;
   idToken: string;
+  /** ログインの後(読み直しの後)に出す知らせ。省略 = 出さない */
+  announce?: LoginAnnouncement;
 };
 
 export type FirebaseSessionResponse = {

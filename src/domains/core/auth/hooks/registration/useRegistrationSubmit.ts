@@ -19,7 +19,7 @@ import {
   useRecaptchaV2Challenge,
   RECAPTCHA_ACTIONS,
 } from "@/lib/recaptcha";
-import { useGuardedNavigation } from "@/lib/transitionGuard";
+import { reloadTo } from "@/lib/url";
 
 import {
   retryRegistrationWithV2,
@@ -56,7 +56,6 @@ export function useRegistrationSubmit<TValues extends RegistrationFormValuesBase
   assertInviteCodeSubmittable,
   resolveInviteCodePayload,
 }: Params<TValues>) {
-  const { guardedPush } = useGuardedNavigation();
   const { executeRecaptcha } = useRecaptcha();
   const { register, isLoading } = useRegistration();
   const { refreshSession } = useAuthSession();
@@ -100,10 +99,10 @@ export function useRegistrationSubmit<TValues extends RegistrationFormValuesBase
       void retryRegistrationWithV2(payload, challengeState.v2Token ?? undefined, {
         register,
         refreshSession,
-        navigate: guardedPush,
+        navigate: reloadTo,
       }).then(applyOutcome);
     }
-  }, [hasV2Token, challengeState.v2Token, register, refreshSession, guardedPush, applyOutcome]);
+  }, [hasV2Token, challengeState.v2Token, register, refreshSession, applyOutcome]);
 
   const onSubmit = useCallback(
     async (values: TValues) => {
@@ -114,7 +113,7 @@ export function useRegistrationSubmit<TValues extends RegistrationFormValuesBase
         getRecaptchaToken: () => getRecaptchaToken(executeRecaptcha, RECAPTCHA_ACTIONS.REGISTER),
         register,
         refreshSession,
-        navigate: guardedPush,
+        navigate: reloadTo,
         isV2ChallengeRequired,
         getFormValues: () => form.getValues(),
       });
@@ -127,7 +126,6 @@ export function useRegistrationSubmit<TValues extends RegistrationFormValuesBase
       executeRecaptcha,
       register,
       refreshSession,
-      guardedPush,
       form,
       applyOutcome,
     ],

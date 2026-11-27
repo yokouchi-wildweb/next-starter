@@ -145,7 +145,10 @@ export function useSeamlessReel(options: UseSeamlessReelOptions = {}): UseSeamle
       setLoaded({ video: 0, audio: 0, total: fragments.length });
 
       const opt = optionsRef.current;
-      const reel = new SeamlessReel(video, {
+      // 読み込みの途中に reset・次の load があったら、この回の知らせと結果を捨てる(戻した後の状態に古い読み込みを入れない、D153)
+      let reel: SeamlessReel | null = null;
+      const isCurrent = () => reel !== null && reelRef.current === reel;
+      reel = new SeamlessReel(video, {
         mimeType: opt.mimeType,
         fetcher: opt.fetcher,
         audioEngine: engine, // load を跨いで AudioContext を共有・永続化
@@ -160,20 +163,28 @@ export function useSeamlessReel(options: UseSeamlessReelOptions = {}): UseSeamle
         onPlay: opt.onPlay,
         onPause: opt.onPause,
         onEnded: opt.onEnded,
-        onFragmentAppended: (appended, total) => setProgress({ appended, total }),
-        onState: applyState,
+        onFragmentAppended: (appended, total) => {
+          if (isCurrent()) setProgress({ appended, total });
+        },
+        onState: (state) => {
+          if (isCurrent()) applyState(state);
+        },
         onError: (e) => {
+          if (!isCurrent()) return;
           setError(e);
           setStatus("error");
         },
       });
-      reelRef.current = reel;
+      const current = reel;
+      reelRef.current = current;
 
       try {
-        await reel.load(fragments, opts);
-        setAudioEnabled(reel.audioEnabled);
+        await current.load(fragments, opts);
+        if (!isCurrent()) return;
+        setAudioEnabled(current.audioEnabled);
         setStatus("ready"); // playable に達したら ready
       } catch (e) {
+        if (!isCurrent()) return;
         setError(e instanceof Error ? e : new Error(String(e)));
         setStatus("error");
       }

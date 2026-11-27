@@ -84,7 +84,23 @@ export function useRecordSelection<T>({
   );
   const selectableKeySet = React.useMemo(() => new Set(selectableItems.map(({ key }) => key)), [selectableItems]);
 
-  const resolvedSelectedKeys = isControlled ? selectedKeys! : uncontrolledKeys;
+  // 一覧から消えた行の key は選択から外す(取り直し・絞り込み・頁の替わり、D153)。外すのは「前の一覧にあって今の一覧に無い」
+  // key だけ(まだ読み込んでいない行の初めの選択 defaultSelectedKeys・呼び手の selectedKeys は外さない)。
+  // 一覧の key の並びが替わった描画で合わせる(getKey が描画ごとに替わっても並びが同じなら何もしない)。
+  // 非制御は状態から外し、制御は呼び手へ外した並びを知らせる(下の effect)。
+  const itemKeys = React.useMemo(() => keyedItems.map(({ key }) => key), [keyedItems]);
+  const itemKeySignature = itemKeys.map(String).join("\u0000");
+  const [seenItems, setSeenItems] = React.useState({ signature: itemKeySignature, keys: itemKeys, gone: EMPTY_KEYS });
+  if (seenItems.signature !== itemKeySignature) {
+    const gone = seenItems.keys.filter((key) => !keyToItemMap.has(key));
+    setSeenItems({ signature: itemKeySignature, keys: itemKeys, gone });
+    if (!isControlled && gone.length > 0) setUncontrolledKeys(uncontrolledKeys.filter((key) => !gone.includes(key)));
+  }
+  const rawSelectedKeys = isControlled ? selectedKeys! : uncontrolledKeys;
+  const resolvedSelectedKeys = React.useMemo(
+    () => (seenItems.gone.some((key) => rawSelectedKeys.includes(key)) ? rawSelectedKeys.filter((key) => !seenItems.gone.includes(key)) : rawSelectedKeys),
+    [rawSelectedKeys, seenItems.gone],
+  );
   const selectedKeySet = React.useMemo(() => new Set(resolvedSelectedKeys), [resolvedSelectedKeys]);
 
   const emitSelectionChange = React.useCallback(
@@ -105,6 +121,17 @@ export function useRecordSelection<T>({
     },
     [isControlled, keyToItemMap, onSelectionChange],
   );
+
+  // 制御: 呼び手の選択に今の一覧に無い key があれば、外した並びを知らせる(一覧が変わった時)
+  const prunedForControlled = isControlled && resolvedSelectedKeys !== rawSelectedKeys ? resolvedSelectedKeys : null;
+  React.useEffect(() => {
+    // 制御では状態を持たないので、呼び手へ知らせるだけ(state は書かない)
+    if (!prunedForControlled || !onSelectionChange) return;
+    onSelectionChange(
+      prunedForControlled,
+      prunedForControlled.map((key) => keyToItemMap.get(key)).filter((value): value is T => Boolean(value)),
+    );
+  }, [keyToItemMap, onSelectionChange, prunedForControlled]);
 
   const updateKeySelection = React.useCallback(
     (key: React.Key, checked?: boolean, options?: Pick<RecordSelectionToggleOptions, "shiftKey">) => {

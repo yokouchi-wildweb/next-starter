@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { OAUTH_ALREADY_REGISTERED_TOAST, resolveOAuthTransition } from "./transition";
+import { resolveOAuthTransition } from "./transition";
 import type { OAuthPhase } from "./types";
 
 const paths = { afterVerificationPath: "/signup/register", redirectTo: "/mypage" };
@@ -19,20 +19,18 @@ describe("resolveOAuthTransition", () => {
     });
   });
 
-  it("alreadyRegistered + 休会中 = /reactivate へ置き換え、トーストなし", () => {
+  it("alreadyRegistered + 休会中 = /reactivate へ読み直し", () => {
     assert.deepEqual(resolveOAuthTransition("alreadyRegistered", true, paths), {
-      kind: "replace",
+      kind: "reload",
       path: "/reactivate",
     });
   });
 
-  it("alreadyRegistered = トースト + redirectTo へ置き換え", () => {
+  it("alreadyRegistered = redirectTo へ読み直し(利用者が替わる、D139)", () => {
     assert.deepEqual(resolveOAuthTransition("alreadyRegistered", false, paths), {
-      kind: "replace",
+      kind: "reload",
       path: "/mypage",
-      toast: OAUTH_ALREADY_REGISTERED_TOAST,
     });
-    assert.equal(OAUTH_ALREADY_REGISTERED_TOAST, "登録済みユーザーでログインしました");
   });
 
   it("他の phase = 何もしない", () => {

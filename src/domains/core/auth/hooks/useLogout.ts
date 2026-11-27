@@ -3,7 +3,6 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { useRouter } from "@/lib/unsavedGuard";
 import { signOut } from "firebase/auth";
 
 import { useAuthSession } from "@/domains/core/auth/hooks/useAuthSession";
@@ -11,6 +10,8 @@ import { logout as logoutService } from "@/domains/core/auth/services/client/log
 import type { HttpError } from "@/lib/errors";
 import { isHttpError } from "@/lib/errors";
 import { auth } from "@/lib/firebase/client";
+import { reloadTo } from "@/lib/url";
+
 
 type UseLogoutOptions = {
   redirectTo?: string;
@@ -23,7 +24,6 @@ export function useLogout({
   redirectTo = DEFAULT_REDIRECT_PATH,
   skipRedirect = false,
 }: UseLogoutOptions = {}) {
-  const router = useRouter();
   const { refreshSession } = useAuthSession();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<HttpError | null>(null);
@@ -53,8 +53,8 @@ export function useLogout({
       }
 
       if (!skipRedirect) {
-        router.replace(redirectTo);
-        router.refresh();
+        // 利用者が替わる: ページの読み直しで前の人の値を残さない(D139)
+        reloadTo(redirectTo);
       }
     } catch (unknownError) {
       if (isHttpError(unknownError)) {
@@ -67,7 +67,7 @@ export function useLogout({
       lockRef.current = false;
       setIsLoading(false);
     }
-  }, [redirectTo, refreshSession, router, skipRedirect]);
+  }, [redirectTo, refreshSession, skipRedirect]);
 
   return {
     logout: handleLogout,

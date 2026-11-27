@@ -3,13 +3,13 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { useRouter } from "@/lib/unsavedGuard";
 import { signInWithCustomToken } from "firebase/auth";
 
 import { useAuthSession } from "@/domains/core/auth/hooks/useAuthSession";
 import { localLogin } from "@/domains/core/auth/services/client/localLogin";
 import { auth, isFirebaseClientConfigured } from "@/lib/firebase/client";
 import { err } from "@/lib/errors";
+import { reloadTo } from "@/lib/url";
 
 type AdminLoginParams = {
   email: string;
@@ -21,7 +21,6 @@ type AdminLoginParams = {
 const DEFAULT_REDIRECT_PATH = "/admin";
 
 export function useAdminLogin() {
-  const router = useRouter();
   const { refreshSession } = useAuthSession();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -46,17 +45,15 @@ export function useAdminLogin() {
         // Firebase が未設定(サーバーがトークンを出さない・クライアントの env が空)なら auth に触れない
         if (result.firebaseCustomToken && isFirebaseClientConfigured()) {
           try {
-            signInWithCustomToken(auth, result.firebaseCustomToken).catch(() => {});
+            // 読み直しの前に済ませる(読み直しで途中の sign-in が切れないように)
+            await signInWithCustomToken(auth, result.firebaseCustomToken).catch(() => {});
           } catch {
             // 呼んだ時点で投げることがある(.catch の前)。ログインは続ける
           }
         }
 
-        if (result.requiresReactivation) {
-          router.push("/reactivate");
-        } else {
-          router.push(redirectTo ?? DEFAULT_REDIRECT_PATH);
-        }
+        // 利用者が替わる: ページの読み直し(D139)
+        reloadTo(result.requiresReactivation ? "/reactivate" : (redirectTo ?? DEFAULT_REDIRECT_PATH));
       } catch (error) {
         setErrorMessage(err(error, "ログインに失敗しました"));
       } finally {
@@ -64,7 +61,7 @@ export function useAdminLogin() {
         setIsLoading(false);
       }
     },
-    [refreshSession, router],
+    [refreshSession],
   );
 
   return {

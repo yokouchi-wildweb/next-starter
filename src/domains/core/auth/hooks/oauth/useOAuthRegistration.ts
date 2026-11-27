@@ -70,6 +70,8 @@ export function useOAuthRegistration({ provider }: UseOAuthRegistrationParams) {
         providerType: provider,
         providerUid: credentialInfo.firebaseUid,
         idToken: credentialInfo.idToken,
+        // 登録済みとしてログインした知らせ(読み直しの後に出る)
+        announce: "alreadyRegistered",
       });
 
       log(3, "[useOAuthRegistration] firebase session issued for registered user", {

@@ -77,7 +77,7 @@ fork が上流に無いログインの方法を足すときに呼ぶ口。呼ぶ
 | --- | --- | --- |
 | `useOAuthSignupFlow({ provider, redirectTo })` | `provider?: UserProviderType`・`redirectTo?: string`（登録済みユーザーのログイン後の遷移先、既定 `"/"`） | `{ phase, requiresReactivation }` |
 
-- 中で `useOAuthPhase`(認証の段階: initial / redirecting / processing / completed / alreadyRegistered / invalidProcess)を進め、段階が決まると移る: `completed` = `authConfig.signup.afterVerificationPath?method=thirdParty` へ遷移ガード経由 / `alreadyRegistered` + 休会中 = `/reactivate` へ置き換え / `alreadyRegistered` = 成功トースト「登録済みユーザーでログインしました」+ `redirectTo` へ置き換え
+- 中で `useOAuthPhase`(認証の段階: initial / redirecting / processing / completed / alreadyRegistered / invalidProcess)を進め、段階が決まると移る: `completed` = `authConfig.signup.afterVerificationPath?method=thirdParty` へ遷移ガード経由 / `alreadyRegistered` + 休会中 = `/reactivate` へページの読み直し / `alreadyRegistered` = `redirectTo` へページの読み直し(利用者が替わる、D139)。成功トースト「登録済みユーザーでログインしました」は session の要求(`announce: "alreadyRegistered"`)で route が積む redirect の cookie から読み直しの後に出る(`constants/loginAnnouncement.ts`、`src/lib/toast` の redirect)
 - 画面は `phase` ごとの表示(読み込み中・`InvalidProcessState`)だけを描く。`useOAuthPhase` は段階だけが要る呼び出し向けに残る(遷移はしない)
 
 #### 画面の処理(`/email/verify`・`/logout`・`/signup/complete`)
@@ -91,5 +91,5 @@ fork が上流に無いログインの方法を足すときに呼ぶ口。呼ぶ
 | `useSignupComplete()` | なし | `{ isChecking, isValidTransition }` |
 
 - `useEmailChangeVerification`: `phase` = `initial` / `checking_auth` / `require_login` / `processing` / `completed` / `error`。ログイン済みなら確認コードの情報を引き → Firebase で変更を適用 → サーバーの DB を同期して `completed`。`loginHref` = `/login?returnTo=<今のパス + oobCode>`(未ログインのときのログインのリンク)。`error` は表示用の文言
-- `useAutoLogout`: mount で 1 回だけ `useLogout` の logout を呼ぶ(StrictMode の 2 回目の effect でも 1 回)。成功で `redirectTo` へ置き換え。失敗は `error`(`HttpError | null`)に入り、`retry()` で呼び直す(手動のボタンは `LogoutButton` でもよい)
+- `useAutoLogout`: mount で 1 回だけ `useLogout` の logout を呼ぶ(StrictMode の 2 回目の effect でも 1 回)。成功で `redirectTo` へページの読み直し(D139)。失敗は `error`(`HttpError | null`)に入り、`retry()` で呼び直す(手動のボタンは `LogoutButton` でもよい)
 - `useSignupComplete`: 遷移の守り(`/signup/register` からのトークン付き遷移だけを通し、それ以外はエラー画面)と、正当な遷移でのサインアップ完了コンバージョン(mount あたり 1 回、env 未設定なら何もしない)。`isChecking` の間は読み込み中を描く

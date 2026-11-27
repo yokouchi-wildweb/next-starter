@@ -261,7 +261,9 @@ export function createUnsavedGuard({ confirm: initialConfirm, env: getEnv, route
 
 /**
  * 終わるまで守る仕事の数え方: track した Promise(then を持つ値。ほかの値は数えない) が 1 つでも終わっていない間、元を立てる(成功・失敗どちらでも終われば外す)。
- * enabled = false の間は数えるだけで立てない(使い手の guardUnsaved)
+ * enabled = false の間は数えるだけで立てない(使い手の guardUnsaved)。
+ * detach(使い手の部品が外れた)の後は立てない: 外れた画面の仕事が後で終わっても、今の画面に警告を立てない(D153)。
+ * attach で戻る(StrictMode の付け直し)
  */
 const isThenable = (value: unknown): value is PromiseLike<unknown> =>
   typeof value === "object" && value !== null && typeof (value as { then?: unknown }).then === "function";
@@ -269,7 +271,10 @@ const isThenable = (value: unknown): value is PromiseLike<unknown> =>
 export function createTaskTracker(source: UnsavedSource) {
   let pending = 0;
   let enabled = true;
-  const sync = () => source.set(enabled && pending > 0);
+  let attached = true;
+  const sync = () => {
+    if (attached) source.set(enabled && pending > 0);
+  };
   return {
     track<T>(task: T): T {
       if (!isThenable(task)) return task;
@@ -285,6 +290,14 @@ export function createTaskTracker(source: UnsavedSource) {
     setEnabled(next: boolean) {
       enabled = next;
       sync();
+    },
+    attach() {
+      attached = true;
+      sync();
+    },
+    detach() {
+      attached = false;
+      source.set(false);
     },
     pending: () => pending,
   };

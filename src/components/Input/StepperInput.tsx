@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useState, type ChangeEvent } from "react";
 import { Button } from "@/components/Button/Button";
 import { type ButtonStyleProps } from "@/components/Button/variants";
 import { MinusIcon, PlusIcon } from "lucide-react";
@@ -93,14 +93,17 @@ export default function StepperInput({
   "aria-invalid": ariaInvalid,
 }: StepperInputProps) {
   const [internalValue, setInternalValue] = useState(initialValue);
-  const [manualInputValue, setManualInputValue] = useState(String(initialValue));
   const isControlled = value !== undefined;
   const currentValue = isControlled ? value : internalValue;
+  const [manualInputValue, setManualInputValue] = useState(String(currentValue));
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 描画の中で合わせるとサーバーの描画(初回の HTML)の欄の値が initialValue から今の値に変わる。今の出方を保つ
-    setManualInputValue(String(currentValue));
-  }, [currentValue]);
+  // 欄の文字は値が替わった描画で合わせる(effect では 1 描画ずれ、制御の値が initialValue と違うと最初の表示もずれた、D153)。
+  // 打っている途中の文字(「1.」など)は、その文字が今の値を表している間は保つ
+  const [seenValue, setSeenValue] = useState(currentValue);
+  if (seenValue !== currentValue) {
+    setSeenValue(currentValue);
+    if (manualInputValue === "" || Number(manualInputValue) !== currentValue) setManualInputValue(String(currentValue));
+  }
 
   const clamp = (v: number) => {
     let result = v;

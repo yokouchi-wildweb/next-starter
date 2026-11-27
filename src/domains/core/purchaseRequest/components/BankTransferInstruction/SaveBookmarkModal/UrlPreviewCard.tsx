@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Copy, Link as LinkIcon } from "lucide-react";
 
 import { Button } from "@/components/Button/Button";
@@ -28,6 +28,11 @@ export function UrlPreviewCard({ title, url }: Props) {
   const { showToast } = useToast();
   // コピー直後の視覚フィードバック（チェックマーク + ラベル切替）の表示制御
   const [copied, setCopied] = useState(false);
+  // 戻すタイマーは 1 本(続けて押すと数え直す)、外れた時に止める(D153)
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+  }, []);
 
   const handleCopy = async () => {
     try {
@@ -35,7 +40,8 @@ export function UrlPreviewCard({ title, url }: Props) {
       setCopied(true);
       showToast("URL をコピーしました", "success");
       // 2 秒後に元のラベルに戻す
-      setTimeout(() => setCopied(false), 2000);
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       showToast("コピーに失敗しました", "error");
     }

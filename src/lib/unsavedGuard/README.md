@@ -36,6 +36,7 @@ router.push("/admin/samples"); // 編集済みなら確認してから
 - `UnsavedGuardProvider({ confirm })`: 守りを置く。`confirm(request) => boolean | Promise<boolean>`(true = 移る)。`request.kind` = link / anchor / push / replace / back / forward / popstate、`request.reasons` = いま立っている元の理由
 - `useUnsavedGuard(when, { reason })`: when が true の間守る。reason の既定 `unsaved`
 - `useUnsavedTasks({ when, reason })`: `track(value)` した Promise が 1 つでも終わっていない間守る。when = false の間は守らない
+  - 呼んだ部品が外れた後に終わった仕事は、今の画面に警告を立て直さない(外れた時に守りを外し、残りの仕事では守らない)
 - `useUnsavedSource(reason)` / `useUnsavedSourceFactory()`: 編集済みの元(`set(active)` を同期に呼べる。送信の直前に外す等)/ その作り方(結線が棚の口へ入れる)
 - `UnsavedReason` / `UNSAVED_REASONS` / `pickConfirmReason(reasons)`: 理由の閉じた一覧 / 確認に出す理由を 1 つ選ぶ(`inProgress` が勝つ)
 - `useRouter()`: push / replace / back / forward は編集済みの間に確認。refresh / prefetch はそのまま。Provider の外は素の Next の router

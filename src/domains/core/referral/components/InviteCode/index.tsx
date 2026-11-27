@@ -3,7 +3,7 @@
 
 "use client";
 
-import { type ReactNode, useCallback, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { CopyIcon, CheckIcon, UsersIcon } from "lucide-react";
 
 import { Section } from "@/components/Layout/Section";
@@ -25,6 +25,11 @@ export function InviteCode({ benefits }: { /** 招待特典の説明(省略 = �
   const { issue, isLoading: isIssuing } = useIssueMyInviteCode();
   const { count, isLoading: isLoadingReferrals } = useMyReferrals();
   const [copied, setCopied] = useState(false);
+  // 「コピーしました」を戻すタイマーは 1 本(続けて押すと数え直す)、外れた時に止める(D153)
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+  }, []);
   const [issueError, setIssueError] = useState<string | null>(null);
 
   const handleIssue = useCallback(async () => {
@@ -40,7 +45,8 @@ export function InviteCode({ benefits }: { /** 招待特典の説明(省略 = �
     try {
       await navigator.clipboard.writeText(code);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       // クリップボードAPIが使えない場合は何もしない
     }

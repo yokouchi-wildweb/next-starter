@@ -62,7 +62,6 @@ export const useRoomState = <
 
   const wsRef = useRef<WebSocket | null>(null);
   const retryCountRef = useRef(0);
-  const closedByUserRef = useRef(false);
   const onEventRef = useRef(options?.onEvent);
   useEffect(() => {
     onEventRef.current = options?.onEvent;
@@ -73,21 +72,28 @@ export const useRoomState = <
       return;
     }
 
-    closedByUserRef.current = false;
+    // この effect の回の印(D153): 片付けの後(unmount・deps の替わり)に接続の途中が終わっても開かない・開いた物は閉じる。
+    // 前の回の接続の途中が次の回と二重に開かないよう、印は回ごとに持つ(共有の ref にしない)
+    let disposed = false;
+    let stopped = false; // 再接続しても直らない(protocol_mismatch)
+    let ws: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
     const connect = async () => {
+      if (disposed) return;
       setConnStatus("connecting");
       let session;
       try {
         session = await roomSessionClient.getSession(namespace, roomId);
       } catch (err) {
+        if (disposed) return;
         // 503 = サーバー側で無効化されている (config/env 不一致)。再試行しない
         const message = err instanceof Error ? err.message : "接続情報の取得に失敗しました";
         setConnStatus("error");
         setError(message);
         return;
       }
+      if (disposed) return;
 
       if (session.protocolVersion !== ROOM_PROTOCOL_VERSION) {
         setConnStatus("error");
@@ -97,16 +103,17 @@ export const useRoomState = <
         return;
       }
 
-      const ws = new WebSocket(`${session.wsUrl}?token=${encodeURIComponent(session.token)}`);
-      wsRef.current = ws;
+      const socket = new WebSocket(`${session.wsUrl}?token=${encodeURIComponent(session.token)}`);
+      ws = socket;
+      wsRef.current = socket;
 
-      ws.onopen = () => {
+      socket.onopen = () => {
         retryCountRef.current = 0;
         setConnStatus("connected");
         setError(null);
       };
 
-      ws.onmessage = (event) => {
+      socket.onmessage = (event) => {
         let message: RoomServerMessage<S>;
         try {
           message = JSON.parse(event.data as string);
@@ -120,16 +127,17 @@ export const useRoomState = <
           onEventRef.current?.(message.event, message.payload);
         } else if (message.type === "error") {
           if (message.code === "protocol_mismatch") {
-            closedByUserRef.current = true; // 再接続しても直らないため停止
+            stopped = true; // 再接続しても直らないため停止
             setConnStatus("error");
           }
           setError(message.message);
         }
       };
 
-      ws.onclose = (event) => {
-        wsRef.current = null;
-        if (closedByUserRef.current) return;
+      socket.onclose = (event) => {
+        if (wsRef.current === socket) wsRef.current = null;
+        if (ws === socket) ws = null;
+        if (disposed || stopped) return;
         setConnStatus("connecting");
         // トークンの期限 = 通常の寿命。障害ではないので待たずに取り直す (バックオフも戻す)
         if (event.code === ROOM_CLOSE_CODES.tokenExpired) {
@@ -146,7 +154,7 @@ export const useRoomState = <
         reconnectTimer = setTimeout(connect, delay);
       };
 
-      ws.onerror = () => {
+      socket.onerror = () => {
         // onclose が続いて発火し再接続に入るため、ここでは何もしない
       };
     };
@@ -154,10 +162,14 @@ export const useRoomState = <
     void connect();
 
     return () => {
-      closedByUserRef.current = true;
+      disposed = true;
       if (reconnectTimer) clearTimeout(reconnectTimer);
-      wsRef.current?.close();
-      wsRef.current = null;
+      // この回の接続だけを閉じる(次の回の接続を閉じない)
+      if (ws) {
+        if (wsRef.current === ws) wsRef.current = null;
+        ws.close();
+        ws = null;
+      }
     };
   }, [enabled, active, namespace, roomId]);
 

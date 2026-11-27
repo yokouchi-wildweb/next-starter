@@ -47,6 +47,7 @@ import { RecordSelectionTable } from "@/lib/tableSuite";
 
 - `canSelectRow?: (item, index) => boolean`: 選べない行はチェックが押せず(disabled)、ヘッダーの全部の選択にも入らない(未指定 = 全部選べる)
 - `rangeSelect?: boolean`: shift を押した行 / チェックのクリックで、前に切り替えた行から今の行までを同じ値にする(既定 false)
+- 一覧(items)から消えた行(取り直し・絞り込み・頁の替わり)は選択から外す。制御(selectedKeys)では外した並びを onSelectionChange で知らせる。まだ一覧に来ていない行の初めの選択は外さない
 
 #### 選択の出し方（selectionMode）
 

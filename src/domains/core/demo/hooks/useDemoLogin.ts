@@ -3,7 +3,6 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { useRouter } from "@/lib/unsavedGuard";
 
 import { useAuthSession } from "@/domains/core/auth/hooks/useAuthSession";
 import { demoLogin as demoLoginService } from "@/domains/core/demo/services/client/demoLogin";
@@ -14,6 +13,7 @@ import {
 } from "@/lib/browserStorage";
 import type { HttpError } from "@/lib/errors";
 import { isHttpError } from "@/lib/errors";
+import { reloadTo } from "@/lib/url";
 
 type UseDemoLoginOptions = {
   redirectTo?: string;
@@ -46,7 +46,6 @@ function saveDemoUserIdToStorage(demoUserId: string): void {
 }
 
 export function useDemoLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UseDemoLoginOptions = {}) {
-  const router = useRouter();
   const { refreshSession } = useAuthSession();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<HttpError | null>(null);
@@ -70,8 +69,8 @@ export function useDemoLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UseDemoLogi
 
       await refreshSession();
 
-      router.replace(redirectTo);
-      router.refresh();
+      // 利用者が替わる: ページの読み直しで前の人の値を残さない(D139)
+      reloadTo(redirectTo);
     } catch (unknownError) {
       if (isHttpError(unknownError)) {
         setError(unknownError);
@@ -83,7 +82,7 @@ export function useDemoLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UseDemoLogi
       lockRef.current = false;
       setIsLoading(false);
     }
-  }, [redirectTo, refreshSession, router]);
+  }, [redirectTo, refreshSession]);
 
   return {
     demoLogin: handleDemoLogin,

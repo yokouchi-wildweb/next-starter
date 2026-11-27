@@ -93,6 +93,8 @@ return response;
   - Firebase Auth の同期と DAU の記録は Provider の中の何も描かない子(`<Suspense fallback={null}>` の内側)が行う
   - Context(`AuthSessionContext`)を直に組むのはテストの道具だけ: 値は `{ userPromise, override: { user }, refreshSession }`(override で読ませると止まらない)
 - ログアウト: `useLogout` → `services/client/logout.ts` → `POST /api/auth/logout`(Cookie 削除)
+- 利用者が替わる所(ログアウト・ログインの成功・登録の完了・外部ログインの登録済みのログイン・デモのログイン)の移りはページの読み直し(`reloadTo`、`@/lib/url`。D139): SWR・隠れた画面・全体の store・上書きを 1 回で捨て、前の人の値を残さない。client の遷移(router)では残る。`useLogout` の `skipRedirect` を使う呼び手は自分で読み直す
+  - 移る前のトーストは読み直しで消える: ログインの後の知らせは session を作る要求に名前(`announce`、`constants/loginAnnouncement.ts`)を送り、route が `src/lib/toast` の redirect の cookie を積んで読み直しの後に出す(上流: 外部ログインの登録済みの `alreadyRegistered`)
 - パスワード再設定メール: `useForgotPassword` → `services/client/forgotPassword.ts`(`sendPasswordResetEmail`)→ `POST /api/auth/forgot-password`
 - 利用者のログイン(`/login`): セクションコンテナ `UserLogin` = メールのフォームの部品 `UserLoginEmailForm` + 外部のログインの手段 `ThirdPartySignupOptions` + 新規登録へのリンク。手段を替える fork は自分の Screen(`_components/`)で `UserLoginEmailForm`(入口 `@/domains/core/auth/components/UserLogin`)と自分の手段を並べる(フォームを写さない。部品の中身は `API.md`「ログイン form」)
 - 管理者ログイン: `AdminLogin` + `useAdminLogin` → `POST /api/auth/local/login`(admin カテゴリのみ、失敗は `loginAudit` で記録・ロックアウト判定)

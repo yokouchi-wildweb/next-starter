@@ -85,8 +85,13 @@ const BEFORE_RAW: Record<string, string> = {
 const STEPPER_STEP: Record<string, string> = { "7": "xxs", "9": "sm", "10": "md", "12": "xl" };
 const withControlHeight = (html: string) =>
   html.replace(/(?<=[" ])(h|size)-(7|9|10|12)(?=[" ])/g, (_, kind: string, n: string) => `${kind}-(--control-h-${STEPPER_STEP[n]})`);
+/**
+ * StepperInput の欄の最初の文字は制御の値(value: 1)。前は initialValue(0)を出し、effect の後に値へ合わせていた
+ * (最初の HTML がずれる、D153 の数の入力欄の直し)。ほかの字は同じ
+ */
+const withControlledText = (html: string) => html.replace('value="0"/>', 'value="1"/>');
 const BEFORE: Record<string, string> = Object.fromEntries(
-  Object.entries(BEFORE_RAW).map(([key, html]) => [key, key.startsWith("stepperInput:") ? withControlHeight(html) : html]),
+  Object.entries(BEFORE_RAW).map(([key, html]) => [key, key.startsWith("stepperInput:") ? withControlledText(withControlHeight(html)) : html]),
 );
 
 function renderAll(): Record<string, string> {

@@ -6,7 +6,6 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "@/lib/unsavedGuard";
 import { Link } from "@/components/Navigation/Link";
 import { Mail, LockKeyhole } from "lucide-react";
 
@@ -19,6 +18,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 
 import { useEmailPasswordLogin } from "@/domains/core/auth/hooks/useEmailPasswordLogin";
+import { reloadTo } from "@/lib/url";
 import { log } from "@/utils/log";
 
 export type UserLoginEmailFormProps = {
@@ -29,7 +29,6 @@ export type UserLoginEmailFormProps = {
 const DEFAULT_REDIRECT_PATH = "/";
 
 export function UserLoginEmailForm({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginEmailFormProps) {
-  const router = useRouter();
   const { signIn, isLoading } = useEmailPasswordLogin();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -59,13 +58,12 @@ export function UserLoginEmailForm({ redirectTo = DEFAULT_REDIRECT_PATH }: UserL
         log(3, "[UserLoginEmailForm] handleSubmit: requires reactivation, redirecting", {
           email,
         });
-        router.push("/reactivate");
-        router.refresh();
+        reloadTo("/reactivate");
         return;
       }
 
-      router.push(redirectTo);
-      router.refresh();
+      // 利用者が替わる: ページの読み直し(D139)
+      reloadTo(redirectTo);
       // メールアドレスでのログイン成功を記録
       log(3, "[UserLoginEmailForm] handleSubmit: login success", {
         email,

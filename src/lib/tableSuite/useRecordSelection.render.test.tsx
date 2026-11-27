@@ -2,6 +2,7 @@
 // - 指定なし: 個別 / 全部の切り替え・制御 / 非制御・onSelectionChange の rows・isAll / isPartial(前の動きと同じ)
 // - canSelect: 選べない行は個別でも全部でも選ばれず、isAllSelected は選べる行だけで数える
 // - rangeSelect: shift で起点から今の行まで
+// - 一覧から消えた行は選択から外す(取り直し・絞り込み、D153)。まだ読み込んでいない行の初めの選択は外さない
 // - RecordSelectionTable の出力は前と同じ(06 で記録した出力)、選べない行のチェックは disabled
 // 実行: pnpm test src/lib/tableSuite
 import { after, before, test } from "node:test";
@@ -107,6 +108,36 @@ test("rangeSelect: shift で起点から今の行まで同じ値(選べない行
 });
 
 const fixtures = JSON.parse(readFileSync("src/lib/tableSuite/__fixtures__/infiniteFooterDefault.json", "utf8")) as Record<string, string>;
+
+test("一覧から消えた行は選択から外す(非制御): 残った行は残り、数と rows が一覧と食い違わない", async () => {
+  const h = await mount({});
+  await h.run((s) => s.updateKeySelection("a"));
+  await h.run((s) => s.updateKeySelection("b"));
+  await h.rerender({ items: rows.filter((r) => r.id !== "b") });
+  assert.deepEqual(h.s.selectedKeys, ["a"]);
+  assert.deepEqual(h.s.bulkSelection.count, 1);
+  assert.deepEqual(h.s.selectedRows.map((r) => r.id), ["a"]);
+  // 消えた行が戻っても選ばれていない
+  await h.rerender({ items: rows });
+  assert.deepEqual(h.s.selectedKeys, ["a"]);
+  await h.unmount();
+});
+
+test("一覧から消えた行は選択から外す(制御): 外した並びを onSelectionChange で知らせる", async () => {
+  const calls: Key[][] = [];
+  const h = await mount({ selectedKeys: ["a", "b"], onSelectionChange: (k) => calls.push(k) });
+  await h.rerender({ items: rows.filter((r) => r.id !== "b"), selectedKeys: ["a", "b"], onSelectionChange: (k) => calls.push(k) });
+  assert.deepEqual(h.s.selectedKeys, ["a"]);
+  assert.deepEqual(calls.at(-1), ["a"]);
+  await h.unmount();
+});
+
+test("まだ読み込んでいない行の初めの選択は外さない(空の一覧 → 行が届く)", async () => {
+  const h = await mount({ items: [], defaultSelectedKeys: ["c"] });
+  await h.rerender({ items: rows, defaultSelectedKeys: ["c"] });
+  assert.deepEqual(h.s.selectedKeys, ["c"]);
+  await h.unmount();
+});
 
 test("RecordSelectionTable: 指定なしの出力は前と同じ、canSelectRow の行はチェックが disabled", () => {
   assert.equal(renderToStaticMarkup(tableDefaultCases.selection), fixtures.selection);
