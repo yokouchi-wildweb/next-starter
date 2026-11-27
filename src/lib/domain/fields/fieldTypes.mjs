@@ -221,7 +221,7 @@ export function formDefaultFor(field) {
  * @returns {Set<string>}
  */
 export function foreignKeyFieldTypes(dbEngine) {
-  return new Set(Object.keys(FIELD_TYPES).filter((t) => (fieldTypeSpec(t).foreignKey ?? []).includes(dbEngine)));
+  return new Set(Object.keys(FIELD_TYPES).filter((t) => (fieldTypeSpec(t).foreignKey ?? []).some((engine) => engine === dbEngine)));
 }
 
 /**
