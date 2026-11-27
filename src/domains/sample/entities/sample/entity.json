@@ -21,7 +21,7 @@
       "fieldType": "uuid",
       "relationType": "belongsToMany",
       "required": false,
-      "includeRelationTable": true,
+      "through": "sampleToSampleTag",
       "formInput": "asyncMultiSelect"
     }
   ],

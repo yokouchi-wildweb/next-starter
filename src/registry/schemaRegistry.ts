@@ -72,6 +72,7 @@ export * from "@/domains/core/wallet/entities/walletLot/drizzle";
 export * from "@/domains/core/walletHistory/entities/walletHistory/drizzle";
 export * from "@/domains/sample/entities/sample/drizzle";
 export * from "@/domains/sample/entities/sampleImage/drizzle";
+export * from "@/domains/sample/entities/sampleToSampleTag/drizzle";
 export * from "@/domains/sampleCategory/entities/sampleCategory/drizzle";
 export * from "@/domains/sampleTag/entities/sampleTag/drizzle";
 

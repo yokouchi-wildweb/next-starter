@@ -4,3 +4,4 @@
 
 export * from "./sample/drizzle";
 export * from "./sampleImage/drizzle";
+export * from "./sampleToSampleTag/drizzle";

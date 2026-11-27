@@ -44,7 +44,7 @@ test("共通部品の組: key は params / searchParams のプリミティブ", 
 const relationConfig = {
   relations: [
     { domain: "sample_category", relationType: "belongsTo" },
-    { domain: "sample_tag", relationType: "belongsToMany", includeRelationTable: true },
+    { domain: "sample_tag", relationType: "belongsToMany", through: "sampleToSampleTag" },
   ],
 };
 

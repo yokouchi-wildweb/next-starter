@@ -183,7 +183,7 @@ export const domainDisplay: DomainDisplay = {
       "relationType": "belongsToMany",
       "required": false,
       "formInput": "asyncMultiSelect",
-      "includeRelationTable": true,
+      "through": "sampleToSampleTag",
       "searchFields": [
         "name",
         "description"

@@ -1,0 +1,61 @@
+{
+  "label": "サンプルとサンプルタグ",
+  "singular": "sample_to_sample_tag",
+  "idType": "uuid",
+  "useCreatedAt": false,
+  "useUpdatedAt": false,
+  "plural": "sample_to_sample_tag",
+  "dbEngine": "Neon",
+  "registered": false,
+  "primaryKey": {
+    "columns": [
+      "sampleId",
+      "sampleTagId"
+    ],
+    "name": "sample_to_sample_tag_sample_id_sample_tag_id_pk"
+  },
+  "columns": [
+    {
+      "name": "sampleId",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    },
+    {
+      "name": "sampleTagId",
+      "column": {
+        "type": "uuid",
+        "notNull": true
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "columns": [
+        "sampleId"
+      ],
+      "references": {
+        "table": "samples",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "sample_to_sample_tag_sample_id_samples_id_fk"
+    },
+    {
+      "columns": [
+        "sampleTagId"
+      ],
+      "references": {
+        "table": "sample_tags",
+        "columns": [
+          "id"
+        ]
+      },
+      "onDelete": "CASCADE",
+      "name": "sample_to_sample_tag_sample_tag_id_sample_tags_id_fk"
+    }
+  ]
+}

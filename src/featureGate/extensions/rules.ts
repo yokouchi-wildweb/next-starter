@@ -100,7 +100,7 @@ export const rules: GeneratedFeatureRule[] = [
   { ...rules_paymentAnalytics, name: "paymentAnalytics", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: ["analytics", "payment"], anyOf: [], when: [] },
   { ...rules_phoneVerification, name: "phoneVerification", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
   { ...rules_referral, name: "referral", tables: ["referrals", "referral_rewards"], domainApiPaths: ["/api/referral", "/api/referralReward"], settingPaths: [], cronPaths: [], dependsOn: ["coupon"], anyOf: [], when: [] },
-  { ...rules_sampleDomain, name: "sampleDomain", tables: ["samples", "sample_to_sample_tag", "sample_images", "sample_categories", "sample_tags"], domainApiPaths: ["/api/sample", "/api/sampleImage", "/api/sampleCategory", "/api/sampleTag"], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
+  { ...rules_sampleDomain, name: "sampleDomain", tables: ["samples", "sample_images", "sample_to_sample_tag", "sample_categories", "sample_tags"], domainApiPaths: ["/api/sample", "/api/sampleImage", "/api/sampleCategory", "/api/sampleTag"], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
   { ...rules_signup, name: "signup", tables: [], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
   { ...rules_userAcquisition, name: "userAcquisition", tables: ["user_acquisitions", "user_acquisition_touches"], domainApiPaths: [], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
   { ...rules_userCounter, name: "userCounter", tables: ["user_counters", "user_daily_counters"], domainApiPaths: ["/api/userCounter"], settingPaths: [], cronPaths: [], dependsOn: [], anyOf: [], when: [] },
@@ -139,7 +139,7 @@ export const domains: GatedDomain[] = [
   { folder: "core/userXProfile", tables: ["user_x_profiles"], apiPaths: ["/api/userXProfile"], features: ["userXProfile"] },
   { folder: "core/wallet", tables: ["wallets", "wallet_lots"], apiPaths: ["/api/wallet"], features: ["wallet"] },
   { folder: "core/walletHistory", tables: ["wallet_histories"], apiPaths: ["/api/walletHistory"], features: ["wallet"] },
-  { folder: "sample", tables: ["samples", "sample_to_sample_tag", "sample_images"], apiPaths: ["/api/sample", "/api/sampleImage"], features: ["sampleDomain"] },
+  { folder: "sample", tables: ["samples", "sample_images", "sample_to_sample_tag"], apiPaths: ["/api/sample", "/api/sampleImage"], features: ["sampleDomain"] },
   { folder: "sampleCategory", tables: ["sample_categories"], apiPaths: ["/api/sampleCategory"], features: ["sampleDomain"] },
   { folder: "sampleTag", tables: ["sample_tags"], apiPaths: ["/api/sampleTag"], features: ["sampleDomain"] },
 ];

@@ -95,8 +95,7 @@ export const domainDisplay: DomainDisplay = {
       "fieldName": "user_ids",
       "fieldType": "uuid",
       "relationType": "belongsToMany",
-      "required": false,
-      "includeRelationTable": false
+      "required": false
     }
   ],
   "searchFields": [

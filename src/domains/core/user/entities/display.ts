@@ -184,7 +184,7 @@ export const domainDisplay: DomainDisplay = {
       "fieldType": "uuid",
       "relationType": "belongsToMany",
       "required": false,
-      "includeRelationTable": false
+      "through": "userToUserTag"
     }
   ],
   "searchFields": [

@@ -13,7 +13,7 @@
       "fieldType": "uuid",
       "relationType": "belongsToMany",
       "required": false,
-      "includeRelationTable": false
+      "through": "userToUserTag"
     }
   ],
   "useCreatedAt": true,

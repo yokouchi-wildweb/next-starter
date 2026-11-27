@@ -75,6 +75,7 @@ import walletLotConfig from "@/domains/core/wallet/entities/walletLot/entity.jso
 import walletHistoryConfig from "@/domains/core/walletHistory/entities/walletHistory/entity.json";
 import sampleConfig from "@/domains/sample/entities/sample/entity.json";
 import sampleImageConfig from "@/domains/sample/entities/sampleImage/entity.json";
+import sampleToSampleTagConfig from "@/domains/sample/entities/sampleToSampleTag/entity.json";
 import sampleCategoryConfig from "@/domains/sampleCategory/entities/sampleCategory/entity.json";
 import sampleTagConfig from "@/domains/sampleTag/entities/sampleTag/entity.json";
 
@@ -147,6 +148,7 @@ export const domainConfigMap = {
   wallet_history: { ...walletHistoryConfig, singular: "wallet_history", label: "財布の履歴", fields: [] },
   sample: sampleConfig,
   sample_image: sampleImageConfig,
+  sample_to_sample_tag: { ...sampleToSampleTagConfig, fields: [] },
   sample_category: sampleCategoryConfig,
   sample_tag: sampleTagConfig,
 } as const;
