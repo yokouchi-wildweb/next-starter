@@ -125,6 +125,77 @@ export const UserToSampleTagTable = pgTable(
   assert.equal(JSON.parse(plan.writes["src/domains/core/user/entities/user/entity.json"]).relations[0].through, "userToSampleTag");
 });
 
+test("手で持つ側: 1 つのファイルに結びが 2 本あれば、2 本とも移し(後の結びが前の書き換えを上書きしない)、両方で使わなくなった import を外す", async () => {
+  const ownerFile = "src/domains/core/user/entities/user/drizzle.ts";
+  const ownerText = `// ${ownerFile}
+
+import { pgTable, primaryKey, text, uuid } from "drizzle-orm/pg-core";
+import { SampleTable } from "@/domains/sample/entities/drizzle";
+import { SampleTagTable } from "@/domains/sampleTag/entities/drizzle";
+
+export const UserTable = pgTable("users", { id: uuid("id").primaryKey(), name: text("name") });
+
+export const UserToSampleTagTable = pgTable(
+  "user_to_sample_tag",
+  {
+    userId: uuid("user_id").notNull().references(() => UserTable.id, { onDelete: "cascade" }),
+    sampleTagId: uuid("sample_tag_id").notNull().references(() => SampleTagTable.id, { onDelete: "cascade" }),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.sampleTagId] })],
+);
+
+export const UserToSampleTable = pgTable(
+  "user_to_sample",
+  {
+    userId: uuid("user_id").notNull().references(() => UserTable.id, { onDelete: "cascade" }),
+    sampleId: uuid("sample_id").notNull().references(() => SampleTable.id, { onDelete: "cascade" }),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.sampleId] })],
+);
+`;
+  const tables = {
+    user_to_sample_tag: {
+      table: pgTable(
+        "user_to_sample_tag",
+        {
+          userId: uuid("user_id").notNull().references(() => UserTable.id, { onDelete: "cascade" }),
+          sampleTagId: uuid("sample_tag_id").notNull().references(() => SampleTagTable.id, { onDelete: "cascade" }),
+        },
+        (table) => [primaryKey({ columns: [table.userId, table.sampleTagId] })],
+      ),
+      exportName: "UserToSampleTagTable",
+    },
+    user_to_sample: {
+      table: pgTable(
+        "user_to_sample",
+        {
+          userId: uuid("user_id").notNull().references(() => UserTable.id, { onDelete: "cascade" }),
+          sampleId: uuid("sample_id").notNull().references(() => SampleTable.id, { onDelete: "cascade" }),
+        },
+        (table) => [primaryKey({ columns: [table.userId, table.sampleId] })],
+      ),
+      exportName: "UserToSampleTable",
+    },
+  };
+  const root = makeTree({
+    "src/domains/core/user/entities/user/entity.json": entity("user", "users", [many("sample_tag", undefined), many("sample", undefined)], { generate: false }),
+    [ownerFile]: ownerText,
+    "src/domains/sampleTag/entities/sampleTag/entity.json": entity("sample_tag", "sample_tags", []),
+    "src/domains/sample/entities/sample/entity.json": entity("sample", "samples", []),
+  });
+  const loadTable = async (name) => (tables[name] ? { ...tables[name], file: ownerFile } : null);
+  const plan = await planJunctions({ root, repoRoot, loadTable, tempDir });
+  assert.deepEqual(plan.stops, []);
+  assert.match(plan.writes["src/domains/core/user/entities/userToSampleTag/drizzle.ts"], /export const UserToSampleTagTable = pgTable\(/);
+  assert.match(plan.writes["src/domains/core/user/entities/userToSample/drizzle.ts"], /export const UserToSampleTable = pgTable\(/);
+  const rest = plan.writes[ownerFile];
+  assert.doesNotMatch(rest, /UserToSampleTagTable|UserToSampleTable/, "持つ側のファイルに 2 本とも残さない");
+  assert.doesNotMatch(rest, /SampleTagTable|SampleTable|primaryKey/, "両方で使わなくなった import を外す");
+  assert.match(rest, /import \{ pgTable, text, uuid \} from "drizzle-orm\/pg-core";/);
+  assert.match(rest, /export const UserTable = pgTable/);
+  assert.deepEqual(JSON.parse(plan.writes["src/domains/core/user/entities/user/entity.json"]).relations.map((relation) => relation.through), ["userToSampleTag", "userToSample"]);
+});
+
 test("両側とも includeRelationTable:false: 今ある結びの登録(user ↔ userTag の形)のドメインの側を持つ側にし、結びの登録はそのまま", async () => {
   const junction = read(repoRoot, "src/domains/core/user/entities/userToUserTag/entity.json");
   const root = makeTree({

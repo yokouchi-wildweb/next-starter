@@ -394,7 +394,10 @@ export async function planJunctions(input) {
           stops.push(`${at(owner)}: ${loaded.exportName} を ${fromFile} から直に読む読み手がある(${readers.join(", ")})。集める入口 entities/drizzle から読むように直してから走らせる`);
           continue;
         }
-        const moved = moveStatement(fs.readFileSync(path.join(root, fromFile), "utf8"), fromFile, toFile, loaded.exportName);
+        // 同じ持つ側のファイルに結びが 2 本以上ある時は、前の結びで書き換えた後の中身から移す(元のファイルから読み直すと、
+        // 後の結びの書き換えが前の結びの書き換えを上書きし、前の表の文が残って新しい結びのファイルと二重の export になる)
+        const current = writes[fromFile] ?? fs.readFileSync(path.join(root, fromFile), "utf8");
+        const moved = moveStatement(current, fromFile, toFile, loaded.exportName);
         if (moved.stop) {
           stops.push(`${at(owner)}: ${moved.stop}`);
           continue;
