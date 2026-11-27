@@ -30,17 +30,26 @@ const generatedByName = new Map<string, GeneratedFeatureRule>(generatedRules.map
 
 const unknownName = (name: string) => new Error(`featureGate: 未知の機能の名前 "${name}"(src/featureGate/rules/<名前>.ts が無い)`);
 
-/** fork の入切の値の検査(純関数): 未知の機能の名前・真偽でない値を並べる(空 = 通る) */
-export function switchProblems(values: Readonly<Record<string, unknown>>, known: ReadonlySet<string>): string[] {
-  return Object.entries(values).flatMap(([name, value]) => [
-    ...(known.has(name) ? [] : [`未知の機能の名前 "${name}"(src/featureGate/rules/<名前>.ts が無い)`]),
-    ...(typeof value === "boolean" ? [] : [`"${name}" の値が true|false でない`]),
-  ]);
+/**
+ * fork の入切の値の検査(純関数): stale = 規則に無い名前(上流が消した機能の残りの行、または打ち間違い)/ problems = 真偽でない値
+ * 規則に無い名前は開閉に効かないので止めない(読み飛ばして注意 1 行、D490 (4))。打ち間違いは型(satisfies FeatureSwitches)が出荷で拾う
+ */
+export function switchProblems(values: Readonly<Record<string, unknown>>, known: ReadonlySet<string>): { stale: string[]; problems: string[] } {
+  const entries = Object.entries(values);
+  return {
+    stale: entries.filter(([name]) => !known.has(name)).map(([name]) => name),
+    problems: entries.filter(([, value]) => typeof value !== "boolean").map(([name]) => `"${name}" の値が true|false でない`),
+  };
 }
 
-// fork の入切の値に未知の名前があれば読み込みで throw(打ち間違いを黙って既定のままにしない。型でも落ちる)
+// fork の入切の値: 真偽でない値は読み込みで throw、規則に無い名前は注意 1 行で読み飛ばす(起動も pnpm ops features set も止めない)
 const switchValues: Readonly<Record<string, boolean | undefined>> = switches;
 const switchErrors = switchProblems(switchValues, knownNames);
+
+/** switches.config.ts の規則に無い名前(pnpm ops features list が「古い行」と見せる。消す: pnpm ops features set <名前> --remove) */
+export function staleSwitchNames(): string[] {
+  return switchProblems(switchValues, knownNames).stale;
+}
 
 /**
  * fork の入切の値を一時的に差し替える(テストの道具: 規則の値を作り物にするとき fork の switches.config.ts の値を外す)。戻す関数を返す。
@@ -61,7 +70,10 @@ export function explicitlyOpened(): FeatureName[] {
   return generatedRules.filter((rule) => switchValues[rule.name] === true).map((rule) => rule.name);
 }
 
-if (switchErrors.length > 0) throw new Error(`featureGate: src/config/featureGate/switches.config.ts: ${switchErrors.join(" / ")}`);
+if (switchErrors.problems.length > 0) throw new Error(`featureGate: src/config/featureGate/switches.config.ts: ${switchErrors.problems.join(" / ")}`);
+if (switchErrors.stale.length > 0) {
+  console.warn(`featureGate: src/config/featureGate/switches.config.ts の ${switchErrors.stale.join(", ")} は規則が無いので読み飛ばします(消す: pnpm ops features set <名前> --remove)`);
+}
 
 /**
  * 依存先まで解いた開閉(純関数): 開 = self(name) && dependsOn の全部が開(推移的)&& (anyOf が空 || anyOf のどれかが開)。

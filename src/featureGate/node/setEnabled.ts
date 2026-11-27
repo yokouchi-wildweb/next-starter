@@ -101,6 +101,43 @@ export function rewriteSwitch(switchesText: string, name: string, value: boolean
   return rewriteTopLevelBoolean(switchesText, head.index + head[0].length - 1, name, value);
 }
 
+/**
+ * switches.config.ts の本文から直下の `<名前>: …` を消した本文(pnpm ops features set <名前> --remove。上流が消した機能の古い行の掃除)。
+ * 戻り値: 消した本文 / 行が無い = "absent" / default export がオブジェクトのリテラルでない・直下に同じ名前が 2 つ・閉じない括弧 = null
+ */
+export function removeSwitch(switchesText: string, name: string): string | "absent" | null {
+  const head = /^[ \t]*export\s+default\s*\{/m.exec(switchesText);
+  if (!head) return null;
+  const open = head.index + head[0].length - 1;
+  const scanned = scanObject(switchesText, open);
+  if (!scanned) return null;
+  const keyPattern = new RegExp(`(^|[\\s{,])${name}\\s*:\\s*[^,\\n}]*`, "g");
+  const hits: Array<{ start: number; end: number }> = [];
+  for (const [from, to] of scanned.topLevel) {
+    // 値の後ろの空白は項目に入れない(`{ a: true, b: false }` の } の前の空白を残す)
+    for (const m of switchesText.slice(from, to).matchAll(keyPattern)) hits.push({ start: from + m.index + m[1].length, end: from + m.index + m[0].trimEnd().length });
+  }
+  if (hits.length === 0) return "absent";
+  if (hits.length > 1) return null;
+  let { start, end } = hits[0];
+  // 項目の後の , と空白を一緒に消す。最後の項目なら前の , を消す
+  const after = /^\s*,[ \t]*/.exec(switchesText.slice(end));
+  if (after) end += after[0].length;
+  else {
+    const before = /,\s*$/.exec(switchesText.slice(open + 1, start));
+    if (before) start = open + 1 + before.index;
+  }
+  let text = switchesText.slice(0, start) + switchesText.slice(end);
+  // 項目が 1 行を占めていたら、その空いた行を消す
+  const lineStart = text.lastIndexOf("\n", start - 1) + 1;
+  const lineEnd = text.indexOf("\n", start);
+  if (lineEnd !== -1 && text.slice(lineStart, lineEnd).trim() === "") text = text.slice(0, lineStart) + text.slice(lineEnd + 1);
+  // 中身が無くなったら {}
+  const close = scanObject(text, open)?.end;
+  if (close !== undefined && text.slice(open + 1, close).trim() === "") text = `${text.slice(0, open)}{}${text.slice(close + 1)}`;
+  return text;
+}
+
 /** 規則のファイルの本文の defaultEnabled を value にした本文。`export const rule ... = {` が無ければ null */
 export function rewriteRuleDefault(ruleText: string, value: boolean): string | null {
   const head = /export\s+const\s+rule\b[^=]*=\s*\{/.exec(ruleText);

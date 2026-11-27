@@ -1,16 +1,47 @@
-// scripts/operations/features/set.ts(pnpm ops features set <規則名> on|off)
+// scripts/operations/features/set.ts(pnpm ops features set <規則名> on|off | pnpm ops features set <名前> --remove)
+// --remove: fork の switches.config.ts の直下の `<名前>: …` を消す(規則が無くても使える = 上流が消した機能の古い行の掃除。規則のある名前は既定に戻る)。
+//   Tier1 は書き先が規則のファイルなので exit 1、行が無ければ exit 0、消せない形(同じ名前が 2 つなど)は exit 2。
 // 機能の入切を書き換える(D35): fork は src/config/featureGate/switches.config.ts の `<名前>: true|false`、Tier1 は規則のファイルの defaultEnabled
 // (無ければ足す。既定と同じ値でも消さない L1.26)。
 // 必須(src/featureGate/required/)の機能と、必須の機能が dependsOn で推移的に依存する機能を off にしようとすると何も書かずに exit 1(依存の連鎖を出す)。
 // on にした機能の依存先が規則の値で閉なら、書いた上で「依存先 <名前> が閉なので閉のまま」と出す。書けない形(リテラルでない値など)は理由を出して exit 2。
 // db:push・pnpm generate extensions は打たない。中身は門番の道具 @/featureGate/node の planFeatureSet。詳細: src/featureGate/README.md
 
-import { applyFeatureSet, planFeatureSet, readRequired, rules } from "@/featureGate/node";
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { applyFeatureSet, planFeatureSet, readRequired, removeSwitch, rules, SWITCHES_FILE } from "@/featureGate/node";
+import { readForkIdentity } from "@/lib/forkOwnership/node.mjs";
+
+/** pnpm ops features set <名前> --remove */
+function removeLine(root: string, name: string): void {
+  if (readForkIdentity(root).isTier1) {
+    console.error(`Tier1 には ${SWITCHES_FILE} の行がありません(上流は空で出荷する。入切は規則の defaultEnabled)`);
+    process.exit(1);
+  }
+  const file = join(root, SWITCHES_FILE);
+  const after = removeSwitch(readFileSync(file, "utf8"), name);
+  if (after === "absent") {
+    console.log(`${name} は ${SWITCHES_FILE} に書かれていません`);
+    return;
+  }
+  if (after === null) {
+    console.error(`⚠️  ${SWITCHES_FILE} の ${name} は消せない形です(default export がオブジェクトのリテラルでない・同じ名前が 2 つ)。手で消す`);
+    process.exit(2);
+  }
+  writeFileSync(file, after);
+  const known = rules.some((rule) => rule.name === name);
+  console.log(`✅ ${SWITCHES_FILE} から ${name} の行を消しました${known ? "(規則の既定 defaultEnabled に戻る)" : "(規則の無い古い行)"}`);
+}
 
 async function main() {
   const [name, state] = process.argv.slice(2);
+  if (name && state === "--remove") {
+    removeLine(process.cwd(), name);
+    return;
+  }
   if (!name || (state !== "on" && state !== "off")) {
-    console.error("使い方: pnpm ops features set <規則名> on|off(規則名の一覧: pnpm ops features list)");
+    console.error("使い方: pnpm ops features set <規則名> on|off | pnpm ops features set <名前> --remove(規則名の一覧: pnpm ops features list)");
     process.exit(1);
   }
   if (!rules.some((rule) => rule.name === name)) {

@@ -209,13 +209,13 @@ test("合成: 自分の値 = (fork の switches ?? 規則の defaultEnabled) && 
   }
 });
 
-test("fork の入切の値の検査: 未知の名前・真偽でない値を並べる(読み込みで throw)。上流の switches.config.ts は空(Tier1 だけ)", async () => {
+test("fork の入切の値の検査: 規則に無い名前は stale(読み飛ばして注意 1 行)、真偽でない値は problems(読み込みで throw)。上流の switches.config.ts は空(Tier1 だけ)", async () => {
   const { switchProblems } = await import("@/featureGate/ruleList");
   const { default: switches } = await import("@/config/featureGate/switches.config");
   const { readForkIdentity } = await import("@/lib/forkOwnership/node.mjs");
   const known = new Set(["wallet", "coupon"]);
-  assert.deepEqual(switchProblems({ wallet: false }, known), []);
-  assert.deepEqual(switchProblems({ walet: false, coupon: "no" }, known), ['未知の機能の名前 "walet"(src/featureGate/rules/<名前>.ts が無い)', '"coupon" の値が true|false でない']);
+  assert.deepEqual(switchProblems({ wallet: false }, known), { stale: [], problems: [] });
+  assert.deepEqual(switchProblems({ walet: false, coupon: "no" }, known), { stale: ["walet"], problems: ['"coupon" の値が true|false でない'] });
   // 上流は空で出荷する。fork は pnpm ops features set で自分の値を書く(読み込みの検査は fork の値でも走る)
   if (readForkIdentity(process.cwd()).isTier1) assert.deepEqual(switches, {});
 });

@@ -88,6 +88,7 @@ export const rule: FeatureGateRule = {
 - `pnpm ops features set <規則名> on|off`: 書き先は Tier で決まる: fork = `src/config/featureGate/switches.config.ts` の `export default { … }` の直下の `<名前>: true|false`、Tier1 = 規則のファイルの `defaultEnabled`(どちらも無ければ足す。値はいつも `true|false` を書き、既定と同じでも消さない)。リテラルでない値などは何も書かず理由を出して exit 2(手で直す)。必須の機能を off にしようとすると何も書かずに exit 1。必須の機能が `dependsOn` で推移的に依存する機能の off も何も書かずに exit 1(必須の機能からの依存の連鎖を出す)
   - on にした機能の依存先が規則の値で閉なら、値は書いた上で「依存先 <名前> が閉なので閉のまま」と出す
 - `pnpm ops features set` は `db:push`・`pnpm generate extensions` を打たない（表を持つ機能を開けたら `pnpm db:push` は人が打つ）
+- 規則の無い名前の行（上流が機能を消した後に fork の `switches.config.ts` に残った行）: 読み込みで止めず、注意 1 行で読み飛ばす（開閉に効かない）。`pnpm ops features list` が表の後に「古い行」と出し（`--json` は標準エラーに 1 行）、消すのはエージェント: `pnpm ops features set <名前> --remove`（直下の行を消す。規則のある名前なら規則の既定に戻る、Tier1 は exit 1）。打ち間違いは型（`satisfies FeatureSwitches`）が出荷の検査で拾う。真偽でない値は今どおり読み込みで止める
 
 ## API
 

@@ -1,9 +1,10 @@
 // scripts/operations/features/list.ts(pnpm ops features list [--name <規則名>] [--json])
 // 機能を閉じる規則ごとの開閉(全開スイッチで開いていれば「閉 → 開(スイッチ)」、依存先で閉じていれば「閉(依存先 <名前> が閉)」、
 // --json は configEnabled / ownEnabled / openedBySwitch / dependsOn / anyOf / dependsOnAll / dependedOnBy / closedBy / switchMissing / sharedDomainsOpen)・必須・住所・表・依存・名前の呼び出し箇所を出す(読むだけ)。
+// switches.config.ts に規則の無い名前(上流が消した機能の古い行)があれば「古い行」と出す(--json の時は標準エラーに 1 行、JSON の形は変えない)。
 // 中身は門番の道具 @/featureGate/node の readFeatureReport。詳細: src/featureGate/README.md「pnpm ops features list / pnpm ops features set」
 
-import { readFeatureReport, rules, type FeatureDescription } from "@/featureGate/node";
+import { readFeatureReport, rules, staleSwitchNames, type FeatureDescription } from "@/featureGate/node";
 
 const ALLOWED_LABEL: Record<string, string> = {
   sameRule: "同じ規則",
@@ -60,8 +61,11 @@ async function main() {
     console.error(`規則 ${name} がありません(src/featureGate/rules/<名前>.ts)`);
     process.exit(1);
   }
+  const stale = staleSwitchNames();
+  const staleLine = stale.length > 0 ? `古い行(規則が無い): ${stale.join(", ")}(src/config/featureGate/switches.config.ts。消す: pnpm ops features set <名前> --remove)` : null;
   if (args.includes("--json")) {
     console.log(JSON.stringify(picked, null, 2));
+    if (staleLine) console.error(staleLine);
     return;
   }
   if (name) {
@@ -76,6 +80,7 @@ async function main() {
   }
   const bySwitch = picked.filter((d) => d.enabled && d.openedBySwitch && !d.configEnabled).length;
   console.log(`\n${picked.length} 規則(閉 ${picked.filter((d) => !d.enabled).length}${bySwitch > 0 ? `・スイッチで開 ${bySwitch}(FEATURE_GATE_OPEN)` : ""})。詳細: pnpm ops features list --name <名前>`);
+  if (staleLine) console.log(staleLine);
   const missing = picked.filter((d) => d.switchMissing.length > 0);
   if (missing.length > 0) {
     console.log(`全開スイッチの名前指定で依存先が閉じたまま(FEATURE_GATE_OPEN に足す): ${missing.map((d) => `${d.name} ← ${d.switchMissing.join(", ")}`).join(" / ")}`);

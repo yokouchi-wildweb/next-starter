@@ -232,7 +232,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { describeFeatures, planFeatureSetFromText, readFeatureReport } from "@/featureGate/node";
+import { describeFeatures, planFeatureSetFromText, readFeatureReport, removeSwitch } from "@/featureGate/node";
 import { findCallSites } from "@/featureGate/node/describe";
 
 const fixtureRule = (name: string, over: Partial<GatedFeatureRule> = {}): GatedFeatureRule =>
@@ -298,6 +298,21 @@ test("pnpm ops features set の計画(fork): 上流の頭のコメントの例(e
   const multi = `${header}\nexport default {\n  wallet: false,\n} satisfies FeatureSwitches;\n`;
   const added = plan({ name: "shop", switchesText: multi, value: true });
   assert.ok(added.kind === "write" && added.after === `${header}\nexport default {\n  shop: true,\n  wallet: false,\n} satisfies FeatureSwitches;\n`);
+});
+
+test("pnpm ops features set <名前> --remove: 直下の行を消す(複数行・1 行・最後の項目)、無ければ absent、同じ名前が 2 つ・オブジェクトでないは null、頭のコメントの例は触らない", () => {
+  const multi = 'export default {\n  oldFeature: false,\n  wallet: true,\n} satisfies FeatureSwitches;\n';
+  assert.equal(removeSwitch(multi, "oldFeature"), 'export default {\n  wallet: true,\n} satisfies FeatureSwitches;\n');
+  assert.equal(removeSwitch(multi, "wallet"), 'export default {\n  oldFeature: false,\n} satisfies FeatureSwitches;\n');
+  assert.equal(removeSwitch('export default { a: true, oldFeature: false } satisfies FeatureSwitches;\n', "oldFeature"), "export default { a: true } satisfies FeatureSwitches;\n");
+  assert.equal(removeSwitch('export default { oldFeature: false, a: true } satisfies FeatureSwitches;\n', "oldFeature"), "export default { a: true } satisfies FeatureSwitches;\n");
+  assert.equal(removeSwitch('export default { oldFeature: false } satisfies FeatureSwitches;\n', "oldFeature"), "export default {} satisfies FeatureSwitches;\n");
+  assert.equal(removeSwitch('export default {\n  oldFeature: false,\n} satisfies FeatureSwitches;\n', "oldFeature"), "export default {} satisfies FeatureSwitches;\n");
+  assert.equal(removeSwitch(SWITCHES_EMPTY, "oldFeature"), "absent");
+  assert.equal(removeSwitch("export default { a: true, a: false };\n", "a"), null);
+  assert.equal(removeSwitch("export default values;\n", "a"), null);
+  const header = "// 例: `export default { oldFeature: false } satisfies FeatureSwitches;`\n";
+  assert.equal(removeSwitch(`${header}export default { oldFeature: false } satisfies FeatureSwitches;\n`, "oldFeature"), `${header}export default {} satisfies FeatureSwitches;\n`);
 });
 
 test("pnpm ops features set の計画(Tier1): 規則のファイルの defaultEnabled を足す・書き換える", () => {

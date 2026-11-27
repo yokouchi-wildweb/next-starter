@@ -9,7 +9,7 @@
 // - gatedSchema: db:push / db:push:check に渡す入力(閉じた機能の表を両側から外す)
 // - closedTables: 今閉じている機能の表名
 // - describeFeatures / readFeatureReport: 規則ごとの説明(pnpm ops features list)
-// - planFeatureSet / applyFeatureSet: 入切の書き換え(pnpm ops features set。fork = src/config/featureGate/switches.config.ts、Tier1 = 規則の defaultEnabled。必須の機能が依存する機能の off は止める)
+// - planFeatureSet / applyFeatureSet / removeSwitch: 入切の書き換え・行を消す(pnpm ops features set。fork = src/config/featureGate/switches.config.ts、Tier1 = 規則の defaultEnabled。必須の機能が依存する機能の off は止める)
 // - readRequired: 必須の機能(required/)
 // - checkAddresses: 読み込み後の一覧の住所の検査(二重書き・入れ子の依存の欠け、D25・D31)
 // - checkFeatureRequirements: 機能を要する設定の値の検査(設定 D110、段階 build の pnpm check proxies)
@@ -30,6 +30,7 @@ export {
   isOpenedBySwitch,
   ownEnabled,
   rules,
+  staleSwitchNames,
   switchMissingDependencies,
   withCoveredPatterns,
 } from "./ruleList";
@@ -39,4 +40,4 @@ export { applySchemaGate as gatedSchema, closedTables, type SchemaGateResult } f
 export { describeFeatures, readFeatureReport, readRequired, type FeatureDescription } from "./node/describe";
 export { checkFeatureRequirements } from "./checks/featureRequirements";
 export { checkExplicitChildren } from "./checks/explicitChildren";
-export { applyFeatureSet, planFeatureSet, planFeatureSetFromText, requiredDependencyChains, SWITCHES_FILE, type FeatureSetPlan } from "./node/setEnabled";
+export { applyFeatureSet, planFeatureSet, planFeatureSetFromText, removeSwitch, requiredDependencyChains, SWITCHES_FILE, type FeatureSetPlan } from "./node/setEnabled";
