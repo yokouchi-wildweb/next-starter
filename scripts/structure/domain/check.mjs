@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { cacheDeclarationIssues } from "./checks/cacheDeclarations.mjs";
-import { readCacheDeclarations } from "./domain/workspace.mjs";
+import { readCacheDeclarations, readDomainRows } from "./domain/workspace.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2).filter((a) => a !== "--");
@@ -29,11 +29,12 @@ for (const argv of steps) {
   }
 }
 if (cacheCheck && !process.exitCode) {
-  const { issues, declared } = cacheDeclarationIssues(readCacheDeclarations(join(here, "../../..")));
+  const rows = readDomainRows(join(here, "../../.."));
+  const { issues, declared } = cacheDeclarationIssues(readCacheDeclarations(join(here, "../../.."), rows), rows.map((row) => row.name));
   if (issues.length > 0) {
     console.error(`cache の宣言: 問題 ${issues.length} 件\n${issues.join("\n")}`);
     process.exitCode = 1;
   } else {
-    console.log(`cache の宣言: ${declared.length} ドメイン(問題なし)`);
+    console.log(`cache の宣言: ${declared.length} 登録(問題なし)`);
   }
 }

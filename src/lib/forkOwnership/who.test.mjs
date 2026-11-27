@@ -379,7 +379,7 @@ describe("型の答え(パスの表、explain.mjs)", () => {
     ["プロフィール", "src/domains/core/userProfile/profiles/shop.profile.json", { type: "2", write: "src/domains/core/userProfile/profiles/shop.profile.override.ts", keys: ["tags", "searchFields", "audit"], source: "src/domains/core/userProfile/extensionPoints.ts profileDefinitions" }],
     ["cron の task.ts", "src/app/api/cron/sweep/task.ts", { type: "2", write: "src/app/api/cron/sweep/task.override.ts", keys: ["schedule", "disabled"], source: "src/lib/cron/extensionPoints.ts cronTasks" }],
     ["cron(フォルダのどのファイルも task.override.ts)", "src/app/api/cron/sweep/route.ts", { type: "2", write: "src/app/api/cron/sweep/task.override.ts", keys: ["schedule", "disabled"], source: "src/lib/cron/extensionPoints.ts cronTasks" }],
-    ["登録の entity.json", "src/domains/core/user/entities/user/entity.json", { type: "2", write: "src/domains/core/user/entities/user/entity.override.ts", keys: ["apiAccess"], source: "src/lib/domain/extensionPoints.ts entities" }],
+    ["登録の entity.json", "src/domains/core/user/entities/user/entity.json", { type: "2", write: "src/domains/core/user/entities/user/entity.override.ts", keys: ["apiAccess", "cache"], source: "src/lib/domain/extensionPoints.ts entities" }],
     ["枠の宣言(作ったリポの frame.ts がある)", "src/app/(user)/frame.ts", { type: "2", write: "src/app/(user)/frame.override.ts", keys: ["layout", "page"], source: "src/app/(user)/frame.ts" }],
     ["枠の宣言(frame.ts が無い route = 空の基準)", "src/app/(user)/about/frame.ts", { type: "2", write: "src/app/(user)/about/frame.override.ts", keys: ["layout", "page"] }],
     // 型 3

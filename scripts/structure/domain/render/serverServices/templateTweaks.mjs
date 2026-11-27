@@ -47,7 +47,7 @@ export function buildAuditOption(audit) {
 
 /** 共有の読みのキャッシュタグ(entity.json の cache の宣言があるドメインだけ、src/lib/crud の option cacheTags) */
 export function buildCacheTagsOption(camel, cache) {
-  return cache !== undefined ? `  // 書き込みが共有の読みのキャッシュタグを積む（entity.json の cache、包んだ読みは pnpm generate cache の cachedReads.ts）\n  cacheTags: { domain: "${camel}" },\n` : "";
+  return cache !== undefined ? `  // 書き込みが共有の読みのキャッシュタグを積む（entity.json の cache、包んだ読みは pnpm generate cache の <登録名>CachedReads.ts）\n  cacheTags: { domain: "${camel}" },\n` : "";
 }
 
 /** CreateSchema が空になるか（全フィールドが formInput: "none" かつ belongsTo / belongsToMany が無い） */

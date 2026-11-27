@@ -65,7 +65,7 @@ export type DomainConfigOptionals = {
     write?: string | { roles?: string[]; roleCategories?: string[] };
     operations?: Record<string, string | { roles?: string[]; roleCategories?: string[] }>;
   };
-  // 共有の読みのキャッシュの宣言（domain.json の無いドメインは同じ形の <domain>/cache.json）。
+  // この登録の共有の読みのキャッシュの宣言（どの登録も自分の entity.json に、fork は entity.override.ts の cache、D353）。
   // JSON インポートの型推論（string）と相性を保つため緩い型で宣言する。厳密な型は ./cache の DomainCacheDeclaration、
   // 形と上限の検査は scripts/structure/domain/checks/cache.mjs（pnpm check domain）
   cache?: {

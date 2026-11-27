@@ -1,10 +1,17 @@
 // 生成器が宣言から取り出す物の決まり(純粋: ファイルを読まない。読むのは ./workspace.mjs)。
 // - configOfDeclaration: ドメインの主の登録(登録名 = ドメイン名、表 1 つのドメイン)の entity.json
 // - registrationConfigOf / generatedRegistrationsOf: 登録ごとの一式(D336)の config と、生成する登録の並び(主が先、あとはフォルダの順)
-// - cacheDeclarationOf: 共有の読みのキャッシュの宣言(主の登録の entity.json の "cache" か <domain>/cache.json のどちらか 1 つ)
+// - cacheDeclarationsOf: 共有の読みのキャッシュの宣言(登録ごとの entity.json の "cache"、fork の上書き entity.override.ts の cache、D353)
 
-import { DOMAIN_DECLARATION_FILE, ENTITY_DECLARATION_FILE, isGeneratedRegistration, primaryRegistrationOf } from "../../../../src/lib/domain/node.mjs";
-import { CACHE_FILE } from "../spec/cache.mjs";
+import ts from "typescript";
+
+import { literalOf } from "../../../../src/lib/districtMap/index.mjs";
+import { ENTITIES_DIR, ENTITY_DECLARATION_FILE, isGeneratedRegistration, primaryRegistrationOf } from "../../../../src/lib/domain/node.mjs";
+import { ABOLISHED_CACHE_FILE } from "../spec/cache.mjs";
+
+/** fork の上書きの置き場と export(登録のフォルダの隣、src/lib/domain/extensionPoints.ts の entities) */
+const OVERRIDE_FILE = "entity.override.ts";
+const OVERRIDE_EXPORT = "entityOverride";
 
 /** 壊れた宣言(JSON として読めない・オブジェクトでない)は例外 */
 function assertReadable(declaration) {
@@ -45,32 +52,55 @@ export function generatedRegistrationsOf(declaration) {
 }
 
 /**
- * 1 ドメインの cache の宣言(両方・置き場の誤り・読めない JSON は problem)
- * @param {{ row: { dir: string }, declaration: object | null, hasCacheFile: boolean, readCacheFile: () => unknown }} input
- *   declaration = readDomain の結果(宣言の無いドメインは null)、readCacheFile = <domain>/cache.json を読む(workspace)
- * @returns {{ row: object, config: object | null, cache: object | null, source: string | null, problem: string | null }}
+ * fork の上書き entity.override.ts の cache(export const entityOverride = { cache: { … } } の字面、実行しない)
+ * @param {string} text entity.override.ts の本文
+ * @returns {{ cache: unknown, problem: string | null } | null} cache を書いていなければ null
  */
-export function cacheDeclarationOf({ row, declaration, hasCacheFile, readCacheFile }) {
-  const registration = declaration ? primaryRegistrationOf(declaration) : null;
-  const config = registration?.entity ?? null;
-  const hasRegistrations = (declaration?.registrations ?? []).length > 0;
-  // 置き場(core/domain-definition.md cache_declaration): 主の登録の entity.json の "cache" / 主の登録の無い(登録はある)ドメインは domain.json の "cache" /
-  // 登録の無いドメインは cache.json。1 ドメイン 1 か所
-  const domainJson = `${row.dir}/${DOMAIN_DECLARATION_FILE}`;
-  const inDomainJson = declaration?.domain?.cache !== undefined;
-  const at = registration ? `${registration.dir}/${ENTITY_DECLARATION_FILE}` : hasRegistrations ? domainJson : null;
-  const inJson = Boolean(config) && config.cache !== undefined;
-  const none = { row, config, cache: null, source: null };
-  if (!hasRegistrations && inDomainJson) return { ...none, problem: `登録の無いドメインの cache は ${domainJson} でなく ${CACHE_FILE} に書いてください` };
-  if (registration && inDomainJson) return { ...none, problem: `主の登録のあるドメインの cache は ${domainJson} でなく ${at} の "cache" に書いてください` };
-  if ((inJson || inDomainJson) && hasCacheFile) return { ...none, problem: `cache は ${at} の "cache" か ${CACHE_FILE} のどちらか 1 つに書いてください(両方ある)` };
-  if (hasRegistrations && hasCacheFile) return { ...none, problem: `登録のあるドメインは ${CACHE_FILE} でなく ${at} の "cache" に書いてください` };
-  if (inDomainJson) return { row, config, cache: declaration.domain.cache, source: domainJson, problem: null };
-  if (!inJson && !hasCacheFile) return { ...none, problem: null };
-  if (inJson) return { row, config, cache: config.cache, source: at, problem: null };
-  try {
-    return { row, config, cache: readCacheFile(), source: `${row.dir}/${CACHE_FILE}`, problem: null };
-  } catch (error) {
-    return { ...none, problem: `${CACHE_FILE} が JSON として読めません: ${error.message}` };
+export function overrideCacheOf(text) {
+  const source = ts.createSourceFile("entity.override.ts", text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  for (const statement of source.statements) {
+    if (!ts.isVariableStatement(statement)) continue;
+    for (const declaration of statement.declarationList.declarations) {
+      if (!ts.isIdentifier(declaration.name) || declaration.name.text !== OVERRIDE_EXPORT || !declaration.initializer) continue;
+      let node = declaration.initializer;
+      while (ts.isAsExpression(node) || ts.isSatisfiesExpression(node) || ts.isParenthesizedExpression(node)) node = node.expression;
+      if (!ts.isObjectLiteralExpression(node)) return null;
+      const property = node.properties.find((p) => ts.isPropertyAssignment(p) && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) && p.name.text === "cache");
+      if (!property) return null;
+      const read = literalOf(property.initializer);
+      return read.problem !== undefined ? { cache: undefined, problem: `${OVERRIDE_EXPORT}.cache は字面で書いてください(${read.problem})` } : { cache: read.value, problem: null };
+    }
   }
+  return null;
+}
+
+/**
+ * 1 ドメインの cache の宣言(D353): 読みの持ち主の宣言に置く = 登録ごとの entities/<登録名>/entity.json の "cache"(主でない登録も、
+ * ドメインの既定を継がない)。fork の上書き entity.override.ts の cache はその登録の cache を丸ごと差し替える。cache.json は廃止(あれば止める)
+ * @param {{ row: { name: string, dir: string }, declaration: object | null, hasCacheFile: boolean, readOverride: (registration: { dir: string }) => string | null }} input
+ *   declaration = readDomain の結果(宣言の無いドメインは null)、readOverride = 登録の entity.override.ts の本文(無ければ null)
+ * @returns {Array<{ row: object, registration: string | null, config: object | null, cache: object | null, source: string | null, problem: string | null }>}
+ */
+export function cacheDeclarationsOf({ row, declaration, hasCacheFile, readOverride = () => null }) {
+  const found = [];
+  const none = { row, registration: null, config: null, cache: null, source: null };
+  if (hasCacheFile) found.push({ ...none, problem: `${row.dir}/${ABOLISHED_CACHE_FILE} は廃止(D353): 包む読みは登録の ${ENTITIES_DIR}/<登録名>/${ENTITY_DECLARATION_FILE} の "cache" に書き、${ABOLISHED_CACHE_FILE} を消す` });
+  for (const registration of declaration?.registrations ?? []) {
+    const config = registration.entity;
+    if (!config) continue;
+    const overrideText = readOverride(registration);
+    const override = overrideText ? overrideCacheOf(overrideText) : null;
+    const at = { ...none, registration: registration.name, config };
+    if (override?.problem) {
+      found.push({ ...at, problem: `${registration.dir}/${OVERRIDE_FILE}: ${override.problem}` });
+      continue;
+    }
+    if (override) {
+      found.push({ ...at, cache: override.cache, source: `${registration.dir}/${OVERRIDE_FILE}`, problem: null });
+      continue;
+    }
+    if (config.cache === undefined) continue;
+    found.push({ ...at, cache: config.cache, source: `${registration.dir}/${ENTITY_DECLARATION_FILE}`, problem: null });
+  }
+  return found;
 }

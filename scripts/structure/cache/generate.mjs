@@ -1,4 +1,4 @@
-// scripts/structure/cache/generate.mjs — 段階の入口(pnpm generate cache): cache を宣言した全ドメインの services/server/cachedReads.ts を作り直す
+// scripts/structure/cache/generate.mjs — 段階の入口(pnpm generate cache): cache を宣言した全ての登録の services/server/<登録名>CachedReads.ts を作り直す
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 

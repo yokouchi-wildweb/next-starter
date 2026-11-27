@@ -1,11 +1,11 @@
-// ドメインの宣言 cache(登録の entity.json の "cache"、domain.json の無い手書きのドメインは同じ形の <domain>/cache.json)の語彙と正規化。
+// 登録の宣言 cache(登録ごとの entities/<登録名>/entity.json の "cache"、fork は entity.override.ts の cache で差し替える、D353)の語彙と正規化。
 // 規則の正: src/domains/README.md「cache(共有の読みのキャッシュの宣言)」。検査は checks/cache.mjs、型は src/lib/domain/types/cache.ts。
 // 生成器(包んだ関数を出す)はこの normalizeCacheDeclaration の形を読む。
 
 import { COMMENT_KEY } from "./domainJson.mjs";
 
-/** domain.json の無いドメインが宣言を置くファイル(ドメインのフォルダの直下) */
-export const CACHE_FILE = "cache.json";
+/** 廃止した置き場(ドメインのフォルダの直下の cache.json、D353)。あれば検査が止めて移し先を言う */
+export const ABOLISHED_CACHE_FILE = "cache.json";
 
 export const CACHE_KEYS = new Set(["mode", "life", "get", "list", "reads", "readsDomains", COMMENT_KEY]);
 export const CACHE_LIST_KEYS = new Set(["limit", COMMENT_KEY]);

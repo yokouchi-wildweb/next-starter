@@ -31,16 +31,19 @@ export const OVERRIDE_DECLARATION = "src/lib/domain/extensionPoints.ts";
 /** サービスのファイルの置き場(ドメインのフォルダからの相対) */
 export const SERVICE_DIR = "services/server";
 
+/** 登録表の行の access を丸ごと差し替える上書きの鍵(宣言の overrideOf の 1 つ。ほかの鍵 cache は pnpm generate cache が読む、D353) */
+const ACCESS_OVERRIDE_KEY = "apiAccess";
+
 /**
- * entity.override.ts が差し替える鍵(宣言の overrideOf)。登録表の行の access を丸ごと差し替える 1 つだけ(apiAccess)
+ * entity.override.ts のうち登録表が読む鍵(宣言の overrideOf にあること)
  * @returns {string}
  */
 export function overrideAttribute() {
   const keys = overrideKeysOf(OVERRIDE_DECLARATION, OVERRIDE_POINT);
-  if (keys.length !== 1) {
-    throw new Error(`${OVERRIDE_DECLARATION} の ${OVERRIDE_POINT} の overrideOf は 1 つだけ(${OVERRIDE_FILE} は登録表の access を丸ごと差し替える。今: ${keys.join(" / ")})`);
+  if (!keys.includes(ACCESS_OVERRIDE_KEY)) {
+    throw new Error(`${OVERRIDE_DECLARATION} の ${OVERRIDE_POINT} の overrideOf に ${ACCESS_OVERRIDE_KEY} が無い(${OVERRIDE_FILE} の ${ACCESS_OVERRIDE_KEY} が登録表の access を丸ごと差し替える。今: ${keys.join(" / ")})`);
   }
-  return keys[0];
+  return ACCESS_OVERRIDE_KEY;
 }
 /** 生成物の 1 行目 */
 export const GENERATED_HEADER = "// 生成物・編集不可: pnpm generate registry が src/domains/**/entities/*/entity.json(と fork の entity.override.ts)から生成する";
@@ -408,12 +411,14 @@ export function discoverRegistrations(repoRoot, view = diskView) {
         overrideImport: null,
       };
       if (hasOverride) {
-        const { error } = readObjectKeys(view.read(overrideAbs), OVERRIDE_EXPORT);
+        const { keys, error } = readObjectKeys(view.read(overrideAbs), OVERRIDE_EXPORT);
         if (error) errors.push(`${overrideRel}: ${error}`);
         errors.push(...checkOverrideStaticImports(overrideRel, repoRoot, view, importMemo));
-        // 宣言に無い鍵は pnpm check extensions(鍵の検査 overrideKeys.mjs)
-        row.overridePath = overrideRel;
-        row.overrideImport = `@/${overrideRel.slice("src/".length).replace(/\.ts$/, "")}`;
+        // 宣言に無い鍵は pnpm check extensions(鍵の検査 overrideKeys.mjs)。登録表の行を差し替えるのは apiAccess を書いた上書きだけ(cache だけの上書きは pnpm generate cache)
+        if (error || keys.includes(ACCESS_OVERRIDE_KEY)) {
+          row.overridePath = overrideRel;
+          row.overrideImport = `@/${overrideRel.slice("src/".length).replace(/\.ts$/, "")}`;
+        }
       }
       rows.push(row);
     }

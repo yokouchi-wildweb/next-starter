@@ -3,7 +3,7 @@
 ## Overview
 
 - ドメイン別の機能を格納するディレクトリ。各ドメインは宣言を持つ(D335):
-  - `domain.json` = ドメインそのものの短い宣言(`domainConfigVersion` `"2.0"`・`label` = 管理の一覧・データ操作の一覧の名前)だけ。主の登録の無い(登録はある)ドメインだけ `cache` も持つ(下の「cache」)
+  - `domain.json` = ドメインそのものの短い宣言(`domainConfigVersion` `"2.0"`・`label` = 管理の一覧・データ操作の一覧の名前)だけ
   - `entities/<登録名>/entity.json` = 表 1 つ = 登録 1 件ごとの宣言(表・項目・関連・権限・生成の旗 `generate` など、下の API のキー)。登録の一覧は entities/ の下のフォルダの並び(entity.json か drizzle/schema/form/model.ts を持つフォルダ)で、どこにも手で書かない
   - 表なしのドメインは登録 0、表 1 つのドメインは登録名 = ドメイン名。どの表にも属さない物(API の入力の形・複数の表をまとめた型・定数)は `types/`・`constants/`(D341)
   - 読み手は全員、読み込みの部品 `readDomain`(scripts、[src/lib/domain/README.md](../lib/domain/README.md) 宣言の形)か、登録の entity.json の import(server)だけを通す
@@ -83,7 +83,7 @@
 
 ### トップレベルプロパティ（entities/<登録名>/entity.json）
 
-ドメインの `domain.json` は `domainConfigVersion`(`"2.0"`)・`label`・`$comment` だけを持つ(主の登録の無い、登録はあるドメインだけ `cache` も)。下は登録の entity.json の鍵。
+ドメインの `domain.json` は `domainConfigVersion`(`"2.0"`)・`label`・`$comment` だけを持つ。下は登録の entity.json の鍵。
 
 | プロパティ | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
@@ -112,7 +112,7 @@
 | systemColumns | string[] | ⚪ No | `systemUpdate` / `systemBulkUpdateByQuery`（特権書き込み）で書き込みを許可するカラムの allowlist（Neon のみ）。Zod スキーマ外のシステム管理カラム（`ended_at` 等）をサービス層から正規経路で書き込むための宣言。**未宣言時は system 系メソッドは常に throw（fail-closed）**。詳細: `src/lib/crud/README.md` |
 | hiddenColumns | string[] | ⚪ No | 秘匿カラム（APIキー・トークン等「DB には保持するがレスポンスに決して含めない」カラム、Neon のみ）。プロパティ名（camelCase）で指定すると `pnpm generate domain` が `entities/drizzle.ts` に `defineHiddenColumns()` を出力し、サービスの**全戻り値**・他ドメインの **withRelations 展開**から該当カラムが null 置換される。秘匿値をサーバー内部で読む場合は `services/server/` に直接 drizzle の専用ファインダーを作ること（例: user の `findByIdWithSecrets`）。詳細: `src/lib/crud/README.md` の hiddenColumns 節 |
 | audit | object | ⚪ No | 監査ログ（`createCrudService` の `audit` のうち JSON で書ける部分。`targetType`・`actionPrefix` は `enabled: false` 以外で必須、`trackedFields` は camelCase の列名、recorder は生成器が渡す、Neon のみ）。`generate: false` のドメインでは効かないので `<登録名>Base.ts` に手で書く |
-| cache | object | ⚪ No | 共有の読みのキャッシュの宣言（下の「cache（共有の読みのキャッシュの宣言）」）。主の登録の無い(登録はある)ドメインは同じ形を `domain.json` の `"cache"` に、登録の無いドメインは `<domain>/cache.json` に書く。`generate: false` のドメインにも効く（検査は `pnpm check domain`）、Neon のみ |
+| cache | object | ⚪ No | この登録の共有の読みのキャッシュの宣言（下の「cache（共有の読みのキャッシュの宣言）」）。主でない登録も自分の entity.json に書く(ドメインの既定は無い)。`generate: false` の登録にも効く（検査は `pnpm check domain`）、Neon のみ |
 | closable | — | — | 無い。書くと生成器が止める。機能として閉じるには `src/featureGate/rules/<名前>.ts` に規則を書き `domains` にこのドメインを入れる。どの規則にも載せず常に開くなら、ドメインの `extensionPoints.ts` に常設の宣言 `export const alwaysOpen = true`(どちらも無いと `pnpm generate district-map` が止める、注文 35) |
 | apiAccess | ApiAccess | ⚪ No | 汎用 API（`/api/[domain]/**`）のアクセス制御（Extension の「ApiAccess（汎用 API アクセス制御）」）。**未宣言時は admin カテゴリのみ許可（fail-closed）** |
 | generate | boolean | ⚪ No | 生成するか（登録ごと、既定 true、D337）。true = `pnpm forge` / `pnpm generate domain` がその登録の生成物を全部作り直す（登録ごと。登録の多いドメインも生成する登録ごとに一式）（手の実装は wrappers/ 等に置いて載せ替える）、false = 手で管理し、生成器は何も書かない（README.md の Internals「生成カテゴリ」）。区分ごとの `generateFiles` は廃止（書いてあると生成が止まる）。fork が true / false を決めるときは `pnpm check domain -- --compare`（手の変更・新しい入口・表の書き直しを出す。`scripts/structure/domain/README.md`「generate の旗を決める」） |
@@ -120,8 +120,8 @@
 
 #### cache（共有の読みのキャッシュの宣言）
 
-- 何を書くか: このドメインのどの読みを要求をまたぐ共有のキャッシュにするか・書き込みで消すか時間で切れるか・寿命・他のどのドメインの書き込みでも消すか。包んだ読みの関数は生成器が出す（手で `"use cache: remote"` を書かない）
-- 置き場(1 ドメイン 1 か所): 主の登録の entity.json の `"cache"`、登録はあるが主の登録の無いドメインは `domain.json` の `"cache"`、登録の無いドメインは `<domain>/cache.json`（登録のあるドメインの cache.json は不可）。`generate` の値に関わらず効く
+- 何を書くか: この登録のどの読みを要求をまたぐ共有のキャッシュにするか・書き込みで消すか時間で切れるか・寿命・他のどのドメインの書き込みでも消すか。包んだ読みの関数は生成器が出す（手で `"use cache: remote"` を書かない）
+- 置き場(読みの持ち主の宣言、D353): 登録の標準の読み(get・list・名前付きの読み)はその登録の `entities/<登録名>/entity.json` の `"cache"`(どの登録も、ドメインの既定を継がない)。登録をまたぐ読みは `domain.json` の `"cache".reads`(その語彙は cache の議会が決める、まだ書けない)。`<domain>/cache.json` は廃止(あれば検査が止める)。fork は登録の隣の `entity.override.ts` の `cache` で丸ごと差し替える。`generate` の値に関わらず効く
 - `mode`（必須）: `"tagged"` = 書き込みでキャッシュタグ（`cacheTagOf(domain)`・`cacheTagOf(domain, id)`、`src/lib/cacheTags`）を消す / `"ttl"` = 書き込みで消さず短い寿命で切れる
 - `life`（必須、寿命は必ず有限）: cacheLife の preset 名（`minutes` / `hours` / `days` / `weeks` / `max`、`default` は寿命が無限・`seconds` は覚えないので不可）か `{ stale?, revalidate?, expire }`（秒、`expire` 必須、stale ≤ revalidate ≤ expire）
   - 上限: `tagged` は 30 日（`weeks` まで、書き忘れた読むドメインの分の古さを受ける上限）、`ttl` は 1 時間（`minutes` まで）
@@ -150,7 +150,7 @@
   - list と名前付きの読みの limit は 1000 まで: 1 行 2 KB なら 1000 行で 2 MB に届く。大きな列(本文・JSON)を持つ表は limit を小さく、一覧に要る列だけの名前付きの読みにはしない(列は選べない: base の行が丸ごと入る)
   - `life` の `seconds`(revalidate 1 秒)は読むたびに作り直すのと同じで覚えない(確かめ、検査が止める)。短い寿命は `{ revalidate, expire }` の秒か `minutes`
   - 他の地域への消しの届き方は未測(地域は入れない)。書き込みの直後の読みは同じ地域では新しい値(確かめ: preview の 3 つのインスタンス)
-- 生成: `pnpm generate cache` が `<domain>/services/server/cachedReads.ts`（`<camel>CachedReads` の get・list・名前付きの読み）を書く。宣言のあるドメインの `<登録名>Base.ts` の base は `cacheTags: { domain: "<camel>" }` を持つ（`generate: true` は `pnpm generate domain` が書く、手で管理するドメインは手で書く。無いと生成器が止まる）。読み方: `scripts/structure/cache/README.md`
+- 生成: `pnpm generate cache` が登録ごとに `<domain>/services/server/<登録名>CachedReads.ts`（`<登録名>CachedReads` の get・list・名前付きの読み）を書く。宣言のある登録の `<登録名>Base.ts` の base は `cacheTags: { domain: "<登録名>" }` を持つ（`generate: true` は `pnpm generate domain` が書く、手で管理する登録は手で書く。無いと生成器が止まる）。読み方: `scripts/structure/cache/README.md`
 - 検査: `pnpm check domain`（全ドメイン、`scripts/structure/domain/checks/cache.mjs`）| 型: `src/lib/domain/types/cache.ts` の `DomainCacheDeclaration` | 既定を埋めた形: `scripts/structure/domain/spec/cache.mjs` の `normalizeCacheDeclaration`
 
 #### 開発者のメモ（$comment）

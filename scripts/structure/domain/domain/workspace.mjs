@@ -10,8 +10,8 @@ import path from "node:path";
 
 import { readDistrictMapAt } from "../../../../src/lib/districtMap/node.mjs";
 import { ENTITIES_DIR, ENTITY_DECLARATION_FILE, findRegistration, listDomains as listDeclaredDomains, nodeDomainSource, primaryRegistrationOf, readDomain, readDomains } from "../../../../src/lib/domain/node.mjs";
-import { CACHE_FILE } from "../spec/cache.mjs";
-import { cacheDeclarationOf, configOfDeclaration, generatedRegistrationsOf, registrationConfigOf } from "./declarationOf.mjs";
+import { ABOLISHED_CACHE_FILE } from "../spec/cache.mjs";
+import { cacheDeclarationsOf, configOfDeclaration, generatedRegistrationsOf, registrationConfigOf } from "./declarationOf.mjs";
 
 const NOT_DOMAIN_DIRS = new Set(["_template", "core"]);
 
@@ -182,14 +182,17 @@ export function readDomainRows(rootDir) {
 }
 
 /**
- * 宣言を 1 ドメインずつ読む(主の登録の entity.json の "cache" か cache.json。両方・置き場の誤り・読めない JSON は problem)
- * @returns {Array<{ row: object, config: object | null, cache: object | null, source: string | null, problem: string | null }>}
+ * cache の宣言を登録ごとに読む(D353: 登録の entity.json の "cache"、fork の上書き entity.override.ts の cache。廃止した cache.json は problem)
+ * @returns {Array<{ row: object, registration: string | null, config: object | null, cache: object | null, source: string | null, problem: string | null }>}
  */
 export function readCacheDeclarations(rootDir, rows = readDomainRows(rootDir)) {
   const source = nodeDomainSource(rootDir);
-  return rows.map((row) => {
-    const cacheFile = path.join(rootDir, row.dir, CACHE_FILE);
+  return rows.flatMap((row) => {
     const declaration = row.domainJson ? readDomain(source, row.name) : null;
-    return cacheDeclarationOf({ row, declaration, hasCacheFile: fs.existsSync(cacheFile), readCacheFile: () => JSON.parse(fs.readFileSync(cacheFile, "utf8")) });
+    const readOverride = (registration) => {
+      const file = path.join(rootDir, registration.dir, "entity.override.ts");
+      return fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null;
+    };
+    return cacheDeclarationsOf({ row, declaration, hasCacheFile: fs.existsSync(path.join(rootDir, row.dir, ABOLISHED_CACHE_FILE)), readOverride });
   });
 }

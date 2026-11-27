@@ -1,4 +1,4 @@
-// scripts/structure/cache のテスト(仮の木で宣言 → cachedReads.ts、消去・問題・手書きの base・check の食い違い)。
+// scripts/structure/cache のテスト(仮の木で登録の宣言 → <登録名>CachedReads.ts、主でない登録・fork の上書き・消去・問題・手書きの base・check の食い違い)。
 // 実行: pnpm test scripts/structure/cache/cache.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -6,7 +6,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { CACHED_READS_FILE, checkCachedReads, generateCachedReads, planCachedReads, renderCachedReads } from "./lib.mjs";
+import { cachedReadsFileOf, checkCachedReads, generateCachedReads, planCachedReads, renderCachedReads } from "./lib.mjs";
 import { buildCacheTagsOption } from "../domain/render/serverServices/templateTweaks.mjs";
 
 const neon = { singular: "post", dbEngine: "Neon", fields: [{ name: "title" }, { name: "is_published" }] };
@@ -70,37 +70,51 @@ test("render: ttl だけ・get: false はキャッシュタグの import も get
   assert.match(noGet, /export const postCachedReads = \{ list \};/);
 });
 
-test("generate: entity.json と cache.json(手書きのドメイン)の両方に書き、2 回目は何もしない、check は宣言どおり", () => {
+test("generate: 登録ごとに書く(主の登録・主でない登録・fork の上書きの cache が丸ごと差し替える)、2 回目は何もしない", () => {
   const files = {
     ...declared("src/domains/post", { ...neon, generate: false, cache: { mode: "tagged", life: "days" } }),
     "src/domains/post/services/server/postBase.ts": BASE_OK,
-    "src/domains/core/tag/cache.json": { mode: "ttl", life: "minutes", get: false, list: { limit: 50 } },
-    "src/domains/core/tag/services/server/tagBase.ts": BASE_OK.replace('"post"', '"tag"').replace("postBase", "tagBase"),
-    "src/domains/core/user/services/server/userBase.ts": "export const userBase = {};\n",
+    // 主でない登録 postComment も自分の entity.json に(ドメインの既定を継がない)
+    "src/domains/post/entities/postComment/entity.json": { ...neon, singular: "post_comment", cache: { mode: "ttl", life: "minutes", get: false, list: { limit: 50 } } },
+    "src/domains/post/services/server/postCommentBase.ts": BASE_OK.replaceAll('"post"', '"postComment"').replace("postBase", "postCommentBase"),
+    // fork の上書き: entity.override.ts の cache が entity.json の cache を丸ごと差し替える
+    ...declared("src/domains/core/tag", { ...neon, singular: "tag", cache: { mode: "tagged", life: "days" } }),
+    "src/domains/core/tag/entities/tag/entity.override.ts": 'export const entityOverride = { cache: { mode: "ttl", life: "minutes" } };\n',
+    "src/domains/core/tag/services/server/tagBase.ts": BASE_OK.replaceAll('"post"', '"tag"').replace("postBase", "tagBase"),
   };
-  withTree(files, [postRow, tagRow, userRow], (root, rows) => {
+  const rows = [postRow, { ...tagRow, domainJson: true }, userRow];
+  withTree(files, rows, (root) => {
     const plan = planCachedReads(root, rows);
     assert.deepEqual(plan.problems, []);
-    assert.deepEqual(plan.writes.map((w) => w.path), [path.join("src/domains/post", CACHED_READS_FILE), path.join("src/domains/core/tag", CACHED_READS_FILE)]);
+    assert.deepEqual(plan.writes.map((w) => w.path).sort(), [
+      path.join("src/domains/core/tag", cachedReadsFileOf("tag")),
+      path.join("src/domains/post", cachedReadsFileOf("post")),
+      path.join("src/domains/post", cachedReadsFileOf("postComment")),
+    ].sort());
     for (const { path: rel, content } of plan.writes) {
       fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
       fs.writeFileSync(path.join(root, rel), content);
     }
     assert.deepEqual(planCachedReads(root, rows).removes, []);
-    assert.match(fs.readFileSync(path.join(root, "src/domains/core/tag", CACHED_READS_FILE), "utf8"), /pnpm generate cache が src\/domains\/core\/tag\/cache\.json の cache から/);
+    const comment = fs.readFileSync(path.join(root, "src/domains/post", cachedReadsFileOf("postComment")), "utf8");
+    assert.match(comment, /export const postCommentCachedReads = \{ list \};/);
+    assert.match(comment, /import \{ postCommentBase \} from "\.\/postCommentBase";/);
+    const tag = fs.readFileSync(path.join(root, "src/domains/core/tag", cachedReadsFileOf("tag")), "utf8");
+    assert.match(tag, /pnpm generate cache が src\/domains\/core\/tag\/entities\/tag\/entity\.override\.ts の cache から/);
+    assert.match(tag, /cacheLife\("minutes"\)/);
   });
 });
 
-test("消去: 宣言が消えたドメインの印のある cachedReads.ts だけを消す、check は食い違いを名指す", () => {
+test("消去: 宣言が消えた登録の印のある <登録名>CachedReads.ts だけを消す", () => {
   const generated = "// 生成物・編集不可: pnpm generate cache が x の cache から生成する\n";
   const files = {
     ...declared("src/domains/post", neon),
-    [path.join("src/domains/post", CACHED_READS_FILE)]: generated,
-    [path.join("src/domains/core/user", CACHED_READS_FILE)]: "// 手書き\n",
+    [path.join("src/domains/post", cachedReadsFileOf("post"))]: generated,
+    [path.join("src/domains/core/user", cachedReadsFileOf("user"))]: "// 手書き\n",
   };
   withTree(files, [postRow, userRow], (root, rows) => {
     const plan = planCachedReads(root, rows);
-    assert.deepEqual(plan.removes, [path.join("src/domains/post", CACHED_READS_FILE)]);
+    assert.deepEqual(plan.removes, [path.join("src/domains/post", cachedReadsFileOf("post"))]);
     assert.deepEqual(plan.writes, []);
   });
 });
@@ -115,14 +129,19 @@ test("問題: 宣言の誤り・手書きの土台に cacheTags が無い・土�
   const noOption = {
     ...declared("src/domains/post", { ...neon, cache: { mode: "tagged", life: "days" } }),
     "src/domains/post/services/server/postBase.ts": "export const postBase = createCrudService(PostTable, { ...baseOptions });\n",
-    "src/domains/core/tag/cache.json": { mode: "tagged", life: "days" },
+    // 主でない登録の土台が無い: その登録の <登録名>Base.ts を名指す(ドメインの土台を読まない)
+    "src/domains/post/entities/postComment/entity.json": { ...neon, singular: "post_comment", cache: { mode: "tagged", life: "days" } },
   };
-  withTree(noOption, [postRow, tagRow], (root, rows) => {
+  withTree(noOption, [postRow], (root, rows) => {
     const plan = planCachedReads(root, rows);
     const text = plan.problems.join("\n");
     assert.match(text, /\[post\] .*cacheTags: \{ domain: "post" \} を書いてください/);
-    assert.match(text, /\[tag\] src\/domains\/core\/tag\/services\/server\/tagBase\.ts がありません/);
+    assert.match(text, /\[postComment\] src\/domains\/post\/services\/server\/postCommentBase\.ts がありません/);
     assert.deepEqual(plan.writes, []);
+  });
+  const abolished = { ...declared("src/domains/post", neon), "src/domains/post/cache.json": { mode: "tagged", life: "days" } };
+  withTree(abolished, [postRow], (root, rows) => {
+    assert.match(planCachedReads(root, rows).problems.join("\n"), /\[post\] src\/domains\/post\/cache\.json は廃止\(D353\)/);
   });
 });
 

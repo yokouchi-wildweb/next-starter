@@ -56,7 +56,7 @@
 
 ### 宣言の形(D335、作り直しの途中)
 
-- ドメイン 1 つ = `src/domains/<d>/domain.json`(ドメインそのものの短い宣言: `domainConfigVersion` "2.0"・`label`、主の登録の無い(登録はある)ドメインだけ `cache`)+ 表 1 つ = 登録 1 件ごとの `entities/<登録名>/entity.json`(表の鍵と登録の鍵)。表なしのドメインは登録 0、表 1 つのドメインは登録名 = ドメイン名
+- ドメイン 1 つ = `src/domains/<d>/domain.json`(ドメインそのものの短い宣言: `domainConfigVersion` "2.0"・`label`)+ 表 1 つ = 登録 1 件ごとの `entities/<登録名>/entity.json`(表の鍵と登録の鍵)。表なしのドメインは登録 0、表 1 つのドメインは登録名 = ドメイン名
 - 登録の一覧は `entities/` の下のフォルダの並びで、どこにも手で書かない。生成するかの旗 `generate` は登録ごと(entity.json、D337)
 - 鍵の集合の正は `definition/declaration.mjs`、読むのは読み込みの部品 `definition/readDomain.mjs` だけ(入口 "./node")。無い・壊れた・知らない鍵は `problems` に入り、推測で埋めない
 - entities/ の下のフォルダのうち entity.json か表のファイル(`ENTITY_FILE_KINDS`)を持つ物だけが登録(役割の表 profiles/ などは登録でない)
@@ -90,7 +90,7 @@
 
 ## Extension
 
-- fork が core の access を変える: 登録のフォルダ `entities/<登録名>/entity.override.ts`(fork 所有、entity.json の隣)。`export const entityOverride = { apiAccess: <access> } satisfies EntityOverride` で登録表のその行の access を丸ごと置き換える(生成の既定は重ねない)。拡張点の宣言 `extensionPoints.ts` の `entities`、差し替えられる鍵は `apiAccess` だけ。登録表が静的に読む
+- fork が core の access を変える: 登録のフォルダ `entities/<登録名>/entity.override.ts`(fork 所有、entity.json の隣)。`export const entityOverride = { apiAccess: <access> } satisfies EntityOverride` で登録表のその行の access を丸ごと置き換える(生成の既定は重ねない)。`cache: <宣言>`(字面)はその登録の共有の読みのキャッシュの宣言を丸ごと置き換える(pnpm generate cache が読む、D353)。拡張点の宣言 `extensionPoints.ts` の `entities`、差し替えられる鍵は `apiAccess`・`cache`。登録表が静的に読む
   - 静的 import: 型だけの import(`import type`・名前がすべて `type`)はどこからでも可。値の import は**値だけのファイル**からだけ(`pnpm check registry`、判定 `scripts/structure/registry/serviceRegistry/discover.mjs` の `checkOverrideStaticImports`)。値だけのファイル = 文が 型だけの import・値だけのファイルからの値の import と再 export・型の宣言・`const <名> = <値の式>`・`export default <値の式>` だけのファイル。値の式 = リテラル・定数か import した名前の参照・それらの object / 配列 / spread。関数・呼び出し・`new`・副作用の import・`let` / `var`・`enum`・`class` は不可。推移的に確かめ、解けない指定子(パッケージ・無いファイル)は不可
   - 上流の権限の型と定型 `@/lib/domainAccess` はこの決まりで通る。`@/lib/domain` の入口は値を読まない(型だけ)。fork が自分の権限の定型を持つなら、自分のドメインの `constants/` などに値だけのファイルとして置いて import する
 - 業務ドメインの access は登録の entity.json の `apiAccess`(`apiAccess.commands` も)

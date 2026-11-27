@@ -8,6 +8,8 @@
 
 import type { DomainApiAccessConfig } from "@/lib/domainAccess";
 
+import type { DomainCacheDeclaration } from "./cache";
+
 // サービスのメソッドはドメインごとに引数・戻り値が違うため、構造型では緩い関数型で受ける
 type AnyServiceMethod = (...args: any[]) => any;
 
@@ -86,11 +88,11 @@ export type DomainRegistryEntry = {
 };
 
 /**
- * fork の上書き(entities/<登録名>/entity.override.ts、`export const entityOverride = { apiAccess: … } satisfies EntityOverride`)。
- * apiAccess = 登録表のその行の access の丸ごと置き換え(../extensionPoints.ts の entities の overrideOf。生成の既定は重ねない)。
- * 生成器が読んで serviceRegistry に反映する
+ * fork の上書き(entities/<登録名>/entity.override.ts、`export const entityOverride = { apiAccess: … } satisfies EntityOverride`)。鍵は ../extensionPoints.ts の entities の overrideOf
+ * - apiAccess = 登録表のその行の access の丸ごと置き換え(生成の既定は重ねない)。pnpm generate registry が serviceRegistry に反映する
+ * - cache = その登録の共有の読みのキャッシュの宣言の丸ごと置き換え(字面で書く。pnpm generate cache が読む、D353)
  */
-export type EntityOverride = { apiAccess: DomainApiAccessConfig };
+export type EntityOverride = { apiAccess?: DomainApiAccessConfig; cache?: DomainCacheDeclaration };
 
 /** 生成された登録表（src/registry/serviceRegistry.ts の serviceRegistry） */
 export type DomainRegistry = Readonly<Record<string, DomainRegistryEntry>>;

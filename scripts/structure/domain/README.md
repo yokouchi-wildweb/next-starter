@@ -3,7 +3,7 @@
 ## Overview
 
 - 手で書いたドメインの宣言から、ドメイン一式（entities / services / hooks / 管理画面 / レジストリ登録）を生成する CLI のリファレンスです。
-- 宣言は 2 種類のファイル: `src/domains/<domain>/domain.json`（ドメインそのものの短い宣言 = `domainConfigVersion` `"2.0"` と `label` だけ。主の登録の無い(登録はある)ドメインだけ `cache` も）と、表 1 つ = 登録 1 件ごとの `src/domains/<domain>/entities/<登録名>/entity.json`（表・項目・関連・権限・生成の旗 `generate` などの鍵）。表 1 つのドメインは登録名 = ドメイン名（例: `src/domains/sample/entities/sample/entity.json`）
+- 宣言は 2 種類のファイル: `src/domains/<domain>/domain.json`（ドメインそのものの短い宣言 = `domainConfigVersion` `"2.0"` と `label` だけ）と、表 1 つ = 登録 1 件ごとの `src/domains/<domain>/entities/<登録名>/entity.json`（表・項目・関連・権限・生成の旗 `generate` などの鍵）。表 1 つのドメインは登録名 = ドメイン名（例: `src/domains/sample/entities/sample/entity.json`）
 - entity.json のスキーマ（キー・型・リレーション・`generate` 等）は [`src/domains/README.md`](../../../src/domains/README.md)、宣言の形と読み込みの部品 `readDomain` は [`src/lib/domain/README.md`](../../../src/lib/domain/README.md)「宣言の形」が正です。生成器も宣言を `readDomain` だけで読む
 - 生成の単位 = ドメインの中の登録 1 件（D336）。生成する登録（`generate` が false でない）ごとに（主の登録が先）、その登録の entity.json を config にして一式を書く。名前は登録の物（`<登録名>Base.ts`・`<登録名>Presenters.ts`・`use<Registration>List` など）、置き場はドメインのフォルダ（雛形の import の道は印 `__folder__`）。ドメインに 1 つの物（`seed.ts`）は最初の単位だけが書く。Firestore の登録も Neon と同じく登録のフォルダに書く（登録の多いドメインでも）
 - 普段はこれを直接打たず、`pnpm forge`（[`scripts/structure/forge/README.md`](../forge/README.md)。検査 → ロールとドメインの生成 → ルートの地図 → 事後検査）で回す。
@@ -102,7 +102,7 @@
   - 生成は止まらないが、未知の `fieldType` は列名としてそのまま出力され、未知の `formInput` はフォームに出ないので直す
   - 知らないキーは同じキーをドメインごとに 1 行（件数と最初の 3 か所）にまとめ、他の警告の後ろに並べる
   - 開発者のメモは `"$comment"`（どの階層でも通り、生成物にも写しにも出ない。`src/domains/README.md`「開発者のメモ（$comment）」）
-- `cache の宣言: 問題 <n> 件` で `pnpm check domain` が落ちる → 全ドメイン（`generate: false`・登録の無いドメインも）の cache の宣言（主の登録の entity.json の `"cache"`、主の登録の無いドメインの `domain.json` の `"cache"`、登録の無いドメインの `<domain>/cache.json`）の誤り（読み `domain/workspace.mjs`、検査 `checks/cacheDeclarations.mjs`・`checks/cache.mjs`）。文のとおりに直す（規則: [src/domains/README.md](../../../src/domains/README.md)「cache（共有の読みのキャッシュの宣言）」）
+- `cache の宣言: 問題 <n> 件` で `pnpm check domain` が落ちる → 全ての登録（`generate: false` も）の cache の宣言（登録の entity.json の `"cache"` と fork の `entity.override.ts` の `cache`、D353）の誤りと、廃止した `<domain>/cache.json` の残り（読み `domain/workspace.mjs`、検査 `checks/cacheDeclarations.mjs`・`checks/cache.mjs`）。文のとおりに直す（規則: [src/domains/README.md](../../../src/domains/README.md)「cache（共有の読みのキャッシュの宣言）」）
 - 宣言（domain.json・entity.json）が壊れている（JSON として読めない）・知らない鍵がある → `readDomain` の問題の文のとおりに直してから再実行
 - `テンプレートのトークンが置換されていません` → 管理画面テンプレートに未対応のトークンが残っている。テンプレートを直す
 - `src/registry/district-map.jsonl` が `pnpm check district-map` で落ちる → `pnpm generate district-map`（または forge）で作り直してコミット

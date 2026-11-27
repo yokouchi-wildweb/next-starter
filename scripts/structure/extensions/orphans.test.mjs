@@ -83,7 +83,7 @@ test("宣言に無い鍵: core ロールの enabled・プロフィールの fiel
   assert.match(of("src/domains/core/user/coreRoles/user.role.override.ts"), /enabled は上書きできない\(できるのは label・hasProfile/);
   assert.match(of("src/domains/core/userProfile/profiles/user.profile.override.ts"), /fields は上書きできない/);
   assert.match(of("src/app/api/cron/a/task.override.ts"), /run は上書きできない\(できるのは schedule・disabled/);
-  assert.match(of("src/domains/core/user/entities/user/entity.override.ts"), /nope は上書きできない\(できるのは apiAccess。宣言 src\/lib\/domain\/extensionPoints\.ts の entities\)/);
+  assert.match(of("src/domains/core/user/entities/user/entity.override.ts"), /nope は上書きできない\(できるのは apiAccess・cache。宣言 src\/lib\/domain\/extensionPoints\.ts の entities\)/);
 });
 
 test(".replace: boardgame-site の 5 本の形(枠の中の部品の .replace)は既定の無い所で止まり、スイッチの向け先と .default の隣と 1 行スイッチは通る", () => {

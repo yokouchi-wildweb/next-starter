@@ -1,4 +1,4 @@
-// scripts/structure/cache/check.mjs — 段階の入口(pnpm check cache): cachedReads.ts が宣言どおりか(何も書かない)
+// scripts/structure/cache/check.mjs — 段階の入口(pnpm check cache): <登録名>CachedReads.ts が宣言どおりか(何も書かない)
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 

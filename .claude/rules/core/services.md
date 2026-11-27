@@ -25,9 +25,9 @@ domain_error: a server service throws DomainError for what the user must see (it
 db_aggregation: aggregate in SQL (GROUP BY), never fetch rows and sum in JS
 tx_side_effects: inside a service transaction write through the passed tx | side effects outside the DB (mail, external calls) go after it commits
 tx_reads: reads inside an open transaction go through the tx executor
-cache_shared_reads: a read shared across requests = the domain's cache declaration + the generated cachedReads.ts (pnpm generate cache) | never a hand-written "use cache: remote", unstable_cache or a data read inside "use cache" (lint use-cache/remote-only-generated, no-data-read-in-cache, no-manual-revalidate)
+cache_shared_reads: a read shared across requests = the registration's cache declaration + the generated \<registration\>CachedReads.ts (pnpm generate cache) | never a hand-written "use cache: remote", unstable_cache or a data read inside "use cache" (lint use-cache/remote-only-generated, no-data-read-in-cache, no-manual-revalidate)
 - a mechanism that is no domain declaration (analytics withAnalyticsCache) → defineSharedRead of @/lib/cacheTags/server (the one hand path, same store, tags and fallback)
-cache_decision_path: decision paths (draw, purchase, balance, stock reservation, permission checks) read the latest DB through base, never cachedReads
+cache_decision_path: decision paths (draw, purchase, balance, stock reservation, permission checks) read the latest DB through base, never the CachedReads
 cache_plain: plain "use cache" = UI and static values baked into the shell only, no data reads
 cache_writes: a declared domain's writes mark tags through its base (createCrudService cacheTags) | a raw SQL write calls service.markCacheTags(ids?) right after | revalidate only through @/lib/cacheTags (entries clear at the end of a request), never revalidateTag directly
 use_cache: a shared "use cache" / "use cache: remote" never reads the user or permissions outside its arguments (session / guard APIs, cookies / headers, getAuditContext) → resolve them in the caller and pass them as arguments, or "use cache: private" | lint use-cache/no-principal-outside-args (direct calls only)

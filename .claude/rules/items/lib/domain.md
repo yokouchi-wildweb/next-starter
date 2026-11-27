@@ -8,7 +8,7 @@ what: a domain's definition and fields: the declaration (domain.json + entities/
   - "./node" src/lib/domain/node.mjs (the .mjs tables, the declaration shape, readDomain + nodeDomainSource; scripts / eslint-rules) | a lib that must not pull node:fs (districtMap ".") takes readDomain passed in from its own "./node"
   - access types and presets → @/lib/domainAccess
 use: always
-change: override → entities/\<registration\>/entity.override.ts beside a core registration's entity.json (point entities in src/lib/domain/extensionPoints.ts: apiAccess only, replaces that serviceRegistry row's access whole)
+change: override → entities/\<registration\>/entity.override.ts beside a core registration's entity.json (point entities in src/lib/domain/extensionPoints.ts: apiAccess replaces that serviceRegistry row's access whole, cache replaces that registration's cache declaration whole, D353)
 rules:
 using:
 - override_imports: entity.override.ts value-imports only value-only files: presets and operation names from @/lib/domainAccess, types from @/lib/domain (type-only) | own access presets → a value-only file in your domain (constants/)

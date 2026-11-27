@@ -109,7 +109,7 @@ createCrudService<TTable, TCreate>(table, {
 
 `cacheTags: { domain }` にすると、書き込みのメソッド（requestMemo と同じ一覧）が終わり（成功でも throw でも）に、そのドメインのキャッシュタグを積む（`src/lib/cacheTags`）。積んだキャッシュタグは入口（routeFactory・cron）が要求の終わりにまとめて消す。
 
-- domain = 地区の地図のドメイン名。cache の宣言（主の登録の entity.json の `"cache"` / `cache.json`）を持つドメインに付ける
+- domain = キャッシュタグの名前 = 登録名(主の登録はドメイン名と同じ)。cache の宣言（登録の entity.json の `"cache"`）を持つ登録の base に付ける
 - id の分かる書き込み（create・upsert・duplicate は戻り値、update・systemUpdate・delete・restore・hardDelete は引数、`bulk*ByIds`・bulkUpdate・bulkUpsert は一括の id）= ドメインのキャッシュタグ `<domain>` + 行のキャッシュタグ `<domain>:<id>`
 - id の分からない書き込み（`*ByQuery`・replaceByQuery・reorder・initializeSortOrder・searchForSorting・関係の一括・truncateAll）と、戻り値から id を取る書き込みの throw = ドメインのキャッシュタグ + 行の全部のキャッシュタグ `<domain>:*`（get の覚えが全部消える）
 - `createCrudService` を経由しない生 SQL の書き込みの後は `service.markCacheTags(ids?)`（ids 無し = 行の全部のキャッシュタグ）。option の無いサービスでは何もしない

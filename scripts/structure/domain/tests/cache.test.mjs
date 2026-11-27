@@ -102,7 +102,7 @@ test("名前付きの読み: 名前・予約語・重複・引数のキー・whe
   assert.match(issues, /reads\[10\]\.limit は 1〜1000/);
 });
 
-test("列を知らない宣言(cache.json のドメイン)は where・orderBy の形だけを見る", () => {
+test("列を知らない宣言(config を渡さない)は where・orderBy の形だけを見る", () => {
   const cache = { mode: "tagged", life: "days", reads: [{ name: "a", limit: 5, where: { field: "anything", op: "eq", value: 1 }, orderBy: [["whatever", "ASC"]] }] };
   assert.deepEqual(cacheIssues(cache, { domain: "post", domains }), []);
 });
@@ -124,7 +124,7 @@ test("正規化: get の既定 true、list・reads・readsDomains の既定、re
   assert.deepEqual(normalizeCacheDeclaration({ mode: "tagged", life: "days", get: false, reads: [{ name: "a", limit: 3, mode: "ttl", life: "seconds" }] }).reads[0], { name: "a", where: null, orderBy: null, limit: 3, mode: "ttl", life: "seconds" });
 });
 
-test("全ドメインの検査: entity.json の cache・cache.json・両方・宣言があるのに cache.json・読めない JSON・宣言なし", () => {
+test("全ての登録の検査(D353): 主の登録・主でない登録の entity.json の cache、fork の上書きの cache、廃止した cache.json は止める", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cache-decl-"));
   try {
     const write = (rel, value) => {
@@ -132,47 +132,26 @@ test("全ドメインの検査: entity.json の cache・cache.json・両方・�
       fs.writeFileSync(path.join(root, rel), typeof value === "string" ? value : JSON.stringify(value));
     };
     writeDeclaration(root, "post", { ...config, generate: false, cache: { mode: "tagged", life: "days", readsDomains: ["user"] } });
-    write("src/domains/core/user/cache.json", { mode: "ttl", life: "minutes" });
-    writeDeclaration(root, "both", { ...config, cache: { mode: "tagged", life: "days" } });
-    write("src/domains/both/cache.json", { mode: "tagged", life: "days" });
-    writeDeclaration(root, "misplaced", config);
-    write("src/domains/misplaced/cache.json", { mode: "tagged", life: "days" });
-    write("src/domains/broken/cache.json", "{ nope");
-    write("src/domains/bad/cache.json", { mode: "tagged", life: "default" });
+    // 主でない登録も自分の entity.json に(ドメインの既定を継がない)
+    write("src/domains/post/entities/postComment/entity.json", { ...config, singular: "post_comment", cache: { mode: "ttl", life: "minutes" } });
+    write("src/domains/post/entities/postDraft/entity.json", { ...config, singular: "post_draft" });
+    // fork の上書き: entity.override.ts の cache が丸ごと差し替える(誤りは上書きの値で見る)
+    writeDeclaration(root, "tag", { ...config, singular: "tag", cache: { mode: "tagged", life: "days" } });
+    write("src/domains/tag/entities/tag/entity.override.ts", 'export const entityOverride = { cache: { mode: "tagged", life: "default" } };\n');
     writeDeclaration(root, "plain", config);
-    // 主の登録の無い(登録は 2 つの)ドメイン: cache は domain.json に。cache.json は断る。主のあるドメインの domain.json の cache も断る
-    const multiDomain = (folder, domainJson) => {
-      write(`src/domains/${folder}/domain.json`, { domainConfigVersion: "2.0", ...domainJson });
-      write(`src/domains/${folder}/entities/${folder}A/entity.json`, config);
-      write(`src/domains/${folder}/entities/${folder}B/entity.json`, config);
-    };
-    multiDomain("multi", { cache: { mode: "tagged", life: "days" } });
-    multiDomain("multiFile", {});
-    write("src/domains/multiFile/cache.json", { mode: "tagged", life: "days" });
-    writeDeclaration(root, "primaryDomainJson", config);
-    write("src/domains/primaryDomainJson/domain.json", { domainConfigVersion: "2.0", cache: { mode: "tagged", life: "days" } });
+    write("src/domains/plain/cache.json", { mode: "tagged", life: "days" });
     const rows = [
       { kind: "domains", name: "post", dir: "src/domains/post", domainJson: true },
       { kind: "domains", name: "user", dir: "src/domains/core/user", domainJson: false },
-      { kind: "domains", name: "both", dir: "src/domains/both", domainJson: true },
-      { kind: "domains", name: "misplaced", dir: "src/domains/misplaced", domainJson: true },
-      { kind: "domains", name: "broken", dir: "src/domains/broken", domainJson: false },
-      { kind: "domains", name: "bad", dir: "src/domains/bad", domainJson: false },
+      { kind: "domains", name: "tag", dir: "src/domains/tag", domainJson: true },
       { kind: "domains", name: "plain", dir: "src/domains/plain", domainJson: true },
-      { kind: "domains", name: "multi", dir: "src/domains/multi", domainJson: true },
-      { kind: "domains", name: "multiFile", dir: "src/domains/multiFile", domainJson: true },
-      { kind: "domains", name: "primaryDomainJson", dir: "src/domains/primaryDomainJson", domainJson: true },
     ];
-    const { issues, declared } = cacheDeclarationIssues(readCacheDeclarations(root, rows));
-    assert.deepEqual(declared, ["post", "user", "bad", "multi"]);
+    const { issues, declared } = cacheDeclarationIssues(readCacheDeclarations(root, rows), rows.map((row) => row.name));
+    assert.deepEqual(declared, ["post", "postComment", "tag"]);
     const text = issues.join("\n");
-    assert.match(text, /\[both\] .*どちらか 1 つ/);
-    assert.match(text, /\[misplaced\] 登録のあるドメインは cache\.json でなく src\/domains\/misplaced\/entities\/misplaced\/entity\.json/);
-    assert.match(text, /\[multiFile\] 登録のあるドメインは cache\.json でなく src\/domains\/multiFile\/domain\.json の "cache"/);
-    assert.match(text, /\[primaryDomainJson\] 主の登録のあるドメインの cache は src\/domains\/primaryDomainJson\/domain\.json でなく/);
-    assert.match(text, /\[broken\] cache\.json が JSON として読めません/);
-    assert.match(text, /\[bad\] cache\.life に "default" は書けません/);
-    assert.equal(issues.length, 6);
+    assert.match(text, /\[tag\] cache\.life に "default" は書けません/, "上書きの cache で見る");
+    assert.match(text, /\[plain\] src\/domains\/plain\/cache\.json は廃止\(D353\)/);
+    assert.equal(issues.length, 2);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

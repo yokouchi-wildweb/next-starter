@@ -1,4 +1,4 @@
-// scripts/structure/cache の本体: ドメインの宣言 cache から、包んだ共有の読み <domain>/services/server/cachedReads.ts を作る。
+// scripts/structure/cache の本体: 登録の宣言 cache から、包んだ共有の読み <domain>/services/server/<登録名>CachedReads.ts を作る(登録ごと、D353)。
 // 宣言の読みは scripts/structure/domain の domain/workspace.mjs、検査は checks/cacheDeclarations.mjs・checks/cache.mjs、形と既定は spec/cache.mjs。
 // 入口: generate.mjs(書く)・check.mjs(書かずに食い違いを名指す)。規則: README.md、宣言の書き方: src/domains/README.md「cache」
 
@@ -9,13 +9,14 @@ import { cacheDeclarationIssues } from "../domain/checks/cacheDeclarations.mjs";
 import { readCacheDeclarations, readDomainRows } from "../domain/domain/workspace.mjs";
 import { normalizeCacheDeclaration } from "../domain/spec/cache.mjs";
 
-/** 生成物の置き場(ドメインのフォルダからの相対) */
-export const CACHED_READS_FILE = path.join("services", "server", "cachedReads.ts");
+/** 生成物の置き場(ドメインのフォルダからの相対、登録ごと) */
+export const cachedReadsFileOf = (registration) => path.join("services", "server", `${registration}CachedReads.ts`);
+const CACHED_READS_NAME = /^[a-z][A-Za-z0-9]*CachedReads\.ts$/;
 /** 生成物の印(頭の行の始まり。消す時はこの印のあるファイルだけ消す) */
 export const GENERATED_MARK = "// 生成物・編集不可: pnpm generate cache が ";
 
-/** 主の登録の土台(services/server/<登録名>Base.ts、export <登録名>Base。キャッシュの宣言は主の登録 = ドメイン名の登録の entity.json) */
-const baseFileOf = (row) => path.join("services", "server", `${row.name}Base.ts`);
+/** 登録の土台(services/server/<登録名>Base.ts、export <登録名>Base。キャッシュの宣言はその登録の entity.json) */
+const baseFileOf = (registration) => path.join("services", "server", `${registration}Base.ts`);
 
 const literal = (value) => JSON.stringify(value);
 const IDENTIFIER_KEY = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
@@ -51,8 +52,8 @@ function readBody({ life, mode, tags, call }) {
 }
 
 /**
- * 宣言 → cachedReads.ts の本文
- * @param {{ name: string, dir: string }} row ドメインの地区
+ * 宣言 → <登録名>CachedReads.ts の本文
+ * @param {{ name: string, dir: string }} row 登録(name = 登録名 = キャッシュタグの名前、dir = ドメインのフォルダ)
  * @param {object} cache 検査を通った宣言
  * @param {string} source 宣言の置き場(リポの根からの相対)
  */
@@ -117,7 +118,7 @@ export function renderCachedReads(row, cache, source) {
   const exportName = `${row.name}CachedReads`;
   return [
     `${GENERATED_MARK}${source} の cache から生成する`,
-    `// ${row.dir}/services/server/cachedReads.ts`,
+    `// ${row.dir}/services/server/${row.name}CachedReads.ts`,
     "//",
     "// 共有の読みのキャッシュ(\"use cache: remote\"、行き先は next.config の cacheHandlers、既定は Vercel の Runtime Cache)。",
     `// 書き込みは ${row.name}Base(${row.name}Base.ts の option cacheTags)がキャッシュタグを積み、入口が要求の終わりに消す(src/lib/cacheTags)。`,
@@ -135,16 +136,16 @@ export function renderCachedReads(row, cache, source) {
   ].join("\n");
 }
 
-/** 手書きの base が option cacheTags を持つか(generate: true のドメインは domain の生成器が書く) */
+/** 手書きの base が option cacheTags を持つか(generate: true の登録は domain の生成器が書く) */
 function baseIssues(rootDir, row) {
-  const BASE_FILE = baseFileOf(row);
+  const BASE_FILE = baseFileOf(row.name);
   const file = path.join(rootDir, row.dir, BASE_FILE);
-  if (!fs.existsSync(file)) return [`[${row.name}] ${row.dir}/${BASE_FILE} がありません(包む読みは主の登録の土台 ${row.name}Base を読む)`];
+  if (!fs.existsSync(file)) return [`[${row.name}] ${row.dir}/${BASE_FILE} がありません(包む読みは登録の土台 ${row.name}Base を読む)`];
   const text = fs.readFileSync(file, "utf8");
   const issues = [];
   if (!new RegExp(`export const ${row.name}Base\\b`).test(text)) issues.push(`[${row.name}] ${row.dir}/${BASE_FILE} に export const ${row.name}Base がありません`);
   if (!new RegExp(`cacheTags:\\s*\\{\\s*domain:\\s*"${row.name}"\\s*,?\\s*\\}`).test(text)) {
-    issues.push(`[${row.name}] ${row.dir}/${BASE_FILE} の createCrudService に cacheTags: { domain: "${row.name}" } を書いてください(書き込みがキャッシュタグを積まないと包んだ読みが古いまま。generate: true のドメインは pnpm generate domain が書く)`);
+    issues.push(`[${row.name}] ${row.dir}/${BASE_FILE} の createCrudService に cacheTags: { domain: "${row.name}" } を書いてください(書き込みがキャッシュタグを積まないと包んだ読みが古いまま。generate: true の登録は pnpm generate domain が書く)`);
   }
   return issues;
 }
@@ -157,20 +158,27 @@ function baseIssues(rootDir, row) {
  */
 export function planCachedReads(rootDir, rows = readDomainRows(rootDir)) {
   const declarations = readCacheDeclarations(rootDir, rows);
-  const { issues } = cacheDeclarationIssues(declarations);
+  const { issues } = cacheDeclarationIssues(declarations, rows.map((row) => row.name));
   if (issues.length > 0) return { problems: issues, writes: [], removes: [] };
   const problems = [];
   const writes = [];
+  for (const { row, registration, cache, source } of declarations) {
+    if (!cache || !registration) continue;
+    const target = { name: registration, dir: row.dir };
+    problems.push(...baseIssues(rootDir, target));
+    writes.push({ path: path.join(row.dir, cachedReadsFileOf(registration)), content: renderCachedReads(target, cache, source) });
+  }
+  // 宣言の無くなった登録の生成物(印のある <登録名>CachedReads.ts)は消す
+  const planned = new Set(writes.map((write) => write.path));
   const removes = [];
-  for (const { row, cache, source } of declarations) {
-    const target = path.join(row.dir, CACHED_READS_FILE);
-    const absolute = path.join(rootDir, target);
-    if (!cache) {
-      if (fs.existsSync(absolute) && fs.readFileSync(absolute, "utf8").startsWith(GENERATED_MARK)) removes.push(target);
-      continue;
+  for (const row of rows) {
+    const dir = path.join(rootDir, row.dir, "services", "server");
+    if (!fs.existsSync(dir)) continue;
+    for (const name of fs.readdirSync(dir)) {
+      const rel = path.join(row.dir, "services", "server", name);
+      if (!CACHED_READS_NAME.test(name) || planned.has(rel)) continue;
+      if (fs.readFileSync(path.join(dir, name), "utf8").startsWith(GENERATED_MARK)) removes.push(rel);
     }
-    problems.push(...baseIssues(rootDir, row));
-    writes.push({ path: target, content: renderCachedReads(row, cache, source) });
   }
   return { problems, writes: problems.length > 0 ? [] : writes, removes: problems.length > 0 ? [] : removes };
 }
@@ -192,7 +200,7 @@ export function generateCachedReads(rootDir) {
     fs.rmSync(path.join(rootDir, rel));
     lines.push(`cache: 宣言が無いので消した ${rel}`);
   }
-  lines.push(`cache: 宣言 ${plan.writes.length} ドメイン`);
+  lines.push(`cache: 宣言 ${plan.writes.length} 登録`);
   return { ok: true, lines };
 }
 
@@ -208,5 +216,5 @@ export function checkCachedReads(rootDir) {
   }
   for (const rel of plan.removes) drift.push(`宣言が無いのに残っている: ${rel}`);
   if (drift.length > 0) return { ok: false, lines: [`cache: 生成物が宣言と食い違う ${drift.length} 件(pnpm generate cache)`, ...drift] };
-  return { ok: true, lines: [`cache: 宣言 ${plan.writes.length} ドメイン、生成物は宣言どおり`] };
+  return { ok: true, lines: [`cache: 宣言 ${plan.writes.length} 登録、生成物は宣言どおり`] };
 }

@@ -1,5 +1,5 @@
 // src/lib/cacheTags/sharedRead.ts — ドメインの宣言でない仕組みの共有の読み(server だけ、入口 ./server)
-// ドメインの読みは宣言 cache と pnpm generate cache(生成物 cachedReads.ts)。これはその形に乗らない仕組み
+// 登録の読みは宣言 cache と pnpm generate cache(生成物 <登録名>CachedReads.ts)。これはその形に乗らない仕組み
 // (例: analytics の withAnalyticsCache)が同じ置き場・同じキャッシュタグ・同じ落ち方で読むための 1 つの道。
 
 import { cacheLife, cacheTag } from "next/cache";

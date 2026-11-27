@@ -1,5 +1,5 @@
 // src/lib/domain/types/cache.ts
-// ドメインの宣言 cache(登録の entity.json の "cache"、domain.json の無いドメインは <domain>/cache.json)の型。
+// 登録の宣言 cache(登録の entity.json の "cache"、fork は entity.override.ts の cache、D353)の型。
 // 語彙・上限・正規化の正: scripts/structure/domain/spec/cache.mjs、検査: scripts/structure/domain/checks/cache.mjs。
 // 規則: src/domains/README.md「cache(共有の読みのキャッシュの宣言)」
 
@@ -36,7 +36,7 @@ export type DomainCacheRead = {
   life?: DomainCacheLife;
 };
 
-/** 宣言のまま(登録の entity.json の cache / cache.json) */
+/** 宣言のまま(登録の entity.json の cache / fork の上書きの cache) */
 export type DomainCacheDeclaration = {
   mode: DomainCacheMode;
   life: DomainCacheLife;

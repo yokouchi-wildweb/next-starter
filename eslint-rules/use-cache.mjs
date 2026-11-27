@@ -16,7 +16,7 @@
 // 共有の読みのキャッシュの標準の形(D52・D53 K1、区切り cc-cache-standard)を守る 3 つ(全 Tier error、必須の規則の表):
 // - remote-only-generated: 指令 "use cache: remote" は pnpm generate cache の生成物(頭の行の印)と src/lib/cacheTags
 //   (defineSharedRead: ドメインの宣言でない仕組みの共有の読み、例 analytics の withAnalyticsCache)だけ。共有の読みは
-//   ドメインの宣言 cache → 生成物 cachedReads.ts(scripts/structure/cache/README.md)
+//   登録の宣言 cache → 生成物 <登録名>CachedReads.ts(scripts/structure/cache/README.md)
 // - no-data-read-in-cache: 共有の cache の範囲("use cache" と remote)の中で、DB を読む物(services/server・@/lib/drizzle・
 //   entities/drizzle・@/lib/crud/server)から import した値の直の呼び出し(fn() と obj.method() の頭の名前)を止める。
 //   データの読みの手での包みは宣言の外の消えないキャッシュになる。普通の "use cache" は殻に焼く UI と静的な値だけ。生成物は除く
@@ -145,7 +145,7 @@ const remoteOnlyGenerated = {
     docs: { description: "\"use cache: remote\" は pnpm generate cache の生成物と src/lib/cacheTags だけ" },
     messages: {
       remote:
-        "\"use cache: remote\" を手で書かない。共有の読みはドメインの宣言 cache(登録の entity.json の \"cache\" / cache.json)に書き、pnpm generate cache の cachedReads.ts を読む。ドメインの宣言でない仕組みの読みは @/lib/cacheTags/server の defineSharedRead(手で包んだ読みは書き込みで消えない。詳細: scripts/structure/cache/README.md、src/lib/cacheTags/README.md)",
+        "\"use cache: remote\" を手で書かない。共有の読みは登録の宣言 cache(登録の entity.json の \"cache\")に書き、pnpm generate cache の <登録名>CachedReads.ts を読む。ドメインの宣言でない仕組みの読みは @/lib/cacheTags/server の defineSharedRead(手で包んだ読みは書き込みで消えない。詳細: scripts/structure/cache/README.md、src/lib/cacheTags/README.md)",
     },
     schema: [],
   },
@@ -189,7 +189,7 @@ const noDataReadInCache = {
     docs: { description: "共有の use cache の中で DB を読む物を直に呼ばない" },
     messages: {
       dataRead:
-        "共有の \"{{directive}}\" の中で {{name}} を呼ばない(DB を読む)。共有の読みはドメインの宣言 cache と pnpm generate cache の cachedReads.ts、普通の \"use cache\" は殻に焼く UI と静的な値だけ(詳細: scripts/structure/cache/README.md)",
+        "共有の \"{{directive}}\" の中で {{name}} を呼ばない(DB を読む)。共有の読みは登録の宣言 cache と pnpm generate cache の <登録名>CachedReads.ts、普通の \"use cache\" は殻に焼く UI と静的な値だけ(詳細: scripts/structure/cache/README.md)",
     },
     schema: [],
   },

@@ -575,6 +575,6 @@ test("getDomainList: 実リポの core の印は宣言の置き場どおり(core
   assert.deepEqual(list.filter((domain) => domain.isCore).map((domain) => domain.key), [...list.filter((domain) => domain.isCore).map((domain) => domain.key)].sort((a, b) => a.localeCompare(b)), "core が先、キーの順");
 });
 
-test("上書きが差し替える鍵は宣言 src/lib/domain/extensionPoints.ts の entities から(今は apiAccess だけ)", () => {
+test("登録表が上書きから読む鍵は宣言 src/lib/domain/extensionPoints.ts の entities の apiAccess(cache は pnpm generate cache が読む)", () => {
   assert.equal(overrideAttribute(), "apiAccess");
 });

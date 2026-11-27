@@ -222,7 +222,7 @@ add src/domains/core/purchaseRequest/services/server/payment/sessionEnricher.rep
 add src/domains/core/rateLimit/plugs/routeFactoryRateLimit/ipRate.replace.{ts,tsx}  # 差替点 rateLimitRouteFactoryRateLimit の丸ごと置き換え
 add src/lib/mail/frame/MailFrame.replace.{ts,tsx}  # 差替点 mailFrame の丸ごと置き換え
 edit src/app/api/cron/*/task.override.ts  # 上書き cronTasks(schedule・disabled)
-edit src/domains/**/entities/*/entity.override.ts  # 上書き entities(apiAccess)
+edit src/domains/**/entities/*/entity.override.ts  # 上書き entities(apiAccess・cache)
 edit src/domains/**/plugs/messages/*.override.ts  # 上書き messages(label・values・extras・enabled・adminEditableOnly・record・throttle・category・channelModes・adminText)
 edit src/domains/**/plugs/recordTargets/*.override.ts  # 上書き recordTargets(messages)
 edit src/domains/core/user/coreRoles/*.role.override.ts  # 上書き coreRoleDefinitions(label・hasProfile)
@@ -273,8 +273,8 @@ generated src/styles/core/gradient.css  # 生成器 styles の出力
 generated src/styles/gradient.css  # 生成器 styles の出力
 generated src/styles/z-layer.css  # 生成器 styles の出力
 generated src/lib/zLayer/generated/ownLayers.ts  # 生成器 styles の出力
-generated src/domains/core/*/services/server/cachedReads.ts  # 生成器 cache の出力
-generated src/domains/*/services/server/cachedReads.ts  # 生成器 cache の出力
+generated src/domains/core/*/services/server/*CachedReads.ts  # 生成器 cache の出力
+generated src/domains/*/services/server/*CachedReads.ts  # 生成器 cache の出力
 # === AUTO-GENERATED intake END ===
 
 # 登録(fork entries の対の中だけ)
