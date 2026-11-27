@@ -19,20 +19,27 @@ pnpm workflow worktree remove <path>
 1. `git worktree add` を実行
    - 置き場所の既定: 本体の隣の `../<repo名>.wt-<branch>` (`/` などは `-` に置き換え)
    - ブランチがあればそれをチェックアウト、無ければ `--from` (既定: 実行した場所の HEAD) から作る
+   - main から作るときは `git fetch origin main` の後 `--from origin/main` (手元の main は遅れることがあり、道具はそれを動かさない)
 2. 本体から持ち込み一覧 (`include`) の対象を複製
 3. `pnpm install --frozen-lockfile` (pnpm のストアからハードリンクされるので速い)
 
-終わったら `cd <path> && claude` で、新しいターミナルから作業を始めます。
+終わったら、そこで作業するセッションを `/reinforce --cwd=<path>` で新しいタブに開きます(手で開くなら `cd <path> && claude`)。
+
+断るとき (exit 1、何も作らない):
+
+- 置き場所が既にある → 既存の作業場所へ env を入れ直すなら `pnpm workflow worktree sync`
+- ブランチが既にあるのに `--from` を渡した → `--from` は新しいブランチを作るときだけ (既にあるブランチはそのままチェックアウトする)
 
 ### pnpm workflow worktree sync
 
-本体の env を更新したときなど、既存ワークツリーへ入れ直します。path 省略時は今いるワークツリー。
+本体の env を更新したときなど、既存ワークツリーへ入れ直します。path 省略時は今いるワークツリー。本体の checkout を指したときは断る (exit 1: 作業場所の中で走らせるか、パスを渡す)。
 
 - 既にあるファイルは上書きしない。内容が違うものは一覧に出すだけ
 - `--force` を付けたときだけ上書き (ワークツリー側で書き換えた値は消える)
 
 ### pnpm workflow worktree remove
 
+- 本体の checkout は外さない (exit 1)
 - `git status --short` が空でないと止まる (コミットするか片付けてから)
 - gitignore 対象 (env / node_modules) はフォルダごと消える
 - ブランチとコミットは残る。不要ならマージ済みを確かめて `git branch -d <branch>`

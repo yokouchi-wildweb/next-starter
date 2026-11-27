@@ -64,7 +64,7 @@ console.log("\n依存インストール (pnpm install --frozen-lockfile):");
 execFileSync("pnpm", ["install", "--frozen-lockfile"], { cwd: target, stdio: "inherit" });
 
 console.log(`
-✓ 完了。作業を始めるには:
-  cd ${target} && claude
+✓ 完了。そこで作業するセッションを開くには:
+  /reinforce --cwd=${target}   (新しいタブ。手で開くなら cd ${target} && claude)
 片付け: pnpm workflow worktree remove ${target}
 `);

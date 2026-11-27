@@ -10,18 +10,18 @@ args: $ARGUMENTS
 
 ## COMMON
 - never run `git worktree add` / `git worktree remove` directly → always `pnpm workflow worktree` (else env copy, install and safety checks are skipped)
-- never use `claude --worktree`, EnterWorktree or subagent worktree isolation (they can create a place without env)
-- this session never moves into the worktree | after creating it → tell the user "in a new terminal: `cd <path> && claude`" and end
+- never use `claude --worktree`, EnterWorktree or subagent worktree isolation: they skip the include copy (env, next-env.d.ts) and `pnpm install`, and their place is not `<project>.wt-<slug>`, the path the team tools look for
+- this session stays where it started: its hooks, `$CLAUDE_PROJECT_DIR` and loaded rules keep pointing at that checkout, so work done after a `cd` would run under another checkout's rules and hooks → the work there is done by a session opened in it (NEW step 4)
 
 ## NEW (create)
 1. branch name:
    - user named one → use it as is
    - none → name it `<area>/<short English description>` from the request and go on (the report gives the name)
-2. base: none given → HEAD of the place it runs in | a request that should branch from main → add `--from main`
+2. base: none given → HEAD of the place it runs in | a request that should branch from main → `git fetch origin main`, then `--from origin/main` (the local main may lag and the tools never move it)
 3. run `pnpm workflow worktree new <branch> [--from <base>]`
 4. report:
    - created path and branch, the files copied
-   - next move: in a new terminal `cd <path> && claude`
+   - next move: a session there = `/reinforce --cwd=<path>` | the request was to work there → open it now and say in one line where it opened | else name the command only
    - the DB is shared with the main checkout (schema-changing work → add one line: `db:push` also hits the main checkout's development DB)
 
 ## SYNC (re-copy env)
