@@ -74,9 +74,25 @@ export function gateRuleStopMessage(workspace, domainDir) {
 }
 
 /** 削除するパスの一覧（表示用、rootDir からの相対） */
+/**
+ * そのドメインの設定値のファイル(src/config/domains/<folder>.config.ts と <folder>.<名前>.config.ts、絶対パス)。
+ * 持ち主の config.ts だけが読み、ファイルは持ち主の型を import するので、ドメインと一緒に消す(宣言を残す削除でも config.ts は消える)
+ */
+export function configValuesFilesOf(workspace, domainDir) {
+  const folder = path.basename(domainDir);
+  const dir = path.join(workspace.rootDir, "src", "config", "domains");
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((name) => name === `${folder}.config.ts` || (name.startsWith(`${folder}.`) && name.endsWith(".config.ts") && !name.slice(folder.length + 1, -".config.ts".length).includes(".")))
+    .sort()
+    .map((name) => path.join(dir, name));
+}
+
 export function listDeletePaths(workspace, { domainDir, adminDir, extras }) {
   const paths = [];
   if (fs.existsSync(domainDir)) paths.push(path.relative(workspace.rootDir, domainDir));
+  paths.push(...configValuesFilesOf(workspace, domainDir).map((file) => path.relative(workspace.rootDir, file)));
   if (adminDir && fs.existsSync(adminDir)) paths.push(path.relative(workspace.rootDir, adminDir));
   paths.push(...extras.map((d) => path.relative(workspace.rootDir, d)));
   return paths;
@@ -114,6 +130,7 @@ export function removeDomainFiles(workspace, { target, adminDir, pluralKebab, ex
       }
     }
   }
+  for (const file of configValuesFilesOf(workspace, domainDir)) fs.rmSync(file, { force: true });
   for (const dir of extras) {
     fs.rmSync(dir, { recursive: true, force: true });
   }

@@ -5,7 +5,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { codeReferenceStopMessage, deleteStopMessage, findExtraDirs, gateRuleStopMessage, listDeletePaths, removeDomainFiles, resolveAdminDir, resolveDeleteTarget } from "../pipeline/remove/index.mjs";
+import { codeReferenceStopMessage, configValuesFilesOf, deleteStopMessage, findExtraDirs, gateRuleStopMessage, listDeletePaths, removeDomainFiles, resolveAdminDir, resolveDeleteTarget } from "../pipeline/remove/index.mjs";
 import { refreshDistrictMap } from "../pipeline/generate.mjs";
 import { confirm, prompt } from "./prompts.mjs";
 
@@ -72,13 +72,10 @@ export async function runDelete(workspace, domain, options = {}) {
   // 組を壊す削除・参照されているドメインの削除は、何も聞かずに止める（何も消さない）
   const { adminDir, pluralKebab } = resolveAdminDir(workspace, target);
   const searchDirs = findExtraDirs(workspace, target, adminDir);
-  const withAdmin = (dirs) => [...(adminDir ? [adminDir] : []), ...dirs];
+  // 一緒に消す物(管理画面のルート・設定値のファイル)は import を数えない
+  const withAdmin = (dirs) => [...(adminDir ? [adminDir] : []), ...configValuesFilesOf(workspace, target.domainDir), ...dirs];
   // 消さずに残るコードからの import も止める。確認より前は追加ディレクトリの候補を全部除いて数え、選んだ後に選ばなかった候補を数える
-  // 門番の規則がこのドメインを domains に持てば止める(規則の domains から先に外す。D26)
-  const stop =
-    gateRuleStopMessage(workspace, target.domainDir) ??
-    deleteStopMessage(workspace, path.basename(target.domainDir)) ??
-    codeReferenceStopMessage(workspace, target.domainDir, withAdmin(searchDirs));
+  const stop = deleteStopMessage(workspace, path.basename(target.domainDir)) ?? codeReferenceStopMessage(workspace, target.domainDir, withAdmin(searchDirs));
   if (stop) {
     console.error(stop);
     process.exitCode = 1;
@@ -92,6 +89,14 @@ export async function runDelete(workspace, domain, options = {}) {
     : resolveArguments(workspace, target, domain, searchDirs, listed, options);
   if (!chosen) return;
   const { extras, removeConfig } = chosen;
+  // 宣言ごと消す時、門番の規則がこのドメインを domains に持てば止める(規則の domains から先に外す。D26)。宣言を残す削除では
+  // ドメインは残る(規則の domains は宣言のあるドメインを指したまま、pnpm generate extensions・district-map は通る)ので止めない
+  const gateStop = removeConfig ? gateRuleStopMessage(workspace, target.domainDir) : null;
+  if (gateStop) {
+    console.error(gateStop);
+    process.exitCode = 1;
+    return;
+  }
   if (extras.length < searchDirs.length) {
     const unchosenStop = codeReferenceStopMessage(workspace, target.domainDir, withAdmin(extras));
     if (unchosenStop) {

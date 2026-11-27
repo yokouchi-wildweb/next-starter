@@ -237,16 +237,20 @@ function gatedProject(features = '["shop"]') {
   return { root, workspace, rule };
 }
 
-test("門番の規則が domains に持つドメインの削除は、何も消さずに規則の名前を出して止める(規則の domains から先に外す、D26)", async () => {
+test("門番の規則が domains に持つドメインを宣言ごと消す(--remove-config)と、何も消さずに規則の名前を出して止める(規則の domains から先に外す、D26)。宣言を残す削除は止めない", async () => {
   const gated = gatedProject();
   const before = snapshot(gated.root);
   const run = await deleteCapturing(gated.workspace, "shop", { confirm: "shop", removeConfig: true });
   assert.equal(run.exitCode, 1);
   assert.match(run.stderr, /門番の規則がこのドメイン\(shop\)を domains に持つので削除を止めました[\s\S]*src\/featureGate\/rules\/shopping\.ts/);
   assert.deepEqual(snapshot(gated.root), before);
+  const kept = await deleteCapturing(gated.workspace, "shop", { confirm: "shop" });
+  assert.doesNotMatch(kept.stderr, /門番の規則/);
+  assert.equal(fs.existsSync(entityDeclarationPath(gated.root, "shop")), true, "宣言は残る");
+  assert.equal(fs.existsSync(gated.rule), true);
 });
 
-test("門番の規則が持たないドメインの削除は規則にも上書きにも触れない(同じ名前のファイルがあっても)", async () => {
+test("門番の規則が持たないドメインの削除は規則に触れない。そのドメインの設定値のファイル(<フォルダ>.config.ts・<フォルダ>.<名前>.config.ts)は一緒に消え、持ち主の型の import は数えない。名前の違うファイルは残る", async () => {
   const other = gatedProject('["sample"]');
   await deleteCapturing(other.workspace, "shop", { confirm: "shop", removeConfig: true });
   assert.equal(fs.existsSync(other.rule), true);
@@ -254,9 +258,14 @@ test("門番の規則が持たないドメインの削除は規則にも上書�
   const note = base("note");
   const root = makeProject({ configs: { note }, cleanup });
   const workspace = createWorkspace(root);
-  const stray = path.join(root, "src/config/domains/note.config.ts");
-  fs.mkdirSync(path.dirname(stray), { recursive: true });
-  fs.writeFileSync(stray, "export default {};\n");
-  await deleteCapturing(workspace, "note", { confirm: "note", removeConfig: true });
-  assert.equal(fs.existsSync(stray), true);
+  const configDir = path.join(root, "src/config/domains");
+  fs.mkdirSync(configDir, { recursive: true });
+  const own = ["note.config.ts", "note.ui.config.ts"].map((name) => path.join(configDir, name));
+  for (const file of own) fs.writeFileSync(file, 'import type { NoteOverride } from "@/domains/note/config";\nexport default {} satisfies NoteOverride;\n');
+  const others = ["notebook.config.ts", "note.a.b.config.ts"].map((name) => path.join(configDir, name));
+  for (const file of others) fs.writeFileSync(file, "export default {};\n");
+  const run = await deleteCapturing(workspace, "note", { confirm: "note", removeConfig: true });
+  assert.doesNotMatch(run.stderr, /import されているため/);
+  for (const file of own) assert.equal(fs.existsSync(file), false, file);
+  for (const file of others) assert.equal(fs.existsSync(file), true, file);
 });

@@ -80,19 +80,20 @@
    - 参照: 他のドメインの登録の entity.json の `relations` が belongsTo / belongsToMany（`includeRelationTable: false` の逆側を含む）/ hasMany / hasOne で指していれば止まり、参照元のドメインと fieldName を全部出す。先に参照元の関連を外すか、参照元を `--remove-config` 付きで消す
    - 判定は登録の entity.json の宣言だけを見る（全ての登録: 主でない登録の関連も数え、`relations[].domain` が消すドメインのフォルダ名か、その中のどの登録の名前でも止める）: 宣言を残した削除（既定）の参照元は宣言が残るので止まり続ける。自己参照と、消すドメイン自身が持つ関連は数えない。読めない entity.json は見えない
    - import: `src` 配下の消さずに残るコード（`.ts` / `.tsx` / `.mts` / `.mjs` など）が消すドメインのフォルダを import していれば止まり、参照元のファイルと from 先を全部出す（`codeReferences`、純関数）。`@/domains/<d>/…`・`@/domains/core/<d>/…`（core は `core/` を省いた書き方も）・解決するとフォルダに入る相対パス・動的 `import()`・`require()` を数える。コメントの中は数えない
-     - 数えないもの: 消すフォルダの中、管理画面ルート（一緒に消す）、`--extra` で選んだディレクトリ、閉じられるドメインの門番の規則と上書き（下の 3 の後始末）、`src/registry/`（生成物。消した後に `pnpm generate registry` で作り直す）
+     - 数えないもの: 消すフォルダの中、管理画面ルート（一緒に消す）、設定値のファイル `src/config/domains/<フォルダ>.config.ts`・`<フォルダ>.<名前>.config.ts`（持ち主の config.ts だけが読む。一緒に消す）、`--extra` で選んだディレクトリ、`src/registry/`（生成物。消した後に `pnpm generate registry` で作り直す）。門番の規則はドメインを import しない（止めは下の 3）
      - 追加ディレクトリの候補の中の import は、確認（`--confirm`）の前は数えず、選ばなかった候補だけを確認の後に数えて止める
      - 外部キーを張る列（drizzle の `.references()`）は参照元が相手の表を import するので、ここで止まる
    - 見えないもの（消す前に自分で確かめる）: 外部キーを張らない素の id 列（`coupon_id` を text で持つだけの列など。宣言にもコードにも参照が出ない）、文字列でドメイン名を渡す参照（serviceRegistry・domainRegistry 経由、`/api/<domain>` の URL）、`src` の外（`servers/` など）。確かめ方: `git grep -n "<snake_name>_id\|<camelName>Id\|\"<snake_name>\"\|/api/<snake_name>" -- src servers`
 1. `--confirm` がドメイン名（snake_case）と一致したときだけ消す（名前の打ち直しの安全装置を引数にしたもの）。無い・違うなら、消すものの一覧・追加で消せるディレクトリの候補・そのまま打てるコマンドを出して終了コード 1
 2. `--extra <path>`（何度でも）: `src/app/` 配下で名前が一致する追加ディレクトリのうち、候補に出たものだけ受け付ける
 3. `--remove-config`: 宣言（domain.json と entities/<登録名>/entity.json）も消す（既定は宣言だけ残してドメインディレクトリの中身を消す。entities/ の下は登録のフォルダの entity.json だけが残る）
-   - 門番の規則(`src/featureGate/rules/<名前>.ts`)の `domains` がこのドメインのフォルダを持てば、何も消さずに規則の名前を出して止める(終了コード 1)。規則の `domains` から外す(規則ごと要らなければ規則を消す)→ `pnpm generate extensions` → もう一度削除
+   - 門番の規則(`src/featureGate/rules/<名前>.ts`)の `domains` がこのドメインのフォルダを持てば、何も消さずに規則の名前を出して止める(終了コード 1)。規則の `domains` から外す(規則ごと要らなければ規則を消す)→ `pnpm generate extensions` → もう一度削除。宣言を残す削除（既定）では止めない（ドメインの宣言が残り、規則の `domains` はそれを指したまま `pnpm generate extensions`・`pnpm check district-map` が通る）
 4. `-i` のときは今までの対話（名前の再入力 → 追加ディレクトリの選択 → 宣言を消すか → 確認）
 
-削除するもの: `src/domains/<domain>/`（登録の entity.json ごと）、`src/app/admin/(protected)/<domains>/`（`_components/` 含むルートごと）、選んだ追加ディレクトリ。レジストリからは `adminDomains.ts` / `schemaRegistry.ts` / `domainConfigRegistry.ts` の該当行を消し、`serviceRegistry.ts` は残った登録の entity.json から `pnpm generate registry` で作り直し、地区の地図 `district-map.jsonl` を書き直す。DB のテーブルは消さない。
+削除するもの: `src/domains/<domain>/`（登録の entity.json ごと）、そのドメインの設定値のファイル（`src/config/domains/<フォルダ>.config.ts`・`<フォルダ>.<名前>.config.ts`）、`src/app/admin/(protected)/<domains>/`（`_components/` 含むルートごと）、選んだ追加ディレクトリ。`serviceRegistry.ts` は残った登録の entity.json から作り直し、地区の地図 `district-map.jsonl` を書き直す。DB のテーブルは消さない。
 
-- `domainConfigMap` のエントリは、オブジェクト直下のキーが完全一致するものだけを複数行ごと消す（`text/objectEntry.mjs` の `removeObjectEntry`）
+- ほかの `src/registry` の一覧（`adminDomains.ts`・`schemaRegistry.ts`・`domainConfigRegistry.ts` など）は消した後に `pnpm generate registry` で作り直す（削除は案内を 1 行出す。それまで `pnpm check registry` が止まる。`pnpm forge` は回す）
+- 宣言を残す削除（既定）は、残った entity.json が消したサービスを指すので `serviceRegistry.ts` の作り直しが落ちる。もう一度生成する（`pnpm generate domain -- <Domain>`）か、宣言ごと消す（`--remove-config`）まで `pnpm generate registry` も止まる
 - レジストリの更新に失敗してもディレクトリ削除は済んでいるため止めず、最後に手で直すファイルを表示して終了コード 1 で終わる
 
 ### よくある失敗
