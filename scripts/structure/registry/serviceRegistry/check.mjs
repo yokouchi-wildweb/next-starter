@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // scripts/structure/registry/serviceRegistry/check.mjs
 // src/registry/serviceRegistry.ts が登録の宣言(src/domains/**/entities/*/entity.json と fork の entity.override.ts)からの生成結果と一致するか検査する
 //
@@ -11,8 +10,6 @@
 // サービスを実際に読み込む検査は pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs（tsx）。
 // 詳細: src/lib/domain/README.md
 
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { REGISTRY_FILE, readExistingRegistry } from "./discover.mjs";
 import { buildServiceRegistry } from "./generate.mjs";
@@ -27,15 +24,4 @@ export function checkServiceRegistry(repoRoot) {
     errors.push(`${REGISTRY_FILE} が登録の宣言からの生成結果と一致しない → pnpm generate registry`);
   }
   return { errors, keys };
-}
-
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
-  const { errors, keys } = checkServiceRegistry(repoRoot);
-  if (errors.length > 0) {
-    console.error(`✗ ${REGISTRY_FILE} の検査に失敗しました:`);
-    for (const error of errors) console.error(`  - ${error}`);
-    process.exit(1);
-  }
-  console.log(`✓ ${REGISTRY_FILE} OK（${keys.length} キー）`);
 }

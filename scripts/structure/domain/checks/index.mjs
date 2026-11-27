@@ -50,12 +50,6 @@ export function preflightIssues(ctx, registeredInputs = new Set()) {
   ].filter(Boolean);
 }
 
-/** 問題があれば全件を並べて例外を投げる（pnpm generate domain の入口） */
-export function assertPreflight(ctx, registeredInputs = new Set()) {
-  const issues = preflightIssues(ctx, registeredInputs);
-  if (issues.length > 0) throw new Error(issues.join("\n"));
-}
-
 /**
  * 止めない警告（entity.json の語彙）。`[entity.json] <camel>: ...` の形で返す。
  * 知らないキー（キーごとにまとめた行）は最後に並べる（値の誤り・DB の型・古いキーを先に読ませる）

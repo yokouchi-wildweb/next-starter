@@ -1,4 +1,4 @@
-// pnpm generate domain のレジストリ更新（registry カテゴリ / objectEntry）と、登録表の access の組み方・字面への直し方
+// pnpm generate domain のレジストリ更新（registry カテゴリ / objectEntry の読み）と、登録表の access の組み方・字面への直し方
 // (scripts/structure/registry/serviceRegistry/access.mjs)の回帰テスト。
 // serviceRegistry.ts 自体の生成・検査は scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs（pnpm test scripts/structure/registry/serviceRegistry/serviceRegistry.test.mjs）。
 // 実行: pnpm test scripts/structure/domain/tests/registry.test.mjs
@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { removeObjectEntry, scanObjectEntries, upsertObjectEntry } from "../text/objectEntry.mjs";
+import { scanObjectEntries } from "../text/objectEntry.mjs";
 import { renderRegistry } from "../render/registry/index.mjs";
 import { ACCESS_PRESETS, PRESET_RULES, buildGeneratedAccess, serializeAccess, serializeRule } from "../../registry/serviceRegistry/access.mjs";
 import { domainTableName } from "../domain/names.mjs";
@@ -53,73 +53,6 @@ const API_ACCESS = { read: "public", write: { roleCategories: ["admin"] } };
 test("scanObjectEntries: 直下のキーだけを拾い、入れ子のキーは拾わない", () => {
   const { entries } = scanObjectEntries(SERVICE_REGISTRY, "serviceRegistry");
   assert.deepEqual(entries.map((e) => e.key), ["user", "sample"]);
-});
-
-test("upsertObjectEntry: 複数行エントリを丸ごと置換する", () => {
-  const out = upsertObjectEntry(SERVICE_REGISTRY, { objectName: "serviceRegistry", key: "sample", value: "X" });
-  assert.match(out, /\n  sample: X,\n  \/\/ --- AUTO-GENERATED-END ---/);
-  assert.doesNotMatch(out, /service: sampleService/);
-  assert.match(out, /user: \{ service: userService, access: ADMIN_ONLY \},/);
-});
-
-test("upsertObjectEntry: 無ければ AUTO-GENERATED-END の直前に追加する", () => {
-  const out = upsertObjectEntry(SERVICE_REGISTRY, { objectName: "serviceRegistry", key: "newDomain", value: "Y" });
-  assert.match(out, /  newDomain: Y,\n  \/\/ --- AUTO-GENERATED-END ---/);
-});
-
-test("upsertObjectEntry: ブロック外の直下エントリも置換する（旧フォーク互換）、同名の入れ子キーには触れない", () => {
-  const text = `export const serviceRegistry = {
-  legacy: { service: legacyService, access: { read: "public" } },
-  other: { service: otherService, access: { legacy: "x" } },
-  // --- AUTO-GENERATED-START ---
-  // --- AUTO-GENERATED-END ---
-};
-`;
-  const out = upsertObjectEntry(text, { objectName: "serviceRegistry", key: "legacy", value: "Z" });
-  assert.match(out, /^  legacy: Z,$/m);
-  assert.match(out, /access: \{ legacy: "x" \}/);
-  assert.equal(out.match(/legacy: Z/g).length, 1);
-});
-
-test("upsertObjectEntry: クォート付きキー・末尾カンマ無し・マーカー無しでも扱える", () => {
-  const text = `export const serviceRegistry = {
-  "a": 1,
-  b: 2
-};
-`;
-  assert.match(upsertObjectEntry(text, { objectName: "serviceRegistry", key: "b", value: "3" }), /^  b: 3,$/m);
-  assert.match(upsertObjectEntry(text, { objectName: "serviceRegistry", key: "c", value: "4" }), /  b: 2,\n  c: 4,\n\};/);
-  assert.match(upsertObjectEntry(text, { objectName: "serviceRegistry", key: "a", value: "5" }), /^  a: 5,$/m);
-});
-
-test("removeObjectEntry: 複数行エントリを行ごと丸ごと削除する", () => {
-  const { text, removed } = removeObjectEntry(SERVICE_REGISTRY, { objectName: "serviceRegistry", key: "sample" });
-  assert.equal(removed, true);
-  assert.match(text, /\/\/ --- AUTO-GENERATED-START ---\n  \/\/ --- AUTO-GENERATED-END ---/);
-  assert.match(text, /user: \{ service: userService, access: ADMIN_ONLY \},/);
-});
-
-test("removeObjectEntry: キー完全一致のみ（tag を消しても user_tag は残る）", () => {
-  const map = `export const domainConfigMap = {
-  user_tag: userTagConfig,
-  // --- AUTO-GENERATED-START ---
-  tag: tagConfig,
-  my_tag: myTagConfig,
-  // --- AUTO-GENERATED-END ---
-} as const;
-`;
-  const { text } = removeObjectEntry(map, { objectName: "domainConfigMap", key: "tag" });
-  assert.equal(text, map.replace("  tag: tagConfig,\n", ""));
-});
-
-test("removeObjectEntry: 無いキーは何も変えない・末尾カンマ無しの最後のエントリも消せる", () => {
-  const text = `export const serviceRegistry = {
-  a: 1,
-  b: 2
-};
-`;
-  assert.deepEqual(removeObjectEntry(text, { objectName: "serviceRegistry", key: "zz" }), { text, removed: false });
-  assert.equal(removeObjectEntry(text, { objectName: "serviceRegistry", key: "b" }).text, "export const serviceRegistry = {\n  a: 1,\n};\n");
 });
 
 test("access.mjs: プリセットの写しが accessPresets.ts と一致する", async () => {

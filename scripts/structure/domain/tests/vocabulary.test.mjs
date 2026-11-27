@@ -10,7 +10,13 @@ import { toCamelCase } from "../../../../src/lib/stringCase/index.mjs";
 import { formInputNameIssues } from "../checks/formInputNames.mjs";
 import { formInputNameOf, readRegisteredFormInputs } from "../domain/formInputNames.mjs";
 import { createWorkspace } from "../domain/workspace.mjs";
-import { vocabularyWarnings } from "../checks/vocabulary.mjs";
+import { vocabularyReport } from "../checks/vocabulary.mjs";
+
+/** 語彙の警告の全部（生成前の警告 preflightWarnings と同じ並び: 値の誤り・古いキーが先、知らないキーは最後） */
+const warningsOf = (config, registeredInputs = new Set()) => {
+  const { warnings, unknownKeys } = vocabularyReport(config, registeredInputs);
+  return [...warnings, ...unknownKeys];
+};
 import { FORM_INPUT_VALUES, RELATION_FORM_INPUTS } from "../spec/domainJson.mjs";
 import { FORM_INPUTS } from "../../../../src/lib/domain/node.mjs";
 import { repoRoot } from "./helpers.mjs";
@@ -28,21 +34,21 @@ const BASE = {
 };
 
 test("正しい entity.json には警告が無い（このリポのサンプル 3 件を含む）", () => {
-  assert.deepEqual(vocabularyWarnings(BASE), []);
+  assert.deepEqual(warningsOf(BASE), []);
   for (const domain of ["sample", "sampleCategory", "sampleTag"]) {
     const config = JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "domains", domain, "entities", domain, "entity.json"), "utf8"));
-    assert.deepEqual(vocabularyWarnings(config), [], domain);
+    assert.deepEqual(warningsOf(config), [], domain);
   }
 });
 
 test("知らないトップレベルのキーと古いキー（version）を警告する", () => {
-  const warnings = vocabularyWarnings({ ...BASE, version: "1.1", useSoftDelte: true });
+  const warnings = warningsOf({ ...BASE, version: "1.1", useSoftDelte: true });
   assert.match(warnings.join("\n"), /古いキー "version" は "domainConfigVersion"/);
   assert.match(warnings.join("\n"), /知らないキー "useSoftDelte": 1 か所（トップレベル）/);
 });
 
 test("その DB に無い fieldType と知らない formInput を警告する", () => {
-  const warnings = vocabularyWarnings({
+  const warnings = warningsOf({
     ...BASE,
     fields: [
       { name: "ids", label: "ID", fieldType: "uuid[]", formInput: "custom" },
@@ -60,13 +66,13 @@ test("その DB に無い fieldType と知らない formInput を警告する", 
 
 test("Firestore の型は Firestore の表で見る", () => {
   const fs = { ...BASE, dbEngine: "Firestore", fields: [{ name: "n", label: "n", fieldType: "number", formInput: "numberInput" }, { name: "i", label: "i", fieldType: "integer", formInput: "numberInput" }] };
-  const warnings = vocabularyWarnings(fs);
+  const warnings = warningsOf(fs);
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /"integer" は Firestore に無い型/);
 });
 
 test("リレーションのキー・種別・onDelete・formInput を見る（旧 onDeleteCascade は移行を案内）", () => {
-  const warnings = vocabularyWarnings({
+  const warnings = warningsOf({
     ...BASE,
     relations: [
       { domain: "vault", label: "v", fieldName: "vault_id", fieldType: "uuid", relationType: "belongsTo", onDeleteCascade: true },
@@ -82,16 +88,16 @@ test("リレーションのキー・種別・onDelete・formInput を見る（�
 });
 
 test("generate は知っているキー（generateFiles は廃止キー = checks/required.mjs が止める）", () => {
-  assert.deepEqual(vocabularyWarnings({ ...BASE, generate: false }), []);
+  assert.deepEqual(warningsOf({ ...BASE, generate: false }), []);
 });
 
 test("主の集まりの項目（mediaCollection + collection）は警告なく通り、collection の下位キーの誤りは警告する", () => {
   const gallery = { name: "gallery", label: "ギャラリー", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", required: true, reorderable: true };
   const ok = { ...BASE, fields: [...BASE.fields, { ...gallery, collection: { registration: "memoImage", maxItems: 10, duplicate: false } }] };
-  assert.deepEqual(vocabularyWarnings(ok), []);
-  assert.deepEqual(vocabularyWarnings({ ...BASE, fields: [...BASE.fields, { ...gallery, collection: { registration: "memoImage" } }] }), []);
+  assert.deepEqual(warningsOf(ok), []);
+  assert.deepEqual(warningsOf({ ...BASE, fields: [...BASE.fields, { ...gallery, collection: { registration: "memoImage" } }] }), []);
 
-  const text = vocabularyWarnings({
+  const text = warningsOf({
     ...BASE,
     fields: [
       { ...gallery, collection: { registration: "", maxItems: 0, duplicate: "no", minItems: 1 } },
@@ -106,7 +112,7 @@ test("主の集まりの項目（mediaCollection + collection）は警告なく�
 });
 
 test("mediaCollection は Firestore に無い型", () => {
-  const warnings = vocabularyWarnings({
+  const warnings = warningsOf({
     ...BASE,
     dbEngine: "Firestore",
     fields: [{ name: "gallery", label: "g", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", collection: { registration: "x" } }],
@@ -133,8 +139,8 @@ test("未知の formInput: fields・relations とも止まり、登録名は通�
   assert.equal(registered.length, 2);
   assert.ok(registered.every((issue) => /"(fileUploader|nope)"/.test(issue) && issue.includes("plugs/formInputs/")));
   const pair = { ...BASE, relations: [{ domain: "x", fieldName: "x_id", fieldType: "uuid", relationType: "belongsTo", onDelete: "RESTRICT", formInput: "ticketRates" }] };
-  assert.match(vocabularyWarnings(pair).join("\n"), /ticketRates/);
-  assert.doesNotMatch(vocabularyWarnings(pair, new Set(["ticketRates"])).join("\n"), /ticketRates/);
+  assert.match(warningsOf(pair).join("\n"), /ticketRates/);
+  assert.doesNotMatch(warningsOf(pair, new Set(["ticketRates"])).join("\n"), /ticketRates/);
 });
 
 test("登録名の読み手: 項目の name を字面で読み、ファイル形・フォルダ形とも拾う", () => {
@@ -171,8 +177,8 @@ const readSample = () => JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "
 test("$comment はどの階層でも警告なく通り、値が文字列・文字列の配列でなければ警告する", () => {
   const sample = readSample();
   assert.ok(sample.fieldGroups?.length && sample.fields.some((field) => field.collection), "sample に fieldGroups と collection がある前提");
-  assert.deepEqual(vocabularyWarnings(withCommentsEverywhere(sample)), []);
-  const text = vocabularyWarnings({
+  assert.deepEqual(warningsOf(withCommentsEverywhere(sample)), []);
+  const text = warningsOf({
     ...BASE,
     $comment: 1,
     fields: [{ ...BASE.fields[0], $comment: ["a", 2] }],
@@ -193,7 +199,6 @@ test("$comment を全階層に足しても生成物は 1 バイトも変わら�
   const commented = withCommentsEverywhere(sample);
   const snapshot = (config) =>
     planDomain(createDomainContext(workspace, "sample", { config }), workspace, ALL_GENERATE_OPTIONS).map((output) => {
-      if (output.kind === "patch") return { kind: output.kind, path: output.path, result: workspace.exists(output.path) ? output.apply(workspace.readText(output.path)) : null };
       const { warnOnKeep, migrate, ...rest } = output;
       return rest;
     });
@@ -206,7 +211,7 @@ test("$comment を全階層に足しても生成物は 1 バイトも変わら�
 
 test("知らないキーはキーごとに 1 行（件数・最初の 3 か所）にまとめ、値の誤り・古いキーの後ろに並べる。メモには $comment を案内する", () => {
   const fields = ["a", "b", "c", "d", "e"].map((name) => ({ name, label: name, fieldType: "string", formInput: "textInput", description: `${name} の説明` }));
-  const warnings = vocabularyWarnings({
+  const warnings = warningsOf({
     ...BASE,
     version: "1.1",
     fields: [...fields, { name: "bad", label: "x", fieldType: "uuid[]", formInput: "textInput", note: "x" }],
@@ -227,6 +232,6 @@ test("知らないキーはキーごとに 1 行（件数・最初の 3 か所�
 
 test("fieldGroups のキーも照合する（知っているキーは警告しない）", () => {
   const groups = [{ key: "g", label: "g", fields: ["title"], collapsible: true, defaultCollapsed: false, bgColor: "#fff" }];
-  assert.deepEqual(vocabularyWarnings({ ...BASE, fieldGroups: groups }), []);
-  assert.match(vocabularyWarnings({ ...BASE, fieldGroups: [{ ...groups[0], colapsible: true }] }).join("\n"), /知らないキー "colapsible": 1 か所（fieldGroups\.g）/);
+  assert.deepEqual(warningsOf({ ...BASE, fieldGroups: groups }), []);
+  assert.match(warningsOf({ ...BASE, fieldGroups: [{ ...groups[0], colapsible: true }] }).join("\n"), /知らないキー "colapsible": 1 か所（fieldGroups\.g）/);
 });

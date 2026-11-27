@@ -11,7 +11,7 @@ import { describeOutput, reportDryRun, summarizeDryRun } from "../pipeline/dryRu
 import { everyRunPathsOf, planGenerateAll } from "../pipeline/generateAll.mjs";
 import { planDomain } from "../pipeline/plan.mjs";
 import { ALL_GENERATE_OPTIONS } from "../spec/categories.mjs";
-import { file, patch, writeOnce } from "../render/output.mjs";
+import { file, writeOnce } from "../render/output.mjs";
 import { makeProject, removeAll, repoRoot } from "./helpers.mjs";
 
 const cleanup = [];
@@ -30,7 +30,7 @@ test("コミット済みのサンプルは「変更なし」と「保持」だ�
   assert.match(summarizeDryRun(counts), /^保持 7 \/ 変更なし \d+$/);
 });
 
-test("describeOutput: 作成 / 上書き / 変更なし / 移行 / スキップ を apply と同じ判定で言う", () => {
+test("describeOutput: 作成 / 上書き / 変更なし / 保持 / 移行 を apply と同じ判定で言う", () => {
   const root = makeProject({ cleanup });
   const existing = path.join(root, "a.ts");
   // file() の中身には生成物の印が入るので、変更なしの比べは印の入った中身で
@@ -41,9 +41,6 @@ test("describeOutput: 作成 / 上書き / 変更なし / 移行 / スキップ 
   assert.equal(describeOutput(file(existing, "old")).action, "変更なし");
   assert.equal(describeOutput(writeOnce(existing, "x")).action, "保持");
   assert.equal(describeOutput(writeOnce(existing, "x", { migrate: { test: () => true, label: "" } })).action, "移行");
-  assert.equal(describeOutput(patch(path.join(root, "none.ts"), () => ({}))).action, "スキップ");
-  assert.equal(describeOutput(patch(existing, (t) => ({ text: t }))).action, "変更なし");
-  assert.equal(describeOutput(patch(existing, (t) => ({ text: t + "!" }))).action, "上書き");
   assert.equal(fs.readFileSync(existing, "utf8"), OLD, "dry-run は書かない");
 });
 

@@ -39,14 +39,6 @@ function applyDir(out) {
   if (out.keepFile) fs.writeFileSync(path.join(out.path, out.keepFile), "");
 }
 
-function applyPatch(out, io) {
-  if (!fs.existsSync(out.path)) return;
-  const result = out.apply(fs.readFileSync(out.path, "utf8")) ?? {};
-  if (typeof result.text === "string") fs.writeFileSync(out.path, result.text);
-  for (const message of result.logs ?? []) io.log(message);
-  for (const message of result.warns ?? []) io.warn(message);
-}
-
 /**
  * @param {import("../render/output.mjs").Output[]} outputs
  * @param {{ log: (message: string) => void, warn: (message: string) => void }} [io]
@@ -65,9 +57,6 @@ export function applyOutputs(outputs, io = console) {
         break;
       case "writeOnce":
         applyWriteOnce(out, io);
-        break;
-      case "patch":
-        applyPatch(out, io);
         break;
       default:
         throw new Error(`未知の Output です: ${JSON.stringify(out)}`);

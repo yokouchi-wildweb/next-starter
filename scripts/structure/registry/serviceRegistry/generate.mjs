@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // scripts/structure/registry/serviceRegistry/generate.mjs
 // src/registry/serviceRegistry.ts を登録の宣言(src/domains/**/entities/<登録名>/entity.json)と fork の上書き(隣の entity.override.ts)から丸ごと生成する(D336)
 //
@@ -14,7 +13,6 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { PRESET_MODULE, serializeAccess } from "./access.mjs";
 import { GENERATED_HEADER, OVERRIDE_EXPORT, OVERRIDE_FILE, REGISTRY_FILE, discoverRegistrations, listStorageBindingRecordTypes, overrideAttribute, readExistingRegistry } from "./discover.mjs";
@@ -115,14 +113,4 @@ export function generateServiceRegistry(repoRoot, { log = console.log } = {}) {
     if (removed.length > 0) log(`  除去: ${removed.join(", ")}`);
   }
   return { written, added, removed };
-}
-
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
-  try {
-    generateServiceRegistry(repoRoot);
-  } catch (error) {
-    console.error(`✗ ${error instanceof Error ? error.message : String(error)}`);
-    process.exit(1);
-  }
 }

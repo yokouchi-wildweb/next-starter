@@ -24,16 +24,11 @@
  * @property {string} path
  * @property {string} [keepFile] 作ったときに置く空ファイル名（例: ".gitkeep"）
  *
- * @typedef {object} PatchOutput 既存ファイルの一部を書き換える（レジストリ）。ファイルが無ければ何もしない
- * @property {"patch"} kind
- * @property {string} path
- * @property {(text: string) => { text?: string, logs?: string[], warns?: string[] }} apply text を返せば書き込む（返さなければ書かない）
- *
  * @typedef {object} LogOutput メッセージだけ（書き込みなし）
  * @property {"log"} kind
  * @property {string} message
  *
- * @typedef {FileOutput | WriteOnceOutput | DirOutput | PatchOutput | LogOutput} Output
+ * @typedef {FileOutput | WriteOnceOutput | DirOutput | LogOutput} Output
  */
 
 // 毎回上書きする出力の先頭に入れる生成物の印(注釈を持てる形式だけ)。pnpm check rules(scripts/workflow/rules/generated.mjs)が先頭 5 行で見る
@@ -75,10 +70,6 @@ export function writeOnce(path, content, { label, keptLabel, warnOnKeep, migrate
 
 export function dir(path, { keepFile } = {}) {
   return { kind: "dir", path, keepFile };
-}
-
-export function patch(path, apply) {
-  return { kind: "patch", path, apply };
 }
 
 export function log(message) {

@@ -142,12 +142,3 @@ export function vocabularyReport(config, registeredInputs = new Set()) {
   relationWarnings(acc, config, registeredInputs);
   return { warnings: acc.warnings, unknownKeys: unknownKeyLines(acc.unknown) };
 }
-
-/**
- * @param {object | null} config 登録の entity.json
- * @returns {string[]} 警告文（空なら問題なし）。値の誤り・古いキーが先、知らないキーはキーごとに 1 行で最後
- */
-export function vocabularyWarnings(config, registeredInputs = new Set()) {
-  const { warnings, unknownKeys } = vocabularyReport(config, registeredInputs);
-  return [...warnings, ...unknownKeys];
-}

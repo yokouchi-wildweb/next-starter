@@ -1,12 +1,6 @@
-// レジストリファイル内のオブジェクトリテラル（例: `export const serviceRegistry = { ... }`）の
-// 直下エントリを、1 行でも複数行（Prettier 整形済み等）でも丸ごと置換・追加するためのヘルパー。
-//
-// 方針:
-// - 探すのはオブジェクト直下のキーだけ（入れ子のキーや、オブジェクト外の同名行には触れない）
-// - AUTO-GENERATED ブロック外に置かれた既存エントリも、直下のキーなら置換する（旧フォークの互換）
-// - 見つからなければ AUTO-GENERATED-END の直前（無ければ閉じ括弧の行の直前）に追加する
-
-const END_MARKER = "// --- AUTO-GENERATED-END ---";
+// レジストリファイル内のオブジェクトリテラル（例: `export const serviceRegistry = { ... }`）の直下エントリを、
+// 1 行でも複数行（Prettier 整形済み等）でも読む部品（scanObjectEntries。registry/serviceRegistry/discover.mjs が使う）。
+// 探すのはオブジェクト直下のキーだけ（入れ子のキーや、オブジェクト外の同名行には触れない）
 
 function isIdentChar(ch) {
   return /[A-Za-z0-9_$]/.test(ch);
@@ -108,60 +102,4 @@ export function scanObjectEntries(text, objectName) {
     i++;
   }
   throw new Error(`${objectName} の閉じ括弧が見つかりません`);
-}
-
-function lineStartOf(text, index) {
-  return text.lastIndexOf("\n", index - 1) + 1;
-}
-
-/**
- * オブジェクト直下の `key` エントリを `key: value,` に置換する。無ければ追加する。
- * キーに `.` などを含み引用符が要るときは、照合用の key（引用符なし）と書き出す keyLiteral（例 `"user.avatar"`）を分けて渡す。
- * @param {string} text ファイル全体
- * @param {{ objectName: string, key: string, keyLiteral?: string, value: string, indent?: string }} options
- * @returns {string} 更新後のファイル全体
- */
-export function upsertObjectEntry(text, { objectName, key, keyLiteral, value, indent = "  " }) {
-  const { entries, close } = scanObjectEntries(text, objectName);
-  const entry = `${keyLiteral ?? key}: ${value},`;
-  const existing = entries.find((e) => e.key === key);
-
-  if (existing) {
-    return text.slice(0, existing.start) + entry + text.slice(existing.end);
-  }
-
-  const markerIndex = text.indexOf(END_MARKER);
-  const insertAt =
-    markerIndex !== -1 && markerIndex < close ? lineStartOf(text, markerIndex) : lineStartOf(text, close);
-  const inserted = text.slice(0, insertAt) + `${indent}${entry}\n` + text.slice(insertAt);
-  // 追加位置の直前のエントリが末尾カンマ無しなら補う（無いと構文エラーになる）
-  const previous = entries.filter((e) => e.end <= insertAt).at(-1);
-  if (previous && text[previous.end - 1] !== ",") {
-    return inserted.slice(0, previous.end) + "," + inserted.slice(previous.end);
-  }
-  return inserted;
-}
-
-/**
- * オブジェクト直下の `key` エントリを（複数行でも）丸ごと削除する。キーは完全一致のみ（`tag` で `user_tag` は消えない）。
- * エントリだけの行は行ごと消し、同じ行に他の記述があればエントリ部分だけを消す。
- * @param {string} text ファイル全体
- * @param {{ objectName: string, key: string }} options
- * @returns {{ text: string, removed: boolean }} 見つからなければ text は元のまま
- */
-export function removeObjectEntry(text, { objectName, key }) {
-  const { entries } = scanObjectEntries(text, objectName);
-  const existing = entries.find((e) => e.key === key);
-  if (!existing) return { text, removed: false };
-
-  let start = existing.start;
-  let end = existing.end;
-  const lineStart = lineStartOf(text, start);
-  const lineEnd = text.indexOf("\n", end);
-  const afterEnd = lineEnd === -1 ? text.length : lineEnd;
-  if (/^\s*$/.test(text.slice(lineStart, start)) && /^\s*$/.test(text.slice(end, afterEnd))) {
-    start = lineStart;
-    end = lineEnd === -1 ? text.length : lineEnd + 1;
-  }
-  return { text: text.slice(0, start) + text.slice(end), removed: true };
 }

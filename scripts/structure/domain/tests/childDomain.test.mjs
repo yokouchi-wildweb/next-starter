@@ -4,7 +4,13 @@ import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { vocabularyWarnings } from "../checks/vocabulary.mjs";
+import { vocabularyReport } from "../checks/vocabulary.mjs";
+
+/** 語彙の警告の全部（生成前の警告 preflightWarnings と同じ並び: 値の誤り・古いキーが先、知らないキーは最後） */
+const warningsOf = (config, registeredInputs = new Set()) => {
+  const { warnings, unknownKeys } = vocabularyReport(config, registeredInputs);
+  return [...warnings, ...unknownKeys];
+};
 import { reportDryRun } from "../pipeline/dryRun.mjs";
 import { planDomain } from "../pipeline/plan.mjs";
 import { buildChildDomainConfig } from "../render/collections/childDomainConfig.mjs";
@@ -63,7 +69,7 @@ test("従属の形: belongsTo 主（必須・CASCADE）、メディア 1 項目 
   // 生成するカテゴリは宣言に書かない（従属のカテゴリは spec/categories.mjs の COLLECTION_CHILD_CATEGORIES）
   assert.equal(config.generateFiles, undefined);
   assert.equal(config.generate, undefined);
-  assert.deepEqual(vocabularyWarnings(config), []);
+  assert.deepEqual(warningsOf(config), []);
 });
 
 test("名前と plural: 既定の名前なら既定の plural（項目名）、変えていれば・s で終わらない項目なら singular から作る（plural は必須）", () => {

@@ -69,7 +69,7 @@
 
 `pnpm generate domain -- <Domain> --dry-run` / `pnpm generate domain -- --dry-run --only registry` のように付けると、何も書かずに、書くはずのファイルごとの動作を一覧する。
 
-- 動作: `作成` / `上書き`（内容が変わる）/ `変更なし` / `保持`（write-once で既存を残す）/ `移行`（旧形式の page.tsx を 1 行スイッチへ）/ `スキップ`（レジストリのファイルが無い）。最後に `[dry-run] <domain>: 作成 N / 上書き N / ...` のまとめ
+- 動作: `作成` / `上書き`（内容が変わる）/ `変更なし` / `保持`（write-once で既存を残す）/ `移行`（旧形式の page.tsx を 1 行スイッチへ）。最後に `[dry-run] <domain>: 作成 N / 上書き N / ...` のまとめ
 - `serviceRegistry.ts` の作り直しは実行時に行うので一覧には出ない（まとめに注記が付く）
 - forge の事前検査はこれ（`pnpm generate domain -- --dry-run`）で宣言の検査を回す
 

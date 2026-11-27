@@ -46,14 +46,14 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 
 | 層 | 役目 | 置いてよいもの |
 |---|---|---|
-| `index.mjs` `generate-client.mjs` | `pnpm generate domain` の振り分け先（入口は phase.json → `generateAll.mjs`） | |
+| `index.mjs` | `pnpm generate domain` の振り分け先（入口は phase.json → `generateAll.mjs`） | |
 | `cli/` | 引数の解釈（`args.mjs`: `--only`・値を取るオプション）、`main.mjs`（振り分け）、`generate` / `generateAll` / `delete`、`-i` の対話（`prompts.mjs`・`pickCategories.mjs`）、`process.exit` | inquirer、process.exit |
 | `pipeline/` | `generate.mjs`（1 ドメイン: 読む → 検査 → plan → 登録表の事前検査 → apply → serviceRegistry → 地区の地図。組なら `generateWithPairs`。カテゴリの決め方 `configTargets`）、`pairs.mjs`、`serviceRegistry.mjs`、`generateAll.mjs`、`plan.mjs`（カテゴリ順に render を呼ぶ）、`apply.mjs`（**唯一の書き込み点**）、`dryRun.mjs`（apply と同じ判定を読むだけで行い一覧する）、`remove/`（pnpm generate domain -- --delete の本体） | fs（apply / remove が書く、dryRun は読むだけ） |
 | `render/<カテゴリ>/` | 生成物の文字列を組む純関数（`render/collections/` は主の集まりの項目から従属の domain.json と登録の entity.json を組む）。`(ctx, workspace) → Output[]`（`output.mjs`: `file` / `writeOnce` / `dir` / `patch` / `log`） | 読み取りは workspace 経由のみ |
 | `checks/` | 生成前の検査（フォルダ名、廃止した型、Firestore のメディア列・集まり、登録の entity.json の決まり = `required`・`names`・`relations`・`fields`・`media`・`viewConfig`）。`index.mjs` が全件を並べて止める。止めない食い違いは `*Warnings` と `vocabulary.mjs`。`pairs.mjs` = 組の検査、`accessRules.mjs` = アクセスルールの広さ。ロール・プロフィールの検査も `checks/fields.mjs` を共用する（`scripts/structure/role/checks/`） | |
 | `domain/` | `workspace.mjs`（rootDir からのパスと読み取り。宣言は `readDomain` に node の source を渡して読む。**fs を読むのはここだけ**）、`context.mjs`（名前の全形 + 主の登録の entity.json）、`names.mjs`（表名・FK 名・63 字）、`relations.mjs`、`fieldName.mjs`、`roles.mjs` | |
 | `spec/` | 語彙: `categories.mjs`（カテゴリと `generateTargets` = generate の旗から作るカテゴリ）、`fieldTypes.mjs`（型の表 `src/lib/domain/fields/fieldTypes.mjs` の再 export）、`domainJson.mjs`（entity.json の語彙 = キーと値の集合。鍵の集合の正は `src/lib/domain/definition/declaration.mjs`）、`collectionField.mjs`（従属の既定の名前・snake_case）(型と入力欄の組の表は `src/lib/domain/fields/fieldFormInputs.mjs`、アプリのテストも読むので lib)、`format.mjs`（整形）、`version.mjs` | 定数と純関数のみ |
-| `text/` | TS ソースの部分編集（`objectEntry.mjs`。scripts/structure/registry も使う） | |
+| `text/` | TS ソースのオブジェクトの直下の項目を読む（`objectEntry.mjs` の `scanObjectEntries`。scripts/structure/registry が使う） | |
 | `tests/` | 全テスト（`structure.test.mjs` が下の規則を機械で検査する） | |
 
 規則（`pnpm test scripts/structure/domain/tests/structure.test.mjs`）: 1 ファイル 200 行以内（テスト 320）| `spec/` `domain/`（workspace 以外）`checks/` `render/` `text/` は fs・child_process・inquirer・process.exit を使わない | fs は `domain/workspace.mjs` `pipeline/apply.mjs` `pipeline/dryRun.mjs` `pipeline/remove/` `cli/` だけ | inquirer と process.exit は `cli/` だけ | `render/` は `pipeline/` `cli/` を import しない。
