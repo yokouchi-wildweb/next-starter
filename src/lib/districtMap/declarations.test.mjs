@@ -15,8 +15,9 @@ test("実リポの上書きの対象の点 5 つ: 鍵の集合は宣言へ寄せ
   assert.deepEqual(overrideKeysOf("src/domains/core/user/extensionPoints.ts", "roleDefinitions"), ["label", "hasProfile", "enabled"]);
   assert.deepEqual(overrideKeysOf("src/domains/core/userProfile/extensionPoints.ts", "profileDefinitions"), ["tags", "searchFields", "audit"]);
   assert.deepEqual(overrideKeysOf("src/lib/cron/extensionPoints.ts", "cronTasks"), ["schedule", "disabled"]);
-  // 登録の上書き(entities/<登録名>/entity.override.ts)は登録表の行の access を丸ごと差し替える鍵 apiAccess だけ
-  assert.deepEqual(overrideKeysOf("src/lib/domain/extensionPoints.ts", "entities"), ["apiAccess"]);
+  // 登録の上書き(entities/<登録名>/entity.override.ts)は登録表の行の access を丸ごと差し替える鍵 apiAccess と、
+  // その登録の cache の宣言を丸ごと差し替える鍵 cache(D353)
+  assert.deepEqual(overrideKeysOf("src/lib/domain/extensionPoints.ts", "entities"), ["apiAccess", "cache"]);
 });
 
 test("実リポ: overrides の点は受け口の一覧に入らない(writer の点と同じく isListPoint が false)", () => {
