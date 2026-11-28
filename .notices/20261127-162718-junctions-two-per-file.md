@@ -4,6 +4,7 @@ date: 2026-11-27T16:27:18+09:00
 severity: action-required
 checkpoint: junctions-two-per-file
 fixes: 20261127-152752-junction-registration
+pick: -
 resolves: 20261127-162430-junctions-tool-two-per-file
 change: .notices/20261127-152752-junction-registration.junctions.mjs: when one owner's hand-written drizzle.ts holds two or more junction tables, each move now starts from the text the previous move left (before, every move re-read the original file and the last one overwrote the others, leaving the earlier table statements in the owner's file); all moved statements leave the owner's file and the imports none of them use any more are removed
 why: a fork whose owner file had two junctions (oripa-do: prizeItem ToPrizeTag / ToPrizeBadge, userPlayRestriction ToUser / ToGachaMachine) got the tables exported twice (owner file and new entities/<junction>/drizzle.ts) and typecheck TS2308
