@@ -16,20 +16,18 @@ use: every rule below follows from these three laws | a question no rule covers 
 ## THIS_FILE
 > **HEART**: CLAUDE.md and core/ are the heart of this framework: every session starts from them → change a rule only with care, through the authoring ladder (core/design.md)
 > - CLAUDE.md and core/ change only after the human approves, every character (a typo included) | without approval: cards, READMEs, service files (core/design.md authoring)
-> - each rule item here (pointers aside) restates the same key of its source (a core file, or a card for an item rule) → change the source first, then the matching CLAUDE.md line in the same commit
-> - a design rule needed before any file is opened that no core file or card holds (the layers, placement, docs) has CLAUDE.md as its source
-> **WRITING**: writing CLAUDE.md, a rule file or a card → core/design.md (format, size lines, approval, usual path) | terms → core/terms.md (generated from scripts/workflow/terms/terms.json)
+> - each rule item here (pointers aside) restates the same key of its source (a core file, or a card) → change the source first, then the CLAUDE.md line in the same commit | a rule needed before any file is opened that no core file holds has CLAUDE.md as its source
+> **WRITING**: CLAUDE.md, a rule file or a card → core/design.md | terms → core/terms.md
 > **ROLE**: CLAUDE.md = the entrance to the contract this framework shares with every downstream repo = the essence of core/ (core/ + Tier1 item cards = the canon) | NEVER edit it downstream (gap → /order next-starter) | "fork" = any repo with a parent, middle tiers included
-> - words: Tier1 = the top repo (next-starter) | upstream = the direct parent (a rule that means only the top repo says Tier1) | approval item = a change the human approves before it is made: every CLAUDE.md or core/ change, and the items of core/design.md authoring approval
+> - words: Tier1 = the top repo (next-starter) | upstream = the direct parent (a rule that means only the top repo says Tier1) | approval item = a change the human approves before it is made (core/design.md authoring approval)
 > **CORE**: core = what Tier1 ships and owns, one meaning everywhere = the paths of CORE_FILES core | a fork never edits it; it changes it only through CHANGE_TYPES or /order <direct parent> (with a temporary permit while it waits)
 > **PRIORITY**: a context line marked `(priority)` (with the lines indented under it) wins over an unmarked line it contradicts | both marked → the nearer file wins, neither → the wider | reading only: never changes checks, ownership, settings or permissions | → core/design.md priority
 
 ## DOMAINS_AND_FEATURES (the second law at work: what exists, what opens, what closes)
 domain_unit: a domain = the unit of design = src/domains/\<domain\>/ | a domain has no switch of its own | what a domain holds and how it is made → DOMAINS
 feature_gate (MANDATORY): a feature = the unit a project switches on or off = a rule src/featureGate/rules/\<name\>.ts listing the domains it opens (fork values src/config/featureGate/switches.config.ts) | a domain is open while any open feature lists it | a closed feature → its own paths 404 | a domain no open feature lists → its tables, generic API and cron close
-- always-open: a domain declared so (`export const alwaysOpen = true` in its extensionPoints.ts), never listed by a rule | src/featureGate holds feature definitions only, no domain parts | what it alone may do, its checks → core/proxy.md feature_gate always_open
-- dependencies: a feature on a feature → dependsOn (nested URL → dependsOn parent) | a feature on a domain's value → when: <domain>.<name> (AND; a top-level boolean export of that domain's config.ts), never a domain import | code outside a gated domain that uses it → wrap with the gate (requires / gate / required)
-- new route / feature → its rule, 1 URL = 1 feature (a varying segment = * in pathPatterns, never built from a domain's values) | read the gate only via gate / useGate | unused upstream page → close its feature | pnpm ops features list|set | ref: src/featureGate/README.md, detail → core/proxy.md
+- always-open: a domain declared so (`export const alwaysOpen = true` in its extensionPoints.ts), never listed by a rule | src/featureGate holds feature definitions only
+- a new route → its rule, 1 URL = 1 feature | read the gate only via gate / useGate | unused upstream page → close its feature | code outside a gated domain that uses it → wrap with the gate | dependsOn, when:, pnpm ops features → core/proxy.md feature_gate
 district_map: what exists and what each district holds → src/lib/districtMap (list src/registry/district-map.jsonl, generated, never imported from src) | district kinds (7: domains, lib, frame, featureGate, registry, wiring, proxies) and what each may do → src/lib/districtMap/kinds.mjs (KINDS) | what closes → src/featureGate
 - gateless: only domains have a gate | a district of another kind imports no domain (values or types): what it needs is passed in through its points (lint import-boundaries/district-no-domains, error) | it reads generated lists only, never another wiring file
 
@@ -45,36 +43,25 @@ use: a step a rule assigns to a tool (a push → /sluice, a generated file → i
 ## REPO_LINK (one loop links the repos: ship → take in → order → answer → resolves; detail → core/notices.md)
 loop: /sluice (a notice when downstream must follow) → downstream takes it with /flux, segment by segment → what is missing → /order \<to\> → the receiver answers with /inbox (/wen checks yours) → the notice shipping it says resolves: and the permit and provisional rule end
 ship (MANDATORY): every commit + push = /sluice (checks, notice, commit, push) | which kind and when → .claude/skills/sluice/SKILL.md | a fix to a shipped change → delivery
-delivery: a new notice | a shipped notice's body edited (description fix) | a hotfix (below) | no index: the list is the git history | → core/notices.md delivery
-safe_point: the tag on a pushed commit where the full checks passed (/sluice --safe) = the only periodic full check, never add another | a mark, never a gate: prod deploys print whether they stand on a safe point and never stop | → core/notices.md safe_point
-hotfix: a fix the human calls urgent (their words only, never your judgment) = /sluice hotfix → forks take it before every other segment | → core/notices.md hotfix
+hotfix: a fix the human calls urgent (their words only, never your judgment) = /sluice hotfix | → core/notices.md hotfix
 notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit (MANDATORY, deleting / moving a file forks may extend too) | a key of CLAUDE.md, a core file or a card renamed, moved or removed → old → new in it | → core/notices.md notice
-checkpoint (MANDATORY on every notice): `checkpoint: <label>` = a segment boundary the author declares | `checkpoint: -` only when the fork cannot work without the next notice
-git_shape: main's first-parent is one line (unit-of-work merges may stay, never main merged into a work line; a segment's notice sits on that line) | → core/notices.md git_shape
-take_in: /flux (recommended, not required: segment checks, ownership check and notice steps together)
-relay: a mid tier's /flux judges per segment whether each applied upstream notice needs relaying | its unjudged-relay report ≠ 0 = flux not done | → core/notices.md relay
+- checkpoint (MANDATORY on every notice), resolves (MANDATORY when shipping an order a downstream repo filed), delivery, safe_point (the only periodic full check, never add another; a mark, never a gate), git_shape, relay → core/notices.md (same keys)
 orders: /order \<to\> files a one-off order into that repo's inbox | a parent's code (missing intake point, its lib, an upstream bug) → the direct parent + a temporary permit meanwhile
 - to: a contract change or gap (CLAUDE.md, a core file, a Tier1 card, an approval item) → next-starter, straight from any tier | a middle tier's own rule → that repo | inbox place and steps → core/notices.md orders
 - contract_gap: while waiting, a provisional rule in your own rules (outside core) ending with `(order: <id>)`
-resolves (MANDATORY when shipping an order a downstream repo filed): `resolves: <order id>` in the notice → the fork's temporary permit and its `(order: <id>)` provisional rules end (/flux asks) | → core/notices.md resolves
 fork_bootstrap: /fork-init right after clone | spec: docs/setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md
 
-## RULES_FILES (.claude/rules/: what each place holds, who writes it, merge | core/\<name\>.md = .claude/rules/core/\<name\>.md, items/… = .claude/rules/items/…)
-core/: upstream architecture canon, one file per kind of file being written, path-scoped (loads when Read / Write / Edit touches a matching file, a new file only after its first Write) | only Tier1 writes (fork_ownership) | map and authoring ladder: core/design.md | writing .claude/skills/** → core/skills.md
-items/<lib|domains|components>/<name>.md: item card (what / use / change / rules / read), paths = the item's folder (+ its config and receptacle places) | each repo writes plain-named cards for its own items, Tier1 cards never edited downstream | → core/design.md cards
-- reach: a card loads only where its item's folder (+ config, receptacles) is touched → read it before using the item elsewhere | a rule every user of a layer needs stays in core/ and here
-service/<business>.md: business overview of a tier that defines a business (domains, relations, flows, terms), always loaded | written by that tier, never edited below (check) | not src/business (= business identity values)
-lineage.md: rules a tier passes to its downstream, one section per tier, never edit an ancestor's section (→ /order <its owner>) | ref: lineage.md preamble
+## RULES_FILES (.claude/rules/ | core/\<name\>.md = .claude/rules/core/\<name\>.md, items/… = .claude/rules/items/… | each place → core/design.md)
+core/: upstream architecture canon, one file per kind of file being written, loaded by its paths (a new file after its first Write) | only Tier1 writes | map and authoring ladder: core/design.md
+items/<lib|domains|components>/<name>.md: item card, loads only where its item's folder (+ config, receptacles) is touched → read it before using the item elsewhere | each repo writes cards for its own items, never a Tier1 card downstream
+service/<business>.md: business overview of a tier that defines a business, always loaded, never edited below | lineage.md: rules a tier passes downstream, one section per tier, never edit an ancestor's section (→ /order <its owner>)
 own_rules: in .claude/rules/ outside core/, plain names, never restate core | Tier1's own rule files = core/, items/ and its self files
-self_files (CHANGE_TYPES 5): .claude/rules/project.md (overview + tier-only info), .claude/rules/behavior.md (work rules), .claude/rules/shortcuts.md (keyword shortcuts), repo.json (machine values, written only through its command, read only via forkIds.mjs) | → core/design.md self_files
-- also self: root code configs (read the core body), vercel.json (only a repo that deploys to Vercel), backend-selection.json (the backend selection table)
+self_files (CHANGE_TYPES 5): .claude/rules/project.md (overview), behavior.md (work rules), shortcuts.md (keyword shortcuts), repo.json (machine values, written only through its command, read only via forkIds.mjs), root code configs, vercel.json, backend-selection.json | → core/design.md self_files
 
 ## CHANGE_TYPES (the only five ways to change what a parent owns: the owner declares, the repo below uses)
 types: 1 replace = switch \<name\>.ts → \<name\>.default, fork \<name\>.replace (a screen: a plain _components/\<X\>Screen.tsx, no mark; a frame: _layout/\<Layout\>.replace) | 2 override = \<target\>.override.ts, declared keys only | 3 add = an item in your own plugs/\<point\>/ | 4 counterpart = src/styles/, src/config/ | 5 self = same path, each repo writes its own version (self_files)
-- marks = .default / .replace / .override only, the owner's files are plain | upstream ships no \<target\>.override.ts (the config values file of src/config/** is type 4, CORE_FILES config) | per path → pnpm workflow ownership who | detail → core/change.md
-- 5 self: your own version, or the parent's as is | take-in: always keep yours, port the parent's diff by hand in a separate commit, only what fits (vercel.json: then only its crons are rebuilt) | a take-in that drops your lines → /flux asks | → core/change.md 5 self
-upstream_side: a repo makes its own thing changeable below only by declaring it: 1 a \<name\>.default beside a plain 1-line switch | 2 the keys an override may set (overrideOf / overrides) | 3 a receptacle in its extensionPoints.ts | 4 a counterpart for values | two levels, one reader → core/receptacles.md
-- 5 self: nothing to declare, the list of self files is closed and only Tier1 extends it | a new repo.json key gets a reader default, a required one ships a notice + migration tool
+- marks = .default / .replace / .override only, the owner's files are plain | per path → pnpm workflow ownership who | 5 self take-in: keep yours, port the parent's diff by hand | → core/change.md
+upstream_side: a repo makes its own thing changeable below only by declaring it (1 .default + 1-line switch | 2 override keys | 3 a receptacle in its extensionPoints.ts | 4 a counterpart) | 5 self: only Tier1 extends the list | a new repo.json key gets a reader default, a required one ships a notice + migration tool → core/receptacles.md, core/change.md
 design_check: before building a new lib, domain, mechanism, config or file place (any tier) → name the change type (1-5) or upstream-only of every place a repo below writes or changes in it, declared as upstream_side says | none fits → do not build it: change the design, or a new type as an approval item
 - never a place named after a repo: repo-named records are not a model (→ core/ownership.md repo_records)
 order: 1 a public means is enough → use it | 2 one of the five types at a declared point | 3 none → /order <direct parent> + temporary permit | never invent another way (fork-name marks, keep-own merge settings, edits outside intake points without a permit)
@@ -105,27 +92,22 @@ client_layer: client HTTP code lives in src/lib/** or services/client/** (axios 
 domains/\<domain\>/: components/{Admin*/, common/} | entities/\<reg\>/ (entity.json, {schema,form,model,drizzle}.ts) + collectors | services/{client/, server/{\<reg\>Base, wrappers/, \<reg\>Service}} | hooks/ | constants/, types/, \<reg\>Presenters.ts, domain.json | plugs/\<point\>/ = the items it plugs into points (messages, adminBulkActions too); directly under the domain only its definition
 shared_src: components (index: src/components/README.md), hooks, utils, config | the districts lib, featureGate, registry, wiring, proxies sit flat under src/ (only Tier1 adds one of the last 4; fork mechanisms → lib, business → domains) | layout frame parts are not shared_src: they live beside their layout in src/app/\<route\>/_layout/
 code_generation: entity.json `generate` (per registration, default true) = forge / pnpm generate domain rewrites that registration's files, hand logic in wrappers/ + write-once files | a generated file to hand-edit → `"generate": false` | → core/generated.md
-stores (zustand): app-wide mechanism → closed lib src/lib/\<name\>/ (no src/stores) | domain-specific → domains/\<domain\>/stores/ | one-frame-only → app/\<route\>/_layout/stores/ | structure and rules → core/client.md
+stores (zustand): app-wide → a closed lib (no src/stores) | one domain → domains/\<domain\>/stores/ | one frame → app/\<route\>/_layout/stores/ | → core/client.md
 naming: components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: camelCase.ts | entities: lowercase files, PascalCase types | routes: kebab-case or (group) | constants: UPPER_SNAKE_CASE | index.ts: re-export only | no same-name .ts + .tsx in one folder (tsc skips the .tsx, pnpm check rules)
-db_identifiers: PostgreSQL names ≤ 63 chars | drizzle's auto FK name may be truncated and collide → short names or a named FK | → core/db.md db_identifiers
+db_identifiers: PostgreSQL names ≤ 63 chars, short names or a named FK → core/db.md db_identifiers
 
 ## DOMAINS (what a domain is and how it opens → DOMAINS_AND_FEATURES)
-core_domains: src/domains/core/ = domains Tier1 ships (forks change them only through CHANGE_TYPES, fork_ownership) | business = all a fork or mid tier adds (src/domains/\<domain\>/) | a domain Tier1 adds is core (business shape example: src/domains/sample) | promotion to core = Tier1's call | hand-written vs generated is not part of the definition
-- index: src/domains/core/README.md | imports omit core/ (@/domains/\<coreDomain\>/* → domains/core/)
+core_domains: src/domains/core/ = domains Tier1 ships (forks change them only through CHANGE_TYPES) | business = all a fork or mid tier adds (src/domains/\<domain\>/, shape example src/domains/sample) | a domain Tier1 adds is core, promotion = Tier1's call | index: src/domains/core/README.md | imports omit core/ (@/domains/\<coreDomain\>/*)
 - more data on an upstream domain's records → a table in your own domain, or /order <direct parent> | never a DB column on an upstream domain's table (core/db.md upstream_tables)
 business: src/domains/\<domain\>/ with its declaration → pnpm generate domain, or its registrations with `"generate": false` (hand-written files, read alike) | before creating or editing a domain.json or entity.json → MUST read src/domains/README.md | writing them / role / profile → core/domain-definition.md
 - declaration: domain.json = the domain (label) + entities/\<registration\>/entity.json per table | statements of no table → types/, constants/ | → core/domain-definition.md declaration
-commands: write domain.json / entity.json / *.role.json / *.profile.json by hand (no interactive builders) → `pnpm forge` (every generator and check in order, prints the db:push step) | steps and phases → core/domain-definition.md commands
-- single steps: pnpm generate domain -- \<Domain\> [--only \<categories\>] | --delete \<Domain\> --confirm \<snake_name\> | `-i` (interactive) never in agent work, CI or notices
-schema_registry (MANDATORY): src/registry/schemaRegistry.ts = the only push entry (pnpm db:push), generated whole by pnpm generate registry | new table → pnpm generate registry + a notice with `[user-run] db:push` | unregistered = never created, writes fail silently | → core/db.md
-service_registry (MANDATORY): serviceRegistry = the one way to resolve a domain name ↔ service / table / id column (never a per-domain map) | server callers → src/wiring/domainRegistry.ts, a lib takes the registry passed in | → core/api-routes.md lookup
-push_roundtrip (MANDATORY when adding/changing an index): after `pnpm db:push` (who runs it = repo.json agent.db_push), `pnpm db:push:check` must report zero statements (a read-only DB check, not a code check: the agent may run it)
-- never `sql\`${col} DESC\`` (use .desc()) or plain columns mixed with sql expressions in one index | push may lock tables → maintenance / low traffic | → core/db.md
-setting (core): admin changes it while running = setting, fixed at deploy or structural = config | values that mean nothing apart are one key with parts | keys and sections → items/domains/setting.md
-- each key has one home per repo: the admin + DB by default, or code when listed in the setting config's codeValues (→ items/domains/setting.md code_values) | no other switch
+commands: write domain.json / entity.json / *.role.json / *.profile.json by hand → `pnpm forge` (prints the db:push step) | single steps, never `-i` → core/domain-definition.md commands
+schema_registry (MANDATORY): src/registry/schemaRegistry.ts = the only push entry, generated by pnpm generate registry | new table → a notice with `[user-run] db:push` | unregistered = never created, writes fail silently | → core/db.md
+service_registry (MANDATORY): serviceRegistry = the one way to resolve a domain name ↔ service / table / id column, never a per-domain map → core/api-routes.md lookup
+push_roundtrip (MANDATORY when adding/changing an index): after `pnpm db:push`, `pnpm db:push:check` reports zero statements (a DB read the agent may run) | index forms → core/db.md
+setting (core): admin changes it while running = setting, fixed at deploy or structural = config | one home per key (admin + DB, or codeValues) → items/domains/setting.md
 field_types: a fieldType's meaning = only the table src/lib/domain/fields/fieldTypes.mjs | never compare or list fieldType names outside it (lint field-type-guard: error in Tier1, warn in forks) | → core/domain-definition.md field_types
-domain_config: client = \<domain\>/entities/display.ts domainDisplay, never the declaration (lint client-no-domain-json) | server: one domain = its entities/\<registration\>/entity.json + normalizeEntityDeclaration, all domains = @/wiring/domainConfig | → core/components.md domain_config
-config_utils: src/lib/domain/ (extractFields, getRelationsOf and the other *Of functions take a domain copy; client index.ts, server server.ts)
+domain_config: client = \<domain\>/entities/display.ts, never the declaration (lint) | server = @/wiring/domainConfig | → core/components.md domain_config | helpers src/lib/domain/ → core/domain-definition.md config_utils
 inspect: DB / Firestore investigation → pnpm ops db inspect | pnpm ops firestore inspect (usage: scripts/README.md)
 
 ## BACKENDS (DB, Firebase, servers; detail → core/backends.md)
@@ -147,7 +129,7 @@ fork_ownership (check: pnpm workflow ownership check, run by /flux after each se
 - base = merge-base with the direct parent | parent-owned (in the base): write only inside intake points, never delete / move / rename (a `_` prefix too) | a file added inside an upstream unit, or under src/domains/core/, src/featureGate/ or core/ outside a receptacle = violation (units → core/ownership.md)
 - multi-tier: strict only for files in the Tier1 version (a middle tier's files may change below it, except an ancestor's .default and service/) → core/ownership.md fork_ownership
 - edit outside the intake: an intake point exists → move there | none (incl. upstream bug / perf / security fixes) → /order <direct parent> + temporary permit in .fork-ownership/\<repo_id\>.permits.txt (rules → core/ownership.md) | debt rows of intake.txt → permit with that row's order id
-fork_core_edit_compat (while a permit lets a fork edit a parent-owned file): stay compatible with upstream callers: added props/args optional, never delete parent code or change a name or an argument shape (→ /order <direct parent>) | → core/ownership.md
+fork_core_edit_compat (a permitted edit of a parent-owned file): added props/args optional, never delete parent code or change a name or an argument shape | → core/ownership.md
 
 ## FORK_EXTENSION (copying a parent's parts)
 principle: a fork may build any look and any capability | it does not copy behavior it does not change | new capabilities and calling public services or Factories are not copying | a shared part lacks a behavior you need → /order <direct parent> (your own build meanwhile may carry an instead-of mark)
@@ -166,26 +148,24 @@ features: features, domains and the gate → DOMAINS_AND_FEATURES feature_gate
 
 ## API_ROUTES
 required: every API route is one Factory call, authz enforced structurally (the list → core/api-routes.md factories) | before writing a route → read src/lib/routeFactory/README.md | imports, generic access, presets → core/api-routes.md
-ownership_routes: user-owned ("self only") → createMeRoute (/api/me/**), scoped by ctx.user, never a client-supplied id | generic /api/[domain] stays admin-only | shared kiosk / store device → pairedDevice (createDeviceRoute, scope from `device.scope`)
-- → core/api-routes.md route_access
+ownership_routes: user-owned ("self only") → createMeRoute (/api/me/**), scoped by ctx.user, never a client-supplied id | generic /api/[domain] stays admin-only | a shared device → createDeviceRoute (scope from `device.scope`) | → core/api-routes.md route_access
 principal: handlers use ctx.user only | access = public | authenticated | {roles, roleCategories} (+ allowStatuses), no self-guarded route
 
 ## ROLES & PAGE_GUARD
 roles: core roles (admin, user, debugger) cannot be deleted or disabled by a fork | added roles = *.role.json → pnpm forge | a fork changes values only in \<json name\>.override.ts | an unused added role → enabled:false | ref: items/domains/user.md
-page_guard: range policy = guard.ts beside the layout (child narrows only), layout = `<Guard fallback={<ScreenWait />}>` around its content (never awaits the guard), no loading.tsx (waiting = createScreen and the Guard) | ranges: admin/(protected) | (user)/(protected) | debug/ | every page loader = nearest guard.ts createLoader({ access, … }) | never re-implement guards | → core/screens.md range
+page_guard: range policy = guard.ts beside the layout (child narrows only) | ranges: admin/(protected) | (user)/(protected) | debug/ | every page loader = nearest guard.ts createLoader({ access, … }) | never re-implement guards | layout, waiting → core/screens.md range
 
 ## SCREENS (page layer that downstream replaces without editing core)
 before adding or replacing a page, frame layout, Screen or loader → read src/lib/screens/README.md
 route_groups (access comes from each range's guard.ts, never the folder name): (user)/(protected) = login | (user)/(public) | (user)/(auth) = login / signup | (user)/(legal) | (marketing)/ = landing outside the user layout | admin/ | debug/ | ref: src/app/README.md
-route: page.tsx = 1-line switch (default + generateMetadata) → _screen/\<Name\>Screen.tsx = createScreen({ load, render }) of @/wiring/screen (server, default) + _screen/loader.ts | 1 route = 1 Screen | a fork replaces it by copying to _components/\<X\>Screen.tsx, keeps calling the upstream loader, points page.tsx at it, never edits _screen/ (CHANGE_TYPES, FORK_EXTENSION) | → core/screens.md
+route: page.tsx = 1-line switch → _screen/\<Name\>Screen.tsx (createScreen) + _screen/loader.ts | 1 route = 1 Screen | a fork copies it to _components/\<X\>Screen.tsx, keeps the upstream loader, points page.tsx at it, never edits _screen/ | → core/screens.md
 
 ## COMPONENTS
 placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ (a domain's part shown in a frame → that domain's plugs/, at the frame's named point) | one domain: section container → domains/\<domain\>/components/\<Name\>, shared part → …/components/common/ | ref: src/components/README.md
 - page-only: a default Screen's own part (and a route the repo creates itself) → app/\<route\>/_screen/ | a fork's page-only part of an upstream route it replaces → app/\<route\>/_components/
 core_ui: core domains ship UI as fine-grained public parts (data / flow = hooks, display = props-only parts) composed into default containers | import only a part's entry, never a file inside (lint) | improve freely, breaking change → notice
 - fork changes UI: text / icons / colors → config | compose in the route Screen (_components/) from core parts + hooks, copy a container only as FORK_EXTENSION allows | missing value prop → /order <direct parent>
-essentials: structure and text → components/ wrappers, raw tags only for decoration or effects with no wrapper | lists = InfiniteScrollList + useInfiniteScrollQuery (growing = cursor mode) | every background request shows loading | ui_layers: page (h1, no hooks) → section container (hooks) → part
-- → core/components.md wrappers, async_feedback, ui_layers
+essentials: structure and text → components/ wrappers, raw tags only for decoration or effects with no wrapper | lists = InfiniteScrollList + useInfiniteScrollQuery | every background request shows loading | ui_layers: page → section container (hooks) → part | → core/components.md
 admin_bulk_actions: admin list bulk actions = receptacle items \<domain\>/plugs/adminBulkActions/\<name\>.tsx, never hand-written bulkActions in a Table → items/lib/tableSuite.md
 existing_parts: before building a loading, table, selection, paging, overlay or tabs part → Read core/components.md existing_parts | your own build stays allowed (instead-of mark optional)
 overlays: src/components/Overlays/ (which one → core/components.md existing_parts, overlay) | never a raw Primitives/Dialog
